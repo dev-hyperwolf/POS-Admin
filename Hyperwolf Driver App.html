@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hyperwolf Driver + POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body { font-family:"Inter",-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; background:#050505; }
+  #root { height:100%; }
+  ::-webkit-scrollbar { width:0; height:0; }
+  input::placeholder, textarea::placeholder { color:rgba(128,128,120,.7); }
+  button { font-family:inherit; }
+  a { color:inherit; }
+  @keyframes fade { from { opacity:0; } to { opacity:1; } }
+  @keyframes hwspin { to { transform: rotate(360deg); } }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes hwscan { 0%,100% { transform: translateY(-92px); } 50% { transform: translateY(92px); } }
+  @keyframes hwfloat { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(20px,26px) scale(1.12); } }
+  @keyframes hwtap { 0%,100% { transform: scale(1); } 50% { transform: scale(1.28); } }
+  @keyframes hwring { 0%,100% { box-shadow: 0 0 0 3px var(--hw-accent,#FFD100), 0 0 0 4000px rgba(0,0,0,.34); } 50% { box-shadow: 0 0 0 6px var(--hw-accent,#FFD100), 0 0 0 4000px rgba(0,0,0,.34); } }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0D0D0A">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0D0D0A"/>
+    <rect x="520" y="290" width="160" height="220" rx="30" fill="#0D0D0A" stroke="#FFD100" stroke-width="6"/>
+    <rect x="556" y="330" width="88" height="60" rx="10" fill="#FFD100"/>
+    <text x="600" y="378" font-family="Inter, system-ui, sans-serif" font-size="44" font-weight="800" fill="#0D0D0A" text-anchor="middle">HW</text>
+    <text x="600" y="590" font-family="'JetBrains Mono', monospace" font-size="26" font-weight="700" letter-spacing="6" fill="#8a8a80" text-anchor="middle">DRIVER + POS</text>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script src="shared/app-nav.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="pos/tokens.jsx"></script>
+<script type="text/babel" src="pos/icons.jsx"></script>
+<script type="text/babel" src="pos/atoms.jsx"></script>
+<script type="text/babel" src="shared/app-rail.jsx"></script>
+<script type="text/babel" src="pos/data.jsx"></script>
+<script type="text/babel" src="mobile/ios-frame.jsx"></script>
+<script type="text/babel" src="mobile/store.jsx"></script>
+<script type="text/babel" src="mobile/data.jsx"></script>
+<script type="text/babel" src="mobile/chrome.jsx"></script>
+<script type="text/babel" src="mobile/screens-stub.jsx"></script>
+<script type="text/babel" src="mobile/screen-home.jsx"></script>
+<script type="text/babel" src="mobile/screen-task.jsx"></script>
+<script type="text/babel" src="mobile/screen-appointment.jsx"></script>
+<script type="text/babel" src="mobile/screen-shop.jsx"></script>
+<script type="text/babel" src="mobile/screen-checkout.jsx"></script>
+<script type="text/babel" src="mobile/screen-complete.jsx"></script>
+<script type="text/babel" src="mobile/screen-tips.jsx"></script>
+<script type="text/babel" src="mobile/screen-msg.jsx"></script>
+<script type="text/babel" src="mobile/screen-tour.jsx"></script>
+<script type="text/babel" src="mobile/screen-activity.jsx"></script>
+<script type="text/babel" src="mobile/screen-discrepancy.jsx"></script>
+<script type="text/babel" src="mobile/screen-profile.jsx"></script>
+<script type="text/babel" src="mobile/screen-misc.jsx"></script>
+<script type="text/babel" src="mobile/app.jsx"></script>
+<script src="shared/app-switcher.js"></script>
+<script src="shared/tour-steps.js"></script>
+<script src="shared/tour.js"></script>
+</body>
+</html>

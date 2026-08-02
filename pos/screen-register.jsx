@@ -1,0 +1,724 @@
+// ── Register screen — New Sale (product picker + cart) ─────────────────────
+const useP = window.useP;
+const TAX = 0.0822;
+
+window.RegisterScreen = function RegisterScreen() {
+  const P = useP();
+  const products = window.HW.PRODUCTS;
+  const [cart, setCart] = React.useState(() => [
+  { sku: 'H480PRO1', qty: 1, disc: 0 },
+  { sku: 'F2Q4EN2C', qty: 1, disc: 0 }]
+  );
+  const [customer, setCustomer] = React.useState(window.HW.MEMBERS[2]); // Girish — has points, shows rewards
+  const [guests, setGuests] = React.useState([]); // {name} — grouped under main customer, tracked as referrals
+  const [tab, setTab] = React.useState('products');
+  const [cat, setCat] = React.useState('All');
+  const [smart, setSmart] = React.useState('none'); // (legacy) smart up-sell filter
+  const [brands, setBrands] = React.useState(() => new Set()); // brand multi-select
+  const [q, setQ] = React.useState('');
+  const [pay, setPay] = React.useState('cash');
+  const [discMode, setDiscMode] = React.useState('$');
+  const [showPay, setShowPay] = React.useState(false);
+  const [showCheckIn, setShowCheckIn] = React.useState(false);
+  const [queueOpen, setQueueOpen] = React.useState(true); // committed sliding check-in queue
+  const [showDetails, setShowDetails] = React.useState(false); // member-details dropdown
+  const [chipView, setChipView] = React.useState('bar'); // claimed-customer layout: bar | detailed | compact
+  const [toast, setToast] = React.useState(null);
+
+  const find = (sku) => products.find((p) => p.sku === sku);
+  const add = (p) => setCart((c) => {const e = c.find((x) => x.sku === p.sku);if (e) return c.map((x) => x.sku === p.sku ? { ...x, qty: x.qty + 1 } : x);return [...c, { sku: p.sku, qty: 1, disc: 0 }];});
+  const setQty = (sku, qty) => setCart((c) => qty <= 0 ? c.filter((x) => x.sku !== sku) : c.map((x) => x.sku === sku ? { ...x, qty } : x));
+  const remove = (sku) => setCart((c) => c.filter((x) => x.sku !== sku));
+
+  const lines = cart.map((c) => {const p = find(c.sku);return { ...c, p, total: (p.price - c.disc) * c.qty };});
+  const sub = lines.reduce((s, l) => s + l.total, 0);
+  const tax = sub * TAX;
+  const total = sub + tax;
+  const count = lines.reduce((s, l) => s + l.qty, 0);
+
+  const flash = (m) => {setToast(m);setTimeout(() => setToast(null), 1800);};
+
+  // Load a waiting check-in into the sale (brings their party captured at check-in)
+  const loadCheckIn = (ci) => {
+    const m = window.HW.MEMBERS.find((x) => x.id === ci.memberId) || { name: ci.name, points: 0, type: ci.type, member: ci.member };
+    setCustomer(m);setGuests(ci.guests || []);
+    flash(`${ci.name} loaded${ci.guests && ci.guests.length ? ` \u00b7 ${ci.guests.length} guest${ci.guests.length > 1 ? 's' : ''}` : ''}`);
+  };
+  // Completed new check-in from the modal
+  const onCheckIn = ({ customer: c, guests: g }) => {
+    setCustomer(c);setGuests(g || []);setShowCheckIn(false);
+    flash(`${c.name} checked in${g && g.length ? ` with ${g.length} guest${g.length > 1 ? 's' : ''}` : ''}`);
+  };
+  // Search → select checks the customer in (no separate check-in button needed)
+  const checkInCustomer = (m) => {setCustomer(m);setGuests([]);flash(`${m.name.split(' ')[0]} checked in`);};
+
+  // Smart up-sell filters
+  const SMART = {
+    none: () => true,
+    under5: (p) => p.price <= 5,
+    under10: (p) => p.price <= 10,
+    sale: (p) => !!p.was,
+    highthc: (p) => p.thc != null && p.thc >= 70,
+    bundle: (p) => /pack|5x|all-in|ready/i.test(p.name + p.wt),
+    staff: (p) => ['LDI4DRP', 'GBZ35RR', 'FCF1LRS', 'BBH2JNT'].includes(p.sku)
+  };
+  const list = products.filter((p) =>
+  (cat === 'All' || (cat === 'Deals' ? p.was : p.cat === cat)) && (
+  brands.size === 0 || brands.has(p.brand)) && (
+  !q || (p.name + p.brand).toLowerCase().includes(q.toLowerCase())));
+
+  return (
+    <div style={{ position: 'relative', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      {/* Intake — collapsed search + sliding check-in queue inline */}
+      <div style={{ flex: '0 0 auto', borderBottom: `1px solid ${P.hairline2}`, background: P.surface }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 22px 10px' }}>
+          <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="users" size={13} stroke={1.9} />Waiting {window.HW.CHECKINS.filter((c) => !c.claimedBy).length}</span>
+            <button onClick={() => setShowCheckIn(true)} title="New check-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 96, padding: '14px 8px', border: `1.5px dashed ${P.accentBorder}`, borderRadius: P.r12, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11, fontWeight: 700, transition: 'background .12s, border-color .12s, color .12s' }}
+              onMouseEnter={(e) => {e.currentTarget.style.background = P.accent;e.currentTarget.style.borderColor = P.accent;e.currentTarget.style.color = P.accentInk;}}
+              onMouseLeave={(e) => {e.currentTarget.style.background = P.accentSoft;e.currentTarget.style.borderColor = P.accentBorder;e.currentTarget.style.color = P.mode === 'dark' ? P.accent : '#7A5A00';}}>
+              <span style={{ width: 28, height: 28, borderRadius: 99, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-plus" size={15} stroke={2.2} color={P.accentInk} /></span>
+              New check-in
+            </button>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <WaitingStrip onPick={loadCheckIn} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />
+          </div>
+        </div>
+        {customer &&
+        <div style={{ padding: '0 22px 11px' }}>
+            <CustomerChip customer={customer} guests={guests} setGuests={setGuests} onClear={() => {setCustomer(null);setGuests([]);setShowDetails(false);}} detailsOpen={showDetails} onToggleDetails={() => setShowDetails((o) => !o)} view="detailed" />
+          </div>}
+      </div>
+
+      {/* Member-details dropdown — directly underneath the check-in queue */}
+      {customer && showDetails &&
+      <MemberDetails customer={customer} guests={guests} onClose={() => setShowDetails(false)} />}
+
+
+      {/* Split body */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {/* LEFT — product browser */}
+        <div style={{ flex: '1 1 0', minWidth: 0, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${P.hairline2}` }}>
+          <div style={{ padding: '13px 22px 10px', display: 'flex', flexDirection: 'column', gap: 11, flex: '0 0 auto' }}>
+            {/* Category chips with collapsible product search at the left */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+              <ProductSearch q={q} setQ={setQ} onScan={() => flash('Scanner ready — scan a barcode')} />
+              <div style={{ flex: '0 0 auto' }}><BrandFilter products={products} brands={brands} setBrands={setBrands} /></div>
+              <span style={{ flex: '0 0 auto', width: 1, height: 22, background: P.hairline2, margin: '0 1px' }} />
+              {['All', ...window.HW.CATS].map((c) => {
+                const a = c === cat;
+                const col = window.HW.CAT_COLOR[c] || P.ink2;
+                const isAll = c === 'All';
+                const onColInk = c === 'Deals' ? '#1A1400' : '#fff';
+                const softBg = `color-mix(in srgb, ${col} 15%, ${P.surface})`;
+                const softBorder = `color-mix(in srgb, ${col} 42%, transparent)`;
+                return <button key={c} onClick={() => setCat(c)} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 13px', borderRadius: P.r999, border: `1px solid ${a ? col : softBorder}`, background: a ? col : softBg, color: a ? onColInk : P.ink, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, transition: 'all .12s' }}>
+                  {c}
+                  <span style={{ fontSize: 10.5, fontFamily: P.fontMono, opacity: .7 }}>{isAll ? products.length : window.HW.catCount(c)}</span>
+                </button>;
+              })}
+            </div>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '4px 22px 22px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px,1fr))', gap: 10 }}>
+              {list.map((p) => <ProductRow key={p.sku} p={p} inCart={cart.find((c) => c.sku === p.sku)?.qty} onAdd={() => {add(p);flash(p.name + ' added');}} />)}
+            </div>
+            {list.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: P.inkMute }}>No products match</div>}
+          </div>
+        </div>
+
+        {/* RIGHT — cart */}
+        <CartPane P={P} lines={lines} sub={sub} tax={tax} total={total} count={count} pay={pay} setPay={setPay}
+        setQty={setQty} remove={remove} setCart={setCart} customer={customer} cartSkus={cart.map((c) => c.sku)}
+        onAdd={(p) => {add(p);flash(p.name + ' added');}}
+        discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => setShowPay(true)} />
+      </div>
+
+      {showCheckIn && <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={onCheckIn} />}
+
+      {showPay && <PaymentModal total={total} sub={sub} tax={tax} count={count} customer={customer} onClose={() => setShowPay(false)} onDone={() => {setShowPay(false);setCart([]);flash('Sale complete · receipt printed');}} />}
+
+      {toast && <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: P.ink, color: P.surface, padding: '11px 18px', borderRadius: P.r999, fontSize: 13, fontWeight: 600, boxShadow: P.shadowLg, display: 'flex', alignItems: 'center', gap: 9, zIndex: 60 }}><Icon name="check-circle" size={16} stroke={2} color={P.accent} />{toast}</div>}
+    </div>);
+
+};
+
+// ── Performance ribbon — store + associate net sales & AOV (comment 7) ──────
+function SalesRibbon({ P }) {
+  const S = window.HW.STATS;
+  const a = S.associate;
+  const [per, setPer] = React.useState('day');
+  const aov = a.aov[per];
+  const dl = a.aovDelta[per];
+  const goalPct = Math.min(1, aov / a.goal);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '8px 22px', background: P.surface2, borderBottom: `1px solid ${P.hairline2}`, flex: '0 0 auto', overflowX: 'auto' }}>
+      <RibMetric P={P} icon="shop" label="Store · net today" value={window.HW.fmt.money0(S.storeNetToday)} sub={`${S.storeOrdersToday} orders`} />
+      <span style={{ width: 1, height: 26, background: P.hairline2, flex: '0 0 auto' }} />
+      <RibMetric P={P} icon="user" label={`${a.name.split(' ')[0]} · net today`} value={window.HW.fmt.money0(a.netToday)} sub={`${a.ordersToday} orders`} accent />
+      <span style={{ width: 1, height: 26, background: P.hairline2, flex: '0 0 auto' }} />
+      {/* AOV with period toggle + goal */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 11, flex: '0 0 auto' }}>
+        <div style={{ lineHeight: 1.15 }}>
+          <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>My AOV</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(aov)}</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: dl > 0 ? P.good : dl < 0 ? P.bad : P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{dl > 0 ? '▲' : dl < 0 ? '▼' : '—'}{Math.abs(dl)}%</span>
+          </div>
+        </div>
+        <Seg value={per} onChange={setPer} size="sm" options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Wk' }, { value: 'month', label: 'Mo' }]} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: '0 0 auto' }}>
+          <div style={{ width: 70 }}><BarMeter value={goalPct} color={goalPct >= 1 ? P.good : P.accent} height={5} /></div>
+          <span style={{ fontSize: 10, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>goal {window.HW.fmt.money0(a.goal)}</span>
+        </div>
+      </div>
+      <div style={{ flex: 1 }} />
+      <PBtn variant="ghost" size="xs" icon="chart-line" style={{ flex: '0 0 auto' }}>Full report</PBtn>
+    </div>);
+
+}
+
+function RibMetric({ P, icon, label, value, sub, accent }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: '0 0 auto' }}>
+      <span style={{ width: 26, height: 26, borderRadius: 7, background: accent ? P.accent : P.surface3, color: accent ? P.accentInk : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={14} stroke={1.9} /></span>
+      <div style={{ lineHeight: 1.15 }}>
+        <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, letterSpacing: '-.01em' }}>{value}</span>
+          {sub && <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{sub}</span>}
+        </div>
+      </div>
+    </div>);
+
+}
+
+// ── Customer chip — reflects the party captured at CHECK-IN; managing the
+// party here edits the check-in record (not a mid-sale add). ───────────────
+function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onToggleDetails, view = 'bar' }) {
+  const P = useP();
+  const [open, setOpen] = React.useState(false);
+  const [mode, setMode] = React.useState('named');
+  const goldInk = P.mode === 'light' ? '#7A5A00' : P.accent;
+  const tier = customer.points >= 2000 ? 'Platinum' : customer.points >= 1000 ? 'Gold' : customer.points >= 300 ? 'Silver' : 'Bronze';
+  const tierColor = tier === 'Platinum' ? P.info : tier === 'Gold' ? goldInk : tier === 'Silver' ? P.neutral : P.warn;
+  // Same derivation the details panel uses for avg basket, so the rail and the
+  // expanded panel can never disagree about what this customer spends.
+  const chipLifetime = Math.round((customer.visits || 0) * 58 + (customer.points || 0) * 0.42);
+  const chipAov = chipLifetime / Math.max(1, customer.visits || 1);
+
+  const Avatars = () =>
+  <div style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
+      <Avatar name={customer.name} size={32} crown={customer.member} />
+      {guests.slice(0, 3).map((g, i) => <span key={i} style={{ marginLeft: -10, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface2}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={26} /></span>)}
+    </div>;
+
+  const NameRow = () =>
+  <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>
+      {customer.name}
+      <VisitPill visit={customer.visits} />
+      {guests.length > 0 && <span style={{ fontSize: 9.5, fontWeight: 600, color: goldInk, background: P.accentSoft, padding: '1px 7px', borderRadius: 99 }}>+{guests.length} guest{guests.length > 1 ? 's' : ''}</span>}
+    </div>;
+
+  const Actions = () =>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '0 0 auto' }} onClick={(e) => e.stopPropagation()}>
+      <button onClick={onToggleDetails} title="Member details" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '6px 8px', background: detailsOpen ? P.surface3 : 'transparent', color: P.ink2, border: `1px solid ${detailsOpen ? P.hairline3 : P.hairline2}`, borderRadius: P.r999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+        <Icon name="user" size={13} stroke={1.9} /><Icon name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={12} stroke={2.2} />
+      </button>
+      <button onClick={() => setOpen((o) => !o)} title="Manage check-in party" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: open ? P.accent : P.surface, color: open ? P.accentInk : P.ink2, border: `1px solid ${open ? P.accentBorder : P.hairline2}`, borderRadius: P.r999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+        <Icon name="users" size={13} stroke={2} />Party
+      </button>
+      <IconBtn icon="x" size={13} style={{ width: 26, height: 26 }} onClick={onClear} />
+    </div>;
+
+  const Stat = ({ k, v, color }) =>
+  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, flex: '0 0 auto' }}>
+      <span style={{ fontSize: 8.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{k}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: color || P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{v}</span>
+    </div>;
+
+  const Sub = () => <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>{customer.points} pts · {customer.type}{guests.length > 0 ? ' · sale on main' : ''}</div>;
+  const tierPill = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: tierColor, flex: '0 0 auto' }}><Icon name="crown" size={11} color={tierColor} />{tier.toUpperCase()}</span>;
+  const vDiv = <span style={{ flex: '0 0 auto', width: 1, height: 26, background: P.hairline2 }} />;
+
+  let body;
+  if (view === 'compact') {
+    body =
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '5px 8px 5px 6px', background: P.surface2, border: `1px solid ${guests.length ? P.accentBorder : P.hairline2}`, borderRadius: P.r999 }}>
+        <Avatars />
+        <div style={{ lineHeight: 1.2 }}><NameRow /><Sub /></div>
+        <Actions />
+      </div>;
+  } else if (view === 'detailed') {
+    body =
+    <div onClick={onToggleDetails} title="Click to view full member details" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '9px 14px', background: detailsOpen ? P.surface3 : P.surface2, border: `1px solid ${detailsOpen ? P.hairline3 : guests.length ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, width: '100%', cursor: 'pointer' }}>
+        <Stat k="Points" v={customer.points.toLocaleString()} />
+        <Stat k="Visits" v={customer.visits} />
+        <Stat k="Avg order" v={window.HW.fmt.money(chipAov)} />
+        <Stat k="Wallet" v={window.HW.fmt.money(customer.wallet || 0)} color={customer.wallet > 0 ? P.good : P.ink} />
+        <Stat k="Phone" v={customer.phone} />
+        <div style={{ flex: 1 }} />
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: P.inkDim, flex: '0 0 auto' }}>{detailsOpen ? 'Hide' : 'Details'}<Icon name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={13} stroke={2.2} /></span>
+        {vDiv}
+        {/* Customer identity moved to the right so it sits above the cart (comment) */}
+        <Avatars />
+        <div style={{ minWidth: 0, textAlign: 'right' }}><NameRow /><div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{customer.email}</div></div>
+        <Actions />
+      </div>;
+  } else {
+    body =
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 14px', background: P.surface2, border: `1px solid ${guests.length ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, width: '100%' }}>
+        <Avatars />
+        <div style={{ minWidth: 0 }}><NameRow /><Sub /></div>
+        <div style={{ flex: 1 }} />
+        {tierPill}{vDiv}
+        <Actions />
+      </div>;
+  }
+
+  return (
+    <div style={{ position: 'relative', width: view === 'compact' ? 'auto' : '100%' }}>
+      {body}
+      {open && <>
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 50 }} />
+        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 320, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, padding: 14, zIndex: 51 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <Icon name="user-check" size={15} stroke={1.9} color={P.ink2} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap' }}>Manage check-in party</span>
+          </div>
+          <p style={{ margin: '0 0 12px', fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>Editing the party for <b style={{ color: P.ink2 }}>{customer.name.split(' ')[0]}</b>’s check-in. Guests are added at check-in and tracked as referrals.</p>
+          <GuestEditor primaryName={customer.name} guests={guests} onChange={setGuests} />
+        </div>
+      </>}
+    </div>);
+
+}
+
+// ── Brand filter — searchable multi-select with clear-all (replaces up-sell) ─
+function BrandFilter({ products, brands, setBrands }) {
+  const P = useP();
+  const [open, setOpen] = React.useState(false);
+  const [q, setQ] = React.useState('');
+  const allBrands = React.useMemo(() => [...new Set(products.map((p) => p.brand))].sort(), [products]);
+  const shown = allBrands.filter((b) => !q || b.toLowerCase().includes(q.toLowerCase()));
+  const toggle = (b) => setBrands((prev) => {const n = new Set(prev);n.has(b) ? n.delete(b) : n.add(b);return n;});
+  const cnt = (b) => products.filter((p) => p.brand === b).length;
+  const sel = [...brands];
+  const ref = React.useRef(null);
+  const [pos, setPos] = React.useState({ left: 0, top: 0 });
+  const openMenu = () => {const r = ref.current.getBoundingClientRect();setPos({ left: Math.min(r.left, window.innerWidth - 260), top: r.bottom + 6 });setOpen(true);};
+  return (
+    <div ref={ref} style={{ position: 'relative', flex: '0 0 auto' }}>
+      {/* scroller holds the controls; popover lives OUTSIDE it so it isn't clipped */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, overflowX: 'auto', paddingBottom: 1 }}>
+        <button onClick={() => open ? setOpen(false) : openMenu()} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: P.r999, border: `1px solid ${open || brands.size ? P.accentBorder : P.hairline2}`, background: brands.size ? P.accentSoft : P.surface, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+          <Icon name="tag" size={12.5} stroke={1.9} />Brands{brands.size > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: P.accentInk, background: P.accent, padding: '0 6px', borderRadius: 99, fontFamily: P.fontMono }}>{brands.size}</span>}<Icon name="chevron-down" size={12} stroke={2.2} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+        </button>
+        {sel.map((b) =>
+        <button key={b} onClick={() => toggle(b)} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: P.r999, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, color: P.ink, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+            {b}<Icon name="x" size={11} stroke={2.2} color={P.inkMute} />
+          </button>)}
+        {brands.size > 0 && <button onClick={() => setBrands(new Set())} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: 'transparent', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="x" size={12} stroke={2} />Clear all</button>}
+      </div>
+
+      {open && <>
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1000 }} />
+        <div style={{ position: 'fixed', left: pos.left, top: pos.top, width: 244, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, padding: 8, zIndex: 1001 }}>
+          <Field icon="search" placeholder="Search brands…" size="sm" value={q} autoFocus onChange={(e) => setQ(e.target.value)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 188, overflowY: 'auto', margin: '8px 0' }}>
+            {shown.map((b) => {const on = brands.has(b);return (
+                <button key={b} onClick={() => toggle(b)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', background: on ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                <Check on={on} onChange={() => toggle(b)} size={16} />
+                <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b}</span>
+                <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{cnt(b)}</span>
+              </button>);})}
+            {shown.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: P.inkMute }}>No brands match</div>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: `1px solid ${P.hairline}` }}>
+            <button onClick={() => setBrands(new Set())} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="x" size={12} stroke={2} />Clear all</button>
+            <PBtn variant="accent" size="xs" onClick={() => setOpen(false)}>Done · {brands.size}</PBtn>
+          </div>
+        </div>
+      </>}
+    </div>);
+
+}
+
+// ── Product search — collapses to an icon, expands inline left of the chips ─
+function ProductSearch({ q, setQ, onScan }) {
+  const P = useP();
+  const [open, setOpen] = React.useState(false);
+  const expanded = open || !!q;
+  if (!expanded) {
+    return (
+      <button onClick={() => setOpen(true)} title="Search products" style={{ flex: '0 0 auto', width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, color: P.ink2, cursor: 'pointer' }}>
+        <Icon name="search" size={17} stroke={1.9} />
+      </button>);
+  }
+  return (
+    <div style={{ flex: '0 0 auto', width: 296 }}>
+      <Field icon="search" placeholder="Search or scan products…" value={q} autoFocus onChange={(e) => setQ(e.target.value)} size="sm"
+      suffix={<div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <button title="Scan barcode" onClick={onScan} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 7, color: P.ink2, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="scan" size={14} stroke={1.9} />Scan</button>
+          <button title="Close search" onClick={() => {setQ('');setOpen(false);}} style={{ display: 'inline-flex', width: 22, height: 22, alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: P.inkMute, cursor: 'pointer' }}><Icon name="x" size={14} stroke={2} /></button>
+        </div>} />
+    </div>);
+}
+
+// ── Customer search — selecting a result checks the customer in ────────────
+// (no dedicated check-in button; searching IS the check-in)
+function CustomerSearch({ onSelect, onNewCheckIn, activeName }) {
+  const P = useP();
+  const [q, setQ] = React.useState('');
+  const [open, setOpen] = React.useState(false);
+  const all = window.HW.MEMBERS;
+  const results = q ? all.filter((m) => (m.name + m.email + m.phone).toLowerCase().includes(q.toLowerCase())) : all.slice(0, 5);
+  const pick = (m) => {onSelect(m);setOpen(false);setQ('');};
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} title="Check in a customer — search name, e-mail or phone" style={{ flex: '0 0 auto', width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, color: P.ink2, cursor: 'pointer' }}>
+        <Icon name="search" size={17} stroke={1.9} />
+      </button>);
+  }
+  return (
+    <div style={{ position: 'relative', flex: '0 0 auto', width: 320, zIndex: 52 }}>
+      <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 50 }} />
+      <div style={{ position: 'relative', zIndex: 53 }}>
+        <Field icon="search" placeholder="Search a customer to check in…" size="sm" value={q} autoFocus onChange={(e) => setQ(e.target.value)} suffix={<button onClick={() => {setQ('');setOpen(false);}} title="Close" style={{ display: 'inline-flex', width: 22, height: 22, alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: P.inkMute, cursor: 'pointer' }}><Icon name="x" size={14} stroke={2} /></button>} />
+      </div>
+      <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, width: 372, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, padding: 8, zIndex: 53 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 6px 8px' }}>
+            <Eyebrow>Check in a customer</Eyebrow>
+            <button onClick={() => {setOpen(false);onNewCheckIn();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="users" size={12} stroke={2} />New + party</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 320, overflowY: 'auto' }}>
+            {results.map((m) => {
+            const isActive = m.name === activeName;
+            return (
+              <button key={m.id} onClick={() => pick(m)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 9px', background: isActive ? P.accentSoft : P.surface, border: `1px solid ${isActive ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                  <Avatar name={m.name} size={30} crown={m.member} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{m.name}<VisitPill visit={m.visits} /></div>
+                    <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.points} pts</div>
+                  </div>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: isActive ? P.inkMute : P.mode === 'light' ? '#7A5A00' : P.accent, whiteSpace: 'nowrap' }}>{isActive ? 'In sale' : 'Check in'}<Icon name="arrow-right" size={13} stroke={2.2} /></span>
+                </button>);
+
+          })}
+            {results.length === 0 &&
+          <button onClick={() => {setOpen(false);onNewCheckIn();}} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 9px', background: P.surface, border: `1px dashed ${P.hairline3}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, color: P.inkDim }}>
+                <span style={{ width: 30, height: 30, borderRadius: 99, background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-plus" size={15} stroke={1.9} /></span>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>No match — check in “{q}” as a new guest</span>
+              </button>}
+          </div>
+        </div>
+    </div>);
+
+}
+
+// ── Check-in queue — committed sliding card layout (merged into New Sale) ──
+function QueueToggle({ open, setOpen }) {
+  const P = useP();
+  const waiting = window.HW.CHECKINS.filter((c) => !c.claimedBy).length;
+  return (
+    <button onClick={() => setOpen((o) => !o)} title="Show / hide check-in queue" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 11px', background: open ? P.surface3 : P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, cursor: 'pointer', fontFamily: P.fontSans }}>
+      <Icon name="users" size={14} stroke={1.9} color={P.ink2} />
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Waiting</span>
+      <span style={{ fontSize: 10.5, fontWeight: 700, color: P.accentInk, background: P.accent, padding: '1px 6px', borderRadius: 99, fontFamily: P.fontMono }}>{waiting}</span>
+      <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+    </button>);
+
+}
+
+function WaitRow({ c, active, onPick }) {
+  const P = useP();
+  const claimed = !!c.claimedBy;
+  return (
+    <button onClick={onPick} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 9px', background: active ? P.accentSoft : P.surface, border: `1px solid ${active ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <Avatar name={c.name} size={30} crown={c.member} />
+        {(c.guests || []).slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -9, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={22} /></span>)}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}<VisitPill visit={c.visit} />{c.guests && c.guests.length > 0 && <span style={{ fontSize: 9.5, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '0 6px', borderRadius: 99 }}>+{c.guests.length}</span>}</div>
+        <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{claimed ? `Claimed · ${c.claimedBy.split(' ')[0]}` : c.type} · {c.wait}</div>
+      </div>
+      <Icon name="arrow-right" size={15} color={P.inkFaint} />
+    </button>);
+
+}
+
+// Visit number badge — 1st / 2nd / 3rd (capped)
+function VisitPill({ visit }) {
+  const P = useP();
+  const ord = window.HW.visitOrdinal(visit);
+  const fg = ord === 1 ? P.ink2 : ord === 2 ? P.info : P.mode === 'light' ? '#7A5A00' : P.accent;
+  const bg = ord === 1 ? P.neutralSoft : ord === 2 ? P.infoSoft : P.accentSoft;
+  return <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.02em', color: fg, background: bg, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontFamily: P.fontSans }}>{window.HW.visitLabel(visit)}</span>;
+}
+
+function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
+  const P = useP();
+  const checkins = window.HW.CHECKINS;
+  const shortWait = (c) => c.waitSec >= 60 ? `${Math.floor(c.waitSec / 60)}m` : `${c.waitSec}s`;
+  return (
+    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+      {checkins.map((c) => {
+        const claimed = !!c.claimedBy;const active = c.name === activeName;
+        return (
+          <div key={c.id} style={{ flex: '0 0 auto', width: 188, border: `1px solid ${active ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, overflow: 'hidden', background: P.surface }}>
+            <div style={{ padding: '7px 10px 6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <div style={{ position: 'relative', flex: '0 0 auto' }}>
+                  <Avatar name={c.name} size={34} crown={c.member} />
+                  {c.guests && c.guests.length > 0 && <span style={{ position: 'absolute', bottom: -3, right: -3, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={window.guestName?window.guestName(c.guests[0]):c.guests[0]} size={18} /></span>}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}{c.guests && c.guests.length > 0 ? <span style={{ color: P.inkMute, fontWeight: 600 }}> +{c.guests.length}</span> : ''}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                    <VisitPill visit={c.visit} />
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, color: claimed ? P.inkMute : P.warn, fontFamily: P.fontMono }}><Icon name="clock" size={10} stroke={2} />{shortWait(c)}</span>
+                    {claimed && <span style={{ marginLeft: 'auto', fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>· {c.claimedBy.split(' ')[0]}</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => onPick(c)} style={{ width: '100%', padding: '5px', background: claimed ? P.surface3 : P.accent, color: claimed ? P.ink : P.accentInk, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              {claimed ? 'Resume' : 'Claim'}<Icon name="arrow-right" size={12} stroke={2.3} />
+            </button>
+          </div>);
+      })}
+    </div>);
+
+}
+
+// ── Member-details dropdown — ID, contact, loyalty, orders, referrals ──────
+function MemberDetails({ customer, guests, onClose }) {
+  const P = useP();
+  const m = customer;
+  const seed = (m.name || '').length + (m.visits || 1);
+  const pick = (arr) => arr[seed % arr.length];
+  const lifetime = Math.round(m.visits * 58 + m.points * 0.42);
+  const memberSince = pick(['Mar 2022', 'Jul 2023', 'Nov 2021', 'Jan 2024', 'Sep 2022']);
+  const dob = pick(['04/14/1991', '09/02/1988', '12/21/1995', '06/30/1983', '02/11/1979']);
+  const idNum = 'CA ' + ('D' + (1700000 + seed * 53129).toString().slice(0, 7));
+  const favCat = window.HW.favCategory(m);
+  const lastVisit = pick(['2 days ago', 'Yesterday', '5 days ago', 'Last week']);
+  const avgBasket = (lifetime / Math.max(1, m.visits)).toFixed(0);
+  const gender = pick(['Female', 'Male', 'Non-binary', 'Female', 'Male']);
+  const isMed = m.type === 'MedicinalUser';
+  const mmic = 'MMIC-' + (25800 + seed * 137).toString().slice(0, 5);
+  const medMd = pick(['Dr. A. Okafor', 'Dr. L. Brandt', 'Dr. S. Patel', 'Dr. R. Nguyen']);
+  const medIssued = pick(['Jan 2026', 'Nov 2025', 'Mar 2026', 'Aug 2025']);
+  const orders = [{ id: '00219', date: 'Jun 8', items: 3, total: 41.0, tag: 'Papa’s Herb · Pre-Rolls' }, { id: '00204', date: 'Jun 1', items: 2, total: 28.5, tag: 'WVY · Flower' }, { id: '00188', date: 'May 24', items: 5, total: 96.2, tag: 'KIVA · Edibles' }, { id: '00171', date: 'May 18', items: 1, total: 15.0, tag: 'Allswell · Flower' }, { id: '00150', date: 'May 9', items: 4, total: 62.4, tag: 'West Coast Cure · Concentrates' }, { id: '00132', date: 'Apr 30', items: 2, total: 33.2, tag: 'AMMO · Vapes' }];
+  const referrals = (guests && guests.length ? guests.map((g)=>window.guestName?window.guestName(g):g) : ['Dev Anand', 'Mia Tran']).slice(0, 4);
+
+  const [lb, setLb] = React.useState(null); // enlarged photo
+  const [ord, setOrd] = React.useState(null); // order details modal
+  const [oq, setOq] = React.useState(''); // smart order search
+  const oList = orders.filter((o) => !oq || (o.id + ' ' + o.date + ' ' + o.tag).toLowerCase().includes(oq.toLowerCase()));
+  const [editing, setEditing] = React.useState(null); // field being edited
+  const addrSeed = pick([
+  { street: '418 Mission Trail', city: 'Wildomar', state: 'CA', zip: '92595' },
+  { street: '92 Diamond Dr', city: 'Lake Elsinore', state: 'CA', zip: '92530' },
+  { street: '5571 Grand Ave', city: 'Lakeland Village', state: 'CA', zip: '92530' },
+  { street: '210 Riverside Dr', city: 'Temescal', state: 'CA', zip: '92883' }]);
+  const [f, setF] = React.useState({ phone: m.phone, email: m.email, street: addrSeed.street, city: addrSeed.city, state: addrSeed.state, zip: addrSeed.zip, exp: pick(['08 / 2027', '03 / 2026', '11 / 2028', '05 / 2027']), medExp: pick(['12 / 2026', '06 / 2027', '09 / 2026']) });
+  const set1 = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  const photos = [
+  { id: 'front', label: 'License · front', hue: 210, glyph: 'card' },
+  { id: 'selfie', label: 'Selfie match', hue: 150, glyph: 'user' },
+  { id: 'med', label: 'Medical card', hue: 90, glyph: 'shield' }];
+
+  const PhotoCard = ({ p2, big }) =>
+  <button onClick={() => !big && setLb(p2)} style={{ position: 'relative', flex: '0 0 auto', width: big ? '100%' : 196, height: big ? 300 : 124, borderRadius: P.r12, overflow: 'hidden', border: `1px solid ${P.hairline2}`, cursor: big ? 'default' : 'zoom-in', padding: 0, background: `linear-gradient(140deg, hsl(${p2.hue} 36% ${P.mode === 'dark' ? '26%' : '78%'}), hsl(${(p2.hue + 30) % 360} 32% ${P.mode === 'dark' ? '18%' : '66%'}))` }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.mode === 'dark' ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.8)' }}>
+        {p2.id === 'selfie' ? <Avatar name={m.name} size={big ? 120 : 56} /> : <Icon name={p2.glyph} size={big ? 80 : 38} stroke={1.4} />}
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', background: 'linear-gradient(transparent, rgba(0,0,0,.45))' }}>
+        <span style={{ fontSize: big ? 12 : 10, fontWeight: 700, color: '#fff', letterSpacing: '.04em' }}>{p2.label}</span>
+        {!big && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 600, color: '#fff', background: 'rgba(0,0,0,.35)', padding: '2px 6px', borderRadius: 99 }}><Icon name="expand" size={10} stroke={2} />Enlarge</span>}
+      </div>
+    </button>;
+
+  const Panel = ({ title, icon, action, children, style }) =>
+  <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, padding: 12, minWidth: 0, ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+        <Icon name={icon} size={13} stroke={1.9} color={P.inkDim} />
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute }}>{title}</span>
+        <div style={{ flex: 1 }} />{action}
+      </div>
+      {children}
+    </div>;
+  const KV = ({ k, v, mono = true }) =>
+  <div style={{ padding: '3px 0' }}>
+      <div style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 1 }}>{k}</div>
+      <div style={{ fontSize: 12, color: P.ink2, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word', lineHeight: 1.3 }}>{v}</div>
+    </div>;
+  // Editable field — pencil to edit inline, save commits
+  const EditKV = ({ k, field, mono = true }) => {
+    const on = editing === field;
+    return (
+      <div style={{ padding: '3px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+          <span style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase' }}>{k}</span>
+          <button onClick={() => setEditing(on ? null : field)} title={`Edit ${k}`} style={{ display: 'inline-flex', width: 18, height: 18, alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: on ? P.ink : P.inkMute, cursor: 'pointer' }}><Icon name={on ? 'check' : 'pencil'} size={12} stroke={2} /></button>
+        </div>
+        {on ?
+        <input value={f[field]} autoFocus onChange={(e) => set1(field, e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setEditing(null)} style={{ width: '100%', marginTop: 2, padding: '5px 8px', border: `1px solid ${P.accentBorder}`, borderRadius: 7, background: P.field, color: P.ink, fontSize: 12, fontFamily: mono ? P.fontMono : P.fontSans, outline: 'none' }} /> :
+        <div onClick={() => setEditing(field)} style={{ fontSize: 12, color: P.ink2, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word', lineHeight: 1.3, cursor: 'text' }}>{f[field]}</div>}
+      </div>);
+
+  };
+
+  return (
+    <div style={{ flex: '0 0 auto', borderBottom: `1px solid ${P.hairline2}`, background: P.surface2, animation: 'fade .15s ease' }}>
+      <div style={{ padding: '13px 22px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+          <Icon name="user" size={15} stroke={1.9} color={P.ink2} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Member details</span>
+          <span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>· {m.name}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ID VERIFIED</span>
+          <div style={{ flex: 1 }} />
+          <PBtn variant="ghost" size="xs" icon="x" onClick={onClose}>Close</PBtn>
+        </div>
+
+        {/* Photo cards — scroll through, click to enlarge */}
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: 11, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 2, flex: 1, minWidth: 0 }}>
+            {photos.map((p2) => <PhotoCard key={p2.id} p2={p2} />)}
+          </div>
+          <div style={{ flex: '0 0 196px', border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, padding: 12, display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: P.inkMute, marginBottom: 8 }}>LICENSE · {idNum}</span>
+            <KV k="DOB" v={dob} />
+            <EditKV k="Expiration" field="exp" />
+            <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <PBtn variant="soft" size="xs" icon="upload" onClick={() => setLb(photos[0])}>Update image</PBtn>
+              <PBtn variant="soft" size="xs" icon="calendar" onClick={() => setEditing('exp')}>Exp</PBtn>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(196px, 1fr))', gap: 12, alignItems: 'start' }}>
+          <Panel title="Contact" icon="phone" action={<span style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600 }}>tap ✎ to edit</span>}>
+            <EditKV k="Phone" field="phone" />
+            <EditKV k="Email" field="email" mono={false} />
+            <EditKV k="Street" field="street" mono={false} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}><EditKV k="City" field="city" mono={false} /></div>
+              <div style={{ flex: '0 0 56px' }}><EditKV k="State" field="state" /></div>
+              <div style={{ flex: '0 0 64px' }}><EditKV k="ZIP" field="zip" /></div>
+            </div>
+            <div style={{ height: 1, background: P.hairline, margin: '7px 0' }} />
+            <KV k="Points" v={m.points.toLocaleString() + ' pts'} />
+            <KV k="Member since" v={memberSince} />
+            <KV k="Lifetime spend" v={window.HW.fmt.money(lifetime)} />
+          </Panel>
+
+          {/* Medical card details (comment 3) */}
+          <Panel title="Medical card" icon="shield" action={isMed ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ACTIVE</span> : <span style={{ fontSize: 9, fontWeight: 700, color: P.inkMute }}>NONE</span>}>
+            {isMed ?
+            <>
+                <KV k="MMIC #" v={mmic} />
+                <EditKV k="Expires" field="medExp" />
+                <KV k="Recommending MD" v={medMd} mono={false} />
+                <KV k="Issued" v={medIssued} />
+                <div style={{ height: 1, background: P.hairline, margin: '7px 0' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: P.good, fontWeight: 600 }}><Icon name="check-circle" size={12} stroke={2} />Tax-exempt (MMIC verified)</div>
+                <div style={{ marginTop: 9 }}><PBtn variant="soft" size="xs" icon="eye" onClick={() => setLb(photos[2])}>View card</PBtn></div>
+              </> :
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '6px 0' }}>
+                <span style={{ fontSize: 11.5, color: P.inkMute, lineHeight: 1.45 }}>No medical card on file. Adult-use customer.</span>
+                <PBtn variant="soft" size="xs" icon="plus">Add medical card</PBtn>
+              </div>}
+          </Panel>
+
+          <Panel title="Orders" icon="receipt">
+            <div style={{ marginBottom: 8 }}><Field icon="search" placeholder="Search order #, brand, product, date…" size="sm" value={oq} onChange={(e) => setOq(e.target.value)} /></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 188, overflowY: 'auto' }}>
+              {oList.map((o) =>
+              <button key={o.id} onClick={() => setOrd({ id: o.id, name: m.name, items: o.items, total: o.total, pay: 'Wallet', badge: m.member ? 'Member' : null })} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>#{o.id}</div>
+                    <div style={{ fontSize: 10, color: P.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.date} · {o.tag}</div>
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(o.total)}</span>
+                  <Icon name="chevron-right" size={14} color={P.inkFaint} />
+                </button>
+              )}
+              {oList.length === 0 && <div style={{ padding: '14px 8px', textAlign: 'center', fontSize: 11.5, color: P.inkMute }}>No orders match</div>}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: P.inkDim }}><span>{m.visits} lifetime orders</span><span style={{ fontFamily: P.fontMono }}>avg {window.HW.fmt.money(avgBasket)}</span></div>
+          </Panel>
+
+          <Panel title="Referrals" icon="link">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 8 }}>
+              <div style={{ display: 'flex' }}>{referrals.map((r, i) => <span key={r + i} style={{ marginLeft: i ? -8 : 0, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={r} size={24} /></span>)}</div>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: P.ink2, marginLeft: 9 }}>{referrals.length} referral{referrals.length > 1 ? 's' : ''}</span>
+            </div>
+            <KV k="Gender" v={gender} mono={false} />
+            <KV k="Favorite" v={favCat} mono={false} />
+            <KV k="Last visit" v={lastVisit} mono={false} />
+            <KV k="Avg basket" v={window.HW.fmt.money(avgBasket)} />
+          </Panel>
+        </div>
+      </div>
+
+      {ord && window.OrderDetails && React.createElement(window.OrderDetails, { o: ord, onClose: () => setOrd(null) })}
+      {lb &&
+      <div onClick={() => setLb(null)} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 30, animation: 'fade .15s ease' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 94vw)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: P.railBright }}>{lb.label} · {m.name}</span>
+              <div style={{ display: 'flex', gap: 7 }}>
+                <PBtn variant="accent" size="sm" icon="upload">Replace image</PBtn>
+                <IconBtn icon="x" size={18} onClick={() => setLb(null)} style={{ color: P.railBright }} />
+              </div>
+            </div>
+            <PhotoCard p2={lb} big />
+          </div>
+        </div>}
+    </div>);
+
+}
+
+function ProductRow({ p, inCart, onAdd }) {
+  const P = useP();
+  const [sheet, setSheet] = React.useState(false);
+  return (
+    <div onClick={() => setSheet(true)} title="View product details" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 10px', background: P.surface, border: `1px solid ${inCart ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, transition: 'border-color .12s', cursor: 'pointer' }}
+      onMouseEnter={(e) => {if (!inCart) e.currentTarget.style.borderColor = P.hairline3;}}
+      onMouseLeave={(e) => {if (!inCart) e.currentTarget.style.borderColor = P.hairline2;}}>
+      <Thumb item={p} size={40} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.brand}</span>
+          <span style={{ fontSize: 10, color: p.qty < 10 ? P.warn : P.inkFaint, fontFamily: P.fontMono, whiteSpace: 'nowrap', flex: '0 0 auto' }}>{p.qty} left</span>
+        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: P.ink, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+          {p.strain && <StrainPill type={p.strain} thc={p.thc} />}
+          {p.wt && <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{p.wt}</span>}
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+          {p.was && <span style={{ fontSize: 10.5, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.was)}</span>}
+          <span style={{ fontSize: 15, fontWeight: 700, color: p.was ? P.bad : P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.price)}</span>
+        </div>
+        <button onClick={(e) => {e.stopPropagation();onAdd();}} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: inCart ? P.ink : P.surface, color: inCart ? P.surface : P.ink, border: `1px solid ${inCart ? P.ink : P.hairline3}`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, minHeight: 30, transition: 'background .12s, border-color .12s' }}
+          onMouseEnter={(e) => {if (!inCart) {e.currentTarget.style.background = P.accentSoft;e.currentTarget.style.borderColor = P.accentBorder;}}}
+          onMouseLeave={(e) => {if (!inCart) {e.currentTarget.style.background = P.surface;e.currentTarget.style.borderColor = P.hairline3;}}}>
+          {inCart ? <><Icon name="check" size={14} stroke={2.6} />{inCart}</> : <><Icon name="plus" size={15} stroke={2.6} />Add</>}
+        </button>
+      </div>
+      {sheet && window.ProductSheet && <window.ProductSheet p={p} inCart={inCart} onAdd={onAdd} onClose={() => setSheet(false)} />}
+    </div>);
+
+}
+
+Object.assign(window, {});

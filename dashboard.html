@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hyperwolf × Weedmaps — Integration Control Center</title>
+<style>
+:root{
+  --bg:#F4F2EC; --paper:#FBFAF6; --surface:#FFFFFF; --rail:#15140F; --rail2:#211F18;
+  --ink:#15140F; --ink2:#4A473D; --ink3:#7C7869; --ink4:#A6A192;
+  --accent:#FFD100; --accentInk:#15140F; --accentSoft:#FFF3BF;
+  --good:#2E7D46; --goodSoft:#E4F1E7; --warn:#B7791F; --warnSoft:#FBF0DC;
+  --bad:#C0341D; --badSoft:#FBE7E1; --info:#1F5FC0; --infoSoft:#E6EEFA;
+  --alert:#B42318; --alertSoft:#FCEBE8;
+  --hair:rgba(21,20,15,.09); --hair2:rgba(21,20,15,.15); --hairD:rgba(255,255,255,.10);
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sh1:0 1px 2px rgba(21,20,15,.06); --sh2:0 4px 14px rgba(21,20,15,.10); --sh3:0 12px 40px rgba(21,20,15,.20);
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow:hidden}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:rgba(21,20,15,.18);border-radius:9px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(21,20,15,.3);background-clip:padding-box}
+
+/* ── Shell ─────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:200px 1fr var(--dockw,352px);grid-template-rows:52px auto 1fr;height:100vh;transition:grid-template-columns .18s ease}
+.app.dock-collapsed{--dockw:44px}
+.topbar{grid-column:1/-1;background:var(--rail);color:#EDEAE0;display:flex;align-items:center;gap:14px;padding:0 14px 0 0;z-index:40;border-bottom:1px solid #000}
+.brand{display:flex;align-items:center;gap:10px;width:200px;padding:0 14px;height:100%;flex:0 0 auto}
+.logo{width:30px;height:30px;border-radius:7px;background:var(--accent);color:var(--accentInk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex:0 0 auto}
+.brand b{font-size:12.5px;font-weight:700;letter-spacing:-.01em;color:#fff;line-height:1.05}
+.brand span{font-size:9.5px;color:#8F8B7E;letter-spacing:.06em;text-transform:uppercase}
+.tb-stats{display:flex;align-items:stretch;gap:0;height:100%;flex:1;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.tb-stats::-webkit-scrollbar{display:none}
+.tstat{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:0 12px;border-left:1px solid var(--hairD);white-space:nowrap;flex:0 0 auto}
+.tstat .k{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:#8F8B7E;display:flex;align-items:center;gap:5px}
+.tstat .v{font-size:13px;font-weight:600;color:#F2EFE5;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tstat .v.g{color:#7BD69B}.tstat .v.a{color:var(--accent)}.tstat .v.r{color:#F0967F}
+.tb-right{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.tbtn{height:32px;padding:0 11px;display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid var(--hairD);border-radius:8px;color:#E6E3D8;font-size:12px;font-weight:600}
+.tbtn:hover{background:rgba(255,255,255,.12)}
+.tbtn.on{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+.tbtn kbd{font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.14);padding:1px 5px;border-radius:4px;color:#cfccc0}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.dot.live{background:#7BD69B;box-shadow:0 0 0 0 rgba(123,214,155,.7);animation:pulseDot 2.2s infinite}
+@keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(123,214,155,.6)}70%{box-shadow:0 0 0 6px rgba(123,214,155,0)}100%{box-shadow:0 0 0 0 rgba(123,214,155,0)}}
+.pollpip{width:7px;height:7px;border-radius:50%;background:var(--accent);opacity:.25}
+.pollpip.on{opacity:1;transition:opacity .1s}
+/* status spine */
+.spine{grid-column:1/-1;display:flex;align-items:center;gap:0;height:36px;background:var(--paper);border-bottom:1px solid var(--hair);padding:0 6px 0 14px;overflow-x:auto;scrollbar-width:none;z-index:20}
+.spine::-webkit-scrollbar{display:none}
+.spine.sev-warn{background:var(--warnSoft)}.spine.sev-alert{background:var(--alertSoft)}
+.spine .seg{display:inline-flex;align-items:center;gap:7px;padding:0 14px;height:100%;border:none;background:transparent;font-size:12px;color:var(--ink2);white-space:nowrap;border-right:1px solid var(--hair);font-weight:600}
+.spine .seg:first-child{padding-left:0}
+.spine .seg b{font-family:var(--mono);font-weight:700;color:var(--ink)}
+.spine .seg.click{cursor:pointer}.spine .seg.click:hover{color:var(--ink)}
+.spine .seg.a{color:var(--alert)}.spine .seg.a b{color:var(--alert)}
+.spine .seg.w{color:var(--warn)}.spine .seg.w b{color:var(--warn)}
+.spine .seg.g b{color:var(--good)}
+.spine .hb{width:9px;height:9px;border-radius:50%;background:var(--good);flex:0 0 auto}
+.spine .hb.warn{background:var(--warn)}.spine .hb.alert{background:var(--alert);animation:pulseDot 1.6s infinite}
+.spine .sp{flex:1;border:none;min-width:12px}
+
+/* ── Rail ─────────────────────────────────────────── */
+.rail{background:var(--rail);color:#CFCBBF;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;z-index:30}
+.rail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:transparent;border:none;color:#B8B4A6;font-size:12.5px;font-weight:500;width:100%;text-align:left;position:relative}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#EDEAE0}
+.nav-item.on{background:rgba(255,255,255,.10);color:#fff;font-weight:600}
+.nav-item.on::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:99px}
+.nav-item svg{flex:0 0 auto}
+.nav-item .cnt{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;background:rgba(255,255,255,.10);color:#CFCBBF}
+.nav-item .cnt.alert{background:var(--alert);color:#fff}
+.rail .rl-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#6E6A5D;padding:12px 10px 5px;font-weight:700}
+.rail .spring{flex:1}
+.rail .foot{border-top:1px solid var(--hairD);padding-top:8px;margin-top:6px}
+
+/* ── Main ─────────────────────────────────────────── */
+.main{overflow-y:auto;overflow-x:hidden;padding:14px;background:var(--bg);position:relative}
+.ws{display:none}
+.ws.on{display:block}
+.ws-hd{display:flex;align-items:center;gap:10px;margin:0 2px 12px}
+.ws-hd h1{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0}
+.ws-hd .sub{font-size:11.5px;color:var(--ink3)}
+.ws-hd .sp{flex:1}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g-2-1{grid-template-columns:2fr 1fr}
+.g-1-2{grid-template-columns:1fr 2fr}
+.span-all{grid-column:1/-1}
+@media(max-width:1200px){.g3{grid-template-columns:1fr 1fr}.g-2-1,.g-1-2{grid-template-columns:1fr}}
+
+/* ── Panel ─────────────────────────────────────────── */
+.panel{background:var(--surface);border:1px solid var(--hair);border-radius:12px;box-shadow:var(--sh1);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.panel-hd{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--hair);flex:0 0 auto}
+.panel-hd{flex-wrap:nowrap}
+.panel-hd .pt{font-size:12px;font-weight:700;letter-spacing:.01em;display:flex;align-items:center;gap:8px;min-width:0}
+.panel-hd .pt>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-hd .badge{flex:0 0 auto;white-space:nowrap}
+.panel-hd .pt .n{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--ink4);background:var(--bg);border:1px solid var(--hair);border-radius:5px;padding:1px 5px;flex:0 0 auto}
+.panel-hd .sp{flex:1}
+.panel-hd .badge{font-size:10px;font-weight:700;font-family:var(--mono);padding:2px 7px;border-radius:20px;background:var(--bg);color:var(--ink2);border:1px solid var(--hair)}
+.pinfo{width:22px;height:22px;border-radius:6px;border:1px solid var(--hair);background:var(--paper);color:var(--ink3);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.pinfo:hover{background:var(--ink);color:var(--accent);border-color:var(--ink)}
+.panel-bd{padding:11px 12px;overflow:auto;min-height:0}
+.panel-bd.tight{padding:0}
+.panel-bd.scroll{max-height:var(--ph,300px)}
+
+/* ── Generic content styling for injected innerHTML ── */
+.panel-bd table{width:100%;border-collapse:collapse;font-size:11.5px}
+.panel-bd th{text-align:left;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--hair);position:sticky;top:0;background:var(--surface);z-index:2}
+.panel-bd td{padding:6px 8px;border-bottom:1px solid var(--hair);vertical-align:middle}
+.panel-bd tr:last-child td{border-bottom:none}
+.panel-bd tbody tr:hover{background:var(--paper)}
+.panel-bd td.num,.panel-bd th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.panel-bd .muted{color:var(--ink3)}
+.panel-bd h4{margin:0 0 6px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:700}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;line-height:1.5;white-space:nowrap;font-family:var(--mono)}
+.pill .d{width:6px;height:6px;border-radius:50%}
+.pill.ok{background:var(--goodSoft);color:var(--good)}.pill.ok .d{background:var(--good)}
+.pill.warn{background:var(--warnSoft);color:var(--warn)}.pill.warn .d{background:var(--warn)}
+.pill.bad{background:var(--badSoft);color:var(--bad)}.pill.bad .d{background:var(--bad)}
+.pill.info{background:var(--infoSoft);color:var(--info)}.pill.info .d{background:var(--info)}
+.pill.alert{background:var(--alertSoft);color:var(--alert)}.pill.alert .d{background:var(--alert)}
+.pill.ghost{background:var(--bg);color:var(--ink3);border:1px solid var(--hair)}.pill.ghost .d{background:var(--ink4)}
+.pill.live{background:var(--accentSoft);color:#8A6200}.pill.live .d{background:var(--accent)}
+
+.krow{display:flex;gap:8px;flex-wrap:wrap}
+.kpi{flex:1;min-width:76px;background:var(--paper);border:1px solid var(--hair);border-radius:9px;padding:8px 10px}
+.kpi .kl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .kv{font-size:19px;font-weight:700;font-family:var(--mono);line-height:1.15;margin-top:2px}
+.kpi .kv small{font-size:11px;color:var(--ink3);font-weight:600}
+.kpi.acc{border-color:var(--accent);background:var(--accentSoft)}
+.kpi.alert{border-color:var(--alert);background:var(--alertSoft)}.kpi.alert .kv{color:var(--alert)}
+
+.row-alert{position:relative;background:var(--alertSoft)!important;box-shadow:inset 3px 0 0 var(--alert)}
+.row-warn{position:relative;background:var(--warnSoft)!important;box-shadow:inset 3px 0 0 var(--warn)}
+
+.btn{height:30px;padding:0 12px;display:inline-flex;align-items:center;gap:7px;border-radius:8px;border:1px solid var(--hair2);background:var(--surface);color:var(--ink);font-size:12px;font-weight:600}
+.btn:hover{border-color:var(--ink3);background:var(--paper)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accentInk)}
+.btn.primary:hover{filter:brightness(.95)}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:#fff}.btn.dark:hover{background:#000}
+.btn.sm{height:26px;padding:0 9px;font-size:11px}
+.btn.xs{height:22px;padding:0 8px;font-size:10.5px;gap:4px}
+.btn.gd{color:var(--good);border-color:var(--good)}.btn.gd:hover{background:var(--goodSoft)}
+.btn.rd{color:var(--bad);border-color:var(--bad)}.btn.rd:hover{background:var(--badSoft)}
+.btn:disabled{opacity:.5;pointer-events:none}
+.btn.busy{pointer-events:none;position:relative;color:transparent!important}
+.btn.busy::after{content:"";position:absolute;inset:0;margin:auto;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;color:var(--ink)}
+.btn.primary.busy::after{color:var(--accentInk)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fld{width:100%;height:30px;padding:0 10px;border:1px solid var(--hair2);border-radius:8px;background:var(--paper);font-family:var(--mono);font-size:12px;color:var(--ink)}
+.fld:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accentSoft);background:#fff}
+textarea.fld{height:auto;padding:8px 10px;line-height:1.5;resize:vertical}
+.row{display:flex;align-items:center;gap:8px}
+.lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);font-weight:700;margin-bottom:4px;display:block}
+
+/* empty states */
+.empty{padding:20px 16px;text-align:center;color:var(--ink3);border:1.5px dashed var(--hair2);border-radius:10px;background:var(--paper)}
+.empty .ei{color:var(--ink4);margin-bottom:6px}
+.empty b{color:var(--ink2);font-size:12.5px;display:block;margin-bottom:3px}
+.empty p{margin:0 0 10px;font-size:11.5px;line-height:1.5}
+
+/* ── Call feed dock ─────────────────────────────────── */
+.dock{background:var(--rail);color:#D8D4C7;display:flex;flex-direction:column;z-index:30;overflow:hidden}
+.dock-hd{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--hairD);flex:0 0 auto}
+.dock-hd .t{font-size:11.5px;font-weight:700;color:#fff;display:flex;align-items:center;gap:7px}
+.app.dock-collapsed .dock-hd{padding:9px 6px;justify-content:center}
+.app.dock-collapsed .dock-body,.app.dock-collapsed .dock-sum,.app.dock-collapsed .dock-filt,.app.dock-collapsed .dock-hd .t span,.app.dock-collapsed .dock-hd .pausebtn{display:none}
+.collapse-btn{width:26px;height:26px;border-radius:7px;border:1px solid var(--hairD);background:rgba(255,255,255,.05);color:#CFCBBF;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.collapse-btn:hover{background:rgba(255,255,255,.13)}
+.dock-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hairD);border-bottom:1px solid var(--hairD);flex:0 0 auto}
+.dock-sum .s{background:var(--rail);padding:6px 9px}
+.dock-sum .s .l{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:#8F8B7E;font-weight:700}
+.dock-sum .s .v{font-size:13px;font-weight:700;font-family:var(--mono);color:#F2EFE5;margin-top:1px}
+.dock-sum .s .v.g{color:#7BD69B}.dock-sum .s .v.r{color:#F0967F}.dock-sum .s .v.a{color:var(--accent)}
+.dock-filt{display:flex;gap:4px;padding:7px 9px;flex-wrap:wrap;border-bottom:1px solid var(--hairD);flex:0 0 auto}
+.fchip{font-size:9.5px;font-weight:700;font-family:var(--mono);padding:2px 7px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid var(--hairD);color:#B8B4A6}
+.fchip.on{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+.pausebtn{margin-left:auto;font-size:10px;font-weight:700;padding:3px 9px;border-radius:7px;border:1px solid var(--hairD);background:rgba(255,255,255,.05);color:#D8D4C7;display:inline-flex;align-items:center;gap:5px}
+.pausebtn.paused{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+.dock-body{flex:1;overflow-y:auto;padding:5px 7px;font-family:var(--mono);font-size:11px}
+.dock-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16)}
+.call{display:grid;grid-template-columns:14px 42px 1fr auto;gap:7px;align-items:center;padding:4px 6px;border-radius:6px;border-left:2px solid transparent}
+.call:hover{background:rgba(255,255,255,.05)}
+.call.new{animation:callIn .5s ease}
+@keyframes callIn{0%{background:rgba(255,209,0,.28);transform:translateX(6px)}100%{background:transparent;transform:none}}
+.call .arw{font-size:11px;font-weight:800}
+.call.out{border-left-color:#5B8DEF}.call.out .arw{color:#7BA6F5}
+.call.in{border-left-color:#C79A3A}.call.in .arw{color:#E4C06B}
+.call .meth{font-size:9.5px;font-weight:800;color:#B8B4A6}
+.call .pth{color:#E6E3D8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.call .pth .k{font-size:8.5px;color:#8F8B7E}
+.call .meta{display:flex;align-items:center;gap:6px;justify-self:end;white-space:nowrap}
+.call .st{font-size:9.5px;font-weight:800}
+.call .st.ok{color:#7BD69B}.call .st.err{color:#F0967F}.call .st.pend{color:var(--accent)}
+.call .ms{font-size:9.5px;color:#8F8B7E}
+.call.pending .ms::after{content:"…";animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:.3}}
+
+/* ── Popover / drawer / modal ───────────────────────── */
+.pop{position:fixed;z-index:1200;width:340px;background:var(--surface);border:1px solid var(--hair2);border-radius:12px;box-shadow:var(--sh3);overflow:hidden}
+.pop .ph{padding:12px 14px;border-bottom:1px solid var(--hair);background:var(--ink);color:#fff}
+.pop .ph .t{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.pop .ph .n{font-family:var(--mono);font-size:10px;color:var(--accent)}
+.pop .pb{padding:6px 14px 14px;max-height:340px;overflow-y:auto}
+.pop .qa{padding:11px 0;border-bottom:1px solid var(--hair)}
+.pop .qa:last-child{border-bottom:none}
+.pop .qa .q{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;color:var(--info);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.pop .qa .q.how{color:var(--good)}.pop .qa .q.why{color:var(--warn)}
+.pop .qa p{margin:0;font-size:12px;line-height:1.55;color:var(--ink2)}
+.pop .qa code{font-family:var(--mono);font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px;color:var(--ink)}
+.scrim{position:fixed;inset:0;background:rgba(21,20,15,.34);z-index:1100;opacity:0;animation:fade .15s forwards}
+@keyframes fade{to{opacity:1}}
+.modal{position:fixed;z-index:1201;left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,92vw);max-height:86vh;background:var(--surface);border-radius:16px;box-shadow:var(--sh3);display:flex;flex-direction:column;overflow:hidden}
+.modal .mh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--hair)}
+.modal .mh h3{margin:0;font-size:15px;font-weight:700}
+.modal .mb{padding:16px 18px;overflow-y:auto}
+.x{margin-left:auto;width:28px;height:28px;border-radius:8px;border:1px solid var(--hair);background:var(--paper);color:var(--ink2);display:inline-flex;align-items:center;justify-content:center}
+.x:hover{background:var(--ink);color:#fff}
+
+/* glossary */
+.gl-search{width:100%;height:36px;padding:0 12px;border:1px solid var(--hair2);border-radius:9px;background:var(--paper);font-size:13px;margin-bottom:12px}
+.gl-search:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accentSoft)}
+.gl-item{padding:10px 0;border-bottom:1px solid var(--hair);display:grid;grid-template-columns:170px 1fr;gap:14px}
+.gl-item dt{font-weight:700;font-family:var(--mono);font-size:12px;color:var(--ink)}
+.gl-item dd{margin:0;font-size:12.5px;line-height:1.55;color:var(--ink2)}
+.gl-item dd code{font-family:var(--mono);font-size:11px;background:var(--bg);padding:1px 4px;border-radius:4px}
+
+/* command palette */
+.cmdk{position:fixed;z-index:1301;left:50%;top:14%;transform:translateX(-50%);width:min(560px,92vw);background:var(--surface);border-radius:14px;box-shadow:var(--sh3);overflow:hidden;border:1px solid var(--hair2)}
+.cmdk input{width:100%;height:48px;padding:0 16px;border:none;border-bottom:1px solid var(--hair);font-size:15px;font-family:var(--sans)}
+.cmdk input:focus{outline:none}
+.cmdk .res{max-height:52vh;overflow-y:auto;padding:6px}
+.cmdk .ci{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;font-size:13px}
+.cmdk .ci.sel{background:var(--accentSoft)}
+.cmdk .ci .kind{margin-left:auto;font-size:9.5px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;color:var(--ink3)}
+.cmdk .ci svg{color:var(--ink3)}
+
+/* loop diagram */
+.loop{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+.loop .step{flex:1;min-width:120px;background:var(--paper);border:1px solid var(--hair);border-radius:10px;padding:10px 12px;position:relative}
+.loop .step .s-n{font-family:var(--mono);font-size:9px;font-weight:800;color:var(--accentInk);background:var(--accent);border-radius:5px;padding:1px 5px;display:inline-block;margin-bottom:5px}
+.loop .step .s-t{font-size:12px;font-weight:700;margin-bottom:2px}
+.loop .step .s-d{font-size:10.5px;color:var(--ink3);line-height:1.4}
+.loop .arrow{display:flex;align-items:center;color:var(--ink4);padding:0 2px}
+@media(max-width:1150px){.loop .arrow{display:none}.loop .step{min-width:44%}}
+
+/* misc */
+.tag{font-size:9.5px;font-family:var(--mono);font-weight:700;padding:1px 6px;border-radius:5px;background:var(--bg);color:var(--ink2);border:1px solid var(--hair)}
+.tag.menu{background:var(--infoSoft);color:var(--info);border-color:transparent}
+.tag.orders{background:var(--goodSoft);color:var(--good);border-color:transparent}
+.tag.webhook{background:var(--warnSoft);color:var(--warn);border-color:transparent}
+.tag.auth{background:#EEE9F7;color:#6D4AB5;border-color:transparent}
+.tag.promos{background:var(--accentSoft);color:#8A6200;border-color:transparent}
+.tag.sync{background:var(--bg);color:var(--ink2)}
+.dotlbl{display:inline-flex;align-items:center;gap:6px}
+.kit-dot{width:22px;height:22px;border-radius:6px;border:1px solid var(--hair);background:var(--paper);display:inline-flex;align-items:center;justify-content:center;position:relative}
+.kit-dot.carry{background:var(--ink);border-color:var(--ink)}
+.kit-dot.carry svg{color:var(--accent)}
+.kit-dot.pushing{border-color:var(--accent)}
+.kit-dot.pushing::after{content:"";position:absolute;inset:-3px;border:2px solid var(--accent);border-top-color:transparent;border-radius:8px;animation:spin .6s linear infinite}
+.kit-dot.landed{animation:landFlash .7s ease}
+@keyframes landFlash{0%{box-shadow:0 0 0 0 rgba(46,125,70,.5)}40%{box-shadow:0 0 0 5px rgba(46,125,70,.28)}100%{box-shadow:0 0 0 0 rgba(46,125,70,0)}}
+.flash-in{animation:rowFlash 1s ease}
+@keyframes rowFlash{0%{background:var(--accentSoft)}100%{background:transparent}}
+.hint{font-size:11px;color:var(--ink3);line-height:1.5}
+.chgnum{transition:color .2s}
+.mini-bar{height:5px;border-radius:99px;background:var(--bg);overflow:hidden}
+.mini-bar>i{display:block;height:100%;background:var(--good);border-radius:99px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--ink3)}
+.legend .li{display:flex;align-items:center;gap:5px}
+.sw{width:9px;height:9px;border-radius:3px}
+.divh{height:1px;background:var(--hair);margin:10px 0}
+a{color:var(--info)}a:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand"><div class="logo">W</div><div><b>Integration Control</b><span>Hyperwolf × Weedmaps</span></div></div>
+    <div class="tb-stats" id="tbStats"></div>
+    <div class="tb-right">
+      <button class="tbtn" id="learnBtn" onclick="toggleLearn()" title="Highlight explain buttons"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>Learn</button>
+      <button class="tbtn" onclick="openGlossary()" title="Domain glossary"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Glossary</button>
+      <button class="tbtn" onclick="openCmd()" title="Command palette"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><kbd>⌘K</kbd></button>
+    </div>
+  </header>
+  <!-- STATUS SPINE -->
+  <div class="spine" id="spine"></div>
+  <!-- RAIL -->
+  <nav class="rail" id="rail"></nav>
+  <!-- MAIN -->
+  <main class="main" id="main"></main>
+  <!-- CALL FEED DOCK -->
+  <aside class="dock" id="dock">
+    <div class="dock-hd">
+      <button class="collapse-btn" onclick="toggleDock()" title="Collapse feed"><svg id="dockChev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+      <div class="t"><span class="dot live"></span><span>Live call feed</span></div>
+      <button class="pausebtn" id="pauseBtn" onclick="togglePause()"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg><span id="pauseLbl">Live</span></button>
+    </div>
+    <div class="dock-sum" id="dockSum"></div>
+    <div class="dock-filt" id="dockFilt"></div>
+    <div class="dock-body" id="callfeed"></div>
+  </aside>
+</div>
+<div id="overlays"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   MOCK STATE — mirrors GET /api/state contract (§7). Replace with live
+   poll; renderers below write into the same slot ids.
+   ══════════════════════════════════════════════════════════════════ */
+const WMIDS={menu:'342170487',delivery:'342170912'};
+const DRIVERS=['Andre','Priya','Marcus','Dev','Sam'];
+function xid(sku){return 'hyperwolf:sku:'+sku;}
+const CATALOG=[
+ {sku:'BD-F-35G',name:'Blue Dream',category:'Flower',subcategory:'Indoor',brand:'Hyperwolf',price:35,weight:{value:3.5,unit:'g'},thc:24.2,wm_product_id:'wm_prod_5521',inventory:82,tags:['sativa']},
+ {sku:'GG-F-35G',name:'Gorilla Glue #4',category:'Flower',subcategory:'Indoor',brand:'Hyperwolf',price:40,weight:{value:3.5,unit:'g'},thc:26.8,wm_product_id:'wm_prod_5522',inventory:61,tags:['hybrid']},
+ {sku:'OGK-F-7G',name:'OG Kush',category:'Flower',subcategory:'Greenhouse',brand:'Hyperwolf',price:65,weight:{value:7,unit:'g'},thc:25.0,wm_product_id:'wm_prod_5540',inventory:44,tags:['indica']},
+ {sku:'PB-F-14G',name:'Purple Punch',category:'Flower',subcategory:'Indoor',brand:'Connected',price:110,weight:{value:14,unit:'g'},thc:23.1,wm_product_id:null,inventory:19,tags:['indica']},
+ {sku:'WD-PR-1G',name:'Wedding Cake Pre-roll',category:'Pre-roll',subcategory:'Infused',brand:'Jeeter',price:12,weight:{value:1,unit:'g'},thc:22.1,wm_product_id:'wm_prod_5610',inventory:140,tags:['hybrid']},
+ {sku:'GSC-PR-5P',name:'GSC Pre-roll 5pk',category:'Pre-roll',subcategory:'Classic',brand:'Jeeter',price:45,weight:{value:3.5,unit:'g'},thc:21.4,wm_product_id:'wm_prod_5611',inventory:38,tags:['hybrid']},
+ {sku:'SD-V-1G',name:'Sour Diesel Cart',category:'Vape',subcategory:'Live Resin',brand:'Raw Garden',price:45,weight:{value:1,unit:'g'},thc:84.5,wm_product_id:'wm_prod_5701',inventory:56,tags:['sativa']},
+ {sku:'ZK-V-05G',name:'Zkittlez Live Resin',category:'Vape',subcategory:'Live Resin',brand:'Stiiizy',price:50,weight:{value:.5,unit:'g'},thc:88.2,wm_product_id:'wm_prod_5702',inventory:33,tags:['indica']},
+ {sku:'NL-ED-100',name:'Northern Lights Gummies',category:'Edible',subcategory:'Gummies',brand:'Kanha',price:22,weight:{value:100,unit:'mg'},thc:100,wm_product_id:'wm_prod_5810',inventory:210,tags:['indica']},
+ {sku:'RS-ED-200',name:'Rainbow Sherbet Chews',category:'Edible',subcategory:'Chews',brand:'Wyld',price:30,weight:{value:200,unit:'mg'},thc:200,wm_product_id:null,inventory:88,tags:['hybrid']},
+];
+// taxonomy mapping to WM (categories auto; subcategories semi; brands manual/curated)
+const TAXONOMY={
+ categories:[['Flower','Flower','auto'],['Pre-roll','Pre-Roll','auto'],['Vape','Vape Pen','auto'],['Edible','Edibles','auto']],
+ subcategories:[['Indoor','indoor','auto'],['Greenhouse','greenhouse','auto'],['Infused','infused-preroll','semi'],['Classic','preroll','semi'],['Live Resin','live-resin','semi'],['Gummies','gummies','auto'],['Chews','chews','semi']],
+ brands:[['Hyperwolf','wm_brand_101','manual'],['Jeeter','wm_brand_240','manual'],['Raw Garden','wm_brand_318','manual'],['Stiiizy','wm_brand_072','manual'],['Kanha','wm_brand_455','manual'],['Connected',null,'manual'],['Wyld',null,'manual']],
+};
+const skuName=s=>{const c=CATALOG.find(x=>x.sku===s);return c?c.name:s;};
+const REGIONS={
+ 'West Hollywood':{zips:['90069','90046','90048','90038','90805'],drivers:['Andre','Priya'],priority:1},
+ 'Long Beach':{zips:['90802','90803','90814','90805'],drivers:['Marcus'],priority:2},
+ 'Corona':{zips:['92879','92881','92882'],drivers:['Dev','Sam'],priority:3},
+};
+// real relative lat/lng for the schematic service-territory map (self-contained, no tiles)
+const GEO={
+ 'West Hollywood':{lat:34.090,lng:-118.361,r:1.0},
+ 'Long Beach':{lat:33.770,lng:-118.189,r:0.9},
+ 'Corona':{lat:33.875,lng:-117.566,r:0.85},
+ _store:{lat:34.083,lng:-118.358},
+ _bounds:{minLat:33.70,maxLat:34.16,minLng:-118.44,maxLng:-117.48},
+};
+let STATE={
+ wmids:WMIDS,
+ plan:{[WMIDS.menu]:'store',[WMIDS.delivery]:'kits'},
+ store:{name:'Hyperwolf WeHo',short:'WeHo store',region:'West Hollywood',hours:'9a–9p'},
+ token:{expires_at:Date.now()+11*864e5-32e5,scope:'taxonomy:read brands:read products:read menu_items menus:write orders:write'},
+ catalog:CATALOG,
+ regions:REGIONS,
+ on_shift:{Andre:true,Priya:true,Marcus:false,Dev:true,Sam:false},
+ kits:{
+  Andre:['BD-F-35G','WD-PR-1G','SD-V-1G','NL-ED-100','OGK-F-7G'],
+  Priya:['GG-F-35G','WD-PR-1G','GSC-PR-5P','ZK-V-05G'],
+  Marcus:['BD-F-35G','GG-F-35G','RS-ED-200','PB-F-14G'],
+  Dev:['SD-V-1G','ZK-V-05G','NL-ED-100','RS-ED-200'],
+  Sam:['OGK-F-7G','PB-F-14G','GSC-PR-5P'],
+ },
+ stock:{
+  'West Hollywood':{'BD-F-35G':{qty:40,reserved:3},'WD-PR-1G':{qty:70,reserved:0},'SD-V-1G':{qty:28,reserved:2},'NL-ED-100':{qty:110,reserved:0},'OGK-F-7G':{qty:20,reserved:1},'GG-F-35G':{qty:31,reserved:0},'ZK-V-05G':{qty:15,reserved:0},'GSC-PR-5P':{qty:18,reserved:0}},
+  'Long Beach':{'BD-F-35G':{qty:22,reserved:0},'GG-F-35G':{qty:18,reserved:0},'RS-ED-200':{qty:44,reserved:0},'PB-F-14G':{qty:9,reserved:1}},
+  'Corona':{'SD-V-1G':{qty:19,reserved:0},'ZK-V-05G':{qty:11,reserved:0},'NL-ED-100':{qty:60,reserved:0},'RS-ED-200':{qty:22,reserved:0},'OGK-F-7G':{qty:14,reserved:0},'PB-F-14G':{qty:6,reserved:0},'GSC-PR-5P':{qty:10,reserved:0}},
+ },
+ reservations:[
+  {cart:'75989365',region:'West Hollywood',sku:'BD-F-35G',qty:2,expiry:Date.now()+220e3,state:'held'},
+  {cart:'75989365',region:'West Hollywood',sku:'SD-V-1G',qty:1,expiry:Date.now()+220e3,state:'held'},
+  {cart:'75991002',region:'West Hollywood',sku:'OGK-F-7G',qty:1,expiry:Date.now()+41e3,state:'expiring'},
+  {cart:'75988810',region:'Long Beach',sku:'PB-F-14G',qty:1,expiry:Date.now()-4e3,state:'released'},
+ ],
+ batches:[
+  {region:'West Hollywood',sku:'BD-F-35G',batch_id:'B-2412-A',thc_pct:24.2,qty:24},
+  {region:'West Hollywood',sku:'BD-F-35G',batch_id:'B-2418-C',thc_pct:22.9,qty:16},
+  {region:'West Hollywood',sku:'SD-V-1G',batch_id:'V-2405-A',thc_pct:84.5,qty:28},
+  {region:'Long Beach',sku:'GG-F-35G',batch_id:'B-2411-D',thc_pct:26.8,qty:18},
+  {region:'Corona',sku:'ZK-V-05G',batch_id:'V-2409-B',thc_pct:88.2,qty:11},
+ ],
+ batch_ranges:{'BD-F-35G':{min:22.9,max:24.2},'SD-V-1G':{min:84.5,max:84.5},'GG-F-35G':{min:26.8,max:26.8},'ZK-V-05G':{min:88.2,max:88.2}},
+ pricing_cfg:{card_fee_cents:350,round_unit_cents:100,delivery_fee_cents:500},
+ orders:[
+  {wm_order_id:'75989201',status:'COMPLETE',fulfillment:'delivery',driver_id:'Andre',region_id:'West Hollywood',grand_total:92.5,customer_name:'M. Okafor',routing:'zip 90069 → West Hollywood → Andre'},
+  {wm_order_id:'75989365',status:'IN_PROGRESS',fulfillment:'delivery',driver_id:'Andre',region_id:'West Hollywood',grand_total:118.0,customer_name:'R. Behl',routing:'zip 90046 → West Hollywood → Andre'},
+  {wm_order_id:'75989410',status:'READY_FOR_ATTAINMENT',fulfillment:'delivery',driver_id:'Dev',region_id:'Corona',grand_total:71.25,customer_name:'T. Nguyen',routing:'zip 92881 → Corona → Dev'},
+  {wm_order_id:'75989501',status:'READY_FOR_PICKUP',fulfillment:'pickup',driver_id:null,region_id:'West Hollywood',grand_total:48.0,customer_name:'K. Alvarez',routing:'Pickup @ WeHo store'},
+  {wm_order_id:'75989512',status:'IN_PROGRESS',fulfillment:'pickup',driver_id:null,region_id:'West Hollywood',grand_total:112.5,customer_name:'D. Fisher',routing:'Pickup @ WeHo store · packing'},
+  {wm_order_id:'75989422',status:'CANCELED_SELLER',fulfillment:'delivery',driver_id:null,region_id:'Long Beach',grand_total:0,customer_name:'“J. Doe”',routing:'FRAUD — identity auto-cancel',alert:true},
+  {wm_order_id:'75989444',status:'PENDING',fulfillment:'delivery',driver_id:'Priya',region_id:'West Hollywood',grand_total:57.0,customer_name:'A. Costa',routing:'zip 90048 → West Hollywood → Priya'},
+ ],
+ last_draft:{
+  wm_order_id:'75989365',zip:'90046',region:'West Hollywood',driver:'Andre',ms:214,fulfillment:'delivery',
+  sent:[{external_id:xid('BD-F-35G'),name:'Blue Dream 3.5g',qty:2,price:35},{external_id:xid('SD-V-1G'),name:'Sour Diesel Cart 1g',qty:1,price:45},{external_id:xid('PB-F-14G'),name:'Purple Punch 14g',qty:1,price:110}],
+  returned:[{external_id:xid('BD-F-35G'),name:'Blue Dream 3.5g',qty:2,price:35,kept:true},{external_id:xid('SD-V-1G'),name:'Sour Diesel Cart 1g',qty:1,price:45,kept:true},{external_id:xid('PB-F-14G'),name:'Purple Punch 14g',qty:1,price:110,kept:false,reason:'No on-shift driver carries this'}],
+  fees:{subtotal:115,delivery:5,card_fee:3.5,tax:12.65},
+ },
+ mapping:{
+  counters:{auto:6,ai:2,review:2,unmapped:2,mapped_total:8,orphaned:1},
+  last_run:Date.now()-1000*60*42,
+  queue:[
+   {sku:'GSC-PR-5P',name:'GSC Pre-roll 5pk',suggestion:'Girl Scout Cookies Pre-Roll 5-Pack',wm_product_id:'wm_prod_5611',confidence:0.71,method:'ai'},
+   {sku:'PB-F-14G',name:'Purple Punch 14g',suggestion:'Purple Punch Eighth (guess)',wm_product_id:'wm_prod_5561',confidence:0.52,method:'ai'},
+  ],
+  wm_missing:[
+   {sku:'PB-F-14G',name:'Purple Punch',reason:'Live for Pickup but no WM product link'},
+   {sku:'RS-ED-200',name:'Rainbow Sherbet Chews',reason:'On a driver kit but not mappable'},
+  ],
+  mappings:CATALOG.map(c=>({sku:c.sku,name:c.name,wm_product_id:c.wm_product_id,suggestion:c.wm_product_id?'—':'search WM…',status:c.wm_product_id?'mapped':'unmapped'})),
+ },
+ identity:{
+  counters:{identities:1284,fulfilled_total:3902,auto_cancels:14,review_open:1,merged:63},
+  reviews:[
+   {id:'75989422',customer:'“J. Doe”',reason:'3rd first-timer promo, same device fingerprint',action:'auto-canceled',level:'alert'},
+   {id:'75990110',customer:'S. Park',reason:'Address mismatch vs prior orders',action:'needs review',level:'warn'},
+  ],
+  ledger:[
+   {customer:'M. Okafor',orders:12,ltv:1043.5,tier:'returning',flags:0},
+   {customer:'R. Behl',orders:3,ltv:284.0,tier:'returning',flags:0},
+   {customer:'A. Costa',orders:1,ltv:57.0,tier:'first-timer',flags:0},
+   {customer:'“J. Doe”',orders:0,ltv:0,tier:'blocked',flags:3},
+  ],
+ },
+ promos:{
+  redemptions:[
+   {order:'75989201',promo:'First-Timer 20% Off',amount:18.5,ts:Date.now()-1000*60*8},
+   {order:'75989410',promo:'420 Flash — Flower',amount:10,ts:Date.now()-1000*60*21},
+   {order:'75989188',promo:'$50 Spend · Free Pre-Roll',amount:9.75,ts:Date.now()-1000*60*55},
+  ],
+  // OUR internal promos (authored in the Promotions module) + their Weedmaps sync state.
+  // wm.state: synced | not_pushed | overlap | disappeared | wm_only(no internal counterpart)
+  promos:[
+   {id:'p2',name:'First-Timer 20% Off',code:'WELCOME20',entity:'user',type:'User',status:'active',plain:"When the customer is a first-time buyer, we'll give 20% off (up to $30).",m:{redemptions:3120,revenue:96540,roi:3.9,rate:52,series:[30,34,38,42,40,46,52,55,60,58,63,66,70,72,74,78]},wm:{state:'synced',wm_id:'wm_promo_881',linked:true}},
+   {id:'p3',name:'$50 Spend · Free Pre-Roll',code:'FREEROLL',entity:'cart',type:'Cart',status:'active',plain:"When the cart total is more than $50, we'll add a free house pre-roll.",m:{redemptions:2405,revenue:71200,roi:5.9,rate:41,series:[40,44,42,48,52,50,58,60,57,62,60,66,64,70,68,72]},wm:{state:'synced',wm_id:'wm_promo_902',linked:true}},
+   {id:'p1',name:'Green Wednesday BOGO',code:'GREENWED',entity:'bogo',type:'BOGO',status:'active',plain:"When the customer buys any 2 pre-rolls, we'll give 30% off the pair.",m:{redemptions:1842,revenue:48230,roi:3.9,rate:34,series:[20,26,24,30,34,32,40,42,44,41,46,43,48,45,50,47]},wm:{state:'overlap',wm_id:'wm_promo_915',linked:true}},
+   {id:'p4',name:'Wolf Pack VIP · 25%',code:'VIPX2',entity:'user',type:'User',status:'active',plain:"When the customer is in the Wolf Pack VIP group, we'll give 25% off (up to $60).",m:{redemptions:940,revenue:52800,roi:4.4,rate:68,series:[10,12,11,14,13,16,15,18,17,20,19,22,20,24,22,25]},wm:{state:'not_pushed',wm_id:null,linked:false}},
+   {id:'p6',name:'High-THC Flower Flash',code:'LOUD25',entity:'product',type:'Product',status:'scheduled',plain:"When the product is Flower testing 25%+ THC, we'll give 25% off (up to $40).",m:{redemptions:0,revenue:0,roi:0,rate:0,series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},wm:{state:'synced',wm_id:'wm_promo_940',linked:true}},
+   {id:'w1',name:'420 Flash — Flower',code:'—',entity:'product',type:'Product',status:'active',plain:"Appeared on Weedmaps: $10 off all Flower (auto-apply). No internal promo controls this.",m:{redemptions:610,revenue:14300,roi:2.1,rate:29,series:[0,0,0,0,0,40,55,52,48,50,46,44,42,40,38,36]},wm:{state:'wm_only',wm_id:'wm_promo_777',linked:false,overlap:true}},
+   {id:'p5',name:'Summer Kickoff',code:'SUMMER',entity:'cart',type:'Cart',status:'ended',plain:"When the cart total is more than $40, we'll give $5 off.",m:{redemptions:1204,revenue:31900,roi:4.0,rate:26,series:[45,42,40,38,30,28,20,18,14,10,8,6,4,2,0,0]},wm:{state:'disappeared',wm_id:'wm_promo_803',linked:true}},
+  ],
+ },
+ events:[
+  {ts:Date.now()-2e3,kind:'webhook',level:'ok',message:'Draft 75989365 → answered in 214ms, 1 line dropped'},
+  {ts:Date.now()-6e3,kind:'order',level:'ok',message:'Create 75989365 → bound driver Andre (West Hollywood)'},
+  {ts:Date.now()-9e3,kind:'sync',level:'ok',message:'Kit write coalesced → Delivery listing pushed (312ms)'},
+  {ts:Date.now()-15e3,kind:'order',level:'alert',message:'Order 75989422 auto-canceled — identity fraud rule'},
+  {ts:Date.now()-24e3,kind:'api',level:'ok',message:'PUT menu item BD-F-35G → 200'},
+  {ts:Date.now()-38e3,kind:'reconcile',level:'warn',message:'Drift: RS-ED-200 live on kit but WM-missing'},
+  {ts:Date.now()-52e3,kind:'auth',level:'ok',message:'Token refreshed — valid 14d, scopes ok'},
+  {ts:Date.now()-71e3,kind:'sync',level:'ok',message:'Pickup listing reconciled — 0 drift'},
+  {ts:Date.now()-90e3,kind:'order',level:'ok',message:'Status push 75989201 → COMPLETE (200)'},
+  {ts:Date.now()-120e3,kind:'api',level:'error',message:'PUT menu item PB-F-14G → 422 (no wm_product_id)'},
+ ],
+};
+STATE.union=(()=>{const s=new Set();DRIVERS.filter(d=>STATE.on_shift[d]).forEach(d=>STATE.kits[d].forEach(k=>s.add(k)));return[...s];})();
+
+/* ── Live call feed source (GET /api/calls) ─────────── */
+let CALLS=[
+ {id:1,ts:Date.now()/1000-58,dir:'out',method:'POST',path:'/auth/token',status:200,ms:180,kind:'auth',ok:true},
+ {id:2,ts:Date.now()/1000-54,dir:'out',method:'GET',path:'/wm/2025-07/partners/menus',status:200,ms:120,kind:'menu',ok:true},
+ {id:3,ts:Date.now()/1000-49,dir:'out',method:'PUT',path:'/wm/2025-07/partners/menus/342170487/items/external/hyperwolf:sku:BD-F-35G',status:200,ms:214,kind:'menu',ok:true},
+ {id:4,ts:Date.now()/1000-47,dir:'out',method:'PUT',path:'/wm/2025-07/partners/menus/342170912/items/external/hyperwolf:sku:SD-V-1G',status:200,ms:198,kind:'menu',ok:true},
+ {id:5,ts:Date.now()/1000-31,dir:'in',method:'POST',path:'/callbacks/weedmaps/orders [DRAFT]',status:200,ms:214,kind:'webhook',note:'order 75989365',ok:true},
+ {id:6,ts:Date.now()/1000-30,dir:'in',method:'POST',path:'/callbacks/weedmaps/orders [CREATE]',status:200,ms:88,kind:'webhook',note:'order 75989365',ok:true},
+ {id:7,ts:Date.now()/1000-29,dir:'out',method:'PUT',path:'/oos/2026-01/merchants/342170487/orders/75989365',status:200,ms:142,kind:'orders',note:'IN_PROGRESS',ok:true},
+ {id:8,ts:Date.now()/1000-18,dir:'out',method:'GET',path:'/wm/2025-07/partners/promotions',status:200,ms:96,kind:'promos',ok:true},
+ {id:9,ts:Date.now()/1000-12,dir:'in',method:'POST',path:'/callbacks/weedmaps/orders [DRAFT]',status:200,ms:0,kind:'webhook',note:'order 75989422',ok:true},
+ {id:10,ts:Date.now()/1000-11,dir:'out',method:'PUT',path:'/oos/2026-01/merchants/342170487/orders/75989422',status:200,ms:120,kind:'orders',note:'CANCELED_SELLER',ok:true},
+ {id:11,ts:Date.now()/1000-4,dir:'out',method:'PUT',path:'/wm/2025-07/partners/menus/342170487/items/external/hyperwolf:sku:PB-F-14G',status:422,ms:70,kind:'menu',note:'no wm_product_id',ok:false},
+];
+let CALL_SEQ=CALLS.length;
+let CALL_CONFIG={map_on_write:true,debounce_s:0.6,promo_poll_s:60,reconcile_every_s:300};
+let REALTIME={submitted:14,coalesced:9,ran:5,failed:0,in_flight:0,queued:0};
+
+/* ══════════════════════════════════════════════════════════════════
+   EXPLAIN COPY  (What / How / Why)  — placeholder; wire real copy later
+   ══════════════════════════════════════════════════════════════════ */
+const EX={
+ listings:['The two Weedmaps listings and exactly what is live on each.','Pickup publishes SKUs the store has on-hand (collected in store, no driver); Delivery publishes only SKUs an on-shift driver is carrying. Same mapped catalog, different availability. Edits push to WM in <1s.','WM sells whatever is on the listing — so the listing must reflect reality this second, or customers order things no driver has.'],
+ mapping:['SKUs the auto-matcher was not confident enough to link automatically.','A nightly job scores every SKU against WM\'s catalog. High confidence auto-links; the rest land here for a human yes/no.','A wrong link makes WM show the wrong product; an unmapped SKU can\'t sell at all. This queue is the safety valve.'],
+ mapper:['Every SKU × its Weedmaps link × the engine\'s current suggestion.','Search WM\'s catalog, map/unmap, re-score, or bulk-import. external_id is the stable anchor WM uses to recognise us.','If external_id churns, WM discards all curation (brand links, ML matches). Stability here is sacred.'],
+ stock:['On-hand units per region per SKU. (−n) = units locked by a soft hold.','Draft webhooks place soft holds; those decrement availability instantly so two carts can\'t claim the last unit.','Overselling on WM means a canceled delivery and a WM reliability hit. Reserved-aware stock prevents it.'],
+ batches:['Per-SKU THC lots. Region stock is the sum of its lots; allocation is FIFO.','Each physical lot carries its own THC%. Carts draw from the oldest lot first so labels stay accurate.','WM shows a THC range; it must come from real lots on hand, not a guess.'],
+ kits:['A grid of driver × SKU. The core constraint: a cart may only contain what ONE driver carries.','Toggling a dot loads/unloads a SKU from that van and pushes the Delivery listing to WM in <1s.','WM assumes 1 pin = 1 driver. We have many. Kit-aware availability is how we honor "one driver can actually bring this".'],
+ zip:['Type a zip to see which region and drivers would serve it.','Zip → region lookup, then the region\'s on-shift drivers. This is the routing the Draft webhook runs live.','If a zip maps to no on-shift driver, WM must not sell there. This is where you verify coverage.'],
+ sim:['Fires a signed Draft+Create pair against our own webhook — the primary demo verb.','Builds a cart, POSTs a Draft (we narrow + reprice + hold), then a Create (we bind a driver + fraud-check).','Lets you exercise the whole loop without a real WM customer. Every button on this page ultimately feeds this path.'],
+ draft:['The last Draft round-trip: what WM sent vs what we returned. Green = kept, red = dropped.','In the ~5s WM waits, we drop anything no on-shift driver carries, reprice, and place holds. Our answer becomes the cart.','This is the marquee leverage point — the one place we can veto WM\'s cart before the customer commits.'],
+ orders:['Ingested orders with their bound driver and live status.','On Create we bind a driver and run identity checks; status buttons push updates back to WM\'s state machine.','WM shows the customer status from us. Stale or wrong status is a support call and a reliability ding.'],
+ identity:['Anti-abuse ledger: fraud reviews, customer history, manual merge.','Every fulfilled order ties to an identity. Rules flag repeat first-timer abuse, device collisions, address mismatches.','Promo abuse and fraud eat margin directly. Auto-cancel + review is the guardrail.'],
+ promos:['A mirror of WM\'s live promotions plus a redemption audit.','We pull WM promos on a 60s timer and reconcile them against redemptions seen on orders.','A promo that "disappeared" on WM but still fires locally over-discounts. This is how you catch it.'],
+ registry:['WM promos × our internal promos, with overlap detection and linking.','Link a WM promo to an internal one so redemptions reconcile; overlap detection flags two promos that could stack.','Unlinked or overlapping promos are the #1 source of margin leakage. This is the control.'],
+ reservations:['Soft holds placed on stock by in-flight carts.','A Draft places a hold with a short TTL; it releases on expiry, cancel, or fulfillment. Held units show as (−n) in stock.','Holds are what make availability honest across concurrent carts. Expired holds that linger cause phantom out-of-stocks.'],
+ log:['Everything the system did, newest first, filterable by kind.','Each line is tagged auth/api/sync/webhook/order/reconcile with a severity. Alerts are visually distinct.','When something looks wrong, this is the first place you look. Severity color tells you where to start.'],
+ feed:['A real-time console of every API call crossing the Weedmaps boundary, both directions.','Cursor-based poll (1–2s). out = us→WM, in = WM→us. Shows method, path, status, latency, and a kind tag. Pausable & filterable.','This is how you watch the system think — and prove a write actually reached WM in <1s.'],
+ sync:['What is real-time vs on a timer, and when each last ran.','Writes push in <1s via a coalescing bus (writes to the same item collapse into one push). Timers are only a safety net.','A stale timer means drift is accumulating silently. Making "last ran" visible turns a silent failure loud.'],
+ inspector:['The raw JSON of the last Draft round-trip — what WM sent and what we returned.','The friendly pills above are derived from these bodies; devs need the literal payloads to debug.','When a line gets dropped or repriced unexpectedly, the raw diff is the ground truth.'],
+ endpoints:['The app\'s own API surface — a tiny built-in Postman for ~25 endpoints.','Pick an endpoint, edit the JSON body, and invoke it against this same server. Responses render inline.','Manisha wants to see the system work, not just its outputs. This makes every verb reachable from the page.'],
+ trace:['A live walk-through of a single order through the loop — toggle Delivery vs Pickup to see how the two fulfilment types diverge.','Delivery is kit-gated and driver-routed (zip → region → one driver). Pickup draws from the store\'s on-hand stock and binds to the store location — no driver, no routing.','Seeing the two paths side by side is the fastest way to understand why they must be mapped differently.'],
+ ladders:['How your products, promotions, and customers get mapped to Weedmaps — and how much is automatic.','Each bar splits by automation level: auto-linked (no human), one-click AI confirm, manual, and the unmapped tail. It\'s semi-automated — automation carries the bulk, you own the ambiguous edge.','Answers “is this automated or manual?” at a glance, and shows exactly how many items still need a person.'],
+ mapEx:['One live canvas of how everything binds to Weedmaps — four lenses over the same graph: Routing, Products, Promotions, Identity.','Every node is real state. Edges are the actual bindings; hover isolates one, click opens it with its explanation, the action to fix it, and a jump to its home panel. Dashed-red = a broken or missing link.','WM isn\'t a separate section — it threads through your regions, catalog, promos, and customers. This map makes that thread visible and editable from one place.'],
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   GLOSSARY (§6b)
+   ══════════════════════════════════════════════════════════════════ */
+const GLOSSARY=[
+ ['Draft','Synchronous webhook WM POSTs when a customer reaches checkout. WM waits ~5s for our answer; whatever we return becomes the cart. Our one chance to narrow, reprice, and hold.'],
+ ['Create','Async webhook WM sends once the customer buys. We bind a driver, run an identity check, and begin pushing status.'],
+ ['external_id','Stable Hyperwolf SKU anchor we attach to every WM menu item (e.g. <code>hyperwolf:sku:BD-F-35G</code>). WM recognises our products by it; if it churns, WM discards all curation.'],
+ ['wm_product_id','WM catalog identifier a SKU is mapped to. Curated (partly by humans); do not overwrite a manual link unless it truly changed.'],
+ ['Listing','A storefront on WM. We run two: Pickup (store on-hand, collected in store) and Delivery (only on-shift, kit-carried SKUs, driver-routed).'],
+ ['Pickup vs Delivery','Two fulfilment types. Pickup = customer collects at the store, availability = store stock, no driver. Delivery = kit-gated + zip→region→driver routing. They must be mapped differently.'],
+ ['Menu item','A single product live on a WM listing, keyed by external_id, carrying price/weight/THC and our integratorMetadata.'],
+ ['integratorMetadata','Private opaque channel on a menu item. Round-trips on order line items. We stash driver-eligibility, region ids, kit flags here.'],
+ ['Kit','The set of SKUs one driver physically carries in their van. A cart may only contain items from a single driver\'s kit.'],
+ ['Region','A delivery service area = a set of zips + the drivers assigned to it.'],
+ ['Union','The set of SKUs buyable right now — the union of all on-shift drivers\' kits. Drives the Delivery listing.'],
+ ['Reconcile','A drift sweep that compares what WM shows against what we intend and fixes differences. A safety net behind real-time writes.'],
+ ['Soft hold / Reservation','A short-TTL claim on stock placed during a Draft so concurrent carts can\'t oversell. Shown as (−n).'],
+ ['Coalescing bus','The sync layer that collapses multiple writes to the same item into a single WM push (<1s, debounced).'],
+ ['Tier','A customer classification (first-timer / returning / blocked) driving promo eligibility and fraud rules.'],
+ ['Status state machine','DRAFT → PENDING → IN_PROGRESS → READY_FOR_ATTAINMENT → COMPLETE, with CANCELED_* / FAILED branches.'],
+ ['Orphaned','A WM link pointing at a product we no longer have — flagged for cleanup.'],
+ ['WM-missing','A SKU that is live/needed but has no WM product link, so it can\'t sell. An alert state.'],
+ ['Batch','A physical lot of a SKU with its own THC%. Region stock = sum of lots; allocation is FIFO.'],
+ ['p50 / p95','Median and 95th-percentile latency of calls in the last 60s. p95 is your worst-case felt speed.'],
+ ['Draft veto','Shorthand for mutating WM\'s proposed cart inside the Draft window — dropping lines, repricing, holding stock.'],
+ ['merchantId / wmid','The WM listing id. Appears in menu/order paths; each of our two listings has its own.'],
+];
+
+/* ══════════════════════════════════════════════════════════════════
+   WORKSPACES + PANELS
+   ══════════════════════════════════════════════════════════════════ */
+const WS=[
+ {id:'overview',label:'Home',icon:'grid'},
+ {id:'map',label:'Integration Map',icon:'share',badge:()=>{const n=STATE.mapping.wm_missing.length+STATE.promos.promos.filter(pNeedsLink).length;return n;}},
+ {id:'orderpath',label:'Order Path',icon:'route'},
+ {id:'listings',label:'Listings & Routing',icon:'store'},
+ {id:'mapping',label:'Catalog Mapping',icon:'link',badge:()=>STATE.mapping.counters.review},
+ {id:'fields',label:'Field & Sync Map',icon:'sliders'},
+ {id:'inventory',label:'Inventory & Supply',icon:'box'},
+ {id:'trust',label:'Trust & Money',icon:'shield',badge:()=>STATE.identity.counters.review_open},
+ {id:'observ',label:'Observability',icon:'activity'},
+ {id:'dev',label:'Dev / API',icon:'terminal'},
+];
+const ICONS={
+ grid:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+ route:'<circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h6a3 3 0 0 0 3-3V8"/>',
+ store:'<path d="M3 9l1-5h16l1 5M4 9v11h16V9M9 20v-6h6v6"/>',
+ link:'<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+ box:'<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>',
+ shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+ activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+ terminal:'<path d="M4 17l6-6-6-6M12 19h8"/>',
+ share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+ sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+};
+const WS_SUB={
+ overview:'What needs you right now, and how one order flows through the system.',
+ map:'How everything binds to Weedmaps — one canvas, four lenses.',
+ orderpath:'Fire a signed Draft+Create and watch the round-trip.',
+ listings:'The two WM listings (Pickup = store stock, Delivery = driver kits) and what\u2019s live on each.',
+ mapping:'Link every SKU, brand, and category to the Weedmaps catalog — auto + human.',
+ fields:'Every parameter we sync to Weedmaps, per entity — what maps to what, automatically or manually.',
+ inventory:'The supply side: store stock, batches, and driver kits that decide what Pickup & Delivery can sell.',
+ trust:'Anti-fraud identity ledger and the Weedmaps side of promotions.',
+ observ:'Event log and what\u2019s real-time vs on a timer.',
+ dev:'Raw payloads, the app\u2019s API surface, and the coalescing sync bus.',
+};
+function panelHTML(p){
+ const badge=p.badge?`<span class="badge">${p.badge}</span>`:'';
+ return `<section class="panel ${p.cls||''}" style="${p.style||''}">
+  <div class="panel-hd"><div class="pt">${p.n?`<span class="n">${p.n}</span>`:''}<span>${p.title}</span></div><div class="sp"></div>${badge}${p.hdextra||''}
+   ${p.ex?`<button class="pinfo" onclick="openExplain(this,'${p.ex}','${p.title.replace(/'/g,"")}','${p.n||''}')" title="What / How / Why"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></button>`:''}</div>
+  <div class="panel-bd ${p.bdcls||''}" ${p.ph?`style="--ph:${p.ph}px"`:''}>${p.body}</div>
+ </section>`;
+}
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   PANEL LAYOUTS per workspace  (slot ids preserved from §9)
+   ══════════════════════════════════════════════════════════════════ */
+function wsOverview(){
+ return `
+ <div class="grid" style="grid-template-columns:1fr">
+   ${panelHTML({title:'Follow one order',n:'trace',ex:'trace',hdextra:traceToggle(),body:'<div id="trace"></div>'})}
+ </div>
+ <div class="grid g-2-1" style="margin-top:12px">
+   ${panelHTML({title:'Needs you now',n:'inbox',hdextra:'<button class="btn xs" onclick="switchWs(\'map\')">See the map</button>',body:'<div id="inbox"></div>',ph:430,bdcls:'scroll'})}
+   ${panelHTML({title:'Mapping automation',n:'auto',ex:'ladders',body:'<div id="ladders"></div>'})}
+ </div>
+ <div class="grid g3" style="margin-top:12px"><div id="ovKpis" class="span-all krow"></div></div>`;
+}
+function wsOrderPath(){
+ return `<div class="grid g-1-2">
+  ${panelHTML({title:'Order simulator',n:'8',ex:'sim',body:simBody()})}
+  ${panelHTML({title:'Last Draft round-trip',n:'9',ex:'draft',hdextra:'<button class="btn xs" onclick="switchWs(\'dev\')">Raw JSON</button>',body:'<div class="grid g2" style="gap:10px"><div><h4>WM sent</h4><div id="flow"></div></div><div><h4>We returned</h4><div id="flow2"></div></div></div>'})}
+ </div>
+ <div class="grid" style="grid-template-columns:1fr;margin-top:12px">
+  ${panelHTML({title:'Orders & status lifecycle',n:'10',ex:'orders',body:'<div id="orders"></div>',ph:340,bdcls:'scroll'})}
+ </div>`;
+}
+function wsListings(){
+ return `<div class="grid" style="grid-template-columns:1fr">
+  ${panelHTML({title:'Listings on Weedmaps',n:'1',ex:'listings',hdextra:'<button class="btn xs primary" onclick="sync()" id="syncBtn">Push both</button>',body:`<div id="pipeline" style="margin-bottom:10px"></div><div id="listing-heads" style="margin-bottom:8px"></div><div id="listings"></div><div class="divh"></div><div class="row" style="justify-content:space-between"><div id="tokpill"></div><div id="conn"></div></div>`})}
+ </div>
+ <div class="grid" style="grid-template-columns:1fr;margin-top:12px">
+  ${panelHTML({title:'Zip → region → driver',n:'7',ex:'zip',body:zipBody()})}
+ </div>`;
+}
+function wsMapping(){
+ return `<div class="grid g2">
+  ${panelHTML({title:'Review queue',n:'2',ex:'mapping',badge:'human check',body:`<div id="map-counters" class="krow" style="margin-bottom:10px"></div><div id="map-lastrun" class="hint" style="margin-bottom:8px"></div><div id="map-queue"></div>`})}
+  ${panelHTML({title:'WM-missing',n:'2',body:`<div id="map-missing"></div>`})}
+ </div>
+ <div class="grid" style="grid-template-columns:1fr;margin-top:12px">
+  ${panelHTML({title:'Full catalog mapper',n:'3',ex:'mapper',hdextra:'<button class="btn xs" onclick="rescoreAll()">Re-score all</button>',body:`<div id="map-summary" class="hint" style="margin-bottom:8px"></div><div id="map-table" style="max-height:320px;overflow:auto"></div>`})}
+ </div>
+ <div class="grid g3" style="margin-top:12px">
+  ${panelHTML({title:'WM catalog search',n:'3',body:`<div id="pick-title" class="lbl">Search Weedmaps</div><input id="pick-q" class="fld" placeholder="Blue Dream…" style="margin-bottom:8px" oninput="searchWM()"><div id="pick-results"></div>`})}
+  ${panelHTML({title:'Bulk import',n:'3',body:`<div class="lbl">Source</div><input id="imp-source" class="fld" value="blaze-export.csv" style="margin-bottom:8px"><div class="lbl">Products JSON</div><textarea id="imp-json" class="fld" rows="4" style="margin-bottom:8px">[{"sku":"…","name":"…"}]</textarea><div class="row"><button class="btn sm" onclick="importCatalog(true)">Dry run</button><button class="btn sm primary" onclick="importCatalog(false)">Import</button></div><div id="imp-note" class="hint" style="margin-top:8px"></div><div id="imp-result" style="margin-top:6px"></div>`})}
+  ${panelHTML({title:'Bulk map',n:'3',body:`<div id="bulk-counters" class="krow" style="margin-bottom:8px"></div><div id="bulk-note" class="hint" style="margin-bottom:6px"></div><div id="bulk-picker" style="margin-bottom:8px"></div><div id="bulk-table" style="max-height:200px;overflow:auto"></div>`})}
+ </div>
+ <div class="grid" style="grid-template-columns:1fr;margin-top:12px">
+  ${panelHTML({title:'Add / edit product → push to Weedmaps',n:'1',body:`<div class="hint" style="margin-bottom:8px">Create or edit a product here, then push it live to both listings.</div><div id="sku-picker"></div>`})}
+ </div>`;
+}
+function wsInventory(){
+ return `<div class="grid g-2-1">
+  ${panelHTML({title:'Region stock',n:'4',ex:'stock',body:`<div id="stock"></div>`,ph:360,bdcls:'scroll'})}
+  ${panelHTML({title:'Driver kits',n:'6',ex:'kits',badge:'the core constraint',body:`<div id="kits"></div>`,ph:360,bdcls:'scroll'})}
+ </div>
+ <div class="grid g3" style="margin-top:12px">
+  ${panelHTML({title:'Batches (THC lots)',n:'5',ex:'batches',body:`<div id="batches"></div>`})}
+  ${panelHTML({title:'Batch THC ranges',n:'5',body:`<div id="batch-ranges"></div>`})}
+  ${panelHTML({title:'Reservations',n:'14',ex:'reservations',body:`<div id="reservations"></div>`})}
+ </div>`;
+}
+function wsTrust(){
+ return `<div class="grid g-2-1">
+  ${panelHTML({title:'Identity ledger',n:'11',ex:'identity',body:`<div id="id-counters" class="krow" style="margin-bottom:10px"></div><h4>Fraud reviews</h4><div id="id-reviews" style="margin-bottom:12px"></div><h4>Customer ledger</h4><div id="id-ledger"></div>`,ph:420,bdcls:'scroll'})}
+  ${panelHTML({title:'Identity search / merge',n:'11',body:`<div class="lbl">Search customers</div><input id="id-q" class="fld" placeholder="name, phone, email…" style="margin-bottom:8px" oninput="searchIdentities()"><div id="id-search" style="margin-bottom:12px"></div><div class="divh"></div><div class="lbl">Manual merge</div><div class="row" style="margin-bottom:8px"><input id="id-src" class="fld" placeholder="source id"><input id="id-dst" class="fld" placeholder="→ keep id"></div><button class="btn sm dark" onclick="mergeIdentity()">Merge identities</button>`})}
+ </div>
+ <div class="grid" style="grid-template-columns:1fr;margin-top:12px">
+  ${panelHTML({title:'Promotions × Weedmaps',n:'12',ex:'promos',hdextra:'<a class="btn xs" href="Promotions Suite.html" target="_blank">Open Promotions module ↗</a>',body:`<div id="promo-counters" style="margin-bottom:12px"></div><div id="promo-list"></div>`})}
+ </div>
+ <div class="grid g-2-1" style="margin-top:12px">
+  ${panelHTML({title:'Weedmaps reconciliation',n:'13',ex:'registry',body:`<div id="reg-counters" style="margin-bottom:10px"></div><div id="reg-note" style="margin-bottom:10px"></div><div id="reg-alerts" style="margin-bottom:10px"></div><div id="reg-table"></div>`})}
+  ${panelHTML({title:'Redemptions & linking',n:'12·13',body:`<h4>Redemption audit</h4><div id="promo-redemptions" style="margin-bottom:12px"></div><div class="divh"></div><div class="lbl">Link an internal promo (from the Promotions module) to a WM promo</div><div class="hint" style="margin-bottom:8px">These fields mirror the internal promo definition so the two reconcile — authoring stays in the Promotions module.</div><div class="grid g2" style="gap:6px"><input id="ip-name" class="fld" placeholder="internal promo name"><input id="ip-code" class="fld" placeholder="code"><input id="ip-kind" class="fld" placeholder="trigger / kind"><input id="ip-amount" class="fld" placeholder="reward / amount"><input id="ip-start" class="fld" placeholder="start"><input id="ip-end" class="fld" placeholder="end"><input id="ip-target" class="fld" placeholder="target"><input id="ip-wm" class="fld" placeholder="WM promo id"></div><button class="btn sm primary" style="margin-top:8px" onclick="linkPromo()">Link to Weedmaps</button>`})}
+ </div>`;
+}
+function wsObserv(){
+ return `<div class="grid g-2-1">
+  ${panelHTML({title:'Event log',n:'15',ex:'log',hdextra:logFilters(),body:`<div id="log"></div>`,ph:460,bdcls:'scroll'})}
+  ${panelHTML({title:'Sync status',n:'new',ex:'sync',body:`<div id="syncStatus"></div>`})}
+ </div>`;
+}
+function wsDev(){
+ return `<div class="grid g2">
+  ${panelHTML({title:'Payload inspector — last Draft',n:'new',ex:'inspector',hdextra:'<button class="btn xs" onclick="toggleDiff()" id="diffBtn">Diff</button>',body:`<div class="grid g2" style="gap:10px"><div><h4>WM → us (Draft in)</h4><pre id="pl-in" class="rawjson"></pre></div><div><h4>us → WM (Draft answer)</h4><pre id="pl-out" class="rawjson"></pre></div></div>`})}
+  ${panelHTML({title:'Endpoint reference',n:'new',ex:'endpoints',body:endpointBody()})}
+ </div>
+ <div class="grid" style="grid-template-columns:1fr;margin-top:12px">
+  ${panelHTML({title:'Sync status',n:'new',ex:'sync',body:`<div id="syncStatus2"></div>`})}
+ </div>`;
+}
+function chev(){return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>';}
+function logFilters(){return `<div class="row" style="gap:4px" id="logFilters">${['all','order','sync','webhook','api','reconcile','auth'].map(k=>`<button class="fchip ${k==='all'?'on':''}" style="background:var(--bg);color:var(--ink2);border-color:var(--hair)" data-lk="${k}" onclick="setLogFilter('${k}')">${k}</button>`).join('')}</div>`;}
+
+function simBody(){
+ return `<div class="lbl">Zip</div><input id="sim-zip" class="fld" value="90046" style="margin-bottom:8px">
+  <div class="lbl">Cart (SKUs)</div>
+  <div id="sim-skus" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px"></div>
+  <div class="row" style="margin-bottom:8px"><div style="flex:1"><div class="lbl">Payment</div><select id="sim-pay" class="fld"><option>card</option><option>cash</option></select></div><div style="flex:1"><div class="lbl">Customer</div><select id="sim-cust" class="fld"><option value="returning">Returning</option><option value="first">First-timer</option><option value="fraud">Known fraud</option></select></div></div>
+  <button class="btn primary" style="width:100%" id="simBtn" onclick="simulate()"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Fire signed Draft + Create</button>
+  <div id="sim-out" class="hint" style="margin-top:10px"></div>`;
+}
+function zipBody(){
+ return `<div class="row" style="margin-bottom:10px"><input id="zip-in" class="fld" value="90805" style="max-width:160px"><button class="btn sm dark" onclick="resolveZip()">Resolve</button><span class="hint" id="zip-hint">Type a zip to test routing</span></div><div id="map"></div>`;
+}
+function endpointBody(){
+ const eps=[
+  ['/api/simulate','POST','{"zip":"90046","skus":["BD-F-35G"],"payment_method":"card"}'],
+  ['/api/sync','POST','{}'],['/api/reconcile','POST','{}'],
+  ['/api/status','POST','{"wm_order_id":"75989365","status":"COMPLETE"}'],
+  ['/api/shift','POST','{"driver":"Marcus","on":true}'],
+  ['/api/kit','POST','{"driver":"Andre","sku":"GG-F-35G","carry":true}'],
+  ['/api/resolve','POST','{"zip":"90802"}'],
+  ['/api/mapping/nightly','POST','{}'],['/api/promos/pull','POST','{}'],
+  ['/api/identity/search','POST','{"q":"Okafor"}'],
+ ];
+ return `<div class="row" style="margin-bottom:8px"><select id="ep-sel" class="fld" onchange="epPick()" style="flex:1">${eps.map((e,i)=>`<option value="${i}">${e[1]} ${e[0]}</option>`).join('')}</select></div>
+  <textarea id="ep-body" class="fld" rows="3" style="margin-bottom:8px">${eps[0][2]}</textarea>
+  <button class="btn sm dark" onclick="epInvoke()">Invoke →</button>
+  <span class="hint" style="margin-left:8px">Runs against this server</span>
+  <pre id="ep-out" class="rawjson" style="margin-top:8px;display:none"></pre>
+  <script type="application/json" id="ep-data">${JSON.stringify(eps)}<\/script>`;
+}
+/* ── Integration Map workspace ── */
+function wsMap(){
+ const lenses=[['routing','Routing','store → Pickup · regions → Delivery'],['products','Products','SKU ↔ WM product ↔ listing'],['promos','Promotions','internal ↔ WM · overlaps'],['identity','Identity','raw signals → merged customer']];
+ return `<div class="maptabs">${lenses.map(l=>`<button class="maptab ${l[0]===mapLens?'on':''}" onclick="setLens('${l[0]}')"><b>${l[1]}</b><span>${l[2]}</span></button>`).join('')}</div>
+  <section class="panel" style="margin-top:12px"><div class="panel-hd"><div class="pt"><span class="n">MAP</span><span id="mapTitle">Routing</span></div><div class="sp"></div><div id="mapLegend" class="legend"></div><button class="pinfo" onclick="openMapExplain(this)" title="What / How / Why"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></button></div>
+   <div class="panel-bd" style="padding:0"><div id="mapCanvas" class="mapcanvas"></div></div></section>`;
+}
+/* ── Field & Sync Map workspace — every parameter we sync to WM ── */
+let fieldTab='products';
+const SYNC_ENTITIES=[['products','Products'],['regions','Regions'],['customers','Customers'],['promos','Promotions'],['taxonomy','Brands & Categories']];
+// [ourField, wmField, mode, direction, note]  mode: auto|semi|manual|computed  dir: out|in|both
+const PARAM_MAP={
+ products:{our:'Hyperwolf product (Blaze SKU)',wm:'WM Menu Item',rows:[
+  ['sku','external_id','auto','out','Load-bearing key — WM recognises us by it. Never changes.'],
+  ['name','name','auto','out','Verbatim.'],
+  ['price','price','auto','out','Cents → dollars; card fee / rounding applied.'],
+  ['weight {value,unit}','weight','auto','out','Normalised to WM units.'],
+  ['thc','potency_thc','auto','out','From batches — a real min–max range, not a guess.'],
+  ['category','wm_category','manual','out','Mapped to WM taxonomy (see Brands & Categories).'],
+  ['subcategory','discovery_tags[]','semi','out','Auto-suggested, human-confirmed.'],
+  ['brand','brand_id','manual','out','Curated by a human — never auto-overwritten.'],
+  ['inventory (store)','availability','auto','out','Drives the Pickup listing.'],
+  ['kit membership','integratorMetadata.driver_ok','auto','out','Drives Delivery eligibility.'],
+  ['wm_product_id','product link','semi','both','Matcher suggests → human approves in Catalog Mapping.'],
+ ]},
+ regions:{our:'Delivery region',wm:'WM service area / listing',rows:[
+  ['region name','service_area label','manual','out','Set once per region.'],
+  ['zips[]','zip_codes[]','auto','out','Draft webhook routes on these live.'],
+  ['drivers[]','integratorMetadata.driver_pool','auto','out','Who can fulfil in this region.'],
+  ['on_shift status','availability gate','auto','out','Off-shift → its kit drops from Delivery in <1s.'],
+  ['listing binding','wmid','manual','out','Which listing (Pickup/Delivery) this region feeds.'],
+ ]},
+ customers:{our:'Identity (customer ledger)',wm:'WM order customer',rows:[
+  ['device fingerprint','—','auto','in','Primary merge signal; never leaves us.'],
+  ['phone','customer.phone','auto','in','Verified match → merge.'],
+  ['email','customer.email','auto','in','Verified match → merge.'],
+  ['order history / LTV','—','auto','in','Built from Create webhooks.'],
+  ['tier','—','computed','in','first-timer / returning / blocked — drives promo + fraud rules.'],
+  ['fraud verdict','order status (CANCELED_SELLER)','auto','out','Auto-cancel; ambiguous cases → manual review.'],
+ ]},
+ promos:{our:'Internal promo (Promotions module)',wm:'WM promotion',rows:[
+  ['promo link','wm_promotion_id','manual','both','Link WM promo ↔ our internal promo so redemptions reconcile.'],
+  ['name','name','auto','both','Mirrored from WM on a 60s pull.'],
+  ['reward / amount','discount','auto','in','Read from WM.'],
+  ['trigger / kind','type','semi','in','Mapped to our rule vocabulary.'],
+  ['code','code','auto','in','For code-gated promos.'],
+  ['target (products/category)','applies_to','manual','both','Confirm the WM promo hits the right SKUs.'],
+  ['schedule','start / end','auto','in','Read from WM.'],
+ ]},
+};
+function modePill(m){const map={auto:['ok','Auto'],semi:['live','1-click'],manual:['info','Manual'],computed:['ghost','Computed']};const c=map[m]||map.manual;return pill(c[0],c[1],false);}
+function dirArrow(d){return d==='both'?'<span title="two-way" class="mono" style="color:var(--info)">⇄ WM</span>':d==='in'?'<span title="WM → us" class="mono" style="color:var(--warn)">← WM</span>':'<span title="us → WM" class="mono" style="color:var(--good)">→ WM</span>';}
+function wsFields(){
+ return `<div class="maptabs" id="fieldTabs">${SYNC_ENTITIES.map(e=>`<button class="maptab ${e[0]===fieldTab?'on':''}" onclick="setFieldTab('${e[0]}')"><b>${e[1]}</b><span>${e[0]==='taxonomy'?'WM catalog taxonomy':'parameter ↔ Weedmaps'}</span></button>`).join('')}</div>
+  <div class="grid" style="grid-template-columns:1fr;margin-top:12px"><div id="fieldsBody"></div></div>`;
+}
+function setFieldTab(t){fieldTab=t;document.querySelectorAll('#fieldTabs .maptab').forEach(b=>b.classList.toggle('on',b.getAttribute('onclick').includes("'"+t+"'")));renderFields();}
+function renderFields(){
+ const host=$('fieldsBody');if(!host)return;
+ if(fieldTab==='taxonomy'){host.innerHTML=taxonomyPanels();return;}
+ const m=PARAM_MAP[fieldTab];
+ const counts={auto:0,semi:0,manual:0,computed:0};m.rows.forEach(r=>counts[r[2]]++);
+ host.innerHTML=panelHTML({title:m.our+'  →  '+m.wm,n:'fields',ex:'ladders',hdextra:`<span class="hint">${m.rows.length} parameters · <b style="color:var(--good)">${counts.auto} auto</b> · <b style="color:#8A6200">${counts.semi} 1-click</b> · <b style="color:var(--info)">${counts.manual} manual</b></span>`,body:`
+   <table><thead><tr><th>Our parameter</th><th>Sync</th><th>Weedmaps parameter</th><th>How it maps</th><th>Notes</th></tr></thead><tbody>
+   ${m.rows.map(r=>`<tr><td class="mono" style="font-weight:600">${r[0]}</td><td>${dirArrow(r[3])}</td><td class="mono" style="color:var(--ink2)">${r[1]}</td><td>${modePill(r[2])}</td><td class="muted" style="font-size:10.5px">${r[4]}</td></tr>`).join('')}
+   </tbody></table>
+   <div class="hint" style="margin-top:9px"><b>Auto</b> = synced with no human. <b>1-click</b> = matcher proposes, you confirm. <b>Manual</b> = a person sets/curates it (WM discards curation if we overwrite it). <b>Computed</b> = we derive it, never sent to WM.</div>`});
+}
+function taxRows(list){return list.map(t=>`<tr class="${t[1]?'':'row-warn'}"><td style="font-weight:600">${t[0]}</td><td>${dirArrow('out')}</td><td class="mono muted">${t[1]||'— unmapped —'}</td><td>${modePill(t[2])}</td><td>${t[1]?pill('ok','mapped',false):pill('warn','needs link',false)}</td></tr>`).join('');}
+function taxonomyPanels(){
+ const brandUn=TAXONOMY.brands.filter(b=>!b[1]).length;
+ return `<div class="grid g3">
+  ${panelHTML({title:'Categories → WM',n:'tax',body:`<table><thead><tr><th>Ours</th><th>Sync</th><th>WM category</th><th>Mode</th><th></th></tr></thead><tbody>${taxRows(TAXONOMY.categories)}</tbody></table>`})}
+  ${panelHTML({title:'Sub-categories → WM tags',n:'tax',body:`<table><thead><tr><th>Ours</th><th>Sync</th><th>WM discovery tag</th><th>Mode</th><th></th></tr></thead><tbody>${taxRows(TAXONOMY.subcategories)}</tbody></table>`})}
+  ${panelHTML({title:'Brands → WM catalog',n:'tax',badge:brandUn?brandUn+' unlinked':'',body:`<table><thead><tr><th>Ours</th><th>Sync</th><th>WM brand</th><th>Mode</th><th></th></tr></thead><tbody>${taxRows(TAXONOMY.brands)}</tbody></table><div class="hint" style="margin-top:8px">Brand links are human-curated in WM\u2019s Brand Catalog. Unlinked brands still sell, but lose brand-page placement & ML matches.</div>`})}
+ </div>`;
+}
+</script>
+<style>
+.rawjson{font-family:var(--mono);font-size:10.5px;line-height:1.5;background:#1B1A14;color:#D8D4C7;border-radius:9px;padding:11px;overflow:auto;max-height:300px;margin:0;white-space:pre}
+.rawjson .jk{color:#E4C06B}.rawjson .js{color:#9FD59F}.rawjson .jn{color:#7BA6F5}.rawjson .del{background:rgba(180,35,24,.28);text-decoration:line-through}.rawjson .add{background:rgba(46,125,70,.28)}
+.maptabs{display:flex;gap:8px;flex-wrap:wrap}
+.maptab{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 14px;border:1px solid var(--hair2);border-radius:10px;background:var(--surface);text-align:left;min-width:150px}
+.maptab b{font-size:12.5px;font-weight:700;color:var(--ink)}
+.maptab span{font-size:10px;color:var(--ink3)}
+.maptab:hover{border-color:var(--ink3)}
+.maptab.on{background:var(--ink);border-color:var(--ink)}.maptab.on b{color:#fff}.maptab.on span{color:#B8B4A6}
+.mapcanvas{position:relative;width:100%;overflow:auto;background:radial-gradient(circle at 1px 1px,rgba(21,20,15,.05) 1px,transparent 0);background-size:22px 22px}
+.mapcol-title{position:absolute;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.mapnode{position:absolute;background:var(--surface);border:1px solid var(--hair2);border-radius:10px;padding:7px 10px;box-shadow:var(--sh1);cursor:pointer;transition:box-shadow .12s,border-color .12s,opacity .12s,transform .12s;z-index:2}
+.mapnode:hover{border-color:var(--ink3);box-shadow:var(--sh2)}
+.mapnode .mn-t{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.mapnode .mn-s{font-size:10px;color:var(--ink3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mapnode.hot{border-color:var(--accent);box-shadow:0 0 0 3px var(--accentSoft),var(--sh2);z-index:4}
+.mapnode.dim{opacity:.28}
+.mapnode.alert{border-color:var(--alert);background:var(--alertSoft)}
+.mapnode.warn{border-color:var(--warn)}
+.mapnode .mn-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.mapedge{fill:none;stroke:var(--ink4);stroke-width:1.5;opacity:.5;transition:opacity .12s,stroke .12s,stroke-width .12s}
+.mapedge.dashed{stroke-dasharray:4 4}
+.mapedge.bad{stroke:var(--bad)}
+.mapedge.warn{stroke:var(--warn)}
+.mapedge.hot{stroke:var(--accent);stroke-width:2.5;opacity:1}
+.mapedge.dim{opacity:.08}
+/* segmented toggle */
+.seg2{display:inline-flex;background:var(--bg);border:1px solid var(--hair2);border-radius:8px;padding:2px;gap:2px}
+.s2{padding:3px 12px;font-size:11.5px;font-weight:700;border:none;background:transparent;color:var(--ink3);border-radius:6px}
+.s2.on{background:var(--ink);color:#fff}
+/* order trace */
+.tracewrap{overflow-x:auto}
+.tracerow{display:flex;align-items:stretch;min-width:820px}
+.tstep{display:flex;align-items:stretch;flex:1}
+.tstep-in{flex:1;border:1px solid var(--hair2);border-radius:10px;padding:9px 11px;background:var(--paper);transition:box-shadow .2s,border-color .2s,background .2s;position:relative}
+.tstep-in.key{border-color:var(--accent);background:var(--accentSoft)}
+.tstep.lit .tstep-in{border-color:var(--ink);box-shadow:0 0 0 3px var(--accentSoft),var(--sh2);background:#fff}
+.tstep.lit .tstep-in.key{box-shadow:0 0 0 3px var(--accent),var(--sh2)}
+.tstep-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.tactor{font-size:8.5px;font-weight:800;letter-spacing:.03em;color:#fff;padding:1px 6px;border-radius:20px;text-transform:uppercase}
+.tstep-n{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--ink4)}
+.tstep-t{font-size:12px;font-weight:700;line-height:1.25;margin-bottom:2px}
+.tstep-d{font-size:10.5px;color:var(--ink3);line-height:1.35}
+.tconn{width:26px;display:flex;align-items:center;justify-content:center;position:relative}
+.tconn::before{content:"";height:2px;width:100%;background:var(--hair2)}
+.tconn .tpulse{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--accent);opacity:0;left:0}
+.tconn.flow .tpulse{opacity:1;animation:pulseTravel .4s ease forwards}
+@keyframes pulseTravel{from{left:0}to{left:calc(100% - 8px)}}
+.tconn.flow::before{background:var(--accent)}
+/* automation ladders */
+.ladblock{padding:9px 0;border-bottom:1px solid var(--hair)}
+.ladblock:last-of-type{border-bottom:none}
+.ladbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--bg);gap:2px}
+.ladseg{transition:flex .3s}
+.ladseg.auto,.sw.auto{background:var(--good)}
+.ladseg.ai,.sw.ai{background:var(--accent)}
+.ladseg.manual,.sw.manual{background:var(--info)}
+.ladseg.unmapped,.sw.unmapped{background:var(--bad)}
+.ladleg{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:10.5px;color:var(--ink3)}
+.ladleg .li{display:flex;align-items:center;gap:5px}
+.ladleg b{color:var(--ink);font-family:var(--mono)}
+/* inbox */
+.inbox-item{padding:10px 12px;border-radius:10px;margin-bottom:8px}
+.modref{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid var(--infoSoft);background:var(--infoSoft);border-radius:9px;color:var(--ink2);font-size:11.5px;line-height:1.5}
+.modref svg{color:var(--info);flex:0 0 auto;margin-top:1px}
+.modref u{text-decoration-color:var(--info)}
+.pband{display:flex;background:var(--surface);border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+.pband .s{flex:1;padding:10px 15px;border-left:1px solid var(--hair);min-width:0}
+.pband .s:first-child{border-left:none}
+.pband .s .l{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pband .s .v{font-size:19px;font-weight:600;font-family:var(--mono);margin-top:3px;line-height:1}
+.pband .s .v small{font-size:11px;color:var(--ink3)}
+.echip{flex:0 0 auto}
+.echip .ei{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center}
+/* territory map */
+.terr{position:absolute;border-radius:16px;border:2px solid var(--ink);background:var(--surface);box-shadow:var(--sh2);padding:9px 11px;cursor:pointer;transition:box-shadow .12s,transform .12s}
+.terr:hover{transform:translateY(-1px);box-shadow:var(--sh3)}
+.terr .tn{font-size:12.5px;font-weight:800}
+.terr .tz{font-size:9px;font-family:var(--mono);color:var(--ink3);margin-top:1px}
+.terr .tpins{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.terr .tpin{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px;background:var(--bg)}
+.terr .tpin .pd{width:6px;height:6px;border-radius:50%}
+.terr.store{border-color:var(--warn);border-style:dashed}
+.terr-listing{position:absolute;border-radius:12px;border:1.5px solid var(--hair2);background:var(--ink);color:#fff;padding:10px 12px;width:150px;box-shadow:var(--sh2)}
+.terr-listing .ll{font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#8F8B7E;font-weight:800}
+.terr-listing .lv{font-size:14px;font-weight:800;margin-top:2px}
+.terr-listing .ld{font-size:10px;color:#B8B4A6;margin-top:2px}
+.terr-ocean{position:absolute;left:0;bottom:0;font-size:10px;font-weight:700;color:#9DB4CC;letter-spacing:.1em;text-transform:uppercase;transform:rotate(-32deg);transform-origin:left bottom}
+</style>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   RENDERERS  — populate slot ids (replaceable by verified renderers)
+   ══════════════════════════════════════════════════════════════════ */
+const $=id=>document.getElementById(id);
+const money=n=>'$'+Number(n).toFixed(2);
+const ago=t=>{const s=Math.floor((Date.now()-t)/1000);if(s<60)return s+'s ago';const m=Math.floor(s/60);if(m<60)return m+'m ago';return Math.floor(m/60)+'h ago';};
+const set=(id,html)=>{const el=$(id);if(el)el.innerHTML=html;};
+function pill(kind,txt,dot=true){return `<span class="pill ${kind}">${dot?'<span class="d"></span>':''}${txt}</span>`;}
+
+function renderAll(){
+ renderTopbar();renderDock();
+ // overview
+ if(curWs==='overview'){renderOverview();}
+ if(curWs==='orderpath'){renderFlow();renderOrders();}
+ if(curWs==='listings'){renderListings();renderZip(true);}
+ if(curWs==='mapping'){renderMapping();}
+ if(curWs==='inventory'){renderStock();renderKits();renderBatches();renderReservations();}
+ if(curWs==='trust'){renderIdentity();renderPromos();renderRegistry();}
+ if(curWs==='observ'){renderLog();renderSync('syncStatus');}
+ if(curWs==='dev'){renderInspector();renderSync('syncStatus2');}
+ if(curWs==='map'){renderMap();}
+ if(curWs==='fields'){renderFields();}
+ renderSpine();
+}
+
+/* ── Fulfillment-aware availability (Pickup ≠ Delivery) ── */
+function sellDelivery(sku){const c=CATALOG.find(x=>x.sku===sku);return !!(c&&c.wm_product_id&&STATE.union.includes(sku));}
+function sellPickup(sku){const c=CATALOG.find(x=>x.sku===sku);return !!(c&&c.wm_product_id&&c.inventory>0);}
+function pickupCount(){return CATALOG.filter(c=>sellPickup(c.sku)).length;}
+function deliveryCount(){return CATALOG.filter(c=>sellDelivery(c.sku)).length;}
+
+/* ── Attention model — decisions needing a human, by severity ── */
+function collectAttention(){
+ const a=[];
+ STATE.mapping.wm_missing.forEach(m=>a.push({sev:'alert',tag:'Unmapped SKU',title:m.name+' can’t sell',why:m.reason,ws:'mapping',action:{label:'Find WM match',fn:`searchWMFor('${m.sku}')`}}));
+ STATE.identity.reviews.filter(r=>r.action==='needs review').forEach(r=>a.push({sev:'alert',tag:'Fraud review',title:r.customer+' — hold',why:r.reason,ws:'trust',action:{label:'Open ledger',fn:`switchWs('trust')`}}));
+ STATE.mapping.queue.forEach(q=>a.push({sev:'warn',tag:'Confirm match',title:q.name,why:`AI suggests “${q.suggestion}” · ${Math.round(q.confidence*100)}% confident`,ws:'mapping',action:{label:'Approve',fn:`approveMap('${q.sku}')`},action2:{label:'Reject',fn:`rejectMap('${q.sku}')`}}));
+ STATE.promos.promos.filter(p=>p.wm.state==='overlap'||p.wm.overlap).forEach(p=>a.push({sev:'warn',tag:'Promo overlap',title:p.name,why:'May stack with another auto-apply promo — double-discount risk',ws:'trust',action:{label:'Open promotions',fn:`switchWs('trust')`}}));
+ STATE.promos.promos.filter(p=>p.wm.state==='wm_only').forEach(p=>a.push({sev:'alert',tag:'WM-only promo',title:p.name,why:'Live on Weedmaps with no internal promo controlling it',ws:'trust',action:{label:'Link it',fn:`linkPromoRow('${p.id}')`}}));
+ STATE.promos.promos.filter(p=>p.wm.state==='not_pushed').forEach(p=>a.push({sev:'warn',tag:'Not on Weedmaps',title:p.name,why:'Internal promo not pushed to Weedmaps yet',ws:'trust',action:{label:'Push',fn:`linkPromoRow('${p.id}')`}}));
+ STATE.promos.promos.filter(p=>p.wm.state==='disappeared').forEach(p=>a.push({sev:'warn',tag:'Promo vanished',title:p.name,why:'Gone on WM but may still fire locally',ws:'trust',action:{label:'Review',fn:`switchWs('trust')`}}));
+ const order=['alert','warn'];return a.sort((x,y)=>order.indexOf(x.sev)-order.indexOf(y.sev));
+}
+function attnCount(){return collectAttention().length;}
+
+/* ── The living status spine (§1) ── */
+function renderSpine(){
+ const el=$('spine');if(!el)return;
+ const attn=collectAttention();
+ const alerts=attn.filter(a=>a.sev==='alert').length, warns=attn.filter(a=>a.sev==='warn').length;
+ const sum=callSummary();
+ const sev=alerts?'alert':(warns||sum.errors)?'warn':'ok';
+ el.className='spine'+(sev==='alert'?' sev-alert':sev==='warn'?' sev-warn':'');
+ const seg=(cls,html,fn)=>`<button class="seg ${cls} ${fn?'click':''}" ${fn?`onclick="${fn}"`:''}>${html}</button>`;
+ el.innerHTML=
+  seg('',`<span class="hb ${sev==='ok'?'':sev}"></span><b>Weedmaps live</b>`,`switchWs('map')`)
+  +seg('g',`Pickup <b>${pickupCount()}</b> · Delivery <b>${deliveryCount()}</b> sellable`,`switchWs('listings')`)
+  +(alerts?seg('a',`<b>${alerts}</b> need${alerts>1?'':'s'} you now`,`switchWs('overview')`):'')
+  +(warns?seg('w',`<b>${warns}</b> to review`,`switchWs('overview')`):'')
+  +(!alerts&&!warns?seg('g',`<b>All clear</b> — nothing needs you`):'')
+  +seg('',`On shift <b>${DRIVERS.filter(d=>STATE.on_shift[d]).length}/${DRIVERS.length}</b>`,`switchWs('inventory')`)
+  +seg(sum.errors?'a':'g',`Sync errors <b>${sum.errors}</b>`,`switchWs('observ')`)
+  +`<div class="sp"></div>`
+  +seg('',`<span style="color:var(--ink3)">updated just now</span>`);
+}
+
+function renderTopbar(){
+ const tokDays=((STATE.token.expires_at-Date.now())/864e5);
+ const sum=callSummary();
+ const rt=REALTIME;
+ set('tbStats',`
+  <div class="tstat"><div class="k"><span class="dot live"></span>WM connection</div><div class="v g">Live · Pickup + Delivery</div></div>
+  <div class="tstat"><div class="k">Token</div><div class="v ${tokDays<3?'r':'a'}">${tokDays.toFixed(1)}d</div></div>
+  <div class="tstat"><div class="k">Sync bus</div><div class="v">${rt.in_flight} in-flt · ${rt.coalesced} coal</div></div>
+  <div class="tstat"><div class="k">Latency 60s</div><div class="v">${sum.p50}<span style="color:#8F8B7E">/</span>${sum.p95}<span style="color:#8F8B7E">ms</span></div></div>
+  <div class="tstat"><div class="k">Errors 60s</div><div class="v ${sum.errors?'r':'g'}">${sum.errors}</div></div>
+  <div class="tstat"><div class="k"><span class="pollpip" id="pollpip"></span>Poll</div><div class="v">3s</div></div>
+ `);
+}
+
+/* ── Home: order trace + attention inbox + automation ladders ── */
+let traceMode='delivery', traceTimer=null;
+function traceToggle(){return `<div class="row" style="gap:8px"><div class="seg2"><button class="s2 ${traceMode==='delivery'?'on':''}" onclick="setTrace('delivery')">Delivery</button><button class="s2 ${traceMode==='pickup'?'on':''}" onclick="setTrace('pickup')">Pickup</button></div><button class="btn xs primary" onclick="playTrace()"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Play</button></div>`;}
+function setTrace(m){traceMode=m;document.querySelectorAll('.s2').forEach(b=>b.classList.toggle('on',b.textContent.toLowerCase()===m));renderTrace();}
+const TRACE={
+ delivery:[
+  ['Cart on Weedmaps','customer builds a cart','wm'],
+  ['Draft webhook','WM waits ~5s for us','us'],
+  ['Narrow to on-shift kits','drop what no driver carries','us','key'],
+  ['Reprice + soft-hold','lock stock in the region','us'],
+  ['Create → bind ONE driver','zip → region → driver','us','key'],
+  ['En route → status push','IN_PROGRESS → COMPLETE','driver'],
+ ],
+ pickup:[
+  ['Cart on Weedmaps','customer chooses Pickup','wm'],
+  ['Draft webhook','WM waits ~5s for us','us'],
+  ['Check STORE stock','store on-hand, not kits','us','key'],
+  ['Reprice + soft-hold','lock stock at the store','us'],
+  ['Create → reserve @ store','no driver — store location','us','key'],
+  ['Ready for pickup','READY_FOR_PICKUP → COMPLETE','store'],
+ ],
+};
+function renderTrace(){
+ const steps=TRACE[traceMode];
+ const actor={wm:['WM','var(--info)'],us:['Hyperwolf','var(--ink)'],driver:['Driver','var(--good)'],store:['Store','var(--warn)']};
+ set('trace',`<div class="tracewrap"><div class="tracerow" id="tracerow">
+  ${steps.map((s,i)=>`<div class="tstep" data-i="${i}"><div class="tstep-in ${s[3]==='key'?'key':''}"><div class="tstep-top"><span class="tactor" style="background:${actor[s[2]][1]}">${actor[s[2]][0]}</span><span class="tstep-n">${i+1}</span></div><div class="tstep-t">${s[0]}</div><div class="tstep-d">${s[1]}</div></div>${i<steps.length-1?`<div class="tconn"><span class="tpulse"></span></div>`:''}</div>`).join('')}
+ </div>
+ <div class="hint" style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap"><span><span class="sw" style="background:var(--accent);display:inline-block;vertical-align:-1px"></span> highlighted steps are where <b>${traceMode==='delivery'?'Delivery':'Pickup'}</b> differs</span><span>Delivery is kit-gated + driver-routed · Pickup draws from store stock, no driver.</span></div></div>`);
+}
+function playTrace(){
+ const row=$('tracerow');if(!row)return;const steps=row.querySelectorAll('.tstep');const conns=row.querySelectorAll('.tconn');
+ steps.forEach(s=>s.classList.remove('lit'));conns.forEach(c=>c.classList.remove('flow'));
+ let i=0;clearInterval(traceTimer);
+ traceTimer=setInterval(()=>{if(i>0&&conns[i-1])conns[i-1].classList.add('flow');if(steps[i])steps[i].classList.add('lit');i++;if(i>=steps.length){clearInterval(traceTimer);}},420);
+}
+function ladder(title,segs,note,jump){
+ return `<div class="ladblock" ${jump?`onclick="switchWs('${jump}')" style="cursor:pointer"`:''}><div class="row" style="justify-content:space-between;margin-bottom:5px"><span style="font-size:12px;font-weight:700">${title}</span><span class="hint">${note}</span></div>
+  <div class="ladbar">${segs.map(s=>s.count?`<div class="ladseg ${s.cls}" style="flex:${s.count}"></div>`:'').join('')}</div>
+  <div class="ladleg">${segs.map(s=>`<span class="li"><span class="sw ${s.cls}"></span>${s.label} <b>${s.count}</b></span>`).join('')}</div></div>`;
+}
+function renderLadders(){
+ if(!$('ladders'))return;
+ const mc=STATE.mapping.counters;
+ const prod=[{label:'Auto-linked',count:mc.auto,cls:'auto'},{label:'AI — confirm',count:mc.ai,cls:'ai'},{label:'Manual',count:Math.max(0,mc.mapped_total-mc.auto-mc.ai),cls:'manual'},{label:'Unmapped',count:mc.unmapped,cls:'unmapped'}];
+ const P=STATE.promos.promos;const pAuto=P.filter(pSynced).length,pFlag=P.filter(p=>p.wm.state==='overlap'||p.wm.state==='disappeared').length,pUn=P.filter(pNeedsLink).length;
+ const prom=[{label:'Auto-linked',count:pAuto,cls:'auto'},{label:'Flagged',count:pFlag,cls:'ai'},{label:'Unlinked',count:pUn,cls:'unmapped'}];
+ const ic=STATE.identity.counters;
+ const ident=[{label:'Auto-merged',count:ic.merged,cls:'auto'},{label:'Needs review',count:ic.review_open,cls:'ai'},{label:'Fraud-blocked',count:ic.auto_cancels,cls:'unmapped'}];
+ const need=mc.ai+mc.unmapped+pFlag+pUn+ic.review_open;
+ set('ladders',`<div class="hint" style="margin-bottom:11px">Mapping is <b>semi-automated</b> — automation does the bulk, you handle the tail. <b style="color:${need?'var(--warn)':'var(--good)'}">${need}</b> item${need===1?'':'s'} need a human right now.</div>
+  ${ladder('Products → WM',prod,mc.mapped_total+'/'+CATALOG.length+' mapped','mapping')}
+  ${ladder('Promotions → WM',prom,P.length+' WM promos','trust')}
+  ${ladder('Customers (identity)',ident,ic.identities+' identities','trust')}
+  <div class="hint" style="margin-top:4px"><span class="sw auto" style="display:inline-block;vertical-align:-1px"></span> automatic &nbsp; <span class="sw ai" style="display:inline-block;vertical-align:-1px"></span> one-click confirm &nbsp; <span class="sw unmapped" style="display:inline-block;vertical-align:-1px"></span> needs you</div>`);
+}
+function renderInbox(){
+ if(!$('inbox'))return;
+ const items=collectAttention();
+ if(!items.length){set('inbox',emptyState('shield','All clear','Nothing needs a human. New unmapped SKUs, fraud holds, and promo conflicts will surface here first.',''));return;}
+ set('inbox',items.map(it=>`<div class="inbox-item ${it.sev==='alert'?'row-alert':'row-warn'}">
+  <div class="row" style="gap:8px;margin-bottom:3px">${pill(it.sev==='alert'?'alert':'warn',it.tag)}<span style="font-weight:700;font-size:12.5px">${it.title}</span></div>
+  <div class="hint" style="margin-bottom:8px">${it.why}</div>
+  <div class="row" style="gap:6px">${it.action?`<button class="btn xs ${it.sev==='alert'?'primary':'dark'}" onclick="${it.action.fn}">${it.action.label}</button>`:''}${it.action2?`<button class="btn xs rd" onclick="${it.action2.fn}">${it.action2.label}</button>`:''}<button class="btn xs" onclick="switchWs('${it.ws}')">Open →</button></div>
+ </div>`).join(''));
+}
+function renderOverview(){
+ renderTrace();renderInbox();renderLadders();
+ const onShift=DRIVERS.filter(d=>STATE.on_shift[d]).length;
+ set('ovKpis',[
+  ['Pickup sellable',pickupCount()+'<small>/'+CATALOG.length+'</small>',''],
+  ['Delivery sellable',deliveryCount()+'<small>/'+CATALOG.length+'</small>',''],
+  ['On-shift drivers',onShift+'<small>/'+DRIVERS.length+'</small>',''],
+  ['Live orders',STATE.orders.filter(o=>['PENDING','IN_PROGRESS','READY_FOR_ATTAINMENT','READY_FOR_PICKUP'].includes(o.status)).length,''],
+  ['Unmapped',STATE.mapping.wm_missing.length,STATE.mapping.wm_missing.length?'alert':''],
+  ['Open fraud',STATE.identity.counters.review_open,STATE.identity.counters.review_open?'alert':''],
+  ['Redemptions',promoRedeemTotal(),''],
+  ['Held units',STATE.reservations.filter(r=>r.state!=='released').reduce((a,r)=>a+r.qty,0),''],
+ ].map(k=>`<div class="kpi ${k[2]}"><div class="kl">${k[0]}</div><div class="kv">${k[1]}</div></div>`).join(''));
+}
+function collectAlerts(){return collectAttention().map(a=>({level:a.sev,tag:a.tag,msg:a.why,ws:a.ws,wsLabel:a.ws}));}
+
+/* ── Order path ───────────────────────────────────── */
+function renderFlow(){
+ const ld=STATE.last_draft;
+ if(!ld){set('flow',emptyState('route','No Draft yet','Fire the Order simulator to see a live round-trip.','<button class="btn sm primary" onclick="switchWs(\'orderpath\');document.getElementById(\'simBtn\')&&document.getElementById(\'simBtn\').focus()">Open simulator</button>'));set('flow2','');return;}
+ set('flow',`<table><tbody>${ld.sent.map(r=>`<tr><td>${r.name}<div class="muted mono" style="font-size:9px">${r.external_id}</div></td><td class="num">×${r.qty}</td><td class="num">${money(r.price)}</td></tr>`).join('')}</tbody></table><div class="hint" style="margin-top:6px">${ld.sent.length} lines · zip ${ld.zip}</div>`);
+ set('flow2',`<table><tbody>${ld.returned.map(r=>`<tr class="${r.kept?'':'row-warn'}"><td>${r.name} ${r.kept?'':`<div class="muted" style="font-size:10px">${r.reason}</div>`}</td><td class="num">${r.kept?'×'+r.qty:'—'}</td><td>${r.kept?pill('ok','kept',false):pill('warn','dropped',false)}</td></tr>`).join('')}</tbody></table><div class="hint" style="margin-top:6px">Answered in ${ld.ms}ms → became the customer's cart</div>`);
+}
+const STATUS_ORDER=['PENDING','IN_PROGRESS','READY_FOR_ATTAINMENT','COMPLETE'];
+const STATUS_ORDER_PICKUP=['PENDING','IN_PROGRESS','READY_FOR_PICKUP','COMPLETE'];
+function statusPill(s){
+ if(s==='COMPLETE')return pill('ok',s);
+ if(s.startsWith('CANCELED')||s==='FAILED')return pill('alert',s);
+ if(s==='READY_FOR_ATTAINMENT'||s==='READY_FOR_PICKUP')return pill('info',s);
+ if(s==='IN_PROGRESS')return pill('live',s);
+ return pill('ghost',s);
+}
+function fulfilChip(f){return f==='pickup'?`<span class="tag" style="background:var(--warnSoft);color:var(--warn);border-color:transparent">PICKUP</span>`:`<span class="tag" style="background:var(--infoSoft);color:var(--info);border-color:transparent">DELIVERY</span>`;}
+function renderOrders(){
+ if(!STATE.orders.length){set('orders',emptyState('route','No orders yet','Simulated Create webhooks land here — delivery orders bind a driver, pickup orders bind the store.',''));return;}
+ set('orders',`<table><thead><tr><th>Order</th><th>Type</th><th>Customer</th><th>Routing / fulfilment</th><th>Bound to</th><th class="num">Total</th><th>Status</th><th>Push</th></tr></thead><tbody>
+ ${STATE.orders.map(o=>`<tr class="${o.alert?'row-alert':''}"><td class="mono">${o.wm_order_id}</td><td>${fulfilChip(o.fulfillment||'delivery')}</td><td>${o.customer_name}</td><td class="muted" style="font-size:10.5px">${o.routing}</td><td>${o.fulfillment==='pickup'?'<span class="dotlbl"><span class="dot" style="background:var(--warn)"></span>WeHo store</span>':o.driver_id?driverChip(o.driver_id):'<span class="muted">—</span>'}</td><td class="num">${money(o.grand_total)}</td><td>${statusPill(o.status)}</td>
+ <td>${o.status==='COMPLETE'||o.status.startsWith('CANCELED')?'<span class="muted">—</span>':`<button class="btn xs" onclick="pushStatus('${o.wm_order_id}')">Advance</button>`}</td></tr>`).join('')}
+ </tbody></table>`);
+}
+function driverChip(d){const on=STATE.on_shift[d];return `<span class="dotlbl"><span class="dot" style="background:${on?'var(--good)':'var(--ink4)'}"></span>${d}</span>`;}
+
+/* ── Listings ─────────────────────────────────────── */
+function renderListings(){
+ set('pipeline',`<div class="loop" style="gap:8px"><div class="step" style="min-width:0;flex:1"><div class="s-t" style="font-size:11px">Catalog</div><div class="s-d">${CATALOG.length} SKUs</div></div><div class="arrow">${chev()}</div><div class="step" style="min-width:0;flex:1"><div class="s-t" style="font-size:11px">Mapped</div><div class="s-d">${STATE.mapping.counters.mapped_total} linked</div></div><div class="arrow">${chev()}</div><div class="step" style="min-width:0;flex:1"><div class="s-t" style="font-size:11px">On WM</div><div class="s-d">${STATE.union.length} buyable now</div></div></div>`);
+ const heads=[
+  {id:WMIDS.menu,name:'Hyperwolf WeHo — Pickup',kind:'Pickup',plan:'store on-hand',live:pickupCount(),total:CATALOG.length,desc:'collected in store · no driver'},
+  {id:WMIDS.delivery,name:'Hyperwolf LA — Delivery',kind:'Delivery',plan:'driver kits',live:deliveryCount(),total:CATALOG.length,desc:'on-shift driver kits · zip-routed'},
+ ];
+ set('listing-heads',`<div class="grid g2" style="gap:8px">${heads.map(h=>`<div class="kpi" style="min-width:0"><div class="row" style="justify-content:space-between;margin-bottom:2px"><span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.name}</span>${pill('ok','live',true)}</div><div class="row" style="gap:6px;margin-bottom:3px">${h.kind==='Pickup'?pill('warn',h.kind,false):pill('info',h.kind,false)}<span class="tag">${h.plan}</span></div><div class="kv">${h.live}<small>/${h.total} SKUs live</small></div><div class="hint" style="font-size:10px">wmid ${h.id} · ${h.desc}</div></div>`).join('')}</div>`);
+ set('listings',`<table><thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>Category</th><th class="num">Price</th><th>Pickup</th><th>Delivery</th></tr></thead><tbody>
+ ${CATALOG.map(c=>{const mapped=!!c.wm_product_id;const pk=sellPickup(c.sku);const dl=sellDelivery(c.sku);const brandOk=(TAXONOMY.brands.find(b=>b[0]===c.brand)||[])[1];return `<tr class="${!mapped?'row-warn':''}"><td class="mono">${c.sku}</td><td>${c.name}</td><td>${c.brand?`<span class="tag" style="${brandOk?'':'border-color:var(--warn);color:var(--warn)'}">${c.brand}${brandOk?'':' ⚠'}</span>`:'<span class="muted">—</span>'}</td><td><span class="tag">${c.category}</span><div class="muted" style="font-size:9px">${c.subcategory||''}</div></td><td class="num">${money(c.price)}</td><td>${!mapped?pill('warn','unmapped',false):pk?pill('ok','in store',false):pill('ghost','out',false)}</td><td>${!mapped?pill('warn','unmapped',false):dl?pill('ok','carried',false):pill('ghost','no driver',false)}</td></tr>`;}).join('')}
+ </tbody></table><div class="hint" style="margin-top:6px">Pickup availability = store on-hand · Delivery availability = on-shift driver kit. Same catalog, different rules.</div>`);
+ const td=((STATE.token.expires_at-Date.now())/864e5).toFixed(1);
+ set('tokpill',`${pill('ok','token '+td+'d')} <span class="hint">${STATE.token.scope.split(' ').length} scopes</span>`);
+ set('conn',pill('ok','WM reachable'));
+ // add/edit product form
+ set('sku-picker',`<div class="grid g3" style="gap:6px"><input class="fld" placeholder="SKU"><input class="fld" placeholder="Name"><input class="fld" placeholder="Price"><input class="fld" placeholder="Brand"><input class="fld" placeholder="Category"><input class="fld" placeholder="Sub-category"><input class="fld" placeholder="Weight"><input class="fld" placeholder="THC %"><input class="fld" placeholder="Store qty"></div><button class="btn sm primary" style="margin-top:8px;width:100%" onclick="saveProduct()">Save & push to Weedmaps</button><div class="hint" style="margin-top:6px">Saving pushes the item to both the Pickup and Delivery listings in &lt;1s.</div>`);
+}
+function renderZip(quiet){
+ const zip=($('zip-in')||{}).value||'90805';
+ const el=$('map');if(!el)return;
+ const matches=Object.entries(REGIONS).filter(([r,v])=>v.zips.includes(zip)).map(([r,v])=>({r,v,on:v.drivers.filter(d=>STATE.on_shift[d])}));
+ if(!matches.length){el.innerHTML=`<div class="row-warn" style="padding:10px;border-radius:8px">${pill('warn','NO COVERAGE')}<div style="margin-top:5px">Zip <b>${zip}</b> maps to no region — WM must not sell here.</div></div>`;$('zip-hint')&&($('zip-hint').textContent='');return;}
+ // tiebreaker when a zip is shared by 2+ regions: on-shift availability → region priority → most on-shift drivers
+ const ranked=[...matches].sort((a,b)=>(b.on.length>0)-(a.on.length>0)||(a.v.priority||9)-(b.v.priority||9)||b.on.length-a.on.length);
+ const win=ranked[0];const shared=matches.length>1;const drivers=win.v.drivers;const onShift=win.on;
+ const others=ranked.slice(1);
+ const sharedBanner=shared?`<div class="row-warn" style="padding:9px 11px;border-radius:8px;margin-bottom:10px">${pill('warn','SHARED ZIP')}<div style="font-size:12px;margin-top:4px"><b>${zip}</b> falls in <b>${matches.length} regions</b> — ${matches.map(m=>m.r).join(', ')}. We route to <b>${win.r}</b> ${win.on.length?`because it’s the primary area (priority ${win.v.priority}) with an on-shift driver`:`by priority — but it has no on-shift driver`}.</div><div class="hint" style="margin-top:5px">Tiebreaker: on-shift coverage → region priority → driver load. ${others.map(o=>`<span class="tag" style="margin-right:4px">${o.r} · ${o.on.length?o.on.length+' on-shift (fallback)':'no driver'}</span>`).join('')}</div></div>`:'';
+ el.innerHTML=sharedBanner+`<div class="loop" style="gap:8px"><div class="step" style="flex:1"><div class="s-n" style="background:var(--info);color:#fff">ZIP</div><div class="s-t">${zip}</div>${shared?`<div class="s-d">${matches.length} regions match</div>`:''}</div><div class="arrow">${chev()}</div><div class="step" style="flex:1"><div class="s-n">REGION</div><div class="s-t">${win.r}${shared?' <span class="tag" style="background:var(--goodSoft);color:var(--good)">chosen</span>':''}</div><div class="s-d">${shared?'primary of '+matches.length:win.v.zips.length+' zips'} · priority ${win.v.priority}</div></div><div class="arrow">${chev()}</div><div class="step" style="flex:1.4"><div class="s-n" style="background:var(--good);color:#fff">DRIVERS</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${drivers.map(d=>`<span class="tag" style="${STATE.on_shift[d]?'background:var(--goodSoft);color:var(--good)':'opacity:.5'}">${d}${STATE.on_shift[d]?' ●':' ○'}</span>`).join('')}</div></div></div>${onShift.length?'':`<div class="hint" style="margin-top:8px;color:var(--warn)">No on-shift driver in ${win.r}${others.some(o=>o.on.length)?` — consider falling back to ${others.find(o=>o.on.length).r}`:` — nothing sells to ${zip} right now`}.</div>`}`;
+}
+
+/* ── Mapping ───────────────────────────────────────── */
+function renderMapping(){
+ const c=STATE.mapping.counters;
+ set('map-counters',[['Auto',c.auto],['AI',c.ai],['Review',c.review,'acc'],['Unmapped',c.unmapped,c.unmapped?'alert':''],['Mapped',c.mapped_total],['Orphaned',c.orphaned,c.orphaned?'alert':'']].map(k=>`<div class="kpi ${k[2]||''}" style="min-width:60px"><div class="kl">${k[0]}</div><div class="kv">${k[1]}</div></div>`).join(''));
+ set('map-lastrun',`Nightly matcher last ran <b>${ago(STATE.mapping.last_run)}</b> · <a onclick="runNightly()" style="cursor:pointer">run now</a>`);
+ const q=STATE.mapping.queue;
+ set('map-queue',q.length?`<table><thead><tr><th>SKU</th><th>Suggested WM match</th><th class="num">Conf.</th><th>Decide</th></tr></thead><tbody>
+  ${q.map(r=>`<tr><td class="mono">${r.sku}<div class="muted" style="font-size:10px">${r.name}</div></td><td>${r.suggestion}<div class="muted mono" style="font-size:9.5px">${r.wm_product_id}</div></td><td class="num"><span class="pill ${r.confidence>.65?'warn':'bad'}" style="font-family:var(--mono)">${Math.round(r.confidence*100)}%</span></td><td><div class="row" style="gap:4px"><button class="btn xs gd" onclick="approveMap('${r.sku}')">Approve</button><button class="btn xs rd" onclick="rejectMap('${r.sku}')">Reject</button></div></td></tr>`).join('')}
+  </tbody></table>`:emptyState('link','Queue clear','Every SKU is confidently mapped. New low-confidence matches appear here after the nightly run.','<button class="btn sm" onclick="runNightly()">Run matcher now</button>'));
+ set('map-missing',STATE.mapping.wm_missing.length?STATE.mapping.wm_missing.map(m=>`<div class="row-alert" style="padding:9px 11px;border-radius:8px;margin-bottom:6px">${pill('alert','WM-MISSING')}<div style="font-size:12px;margin-top:4px"><b>${m.name}</b> <span class="mono muted">${m.sku}</span></div><div class="hint">${m.reason}</div><button class="btn xs" style="margin-top:6px" onclick="searchWMFor('${m.sku}')">Find match →</button></div>`).join(''):emptyState('link','Nothing missing','Every live SKU has a WM product link.',''));
+ set('map-summary',`${STATE.mapping.mappings.length} SKUs · ${c.mapped_total} mapped · ${c.unmapped} unmapped · ${c.orphaned} orphaned · <a onclick="switchWs('fields');setFieldTab('taxonomy')" style="cursor:pointer">brand & category mapping →</a>`);
+ set('map-table',`<table><thead><tr><th>SKU</th><th>Product</th><th>Brand</th><th>Category</th><th>WM link</th><th>Status</th><th></th></tr></thead><tbody>
+  ${STATE.mapping.mappings.map(m=>{const cat=CATALOG.find(x=>x.sku===m.sku)||{};const brandOk=(TAXONOMY.brands.find(b=>b[0]===cat.brand)||[])[1];return `<tr class="${m.status==='unmapped'?'row-warn':''}"><td class="mono">${m.sku}</td><td>${m.name}</td><td>${cat.brand?`<span class="tag ${brandOk?'':'warn'}" style="${brandOk?'':'border-color:var(--warn);color:var(--warn)'}">${cat.brand}${brandOk?'':' ⚠'}</span>`:'<span class="muted">—</span>'}</td><td><span class="tag">${cat.category||'—'}${cat.subcategory?' · '+cat.subcategory:''}</span></td><td class="mono muted" style="font-size:10px">${m.wm_product_id||'—'}</td><td>${m.status==='mapped'?pill('ok','mapped',false):pill('warn','unmapped',false)}</td><td>${m.status==='mapped'?`<button class="btn xs" onclick="unmap('${m.sku}')">Unmap</button>`:`<button class="btn xs" onclick="searchWMFor('${m.sku}')">Map</button>`}</td></tr>`;}).join('')}
+ </tbody></table>`);
+ // bulk
+ set('bulk-counters',[['Selected',0],['Mappable',STATE.mapping.counters.unmapped],['Skipped',0]].map(k=>`<div class="kpi" style="min-width:56px"><div class="kl">${k[0]}</div><div class="kv">${k[1]}</div></div>`).join(''));
+ set('bulk-note','Select SKUs to map in one shot.');
+ set('bulk-picker',`<div style="display:flex;flex-wrap:wrap;gap:5px">${STATE.mapping.mappings.filter(m=>m.status==='unmapped').map(m=>`<span class="tag">${m.sku}</span>`).join('')||'<span class="hint">none unmapped</span>'}</div>`);
+ set('bulk-table','');
+ set('pick-results','<span class="hint">Type above to search Weedmaps\' catalog.</span>');
+ set('imp-note','Dry run validates without writing.');
+}
+
+/* ── Inventory ─────────────────────────────────────── */
+function renderStock(){
+ let rows='';
+ for(const[region,skus]of Object.entries(STATE.stock)){
+  rows+=`<tr style="background:var(--paper)"><td colspan="4" style="font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2)">${region}</td></tr>`;
+  for(const[sku,v]of Object.entries(skus)){const avail=v.qty-v.reserved;rows+=`<tr><td class="mono">${sku}</td><td>${skuName(sku)}</td><td class="num">${v.qty}${v.reserved?` <span style="color:var(--warn)">(−${v.reserved})</span>`:''}</td><td class="num" style="font-weight:700;color:${avail<5?'var(--bad)':'var(--ink)'}">${avail}</td></tr>`;}
+ }
+ set('stock',`<table><thead><tr><th>SKU</th><th>Product</th><th class="num">On hand</th><th class="num">Avail</th></tr></thead><tbody>${rows}</tbody></table><div class="hint" style="margin-top:6px">(−n) = units locked by a soft hold.</div>`);
+}
+function renderKits(){
+ const skus=CATALOG.map(c=>c.sku);
+ set('kits',`<div style="overflow:auto"><table style="min-width:520px"><thead><tr><th style="position:sticky;left:0;background:var(--surface);z-index:3">Driver</th>${skus.map(s=>`<th class="num" style="writing-mode:vertical-rl;transform:rotate(180deg);height:64px;font-size:8.5px">${s}</th>`).join('')}</tr></thead><tbody>
+  ${DRIVERS.map(d=>`<tr><td style="position:sticky;left:0;background:var(--surface);z-index:1;white-space:nowrap">${driverChip(d)} ${STATE.on_shift[d]?pill('ok','on',false):pill('ghost','off',false)}</td>
+  ${skus.map(s=>{const carry=STATE.kits[d].includes(s);return `<td style="text-align:center"><button class="kit-dot ${carry?'carry':''}" id="kit-${d}-${s}" onclick="toggleKit('${d}','${s}',${!carry})" title="${d} · ${s}">${carry?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>':''}</button></td>`;}).join('')}</tr>`).join('')}
+ </tbody></table></div><div class="legend" style="margin-top:8px"><span class="li"><span class="kit-dot carry" style="width:16px;height:16px"></span>carrying</span><span class="li"><span class="dot" style="background:var(--good)"></span>on shift</span><span class="hint">A cart may only contain items from ONE driver's kit.</span></div>`);
+}
+function renderBatches(){
+ set('batches',`<table><thead><tr><th>SKU</th><th>Batch</th><th class="num">THC%</th><th class="num">Qty</th></tr></thead><tbody>${STATE.batches.map(b=>`<tr><td class="mono">${b.sku}</td><td class="mono muted">${b.batch_id}</td><td class="num">${b.thc_pct}</td><td class="num">${b.qty}</td></tr>`).join('')}</tbody></table><div class="hint" style="margin-top:6px">FIFO — oldest lot allocated first.</div>`);
+ set('batch-ranges',`<table><thead><tr><th>SKU</th><th class="num">Min</th><th class="num">Max</th><th>Range</th></tr></thead><tbody>${Object.entries(STATE.batch_ranges).map(([s,r])=>`<tr><td class="mono">${s}</td><td class="num">${r.min}</td><td class="num">${r.max}</td><td>${r.min===r.max?pill('ok','single',false):pill('info',(r.max-r.min).toFixed(1)+'% spread',false)}</td></tr>`).join('')}</tbody></table>`);
+}
+function renderReservations(){
+ if(!STATE.reservations.length){set('reservations',emptyState('box','No holds','Draft webhooks place soft holds here while a cart is live.',''));return;}
+ set('reservations',`<table><thead><tr><th>Cart</th><th>SKU</th><th class="num">Qty</th><th>State</th><th>TTL</th></tr></thead><tbody>${STATE.reservations.map(r=>{const ttl=Math.round((r.expiry-Date.now())/1000);const st=r.state==='released'?['ghost','released']:r.state==='expiring'||ttl<45?['warn','expiring']:['info','held'];return `<tr class="${st[0]==='warn'?'row-warn':''}"><td class="mono">${r.cart}</td><td class="mono">${r.sku}</td><td class="num">${r.qty}</td><td>${pill(st[0],st[1],false)}</td><td class="mono num">${r.state==='released'?'—':(ttl>0?ttl+'s':'0s')}</td></tr>`;}).join('')}</tbody></table>`);
+}
+
+/* ── Trust & money ─────────────────────────────────── */
+function renderIdentity(){
+ const c=STATE.identity.counters;
+ set('id-counters',[['Identities',c.identities],['Fulfilled',c.fulfilled_total],['Auto-cancels',c.auto_cancels,'alert'],['Open review',c.review_open,c.review_open?'alert':''],['Merged',c.merged]].map(k=>`<div class="kpi ${k[2]||''}" style="min-width:66px"><div class="kl">${k[0]}</div><div class="kv">${typeof k[1]==='number'&&k[1]>999?(k[1]/1000).toFixed(1)+'k':k[1]}</div></div>`).join(''));
+ set('id-reviews',STATE.identity.reviews.map(r=>`<div class="${r.level==='alert'?'row-alert':'row-warn'}" style="padding:8px 10px;border-radius:8px;margin-bottom:6px"><div class="row" style="justify-content:space-between">${pill(r.level==='alert'?'alert':'warn',r.action==='auto-canceled'?'AUTO-CANCELED':'NEEDS REVIEW')}<span class="mono muted" style="font-size:10px">${r.id}</span></div><div style="font-size:12px;margin-top:4px"><b>${r.customer}</b> — ${r.reason}</div>${r.action==='needs review'?`<div class="row" style="gap:4px;margin-top:6px"><button class="btn xs rd" onclick="resolveReview('${r.id}','cancel')">Cancel</button><button class="btn xs gd" onclick="resolveReview('${r.id}','clear')">Clear</button></div>`:''}</div>`).join(''));
+ set('id-ledger',`<table><thead><tr><th>Customer</th><th class="num">Orders</th><th class="num">LTV</th><th>Tier</th><th class="num">Flags</th></tr></thead><tbody>${STATE.identity.ledger.map(l=>`<tr class="${l.flags?'row-warn':''}"><td>${l.customer}</td><td class="num">${l.orders}</td><td class="num">${money(l.ltv)}</td><td>${l.tier==='blocked'?pill('alert','blocked',false):l.tier==='first-timer'?pill('info','first-timer',false):pill('ok','returning',false)}</td><td class="num">${l.flags?`<span style="color:var(--bad);font-weight:700">${l.flags}</span>`:'0'}</td></tr>`).join('')}</tbody></table>`);
+ if($('id-search')&&!$('id-search').innerHTML)set('id-search','<span class="hint">Search to find a customer to merge or inspect.</span>');
+}
+/* ── Promotions × Weedmaps — built in the Promotions-module vocabulary ── */
+const ENTITY_TONE={user:'var(--info)',product:'#7A5AF8',cart:'var(--good)',bogo:'var(--warn)'};
+const ENTITY_LBL={user:'User',product:'Product',cart:'Cart',bogo:'BOGO'};
+const ENTITY_ICON={user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>',product:'<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8"/>',cart:'<circle cx="9" cy="20" r="1.6"/><circle cx="18" cy="20" r="1.6"/><path d="M2 3h3l2.4 12h11l2-8H6"/>',bogo:'<path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7S9 3 6.5 4.5 8 8 12 7zm0 0s3-4 5.5-2.5S16 8 12 7z"/>'};
+function entityChip(e){const t=ENTITY_TONE[e]||'var(--ink3)';return `<span class="echip" title="${ENTITY_LBL[e]} promo"><span class="ei" style="background:${t}1E;color:${t}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${ENTITY_ICON[e]||''}</svg></span></span>`;}
+function promoStatusPill(s){return {active:pill('ok','Active',false),scheduled:pill('info','Scheduled',false),paused:pill('warn','Paused',false),ended:pill('ghost','Ended',false)}[s]||pill('ghost',s,false);}
+function wmSyncPill(p){const w=p.wm.state;
+ if(w==='synced')return pill('ok','On Weedmaps',false);
+ if(w==='overlap')return pill('warn','Overlap',false);
+ if(w==='not_pushed')return pill('warn','Not pushed',false);
+ if(w==='disappeared')return pill('alert','Vanished',false);
+ if(w==='wm_only')return pill('alert','WM-only',false);
+ return pill('ghost','—',false);}
+function spark(series,color){const w=62,h=22;const max=Math.max(...series,1),min=Math.min(...series),rng=(max-min)||1;const pts=series.map((v,i)=>[i/(series.length-1)*w,h-((v-min)/rng)*(h-5)-2.5]);const d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');return `<svg width="${w}" height="${h}" style="display:block"><path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;}
+// promo sync helpers (single source of truth)
+const pSynced=p=>p.wm.state==='synced';
+const pNeedsLink=p=>p.wm.state==='wm_only'||p.wm.state==='not_pushed';
+const pIssue=p=>['overlap','disappeared','wm_only','not_pushed'].includes(p.wm.state);
+const pOnWM=p=>['synced','overlap','disappeared'].includes(p.wm.state);
+const promoRedeemTotal=()=>STATE.promos.promos.reduce((a,p)=>a+p.m.redemptions,0);
+
+function renderPromos(){
+ const P=STATE.promos.promos;
+ const active=P.filter(p=>p.status==='active').length;
+ const rev=P.reduce((a,p)=>a+p.m.revenue,0);
+ const onWM=P.filter(pOnWM).length, needSync=P.filter(pIssue).length;
+ set('promo-counters',`<div class="pband">
+   <div class="s"><div class="l">Active</div><div class="v">${active}</div></div>
+   <div class="s"><div class="l">Redemptions</div><div class="v">${(promoRedeemTotal()/1000).toFixed(1)}k</div></div>
+   <div class="s"><div class="l">Revenue</div><div class="v">$${(rev/1000).toFixed(0)}k</div></div>
+   <div class="s"><div class="l">On Weedmaps</div><div class="v">${onWM}<small>/${P.length}</small></div></div>
+   <div class="s"><div class="l">Need sync</div><div class="v" style="color:${needSync?'var(--warn)':'var(--good)'}">${needSync}</div></div>
+ </div>`);
+ set('promo-list',`<table><thead><tr><th>Promotion</th><th>Type</th><th>Status</th><th>Trend</th><th class="num">Redeemed</th><th class="num">Revenue</th><th>Weedmaps sync</th></tr></thead><tbody>
+  ${P.map(p=>{const ec=ENTITY_TONE[p.entity];const rowcls=p.wm.state==='disappeared'||p.wm.state==='wm_only'?'row-alert':pIssue(p)?'row-warn':'';return `<tr class="${rowcls}">
+   <td><div class="row" style="gap:9px">${entityChip(p.entity)}<div style="min-width:0"><div style="font-weight:600;font-size:12.5px">${p.name}</div><div class="muted" style="font-size:10px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.plain}">${p.plain}</div></div></div></td>
+   <td>${pill('ghost',p.type,false)}</td>
+   <td>${promoStatusPill(p.status)}</td>
+   <td>${spark(p.m.series,ec)}</td>
+   <td class="num" style="font-weight:600">${p.m.redemptions?p.m.redemptions.toLocaleString():'—'}</td>
+   <td class="num">${p.m.revenue?'$'+(p.m.revenue/1000).toFixed(1)+'k':'—'}</td>
+   <td><div class="row" style="gap:6px">${wmSyncPill(p)}${pNeedsLink(p)?`<button class="btn xs primary" onclick="linkPromoRow('${p.id}')">${p.wm.state==='wm_only'?'Link':'Push'}</button>`:''}</div></td>
+  </tr>`;}).join('')}
+ </tbody></table><div class="hint" style="margin-top:8px"><b>How sync works:</b> promos are authored in the <a href="Promotions Suite.html" target="_blank">Promotions module</a>. We push each to Weedmaps and pull WM's promos every 60s to reconcile. <b>WM-only</b> = a promo live on Weedmaps with no internal counterpart controlling it.</div>`);
+ set('promo-redemptions',`<table><tbody>${STATE.promos.redemptions.map(r=>`<tr><td class="mono">${r.order}</td><td>${r.promo}</td><td class="num">−${money(r.amount)}</td><td class="muted num" style="font-size:10px">${ago(r.ts)}</td></tr>`).join('')}</tbody></table>`);
+}
+function renderRegistry(){
+ const P=STATE.promos.promos;
+ const overlaps=P.filter(p=>p.wm.state==='overlap'||p.wm.overlap);
+ const wmOnly=P.filter(p=>p.wm.state==='wm_only');
+ const notPushed=P.filter(p=>p.wm.state==='not_pushed');
+ const vanished=P.filter(p=>p.wm.state==='disappeared');
+ set('reg-counters',`<div class="pband">
+   <div class="s"><div class="l">Internal promos</div><div class="v">${P.filter(p=>p.wm.state!=='wm_only').length}</div></div>
+   <div class="s"><div class="l">Linked to WM</div><div class="v">${P.filter(p=>p.wm.linked).length}</div></div>
+   <div class="s"><div class="l">WM-only</div><div class="v" style="color:${wmOnly.length?'var(--alert)':'var(--good)'}">${wmOnly.length}</div></div>
+   <div class="s"><div class="l">Overlaps</div><div class="v" style="color:${overlaps.length?'var(--alert)':'var(--good)'}">${overlaps.length}</div></div>
+ </div>`);
+ set('reg-note','<div class="modref"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span><b>Internal promos are owned by the Promotions module</b> — this is <u>not</u> a second promo builder. It reconciles Weedmaps\u2019 promos against the internal promos you already built, so redemptions match up.</span></div>');
+ const alerts=[...wmOnly.map(p=>`<div class="row-alert" style="padding:8px 10px;border-radius:8px;margin-bottom:6px"><div class="row" style="gap:8px">${pill('alert','WM-ONLY')}<b style="font-size:12px">${p.name}</b></div><div class="hint" style="margin-top:3px">Live on Weedmaps with no internal promo controlling it. Link it to an internal promo so redemptions reconcile.</div><button class="btn xs primary" style="margin-top:6px" onclick="linkPromoRow('${p.id}')">Link to an internal promo →</button></div>`),
+  ...overlaps.map(p=>`<div class="row-warn" style="padding:8px 10px;border-radius:8px;margin-bottom:6px"><div class="row" style="gap:8px">${pill('warn','OVERLAP')}<b style="font-size:12px">${p.name}</b></div><div class="hint" style="margin-top:3px">Can stack with another auto-apply promo — double-discount risk.</div></div>`),
+  ...notPushed.map(p=>`<div class="row-warn" style="padding:8px 10px;border-radius:8px;margin-bottom:6px"><div class="row" style="gap:8px">${pill('warn','NOT ON WM')}<b style="font-size:12px">${p.name}</b></div><div class="hint" style="margin-top:3px">Internal promo not pushed to Weedmaps yet.</div><button class="btn xs dark" style="margin-top:6px" onclick="linkPromoRow('${p.id}')">Push to Weedmaps →</button></div>`),
+  ...vanished.map(p=>`<div class="row-alert" style="padding:8px 10px;border-radius:8px;margin-bottom:6px"><div class="row" style="gap:8px">${pill('alert','VANISHED')}<b style="font-size:12px">${p.name}</b></div><div class="hint" style="margin-top:3px">Was on Weedmaps, now gone — may still fire locally.</div></div>`)];
+ set('reg-alerts',alerts.join('')||emptyState('shield','Fully reconciled','Every promo is linked and non-overlapping.',''));
+ set('reg-table',`<table><thead><tr><th>Promotion</th><th>Internal code</th><th>WM promo id</th><th>Link</th></tr></thead><tbody>${P.map(p=>`<tr><td>${p.name}</td><td class="mono">${p.code!=='—'?p.code:'<span class="muted">— none —</span>'}</td><td class="mono muted" style="font-size:10px">${p.wm.wm_id||'—'}</td><td>${p.wm.linked?pill('ok','linked',false):pNeedsLink(p)?`<button class="btn xs" onclick="linkPromoRow('${p.id}')">Link</button>`:pill('warn','unlinked',false)}</td></tr>`).join('')}</tbody></table>`);
+}
+function linkPromoRow(id){const p=STATE.promos.promos.find(x=>x.id===id);if(!p)return;
+ if(p.wm.state==='wm_only'){p.code='HW-'+p.name.split(' ')[0].toUpperCase().slice(0,6);p.wm.linked=true;p.wm.state='synced';logEvent('sync','ok',`Linked WM-only promo ${p.name} → internal ${p.code}`);}
+ else if(p.wm.state==='not_pushed'){p.wm.wm_id='wm_promo_'+(950+Math.floor(Math.random()*40));p.wm.linked=true;p.wm.state='synced';const cid=addCall({dir:'out',method:'POST',path:'/wm/2025-07/partners/promotions',kind:'promos',note:'push',pending:true});setTimeout(()=>resolveCall(cid,200,120),400);logEvent('sync','ok',`Pushed ${p.name} → Weedmaps`);}
+ if(curWs==='trust'){renderPromos();renderRegistry();}rebuildRailBadges();renderSpine();
+}
+
+/* ── Observability ─────────────────────────────────── */
+let logFilter='all';
+function renderLog(){
+ const rows=STATE.events.filter(e=>logFilter==='all'||e.kind===logFilter);
+ if(!rows.length){set('log',emptyState('activity','No events','Nothing matches this filter yet.',''));return;}
+ set('log',rows.map(e=>{const lv=e.level==='alert'?'alert':e.level==='error'?'bad':e.level==='warn'?'warn':'ok';return `<div class="${e.level==='alert'?'row-alert':e.level==='error'?'row-warn':''}" style="display:grid;grid-template-columns:64px 78px 1fr;gap:8px;padding:6px 8px;border-bottom:1px solid var(--hair);align-items:center;font-size:11.5px"><span class="mono muted" style="font-size:10px">${ago(e.ts)}</span><span class="tag ${e.kind}">${e.kind}</span><span>${e.level==='alert'||e.level==='error'?`<span style="color:var(--${e.level==='alert'?'alert':'bad'})">●</span> `:''}${e.message}</span></div>`;}).join(''));
+}
+function setLogFilter(k){logFilter=k;document.querySelectorAll('#logFilters .fchip').forEach(c=>c.classList.toggle('on',c.dataset.lk===k));renderLog();}
+function renderSync(id){
+ if(!$(id))return;
+ const rt=REALTIME,cfg=CALL_CONFIG;
+ const rows=[
+  ['Menu / kit writes','real-time',`push in <1s · debounce ${cfg.debounce_s}s`,'just now','ok'],
+  ['Order status push','real-time','on Create + status change','just now','ok'],
+  ['Promo pull','timer',`every ${cfg.promo_poll_s}s`,ago(Date.now()-1000*22),'ok'],
+  ['Reconcile sweep','timer (safety net)',`every ${cfg.reconcile_every_s}s`,ago(Date.now()-1000*60*38),'warn'],
+  ['Nightly matcher','timer','daily 03:00',ago(STATE.mapping.last_run),'ok'],
+ ];
+ $(id).innerHTML=`<div class="krow" style="margin-bottom:10px">
+   <div class="kpi acc"><div class="kl">Coalesced writes</div><div class="kv">${rt.coalesced}<small>/${rt.submitted}</small></div></div>
+   <div class="kpi"><div class="kl">Ran</div><div class="kv">${rt.ran}</div></div>
+   <div class="kpi"><div class="kl">In-flight</div><div class="kv">${rt.in_flight}</div></div>
+   <div class="kpi"><div class="kl">Queued</div><div class="kv">${rt.queued}</div></div>
+   <div class="kpi ${rt.failed?'alert':''}"><div class="kl">Failed</div><div class="kv">${rt.failed}</div></div>
+ </div>
+ <table><thead><tr><th>Channel</th><th>Mode</th><th>Cadence</th><th>Last ran</th><th>State</th></tr></thead><tbody>
+ ${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1].startsWith('real')?pill('ok',r[1],false):pill('ghost',r[1],false)}</td><td class="muted">${r[2]}</td><td class="mono">${r[3]}</td><td>${r[4]==='warn'?pill('warn','check',false):pill('ok','fresh',false)}</td></tr>`).join('')}
+ </tbody></table><div class="hint" style="margin-top:8px">Writes are event-driven (&lt;1s). Timers are only a safety net — a stale timer here means drift is accumulating silently.</div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   INTEGRATION MAP — one visual canvas, four lenses. Nodes are live;
+   hover isolates a binding, click opens it with its explanation +
+   action + a cross-jump to the home panel.  (weaves WM across the app)
+   ══════════════════════════════════════════════════════════════════ */
+let mapLens='routing', MAP={nodes:{},edges:[]};
+function setLens(l){mapLens=l;document.querySelectorAll('.maptab').forEach(t=>t.classList.toggle('on',t.getAttribute('onclick').includes("'"+l+"'")));renderMap();}
+const LENS_META={
+ routing:['Routing territory','store → Pickup · regions → Delivery','<span class="li"><span class="sw" style="background:var(--warn)"></span>store (Pickup)</span><span class="li"><span class="sw" style="background:var(--good)"></span>on-shift driver</span><span class="li"><span class="sw" style="background:var(--ink4)"></span>off shift</span>'],
+ products:['Products','SKU ↔ WM product ↔ listing','<span class="li"><span class="sw" style="background:var(--ink4)"></span>mapped</span><span class="li"><span class="sw" style="background:var(--bad)"></span>no WM link</span>'],
+ promos:['Promotions','internal promo ↔ WM promo','<span class="li"><span class="sw" style="background:var(--ink4)"></span>linked</span><span class="li"><span class="sw" style="background:var(--warn)"></span>overlap / unlinked</span>'],
+ identity:['Identity','raw signals → merged customer','<span class="li"><span class="sw" style="background:var(--ink4)"></span>merge</span><span class="li"><span class="sw" style="background:var(--bad)"></span>fraud cluster</span>'],
+};
+function nd(id,t,s,o={}){return{id,t,s,cls:o.cls||'',dot:o.dot||'',jump:o.jump||null,detail:o.detail||null};}
+function buildLens(lens){
+ const cols=[],edges=[];
+ if(lens==='routing'){
+  const zc={title:'Zip clusters',nodes:[]},rc={title:'Regions',nodes:[]},dc={title:'Drivers · kits',nodes:[]},lc={title:'Weedmaps listings',nodes:[]};
+  Object.entries(REGIONS).forEach(([r,v])=>{
+   zc.nodes.push(nd('zips:'+r,r+' zips',v.zips.join(' '),{jump:'listings',detail:{what:`${v.zips.length} zips route to ${r}.`,rows:v.zips.map(z=>['zip',z])}}));
+   const onN=v.drivers.filter(d=>STATE.on_shift[d]).length;
+   rc.nodes.push(nd('region:'+r,r,`${v.zips.length} zips · ${onN}/${v.drivers.length} on`,{jump:'listings',detail:{what:`${r} is served by ${v.drivers.length} drivers (${onN} on shift). Its on-shift union feeds the Delivery listing.`,rows:[['zips',v.zips.length],['drivers',v.drivers.join(', ')],['on shift',onN]]}}));
+   edges.push({a:'zips:'+r,b:'region:'+r});
+   v.drivers.forEach(d=>{const on=STATE.on_shift[d];
+    dc.nodes.push(nd('driver:'+d,d,`${STATE.kits[d].length} SKUs · ${on?'on':'off'}`,{dot:on?'var(--good)':'var(--ink4)',cls:on?'':'warn',jump:'inventory',detail:{what:`${d} carries ${STATE.kits[d].length} SKUs and is ${on?'on shift — contributing to the Delivery listing':'off shift — nothing they carry sells'}.`,rows:STATE.kits[d].map(s=>['carry',s])}}));
+    edges.push({a:'region:'+r,b:'driver:'+d,cls:on?'':'warn dashed'});
+    edges.push({a:'driver:'+d,b:'listing:delivery',cls:on?'':'warn dashed'});
+   });
+  });
+  lc.nodes.push(nd('listing:menu','Pickup listing',`wmid ${WMIDS.menu} · store`,{dot:'var(--warn)',jump:'listings',detail:{what:'Publishes store on-hand — collected in store, no driver.',rows:[['wmid',WMIDS.menu],['policy','store stock'],['live',pickupCount()+' SKUs']]}}));
+  lc.nodes.push(nd('listing:delivery','Delivery listing',`wmid ${WMIDS.delivery} · kits`,{dot:'var(--good)',jump:'listings',detail:{what:'Publishes only the union of on-shift drivers\u2019 kits — what a driver can actually bring right now.',rows:[['wmid',WMIDS.delivery],['policy','kit-gated'],['buyable now',STATE.union.length+' SKUs']]}}));
+  Object.keys(REGIONS).forEach(r=>edges.push({a:'region:'+r,b:'listing:menu',cls:'dashed'}));
+  cols.push(zc,rc,dc,lc);
+ }
+ else if(lens==='products'){
+  const sc={title:'Our catalog',nodes:[]},wc={title:'WM products',nodes:[]},lc={title:'Listings',nodes:[]};
+  let ghost=false;
+  CATALOG.forEach(c=>{
+   const mapped=!!c.wm_product_id, inUnion=STATE.union.includes(c.sku);
+   sc.nodes.push(nd('sku:'+c.sku,c.name,`${c.sku} · ${c.category}`,{cls:mapped?'':'alert',jump:'mapping',detail:{what:`${c.name} (${c.sku}) is ${mapped?'mapped to '+c.wm_product_id:'NOT linked to any WM product — it cannot sell until mapped'}.`,rows:[['category',c.category],['price','$'+c.price],['THC',c.thc+'%'],['WM link',c.wm_product_id||'— none —'],['carried',inUnion?'yes (on a kit)':'no driver']],action:mapped?null:{label:'Map in catalog →',fn:`searchWMFor('${c.sku}')`}}}));
+   if(mapped){
+    wc.nodes.push(nd('wm:'+c.wm_product_id,c.wm_product_id,'WM catalog',{jump:'mapping',detail:{what:`WM product ${c.wm_product_id} — the curated catalog entry ${c.sku} binds to via external_id.`,rows:[['external_id','hyperwolf:sku:'+c.sku]]}}));
+    edges.push({a:'sku:'+c.sku,b:'wm:'+c.wm_product_id});
+    edges.push({a:'wm:'+c.wm_product_id,b:'listing:menu'});
+    if(inUnion)edges.push({a:'wm:'+c.wm_product_id,b:'listing:delivery',cls:''});
+   } else {ghost=true;edges.push({a:'sku:'+c.sku,b:'wm:missing',cls:'bad dashed'});}
+  });
+  if(ghost)wc.nodes.push(nd('wm:missing','No WM link','unmappable / pending',{cls:'alert',jump:'mapping',detail:{what:'These SKUs are live or on a kit but have no WM product link, so Weedmaps can\u2019t sell them. Resolve in Catalog Mapping.',rows:STATE.mapping.wm_missing.map(m=>[m.sku,m.reason])}}));
+  lc.nodes.push(nd('listing:menu','Pickup',`${pickupCount()} in store`,{dot:'var(--warn)',jump:'listings'}));
+  lc.nodes.push(nd('listing:delivery','Delivery',`${STATE.union.length} buyable`,{dot:'var(--good)',jump:'listings'}));
+  cols.push(sc,wc,lc);
+ }
+ else if(lens==='promos'){
+  const ic={title:'Internal promos',nodes:[]},wc={title:'On Weedmaps',nodes:[]};
+  STATE.promos.promos.forEach(p=>{
+   const wcls=p.wm.state==='disappeared'||p.wm.state==='wm_only'?'alert':(p.wm.state==='overlap'||p.wm.state==='not_pushed')?'warn':'';
+   wc.nodes.push(nd('wmp:'+p.id,p.name,`${p.type} · ${p.code}`,{cls:wcls,jump:'trust',detail:{what:p.plain,rows:[['WM sync',p.wm.state],['WM id',p.wm.wm_id||'—'],['redeemed',p.m.redemptions.toLocaleString()],['revenue','$'+(p.m.revenue/1000).toFixed(1)+'k']],action:pNeedsLink(p)?{label:(p.wm.state==='wm_only'?'Link':'Push')+' →',fn:`linkPromoRow('${p.id}')`}:null}}));
+   if(p.wm.state==='wm_only'){edges.push({a:'ip:none',b:'wmp:'+p.id,cls:'bad dashed'});}
+   else if(p.wm.state==='not_pushed'){ic.nodes.push(nd('ip:'+p.id,p.code,p.type+' promo',{cls:'warn',jump:'trust',detail:{what:p.plain,rows:[['status','not pushed to WM']]}}));edges.push({a:'ip:'+p.id,b:'wmp:'+p.id,cls:'warn dashed'});}
+   else{ic.nodes.push(nd('ip:'+p.id,p.code,p.type+' promo',{jump:'trust',detail:{what:p.plain,rows:[['links to',p.wm.wm_id]]}}));edges.push({a:'ip:'+p.id,b:'wmp:'+p.id});}
+  });
+  if(STATE.promos.promos.some(p=>p.wm.state==='wm_only'))ic.nodes.unshift(nd('ip:none','No internal promo','WM-only · unmanaged',{cls:'alert',jump:'trust',detail:{what:'These promos are live on Weedmaps with no internal counterpart controlling them. Link each to an internal promo so redemptions reconcile.',rows:STATE.promos.promos.filter(p=>p.wm.state==='wm_only').map(p=>[p.name,'wm-only'])}}));
+  const ov=STATE.promos.promos.filter(p=>p.wm.state==='overlap'||p.wm.overlap);if(ov.length>=1){STATE.promos.promos.filter(p=>p.status==='active'&&p.id!==ov[0].id).forEach(p=>edges.push({a:'wmp:'+ov[0].id,b:'wmp:'+p.id,cls:'warn dashed'}));}
+  cols.push(ic,wc);
+ }
+ else if(lens==='identity'){
+  const rc={title:'Raw signals',nodes:[]},cc={title:'Canonical customers',nodes:[]};
+  const frags={
+   'M. Okafor':[['device','dev_a91f','same device, 12 orders'],['phone','+1•••4021','verified'],['email','m.o•••@gmail','verified']],
+   'R. Behl':[['device','dev_77c2','matched'],['phone','+1•••8830','verified']],
+   '“J. Doe”':[['device','dev_a91f','⚠ shared w/ M. Okafor'],['email','newuser•••@','1st-timer #3'],['card','••4417','⚠ prepaid, declined once']],
+  };
+  STATE.identity.ledger.filter(l=>frags[l.customer]).forEach(l=>{
+   const fraud=l.tier==='blocked';
+   cc.nodes.push(nd('cust:'+l.customer,l.customer,`${l.orders} ord · $${l.ltv}`,{cls:fraud?'alert':'',dot:fraud?'var(--bad)':'var(--good)',jump:'trust',detail:{what:fraud?`\u201c${l.customer}\u201d is a fraud cluster — ${l.flags} flags. Auto-canceled before any driver was bound.`:`${l.customer} — ${l.orders} orders, $${l.ltv} LTV. Merged from ${frags[l.customer].length} raw signals.`,rows:frags[l.customer].map(f=>[f[0],f[1]+' · '+f[2]]),action:fraud?{label:'Review in ledger →',fn:`switchWs('trust')`}:null}}));
+   frags[l.customer].forEach((f,i)=>{
+    const id='sig:'+l.customer+':'+i;const bad=fraud||f[2].includes('⚠');
+    rc.nodes.push(nd(id,f[1],f[0]+' · '+f[2],{cls:bad?'alert':'',jump:'trust',detail:{what:`${f[0]} signal — ${f[2]}. Matched into ${l.customer}.`,rows:[['type',f[0]],['value',f[1]],['note',f[2]]]}}));
+    edges.push({a:id,b:'cust:'+l.customer,cls:bad?'bad':'',label:f[0]==='device'?'device match':f[0]==='phone'?'phone match':f[0]==='email'?'email match':f[0]==='card'?'card match':'match'});
+   });
+  });
+  cols.push(rc,cc);
+ }
+ return{cols,edges};
+}
+function renderMap(){
+ const canvas=$('mapCanvas');if(!canvas)return;
+ const meta=LENS_META[mapLens];$('mapTitle').textContent=meta[0];$('mapLegend').innerHTML=meta[2];
+ if(mapLens==='routing'){renderTerritory(canvas);return;}
+ const m=buildLens(mapLens);MAP={nodes:{},edges:m.edges};
+ const W=Math.max(canvas.clientWidth||900,m.cols.length*220);
+ const ncol=m.cols.length, colW=W/ncol, nodeW=Math.min(190,colW-26), NH=46, VG=13, TOP=30, PAD=14;
+ const maxCount=Math.max(...m.cols.map(c=>c.nodes.length));
+ const contentH=maxCount*(NH+VG)-VG;
+ const H=TOP+contentH+PAD;
+ m.cols.forEach((col,ci)=>{
+  const colX=ci*colW, x=colX+(colW-nodeW)/2;
+  const total=col.nodes.length*(NH+VG)-VG;
+  const startY=TOP+Math.max(0,(contentH-total)/2);
+  col.nodes.forEach((n,ni)=>{const y=startY+ni*(NH+VG);MAP.nodes[n.id]={...n,x,y,w:nodeW,h:NH,cx1:x,cyl:y+NH/2,cx2:x+nodeW};});
+ });
+ // edges svg
+ let paths='';
+ m.edges.forEach((e,i)=>{const a=MAP.nodes[e.a],b=MAP.nodes[e.b];if(!a||!b)return;const x1=a.cx2,y1=a.cyl,x2=b.cx1,y2=b.cyl,dx=Math.max(28,(x2-x1)/2);
+  paths+=`<path class="mapedge ${e.cls||''}" data-a="${e.a}" data-b="${e.b}" d="M${x1} ${y1} C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}"/>`;
+  if(e.label)paths+=`<text x="${(x1+x2)/2}" y="${(y1+y2)/2-3}" text-anchor="middle" font-size="8.5" fill="var(--ink3)" font-family="var(--mono)" data-lbl="${e.a}|${e.b}" style="pointer-events:none">${e.label}</text>`;
+ });
+ // column titles
+ let titles='';m.cols.forEach((col,ci)=>{const colX=ci*colW;titles+=`<div class="mapcol-title" style="left:${colX+(colW-Math.min(190,colW-26))/2}px;top:8px">${col.title}</div>`;});
+ // nodes
+ let nodes='';Object.values(MAP.nodes).forEach(n=>{nodes+=`<div class="mapnode ${n.cls}" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px" onmouseenter="hoverNode('${n.id}')" onmouseleave="unhoverNode()" onclick="mapInspect('${n.id}',this)"><div class="mn-t">${n.dot?`<span class="mn-dot" style="background:${n.dot}"></span>`:''}${n.t}</div><div class="mn-s">${n.s||''}</div></div>`;});
+ canvas.style.height=H+'px';
+ canvas.innerHTML=`<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:visible">${paths}</svg>${titles}${nodes}`;
+}
+/* schematic service-territory map — real relative geography, self-contained (no tiles) */
+function renderTerritory(canvas){
+ const b=GEO._bounds, W=Math.max(canvas.clientWidth||900,760), H=430, mapW=W*0.66, PADX=90,PADY=54;
+ const px=lng=>PADX+((lng-b.minLng)/(b.maxLng-b.minLng))*(mapW-PADX*1.1);
+ const py=lat=>PADY+((b.maxLat-lat)/(b.maxLat-b.minLat))*(H-PADY*1.7);
+ const storeX=px(GEO._store.lng)-58, storeY=py(GEO._store.lat)-56;
+ const listX=W-172, pickY=70, delY=250;
+ // edges: store→Pickup ; each region (with an on-shift driver)→Delivery
+ let paths='';
+ const wire=(x1,y1,x2,y2,cls)=>{const dx=Math.max(40,(x2-x1)/2);paths+=`<path class="mapedge ${cls||''}" data-a="${cls}" d="M${x1} ${y1} C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}"/>`;};
+ // territory cards positioned
+ const cards=[];
+ Object.entries(REGIONS).forEach(([r,v])=>{
+  const g=GEO[r];const x=px(g.lng),y=py(g.lat);const onN=v.drivers.filter(d=>STATE.on_shift[d]).length;
+  cards.push({r,x,y,onN,drivers:v.drivers,zips:v.zips});
+  wire(x+150,y+22,listX,delY+22,onN?'':'warn dashed'); // region → Delivery listing
+ });
+ wire(storeX+80,storeY+16,listX,pickY+22,''); // store → Pickup listing
+ // connector from the store marker down to its WeHo region card (they share geography)
+ {const wg=GEO['West Hollywood'];paths+=`<path class="mapedge" style="stroke-dasharray:3 3;opacity:.4" d="M${storeX+40} ${storeY+40} L${px(wg.lng)+20} ${py(wg.lat)}"/>`;}
+ // driver pin helper
+ const cardHTML=cards.map(c=>{
+  const pins=c.drivers.map(d=>`<span class="tpin" title="${d}"><span class="pd" style="background:${STATE.on_shift[d]?'var(--good)':'var(--ink4)'}"></span>${d} · ${STATE.kits[d].length}</span>`).join('');
+  return `<div class="terr" style="left:${c.x}px;top:${c.y}px;width:150px" onclick="switchWs('inventory')" title="${c.r}"><div class="tn">${c.r}</div><div class="tz">${c.zips.join(' · ')}</div><div class="tpins">${pins}</div><div class="tz" style="margin-top:5px">${c.onN}/${c.drivers.length} on shift → Delivery</div></div>`;
+ }).join('');
+ const storeHTML=`<div class="terr store" style="left:${storeX-14}px;top:${storeY-8}px;width:96px" onclick="switchWs('listings')" title="Store"><div class="tn" style="color:var(--warn)">◆ ${STATE.store.short}</div><div class="tz">${STATE.store.hours} · Pickup source</div></div>`;
+ const listings=`
+  <div class="terr-listing" style="left:${listX}px;top:${pickY}px" onclick="switchWs('listings')"><div class="ll">Pickup listing · wmid ${WMIDS.menu}</div><div class="lv">${pickupCount()} sellable</div><div class="ld">from store on-hand — collected in store, no driver</div></div>
+  <div class="terr-listing" style="left:${listX}px;top:${delY}px" onclick="switchWs('listings')"><div class="ll">Delivery listing · wmid ${WMIDS.delivery}</div><div class="lv">${deliveryCount()} sellable</div><div class="ld">union of on-shift kits — driver-routed by zip</div></div>`;
+ canvas.style.height=H+'px';
+ canvas.innerHTML=`<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:visible">${paths}</svg>
+   <div class="mapcol-title" style="left:${PADX}px;top:12px">Service territory · relative geography</div>
+   <div class="mapcol-title" style="left:${listX}px;top:12px">Weedmaps listings</div>
+   <div class="terr-ocean" style="left:16px;bottom:24px">Pacific</div>
+   ${storeHTML}${cardHTML}${listings}`;
+}
+function hoverNode(id){const near=neighbors(id);
+ document.querySelectorAll('#mapCanvas .mapnode').forEach(n=>{const nid=n.dataset.id;n.classList.toggle('hot',nid===id);n.classList.toggle('dim',!near.has(nid));});
+ document.querySelectorAll('#mapCanvas .mapedge').forEach(p=>{const on=p.dataset.a===id||p.dataset.b===id;p.classList.toggle('hot',on);p.classList.toggle('dim',!on);});
+}
+function unhoverNode(){document.querySelectorAll('#mapCanvas .mapnode').forEach(n=>n.classList.remove('hot','dim'));document.querySelectorAll('#mapCanvas .mapedge').forEach(p=>p.classList.remove('hot','dim'));}
+function mapInspect(id,el){
+ closePop();const n=MAP.nodes[id];if(!n)return;const d=n.detail||{what:n.t,rows:[]};
+ const r=el.getBoundingClientRect();
+ const pop=document.createElement('div');pop.className='pop';pop.id='pop';
+ pop.innerHTML=`<div class="ph"><div class="t">${n.t}</div></div><div class="pb">
+  <div class="qa"><div class="q">What is this?</div><p>${d.what}</p></div>
+  ${d.rows&&d.rows.length?`<div class="qa"><div class="q how">Bindings</div><table style="width:100%;font-size:11.5px">${d.rows.map(row=>`<tr><td style="color:var(--ink3);padding:2px 8px 2px 0;white-space:nowrap;vertical-align:top">${row[0]}</td><td class="mono" style="padding:2px 0">${row[1]}</td></tr>`).join('')}</table></div>`:''}
+  <div class="qa" style="border:none;display:flex;gap:8px;flex-wrap:wrap">${d.action?`<button class="btn sm primary" onclick="closePop();${d.action.fn}">${d.action.label}</button>`:''}${n.jump?`<button class="btn sm" onclick="closePop();switchWs('${n.jump}')">Open ${WS.find(w=>w.id===n.jump).label} →</button>`:''}</div></div>`;
+ document.getElementById('overlays').appendChild(pop);
+ const pw=340;let left=r.left;if(left+pw>innerWidth-8)left=innerWidth-8-pw;if(left<8)left=8;
+ let top=r.bottom+8;if(top+pop.offsetHeight>innerHeight-8)top=Math.max(8,r.top-pop.offsetHeight-8);
+ pop.style.left=left+'px';pop.style.top=top+'px';
+ setTimeout(()=>document.addEventListener('mousedown',popAway),0);
+}
+function openMapExplain(btn){openExplain(btn,'mapEx','Integration Map','MAP');}
+
+/* ── Dev: payload inspector + endpoints ─────────────── */
+let diffMode=false;
+function draftJSON(dir){
+ const ld=STATE.last_draft;
+ if(dir==='in')return{event:'DRAFT',wm_order_id:ld.wm_order_id,customer:{zip:ld.zip},lineItems:ld.sent.map(l=>({externalId:l.external_id,name:l.name,quantity:l.qty,unitPrice:l.price}))};
+ return{event:'DRAFT_RESPONSE',wm_order_id:ld.wm_order_id,driver:ld.driver,region:ld.region,lineItems:ld.returned.filter(l=>l.kept).map(l=>({externalId:l.external_id,quantity:l.qty,unitPrice:l.price})),dropped:ld.returned.filter(l=>!l.kept).map(l=>({externalId:l.external_id,reason:l.reason})),fees:ld.fees};
+}
+function synJSON(obj){return JSON.stringify(obj,null,2).replace(/("(?:\\.|[^"])*")(\s*:)?/g,(m,s,c)=>c?`<span class="jk">${s}</span>${c}`:`<span class="js">${s}</span>`).replace(/: (\d+\.?\d*)/g,': <span class="jn">$1</span>');}
+function renderInspector(){
+ if(!$('pl-in'))return;
+ $('pl-in').innerHTML=synJSON(draftJSON('in'));
+ const out=draftJSON('out');
+ if(diffMode){
+  $('pl-out').innerHTML=synJSON(out).replace(/(dropped[\s\S]*?\])/,'<span class="del">$1</span>');
+ } else {$('pl-out').innerHTML=synJSON(out);}
+}
+function toggleDiff(){diffMode=!diffMode;$('diffBtn').classList.toggle('primary',diffMode);renderInspector();}
+function epPick(){const eps=JSON.parse($('ep-data').textContent);$('ep-body').value=eps[$('ep-sel').value][2];}
+function epInvoke(){const eps=JSON.parse($('ep-data').textContent);const ep=eps[$('ep-sel').value];const o=$('ep-out');o.style.display='block';o.innerHTML='<span class="muted">…invoking</span>';
+ addCall({dir:'out',method:ep[1],path:ep[0],kind:ep[0].includes('promo')?'promos':ep[0].includes('status')||ep[0].includes('order')?'orders':ep[0].includes('map')?'menu':'menu',pending:true},cid=>{
+  setTimeout(()=>{resolveCall(cid,200,90+Math.floor(Math.random()*80));o.innerHTML=synJSON({ok:true,endpoint:ep[0],echo:JSON.parse(ep[2]||'{}'),ran_at:new Date().toISOString()});},500);
+ });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   CALL FEED  (§6c.1)
+   ══════════════════════════════════════════════════════════════════ */
+let paused=false, callFilter=new Set(['auth','menu','orders','promos','webhook']), renderedCallIds=new Set();
+const KINDS=['auth','menu','orders','promos','webhook'];
+function renderDockFilters(){
+ set('dockFilt',KINDS.map(k=>`<button class="fchip ${callFilter.has(k)?'on':''}" onclick="toggleCallFilter('${k}')">${k}</button>`).join(''));
+}
+function toggleCallFilter(k){callFilter.has(k)?callFilter.delete(k):callFilter.add(k);renderDockFilters();rebuildFeed();}
+function togglePause(){paused=!paused;const b=$('pauseBtn');b.classList.toggle('paused',paused);$('pauseLbl').textContent=paused?'Paused':'Live';if(!paused)rebuildFeed();}
+function callSummary(){
+ const now=Date.now()/1000;const win=CALLS.filter(c=>now-c.ts<=60&&!c.pending);
+ const ms=win.map(c=>c.ms).filter(m=>m>0).sort((a,b)=>a-b);
+ const pct=p=>ms.length?ms[Math.min(ms.length-1,Math.floor(p*ms.length))]:0;
+ return{total:win.length,outbound:win.filter(c=>c.dir==='out').length,inbound:win.filter(c=>c.dir==='in').length,errors:win.filter(c=>!c.ok).length,p50:pct(.5),p95:pct(.95)};
+}
+function renderDock(){
+ const s=callSummary();
+ set('dockSum',[['calls/60s',s.total,''],['out→WM',s.outbound,'a'],['WM→in',s.inbound,''],['errors',s.errors,s.errors?'r':'g']].map(x=>`<div class="s"><div class="l">${x[0]}</div><div class="v ${x[2]}">${x[1]}</div></div>`).join(''));
+ if(!$('dockFilt').innerHTML)renderDockFilters();
+}
+function callRow(c){
+ const seg=c.path.match(/\[(DRAFT|CREATE)\]/);
+ const shortPath=c.path.replace(/^\/wm\/2025-07\/partners/,'…').replace(/^\/oos\/2026-01/,'…').replace(/\/items\/external\/(hyperwolf:sku:[\w-]+)/,'/…/$1');
+ const st=c.pending?'<span class="st pend">•••</span>':`<span class="st ${c.ok?'ok':'err'}">${c.status}</span>`;
+ return `<div class="call ${c.dir} ${c.pending?'pending':''}" data-cid="${c.id}"><span class="arw">${c.dir==='out'?'↑':'↓'}</span><span class="meth">${c.method}</span><span class="pth" title="${c.path}">${shortPath}${c.note?` <span class="k">${c.note}</span>`:''}</span><span class="meta"><span class="tag ${c.kind}" style="font-size:8px;padding:0 4px">${c.kind}</span>${st}<span class="ms">${c.pending?'':c.ms+'ms'}</span></span></div>`;
+}
+function rebuildFeed(){
+ const feed=$('callfeed');const atBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<40;
+ const visible=CALLS.filter(c=>callFilter.has(c.kind));
+ feed.innerHTML=visible.slice(-120).map(callRow).join('');
+ renderedCallIds=new Set(visible.map(c=>c.id));
+ if(!paused&&atBottom)feed.scrollTop=feed.scrollHeight;
+}
+function appendNewCalls(){
+ if(paused)return;
+ const feed=$('callfeed');const atBottom=feed.scrollHeight-feed.scrollTop-feed.clientHeight<50;
+ CALLS.filter(c=>callFilter.has(c.kind)&&!renderedCallIds.has(c.id)).forEach(c=>{
+  const div=document.createElement('div');div.innerHTML=callRow(c).trim();const node=div.firstChild;node.classList.add('new');feed.appendChild(node);renderedCallIds.add(c.id);
+ });
+ // update pending → resolved rows in place
+ CALLS.forEach(c=>{const ex=feed.querySelector(`[data-cid="${c.id}"]`);if(ex&&!c.pending&&ex.classList.contains('pending')){ex.outerHTML=callRow(c);}});
+ if(!paused&&atBottom)feed.scrollTop=feed.scrollHeight;
+ if(CALLS.length>250)CALLS=CALLS.slice(-200);
+}
+function addCall(c,cb){
+ const id=++CALL_SEQ;const row={id,ts:Date.now()/1000,ok:true,status:0,ms:0,note:null,...c};CALLS.push(row);
+ if(row.pending){REALTIME.in_flight++;renderTopbar();}
+ appendNewCalls();
+ if(cb)cb(id);
+ return id;
+}
+function resolveCall(id,status,ms,ok=true){
+ const c=CALLS.find(x=>x.id===id);if(!c)return;
+ if(c.pending){REALTIME.in_flight=Math.max(0,REALTIME.in_flight-1);REALTIME.ran++;}
+ c.pending=false;c.status=status;c.ms=ms;c.ok=ok;if(!ok)REALTIME.failed++;
+ appendNewCalls();renderDock();renderTopbar();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   REAL-TIME ACTIONS  (§6d) — optimistic, push animates into feed
+   ══════════════════════════════════════════════════════════════════ */
+function logEvent(kind,level,message){STATE.events.unshift({ts:Date.now(),kind,level,message});if(STATE.events.length>150)STATE.events.pop();}
+function toast(msg){/* lightweight: reflected via event log + call feed */}
+
+function toggleKit(driver,sku,carry){
+ const dot=$(`kit-${driver}-${sku}`);
+ if(dot){dot.classList.add('pushing');}
+ // optimistic state update
+ const kit=STATE.kits[driver];
+ if(carry){if(!kit.includes(sku))kit.push(sku);}else{const i=kit.indexOf(sku);if(i>=0)kit.splice(i,1);}
+ STATE.union=(()=>{const s=new Set();DRIVERS.filter(d=>STATE.on_shift[d]).forEach(d=>STATE.kits[d].forEach(k=>s.add(k)));return[...s];})();
+ REALTIME.coalesced++;REALTIME.submitted++;
+ const ext=xid(sku);
+ const cid=addCall({dir:'out',method:'PUT',path:`/wm/2025-07/partners/menus/${WMIDS.delivery}/items/external/${ext}`,kind:'menu',note:carry?'carry':'drop',pending:true});
+ setTimeout(()=>{
+  resolveCall(cid,200,180+Math.floor(Math.random()*70));
+  logEvent('sync','ok',`Kit ${carry?'load':'unload'} ${driver}/${sku} → Delivery listing pushed`);
+  if(dot){dot.classList.remove('pushing');if(carry){dot.classList.add('carry');dot.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';}else{dot.classList.remove('carry');dot.innerHTML='';}dot.classList.add('landed');setTimeout(()=>dot.classList.remove('landed'),700);}
+  if(curWs==='inventory')renderStock();
+  renderDock();renderTopbar();
+ },520);
+}
+
+function simulate(){
+ const btn=$('simBtn');if(btn)btn.classList.add('busy');
+ const zip=($('sim-zip')||{}).value||'90046';
+ const cust=($('sim-cust')||{}).value||'returning';
+ let region=null;for(const[r,v]of Object.entries(REGIONS))if(v.zips.includes(zip))region=r;
+ const oid=String(75989400+Math.floor(Math.random()*200));
+ // Draft in
+ const dc=addCall({dir:'in',method:'POST',path:'/callbacks/weedmaps/orders [DRAFT]',kind:'webhook',note:'order '+oid,pending:true});
+ setTimeout(()=>{
+  const ms=190+Math.floor(Math.random()*60);resolveCall(dc,200,ms);
+  // our narrowing → build last_draft
+  const drivers=region?REGIONS[region].drivers.filter(d=>STATE.on_shift[d]):[];
+  const carry=new Set();drivers.forEach(d=>STATE.kits[d].forEach(s=>carry.add(s)));
+  const picked=['BD-F-35G','SD-V-1G','PB-F-14G'];
+  STATE.last_draft={wm_order_id:oid,zip,region:region||'—',driver:drivers[0]||'—',ms,
+   sent:picked.map(s=>{const c=CATALOG.find(x=>x.sku===s);return{external_id:xid(s),name:c.name+' '+c.weight.value+c.weight.unit,qty:1,price:c.price};}),
+   returned:picked.map(s=>{const c=CATALOG.find(x=>x.sku===s);const kept=carry.has(s);return{external_id:xid(s),name:c.name+' '+c.weight.value+c.weight.unit,qty:1,price:c.price,kept,reason:kept?'':'No on-shift driver carries this'};}),
+   fees:{subtotal:190,delivery:5,card_fee:3.5,tax:20.9}};
+  logEvent('webhook','ok',`Draft ${oid} → answered in ${ms}ms`);
+  // Create
+  const cc=addCall({dir:'in',method:'POST',path:'/callbacks/weedmaps/orders [CREATE]',kind:'webhook',note:'order '+oid,pending:true});
+  setTimeout(()=>{
+   resolveCall(cc,200,80+Math.floor(Math.random()*40));
+   const fraud=cust==='fraud';
+   const sc=addCall({dir:'out',method:'PUT',path:`/oos/2026-01/merchants/${WMIDS.menu}/orders/${oid}`,kind:'orders',note:fraud?'CANCELED_SELLER':'IN_PROGRESS',pending:true});
+   setTimeout(()=>resolveCall(sc,200,110+Math.floor(Math.random()*60)),400);
+   STATE.orders.unshift(fraud?
+    {wm_order_id:oid,status:'CANCELED_SELLER',driver_id:null,region_id:region,grand_total:0,customer_name:'“sim fraud”',routing:'FRAUD — identity auto-cancel',alert:true}:
+    {wm_order_id:oid,status:'IN_PROGRESS',driver_id:drivers[0]||null,region_id:region,grand_total:190,customer_name:cust==='first'?'sim first-timer':'sim returning',routing:`zip ${zip} → ${region} → ${drivers[0]||'—'}`});
+   if(STATE.orders.length>8)STATE.orders.pop();
+   logEvent('order',fraud?'alert':'ok',fraud?`Order ${oid} auto-canceled — identity fraud rule`:`Create ${oid} → bound ${drivers[0]||'driver'}`);
+   if(btn)btn.classList.remove('busy');
+   const so=$('sim-out');if(so)so.innerHTML=fraud?`${pill('alert','FRAUD → auto-canceled')} identity rule fired before binding.`:`${pill('ok','Draft+Create OK')} ${oid} bound to ${drivers[0]||'—'} · ${STATE.last_draft.returned.filter(r=>!r.kept).length} line dropped.`;
+   if(curWs==='orderpath'){renderFlow();renderOrders();}
+   if(curWs==='overview')renderOverview();
+   if(curWs==='dev')renderInspector();
+   renderDock();renderTopbar();rebuildRailBadges();
+  },500);
+ },600);
+}
+function sync(){const b=$('syncBtn');if(b)b.classList.add('busy');
+ [WMIDS.menu,WMIDS.delivery].forEach((w,i)=>{const cid=addCall({dir:'out',method:'PUT',path:`/wm/2025-07/partners/menus/${w}/items/bulk`,kind:'menu',note:i?'delivery':'storefront',pending:true});setTimeout(()=>resolveCall(cid,200,220+i*40),400+i*300);});
+ setTimeout(()=>{if(b)b.classList.remove('busy');logEvent('sync','ok','Both listings pushed to WM');},1100);
+}
+function pushStatus(oid){
+ const o=STATE.orders.find(x=>x.wm_order_id===oid);if(!o)return;
+ const seq=o.fulfillment==='pickup'?STATUS_ORDER_PICKUP:STATUS_ORDER;
+ const idx=seq.indexOf(o.status);const next=seq[Math.min(seq.length-1,(idx<0?0:idx)+1)];
+ const cid=addCall({dir:'out',method:'PUT',path:`/oos/2026-01/merchants/${WMIDS.menu}/orders/${oid}`,kind:'orders',note:next,pending:true});
+ setTimeout(()=>{resolveCall(cid,200,120+Math.floor(Math.random()*50));o.status=next;logEvent('order','ok',`Status push ${oid} → ${next}`);if(curWs==='orderpath')renderOrders();if(curWs==='overview')renderOverview();},450);
+}
+function reconcile(){const cid=addCall({dir:'out',method:'POST',path:'/api/reconcile',kind:'menu',note:'drift sweep',pending:true});setTimeout(()=>{resolveCall(cid,200,340);logEvent('reconcile','ok','Drift sweep — 0 differences');},700);}
+function approveMap(sku){
+ const cid=addCall({dir:'out',method:'PUT',path:`/wm/2025-07/partners/menus/${WMIDS.menu}/items/external/${xid(sku)}`,kind:'menu',note:'map',pending:true});
+ STATE.mapping.queue=STATE.mapping.queue.filter(q=>q.sku!==sku);
+ const m=STATE.mapping.mappings.find(x=>x.sku===sku);const cat=CATALOG.find(c=>c.sku===sku);
+ if(cat&&!cat.wm_product_id)cat.wm_product_id='wm_prod_'+(5900+Math.floor(Math.random()*90));
+ if(m){m.status='mapped';m.wm_product_id=cat.wm_product_id;}
+ STATE.mapping.counters.review=STATE.mapping.queue.length;STATE.mapping.counters.mapped_total++;if(STATE.mapping.counters.unmapped>0)STATE.mapping.counters.unmapped--;
+ setTimeout(()=>{resolveCall(cid,200,200);logEvent('sync','ok',`Mapped ${sku} → pushed to WM`);if(curWs==='mapping')renderMapping();rebuildRailBadges();},450);
+}
+function rejectMap(sku){STATE.mapping.queue=STATE.mapping.queue.filter(q=>q.sku!==sku);STATE.mapping.counters.review=STATE.mapping.queue.length;logEvent('reconcile','warn',`Rejected suggested match for ${sku}`);renderMapping();rebuildRailBadges();}
+function unmap(sku){const m=STATE.mapping.mappings.find(x=>x.sku===sku);const c=CATALOG.find(x=>x.sku===sku);if(m){m.status='unmapped';m.wm_product_id=null;}if(c)c.wm_product_id=null;STATE.mapping.counters.mapped_total--;STATE.mapping.counters.unmapped++;logEvent('reconcile','warn',`Unmapped ${sku}`);renderMapping();}
+function runNightly(){const cid=addCall({dir:'out',method:'POST',path:'/api/mapping/nightly',kind:'menu',note:'rescore',pending:true});setTimeout(()=>{resolveCall(cid,200,880);STATE.mapping.last_run=Date.now();logEvent('reconcile','ok','Nightly matcher ran');if(curWs==='mapping')renderMapping();},900);}
+function rescoreAll(){runNightly();}
+function searchWM(){const q=($('pick-q')||{}).value||'';if(!q){set('pick-results','<span class="hint">Type above to search Weedmaps\' catalog.</span>');return;}set('pick-results',`<table><tbody>${['Blue Dream 3.5g','Blue Dream Eighth','Blue Dream Pre-roll'].filter(x=>x.toLowerCase().includes(q.toLowerCase())||q.length<3).map(n=>`<tr><td>${n}</td><td class="mono muted" style="font-size:9.5px">wm_prod_${5500+Math.floor(Math.random()*99)}</td><td><button class="btn xs gd">Link</button></td></tr>`).join('')}</tbody></table>`);}
+function searchWMFor(sku){switchWs('mapping');setTimeout(()=>{const q=$('pick-q');if(q){q.value=skuName(sku);searchWM();q.scrollIntoView&&0;}},50);}
+function importCatalog(dry){set('imp-note',dry?'Dry run — validating…':'Importing…');const cid=addCall({dir:'out',method:'POST',path:'/api/catalog/import',kind:'menu',note:dry?'dry_run':'import',pending:true});setTimeout(()=>{resolveCall(cid,200,260);set('imp-note',dry?'Dry run OK — 0 errors, 0 written.':'Imported.');set('imp-result',pill('ok',dry?'valid':'done'));},500);}
+function saveProduct(){logEvent('sync','ok','Product saved → pushed to Pickup + Delivery');const cid=addCall({dir:'out',method:'PUT',path:`/wm/2025-07/partners/menus/${WMIDS.menu}/items/external/hyperwolf:sku:NEW`,kind:'menu',note:'new',pending:true});setTimeout(()=>resolveCall(cid,200,210),450);}
+function resolveZip(){renderZip();const cid=addCall({dir:'out',method:'POST',path:'/api/resolve',kind:'menu',note:($('zip-in')||{}).value,pending:true});setTimeout(()=>resolveCall(cid,200,40),300);}
+function searchIdentities(){const q=($('id-q')||{}).value||'';if(!q){set('id-search','<span class="hint">Search to find a customer to merge or inspect.</span>');return;}const hits=STATE.identity.ledger.filter(l=>l.customer.toLowerCase().includes(q.toLowerCase()));set('id-search',hits.length?`<table><tbody>${hits.map(l=>`<tr><td>${l.customer}</td><td class="num">${l.orders} ord</td><td class="num">${money(l.ltv)}</td><td><button class="btn xs" onclick="document.getElementById('id-src').value='${l.customer}'">Pick</button></td></tr>`).join('')}</tbody></table>`:'<span class="hint">No matches.</span>');}
+function mergeIdentity(){logEvent('order','ok','Manual identity merge applied');STATE.identity.counters.merged++;if(curWs==='trust')renderIdentity();}
+function resolveReview(id,act){STATE.identity.reviews=STATE.identity.reviews.filter(r=>r.id!==id);STATE.identity.counters.review_open=STATE.identity.reviews.filter(r=>r.action==='needs review').length;logEvent('order',act==='cancel'?'alert':'ok',`Review ${id} → ${act==='cancel'?'canceled':'cleared'}`);renderIdentity();rebuildRailBadges();}
+function linkPromo(){logEvent('sync','ok','Internal promo created & linked to WM');if(curWs==='trust')renderRegistry();}
+
+/* ══════════════════════════════════════════════════════════════════
+   EXPLAIN POPOVERS / GLOSSARY / CMD-K
+   ══════════════════════════════════════════════════════════════════ */
+let learnOn=false;
+function toggleLearn(){learnOn=!learnOn;$('learnBtn').classList.toggle('on',learnOn);document.querySelectorAll('.pinfo').forEach(b=>{b.style.background=learnOn?'var(--accent)':'';b.style.color=learnOn?'var(--accentInk)':'';b.style.borderColor=learnOn?'var(--accent)':'';});}
+function openExplain(btn,key,title,n){
+ closePop();
+ const ex=EX[key];if(!ex)return;
+ const r=btn.getBoundingClientRect();
+ const pop=document.createElement('div');pop.className='pop';pop.id='pop';
+ pop.innerHTML=`<div class="ph"><div class="t">${n?`<span class="n">${n}</span>`:''}${title}</div></div><div class="pb">
+  <div class="qa"><div class="q">What is this?</div><p>${ex[0]}</p></div>
+  <div class="qa"><div class="q how">How does it work?</div><p>${ex[1]}</p></div>
+  <div class="qa"><div class="q why">Why does it exist?</div><p>${ex[2]}</p></div></div>`;
+ document.getElementById('overlays').appendChild(pop);
+ const pw=340;let left=r.right-pw;if(left<8)left=8;if(left+pw>innerWidth-8)left=innerWidth-8-pw;
+ let top=r.bottom+8;if(top+pop.offsetHeight>innerHeight-8)top=Math.max(8,r.top-pop.offsetHeight-8);
+ pop.style.left=left+'px';pop.style.top=top+'px';
+ setTimeout(()=>document.addEventListener('mousedown',popAway),0);
+}
+function popAway(e){const p=$('pop');if(p&&!p.contains(e.target)){closePop();}}
+function closePop(){const p=$('pop');if(p)p.remove();document.removeEventListener('mousedown',popAway);}
+
+function openGlossary(){
+ closeOverlay();
+ const o=document.getElementById('overlays');
+ o.innerHTML=`<div class="scrim" onclick="closeOverlay()"></div><div class="modal"><div class="mh"><h3>Glossary</h3><span class="hint">${GLOSSARY.length} domain terms</span><button class="x" onclick="closeOverlay()">✕</button></div><div class="mb"><input class="gl-search" id="glq" placeholder="Filter terms…" oninput="filterGlossary()"><dl id="gldl">${glossaryHTML(GLOSSARY)}</dl></div></div>`;
+ setTimeout(()=>$('glq')&&$('glq').focus(),30);
+}
+function glossaryHTML(list){return list.map(g=>`<div class="gl-item"><dt>${g[0]}</dt><dd>${g[1]}</dd></div>`).join('');}
+function filterGlossary(){const q=$('glq').value.toLowerCase();$('gldl').innerHTML=glossaryHTML(GLOSSARY.filter(g=>g[0].toLowerCase().includes(q)||g[1].toLowerCase().includes(q)));}
+function closeOverlay(){const o=document.getElementById('overlays');if(o&&o.querySelector('.modal,.scrim,.cmdk'))o.innerHTML='';}
+
+/* command palette */
+let cmdItems=[],cmdSel=0;
+function openCmd(){
+ closeOverlay();
+ cmdItems=[
+  ...WS.map(w=>({t:'Go to '+w.label,kind:'workspace',fn:()=>switchWs(w.id)})),
+  {t:'Fire order simulator',kind:'action',fn:()=>{switchWs('orderpath');setTimeout(simulate,200);}},
+  {t:'Push both listings to WM',kind:'action',fn:sync},
+  {t:'Run reconcile sweep',kind:'action',fn:reconcile},
+  {t:'Run nightly matcher',kind:'action',fn:runNightly},
+  {t:'Open glossary',kind:'action',fn:openGlossary},
+  ...GLOSSARY.map(g=>({t:g[0],kind:'term',fn:()=>{openGlossary();setTimeout(()=>{$('glq').value=g[0];filterGlossary();},60);}})),
+ ];
+ cmdSel=0;
+ const o=document.getElementById('overlays');
+ o.innerHTML=`<div class="scrim" onclick="closeOverlay()"></div><div class="cmdk"><input id="cmdi" placeholder="Search workspaces, actions, terms…" oninput="cmdFilter()" onkeydown="cmdKey(event)"><div class="res" id="cmdres"></div></div>`;
+ renderCmd(cmdItems);setTimeout(()=>$('cmdi').focus(),30);
+}
+function renderCmd(list){cmdItems=list;set('cmdres',list.map((it,i)=>`<div class="ci ${i===cmdSel?'sel':''}" onmouseenter="cmdSel=${i};hlCmd()" onclick="cmdRun(${i})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>${it.t}<span class="kind">${it.kind}</span></div>`).join(''));}
+function cmdFilter(){const q=$('cmdi').value.toLowerCase();const all=[...WS.map(w=>({t:'Go to '+w.label,kind:'workspace',fn:()=>switchWs(w.id)})),{t:'Fire order simulator',kind:'action',fn:()=>{switchWs('orderpath');setTimeout(simulate,200);}},{t:'Push both listings to WM',kind:'action',fn:sync},{t:'Run reconcile sweep',kind:'action',fn:reconcile},{t:'Run nightly matcher',kind:'action',fn:runNightly},{t:'Open glossary',kind:'action',fn:openGlossary},...GLOSSARY.map(g=>({t:g[0],kind:'term',fn:()=>{openGlossary();setTimeout(()=>{$('glq').value=g[0];filterGlossary();},60);}}))];cmdSel=0;renderCmd(all.filter(it=>it.t.toLowerCase().includes(q)));}
+function hlCmd(){document.querySelectorAll('#cmdres .ci').forEach((c,i)=>c.classList.toggle('sel',i===cmdSel));}
+function cmdKey(e){if(e.key==='ArrowDown'){e.preventDefault();cmdSel=Math.min(cmdItems.length-1,cmdSel+1);hlCmd();}else if(e.key==='ArrowUp'){e.preventDefault();cmdSel=Math.max(0,cmdSel-1);hlCmd();}else if(e.key==='Enter'){cmdRun(cmdSel);}else if(e.key==='Escape')closeOverlay();}
+function cmdRun(i){const it=cmdItems[i];closeOverlay();if(it&&it.fn)it.fn();}
+
+/* ══════════════════════════════════════════════════════════════════
+   NAV + BOOT + POLL
+   ══════════════════════════════════════════════════════════════════ */
+let curWs='overview';
+function buildRail(){
+ $('rail').innerHTML=`<div class="rl-lbl">Workspaces</div>`+WS.map(w=>{const b=w.badge?w.badge():0;return `<button class="nav-item ${w.id===curWs?'on':''}" data-ws="${w.id}" onclick="switchWs('${w.id}')"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${ICONS[w.icon]}</svg><span>${w.label}</span>${b?`<span class="cnt ${w.id==='trust'||w.id==='mapping'&&STATE.mapping.wm_missing.length?'alert':''}">${b}</span>`:''}</button>`;}).join('')
+ +`<div class="spring"></div><div class="foot"><button class="nav-item" onclick="reconcile()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg><span>Reconcile now</span></button></div>`;
+}
+function rebuildRailBadges(){buildRail();}
+const WS_BODY={overview:wsOverview,map:wsMap,orderpath:wsOrderPath,listings:wsListings,mapping:wsMapping,fields:wsFields,inventory:wsInventory,trust:wsTrust,observ:wsObserv,dev:wsDev};
+function switchWs(id){
+ curWs=id;closePop();
+ document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('on',n.dataset.ws===id));
+ const w=WS.find(x=>x.id===id);
+ $('main').innerHTML=`<div class="ws-hd"><h1>${w.label}</h1><span class="sub" id="wsSub">${WS_SUB[id]||''}</span><div class="sp"></div>${wsHdActions(id)}</div><div id="wsBody">${WS_BODY[id]()}</div>`;
+ $('main').scrollTop=0;
+ renderAll();
+ if(learnOn)toggleLearn(),toggleLearn();
+}
+function wsHdActions(id){
+ const m={overview:'',orderpath:'<button class="btn sm primary" onclick="simulate()"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Simulate order</button>',listings:'<button class="btn sm" onclick="reconcile()">Reconcile</button>',mapping:'<button class="btn sm" onclick="runNightly()">Run matcher</button>',inventory:'',trust:'',observ:'',dev:''};
+ return m[id]||'';
+}
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openCmd();}if(e.key==='Escape'){closeOverlay();closePop();}});
+function toggleDock(){$('app').classList.toggle('dock-collapsed');const c=$('dockChev');c.innerHTML=$('app').classList.contains('dock-collapsed')?'<path d="m15 18-6-6 6-6"/>':'<path d="m9 18 6-6-6-6"/>';}
+
+/* poll simulation — content changes underneath without layout jump */
+function poll(){
+ // pulse poll pip
+ const pip=$('pollpip');if(pip){pip.classList.add('on');setTimeout(()=>pip.classList.remove('on'),200);}
+ // token countdown already time-based
+ // occasionally emit a background call (heartbeat / promo pull)
+ if(Math.random()<0.5){const kinds=[['out','GET','/wm/2025-07/partners/promotions','promos'],['out','GET','/wm/2025-07/partners/menus','menu'],['out','POST','/auth/token','auth']];const k=kinds[Math.floor(Math.random()*kinds.length)];const cid=addCall({dir:k[0],method:k[1],path:k[2],kind:k[3],pending:true});setTimeout(()=>resolveCall(cid,200,80+Math.floor(Math.random()*140)),300);}
+ // tick reservations TTL visually
+ if(curWs==='inventory')renderReservations();
+ renderDock();renderTopbar();
+}
+function boot(){
+ buildRail();
+ // seed sim cart chips
+ switchWs('overview');
+ rebuildFeed();renderDockFilters();renderDock();renderTopbar();
+ // sim sku chips need render after orderpath built; handled on switch
+ setInterval(poll,3000);
+ setInterval(appendNewCalls,1200);
+ let rz;window.addEventListener('resize',()=>{if(curWs==='map'){clearTimeout(rz);rz=setTimeout(renderMap,120);}});
+}
+// seed sim sku chips whenever orderpath renders
+const _switch=switchWs;
+switchWs=function(id){_switch(id);if(id==='orderpath'){const box=$('sim-skus');if(box)box.innerHTML=['BD-F-35G','SD-V-1G','PB-F-14G'].map(s=>`<span class="tag" style="background:var(--ink);color:#fff">${s} ✕</span>`).join('')+'<button class="tag" style="cursor:pointer">+ add</button>';}};
+boot();
+</script>
+<script src="shared/app-switcher.js"></script>
+<script src="shared/tour-steps.js"></script>
+<script src="shared/tour.js"></script>
+</body>
+</html>

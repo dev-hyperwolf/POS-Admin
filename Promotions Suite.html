@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hyperwolf — Promotions Suite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body { font-family:"Inter",-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  #root { height:100%; }
+  a { color:#2C5BB8; text-decoration:none; }
+  a:hover { color:#1E3F86; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:rgba(128,128,120,.32); border-radius:99px; border:2px solid transparent; background-clip:padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(128,128,120,.5); background-clip:padding-box; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  input::placeholder { color:rgba(128,128,120,.7); }
+  button { font-family:inherit; }
+  input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { opacity:.35; }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#13130F">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#13130F"/>
+    <rect x="330" y="250" width="540" height="150" rx="24" fill="#FFD100"/>
+    <text x="600" y="345" font-family="'JetBrains Mono', monospace" font-size="64" font-weight="800" fill="#13130F" text-anchor="middle">PROMO SUITE</text>
+    <rect x="330" y="430" width="255" height="120" rx="18" fill="#26261F"/>
+    <rect x="615" y="430" width="255" height="120" rx="18" fill="#26261F"/>
+    <rect x="354" y="454" width="130" height="16" rx="8" fill="#FFD100"/>
+    <rect x="639" y="454" width="130" height="16" rx="8" fill="#FFD100"/>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script src="shared/app-nav.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- design system -->
+<script type="text/babel" src="pos/tokens.jsx"></script>
+<script type="text/babel" src="pos/icons.jsx"></script>
+<script type="text/babel" src="pos/atoms.jsx"></script>
+<script type="text/babel" src="shared/app-rail.jsx"></script>
+
+<!-- today's app: rule engine + 3-style builder + plain-English sentence -->
+<script type="text/babel" src="promo/pdata.jsx"></script>
+<script type="text/babel" src="promo/pshared.jsx"></script>
+<script type="text/babel" src="promo/builder-core.jsx"></script>
+<script type="text/babel" src="promo/builder-sentence.jsx"></script>
+<script type="text/babel" src="promo/builder-wizard.jsx"></script>
+<script type="text/babel" src="promo/builder-blocks.jsx"></script>
+<script type="text/babel" src="promo/analytics-center.jsx"></script>
+
+<!-- 4-day-old app: surfaces + home board + calendar + live + studio -->
+<script type="text/babel" src="pweb/module.jsx"></script>
+<script type="text/babel" src="pweb/carousel.jsx"></script>
+<script type="text/babel" src="pweb/brandmap.jsx"></script>
+<script type="text/babel" src="pweb/week.jsx"></script>
+<script type="text/babel" src="pweb/preview.jsx"></script>
+<script type="text/babel" src="pweb/studio.jsx"></script>
+<script type="text/babel" src="pweb/screens.jsx"></script>
+
+<!-- merge bridge + suite shell -->
+<script type="text/babel" src="pweb/merge.jsx"></script>
+<script type="text/babel" src="pweb/weedmaps.jsx"></script>
+<script type="text/babel" src="pweb/app.jsx"></script>
+<script src="shared/app-switcher.js"></script>
+<script src="shared/tour-steps.js"></script>
+<script src="shared/tour.js"></script>
+</body>
+</html>

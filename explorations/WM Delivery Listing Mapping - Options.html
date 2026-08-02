@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="design_doc_mode" content="canvas">
+<title>Weedmaps delivery listing ↔ region mapping — options</title>
+<style>
+  :root{
+    --bg:#0E0E12; --panel:#16161C; --panel2:#1C1C24; --panel3:#23232C;
+    --line:#2A2A34; --line2:#3A3A45; --ink:#F1F0EA; --ink2:#D4D3CB; --dim:#A6A59C; --mute:#75746B; --faint:#4E4E57;
+    --wm:#3B82F6; --wmsoft:#16233d; --hd:#B98BFF; --hdsoft:#241a38; --accent:#FFD100;
+    --good:#43B581; --goodsoft:#14261d; --warn:#E0A83B; --warnsoft:#2a2113; --bad:#E0574B; --badsoft:#2c1613;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased}
+  .c-LA{--rc:#8A5CD6}.c-SB{--rc:#2FA59B}.c-OC{--rc:#D98316}.c-RC{--rc:#3F73D6}
+  .frame{position:absolute;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}
+  .fhead{padding:17px 20px 15px;border-bottom:1px solid var(--line)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:99px;background:var(--panel3);color:var(--dim)}
+  .badge.rec{background:var(--accent);color:#1a1400}
+  .ftitle{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:11px 0 0}
+  .fdesc{font-size:12.5px;color:var(--dim);margin:7px 0 0;line-height:1.55}
+  .fbody{padding:17px 20px 20px;display:flex;flex-direction:column;gap:15px}
+  .lbl{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-bottom:9px}
+
+  .listing{background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:11px 12px;margin-bottom:9px}
+  .listing:last-child{margin-bottom:0}
+  .lname{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;margin-bottom:9px}
+  .wmdot{width:8px;height:8px;border-radius:2px;background:var(--wm);flex:0 0 auto}
+  .lid{font-family:var(--mono);font-size:9.5px;color:var(--mute);margin-left:auto}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:color-mix(in srgb,var(--rc) 20%,var(--panel));color:var(--rc);border:1px solid color-mix(in srgb,var(--rc) 40%,transparent)}
+  .chip.shared{border-style:dashed;border-color:var(--wm);box-shadow:0 0 0 1px var(--wmsoft)}
+  .chip .s{font-size:8px;color:var(--wm);font-weight:800}
+  .chip .drv{opacity:.7;font-weight:500}
+  .chip.off{opacity:.4}
+
+  .flow{display:flex;flex-direction:column;gap:0}
+  .fstep{display:flex;gap:10px;padding-bottom:11px;position:relative}
+  .fstep:last-child{padding-bottom:0}
+  .fstep .n{flex:0 0 auto;width:20px;height:20px;border-radius:99px;font-family:var(--mono);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:1;background:var(--panel3);color:var(--ink2)}
+  .fstep .n.wm{background:var(--wmsoft);color:var(--wm)} .fstep .n.hd{background:var(--hdsoft);color:var(--hd)}
+  .fstep .ln{position:absolute;left:9.5px;top:20px;bottom:0;width:1.5px;background:var(--line2)}
+  .fstep .t{font-size:11.5px;line-height:1.5;color:var(--ink2);padding-top:1px}
+  .fstep .t b{color:var(--ink)} .fstep .t .h{color:var(--hd);font-weight:700} .fstep .t .w{color:var(--wm);font-weight:700}
+  .set{font-size:12px;color:var(--ink2);line-height:1.55;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .set b{color:var(--ink)}
+
+  .verdict{display:flex;gap:16px;padding-top:13px;border-top:1px dashed var(--line)}
+  .verdict .col{flex:1}
+  .verdict .vl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+  .verdict .pro{color:var(--good)} .verdict .con{color:var(--bad)} .verdict .eff{color:var(--warn)}
+  .verdict p{margin:0;font-size:11.5px;color:var(--ink2);line-height:1.5}
+
+  #hdr{position:absolute;font-family:var(--sans)}
+  #hdr .k{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--wm)}
+  #hdr h1{font-size:36px;font-weight:800;letter-spacing:-.03em;margin:10px 0 0}
+  #hdr .lede{font-size:15px;color:var(--dim);max-width:1000px;line-height:1.6;margin:14px 0 0}
+  #hdr .lede b{color:var(--ink2)}
+  .mismatch{display:flex;gap:14px;margin-top:20px;flex-wrap:wrap}
+  .mcard{flex:1;min-width:260px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+  .mcard .mt{font-size:12.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:7px}
+  .mcard p{font-size:12px;color:var(--dim);line-height:1.55;margin:7px 0 0}
+  .mcard.wm .mt{color:var(--wm)} .mcard.hd .mt{color:var(--hd)} .mcard.key .mt{color:var(--accent)}
+  .kbd{font-family:var(--mono);font-size:11px;background:var(--panel3);color:var(--ink2);padding:1px 6px;border-radius:5px;border:1px solid var(--line2)}
+</style>
+</head>
+<body>
+
+<template id="__bundler_thumbnail" data-bg-color="#0E0E12">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0E0E12"/>
+    <circle cx="360" cy="400" r="90" fill="#3B82F6"/>
+    <circle cx="840" cy="290" r="70" fill="#8A5CD6"/>
+    <circle cx="840" cy="510" r="70" fill="#2FA59B"/>
+    <path d="M450 400 L770 300 M450 400 L770 500" stroke="#B98BFF" stroke-width="8" fill="none"/>
+    <text x="600" y="700" font-family="monospace" font-size="60" font-weight="700" fill="#F1F0EA" text-anchor="middle">WM ↔ REGIONS</text>
+  </svg>
+</template>
+
+<div id="hdr" style="left:40px;top:40px;width:3160px">
+  <div class="k">Weedmaps · Delivery · Hyperdrive</div>
+  <h1>Mapping Weedmaps delivery listings to our regions</h1>
+  <p class="lede">Weedmaps assumes <b>1 pin = 1 service area = 1 driver.</b> We don't work that way: one WM delivery listing can be served by <b>3–5 regions</b>, and a single region can sit inside <b>two listings at once</b> (below, <span style="color:#2FA59B">SB-02 Ontario</span> and <span style="color:#3F73D6">RC-02 Corona</span> are each shared). So the listing→region link can't be a foreign key — it's a many-to-many relationship, and the <b>real fulfilment decision is made per-order, not per-listing.</b> Five ways to model it. All five converge on the same runtime: the Weedmaps <span style="color:#3B82F6">Draft webhook</span> hands us the cart + address synchronously, and <span style="color:#B98BFF">Hyperdrive</span> picks the one region + driver best able to fill it.</p>
+  <div class="mismatch">
+    <div class="mcard wm"><div class="mt">◆ The Draft webhook is the hinge</div><p>At checkout WM POSTs the cart to us and <b>waits</b>. We have ~3s to resolve address→region→driver and mutate availability, price and fees before WM commits. This is the only place we can bend WM's 1-pin model — every option leans on it.</p></div>
+    <div class="mcard hd"><div class="mt">◆ Hyperdrive decides, not config</div><p>Mapping just defines the <b>candidate set</b>. Which region + driver actually fulfils is scored live by Hyperdrive on <b>inventory fit</b> (does an on-shift kit have the cart?), ETA, and current driver load.</p></div>
+    <div class="mcard key"><div class="mt">◆ external_id stays sacred</div><p>Items sync per SKU via <span class="kbd">external_id</span>. The advertised WM menu is a <b>union</b> of what candidate regions' on-shift kits carry — the webhook trims it to reality per address.</p></div>
+  </div>
+</div>
+
+<!-- OPTION 1 — COVERAGE GROUPS -->
+<div class="frame" style="left:40px;top:470px;width:600px">
+  <div class="fhead"><span class="badge">Option 1 · Coverage groups</span><div class="ftitle">Listing = a named union of regions</div><div class="fdesc">Each WM listing binds to an explicit bag of regions. Advertised menu = union of those regions' on-shift kits. Shared regions simply belong to more than one bag.</div></div>
+  <div class="fbody">
+    <div><div class="lbl">Mapping</div>
+      <div class="listing"><div class="lname"><span class="wmdot"></span>WM · LA / Pomona Valley<span class="lid">wmid 3421</span></div>
+        <div class="chips"><span class="chip c-LA">LA-01<span class="drv">Kofi</span></span><span class="chip c-LA">LA-02<span class="drv">Elena</span></span><span class="chip c-SB shared">SB-02<span class="s">shared</span></span></div></div>
+      <div class="listing"><div class="lname"><span class="wmdot"></span>WM · Inland Empire<span class="lid">wmid 3422</span></div>
+        <div class="chips"><span class="chip c-SB">SB-01<span class="drv">Carlos</span></span><span class="chip c-SB shared">SB-02<span class="s">shared</span></span><span class="chip c-RC shared">RC-02<span class="s">shared</span></span><span class="chip c-RC">RC-03<span class="drv">Dev</span></span></div></div>
+    </div>
+    <div class="set"><b>Admin sets:</b> for each listing, tick the regions it covers. A region can be ticked into several listings. ~5 min per listing.</div>
+    <div><div class="lbl">At order time</div><div class="flow">
+      <div class="fstep"><span class="n wm">1</span><span class="ln"></span><span class="t"><span class="w">Draft webhook</span> arrives with cart + drop address.</span></div>
+      <div class="fstep"><span class="n">2</span><span class="ln"></span><span class="t">Address ∈ which of <b>this listing's</b> regions? → candidate set.</span></div>
+      <div class="fstep"><span class="n hd">3</span><span class="t"><span class="h">Hyperdrive</span> scores candidates by inventory + ETA → binds region + driver.</span></div>
+    </div></div>
+    <div class="verdict"><div class="col"><div class="vl pro">Strength</div><p>Dead-simple mental model; maps to how ops already thinks ("this listing covers these areas").</p></div><div class="col"><div class="vl con">Watch</div><p>Shared regions get maintained in two places — easy to drift out of sync.</p></div></div>
+  </div>
+</div>
+
+<!-- OPTION 2 — MATRIX -->
+<div class="frame" style="left:664px;top:470px;width:600px">
+  <div class="fhead"><span class="badge">Option 2 · Mapping matrix</span><div class="ftitle">One regions × listings grid</div><div class="fdesc">The honest join table, made visible. Every region/listing intersection is a toggle, so shared regions are obvious and edited in exactly one place.</div></div>
+  <div class="fbody">
+    <div><div class="lbl">Mapping · toggle any cell</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10.5px">
+        <thead><tr><th style="text-align:left;padding:6px 8px;color:var(--mute)">region</th><th style="padding:6px 6px;color:var(--wm)">LA/Pom</th><th style="padding:6px 6px;color:var(--wm)">IE</th><th style="padding:6px 6px;color:var(--wm)">OC</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px 8px;color:#8A5CD6;font-weight:700">LA-01 Pomona</td><td style="text-align:center;color:var(--good)">●</td><td style="text-align:center;color:var(--faint)">○</td><td style="text-align:center;color:var(--faint)">○</td></tr>
+          <tr><td style="padding:6px 8px;color:#8A5CD6;font-weight:700">LA-02 Claremont</td><td style="text-align:center;color:var(--good)">●</td><td style="text-align:center;color:var(--faint)">○</td><td style="text-align:center;color:var(--faint)">○</td></tr>
+          <tr style="background:var(--wmsoft)"><td style="padding:6px 8px;color:#2FA59B;font-weight:700">SB-02 Ontario</td><td style="text-align:center;color:var(--good)">●</td><td style="text-align:center;color:var(--good)">●</td><td style="text-align:center;color:var(--faint)">○</td></tr>
+          <tr><td style="padding:6px 8px;color:#2FA59B;font-weight:700">SB-01 Fontana</td><td style="text-align:center;color:var(--faint)">○</td><td style="text-align:center;color:var(--good)">●</td><td style="text-align:center;color:var(--faint)">○</td></tr>
+          <tr style="background:var(--wmsoft)"><td style="padding:6px 8px;color:#3F73D6;font-weight:700">RC-02 Corona</td><td style="text-align:center;color:var(--faint)">○</td><td style="text-align:center;color:var(--good)">●</td><td style="text-align:center;color:var(--good)">●</td></tr>
+          <tr><td style="padding:6px 8px;color:#D98316;font-weight:700">OC-01 Yorba L.</td><td style="text-align:center;color:var(--faint)">○</td><td style="text-align:center;color:var(--faint)">○</td><td style="text-align:center;color:var(--good)">●</td></tr>
+        </tbody>
+      </table></div>
+      <div style="font-size:10.5px;color:var(--mute);margin-top:7px">Highlighted rows are shared across two listings — visible at a glance.</div>
+    </div>
+    <div class="set"><b>Admin sets:</b> flip cells in one grid. The join is the source of truth; no duplication.</div>
+    <div><div class="lbl">At order time</div><div class="flow">
+      <div class="fstep"><span class="n wm">1</span><span class="ln"></span><span class="t"><span class="w">Draft webhook</span> → listing id + address.</span></div>
+      <div class="fstep"><span class="n">2</span><span class="ln"></span><span class="t">Look up the listing's column → regions whose zone contains the address.</span></div>
+      <div class="fstep"><span class="n hd">3</span><span class="t"><span class="h">Hyperdrive</span> picks region + driver by inventory + load.</span></div>
+    </div></div>
+    <div class="verdict"><div class="col"><div class="vl pro">Strength</div><p>Truthful data model; shared regions can't drift. Great admin overview.</p></div><div class="col"><div class="vl con">Watch</div><p>Grid grows with regions × listings; needs filtering at scale. No priority signal.</p></div></div>
+  </div>
+</div>
+
+<!-- OPTION 3 — ADDRESS-FIRST -->
+<div class="frame" style="left:1288px;top:470px;width:600px">
+  <div class="fhead"><span class="badge">Option 3 · Address-first</span><div class="ftitle">Listings are just menu skins</div><div class="fdesc">Don't bind listing→region structurally at all. The listing advertises a superset menu; the webhook resolves purely on the delivery address. The mapping is emergent, never maintained.</div></div>
+  <div class="fbody">
+    <div><div class="lbl">Mapping</div>
+      <div class="listing"><div class="lname"><span class="wmdot"></span>Any WM delivery listing<span class="lid">menu only</span></div>
+        <div class="chips"><span class="chip c-LA">superset</span><span class="chip c-SB">of</span><span class="chip c-OC">all</span><span class="chip c-RC">kits</span></div>
+        <div style="font-size:11px;color:var(--dim);margin-top:9px;line-height:1.5">No region list stored. Geometry (our KML zones) <b style="color:var(--ink2)">is</b> the map — the address falls into whatever regions already cover it.</div></div>
+    </div>
+    <div class="set"><b>Admin sets:</b> nothing per-listing. Regions/KMLs are maintained once, where they already live. Zero mapping upkeep.</div>
+    <div><div class="lbl">At order time</div><div class="flow">
+      <div class="fstep"><span class="n wm">1</span><span class="ln"></span><span class="t"><span class="w">Draft webhook</span> → cart + address (ignore which listing).</span></div>
+      <div class="fstep"><span class="n">2</span><span class="ln"></span><span class="t">Point-in-polygon: which region KMLs contain the address → candidates.</span></div>
+      <div class="fstep"><span class="n hd">3</span><span class="t"><span class="h">Hyperdrive</span> picks by inventory; webhook <b>trims the menu + reprices</b> to that region before replying.</span></div>
+    </div></div>
+    <div class="verdict"><div class="col"><div class="vl pro">Strength</div><p>Nothing to configure or keep in sync; geography is the single source of truth.</p></div><div class="col"><div class="vl con">Watch</div><p>Advertised menu over-promises; you fully depend on the webhook trimming, or customers see items no nearby driver carries.</p></div></div>
+  </div>
+</div>
+
+<!-- OPTION 4 — RANKED -->
+<div class="frame" style="left:1912px;top:470px;width:600px">
+  <div class="fhead"><span class="badge">Option 4 · Ranked regions</span><div class="ftitle">Primary + fallback per listing</div><div class="fdesc">Each listing holds an ordered region list. Hyperdrive tries the primary region's on-shift drivers first, then cascades. A region can be primary in one listing and fallback in another.</div></div>
+  <div class="fbody">
+    <div><div class="lbl">Mapping · order = priority</div>
+      <div class="listing"><div class="lname"><span class="wmdot"></span>WM · Inland Empire<span class="lid">wmid 3422</span></div>
+        <div class="chips"><span class="chip c-RC">1 · RC-02<span class="drv">Corona</span></span><span class="chip c-SB">2 · SB-01</span><span class="chip c-RC">3 · RC-03</span><span class="chip c-SB shared">4 · SB-02<span class="s">shared</span></span></div></div>
+      <div class="listing"><div class="lname"><span class="wmdot"></span>WM · Orange County<span class="lid">wmid 3423</span></div>
+        <div class="chips"><span class="chip c-OC">1 · OC-01</span><span class="chip c-OC off">2 · OC-02<span class="drv">off</span></span><span class="chip c-RC shared">3 · RC-02<span class="s">shared</span></span></div>
+        <div style="font-size:10.5px;color:var(--dim);margin-top:8px">RC-02 is priority 1 for IE but priority 3 for OC — same region, different intent.</div></div>
+    </div>
+    <div class="set"><b>Admin sets:</b> drag regions into priority order per listing. Priority is a Hyperdrive tie-breaker, not a hard route.</div>
+    <div><div class="lbl">At order time</div><div class="flow">
+      <div class="fstep"><span class="n wm">1</span><span class="ln"></span><span class="t"><span class="w">Draft webhook</span> → listing + address.</span></div>
+      <div class="fstep"><span class="n">2</span><span class="ln"></span><span class="t">Walk the ranked list; keep regions that cover the address.</span></div>
+      <div class="fstep"><span class="n hd">3</span><span class="t"><span class="h">Hyperdrive</span> weights <b>inventory + ETA + load × priority</b> → best region + driver.</span></div>
+    </div></div>
+    <div class="verdict"><div class="col"><div class="vl pro">Strength</div><p>Encodes business intent ("prefer Corona here"); deterministic and tunable. Shared regions carry different weight per listing.</p></div><div class="col"><div class="vl con">Watch</div><p>Priorities are one more thing to curate and can fight Hyperdrive if set too hard.</p></div></div>
+  </div>
+</div>
+
+<!-- OPTION 5 — CELLS -->
+<div class="frame" style="left:2536px;top:470px;width:600px">
+  <div class="fhead"><span class="badge">Option 5 · Fulfilment cells</span><div class="ftitle">Decouple via driver-kit cells</div><div class="fdesc">Introduce an atomic unit between listing and region: a <b>cell</b> = region × on-shift driver × kit. Listings and regions both resolve to cells; Hyperdrive scores cells directly.</div></div>
+  <div class="fbody">
+    <div><div class="lbl">Mapping · listing → regions → cells</div>
+      <div class="listing" style="border-color:var(--hd)"><div class="lname"><span class="wmdot"></span>WM · Inland Empire → cells today</div>
+        <div class="chips">
+          <span class="chip c-SB" style="--rc:#2FA59B">SB-01·Carlos·142</span>
+          <span class="chip c-RC" style="--rc:#3F73D6">RC-02·Sam·118</span>
+          <span class="chip c-RC" style="--rc:#3F73D6">RC-03·Dev·96</span>
+        </div>
+        <div style="font-size:10.5px;color:var(--dim);margin-top:9px;line-height:1.5">Each cell carries its own live kit count. SB-02's driver is off today → no cell, so it silently drops from availability.</div></div>
+    </div>
+    <div class="set"><b>Admin sets:</b> the listing→region map (any of options 1–4). Cells are generated automatically from the live shift + kit feed.</div>
+    <div><div class="lbl">At order time</div><div class="flow">
+      <div class="fstep"><span class="n wm">1</span><span class="ln"></span><span class="t"><span class="w">Draft webhook</span> → cart + address.</span></div>
+      <div class="fstep"><span class="n">2</span><span class="ln"></span><span class="t">Materialise live cells for candidate regions (on-shift only).</span></div>
+      <div class="fstep"><span class="n hd">3</span><span class="t"><span class="h">Hyperdrive</span> scores each <b>cell</b> on cart-fill %, ETA, load → winning cell = region + driver.</span></div>
+    </div></div>
+    <div class="verdict"><div class="col"><div class="vl pro">Strength</div><p>Most accurate — availability tracks who's actually on shift with the right kit; region & listing fully decoupled. Best long-term.</p></div><div class="col"><div class="vl eff">Effort</div><p>Highest — needs the live shift/kit feed wired into a cell layer and Hyperdrive scoring on cells.</p></div></div>
+  </div>
+</div>
+
+<!-- MENU CONTROL ON THE ADDRESS-FIRST ROUTE -->
+<div class="frame" style="left:40px;top:1500px;width:3096px;border-color:var(--wm)">
+  <div class="fhead"><span class="badge" style="background:var(--wmsoft);color:var(--wm)">Follow-up · Option 3</span><div class="ftitle">Controlling the Weedmaps menu on the address-first route</div><div class="fdesc" style="max-width:1100px">Key thing to internalise: <b style="color:var(--ink2)">Weedmaps shows ONE menu per listing to everyone browsing</b> — you can't vary the browse menu by address before checkout. So "address-first" doesn't mean an uncontrolled menu; it means you control it with three levers instead of a per-region config. Work smarter: publish once, let the live feed prune, let the webhook enforce truth.</div></div>
+  <div class="fbody">
+    <div class="mismatch" style="margin-top:0">
+      <div class="mcard key"><div class="mt">1 · What's ON the menu = what we publish</div><p>The Menu API (<span class="kbd">PUT …/items/external/{external_id}</span>) decides which SKUs exist on the listing at all. For address-first, publish the <b style="color:var(--ink2)">servable superset</b> — the union of every SKU any covered region's kit can carry. That union <b style="color:var(--ink2)">is</b> the browse menu. Categories, featured items and ordering are set here too.</p></div>
+      <div class="mcard hd"><div class="mt">2 · What's IN STOCK = live kit coverage</div><p>Each item's in-stock flag is driven off the live shift + kit feed: <b style="color:var(--ink2)">available while ≥1 on-shift driver in any covered region carries it</b>, auto out-of-stock the moment coverage hits zero. The menu self-prunes as drivers start and end shifts — a called-off driver's unique SKUs simply drop. No manual curation.</p></div>
+      <div class="mcard wm"><div class="mt">3 · What actually ships = the Draft webhook</div><p>The browse menu is a promise to everyone; the per-address truth is enforced at checkout. When WM sends cart + address, we resolve the region and <b style="color:var(--ink2)">remove or reprice</b> any line the assigned driver can't fill before replying (&lt;3s). Shopper sees one menu; we make it real at the last synchronous step.</p></div>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:stretch">
+      <div style="flex:1;min-width:320px"><div class="lbl">What the shopper sees vs. what we control</div>
+        <div class="flow">
+          <div class="fstep"><span class="n">A</span><span class="ln"></span><span class="t"><b>Browse</b> → one flat menu = the published union, minus anything with zero live coverage.</span></div>
+          <div class="fstep"><span class="n wm">B</span><span class="ln"></span><span class="t">Enters address at <span class="w">checkout</span> → Draft webhook fires.</span></div>
+          <div class="fstep"><span class="n hd">C</span><span class="t"><span class="h">Hyperdrive</span> resolves region+driver by inventory, trims the cart to what that driver actually has, reprices, replies.</span></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:320px"><div class="lbl">The one risk — and how it's contained</div>
+        <div class="set" style="line-height:1.6">The only downside of address-first is a browse menu that can <b>over-promise</b> for a specific address. Levers <b style="color:var(--ink)">2</b> and <b style="color:var(--ink)">3</b> contain it: live-coverage toggling keeps genuinely-unservable SKUs off the menu entirely, and the webhook catches the address-specific gaps at checkout. For the cleanest shopper experience, only mark a SKU "always on" when it has <b>reliable multi-region coverage</b>; let thin-coverage SKUs ride the live toggle. <span style="color:var(--mute)">Hidden hint: <span class="kbd">integratorMetadata</span> carries our region-eligibility flags on each item — invisible to WM, but it's what the webhook reads to trim.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECOMMENDATION -->
+<div class="frame" style="left:40px;top:2010px;width:3096px">
+  <div class="fhead"><span class="badge rec">Recommendation</span><div class="ftitle">Matrix to configure · Cells to run · Ranking to tune</div></div>
+  <div class="fbody" style="gap:12px">
+    <p style="font-size:14.5px;line-height:1.65;color:var(--ink2);margin:0;max-width:1100px">These aren't mutually exclusive — pick one <b>config surface</b> and one <b>runtime engine</b>. Configure with the <b>Matrix (Option 2)</b>: it's the truthful many-to-many model, keeps shared regions like SB-02 and RC-02 in one place, and reads at a glance. Run on <b>Fulfilment Cells (Option 5)</b>: availability then tracks who's actually on shift with the right kit, so a called-off driver's region drops out automatically instead of over-promising. Layer <b>Ranked priority (Option 4)</b> in as a Hyperdrive tie-breaker only where ops wants to steer ("prefer Corona for IE"). <b>Address-first (Option 3)</b> is the safety net underneath all of it — geometry always decides candidacy at the webhook, so we never route outside a real KML zone.</p>
+    <p style="font-size:12.5px;line-height:1.6;color:var(--dim);margin:0;max-width:1100px">Whatever we pick, the runtime contract is fixed: the synchronous <span style="color:var(--wm)">Draft webhook</span> resolves <b>address → candidate regions → Hyperdrive picks the region + driver best able to fill the cart</b>, then mutates the WM cart's availability and pricing before replying. Mapping only ever defines the candidate set — inventory and the Hyperdrive score make the actual call. That's the principle these pages should be designed around: <b>show the candidate set, but make the live decision legible.</b></p>
+    <p style="font-size:12px;line-height:1.55;color:var(--mute);margin:2px 0 0;max-width:1100px">Note: WM partner API access is still pending (waitlist as of Apr 2026). Until it lands we can model and stage all of this against the public Discovery API, but the Draft-webhook binding can't go live yet — build the config + cell model now so it's ready the day access opens.</p>
+  </div>
+</div>
+
+<!-- MIGRATION TO THE REGIONS PAGE -->
+<div class="frame" style="left:40px;top:2430px;width:3096px;border-color:var(--hd)">
+  <div class="fhead"><span class="badge" style="background:#eae6fb;color:var(--hd)">Decision · next step</span><div class="ftitle">Address-first → mapping it onto the Regions page</div><div class="fdesc" style="max-width:1160px"><b style="color:var(--ink2)">Decision:</b> we're starting with <b style="color:var(--ink2)">Option 3 (address-first)</b> as the runtime spine — geometry decides candidacy, on-shift kits decide availability, the webhook enforces truth. This is also called out on the <b style="color:var(--ink2)">Weedmaps sync page</b> (menu-control levers) and the <b style="color:var(--ink2)">Regions page</b> (Hyperwolf Delivery). Below: how each address-first idea lands on the existing Regions page design — counties → sub-regions → KML → on-shift kits — and the revision each one needs. This is where the next build session begins.</div></div>
+  <div class="fbody">
+    <div class="mismatch" style="margin-top:0">
+      <div class="mcard"><div class="mt">Candidacy = KML geometry</div><p><b style="color:var(--ink2)">Already there:</b> sub-region polygons + buffer zones on the map. <b style="color:var(--ink2)">Revision:</b> none to the model — the KML stays the single source of "which regions could serve this address." Just label it as the webhook's candidacy input.</p></div>
+      <div class="mcard hd"><div class="mt">Availability = on-shift kits</div><p><b style="color:var(--ink2)">Already there:</b> each region shows its driver + shift status. <b style="color:var(--ink2)">Revision:</b> add a <b>Weedmaps delivery availability</b> readout per region = the union of SKUs across its on-shift kits, with a live count and "0 on shift → listing paused" state.</p></div>
+      <div class="mcard key"><div class="mt">Published menu = servable union</div><p><b style="color:var(--ink2)">New:</b> a store-level summary above the region list — "<b>N SKUs live on the WM delivery menu</b> = union of all on-shift kits" — and a per-region "contributes X SKUs" chip, so ops sees what the one browse menu is composed of.</p></div>
+      <div class="mcard wm"><div class="mt">Webhook trim preview</div><p><b style="color:var(--ink2)">Extend the zip tester:</b> for a typed address, show region resolution <i>and</i> the cart trim the Draft webhook would apply — which lines survive for the winning driver vs. drop. Makes the "one menu, real at checkout" contract legible.</p></div>
+      <div class="mcard"><div class="mt">Region eligibility flags</div><p><b style="color:var(--ink2)">New:</b> surface the <span class="kbd">integratorMetadata</span> region-eligibility flags on each region (read-only) so it's clear what the webhook reads to trim — invisible to WM, visible to us.</p></div>
+      <div class="mcard"><div class="mt">Priority (tie-break)</div><p><b style="color:var(--ink2)">Already there:</b> regions carry a priority. <b style="color:var(--ink2)">Revision:</b> expose it as the documented Hyperdrive tie-breaker for shared zips ("prefer Corona for IE"), matching Option 4.</p></div>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:stretch;margin-top:2px">
+      <div style="flex:1;min-width:320px"><div class="lbl">First revisions to make on the Regions page</div>
+        <div class="flow">
+          <div class="fstep"><span class="n hd">1</span><span class="ln"></span><span class="t">Add the per-region <b>WM delivery availability</b> block (on-shift kit union + paused state).</span></div>
+          <div class="fstep"><span class="n key">2</span><span class="ln"></span><span class="t">Add the store-level <b>servable-union</b> summary (what the one browse menu contains).</span></div>
+          <div class="fstep"><span class="n wm">3</span><span class="t">Extend the zip/address tester with the <b>webhook trim preview</b>.</span></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:320px"><div class="lbl">Guardrails carried over</div>
+        <div class="set" style="line-height:1.6">Nothing here changes the runtime contract from the recommendation: KML = candidacy, inventory + Hyperdrive = decision, webhook = truth. The Regions page becomes the <b>config + legibility surface</b> for address-first — it shows the candidate set and makes the live decision visible, but never hand-curates a per-address menu. <span style="color:var(--mute)">Partner API still on the waitlist — build & stage against the public Discovery API; the webhook binding goes live the day access opens.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

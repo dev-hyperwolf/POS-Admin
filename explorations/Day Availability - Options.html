@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="design_doc_mode" content="canvas">
+<title>Day-availability callouts — front-end options</title>
+<style>
+  :root{
+    --board:#0F0F0C; --accent:#FFD100; --ink:#15140f; --mute:#6b6b60; --dim:#8f8f83;
+    --hair:#e7e5db; --surf:#faf9f4; --cardgap:10px;
+    --flower:#5FB878; --vape:#8E7BE0; --pre:#E38A3C; --ed:#E36597; --con:#E0B341; --well:#3FB6AC;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .frame{position:absolute;background:#fff;border:1px solid var(--hair);border-radius:20px;box-shadow:0 18px 50px rgba(20,20,15,.10);overflow:hidden}
+  .fhead{padding:18px 20px 14px;border-bottom:1px solid var(--hair)}
+  .fkick{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink,#8a6d00)}
+  .ftitle{font-size:21px;font-weight:800;letter-spacing:-.02em;margin:5px 0 0}
+  .fdesc{font-size:12.5px;color:var(--dim);margin:7px 0 0;line-height:1.45}
+  .fbody{padding:18px 20px 22px}
+
+  /* storefront deal board (dark) */
+  .board{background:var(--board);border-radius:16px;overflow:hidden;color:#fff}
+  .bhead{padding:16px 16px 12px;position:relative}
+  .beyebrow{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--accent)}
+  .bhl{font-size:22px;font-weight:900;letter-spacing:-.03em;line-height:.98;margin-top:5px}
+  .bsub{font-size:11px;color:rgba(255,255,255,.58);margin-top:6px}
+  .bweek{position:absolute;top:16px;right:16px;padding:5px 11px;border-radius:99px;background:#fff;color:#111;font-family:var(--mono);font-size:10.5px;font-weight:800}
+  .cats{padding:0 12px 12px;display:grid;grid-template-columns:1fr 1fr;gap:var(--cardgap)}
+  .cat{border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-left:3px solid var(--cc);padding:11px 12px;min-width:0}
+  .catlbl{display:flex;align-items:center;gap:6px;margin-bottom:9px}
+  .catdot{width:7px;height:7px;border-radius:2px;background:var(--cc)}
+  .catname{font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--cc)}
+  .rows{display:flex;flex-direction:column;gap:9px}
+  .row{display:flex;align-items:baseline;gap:8px}
+  .bn{font-size:13px;font-weight:700;flex:1;min-width:0;line-height:1.2;color:#fff}
+  .disc{font-family:var(--mono);font-size:12px;font-weight:800;color:var(--accent);white-space:nowrap}
+  .cta{margin:0 12px 14px;padding:10px 16px;border-radius:11px;background:var(--accent);color:#1A1400;font-weight:800;font-size:13px;display:inline-block}
+
+  /* shared day-callout atoms */
+  .daytag{font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:6px;white-space:nowrap;display:inline-block}
+  .dt-out{border:1px solid rgba(255,255,255,.35);color:rgba(255,255,255,.82)}
+  .dt-today{background:#FF5C4D;color:#fff;box-shadow:0 0 0 3px rgba(255,92,77,.22)}
+  .dt-soon{background:rgba(255,209,0,.16);color:var(--accent);border:1px solid rgba(255,209,0,.4)}
+  .dt-solid{background:rgba(255,255,255,.14);color:#fff}
+
+  /* option C — filter chips */
+  .chips{display:flex;gap:5px;padding:0 12px 12px}
+  .chip{flex:1;text-align:center;font-family:var(--mono);font-size:11px;font-weight:800;padding:8px 0 6px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.7);position:relative}
+  .chip.sel{background:var(--accent);color:#1A1400;border-color:var(--accent)}
+  .chip .n{display:block;font-size:8px;font-weight:700;margin-top:2px;opacity:.7}
+  .chip .badge{position:absolute;top:-5px;right:-3px;width:14px;height:14px;border-radius:99px;background:#FF5C4D;color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+  /* option D — section split */
+  .sechead{display:flex;align-items:center;gap:8px;padding:2px 12px 10px}
+  .sechead .lbl{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.85)}
+  .sechead .rule{flex:1;height:1px;background:rgba(255,255,255,.12)}
+  .sechead .cnt{font-family:var(--mono);font-size:9.5px;color:rgba(255,255,255,.5)}
+  .limited .cat{border-color:rgba(255,209,0,.28);background:rgba(255,209,0,.05)}
+
+  /* option E — mini week dots */
+  .wkdots{display:inline-flex;gap:2px;align-items:center}
+  .wd{width:11px;height:11px;border-radius:3px;font-family:var(--mono);font-size:7px;font-weight:800;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.18)}
+  .wd.on{background:var(--accent);color:#1A1400;border-color:var(--accent)}
+  .brandmeta{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+
+  .note{font-size:11.5px;color:var(--mute);line-height:1.5;margin:14px 0 0;padding-top:12px;border-top:1px dashed var(--hair)}
+  .note b{color:var(--ink)}
+  .pin{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:800;color:#fff;background:var(--ink);border-radius:6px;padding:2px 7px;margin-right:7px}
+
+  /* page header */
+  #hdr{position:absolute;font-family:var(--sans)}
+  #hdr .k{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#8a6d00}
+  #hdr h1{font-size:34px;font-weight:800;letter-spacing:-.025em;margin:8px 0 0}
+  #hdr p{font-size:15px;color:var(--mute);max-width:760px;line-height:1.5;margin:12px 0 0}
+  #hdr .legend{display:flex;gap:18px;margin-top:18px;flex-wrap:wrap;font-size:12.5px;color:var(--dim)}
+  #hdr .legend b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<div id="hdr" style="left:40px;top:36px;width:2380px">
+  <div class="k">Front-end · Weekly deal board</div>
+  <h1>Calling out day-limited deals to shoppers</h1>
+  <p>Most brands run all week, but some are live only certain days — <b>Claybourne</b> and <b>Coldfire</b> Wednesday only, <b>Kanha</b> Tuesday, <b>CHKN N WAFFLEZ</b> and <b>Driftwood</b> Friday–Sunday. The board currently shows only the discount, so a shopper can't tell. Five ways to surface it in Spaces — they stack, so pick one primary treatment plus optional urgency.</p>
+  <div class="legend">
+    <span><b>Board data</b> already carries per-brand days</span>
+    <span>·</span>
+    <span>Same dark hero, category colors, yellow accent</span>
+    <span>·</span>
+    <span>Today = Wednesday, for the "today" states</span>
+  </div>
+</div>
+
+<!-- ══ OPTION A — inline day tag ══ -->
+<div class="frame" style="left:40px;top:300px;width:460px">
+  <div class="fhead">
+    <div class="fkick">Option A</div>
+    <div class="ftitle">Inline day tag</div>
+    <div class="fdesc">A small outlined pill sits right after the discount. All-week deals stay clean — only limited ones get a tag, so the constraint reads as the exception, not noise.</div>
+  </div>
+  <div class="fbody">
+    <div class="board">
+      <div class="bhead"><div class="beyebrow">HYPERWOLF</div><div class="bhl">THIS WEEK'S DEALS</div><div class="bsub">12 brands · every category marked down</div><div class="bweek">JUL 6–12</div></div>
+      <div class="cats">
+        <div class="cat" style="--cc:var(--flower)"><div class="catlbl"><span class="catdot"></span><span class="catname">FLOWER</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Hyperwolf</span><span class="disc">30%</span></div>
+            <div class="row"><span class="bn">Driftwood</span><span class="daytag dt-out">FRI–SUN</span><span class="disc">20%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--pre)"><div class="catlbl"><span class="catdot"></span><span class="catname">PRE-ROLL</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Kine</span><span class="disc">2/$15</span></div>
+            <div class="row"><span class="bn">Claybourne</span><span class="daytag dt-out">WED ONLY</span><span class="disc">20%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--ed);grid-column:1/-1"><div class="catlbl"><span class="catdot"></span><span class="catname">EDIBLES</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">CHKN N WAFFLEZ</span><span class="daytag dt-out">FRI–SUN</span><span class="disc">FREE GIFT</span></div>
+            <div class="row"><span class="bn">Harbor</span><span class="disc">15%</span></div>
+            <div class="row"><span class="bn">Kanha</span><span class="daytag dt-out">TUE ONLY</span><span class="disc">20%</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="cta">Shop all deals →</span>
+    </div>
+    <p class="note"><b>Best when</b> most deals are all-week and only a few are limited. Lowest effort, zero layout change. <b>Watch:</b> tags can crowd long brand names on mobile — truncate to "WED", "FRI+".</p>
+  </div>
+</div>
+
+<!-- ══ OPTION B — urgency / today state ══ -->
+<div class="frame" style="left:520px;top:300px;width:460px">
+  <div class="fhead">
+    <div class="fkick">Option B</div>
+    <div class="ftitle">Live-today urgency</div>
+    <div class="fdesc">Same slot, but the tag reacts to the current day. A deal live <i>today only</i> glows red; one starting later reads "STARTS FRI". Drives same-day conversion.</div>
+  </div>
+  <div class="fbody">
+    <div class="board">
+      <div class="bhead"><div class="beyebrow">HYPERWOLF</div><div class="bhl">THIS WEEK'S DEALS</div><div class="bsub">Today · Wednesday</div><div class="bweek">JUL 6–12</div></div>
+      <div class="cats">
+        <div class="cat" style="--cc:var(--flower)"><div class="catlbl"><span class="catdot"></span><span class="catname">FLOWER</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Hyperwolf</span><span class="disc">30%</span></div>
+            <div class="row"><span class="bn">Driftwood</span><span class="daytag dt-soon">STARTS FRI</span><span class="disc">20%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--pre)"><div class="catlbl"><span class="catdot"></span><span class="catname">PRE-ROLL</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Kine</span><span class="disc">2/$15</span></div>
+            <div class="row"><span class="bn">Claybourne</span><span class="daytag dt-today">TODAY ONLY</span><span class="disc">20%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--con)"><div class="catlbl"><span class="catdot"></span><span class="catname">CONCENTRATE</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Coldfire</span><span class="daytag dt-today">TODAY ONLY</span><span class="disc">25%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--ed)"><div class="catlbl"><span class="catdot"></span><span class="catname">EDIBLES</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">CHKN</span><span class="daytag dt-soon">STARTS FRI</span><span class="disc">GIFT</span></div>
+            <div class="row"><span class="bn">Kanha</span><span class="daytag dt-out" style="opacity:.5">ENDED TUE</span><span class="disc" style="opacity:.5">20%</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="cta">Shop all deals →</span>
+    </div>
+    <p class="note"><b>Best when</b> you want urgency and same-day pull. Layers on top of A. <b>Needs:</b> board must know the current day and re-render daily (or client-side by device clock). Past deals can dim or drop.</p>
+  </div>
+</div>
+
+<!-- ══ OPTION C — day filter chips ══ -->
+<div class="frame" style="left:1000px;top:300px;width:460px">
+  <div class="fhead">
+    <div class="fkick">Option C</div>
+    <div class="ftitle">Day filter chips</div>
+    <div class="fdesc">A week strip above the board. Default shows everything; tap a day to see exactly what's live then. Red dot flags days with limited-time drops.</div>
+  </div>
+  <div class="fbody">
+    <div class="board">
+      <div class="bhead"><div class="beyebrow">HYPERWOLF</div><div class="bhl">THIS WEEK'S DEALS</div><div class="bsub">Tap a day to see what's live</div><div class="bweek">JUL 6–12</div></div>
+      <div class="chips">
+        <div class="chip">M<span class="n">9</span></div>
+        <div class="chip">T<span class="n">10</span><span class="badge">1</span></div>
+        <div class="chip sel">W<span class="n">11</span><span class="badge">2</span></div>
+        <div class="chip">T<span class="n">9</span></div>
+        <div class="chip">F<span class="n">11</span><span class="badge">2</span></div>
+        <div class="chip">S<span class="n">11</span></div>
+        <div class="chip">S<span class="n">11</span></div>
+      </div>
+      <div class="cats">
+        <div class="cat" style="--cc:var(--pre)"><div class="catlbl"><span class="catdot"></span><span class="catname">PRE-ROLL</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Kine</span><span class="disc">2/$15</span></div>
+            <div class="row"><span class="bn">Claybourne</span><span class="daytag dt-today">WED</span><span class="disc">20%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--con)"><div class="catlbl"><span class="catdot"></span><span class="catname">CONC.</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Coldfire</span><span class="daytag dt-today">WED</span><span class="disc">25%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--flower);grid-column:1/-1"><div class="catlbl"><span class="catdot"></span><span class="catname">FLOWER + MORE · ALL WEEK</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Hyperwolf · Flower</span><span class="disc">30%</span></div>
+            <div class="row"><span class="bn">Harbor · Edibles</span><span class="disc">15%</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="cta">Shop Wednesday's deals →</span>
+    </div>
+    <p class="note"><b>Best when</b> shoppers plan around drop days or you push midweek/weekend specials. Turns the constraint into a browse tool. <b>Heavier:</b> needs a filter interaction and per-day counts.</p>
+  </div>
+</div>
+
+<!-- ══ OPTION D — section split ══ -->
+<div class="frame" style="left:1480px;top:300px;width:460px">
+  <div class="fhead">
+    <div class="fkick">Option D</div>
+    <div class="ftitle">Split: all-week vs limited</div>
+    <div class="fdesc">Group the board into two bands — everyday deals, then a highlighted "Limited days" band whose cards carry the day range. Constraint becomes a merchandising hook.</div>
+  </div>
+  <div class="fbody">
+    <div class="board">
+      <div class="bhead"><div class="beyebrow">HYPERWOLF</div><div class="bhl">THIS WEEK'S DEALS</div><div class="bsub">12 brands · every category marked down</div><div class="bweek">JUL 6–12</div></div>
+      <div class="sechead"><span class="lbl">ALL WEEK</span><span class="rule"></span><span class="cnt">7 brands</span></div>
+      <div class="cats">
+        <div class="cat" style="--cc:var(--flower)"><div class="catlbl"><span class="catdot"></span><span class="catname">FLOWER</span></div>
+          <div class="rows"><div class="row"><span class="bn">Hyperwolf</span><span class="disc">30%</span></div></div>
+        </div>
+        <div class="cat" style="--cc:var(--pre)"><div class="catlbl"><span class="catdot"></span><span class="catname">PRE-ROLL</span></div>
+          <div class="rows"><div class="row"><span class="bn">Kine</span><span class="disc">2/$15</span></div></div>
+        </div>
+      </div>
+      <div class="sechead" style="padding-top:14px"><span class="lbl" style="color:var(--accent)">⚡ LIMITED DAYS</span><span class="rule" style="background:rgba(255,209,0,.25)"></span><span class="cnt">while they last</span></div>
+      <div class="cats limited">
+        <div class="cat" style="--cc:var(--pre)"><div class="catlbl"><span class="catdot"></span><span class="catname">PRE-ROLL</span></div>
+          <div class="rows"><div class="row"><span class="bn">Claybourne</span><span class="daytag dt-solid">WED</span><span class="disc">20%</span></div></div>
+        </div>
+        <div class="cat" style="--cc:var(--ed)"><div class="catlbl"><span class="catdot"></span><span class="catname">EDIBLES</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">CHKN</span><span class="daytag dt-solid">FRI–SUN</span><span class="disc">GIFT</span></div>
+            <div class="row"><span class="bn">Kanha</span><span class="daytag dt-solid">TUE</span><span class="disc">20%</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="cta">Shop all deals →</span>
+    </div>
+    <p class="note"><b>Best when</b> limited drops are a feature you want to promote (weekend-only, flash). Clear mental model, no interaction. <b>Watch:</b> splits the tidy category grid into two shorter ones.</p>
+  </div>
+</div>
+
+<!-- ══ OPTION E — mini week dots ══ -->
+<div class="frame" style="left:1960px;top:300px;width:460px">
+  <div class="fhead">
+    <div class="fkick">Option E</div>
+    <div class="ftitle">Mini week strip</div>
+    <div class="fdesc">Mirror the internal 7-dot week indicator, storefront-styled, under limited brands. Shows the exact shape of availability at a glance — same visual language ops already uses.</div>
+  </div>
+  <div class="fbody">
+    <div class="board">
+      <div class="bhead"><div class="beyebrow">HYPERWOLF</div><div class="bhl">THIS WEEK'S DEALS</div><div class="bsub">12 brands · every category marked down</div><div class="bweek">JUL 6–12</div></div>
+      <div class="cats">
+        <div class="cat" style="--cc:var(--flower)"><div class="catlbl"><span class="catdot"></span><span class="catname">FLOWER</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Hyperwolf</span><span class="disc">30%</span></div>
+            <div class="row"><div class="brandmeta"><span class="bn">Driftwood</span><span class="wkdots"><span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd on">F</span><span class="wd on">S</span><span class="wd on">S</span></span></div><span class="disc">20%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--pre)"><div class="catlbl"><span class="catdot"></span><span class="catname">PRE-ROLL</span></div>
+          <div class="rows">
+            <div class="row"><span class="bn">Kine</span><span class="disc">2/$15</span></div>
+            <div class="row"><div class="brandmeta"><span class="bn">Claybourne</span><span class="wkdots"><span class="wd">M</span><span class="wd">T</span><span class="wd on">W</span><span class="wd">T</span><span class="wd">F</span><span class="wd">S</span><span class="wd">S</span></span></div><span class="disc">20%</span></div>
+          </div>
+        </div>
+        <div class="cat" style="--cc:var(--ed);grid-column:1/-1"><div class="catlbl"><span class="catdot"></span><span class="catname">EDIBLES</span></div>
+          <div class="rows">
+            <div class="row"><div class="brandmeta"><span class="bn">CHKN N WAFFLEZ</span><span class="wkdots"><span class="wd">M</span><span class="wd">T</span><span class="wd">W</span><span class="wd">T</span><span class="wd on">F</span><span class="wd on">S</span><span class="wd on">S</span></span></div><span class="disc">GIFT</span></div>
+            <div class="row"><span class="bn">Harbor</span><span class="disc">15%</span></div>
+          </div>
+        </div>
+      </div>
+      <span class="cta">Shop all deals →</span>
+    </div>
+    <p class="note"><b>Best when</b> patterns matter (e.g. "weekends") and you want precision without words. Consistent with the ops board. <b>Watch:</b> 7 dots add a second line per brand — busiest option; reserve for limited items only.</p>
+  </div>
+</div>
+
+<!-- recommendation strip -->
+<div class="frame" style="left:40px;top:1040px;width:1400px">
+  <div class="fhead"><div class="fkick">Recommendation</div><div class="ftitle">Ship A + B together</div></div>
+  <div class="fbody" style="padding-top:16px">
+    <p style="font-size:14px;line-height:1.6;color:#3a3a32;margin:0">
+      <span class="pin">A</span> Inline day tag is the baseline — it's the least disruptive and reads as the exception on an otherwise all-week board.
+      <span class="pin">B</span> Layer the live-today urgency states on top so a Wednesday shopper sees "TODAY ONLY" glow and later drops read "STARTS FRI." That combination communicates the limit <b>and</b> converts on it, with no new browse UI.
+    </p>
+    <p style="font-size:13px;line-height:1.6;color:var(--mute);margin:14px 0 0">
+      Keep <span class="pin">C</span> filter chips in your pocket for when limited drops become a weekly rhythm (weekend flash deals) — that's when a day browser earns its complexity. Use <span class="pin">D</span> section split only for a campaign you're actively promoting as limited. <span class="pin">E</span> week dots are the most precise but the busiest — best reserved for a deal-detail page rather than the dense home board.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

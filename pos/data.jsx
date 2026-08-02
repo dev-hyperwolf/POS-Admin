@@ -1,0 +1,274 @@
+// ── POS demo data ──────────────────────────────────────────────────────────
+const CATS = ['Flower','Vapes','Pre-Rolls','Concentrates','Edibles','Wellness','Deals'];
+
+// hue assigned per category for thumbnails
+const CAT_HUE = { Flower:110, Vapes:215, 'Pre-Rolls':18, Concentrates:38, Edibles:330, Wellness:168, Deals:48 };
+
+// Category color scheme (Hyperwolf-style, one accent per category). {dot, soft fg/bg}
+const CAT_COLOR = {
+  Flower:       '#3DA35D',
+  Vapes:        '#2E7CF6',
+  'Pre-Rolls':  '#E8643C',
+  Concentrates: '#D99A1C',
+  Edibles:      '#E1477C',
+  Wellness:     '#21A89B',
+  Deals:        '#FFD100',
+  All:          '#6E6E66',
+};
+
+function P_(name, sku, brand, strain, cat, thc, wt, price, was, qty, hue){
+  // deterministic unit cost → profit margin (varies 28%–68% by sku)
+  const h = sku.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0);
+  const marginPct = 0.28 + (h % 41)/100;            // 0.28 … 0.68
+  const cost = Math.max(0.5, +(price*(1-marginPct)).toFixed(2));
+  const margin = +((price-cost)/price).toFixed(3);  // 0..1
+  return { id:sku, name, sku, brand, strain, cat, thc, wt, price, was:was||null, qty, cost, margin, hue:hue??CAT_HUE[cat]??90, active:qty>0 };
+}
+
+const PRODUCTS = [
+  P_('Cake Crasher','H480PRO1','Papa\u2019s Herb','Indica','Pre-Rolls',28.6,'1g',15,20,37,16),
+  P_('Blueberry Pancakes','F2Q4EN2C','WVY','Hybrid','Flower',null,'1g',17,20,1,118),
+  P_('CDS Product','212FFSAFA','818 Enjoy','Sativa','Wellness',12,'12g',12,null,50,168),
+  P_('Product Willy','WIL20X9','Arcata Fire','Hybrid','Flower',20,'20g',24,26,106,120),
+  P_('Doubleshot','DBL78MG','Casual','Hybrid','Edibles',78,'10mg',20,null,84,330),
+  P_('Fruit Punch All-In-One','FP94AIO','Papa\u2019s Herb','Sativa','Vapes',94.2,'1g',28,null,36,215),
+  P_('Cheetah Piss Pre-Roll','CHP1GPR','Mary Jones','Sativa','Pre-Rolls',null,'1g',5,null,278,18),
+  P_('Neutron Cookies Ounce Smalls','NCO28SM','Baggie Buds','Indica','Flower',25.7,'28g',77,null,220,118),
+  P_('Gooberz Ready-To-Roll','GBZ35RR','Casual','Hybrid','Flower',25.8,'3.5g',10,null,196,116),
+  P_('Blast Radius Smalls','BRD35SM','Allswell','Hybrid','Flower',27.8,'3.5g',1,13,459,112),
+  P_('Blast Off Smalls','BOF35SM','Allswell','Indica','Flower',28.0,'3.5g',13,null,231,114),
+  P_('Space Ripper Ounce Smalls','SRO28SM','Allswell','Indica','Flower',28.7,'28g',2,77,200,118),
+  P_('First Class Funk Live Resin','FCF1LRS','West Coast Cure','Hybrid','Concentrates',72.2,'1g',22,23,40,38),
+  P_('Thin Mint Sugar','TMS1SUG','West Coast Trading','Hybrid','Concentrates',76.8,'1g',2,13,6,36),
+  P_('Firewalker Sugar','FWK1SUG','West Coast Trading','Sativa','Concentrates',75.9,'1g',5,13,35,40),
+  P_('Bumble Bee Honey Joint','BBH2JNT','Alpine Vapor','Hybrid','Pre-Rolls',null,'2g',32,34,215,20),
+  P_('Lunar Drift Indica Drops','LDI4DRP','KIVA','Indica','Edibles',28.5,'4g',40,null,558,328),
+  P_('Weed Kick THCa Joint 6th','BNJNJ0IK','3C Farms','Hybrid','Wellness',25,'4g',45,1000,161,168),
+  P_('Bay Weeds Yo','984X9CJO','Blaze Mota','Sativa','Concentrates',null,null,28,null,40,38),
+  P_('Candy Kush THCa Flower 8th','FFF81Q98','Baggie Buds','Hybrid','Flower',null,'3.5g',35,null,72,110),
+  P_('Ganja-12 Distillate','GNJ1123','AMMO','Hybrid','Vapes',88,'1g',38,null,52,215),
+  P_('Archest Pre-Roll Pack','ARCH001','Mary Jones','Indica','Pre-Rolls',null,'5x.5g',30,null,44,18),
+  P_('Sour Tangie Live Badder','STG1BAD','West Coast Cure','Sativa','Concentrates',74.1,'1g',26,32,58,36),
+  P_('Midnight Mint Gummies','MMG100E','KIVA','Indica','Edibles',null,'100mg',18,null,310,330),
+];
+
+// Members / customers
+const MEMBERS = [
+  { id:'m1', name:'Harshil Gupta', email:'harshil@yopmail.com', phone:'(951) 555-0142', group:'Walk-In', type:'AdultUse', delivery:'Pick-up', visits:1, points:0, wallet:0, member:true },
+  { id:'m2', name:'Manisha Saini', email:'manisha@yopmail.com', phone:'(951) 555-0199', group:'Delivery', type:'MedicinalUser', delivery:'Pick-up', visits:2, points:340, wallet:12.50, member:true, second:true },
+  { id:'m3', name:'Girish Sharma', email:'girish@yopmail.com', phone:'(951) 555-0177', group:'Walk-In', type:'AdultUse', delivery:'Pick-up', visits:5, points:1280, wallet:0, member:true },
+  { id:'m4', name:'Dony Fernandez', email:'dony@yopmail.com', phone:'(951) 555-0163', group:'Delivery', type:'AdultUse', delivery:'Delivery', visits:3, points:210, wallet:0 },
+  { id:'m5', name:'Joseph Levi', email:'joseph@yopmail.com', phone:'(951) 555-0188', group:'Walk-In', type:'MedicinalUser', delivery:'Pick-up', visits:8, points:2640, wallet:48.00, member:true },
+];
+
+// Check-in queue (people physically in store / waiting). guests[] are captured
+// AT CHECK-IN and grouped under the primary — sale stays on primary, guests are referrals.
+const CHECKINS = [
+  { id:'c1', memberId:'m1', name:'Harshil Gupta', group:'Walk-In', type:'AdultUse', delivery:'Pick-up', wait:'0h 0m 58s', waitSec:58, claimedBy:'Manisha Saini', member:true, visit:1, guests:['Alex Romero'] },
+  { id:'c2', memberId:'m2', name:'Manisha Saini', group:'Delivery', type:'MedicinalUser', delivery:'Pick-up', wait:'0h 0m 34s', waitSec:34, claimedBy:null, second:true, visit:2, guests:[] },
+  { id:'c3', memberId:'m3', name:'Girish Sharma', group:'Walk-In', type:'AdultUse', delivery:'Pick-up', wait:'0h 2m 11s', waitSec:131, claimedBy:null, member:true, visit:5, guests:['Mia Tran','Sam Cole'] },
+  { id:'c4', memberId:'m5', name:'Joseph Levi', group:'Walk-In', type:'MedicinalUser', delivery:'Pick-up', wait:'0h 4m 02s', waitSec:242, claimedBy:null, member:true, visit:8, guests:[] },
+];
+
+// Visit label — first / second / third, capped at “3rd visit”
+function visitLabel(n){ n = n || 1; return n >= 3 ? '3rd visit' : n === 2 ? '2nd visit' : '1st visit'; }
+function visitOrdinal(n){ n = n || 1; return n >= 3 ? 3 : n; } // 1|2|3 for color mapping
+
+// Loyalty rewards the associate can redeem against a member's points
+const REWARDS = [
+  { id:'5off',   label:'$5 off',         cost:500,  icon:'tag',     kind:'discount' },
+  { id:'preroll',label:'Free pre-roll',  cost:750,  icon:'gift',    kind:'item' },
+  { id:'10off',  label:'$10 off',        cost:1000, icon:'tag',     kind:'discount' },
+  { id:'15pct',  label:'15% off order',  cost:1500, icon:'percent', kind:'discount' },
+  { id:'merch',  label:'Branded grinder',cost:2500, icon:'gift',    kind:'item' },
+];
+
+// Waiting-room pool — people who can be grouped as guests under a check-in
+const GUEST_POOL = ['Alex Romero','Priya Nair','Sam Cole','Jordan Vu','Mia Tran','Dev Anand','Lena Brooks'];
+
+// Order board
+function O_(num, name, total, source, channel, pay, badge, age, items, stage, strainHue){
+  return { id:'ORD-'+num, num, name, total, source, channel, pay, badge, age, items, stage, hue:strainHue??200 };
+}
+const ORDERS = [
+  O_('00224','Aaron Wells', 52.10,'Stilo','Store','Card','Member','0h 6m',3,'verify',12),
+  O_('00223','Priya Nair', 28.00,'Web','Delivery','Prepaid','Prepaid','0h 14m',2,'verify',300),
+  O_('00222','Dony Fernandez', 17.00,'Stilo','Store','Cash','Prepaid','2h 8m',1,'pack',40),
+  O_('00221','Girish Sharma', 17.63,'Stilo','Store','Cash','Member','22h 34m',2,'pack',110),
+  O_('00220','Lena Brooks', 64.25,'Web','Delivery','Card','Prepaid','0h 22m',4,'packing',215),
+  O_('00219','Marcus Hill', 41.00,'Stilo','Store','Split',null,'1h 2m',3,'packing',168),
+  O_('00218','Tara Schultz', 19.50,'Web','Delivery','Card','Member','3h 40m',1,'ready',330),
+  O_('00217','Sam Oduya', 88.00,'Stilo','Store','Card','Member','4h 11m',5,'ready',36),
+  O_('00216','Nina Patel', 33.20,'Web','Delivery','Prepaid','Prepaid','5h 02m',2,'done',18),
+];
+
+const STORE = { name:'Hyperwolf Lake Elsinore', id:'HW-00001-101', count:4 };
+
+// Delivery regions + a driver roster (sampled — fleet is ~100 across regions)
+const REGIONS = ['Lake Elsinore','Wildomar','Lakeland Vlg','Temescal','Murrieta'];
+const DRIVERS = [
+  { id:'d1', name:'Theo Reyes',    region:'Lake Elsinore', status:'on-route', stops:3, cap:6, eta:'12m' },
+  { id:'d2', name:'Maya Cole',     region:'Wildomar',      status:'on-route', stops:5, cap:6, eta:'24m' },
+  { id:'d3', name:'Dev Anand',     region:'Lakeland Vlg',  status:'idle',     stops:0, cap:6, eta:'—' },
+  { id:'d4', name:'Sam Okoro',     region:'Temescal',      status:'on-route', stops:2, cap:5, eta:'31m' },
+  { id:'d5', name:'Lena Brooks',   region:'Murrieta',      status:'idle',     stops:1, cap:6, eta:'8m' },
+  { id:'d6', name:'Aaron Wells',   region:'Lake Elsinore', status:'offline',  stops:0, cap:6, eta:'—' },
+];
+const FLEET_TOTAL = 98;
+
+// Delivery routing meta — keyed by order id. x/y are normalized 0–1 map coords.
+const DELIVERY = {
+  'ORD-00223': { addr:'2841 Mission Trail', zone:'Wildomar', dist:4.2, eta:18, driver:'Theo R.', x:.32, y:.40, win:'4:30–5:00' },
+  'ORD-00220': { addr:'118 Diamond Dr',     zone:'Lake Elsinore', dist:2.1, eta:11, driver:'Theo R.', x:.54, y:.30, win:'4:45–5:15' },
+  'ORD-00218': { addr:'905 Grand Ave',      zone:'Lakeland Vlg', dist:6.8, eta:26, driver:'Unassigned', x:.20, y:.66, win:'5:00–5:30' },
+  'ORD-00216': { addr:'334 Riverside Dr',   zone:'Temescal',     dist:9.3, eta:34, driver:'Unassigned', x:.74, y:.58, win:'5:15–5:45' },
+};
+
+// Today's performance — store + logged-in associate
+const STATS = {
+  storeNetToday: 8420.55,
+  storeOrdersToday: 142,
+  associate: {
+    name:'Manisha Saini',
+    netToday: 1864.20,
+    ordersToday: 23,
+    aov: { day:81.05, week:76.40, month:79.20 },
+    aovDelta: { day:6, week:-2, month:3 },
+    goal: 90,            // AOV goal ($)
+  },
+};
+
+// Customer's go-to category (deterministic per member)
+function favCategory(m){
+  if(!m) return null;
+  const cats = ['Flower','Vapes','Pre-Rolls','Concentrates','Edibles','Wellness'];
+  const seed = (m.name||'').length + (m.visits||1)*3 + (m.points||0);
+  return cats[seed % cats.length];
+}
+
+// Personalized up-sell — ranks by the member's go-to category, what pairs with
+// the current cart, on-sale items, then potency/stock. Each rec carries a reason.
+function upsell(cartSkus, customer){
+  cartSkus = cartSkus || [];
+  const inCart = PRODUCTS.filter(p=>cartSkus.includes(p.sku));
+  const cartCats = [...new Set(inCart.map(p=>p.cat))];
+  const fav = favCategory(customer);
+  const pairs = { Flower:'Pre-Rolls','Pre-Rolls':'Flower', Vapes:'Concentrates', Concentrates:'Vapes', Edibles:'Wellness', Wellness:'Edibles' };
+  const wantPair = new Set(cartCats.map(c=>pairs[c]).filter(Boolean));
+  const scored = PRODUCTS.filter(p=>!cartSkus.includes(p.sku) && p.qty>0).map(p=>{
+    let score=0, reason='Popular with members';
+    if(fav && p.cat===fav){ score+=6; reason='Usually buys '+fav; }
+    if(wantPair.has(p.cat)){ score+=4; if(score<=4) reason='Pairs with '+cartCats[0]; }
+    if(p.was){ score+=3; if(score<=3) reason='On sale now'; }
+    if(p.thc!=null && p.thc>=75){ score+=1; }
+    if(p.qty>180) score+=0.5;
+    return { p, score, reason };
+  }).sort((a,b)=> b.score-a.score || b.p.price-a.p.price);
+  return scored.slice(0,6).map(s=>({ ...s.p, _reason:s.reason }));
+}
+
+// ── Weedmaps channel ───────────────────────────────────────────────────────
+// WM is a publish channel over our catalog. Each product syncs to one or both
+// WM listings (Pickup = store stock · Delivery = on-shift driver kits). external_id
+// is the sacred contract that ties a WM menu item back to our SKU — it never churns.
+const WM_LISTINGS = { pickup:{ id:'342170487', kind:'Pickup', policy:'store on-hand' }, delivery:{ id:'342170912', kind:'Delivery', policy:'driver kits' } };
+// Per-SKU sync state overrides. Default (below) = synced to both listings.
+// state: synced | pending (queued, not confirmed) | error (WM rejected) | unlisted (not pushed)
+const WM_PRODUCT_SYNC = {
+  '984X9CJO': { state:'error',    listings:['pickup'],              ext:'HW-984X9CJO', last:'4h ago',  issue:'Category “Concentrates” has no mapped Weedmaps taxonomy node — item hidden on WM until mapped.' },
+  'TMS1SUG':  { state:'pending',  listings:['delivery'],            ext:'HW-TMS1SUG',  last:'—',       issue:'Queued in the last push — awaiting Weedmaps confirmation.' },
+  'MMG100E':  { state:'unlisted', listings:[],                      ext:'HW-MMG100E',  last:'never',   issue:'Not published to Weedmaps. Push to make it available online.' },
+  'FCF1LRS':  { state:'error',    listings:['pickup','delivery'],   ext:'HW-FCF1LRS',  last:'1h ago',  issue:'Price on WM ($22) is stale vs POS — last write was rejected (listing paused by retailer).' },
+  'BRD35SM':  { state:'synced',   listings:['pickup','delivery'],   ext:'HW-BRD35SM',  last:'just now' },
+};
+PRODUCTS.forEach((p)=>{ p.wm = WM_PRODUCT_SYNC[p.sku] || { state:'synced', listings:['pickup','delivery'], ext:'HW-'+p.sku, last:['3m ago','12m ago','28m ago','1h ago'][p.sku.charCodeAt(0)%4] }; });
+
+// WM order status the customer sees on weedmaps.com, mapped from OUR fulfillment stage.
+// WM state machine: DRAFT → PENDING → IN_PROGRESS → READY_FOR_ATTAINMENT → COMPLETE
+//                                              ↘ CANCELED_CUSTOMER / CANCELED_SELLER / FAILED
+// DRAFT is the synchronous cart webhook — validated before it ever becomes an order here.
+const WM_STATUS_MAP = {
+  verify:  { wm:'PENDING',              label:'Pending',     cust:'Order received — being reviewed',  tone:'neutral' },
+  pack:    { wm:'IN_PROGRESS',          label:'In progress', cust:'Store is preparing your order',    tone:'info' },
+  packing: { wm:'IN_PROGRESS',          label:'In progress', cust:'Store is preparing your order',    tone:'info' },
+  ready:   { wm:'READY_FOR_ATTAINMENT', label:'Ready',       cust:'Ready for pickup',                 tone:'good' },
+  done:    { wm:'COMPLETE',             label:'Complete',    cust:'Order completed',                  tone:'neutral' },
+  canceled:{ wm:'CANCELED_SELLER',      label:'Canceled',    cust:'Canceled by store',                tone:'bad' },
+};
+const WM_STATUS_ORDER = ['DRAFT','PENDING','IN_PROGRESS','READY_FOR_ATTAINMENT','COMPLETE'];
+
+// WM-sourced orders. Treated as pickup orders (channel 'Store') unless delivery.
+// Each is prepaid on WM and enters at 'verify' — WM lets carts through with fake
+// name / phone / email / no ID, so verification is a hard gate before we prep.
+const WM_NEW = [
+  O_('00231','Jordan Meyer',   74.25,'Weedmaps','Store','Prepaid','Weedmaps','0h 3m', 3,'verify', 110),
+  O_('00232','xXblaze420Xx',   42.00,'Weedmaps','Store','Prepaid','Weedmaps','0h 8m', 2,'verify', 215),
+  O_('00233','Dana Whitfield', 58.50,'Weedmaps','Store','Prepaid','Weedmaps','0h 21m',2,'pack',   330),
+  O_('00234','Sam Reyes',      31.00,'Weedmaps','Delivery','Prepaid','Weedmaps','0h 15m',1,'verify',18),
+  O_('00235','Nina Alvarez',   46.00,'Weedmaps','Store','Prepaid','Weedmaps','1h 12m',2,'ready',  36),
+];
+ORDERS.unshift(...WM_NEW);
+
+// Verification + fraud + identity-match signals for each WM order (keyed by order id).
+// match: 'existing' (confident single match) | 'ambiguous' (2+ candidates) | 'new' (no match)
+// checks: pass | partial | suspicious | missing | verified | unverified | valid | invalid
+const WM_ORDER = {
+  'ORD-00231': { wmId:'WM-88213', contact:{ name:'Jordan Meyer', phone:'(951) 555-0199', email:'jordanm@gmail.com', address:null }, matchOn:['phone','email'], wmStatus:'PENDING', risk:12, level:'low',
+    match:'existing', matchId:'m2', matchConf:0.96,
+    checks:{ id:'pass', name:'match', phone:'verified', email:'valid', address:'n/a' }, flags:[] },
+  'ORD-00232': { wmId:'WM-88240', contact:{ name:'xXblaze420Xx', phone:'(000) 000-0000', email:'blaze420@mailinator.co', address:null }, matchOn:[], wmStatus:'PENDING', risk:81, level:'high',
+    match:'new',
+    checks:{ id:'missing', name:'suspicious', phone:'unverified', email:'invalid', address:'n/a' },
+    flags:['Display name fails name heuristics','Email hard-bounced on send','No ID uploaded / age unverified','4th order in 1h from the same device fingerprint'] },
+  'ORD-00233': { wmId:'WM-88301', contact:{ name:'Dana Whitfield', phone:'(951) 555-0177', email:'dana.w@yahoo.com', address:null }, matchOn:['name','phone'], wmStatus:'IN_PROGRESS', risk:38, level:'medium',
+    match:'ambiguous', candidates:['m4','m2'], matchConf:0.62,
+    checks:{ id:'pass', name:'partial', phone:'verified', email:'valid', address:'n/a' },
+    flags:['Name + phone match two different customers'] },
+  'ORD-00234': { wmId:'WM-88355', contact:{ name:'Sam Reyes', phone:'(714) 555-0148', email:'sreyes@outlook.com', address:'1442 W 5th St, Santa Ana, CA 92703' }, matchOn:[], wmStatus:'PENDING', risk:67, level:'high', delivery:true,
+    match:'new',
+    checks:{ id:'pending', name:'match', phone:'unverified', email:'valid', address:'unverified' },
+    flags:['Delivery to an address we can’t verify','Phone not SMS-verified — delivery orders require it'] },
+  'ORD-00235': { wmId:'WM-88190', contact:{ name:'Nina Alvarez', phone:'(951) 555-0163', email:'nina.alvarez@gmail.com', address:null }, matchOn:['phone','email','id'], wmStatus:'READY_FOR_ATTAINMENT', risk:8, level:'low',
+    match:'existing', matchId:'m3', matchConf:0.99, merged:true,
+    checks:{ id:'pass', name:'match', phone:'verified', email:'valid', address:'n/a' }, flags:[] },
+};
+
+// ── Identity assurance records (see pos/verification.jsx for the model) ─────
+// Events, not flags. Tier is derived: doc-on-file → +phone-confirmed → delivery.
+const IDV = {
+  m1: { doc: { type: 'CA DL', num: '••••4821', expires: '2029-04-11', scannedAt: 'Today 2:02 PM', by: 'Priya Nair', where: 'Front Counter 1', photo: true },
+        phone: { value: '(951) 555-0142', smsVerified: false, sentAt: 'Today 2:03 PM' }, persona: null },
+  m2: { doc: { type: 'CA DL', num: '••••9134', expires: '2028-08-02', scannedAt: 'Mar 14 · 4:41 PM', by: 'Marcus Hill', where: 'Front Counter 2', photo: true },
+        phone: { value: '(951) 555-0199', smsVerified: false, sentAt: '2 min ago' }, persona: null },
+  m3: { doc: { type: 'CA DL', num: '••••2207', expires: '2030-01-19', scannedAt: 'Jun 2 · 7:12 PM', by: 'Theo Reyes', where: 'door', photo: true },
+        phone: { value: '(951) 555-0163', smsVerified: true, verifiedAt: 'Jun 2' }, persona: null },
+  m4: { doc: null, phone: { value: '(951) 555-0177', smsVerified: true, verifiedAt: 'May 30' },
+        persona: { status: 'passed', at: 'May 30' } },
+};
+
+// ── Tax ── CA cannabis tax always presented in this order: local, state
+// excise, state sales. One helper so every screen agrees.
+const TAX_RATES = { local: 0.0222, excise: 0.15, sales: 0.06 };
+function taxBreakdown(base) {
+  const b = Math.max(0, +base || 0);
+  const local = +(b * TAX_RATES.local).toFixed(2);
+  const excise = +(b * TAX_RATES.excise).toFixed(2);
+  const sales = +(b * TAX_RATES.sales).toFixed(2);
+  const total = +(local + excise + sales).toFixed(2);
+  return { local, excise, sales, total, rate: b > 0 ? total / b : 0,
+    lines: [
+      { k: 'Local cannabis tax (2.22%)', v: local },
+      { k: 'State excise tax (15%)', v: excise },
+      { k: 'State sales tax (6%)', v: sales }] };
+}
+
+const fmt = {
+  money:(n)=> '$'+Number(n).toLocaleString('en-US',{ minimumFractionDigits:2, maximumFractionDigits:2 }),
+  money0:(n)=> '$'+Number(n).toLocaleString('en-US'),
+};
+
+window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, fmt, visitLabel, visitOrdinal,
+  WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
+  memberById:(id)=> MEMBERS.find(m=>m.id===id) || null,
+  catCount:(c)=> c==='Deals'? PRODUCTS.filter(p=>p.was).length : PRODUCTS.filter(p=>p.cat===c).length,
+};
