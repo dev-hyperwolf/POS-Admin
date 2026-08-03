@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Engage — Hyperwolf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body { font-family:"Inter",-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  #root { height:100%; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:rgba(128,128,120,.32); border-radius:99px; border:2px solid transparent; background-clip:padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(128,128,120,.5); background-clip:padding-box; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  input::placeholder { color:rgba(128,128,120,.7); }
+  button, select, input, textarea { font-family:inherit; }
+  a { color:#7A5A00; }
+  a:hover { color:#0F0F0C; }
+  .hd-2col { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:20px; }
+  @media (max-width:1180px){ .hd-2col { grid-template-columns:minmax(0,1fr); } }
+  .hd-builder { display:grid; grid-template-columns:250px minmax(0,1fr) 340px; gap:16px; align-items:start; }
+  .hd-builder-nocat { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; align-items:start; }
+  @media (max-width:1320px){ .hd-builder-nocat { grid-template-columns:minmax(0,1fr) 320px; } }
+  @media (max-width:1000px){ .hd-builder, .hd-builder-nocat { grid-template-columns:minmax(0,1fr); } }
+  .hd-split { display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:20px; }
+  @media (max-width:1200px){ .hd-split { grid-template-columns:minmax(0,1fr); } }
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#15140f">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#15140f"/>
+    <rect x="500" y="300" width="200" height="200" rx="44" fill="#FFD100"/>
+    <text x="600" y="470" font-family="Inter, system-ui, sans-serif" font-size="150" font-weight="800" fill="#15140f" text-anchor="middle">E</text>
+    <text x="600" y="585" font-family="'JetBrains Mono', monospace" font-size="28" font-weight="700" letter-spacing="7" fill="#8a8a80" text-anchor="middle">ENGAGE</text>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script src="shared/app-nav.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="pos/tokens.jsx"></script>
+<script type="text/babel" src="pos/icons.jsx"></script>
+<script type="text/babel" src="pos/atoms.jsx"></script>
+<script type="text/babel" src="shared/app-rail.jsx"></script>
+<script type="text/babel" src="shared/hd-format.jsx"></script>
+<script type="text/babel" src="shared/hd-ui.jsx"></script>
+<script type="text/babel" src="engage/data.jsx"></script>
+<script type="text/babel" src="engage/screen-home.jsx"></script>
+<script type="text/babel" src="engage/screen-customers.jsx"></script>
+<script type="text/babel" src="engage/screen-audiences.jsx"></script>
+<script type="text/babel" src="engage/screen-audience-builder.jsx"></script>
+<script type="text/babel" src="engage/screen-flows.jsx"></script>
+<script type="text/babel" src="engage/screen-loyalty.jsx"></script>
+<script type="text/babel" src="engage/screen-campaigns.jsx"></script>
+<script type="text/babel" src="engage/charts.jsx"></script>
+<script type="text/babel" src="engage/screen-analytics.jsx"></script>
+<script type="text/babel" src="engage/screen-analytics2.jsx"></script>
+<script type="text/babel" src="engage/screen-ops.jsx"></script>
+<script type="text/babel" src="engage/app.jsx"></script>
+
+<script src="shared/app-switcher.js"></script>
+<script src="shared/tour-steps.js"></script>
+<script src="shared/tour.js"></script>
+</body>
+</html>
