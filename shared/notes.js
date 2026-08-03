@@ -7,7 +7,7 @@
   if (window.__hwNotes) return; window.__hwNotes = true;
 
   // ── backend contract ───────────────────────────────────────────────────────
-  const NOTES_API = '__NOTES_API_URL__';   // ← replace after deploy
+  const NOTES_API = 'https://hw-notes.hyperwolf.workers.dev';
   const NOTES_API_VERSION = 1;
 
   var K_PASS = 'hw-notes-passcode', K_AUTHOR = 'hw-notes-author';
