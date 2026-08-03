@@ -36,6 +36,8 @@ If you add, rename or retire a file, update the hub in the same turn.
   `<window.HWRail active="<its id>" />`. No app defines its own rail markup.
 - `shared/app-switcher.js` — floating cross-app launcher. Keep its list in sync with the hub.
 - `shared/tour-steps.js` + `shared/tour.js` — the guided walkthroughs, keyed by filename.
+- `shared/notes.js` — shared on-screen annotation layer (pins, threads, replies, resolve), synced
+  to the team notes API. Plain JS; loads **last** on every entry HTML, after `tour.js`.
 
 Every app HTML loads, in order: react → babel → `pos/tokens` → `pos/icons` → `pos/atoms` → its own
 folder → `shared/app-switcher.js`, `shared/tour-steps.js`, `shared/tour.js`.
