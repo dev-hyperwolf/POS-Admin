@@ -251,7 +251,7 @@
         { title: 'THC follows the same rule', ey: 'Concept',
           body: 'It is <b>typed in per batch, from the batch label on the packaging</b> — not parsed out of a COA. Whoever receives the stock reads the printed THC, CBD and total cannabinoids and enters them. The product page then shows low / high / avg rolled up across every in-stock batch, which is why those fields are read-only there.' },
         { title: 'Identity fields are locked on purpose', ey: 'Concept',
-          body: 'On a product page, brand and format show <b>Edit in shell</b> rather than an input. Editing them from one store’s catalog row would let two stores disagree about what the same jar is — so the edit happens once, on the shell, and every variation in every store follows.' },
+          body: 'On a product page, <b>brand</b>, <b>SKU</b> and <b>barcode</b> show <b>Edit in shell</b> rather than an input. Editing them from one store’s catalog row would let two stores disagree about what the same jar is — so the edit happens once, on the shell, and every variation in every store follows. The <b>product name</b> is the one exception: it is the flavour that distinguishes this variation, so it stays editable right on the product page.' },
       ],
     },
 

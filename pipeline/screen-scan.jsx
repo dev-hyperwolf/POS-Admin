@@ -95,7 +95,7 @@
     }
 
     return (
-      <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', position: 'relative', background: P.bg }}>
+      <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', position: 'relative', background: P.canvas }}>
         <header style={{ height: 56, display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', borderBottom: `1px solid ${P.hairline2}`, flex: '0 0 auto' }}>
           <IconBtn icon="arrow-left" size={18} onClick={() => navigate('#/inbox')} title="Back" style={{ width: 36, height: 36 }} />
           <div style={{ flex: 1, minWidth: 0 }}>

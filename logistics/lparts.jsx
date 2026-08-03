@@ -7,22 +7,22 @@ window.LHeroStat = function LHeroStat({ icon, label, value, unit, tone, hint, le
   const P = useP();
   const c = tone === 'bad' ? P.bad : tone === 'warn' ? P.warn : tone === 'good' ? P.good : tone === 'info' ? P.info : P.ink2;
   const soft = tone === 'bad' ? P.badSoft : tone === 'warn' ? P.warnSoft : tone === 'good' ? P.goodSoft : tone === 'info' ? P.infoSoft : P.surface3;
-  return <div onClick={onClick} style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', gap: 7, padding: '13px 15px', background: active ? P.accentSoft : P.surface, border: `1px solid ${active ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, cursor: onClick ? 'pointer' : 'default', overflow: 'hidden', boxShadow: P.shadowSm }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+  return <div onClick={onClick} style={{ minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', gap: 8, padding: '13px 14px', background: active ? P.accentSoft : P.surface, border: `1px solid ${active ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, cursor: onClick ? 'pointer' : 'default', boxShadow: P.shadowSm }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
       <span style={{ width: 24, height: 24, borderRadius: 7, background: soft, color: c, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={13.5} stroke={2} /></span>
-      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-      {onClick && <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: active ? (P.mode === 'dark' ? P.accent : '#7A5A00') : P.inkMute, background: active ? P.accentSoft : P.surface3, borderRadius: 99, padding: '2px 6px', flex: '0 0 auto' }}><Icon name="filter" size={9} stroke={2.4} />{active ? 'On' : 'Filter'}</span>}
+      <span style={{ flex: 1, minWidth: 0, fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkDim, lineHeight: 1.25, textWrap: 'pretty' }}>{label}</span>
     </div>
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
       <span style={{ fontSize: 27, fontWeight: 700, letterSpacing: '-.02em', color: tone && tone !== 'neutral' ? c : P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{value}</span>
-      {unit && <span style={{ fontSize: 12, color: P.inkDim, fontWeight: 600 }}>{unit}</span>}
+      {unit && <span style={{ fontSize: 12, color: P.inkDim, fontWeight: 600, lineHeight: 1.2 }}>{unit}</span>}
+      {onClick && <span title={active ? 'Filtering by this' : 'Filter the board by this'} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: active ? (P.mode === 'dark' ? P.accent : '#7A5A00') : P.inkMute, background: active ? P.accentSoft : P.surface3, border: `1px solid ${active ? P.accentBorder : P.hairline}`, borderRadius: 99, padding: '2px 7px', flex: '0 0 auto' }}><Icon name="filter" size={9} stroke={2.4} />{active ? 'On' : 'Filter'}</span>}
     </div>
-    {hint && <span style={{ fontSize: 10.5, color: P.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{hint}</span>}
+    {hint && <span style={{ fontSize: 10.5, color: P.inkMute, lineHeight: 1.3, textWrap: 'pretty' }}>{hint}</span>}
   </div>;
 };
 
 window.LHeroStrip = function LHeroStrip({ h, lead }) {
-  return <div style={{ display: 'flex', gap: 10 }}>
+  return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 10 }}>
     <LHeroStat icon="clock" label="At risk of breach" value={h.atRisk} tone="bad" hint="ETA past SLA deadline" lead={lead === 'atRisk'} />
     <LHeroStat icon="flag" label="Understaffed regions" value={h.understaffed} tone="bad" hint="demand over capacity" lead={lead === 'understaffed'} />
     <LHeroStat icon="user-off" label="Unassigned" value={h.unassigned} tone="bad" hint="need a driver now" lead={lead === 'unassigned'} />
@@ -73,13 +73,14 @@ window.LReassign = function LReassign({ order, drivers, onPick, onClose, anchor 
 };
 
 // ── Inline order action buttons (fixed-anchored reassign, no clipping) ──────
-window.LOrderActions = function LOrderActions({ order, drivers, onReassign, onFlash, size = 'sm' }) {
+window.LOrderActions = function LOrderActions({ order, drivers, onReassign, onFlash, size = 'sm', vertical }) {
   const P = useP();
   const ref = React.useRef(null);
   const [anchor, setAnchor] = React.useState(null);
   const open = () => { const r = ref.current.getBoundingClientRect(); setAnchor({ x: r.right, y: r.bottom }); };
-  const btn = (icon, title, fn, tone) => <IconBtn icon={icon} size={size === 'sm' ? 15 : 16} title={title} onClick={fn} style={{ width: 32, height: 32, color: tone || P.ink2 }} />;
-  return <div ref={ref} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }} data-reassign={anchor ? '' : undefined}>
+  const d = vertical ? 26 : 32;
+  const btn = (icon, title, fn, tone) => <IconBtn icon={icon} size={vertical ? 13 : size === 'sm' ? 15 : 16} title={title} onClick={fn} style={{ width: d, height: d, color: tone || P.ink2 }} />;
+  return <div ref={ref} style={{ display: 'inline-flex', flexDirection: vertical ? 'column' : 'row', alignItems: 'center', gap: vertical ? 1 : 2, flex: '0 0 auto' }} data-reassign={anchor ? '' : undefined}>
     {btn('handoff', 'Reassign driver', () => anchor ? setAnchor(null) : open(), anchor ? P.accent : P.ink2)}
     {btn('arrow-up', 'Bump priority', () => onFlash(`#${order.id} bumped to front of queue`))}
     {btn('chat', 'Message driver', () => onFlash(order.driver ? `Message sent to ${order.driver}` : `No driver assigned yet`))}

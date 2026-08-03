@@ -16,7 +16,7 @@
   function MetricBlock({ label, value, sub }) {
     const P = useP();
     return (
-      <div style={{ borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, padding: 12 }}>
+      <div style={{ borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, padding: 12 }}>
         <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>{label}</div>
         <div style={{ marginTop: 2, fontSize: 18, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
         {sub && <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2 }}>{sub}</div>}
@@ -73,7 +73,7 @@
           {invoice.manifestId && (
             <section>
               <MicroLabel style={{ marginBottom: 8 }}>Matched manifest</MicroLabel>
-              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                 <Icon name="link" size={14} stroke={1.9} color={P.inkMute} />
                 <span style={{ fontFamily: P.fontMono, color: P.ink }}>{invoice.manifestId}</span>
                 <span title="Manifest ↔ invoice ↔ receipt" style={{ marginLeft: 'auto', fontSize: 11, color: HD.tone(P, 'ok').fg }}>3-way match</span>
@@ -82,7 +82,7 @@
           <section>
             <MicroLabel style={{ marginBottom: 8 }}>Linked credit memo</MicroLabel>
             {linkedMemo ? (
-              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                 <Icon name="link" size={14} stroke={1.9} color={HD.tone(P, 'ok').fg} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontFamily: P.fontMono, color: P.ink }}>{linkedMemo.memoNumber}</span>
@@ -111,7 +111,7 @@
           {invoice.notes && (
             <section>
               <MicroLabel style={{ marginBottom: 8 }}>Notes</MicroLabel>
-              <div style={{ fontSize: 13, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.surface2 }}>{invoice.notes}</div>
+              <div style={{ fontSize: 13, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.canvas }}>{invoice.notes}</div>
             </section>)}
         </div>
         <footer style={{ flex: '0 0 auto', padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', flexWrap: 'wrap', gap: 8, position: 'relative' }}>
@@ -126,7 +126,7 @@
                   : linkableMemos.map((m) => (
                     <button key={m.id} onClick={() => { setLinkedMemoId(m.id); setMenuOpen(false); }}
                       style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: P.ink, fontFamily: P.fontSans, textAlign: 'left' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                      onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                       <span style={{ fontFamily: P.fontMono }}>{m.memoNumber}</span>
                       <span style={{ color: P.inkMute, textTransform: 'capitalize' }}>{m.source.replace('_', ' ')}</span>
                       <span style={{ marginLeft: 'auto', fontFamily: P.fontMono, color: P.ink2 }}>{HD.formatCurrency(m.amount)}</span>
@@ -300,14 +300,14 @@
         <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 24 }}>
           <section>
             <MicroLabel style={{ marginBottom: 8 }}>Reason</MicroLabel>
-            <p style={{ margin: 0, fontSize: 13, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.surface2 }}>{memo.reason}</p>
+            <p style={{ margin: 0, fontSize: 13, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.canvas }}>{memo.reason}</p>
           </section>
           <section>
             <MicroLabel style={{ marginBottom: 8 }}>Evidence</MicroLabel>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: `1px solid ${P.hairline2}`, borderRadius: 8 }}>
               {memo.evidence.map((ev, i) => (
                 <li key={ev.id} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
-                  <span style={{ height: 32, width: 32, borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: P.inkMute }}>
+                  <span style={{ height: 32, width: 32, borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: P.inkMute }}>
                     <Icon name={evIcon(ev.kind)} size={14} stroke={1.9} />
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -388,7 +388,7 @@
               {STATUS_FILTERS.map((f) => (
                 <button key={f.value} onClick={() => setStatus(f.value)}
                   style={{ height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer', fontFamily: P.fontSans,
-                    background: status === f.value ? P.surface3 : 'transparent', color: status === f.value ? P.ink : P.inkMute, border: `1px solid ${status === f.value ? P.hairline3 : P.hairline2}` }}>{f.label}</button>))}
+                    background: status === f.value ? P.canvas2 : 'transparent', color: status === f.value ? P.ink : P.inkMute, border: `1px solid ${status === f.value ? P.hairline3 : P.hairline2}` }}>{f.label}</button>))}
               <span style={{ height: 20, width: 1, background: P.hairline2, margin: '0 4px' }} />
               <MultiSelectFilter label="Brand / Vendor" options={vendorOptions.map((v) => ({ id: v, label: v }))} value={vendor} onChange={setVendor} />
             </div>
@@ -540,7 +540,7 @@
                     <p style={{ margin: '4px 0 0', fontSize: 12, color: P.inkMute }}>Select the line items to credit. A single memo can cover any mix of brands the distributor carries.</p>
                   </div>
                   <span title="A distributor often carries multiple brands. This credit memo applies against your balance with the distributor; line items can be from any of the brands they distribute."
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface3, color: P.inkMute, fontSize: 11, cursor: 'help', flex: '0 0 auto' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.canvas2, color: P.inkMute, fontSize: 11, cursor: 'help', flex: '0 0 auto' }}>
                     <Icon name="help" size={12} stroke={2} />One distributor, many brands
                   </span>
                 </div>
@@ -551,7 +551,7 @@
                     const allChecked = lines.every((l) => selected.has(l.id));
                     return (
                       <div key={brand} style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: `1px solid ${P.hairline2}`, background: P.canvas }}>
                           <Check on={allChecked} onChange={() => toggleBrand(lines)} size={18} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

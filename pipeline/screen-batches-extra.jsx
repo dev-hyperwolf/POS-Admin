@@ -68,7 +68,7 @@
             : <div style={{ overflowX: 'auto' }}>
               <HDTable>
                 <thead>
-                  <tr style={{ background: P.surface2 }}>
+                  <tr style={{ background: P.canvas }}>
                     <SortableTH label="Product" k="productName" sort={sort} onSort={onSort} />
                     <SortableTH label="SKU" k="sku" sort={sort} onSort={onSort} />
                     <SortableTH label="Status" k="status" sort={sort} onSort={onSort} />
@@ -200,7 +200,7 @@
           <div style={{ padding: '14px 16px 0' }}><h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Side-by-side comparison</h3></div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px 1fr', marginTop: 8 }}>
             <HeaderColumn batch={left} accent="info" />
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 0', background: P.bg2, borderLeft: `1px solid ${P.hairline2}`, borderRight: `1px solid ${P.hairline2}` }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 0', background: P.canvas, borderLeft: `1px solid ${P.hairline2}`, borderRight: `1px solid ${P.hairline2}` }}>
               <MicroLabel>→</MicroLabel>
               <DisplayNum size={24} style={{ marginTop: 4 }}>{left.qty + right.qty}</DisplayNum>
               <div style={{ fontSize: 11, color: P.inkMute }}>merged units</div>
@@ -237,7 +237,7 @@
         <div style={{ padding: '14px 16px 8px' }}><h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>{label}</h3></div>
         <div style={{ padding: '0 16px 16px' }}>
           {selected ? (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: P.r10, background: P.bg2, border: `1px solid ${P.accentBorder}` }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: P.r10, background: P.canvas, border: `1px solid ${P.accentBorder}` }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, color: P.ink }}>{selected.productName}</div>
                 <div style={{ marginTop: 4 }}><UidChip value={selected.metrcPackageId} kind="metrc" /></div>
@@ -252,7 +252,7 @@
                 {candidates.map((b) => (
                   <button key={b.id} onClick={() => onPick(b.id)}
                     style={{ display: 'flex', width: '100%', textAlign: 'left', alignItems: 'center', gap: 12, padding: 10, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: 'transparent', cursor: 'pointer', fontFamily: P.fontSans }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                    onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.productName}</div>
                       <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute, marginTop: 2 }}>{b.sku} · {b.qty} units · {b.entity.toUpperCase()}</div>

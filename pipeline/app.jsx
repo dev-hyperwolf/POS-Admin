@@ -58,7 +58,7 @@
       return route === item.match || route.startsWith(item.match + '/') || route.startsWith(item.match + '?');
     };
     return (
-      <aside style={{ width: collapsed ? 64 : 208, flex: `0 0 ${collapsed ? 64 : 208}px`, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${P.hairline2}`, background: P.bg, transition: 'width .18s ease' }}>
+      <aside style={{ width: collapsed ? 64 : 208, flex: `0 0 ${collapsed ? 64 : 208}px`, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${P.hairline2}`, background: P.canvas, transition: 'width .18s ease' }}>
         <div style={{ height: 56, display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', borderBottom: `1px solid ${P.hairline2}` }}>
           <div style={{ height: 28, width: 28, borderRadius: 7, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', fontWeight: 700, fontSize: 14 }}>H</div>
           {!collapsed && <span style={{ fontSize: 16, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>Hyperdrive</span>}
@@ -84,8 +84,8 @@
                       <button onClick={() => navigate(item.href)} title={item.label}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 34, borderRadius: 8, fontSize: 13, textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
                           marginLeft: item.nested && !collapsed ? 12 : 0, width: item.nested && !collapsed ? 'calc(100% - 12px)' : '100%',
-                          background: active ? P.surface2 : 'transparent', color: active ? P.ink : P.inkDim, border: 'none', borderLeft: `2px solid ${active ? P.accent : 'transparent'}` }}
-                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.surface2; }}
+                          background: active ? P.canvas : 'transparent', color: active ? P.ink : P.inkDim, border: 'none', borderLeft: `2px solid ${active ? P.accent : 'transparent'}` }}
+                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.canvas; }}
                         onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
                         <Icon name={item.icon} size={16} stroke={1.8} color={color} />{!collapsed && <span>{item.label}</span>}
                       </button>
@@ -127,7 +127,7 @@
             {filtered.map((i) => (
               <button key={i.href} onClick={() => { navigate(i.href); onClose(); }}
                 style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 13, fontFamily: P.fontSans, textAlign: 'left' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                 <Icon name={i.icon} size={15} stroke={1.8} color={P.inkMute} />
                 <span style={{ flex: 1 }}>{i.label}</span>
                 <span style={{ fontSize: 11, color: P.inkMute }}>{i.group}</span>
@@ -143,7 +143,7 @@
     const crumbs = crumbsFor(route.replace(/^#/, ''));
     const entityMeta = HD.ENTITIES.find((e) => e.id === entity);
     return (
-      <header style={{ height: 56, flex: '0 0 56px', borderBottom: `1px solid ${P.hairline2}`, background: P.bg, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
+      <header style={{ height: 56, flex: '0 0 56px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
         <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: P.inkDim, whiteSpace: 'nowrap' }}>
           {crumbs.map((c, i) => (
             <React.Fragment key={c + i}>
@@ -157,7 +157,7 @@
             <Icon name="search" size={14} stroke={1.9} />
             <span style={{ flex: 1 }}>Ask anything</span>
             <Icon name="sparkle" size={11} stroke={2} color={HD.hueColor(P, 'violet')} />
-            <kbd style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 5px' }}>⌘K</kbd>
+            <kbd style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, background: P.canvas2, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 5px' }}>⌘K</kbd>
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -234,7 +234,7 @@
     else screen = <Placeholder title={path.replace('/', '').replace(/\//g, ' · ') || 'Screen'} />;
 
     return (
-      <div style={{ display: 'flex', height: '100%', background: P.bg, color: P.ink }}>
+      <div style={{ display: 'flex', height: '100%', background: P.canvas, color: P.ink }}>
         <window.HWRail active="batches" />
         <ModuleSidebar route={path} navigate={navigate} collapsed={collapsed} setCollapsed={setCollapsed} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>

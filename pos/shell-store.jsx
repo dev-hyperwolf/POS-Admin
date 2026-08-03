@@ -137,6 +137,19 @@
     SHELLS = allShells().map((s) => s.id === shellId ? { ...s, variations: [...s.variations, v] } : s);
     emit();
   }
+  // A variation's NAME is a variation field, not a shell field — the flavour or
+  // strain that distinguishes it inside the family. It is renamed in place from
+  // wherever the product is open (product detail, shell page) with no round-trip.
+  function renameVariation(shellId, sku, next) {
+    const name = (next || '').trim();
+    if (!name) return false;
+    SHELLS = allShells().map((s) => s.id !== shellId ? s :
+    { ...s, variations: s.variations.map((v) => v.sku === sku ? { ...v, name, thumb: v.thumb ? { ...v.thumb, name } : v.thumb } : v) });
+    const prod = (HW.PRODUCTS || []).find((x) => x.sku === sku);
+    if (prod) prod.name = name;
+    emit();
+    return true;
+  }
   function addBox(name) {if (name && !BOXES.includes(name)) {BOXES = [...BOXES, name];emit();}}
   function renameBox(oldName, next) {
     if (!next || next === oldName) return;
@@ -178,6 +191,6 @@
   }
 
   window.HW_SHELL = { TAX, catDef, get BOXES() {return BOXES;}, KIT_BOXES: BOXES, SHELL_FORMATS, FORMAT_BY_CAT,
-    allShells, shellById, shellOf, useShells, saveShell, addVariation, addBox, renameBox,
+    allShells, shellById, shellOf, useShells, saveShell, addVariation, renameVariation, addBox, renameBox,
     parseSize, splitSize, mono1, mono2, slugify, familyPath, menuPath, totalStock, effectivePrice, aiDesc, sharedRows };
 })();

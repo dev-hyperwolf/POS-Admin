@@ -368,6 +368,58 @@ const PROD_TERPS = ['Myrcene', 'Limonene', 'Caryophyllene', 'Pinene', 'Linalool'
 const PROD_STORES = ['Lake Elsinore', 'Corona', 'Long Beach', 'West Hollywood'];
 const SUBCATS = { Flower: ['Sativa Flowers', 'Indica Flowers', 'Hybrid Flowers', 'Premium Flower', 'Budget Friendly Flower', 'Smaller Bud Flower', '5g-28g'], Vapes: ['Vapes', 'Batteries', 'Solventless Rosin Vapes', 'Live Resin Vape', 'All-In-One Vapes', 'Pod System Vapes', 'Premium Oil Vapes', 'Cured Resin Vapes'], 'Pre-Rolls': ['Prerolls', 'Single Pre-Roll', 'Single Infused Pre-Roll', 'Infused Pre-Roll Pack', 'Pre-Roll Pack'], Concentrates: ['Solventless Rosin / Hash', 'Hash', 'Sugar', 'Budder / Badder', 'Diamonds / Sauce', 'Live Resin'], Edibles: ['Gummies', 'Baked Goods', 'Drinks', 'High Dose Edibles', 'Micro Dose Edibles', 'Chocolates'], Wellness: ['Tinctures', 'Topicals', 'Capsules'], Deals: ['Hyper Deals', 'Clearance'], Accessories: ['Accessories'] };
 
+// Storefront meta is AI-drafted per product (title, description, slug, keywords).
+// Every field can be re-drafted on its own; local variants stand in when the
+// model can't be reached so the UI never blocks on the network.
+// Models often reply with a markdown heading, a label, or fenced text — keep the
+// first real sentence-bearing line and strip the decoration.
+function cleanProse(raw) {
+  const lines = String(raw || '').replace(/```[a-z]*/gi, '').split('\n')
+  .map((l) => l.replace(/^\s*[#>*\-\u2022]+\s*/, '').replace(/\*\*/g, '').trim())
+  .filter(Boolean)
+  .filter((l) => !/^(description|how to use|faq|meta title|meta description|title|slug|keywords)\s*:?$/i.test(l));
+  const body = lines.filter((l) => /[.!?]/.test(l));
+  return (body.length ? body : lines).join(' ').replace(/^["'\u201c]|["'\u201d]$/g, '').trim();
+}
+const META_SLUG = (brand, name) => (brand + '-' + name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function metaVariant(field, p, name, v) {
+  const wt = p.wt || '', cat = (p.cat || '').toLowerCase(), strain = p.strain || 'Hybrid';
+  const T = {
+    title: [
+      name + ' — ' + p.brand + ' | Hyperwolf',
+      'Buy ' + name + ' by ' + p.brand + ' — ' + wt + ' ' + cat + ' | Hyperwolf',
+      p.brand + ' ' + name + ' (' + wt + ') — same-day delivery | Hyperwolf'],
+    desc: [
+      'Buy ' + name + ' by ' + p.brand + ' — ' + wt + ' ' + cat + ', lab-tested with same-day delivery across Riverside and San Bernardino.',
+      name + ' from ' + p.brand + ' — ' + strain.toLowerCase() + ' ' + cat + ' in ' + wt + '. COA on every batch, reserved online for pickup or same-day delivery.',
+      'Shop ' + name + ', a ' + strain.toLowerCase() + ' ' + cat + ' by ' + p.brand + '. ' + wt + ' units, potency printed per batch, delivered across the Inland Empire.'],
+    slug: [
+      META_SLUG(p.brand, name),
+      META_SLUG(p.brand, name + ' ' + wt),
+      META_SLUG(name, p.brand + ' ' + cat)],
+    keywords: [
+      [p.brand.toLowerCase(), name.toLowerCase(), cat, strain.toLowerCase(), 'cannabis delivery'].filter(Boolean).join(', '),
+      [name.toLowerCase(), 'buy ' + name.toLowerCase() + ' online', p.brand.toLowerCase() + ' ' + cat, wt + ' ' + cat, 'same day weed delivery'].filter(Boolean).join(', '),
+      [p.brand.toLowerCase() + ' ' + name.toLowerCase(), strain.toLowerCase() + ' ' + cat, cat + ' near me', 'riverside cannabis delivery', 'san bernardino dispensary'].filter(Boolean).join(', ')] };
+  const arr = T[field] || [''];
+  return arr[v % arr.length];
+}
+// One Claude call per field, so a single bad line can be re-drafted on its own.
+async function aiMetaField(field, p, name) {
+  const brief = '"' + name + '" by ' + p.brand + ' — a ' + (p.strain || 'hybrid') + ' ' + p.cat + ', ' + (p.wt || '') + ', sold by Hyperwolf (cannabis delivery, Riverside + San Bernardino, California).';
+  const ask = {
+    title: 'Write ONE SEO meta title, 50-60 characters, ending in " | Hyperwolf".',
+    desc: 'Write ONE SEO meta description, 140-158 characters, no emoji, no medical claims.',
+    slug: 'Write ONE URL slug: lowercase, words separated by single hyphens, no stop words, max 6 words.',
+    keywords: 'Write 5 comma-separated SEO keyword phrases, lowercase, most specific first.' }[field];
+  const raw = await window.claude.complete('You are an SEO copywriter for a licensed California cannabis retailer. Product: ' + brief + '\n\n' + ask + ' Reply with ONLY the text, no quotes, no preamble.');
+  const line = field === 'keywords' || field === 'slug'
+  ? String(raw || '').split('\n').map((l) => l.replace(/^\s*[#>*\-\u2022]+\s*/, '').trim()).filter(Boolean)[0] || ''
+  : cleanProse(raw);
+  if (!line) throw new Error('empty');
+  return field === 'slug' ? line.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : line;
+}
+
 // AI-fetched reported effects — uses the built-in Claude helper, falls back to
 // deterministic strain defaults if the call fails or returns nothing.
 function AiEffects({ product }) {
@@ -451,6 +503,41 @@ function StorefrontContent({ p }) {
 
   const [open, setOpen] = React.useState(0);
   const [faqList, setFaqList] = React.useState(faqs);
+  // Description, How to use and the FAQ are AI-drafted; each can be re-drafted
+  // on its own, and falls back to the deterministic draft if the model is out.
+  const [aiSrc, setAiSrc] = React.useState({ desc: 'local', how: 'local', faq: 'local' });
+  const [aiBusy, setAiBusy] = React.useState({});
+  const brief = `"${p.name}" by ${p.brand} — a ${p.strain || 'hybrid'} ${p.cat}, ${p.wt || ''}, sold by Hyperwolf (licensed California cannabis delivery).`;
+  const ask = async (field, prompt, apply, fallback) => {
+    setAiBusy((b) => ({ ...b, [field]: true }));
+    try {
+      const raw = await window.claude.complete('You are a dispensary copywriter for a licensed California cannabis retailer. Product: ' + brief + '\n\n' + prompt + ' No medical claims, no emoji.');
+      const txt = String(raw || '').trim();
+      if (!txt) throw new Error('empty');
+      apply(txt, cleanProse(txt));
+      setAiSrc((x) => ({ ...x, [field]: 'ai' }));
+    } catch (e) {
+      fallback();
+      setAiSrc((x) => ({ ...x, [field]: 'local' }));
+    }
+    setAiBusy((b) => ({ ...b, [field]: false }));
+  };
+  const AiTag2 = ({ field }) => {
+    const st = aiSrc[field], on = st === 'ai';
+    return <span title={on ? 'Drafted by AI' : st === 'edited' ? 'AI draft, edited by a person' : 'Local draft — the model could not be reached'}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', borderRadius: 99, padding: '2px 6px',
+        color: on ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkMute, background: on ? P.accentSoft : P.surface3, border: `1px solid ${on ? P.accentBorder : P.hairline2}` }}>
+      <Icon name="lightning" size={9} stroke={2} />{st === 'edited' ? 'AI · EDITED' : on ? 'AI' : 'AI · OFFLINE'}</span>;
+  };
+  const Redraft2 = ({ field, onClick }) =>
+  <button onClick={onClick} disabled={!!aiBusy[field]} title="Re-draft with AI"
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: aiBusy[field] ? 'default' : 'pointer', color: P.inkDim, fontSize: 11, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}>
+    <Icon name="refresh" size={12} stroke={2} style={{ animation: aiBusy[field] ? 'hwspin 0.8s linear infinite' : 'none' }} />{aiBusy[field] ? 'Drafting' : 'Redraft'}</button>;
+  const redraftDesc = () => ask('desc', 'Write ONE product description of 2 sentences (max 40 words) for the online menu. Prose only — no heading, no label, no markdown.', (t, prose) => {if (!prose) throw new Error('empty');setDescVal(prose);}, () => setDescVal(desc));
+  const redraftHow = () => ask('how', 'Write ONE "how to use" instruction of 1–2 sentences, including storage. Prose only — no heading, no label, no markdown.', (t, prose) => {if (!prose) throw new Error('empty');setHowVal(prose);}, () => setHowVal(directions));
+  const redraftFaq = () => ask('faq', 'Write 4 customer FAQs as JSON: [{"q":"…","a":"…"}]. Answers max 30 words. Reply with ONLY the JSON.',
+  (t) => {const arr = JSON.parse((t.match(/\[[\s\S]*\]/) || ['[]'])[0]);if (!Array.isArray(arr) || !arr.length) throw new Error('bad');setFaqList(arr.slice(0, 5).map((x) => ({ q: String(x.q || ''), a: String(x.a || '') })));}, () => setFaqList(faqs));
+  React.useEffect(() => {redraftDesc();redraftHow();redraftFaq();}, [p.sku]);
   const [editFaq, setEditFaq] = React.useState(false);
   const [descEdit, setDescEdit] = React.useState(false);
   const [howEdit, setHowEdit] = React.useState(false);
@@ -474,33 +561,54 @@ function StorefrontContent({ p }) {
           {gallery.map((n) => <div key={n} style={{ position: 'relative', width: '100%', height: 84, overflow: 'hidden', borderRadius: 10, background: P.surface3 }}><image-slot id={`prod-photo-${p.sku}-${n}`} shape="rounded" radius="10" placeholder={`Photo ${n}`} style={{ width: '100%', height: '100%' }}></image-slot></div>)}
         </div>
         <div style={{ fontSize: 10.5, color: P.inkMute, lineHeight: 1.45 }}>First image is the primary menu photo. Drop lifestyle & packaging shots into the gallery.</div>
+        <div style={{ marginTop: 2, padding: 12, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Menu preview</div>
+          <div style={{ display: 'flex', gap: 10, padding: 10, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
+            <Thumb item={p} size={52} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+              <div style={{ fontSize: 10.5, color: P.inkDim, marginTop: 1 }}>{p.brand} · {p.wt || '—'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 5 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.price)}</span>
+                {p.strain && <StrainPill type={p.strain} thc={p.thc} />}
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 10.5, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>How this product reads on the online menu and the Weedmaps card — photo, name, price and strain, nothing else.</div>
+        </div>
       </div>
       {/* copy */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>Description</span>
+            <AiTag2 field="desc" />
             <div style={{ flex: 1 }} />
+            <Redraft2 field="desc" onClick={redraftDesc} />
             <button onClick={() => setDescEdit((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}><Icon name={descEdit ? 'check' : 'pencil'} size={13} stroke={2} />{descEdit ? 'Done' : 'Edit'}</button>
           </div>
           {descEdit ?
-          <textarea value={descVal} onChange={(e) => setDescVal(e.target.value)} rows={4} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
+          <textarea value={descVal} onChange={(e) => {setDescVal(e.target.value);setAiSrc((x) => ({ ...x, desc: 'edited' }));}} rows={4} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
           <p style={{ margin: '6px 0 0', fontSize: 13, color: P.ink2, lineHeight: 1.6, textWrap: 'pretty' }}>{descVal}</p>}
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>How to use</span>
+            <AiTag2 field="how" />
             <div style={{ flex: 1 }} />
+            <Redraft2 field="how" onClick={redraftHow} />
             <button onClick={() => setHowEdit((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}><Icon name={howEdit ? 'check' : 'pencil'} size={13} stroke={2} />{howEdit ? 'Done' : 'Edit'}</button>
           </div>
           {howEdit ?
-          <textarea value={howVal} onChange={(e) => setHowVal(e.target.value)} rows={3} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
+          <textarea value={howVal} onChange={(e) => {setHowVal(e.target.value);setAiSrc((x) => ({ ...x, how: 'edited' }));}} rows={3} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
           <p style={{ margin: '6px 0 0', fontSize: 13, color: P.ink2, lineHeight: 1.6 }}>{howVal}</p>}
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>FAQ</span>
+            <AiTag2 field="faq" />
             <div style={{ flex: 1 }} />
+            <Redraft2 field="faq" onClick={redraftFaq} />
             <button onClick={() => setEditFaq((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: P.info, fontFamily: P.fontSans }}><Icon name={editFaq ? 'check' : 'pencil'} size={13} stroke={2} />{editFaq ? 'Done' : 'Edit'}</button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 8 }}>
@@ -588,7 +696,6 @@ function ProductDetailPage({ p, onBack }) {
   const metrc = '1A4FF01' + String(100000 + h * 37 % 899999) + '000' + String(1000 + h * 7 % 8999);
   const batch = 'B-' + p.sku.slice(0, 4) + '-' + (2400 + h % 120);
   const received = ['Jun 2, 2026', 'Jun 9, 2026', 'May 28, 2026', 'Jun 14, 2026'][h % 4];
-  const expires = ['Jun 2, 2027', 'Jun 9, 2027', 'May 28, 2027', 'Jun 14, 2027'][h % 4];
   const upc = String(8_10000_00000 + h * 131 % 89999999999);
   const stores = PROD_STORES.map((s, i) => ({ s, qty: i === 0 ? p.qty : Math.max(0, Math.round(p.qty * [1, .42, .68, .25][i])) }));
   const totalStock = stores.reduce((a, s) => a + s.qty, 0);
@@ -602,11 +709,14 @@ function ProductDetailPage({ p, onBack }) {
   const [posPrice, setPosPrice] = React.useState(h % 4 === 0 ? Math.max(1, shellPrice - Math.max(1, Math.round(shellPrice * 0.1))) : shellPrice);
   const priceOverridden = posPrice !== shellPrice;
 
-  const Fld = ({ label, value, mono, wide, color, locked, hint, onEditLocked }) =>
+  const Fld = ({ label, value, mono, wide, color, locked, hint, onEditLocked, onChange, onCommit, right, placeholder }) =>
   <label style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0, gridColumn: wide ? '1/-1' : 'auto' }}>
       <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{label}{hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}</span>
       <div style={{ padding: '9px 12px', border: `1px solid ${locked ? P.hairline : P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: locked ? P.surface2 : P.field || P.surface, fontSize: 13, fontWeight: 600, color: color || (locked ? P.ink2 : P.ink), fontFamily: mono ? P.fontMono : P.fontSans, minHeight: 38, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ flex: 1, minWidth: 0, whiteSpace: wide ? 'normal' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
+        {onChange ?
+      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onBlur={() => onCommit && onCommit()} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault();e.currentTarget.blur();}}} style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: color || P.ink, fontSize: 13, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, padding: 0 }} /> :
+      <span style={{ flex: 1, minWidth: 0, whiteSpace: wide ? 'normal' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>}
+        {right}
         {locked && (onEditLocked ?
       <button onClick={(e) => {e.preventDefault();onEditLocked();}} title="Edit in the product shell" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.info, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="pencil" size={11} stroke={2.2} />Edit in shell</button> :
       <Icon name="lock" size={12} stroke={1.9} color={P.inkFaint} style={{ flex: '0 0 auto' }} />)}
@@ -634,11 +744,12 @@ function ProductDetailPage({ p, onBack }) {
         {suffix && <span style={{ fontSize: 12.5, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, flex: '0 0 auto' }}>{suffix}</span>}
       </div>
     </label>;
-  const Sec = ({ icon, title, sub, children, cols = 2 }) =>
+  const Sec = ({ icon, title, sub, children, cols = 2, right }) =>
   <Card padding={0}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={15} stroke={1.9} /></span>
         <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</div>{sub && <div style={{ fontSize: 11, color: P.inkDim }}>{sub}</div>}</div>
+        {right && <div style={{ marginLeft: 'auto', flex: '0 0 auto' }}>{right}</div>}
       </div>
       <div style={{ padding: 16, display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: '13px 14px' }}>{children}</div>
     </Card>;
@@ -675,10 +786,53 @@ function ProductDetailPage({ p, onBack }) {
   const KIT_BY_CAT = { Flower: 'Flower Box 1', 'Pre-Rolls': 'Pre-roll Box 1', Vapes: 'Vape Box 1', Edibles: 'Edible Box', Concentrates: 'Concentrate bin 1', Wellness: 'Cooler', Deals: 'Cooler', Accessories: 'Cooler' };
   const [kitBox, setKitBox] = React.useState(KIT_BY_CAT[p.cat] || 'Cooler');
   const [shellEdit, setShellEdit] = React.useState(false);
-  const metaSlug = (p.brand + '-' + p.name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const metaTitle = p.name + ' — ' + p.brand + ' | Hyperwolf';
-  const metaDesc = 'Buy ' + p.name + ' by ' + p.brand + ' — ' + (p.wt || '') + ' ' + p.cat.toLowerCase() + ', lab-tested with same-day delivery across Riverside and San Bernardino.';
-  const metaKeywords = [p.brand.toLowerCase(), p.name.toLowerCase(), p.cat.toLowerCase(), p.strain ? p.strain.toLowerCase() : '', 'cannabis delivery'].filter(Boolean).join(', ');
+  // The product NAME is a variation field — the flavour or strain that
+  // distinguishes this product inside its shell — so it is edited right here.
+  // Brand, SKU and barcode belong to the shell and stay locked.
+  const [name, setName] = React.useState(p.name);
+  const nameDirty = name.trim() !== p.name;
+  const saveName = () => {
+    const next = name.trim();
+    if (!next || next === p.name) {setName(p.name);return;}
+    const sh = window.HW_SHELL.shellOf(p);
+    window.HW_SHELL.renameVariation(sh && sh.id, p.sku, next);
+  };
+  // Meta is AI-drafted. src tracks provenance per field: ai | local | edited.
+  const META_FIELDS = ['title', 'desc', 'slug', 'keywords'];
+  const [meta, setMeta] = React.useState(() => ({ title: metaVariant('title', p, p.name, 0), desc: metaVariant('desc', p, p.name, 0), slug: metaVariant('slug', p, p.name, 0), keywords: metaVariant('keywords', p, p.name, 0) }));
+  const [metaSrc, setMetaSrc] = React.useState({ title: 'local', desc: 'local', slug: 'local', keywords: 'local' });
+  const [metaBusy, setMetaBusy] = React.useState({});
+  const metaVar = React.useRef({ title: 0, desc: 0, slug: 0, keywords: 0 });
+  const draftMeta = React.useCallback(async (field) => {
+    setMetaBusy((b) => ({ ...b, [field]: true }));
+    try {
+      const line = await aiMetaField(field, p, name);
+      setMeta((m) => ({ ...m, [field]: line }));
+      setMetaSrc((x) => ({ ...x, [field]: 'ai' }));
+    } catch (e) {
+      metaVar.current[field] = (metaVar.current[field] + 1) % 3;
+      setMeta((m) => ({ ...m, [field]: metaVariant(field, p, name, metaVar.current[field]) }));
+      setMetaSrc((x) => ({ ...x, [field]: 'local' }));
+    }
+    setMetaBusy((b) => ({ ...b, [field]: false }));
+  }, [p.sku, name]);
+  const draftAllMeta = () => META_FIELDS.forEach(draftMeta);
+  const editMeta = (field, v) => {setMeta((m) => ({ ...m, [field]: v }));setMetaSrc((x) => ({ ...x, [field]: 'edited' }));};
+  // First draft on open, and again whenever the product name changes.
+  React.useEffect(() => {draftAllMeta();}, [p.sku]);
+  const metaSlug = meta.slug, metaTitle = meta.title, metaDesc = meta.desc, metaKeywords = meta.keywords;
+  const AiTag = ({ field }) => {
+    const st = metaSrc[field];
+    const on = st === 'ai';
+    return <span title={on ? 'Drafted by AI' : st === 'edited' ? 'AI draft, edited by a person' : 'Local draft — the model could not be reached'}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', borderRadius: 99, padding: '2px 6px',
+        color: on ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkMute, background: on ? P.accentSoft : P.surface3, border: `1px solid ${on ? P.accentBorder : P.hairline2}` }}>
+      <Icon name="lightning" size={9} stroke={2} />{st === 'edited' ? 'AI · EDITED' : on ? 'AI' : 'AI · OFFLINE'}</span>;
+  };
+  const Redraft = ({ field }) =>
+  <button onClick={(e) => {e.preventDefault();draftMeta(field);}} disabled={!!metaBusy[field]} title="Re-draft this field with AI"
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.inkDim, fontSize: 10.5, fontWeight: 700, cursor: metaBusy[field] ? 'default' : 'pointer', fontFamily: P.fontSans }}>
+    <Icon name="refresh" size={11} stroke={2.2} style={{ animation: metaBusy[field] ? 'hwspin 0.8s linear infinite' : 'none' }} />{metaBusy[field] ? 'Drafting' : 'Redraft'}</button>;
   const BatchPanel = () => {
     const [bq, setBq] = React.useState('');const [showAll, setShowAll] = React.useState(false);
     const filtered = batches.filter((b) => !bq || b.id.toLowerCase().includes(bq.toLowerCase()) || b.metrc.includes(bq));
@@ -734,7 +888,7 @@ function ProductDetailPage({ p, onBack }) {
         <Thumb item={p} size={60} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{p.name}</span>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{name}</span>
             {p.strain && <StrainPill type={p.strain} />}
             {p.active ? <Pill kind="good" dot>Active</Pill> : <Pill kind="neutral" dot>Inactive</Pill>}
           </div>
@@ -746,41 +900,21 @@ function ProductDetailPage({ p, onBack }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 336px', gap: 16, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           <Sec icon="package" title="Product information" cols={3}>
-            <Fld label="Product name" value={p.name} wide locked onEditLocked={() => setShellEdit(true)} />
+            <Fld label="Product name" value={name} wide hint="The variation name inside the shell — the flavour or strain. Renaming here updates every store and channel." placeholder="e.g. Blue Dream" onChange={setName} onCommit={saveName}
+            right={nameDirty ?
+            <button onClick={(e) => {e.preventDefault();saveName();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: 'none', background: P.accent, color: P.accentInk, fontSize: 10.5, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="check" size={11} stroke={2.6} />Save name</button> :
+            <span title="Variation field — editable here" style={{ display: 'inline-flex', flex: '0 0 auto', color: P.inkFaint }}><Icon name="pencil" size={12} stroke={1.9} /></span>} />
             <Fld label="Brand" value={p.brand} locked onEditLocked={() => setShellEdit(true)} />
+            <Fld label="Supplier / vendor" value={p.brand + ' Distribution'} locked hint="Licensed distributor this SKU is received from — read from the brand record." />
             <FldSelect label="Category" value={cat} options={window.HW.CATS} onChange={(v) => {setCat(v);setSubcat((SUBCATS[v] || ['—'])[0]);}} colorFor={(v) => window.HW.CAT_COLOR[v]} />
             <FldSelect label="Subcategory" value={subcat} options={SUBCATS[cat] || ['—']} onChange={setSubcat} colorFor={() => window.HW.CAT_COLOR[cat]} />
             <FldSelect label="Product type" value={ptype} options={['Cannabis', 'Accessory', 'Wellness', 'CBD']} onChange={setPtype} tint />
             <Fld label="SKU" value={p.sku} mono locked />
             <Fld label="Barcode / UPC" value={upc} mono locked />
             <FldSelect label="Delivery kit box type" value={kitBox} options={['Flower Box 1', 'Flower Box 2', 'Pre-roll Box 1', 'Pre-roll Box 2', 'Vape Box 1', 'Vape Box 2', 'Edible Box', 'Edible Bin', 'Concentrate bin 1', 'Concentrate bin 2', 'Cooler']} onChange={setKitBox} tint />
-            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: P.inkDim }}><Icon name="lock" size={12} stroke={1.9} color={P.inkMute} />Identity fields (name, brand, SKU, barcode) are managed by the <b style={{ color: P.ink2 }}>product shell</b> — use <b style={{ color: P.ink2 }}>Edit in shell</b> to change them, and every store and channel updates together.</div>
           </Sec>
 
           <StorefrontContent p={p} />
-
-          <Sec icon="tag" title="Meta" sub="Storefront page, search engines & link previews" cols={2}>
-            <div style={{ gridColumn: '1/-1', display: 'flex', gap: 9, padding: '10px 12px', background: P.infoSoft, borderRadius: P.r10 }}>
-              <Icon name="info" size={13} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
-              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Meta lives on the <b>product</b>, not the shell — every variation is its own storefront page with its own search listing. It is drafted from the product name when the variation is created, and stays editable here for <b>{p.name}</b>.</div>
-            </div>
-            <div style={{ gridColumn: '1/-1' }}><Fld label="Meta title" value={metaTitle} wide hint="Recommended 50–60 characters." /></div>
-            <div style={{ gridColumn: '1/-1' }}>
-              <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta description</span>
-              <textarea defaultValue={metaDesc} rows={3} style={{ width: '100%', boxSizing: 'border-box', marginTop: 5, resize: 'vertical', padding: '9px 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, color: P.ink, fontSize: 13, fontFamily: P.fontSans, lineHeight: 1.5, outline: 'none' }} />
-            </div>
-            <Fld label="URL slug" value={metaSlug} mono />
-            <Fld label="Canonical URL" value={'hyperwolf.com/shop/' + metaSlug} mono locked hint="Generated from the slug." />
-            <div style={{ gridColumn: '1/-1' }}><Fld label="Keywords" value={metaKeywords} wide /></div>
-            <Fld label="OG image" value="Storefront photo (product)" locked hint="Falls back to this product’s photo unless a social image is set." />
-            <Fld label="Robots" value={p.active ? 'index, follow' : 'noindex'} locked hint="Inactive products are automatically de-indexed." />
-            <div style={{ gridColumn: '1/-1', padding: '12px 14px', background: P.surface2, borderRadius: P.r10 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 7 }}>Search preview</div>
-              <div style={{ fontSize: 11, color: P.good, fontFamily: P.fontMono }}>hyperwolf.com › shop › {metaSlug}</div>
-              <div style={{ fontSize: 15, color: '#1a0dab', fontWeight: 600, marginTop: 3, lineHeight: 1.3 }}>{metaTitle}</div>
-              <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.5, marginTop: 3 }}>{metaDesc}</div>
-            </div>
-          </Sec>
 
           <ProductTags />
 
@@ -791,13 +925,6 @@ function ProductDetailPage({ p, onBack }) {
             <Fld label="THC · low" value={thcLo + '%'} mono locked hint="Lowest THC across in-stock batches. Rolled up from each batch — set on the batch, not here." />
             <Fld label="THC · high" value={thcHi + '%'} mono locked hint="Highest THC across in-stock batches. Rolled up from each batch — set on the batch, not here." />
             <Fld label="THC · avg" value={thcAvg + '%'} mono locked color={P.mode === 'dark' ? P.accent : '#7A5A00'} hint="Weighted average across in-stock batches. Recomputes as batches arrive and sell through." />
-            <div style={{ gridColumn: '1/-1', display: 'flex', gap: 9, padding: '11px 13px', background: P.infoSoft, borderRadius: P.r10 }}>
-              <Icon name="info" size={14} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
-              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.55 }}>
-                <b style={{ color: P.ink }}>THC is recorded per batch, never on the product.</b>
-                <div style={{ marginTop: 4 }}>Whoever receives a batch types its potency in from the <b style={{ color: P.ink }}>batch label on the packaging</b>. These three figures roll that up across every in-stock batch, so they move on their own as stock arrives and sells through. To correct a value, open <b style={{ color: P.ink }}>Compliance &amp; traceability → Batches</b> below.</div>
-              </div>
-            </div>
             <div style={{ gridColumn: '1/-1' }}><AiEffects product={p} /></div>
             <div style={{ gridColumn: '1/-1' }}><TerpeneEditor initial={terpProfile} /></div>
           </Sec>
@@ -840,19 +967,34 @@ function ProductDetailPage({ p, onBack }) {
             <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: P.inkDim }}><Icon name="info" size={13} color={P.info} /><b style={{ color: P.ink2 }}>On hold</b> = reserved for open &amp; prepaid orders. <b style={{ color: P.ink2 }}>Available</b> = in region minus on hold.</div>
           </Sec>
 
-          <Sec icon="shield" title="Compliance & traceability" sub="Lab results, supplier and per-batch METRC traceability" cols={1}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-              {[{ ic: 'check-circle', k: 'Lab / COA', v: 'Passed', c: P.good, note: 'all batches screened' }, { ic: 'calendar', k: 'Earliest expiration', v: expires, c: P.ink, note: 'FIFO — oldest sells first' }, { ic: 'truck', k: 'Supplier / vendor', v: `${p.brand} Distribution`, c: P.ink, note: 'licensed distributor' }, { ic: 'lock', k: 'Supplier license', v: `C11-000${100 + h % 899}-LIC`, c: P.ink, mono: true, note: 'CA state license' }].map((t) =>
-              <div key={t.k} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '12px 14px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
-                <span style={{ width: 34, height: 34, flex: '0 0 auto', borderRadius: 9, background: P.surface, border: `1px solid ${P.hairline2}`, color: t.c, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={t.ic} size={17} stroke={1.9} /></span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{t.k}</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: t.c, fontFamily: t.mono ? P.fontMono : P.fontSans, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.v}</div>
-                  <div style={{ fontSize: 10.5, color: P.inkDim, marginTop: 1 }}>{t.note}</div>
-                </div>
-              </div>)}
-            </div>
+          <Sec icon="shield" title="Batches & traceability" sub="Per-batch METRC tags, potency and expiration" cols={1}>
             <BatchPanel />
+          </Sec>
+
+          <Sec icon="tag" title="Meta" sub="Storefront page, search engines & link previews" cols={2}
+            right={<PBtn variant="soft" size="xs" icon="sparkle" onClick={draftAllMeta} disabled={META_FIELDS.some((f) => metaBusy[f])}>{META_FIELDS.some((f) => metaBusy[f]) ? 'Drafting…' : 'Redraft all with AI'}</PBtn>}>
+            <div style={{ gridColumn: '1/-1' }}><Fld label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Meta title <AiTag field="title" /></span>} value={meta.title} wide hint="Recommended 50–60 characters." onChange={(v) => editMeta('title', v)} right={<Redraft field="title" />} /></div>
+            <div style={{ gridColumn: '1/-1' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+                <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta description</span>
+                <AiTag field="desc" />
+                <span style={{ fontSize: 10, color: meta.desc.length > 158 ? P.bad : P.inkMute, fontFamily: P.fontMono }}>{meta.desc.length}/158</span>
+                <div style={{ flex: 1 }} />
+                <Redraft field="desc" />
+              </div>
+              <textarea value={meta.desc} onChange={(e) => editMeta('desc', e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: '9px 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, color: P.ink, fontSize: 13, fontFamily: P.fontSans, lineHeight: 1.5, outline: 'none' }} />
+            </div>
+            <Fld label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>URL slug <AiTag field="slug" /></span>} value={meta.slug} mono onChange={(v) => editMeta('slug', v)} right={<Redraft field="slug" />} />
+            <Fld label="Canonical URL" value={'hyperwolf.com/shop/' + meta.slug} mono locked hint="Generated from the slug." />
+            <div style={{ gridColumn: '1/-1' }}><Fld label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Keywords <AiTag field="keywords" /></span>} value={meta.keywords} wide onChange={(v) => editMeta('keywords', v)} right={<Redraft field="keywords" />} /></div>
+            <Fld label="OG image" value="Storefront photo (product)" locked hint="Falls back to this product’s photo unless a social image is set." />
+            <Fld label="Robots" value={p.active ? 'index, follow' : 'noindex'} locked hint="Inactive products are automatically de-indexed." />
+            <div style={{ gridColumn: '1/-1', padding: '12px 14px', background: P.surface2, borderRadius: P.r10 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 7 }}>Search preview</div>
+              <div style={{ fontSize: 11, color: P.good, fontFamily: P.fontMono }}>hyperwolf.com › shop › {meta.slug}</div>
+              <div style={{ fontSize: 15, color: '#1a0dab', fontWeight: 600, marginTop: 3, lineHeight: 1.3 }}>{meta.title}</div>
+              <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.5, marginTop: 3 }}>{meta.desc}</div>
+            </div>
           </Sec>
 
           <Card padding={0}>

@@ -146,7 +146,7 @@
                 </div>
                 : <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {vendor.alerts.map((a) => (
-                    <li key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface2 }}>
+                    <li key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas }}>
                       <Icon name={a.severity === 'blocked' ? 'x' : a.severity === 'warn' ? 'flag' : 'info'} size={16} stroke={2}
                         color={HD.tone(P, a.severity === 'blocked' ? 'blocked' : a.severity === 'warn' ? 'warn' : 'info').fg} />
                       <div style={{ flex: 1, fontSize: 13 }}>

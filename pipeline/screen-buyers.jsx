@@ -16,7 +16,7 @@
     return (
       <span title={`${finite ? `${Math.round(daysOfSupply)}d of supply` : 'No movement'} · reorder every ${reorderFrequencyDays}d`}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: w, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden', display: 'inline-block', flex: '0 0 auto' }}>
+        <span style={{ width: w, height: 6, borderRadius: 99, background: P.canvas2, overflow: 'hidden', display: 'inline-block', flex: '0 0 auto' }}>
           <span style={{ display: 'block', height: '100%', width: `${pct * 100}%`, background: c.fg, borderRadius: 99 }} />
         </span>
         <span style={{ fontSize: 11, color: c.fg, whiteSpace: 'nowrap' }}>{label}</span>
@@ -121,7 +121,7 @@
           <span style={{ marginLeft: 'auto', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Revenue share · click to filter</span>
         </div>
         <p style={{ margin: '4px 0 0', fontSize: 12, color: P.inkMute }}>Each brand's contribution to total revenue.</p>
-        <div style={{ marginTop: 16, height: 12, width: '100%', borderRadius: 99, overflow: 'hidden', display: 'flex', border: `1px solid ${P.hairline2}`, background: P.surface3 }}>
+        <div style={{ marginTop: 16, height: 12, width: '100%', borderRadius: 99, overflow: 'hidden', display: 'flex', border: `1px solid ${P.hairline2}`, background: P.canvas2 }}>
           {rollup.map((b, i) => {
             const pct = total === 0 ? 0 : (b.revenueCents / total) * 100;
             const isActive = activeBrand === b.brand;
@@ -376,7 +376,7 @@
                       <TD align="right" mono>{HD.formatCurrency(b.profitCents / 100, { showCents: false })}</TD>
                       <TD align="right" mono>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                          <div style={{ width: 64, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}>
+                          <div style={{ width: 64, height: 6, borderRadius: 99, background: P.canvas2, overflow: 'hidden' }}>
                             <div style={{ height: '100%', background: P.accent, width: `${Math.max(2, contribution * 100)}%` }} />
                           </div>
                           <span>{HD.formatPercent(contribution, 0)}</span>

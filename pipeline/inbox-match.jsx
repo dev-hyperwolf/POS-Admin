@@ -90,7 +90,7 @@
               <li key={p.id}>
                 <button role="option" onClick={() => { store.setLineDecision(lineId, { kind: 'picked', productId: p.id }); onClose(); }}
                   style={{ width: '100%', textAlign: 'left', fontSize: 12.5, padding: '6px 8px', borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: P.ink, fontFamily: P.fontSans }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                  onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                   <span style={{ color: P.inkMute, width: 56, flex: '0 0 56px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.brand}</span>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                   {p.score > 0 && <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{Math.round(p.score * 100)}%</span>}
@@ -178,7 +178,7 @@
               <MicroLabel style={{ marginBottom: 8 }}>Needs a decision</MicroLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {need.map(({ line, match }) => (
-                  <div key={line.id} style={{ padding: 10, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface3 }}>
+                  <div key={line.id} style={{ padding: 10, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.canvas2 }}>
                     <div style={{ fontSize: 12.5, color: P.ink }}>{line.productName}</div>
                     <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{line.sku} · ×{line.qty} · best match {Math.round(match.confidence * 100)}%</div>
                   </div>))}

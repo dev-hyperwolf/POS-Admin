@@ -80,7 +80,7 @@ window.LDriverLane = function LDriverLane({ driver, orders, drivers, onReassign,
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}><div style={{ fontSize: 7.5, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Total</div><div style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 800, color: hi ? P.accent : P.ink, marginTop: 1 }}>{_money(tt.total)}</div></div>
             </div>
           </div>
-          <LOrderActions order={o} drivers={drivers} onReassign={onReassign} onFlash={onFlash} up={i >= 1} />
+          <LOrderActions order={o} drivers={drivers} onReassign={onReassign} onFlash={onFlash} vertical />
         </div>; })}
     </div>
     <div style={{ display: 'flex', gap: 6, padding: '9px 11px', borderTop: `1px solid ${P.hairline}` }}>

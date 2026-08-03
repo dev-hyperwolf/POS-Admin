@@ -57,7 +57,7 @@
       <li style={{ borderTop: `1px solid ${P.hairline}` }}>
         <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
           style={{ width: '100%', textAlign: 'left', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 12, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+          onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
           <HDPill tone={meta.tone} icon={false} size="sm" label={`${meta.label} · ${events.length}`} />
           <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: P.inkDim }}>
             <Icon name="sparkle" size={12} stroke={2} color={HD.hueColor(P, 'violet')} />
@@ -160,7 +160,7 @@
     const P = useP(), HD = window.HD;
     const color = tone ? HD.tone(P, tone === 'ok' ? 'ok' : 'warn').fg : P.ink;
     return (
-      <div style={{ borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, padding: '8px 12px', minWidth: 80 }}>
+      <div style={{ borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, padding: '8px 12px', minWidth: 80 }}>
         <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>{label}</div>
         <div style={{ marginTop: 2, fontSize: 16, fontWeight: 600, color, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
       </div>);
@@ -189,7 +189,7 @@
               <span style={{ display: 'block', fontSize: 11, color: P.inkMute }}>Synced via the active-batches API. Matches feed the Recalled column automatically.</span>
             </div>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: P.ink2, cursor: 'pointer', flex: '0 0 auto' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 8px', borderRadius: 99, fontSize: 11, background: autoPull ? ok.bg : P.surface3, color: autoPull ? ok.fg : P.inkMute, border: `1px solid ${autoPull ? ok.fg + '66' : P.hairline2}` }}>{autoPull ? 'Active' : 'Off'}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 8px', borderRadius: 99, fontSize: 11, background: autoPull ? ok.bg : P.canvas2, color: autoPull ? ok.fg : P.inkMute, border: `1px solid ${autoPull ? ok.fg + '66' : P.hairline2}` }}>{autoPull ? 'Active' : 'Off'}</span>
               <Switch on={autoPull} onChange={setAutoPull} size={18} />
             </label>
           </div>
@@ -216,7 +216,7 @@
               {r.affectedBatchIds.length > 0 && (
                 <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   {r.affectedBatchIds.map((bid) => (
-                    <span key={bid} style={{ fontFamily: P.fontMono, fontSize: 11, background: P.surface3, border: `1px solid ${P.hairline2}`, padding: '2px 8px', borderRadius: 6, color: P.ink2 }}>{bid}</span>))}
+                    <span key={bid} style={{ fontFamily: P.fontMono, fontSize: 11, background: P.canvas2, border: `1px solid ${P.hairline2}`, padding: '2px 8px', borderRadius: 6, color: P.ink2 }}>{bid}</span>))}
                   <PBtn size="sm" variant="secondary" style={{ marginLeft: 'auto' }} onClick={() => { location.hash = '#/compliance/holds'; }}>Open quarantine task</PBtn>
                 </div>)}
             </Card>))}
@@ -360,7 +360,7 @@
               <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2 }}>Total units across tree: {nodes.reduce((s, b) => s + b.qty, 0).toLocaleString()}</div>
             </div>
           </div>)}
-        <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.bg2, padding: 12, overflowX: 'auto' }}>
+        <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.canvas, padding: 12, overflowX: 'auto' }}>
           <LineageNode node={tree} depth={0} isLast isRoot />
         </div>
         {root.status === 'recalled' && activeDescendants.length > 0 && (
@@ -385,7 +385,7 @@
     const hasLineage = !!b.parentMetrcPackageId || (b.childMetrcPackageIds?.length ?? 0) > 0;
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) 1fr 1fr 1fr 1fr', borderBottom: `1px solid ${P.hairline}` }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+        onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
         <div style={{ padding: '12px' }}>
           <div style={{ fontSize: 13, color: P.ink }}>{b.productName}</div>
           <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute, marginTop: 2 }}>{b.metrcPackageId.slice(0, 12)}…{b.metrcPackageId.slice(-4)}</div>
@@ -433,7 +433,7 @@
               <PBtn size="sm" variant="secondary" icon="download" onClick={() => window.hdToast?.({ title: `${current.label} ledger exported`, description: `${rows.length} rows queued as audit_export_${tab}_${Date.now()}.csv`, tone: 'ok' })}>Export for audit</PBtn>
             </div>
             <Card padding={0} style={{ overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) 1fr 1fr 1fr 1fr', background: P.surface2, borderBottom: `1px solid ${P.hairline2}` }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) 1fr 1fr 1fr 1fr', background: P.canvas, borderBottom: `1px solid ${P.hairline2}` }}>
                 <div style={head}>Product / UID</div><div style={head}>Entity</div><div style={head}>Reason</div><div style={head}>Age on hold</div><div style={{ ...head, textAlign: 'right' }}>Value</div>
               </div>
               {rows.length === 0

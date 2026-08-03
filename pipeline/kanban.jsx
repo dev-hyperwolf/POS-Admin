@@ -19,10 +19,10 @@
       <div role="button" tabIndex={0} draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={onClick}
         onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && onClick) { e.preventDefault(); onClick(); } }}
         onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-        style={{ position: 'relative', overflow: 'hidden', flex: '0 0 auto', background: h ? P.surface2 : P.surface, border: `1px solid ${h ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 12, cursor: 'grab', boxShadow: P.shadowSm, opacity: dragging ? .4 : 1, transform: dragging ? 'scale(.98)' : 'none', transition: 'background .12s, border-color .12s' }}>
+        style={{ position: 'relative', overflow: 'hidden', flex: '0 0 auto', background: h ? P.canvas : P.surface, border: `1px solid ${h ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 12, cursor: 'grab', boxShadow: P.shadowSm, opacity: dragging ? .4 : 1, transform: dragging ? 'scale(.98)' : 'none', transition: 'background .12s, border-color .12s' }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: accent }} />
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <div style={{ height: 40, width: 40, borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', color: P.inkMute }}>
+          <div style={{ height: 40, width: 40, borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', color: P.inkMute }}>
             <Icon name="package" size={16} stroke={1.8} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -36,8 +36,12 @@
               <Icon name="shield" size={11} stroke={2} />
             </span>)}
         </div>
-        <div style={{ marginTop: 8, fontSize: 12, fontFamily: P.fontMono, color: P.ink2 }}>
-          {batch.qty} <span style={{ color: P.inkMute }}>× {HD.formatCurrency(batch.unitValue)}</span>
+        <div title={`${batch.qty} units at ${HD.formatCurrency(batch.unitValue)} wholesale cost each — ${HD.formatCurrency(batch.qty * batch.unitValue)} total batch value`} style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', fontSize: 12, fontFamily: P.fontMono, color: P.ink2 }}>
+          <span>{batch.qty} <span style={{ color: P.inkMute }}>units</span></span>
+          <span style={{ color: P.inkMute }}>×</span>
+          <span>{HD.formatCurrency(batch.unitValue)} <span style={{ color: P.inkMute }}>ea</span></span>
+          <span style={{ color: P.inkMute }}>=</span>
+          <span>{HD.formatCurrency(batch.qty * batch.unitValue, { showCents: false })}</span>
         </div>
         {showSkipArrow && (
           <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: seal.fg }}>
@@ -56,12 +60,12 @@
     return (
       <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); onDrop(status); }}
-        style={{ display: 'flex', flexDirection: 'column', width: 280, flex: '0 0 280px', borderRadius: P.r14, background: over ? P.accentSoft : P.bg2, border: `1px solid ${over ? P.accentBorder : P.hairline2}`, height: '100%', transition: 'background .12s, border-color .12s' }}>
-        <div style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}`, position: 'sticky', top: 0, background: 'inherit', borderRadius: `${P.r14}px ${P.r14}px 0 0`, zIndex: 2 }}>
+        style={{ display: 'flex', flexDirection: 'column', width: 280, flex: '0 0 280px', borderRadius: P.r14, overflow: 'hidden', background: over ? P.accentSoft : P.canvas, border: `1px solid ${over ? P.accentBorder : P.hairline2}`, height: '100%', transition: 'background .12s, border-color .12s' }}>
+        <div style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}`, borderTop: `3px solid ${dot}`, position: 'sticky', top: 0, background: over ? P.accentSoft : P.surface, zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 99, background: dot }} />
+            <span style={{ width: 8, height: 8, borderRadius: 99, background: dot, flex: '0 0 auto' }} />
             <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>{HD.BATCH_STATUS_LABEL[status]}</h3>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: P.inkMute, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{batches.length}</span>
+            <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: dot, background: HD.tone(P, HD.batchStatusTone(status)).bg, borderRadius: 99, padding: '1px 7px', fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{batches.length}</span>
           </div>
           <div style={{ marginTop: 4, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(totalValue, { showCents: false })}</div>
         </div>
@@ -128,14 +132,14 @@
               ? <div style={{ fontSize: 12, color: P.inkMute }}>No evidence captured.</div>
               : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {batch.evidence.map((e) => (
-                  <div key={e.id} title={`${e.label} · ${e.uploader}`} style={{ aspectRatio: '1 / 1', borderRadius: P.r10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
+                  <div key={e.id} title={`${e.label} · ${e.uploader}`} style={{ aspectRatio: '1 / 1', borderRadius: P.r10, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
                     <Icon name={e.kind === 'photo' ? 'camera' : e.kind === 'manifest' ? 'receipt' : 'note'} size={18} stroke={1.7} color={P.inkMute} />
                     <div style={{ fontSize: 10, color: P.ink2, textAlign: 'center', padding: '0 4px' }}>{e.label}</div>
                   </div>))}
               </div>}
           </div>
           {batch.notes && (
-            <div style={{ padding: 12, borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.surface3, fontSize: 13, color: P.ink2 }}>
+            <div style={{ padding: 12, borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.canvas2, fontSize: 13, color: P.ink2 }}>
               <MicroLabel style={{ marginBottom: 4 }}>Note</MicroLabel>
               {batch.notes}
             </div>)}

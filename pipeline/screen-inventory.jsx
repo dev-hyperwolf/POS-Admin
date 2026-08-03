@@ -17,13 +17,13 @@
     const P = useP(), HD = window.HD;
     const sub = (label, align) => <div style={{ padding: '6px 12px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, textAlign: align }}>{label}</div>;
     return (
-      <div style={{ background: P.surface2, borderBottom: `1px solid ${P.hairline2}` }}>
+      <div style={{ background: P.canvas, borderBottom: `1px solid ${P.hairline2}` }}>
         <div style={{ display: 'grid', gridTemplateColumns: INV_GRID, borderBottom: `1px solid ${P.hairline}` }}>
           <div />{sub('UID · packaged')}{sub('Loc')}{sub('Qty', 'right')}{sub('Expiry')}{sub('Value', 'right')}
         </div>
         {batches.map((b) => (
           <button key={b.id} onClick={() => navigate('#/batches')} style={{ display: 'grid', gridTemplateColumns: INV_GRID, width: '100%', textAlign: 'left', border: 'none', background: 'transparent', borderBottom: `1px solid ${P.hairline}`, cursor: 'pointer', fontFamily: P.fontSans }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+            onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
             <div />
             <div style={{ paddingLeft: 28, paddingRight: 12, paddingTop: 8, paddingBottom: 8 }}>
               <div style={{ fontFamily: P.fontMono, fontSize: 12, color: P.ink2 }}>{b.metrcPackageId.slice(0, 12)}…{b.metrcPackageId.slice(-4)}</div>
@@ -48,7 +48,7 @@
     return (
       <React.Fragment>
         <button onClick={() => setOpen((v) => !v)} style={{ display: 'grid', gridTemplateColumns: INV_GRID, width: '100%', textAlign: 'left', borderBottom: `1px solid ${P.hairline}`, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+          onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="chevron-right" size={14} stroke={2} color={P.inkMute} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }} />
           </div>
@@ -170,7 +170,7 @@
         </div>
 
         <Card padding={0}>
-          <div style={{ display: 'grid', gridTemplateColumns: INV_GRID, background: P.surface2, borderBottom: `1px solid ${P.hairline2}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: INV_GRID, background: P.canvas, borderBottom: `1px solid ${P.hairline2}` }}>
             {head('')}{head('Product')}{head('Batches')}{head('Units', 'right')}{head('Soonest expiry')}{head('Value', 'right')}
           </div>
           {grouped.length === 0
@@ -206,7 +206,7 @@
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     return (
       <Card padding={0} hover onClick={() => navigate(`#/products/${product.id}`)} style={{ overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ position: 'relative', aspectRatio: '4 / 3', background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', aspectRatio: '4 / 3', background: P.canvas2, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <Thumb item={{ hue: product.hue }} size={96} radius={16} />
           {s.hasNearExpiry && <div style={{ position: 'absolute', top: 8, right: 8 }}><HDPill tone="warn" size="sm" label="Near expiry" /></div>}
           <div style={{ position: 'absolute', top: 8, left: 8 }}><HDPill tone={TYPE_TONE[product.type]} icon={false} size="sm" label={TYPE_LABEL[product.type]} /></div>

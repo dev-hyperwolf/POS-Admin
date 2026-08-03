@@ -17,7 +17,7 @@
     return (
       <button onClick={onClick} aria-pressed={active}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, fontSize: 11, cursor: 'pointer', fontFamily: P.fontSans,
-          background: active ? seal.bg : P.surface3, color: active ? seal.fg : P.inkMute, border: `1px solid ${active ? seal.fg + '66' : P.hairline2}` }}>
+          background: active ? seal.bg : P.canvas2, color: active ? seal.fg : P.inkMute, border: `1px solid ${active ? seal.fg + '66' : P.hairline2}` }}>
         <Icon name={icon} size={12} stroke={2} /><span>{label}</span>
       </button>);
   }
@@ -29,7 +29,7 @@
     const dot = HD.tone(P, catalog.defaultColor).fg;
     return (
       <li draggable onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
-        style={{ display: 'flex', alignItems: 'center', gap: 12, background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: 10, padding: '8px 12px', opacity: dragging ? .5 : 1 }}>
+        style={{ display: 'flex', alignItems: 'center', gap: 12, background: P.canvas, border: `1px solid ${P.hairline2}`, borderRadius: 10, padding: '8px 12px', opacity: dragging ? .5 : 1 }}>
         <span aria-label="Drag handle" style={{ padding: 4, color: P.inkMute, cursor: 'grab', display: 'inline-flex' }}><Icon name="drag" size={14} stroke={2} /></span>
         <span style={{ fontSize: 11, fontFamily: P.fontMono, color: P.inkMute, width: 24 }}>{index + 1}.</span>
         <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 99, background: dot, flex: '0 0 auto' }} />
@@ -130,7 +130,7 @@
                 {availableToAdd.length === 0
                   ? <span style={{ fontSize: 12, color: P.inkMute, fontStyle: 'italic' }}>All workflow stages already in the pipeline.</span>
                   : availableToAdd.map((k) => (
-                    <button key={k} onClick={() => addStage(k)} style={{ padding: '4px 10px', fontSize: 12, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface2, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
+                    <button key={k} onClick={() => addStage(k)} style={{ padding: '4px 10px', fontSize: 12, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.canvas, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
                       + {HD.STAGE_CATALOG[k].displayName}
                     </button>))}
               </div>)}
@@ -144,7 +144,7 @@
           </div>
           <div style={{ marginTop: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
             <HDTable>
-              <thead><tr style={{ background: P.surface2 }}><TH>Master</TH><TH>Scope</TH><TH>Added</TH><TH>Skipped</TH><TH>Reason</TH></tr></thead>
+              <thead><tr style={{ background: P.canvas }}><TH>Master</TH><TH>Scope</TH><TH>Added</TH><TH>Skipped</TH><TH>Reason</TH></tr></thead>
               <tbody>
                 {overrideRows.map((r) => (
                   <tr key={r.master}>
@@ -183,7 +183,7 @@
         <p style={{ margin: '4px 0 0', fontSize: 13, color: P.inkDim, maxWidth: 680 }}>The packaging toggle drives the pipeline resolver. Products flagged tamper-evident auto-skip the Sealing stage at The Highest Craft.</p>
         <Card padding={0} style={{ marginTop: 20, overflow: 'hidden' }}>
           <HDTable>
-            <thead><tr style={{ background: P.surface2 }}><TH>Master</TH><TH>Packaging</TH><TH>Sealing at THC</TH><TH></TH></tr></thead>
+            <thead><tr style={{ background: P.canvas }}><TH>Master</TH><TH>Packaging</TH><TH>Sealing at THC</TH><TH></TH></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <TR key={r.masterProductId}>
@@ -248,7 +248,7 @@
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Packaging</h2>
             {tamperEvident
               ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '2px 8px', borderRadius: 99, background: seal.bg, color: seal.fg, border: `1px solid ${seal.fg}66` }}><Icon name="shield" size={12} stroke={2} /> Auto-skips Sealing</span>
-              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '2px 8px', borderRadius: 99, background: P.surface3, color: P.ink2, border: `1px solid ${P.hairline2}` }}><Icon name="lock" size={12} stroke={2} /> Seal required</span>}
+              : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, padding: '2px 8px', borderRadius: 99, background: P.canvas2, color: P.ink2, border: `1px solid ${P.hairline2}` }}><Icon name="lock" size={12} stroke={2} /> Seal required</span>}
           </div>
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             <label style={{ display: 'block' }}>
@@ -265,7 +265,7 @@
                 <button onClick={() => { setTamperEvident(true); setDirty(true); }}
                   style={{ padding: '8px 12px', fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: P.fontSans, background: tamperEvident ? seal.bg : 'transparent', color: tamperEvident ? seal.fg : P.ink2 }}>Yes — skip seal</button>
                 <button onClick={() => { setTamperEvident(false); setDirty(true); }}
-                  style={{ padding: '8px 12px', fontSize: 12, border: 'none', borderLeft: `1px solid ${P.hairline3}`, cursor: 'pointer', fontFamily: P.fontSans, background: !tamperEvident ? P.surface3 : 'transparent', color: !tamperEvident ? P.ink : P.ink2 }}>No — seal at THC</button>
+                  style={{ padding: '8px 12px', fontSize: 12, border: 'none', borderLeft: `1px solid ${P.hairline3}`, cursor: 'pointer', fontFamily: P.fontSans, background: !tamperEvident ? P.canvas2 : 'transparent', color: !tamperEvident ? P.ink : P.ink2 }}>No — seal at THC</button>
               </div>
             </div>
           </div>
@@ -280,7 +280,7 @@
           <ol style={{ listStyle: 'none', margin: '12px 0 0', padding: 0, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
             {preview.stages.map((s, i) => (
               <React.Fragment key={s.stageKey}>
-                <li style={{ padding: '2px 8px', borderRadius: 8, background: P.surface2, border: `1px solid ${P.hairline2}`, fontSize: 12, color: P.ink }}>{s.stageLabel}</li>
+                <li style={{ padding: '2px 8px', borderRadius: 8, background: P.canvas, border: `1px solid ${P.hairline2}`, fontSize: 12, color: P.ink }}>{s.stageLabel}</li>
                 {i < preview.stages.length - 1 && <span style={{ color: P.inkMute }}>→</span>}
               </React.Fragment>))}
             {preview.skippedStages.includes('sealing') && (

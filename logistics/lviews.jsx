@@ -136,7 +136,7 @@ function FilterBar({ region, setRegion, driver, setDriver, status, setStatus, dr
 }
 function Hero({ h, status, setStatus }) {
   const pick = (k) => setStatus(status === k ? 'all' : k);
-  return <div style={{ display: 'flex', gap: 10 }}>
+  return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 10 }}>
     <LHeroStat icon="clock" label="At risk of breach" value={h.atRisk} tone="bad" hint="ETA past SLA" onClick={() => pick('atrisk')} active={status === 'atrisk'} />
     <LHeroStat icon="flag" label="Understaffed regions" value={h.understaffed} tone="bad" hint="demand over capacity" />
     <LHeroStat icon="user-off" label="Unassigned" value={h.unassigned} tone="bad" hint="need a driver now" onClick={() => pick('unassigned')} active={status === 'unassigned'} />
@@ -376,7 +376,7 @@ window.LogisticsApp = function LogisticsApp() {
         <div style={{ flex: 1 }} />
         <PBtn size="xs" variant="accent" icon="user-check" onClick={() => {setView('map');setStatus('unassigned');}}>Review all</PBtn>
       </div>;})()}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 20px 18px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 20px 18px' }}>
         <Hero h={h} status={status} setStatus={setStatus} />
         <FilterBar inline region={region} setRegion={setRegion} driver={driver} setDriver={setDriver} status={status} setStatus={setStatus} drivers={s.drivers} onNew={(k) => setTaskFlow(k)}
           right={<span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono, marginRight: 4 }}>{filterOrders(s.orders, F).length} orders shown below</span>} />

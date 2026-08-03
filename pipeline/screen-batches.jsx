@@ -38,7 +38,7 @@
     const P = useP(), HD = window.HD;
     const active = hasActiveFilters(filters);
     return (
-      <div style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}`, background: P.bg }}>
+      <div style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}`, background: P.canvas }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Field icon="search" size="sm" value={query} onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search by SKU, product, METRC, HUID, or brand…" aria-label="Search batches" type="search" />
@@ -138,32 +138,37 @@
                 </button>)}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-            <MicroLabel style={{ fontSize: 10, letterSpacing: '.08em' }}>Currently shown · live</MicroLabel>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
-              <div>
+          <div style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, background: P.surface, boxShadow: P.shadowSm, overflow: 'hidden', minWidth: 380 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderBottom: `1px solid ${P.hairline}`, background: P.surface2 }}>
+              <MicroLabel style={{ fontSize: 10, letterSpacing: '.08em' }}>Currently shown</MicroLabel>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, color: HD.tone(P, 'ok').fg, fontFamily: P.fontMono }}>
+                <span style={{ width: 5, height: 5, borderRadius: 99, background: HD.tone(P, 'ok').fg }} />LIVE
+              </span>
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>v{configVersion} · {workflowStages.length} stages</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+              <div style={{ padding: '7px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
                 <MicroLabel>Entity</MicroLabel>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 99, background: HD.hueColor(P, entityMeta?.hue) }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 99, background: HD.hueColor(P, entityMeta?.hue), flex: '0 0 auto' }} />
                   <select aria-label="Entity filter" value={entity} onChange={(e) => setEntity(e.target.value)}
-                    style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13, padding: '4px 8px', color: P.ink, fontFamily: P.fontSans }}>
+                    style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13, padding: '3px 8px', color: P.ink, fontFamily: P.fontSans }}>
                     {HD.ENTITIES.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
                   </select>
                 </div>
-                <div style={{ fontSize: 10, color: P.inkMute, marginTop: 3, fontFamily: P.fontMono }}>v{configVersion} · {workflowStages.length} stages</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'stretch', borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.bg2, overflow: 'hidden' }}>
-                <div style={{ padding: '6px 12px' }}><MicroLabel>Batches</MicroLabel><DisplayNum>{filteredBatches.length}</DisplayNum></div>
-                <div style={{ padding: '6px 12px', borderLeft: `1px solid ${P.hairline2}` }}><MicroLabel>Units</MicroLabel><DisplayNum>{totalUnits.toLocaleString()}</DisplayNum></div>
-                <div style={{ padding: '6px 12px', borderLeft: `1px solid ${P.hairline2}` }}>
-                  <MicroLabel style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span>Value</span>
-                    <span title="Sum across all batches matching your current entity + search + filter selection. Updates live as you filter." aria-label="Value calculation help" style={{ display: 'inline-flex', cursor: 'help' }}><Icon name="info" size={11} stroke={2} /></span>
-                  </MicroLabel>
-                  <DisplayNum>{HD.formatCurrency(totalValue, { showCents: false })}</DisplayNum>
-                </div>
+              <div style={{ padding: '7px 12px', borderLeft: `1px solid ${P.hairline}` }}><MicroLabel>Batches</MicroLabel><DisplayNum>{filteredBatches.length}</DisplayNum></div>
+              <div style={{ padding: '7px 12px', borderLeft: `1px solid ${P.hairline}` }}><MicroLabel>Units</MicroLabel><DisplayNum>{totalUnits.toLocaleString()}</DisplayNum></div>
+              <div style={{ padding: '7px 12px', borderLeft: `1px solid ${P.hairline}` }}>
+                <MicroLabel style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>Value</span>
+                  <span title="Sum across all batches matching your current entity + search + filter selection. Updates live as you filter." aria-label="Value calculation help" style={{ display: 'inline-flex', cursor: 'help' }}><Icon name="info" size={11} stroke={2} /></span>
+                </MicroLabel>
+                <DisplayNum>{HD.formatCurrency(totalValue, { showCents: false })}</DisplayNum>
               </div>
-              <button onClick={() => navigate(`#/admin/pipeline/${entity}`)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: P.inkDim, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontFamily: P.fontSans }}>Configure</button>
+              <div style={{ marginLeft: 'auto', padding: '7px 10px', borderLeft: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center' }}>
+                <PBtn size="xs" variant="secondary" icon="settings" onClick={() => navigate(`#/admin/pipeline/${entity}`)}>Configure</PBtn>
+              </div>
             </div>
           </div>
         </div>

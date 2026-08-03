@@ -1,5 +1,36 @@
 # Handoff: Hyperdrive — METRC Batch Pipeline + Engage
 
+## What changed in this drop
+
+If you built against the previous export, these are the deltas. Everything else is unchanged.
+
+1. **One brand DB.** `shared/brands.js` (`window.HW_BRANDS`, 16 vendors) is now the only place a
+   brand/vendor name is written. POS catalog rows, POS product shells, the pipeline vendor list,
+   vendor scorecards and buyer analytics all read from it. **Vendors ARE brands** — do not model
+   them as two entities, and never write a brand name as a literal.
+2. **"Pricing templates" is now "product shells"** everywhere: route `#/products/shells`,
+   `ScreenProductShells`, `PRODUCT_SHELLS`, `productShellId`, `retailFromShell`. A shell owns
+   brand, SKU and barcode for a whole SKU family; the product name is the deliberate exception
+   and is editable per product.
+3. **Cool workspace ramp added to the token file** — `canvas` / `canvas2` (both modes, additive).
+   Dense data surfaces (the kanban board page, sidebar, insets) sit on the cool ramp so white
+   cards separate properly; the rest of the platform stays on warm `bg`. Board color now comes
+   from stage hue, not from yellow — **accent means selection or drop-target only.**
+4. **POS product page: the Compliance & traceability tile block is gone.** COA status, earliest
+   expiration and supplier license are no longer summary tiles — COA lives per batch in the batch
+   table, and `Supplier / vendor` moved up to Product information as a locked field read from the
+   brand record. The section is now **Batches & traceability** and holds only the batch list.
+5. **Batch card figures are labelled.** The card footer reads
+   `206 units × $37.40 ea = $7,704` with a tooltip spelling out unit cost vs total batch value.
+   Do not ship a bare `206 × $37.40`.
+6. **Batch board header is one white card**, not four floating pieces: a caption row
+   (`Currently shown` + live dot + `v{n} · {n} stages`) over an aligned row of
+   Entity / Batches / Units / Value / Configure with hairline dividers.
+7. **Rail order changed** — `@ Home` sits directly above the Driver App, `Terminals` directly
+   below `Members`, and `Engage` is last. `shared/app-nav.js` is the source of truth.
+8. **Points ladder** is `$2.50/100 · $5/200 · $10/400 · $20/800` plus a `perk`-marked
+   Birthday $20, consistent across register, payment modal and mobile checkout.
+
 ## Overview
 
 Two operator consoles for Hyperwolf's Hyperdrive platform, designed as browser prototypes:
@@ -58,6 +89,8 @@ Source of truth: `pos/tokens.jsx`. Two complete modes. **Light is the default.**
 | `surface` | `#FFFFFF` | cards, sheets, popovers |
 | `surface2` | `#FAF9F5` | nested card / table zebra |
 | `surface3` | `#F1EFE9` | chips, wells, avatar plates |
+| `canvas` | `#EDEFF3` | cool workspace ramp — dense board/table pages |
+| `canvas2` | `#E1E6EC` | cool ramp, recessed (column wells, insets) |
 | `rail` | `#13130F` | left nav rail (near-black warm) |
 | `railInk` | `rgba(255,255,255,.72)` | rail label |
 | `railBright` | `#FFFFFF` | rail active label |
@@ -202,7 +235,9 @@ Shell: left rail (Overview / Operations / Finance / Vendors / Admin sections) + 
 
 Full-height horizontal-scroll board owning the remaining viewport height (no page scroll). Seven fixed 300px columns with `gap:12`; each column is a flex-column with its own `overflow-y:auto` list so cards never compress. Column header: uppercase micro-label + mono count + a 3px hue bar.
 
-Batch card: `surface`, `r12`, `hairline2` border, `padding:12`, `gap:8`. Top row is a `UidChip` for the METRC package + an entity dot. Then product name (13px `ink`), then brand · category (11px `inkMute`). Footer row: unit count (mono) and a relative-time stamp. **Age pressure** re-colors the left border: under `batch.age_warn_hours` → `hairline2`; over → `warn` at 40% alpha; over `batch.age_blocked_hours` → `bad`. Cards are draggable between columns; dropping fires a toast and writes an audit line.
+Header: one white card (`surface`, `r12`, `hairline2`, `shadowSm`, min-width 380). A caption strip on `surface2` carries `Currently shown` + a green live dot + `v{version} · {n} stages`; beneath it a single row of Entity (hue dot + select) / Batches / Units / Value (with an info affordance) / a `Configure` secondary button, divided by `hairline`. Do not scatter these as separate right-aligned blocks — they wrap badly and lose their shared baseline.
+
+Batch card: `surface`, `r12`, `hairline2` border, `padding:12`, `gap:8`. Top row is a `UidChip` for the METRC package + an entity dot. Then product name (13px `ink`), then brand · category (11px `inkMute`). Footer row is the labelled cost line — `{qty} units × {unitCost} ea = {total}` in mono, units/ea/× /= in `inkMute` so the numbers carry — with a tooltip reading "{qty} units at {unitCost} wholesale cost each — {total} total batch value". **Age pressure** re-colors the left border: under `batch.age_warn_hours` → `hairline2`; over → `warn` at 40% alpha; over `batch.age_blocked_hours` → `bad`. Cards are draggable between columns; dropping fires a toast and writes an audit line.
 
 Detail drawer (`Sheet`, 520px): header with package UID, status pill, entity; sections for COA + lab results, lineage, hold state, cost/margin, activity timeline. Footer actions: Approve for sale (accent), Place hold, Merge, Print labels.
 

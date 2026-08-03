@@ -43,7 +43,7 @@
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     const unmapped = uid.matchReason === 'unmapped';
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: GRID, background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: GRID, background: P.canvas, borderBottom: `1px solid ${P.hairline}` }}>
         <div />
         <div style={{ paddingLeft: 24, paddingRight: 12, paddingTop: 8, paddingBottom: 8, display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
           {isSibling && <span aria-hidden="true" style={{ position: 'absolute', left: 12, top: 0, bottom: 0, width: 2, background: P.accentBorder, opacity: .6 }} />}
@@ -117,7 +117,7 @@
   function ThreeWayMatch({ invoice }) {
     const P = useP(), HD = window.HD;
     const head = (label, tone) => (
-      <div style={{ padding: '10px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, fontWeight: 500, borderBottom: `1px solid ${P.hairline2}`, background: P.surface2, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ padding: '10px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, fontWeight: 500, borderBottom: `1px solid ${P.hairline2}`, background: P.canvas, display: 'flex', alignItems: 'center', gap: 6 }}>
         {tone && <span style={{ width: 8, height: 8, borderRadius: 99, background: tone === 'brand' ? P.accent : HD.tone(P, tone).fg }} />}
         {label}
       </div>);
@@ -182,7 +182,7 @@
         <div style={{ padding: '14px 16px 8px' }}><h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Evidence</h3></div>
         <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {items.map((it) => (
-            <div key={it.id} style={{ aspectRatio: '1 / 1', borderRadius: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
+            <div key={it.id} style={{ aspectRatio: '1 / 1', borderRadius: 10, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
               <Icon name={it.icon} size={18} stroke={1.7} color={P.inkMute} />
               <div style={{ fontSize: 11, color: P.ink2, textAlign: 'center', padding: '0 4px' }}>{it.label}</div>
               <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatDate(invoice.receivedDate)}</div>
@@ -224,7 +224,7 @@
         <span style={{ fontFamily: P.fontMono, fontWeight: bold ? 600 : 400, color: tone ? HD.tone(P, tone).fg : P.ink }}>{value}</span>
       </div>);
     return (
-      <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface2, padding: 12 }}>
+      <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas, padding: 12 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
           <div style={{ minWidth: 0 }}>
             <UidChip value={u.uid} kind="metrc" size="md" />
@@ -376,7 +376,7 @@
           </div>
         </div>
 
-        <div style={{ position: 'sticky', bottom: 0, margin: '0 -20px', padding: '12px 20px', borderTop: `1px solid ${P.hairline2}`, background: P.bg }}>
+        <div style={{ position: 'sticky', bottom: 0, margin: '0 -20px', padding: '12px 20px', borderTop: `1px solid ${P.hairline2}`, background: P.canvas }}>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <PBtn variant="secondary" icon="refresh" onClick={() => navigate(`#/credits/new?invoiceId=${invoice.id}`)}>Open credit memo</PBtn>
             <PBtn variant="secondary" icon="mail" onClick={() => window.hdToast?.({ title: 'Corrected invoice requested', description: 'Vendor portal notification sent.', tone: 'info' })}>Request corrected invoice</PBtn>

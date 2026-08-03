@@ -50,6 +50,11 @@ const LIGHT = {
   // Categorical wayfinding hues (decorative only, never status)
   hue:{ blue:'#1F5FA8', violet:'#6D4AC8', teal:'#0E7C6B', green:'#2C7A34', pink:'#B4306A' },
 
+  // Cool workspace ramp — for dense data surfaces (kanban boards, wide tables)
+  // that read muddy when every fill is warm paper. Cards stay `surface`.
+  canvas:    '#EDEFF3',
+  canvas2:   '#E1E6EC',
+
   // Field
   field:'#FFFFFF', fieldBorder:'rgba(15,15,12,.18)',
 
@@ -97,6 +102,9 @@ const DARK = {
   indica:'#A789E0', sativa:'#E5A24E', hybrid:'#5DBE93',
 
   hue:{ blue:'#8FC2FF', violet:'#B79CFF', teal:'#67D6C4', green:'#8FD68B', pink:'#F7A8C4' },
+
+  canvas:    '#0E1013',
+  canvas2:   '#171B21',
 
   field:'#15150F', fieldBorder:'rgba(245,243,234,.22)',
 

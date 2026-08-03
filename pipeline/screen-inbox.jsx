@@ -32,7 +32,7 @@
             <span>Auto Post Rate</span>
             <span title={TOOLTIP} aria-label="Auto Post Rate explanation" style={{ cursor: 'help', display: 'inline-flex' }}><Icon name="info" size={11} stroke={2} /></span>
           </div>
-          <div role="group" aria-label="Auto Post Rate window" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.bg, padding: 2 }}>
+          <div role="group" aria-label="Auto Post Rate window" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.canvas, padding: 2 }}>
             {['7d', '30d', '90d'].map((w) => (
               <button key={w} onClick={() => setWin(w)} aria-pressed={win === w}
                 style={{ height: 22, padding: '0 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, fontFamily: P.fontMono, cursor: 'pointer', border: 'none',
@@ -147,8 +147,8 @@
                 {[{ icon: 'download', title: 'Upload a PDF', sub: 'Drop files straight onto this panel', onClick: () => window.hdToast?.({ title: 'Upload stub', description: 'Drag-and-drop upload lands in Sprint One.', tone: 'info' }) },
                   { icon: 'scan', title: 'Scan on the floor', sub: 'Mobile intake pairs a manifest with a packing slip photo', onClick: () => navigate('#/scan') }].map((a) => (
                   <button key={a.title} onClick={a.onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = P.surface)}>
-                    <div style={{ height: 32, width: 32, borderRadius: 8, background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.ink2, flex: '0 0 auto' }}><Icon name={a.icon} size={14} stroke={1.9} /></div>
+                    onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas)} onMouseLeave={(e) => (e.currentTarget.style.background = P.surface)}>
+                    <div style={{ height: 32, width: 32, borderRadius: 8, background: P.canvas2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.ink2, flex: '0 0 auto' }}><Icon name={a.icon} size={14} stroke={1.9} /></div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontSize: 13, color: P.ink, fontWeight: 500 }}>{a.title}</div>
                       <div style={{ fontSize: 11, color: P.inkMute }}>{a.sub}</div>
@@ -174,7 +174,7 @@
     return (
       <div ref={ref} style={{ position: 'relative' }}>
         <button onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }} aria-label="More actions" title="More actions"
-          style={{ height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: open ? P.surface3 : 'transparent', color: P.inkMute, cursor: 'pointer' }}>
+          style={{ height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: open ? P.canvas2 : 'transparent', color: P.inkMute, cursor: 'pointer' }}>
           <Icon name="menu" size={15} stroke={2} />
         </button>
         {open && (
@@ -182,7 +182,7 @@
             {items.map((it) => (
               <button key={it.label} role="menuitem" onClick={(e) => { e.stopPropagation(); setOpen(false); }}
                 style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 12px', fontSize: 13, color: P.ink2, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                 <Icon name={it.icon} size={13} stroke={1.9} /><span>{it.label}</span>
               </button>))}
           </div>)}
@@ -219,7 +219,7 @@
     return (
       <div style={{ overflow: 'auto', maxHeight: '100%' }}>
         <table style={{ width: '100%', fontSize: 13, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans }}>
-          <thead style={{ position: 'sticky', top: 0, background: P.bg, zIndex: 5 }}>
+          <thead style={{ position: 'sticky', top: 0, background: P.canvas, zIndex: 5 }}>
             <tr>
               <th style={{ ...th, width: 32 }} aria-label="Expand"></th>
               <th style={th}>Status</th><th style={th}>Invoice</th><th style={th}>Vendor</th><th style={th}>Received</th>
@@ -236,7 +236,7 @@
               return (
                 <React.Fragment key={inv.id}>
                   <tr tabIndex={0} onClick={() => onSelect(inv.id)} aria-selected={isSelected} aria-expanded={isExpanded}
-                    style={{ cursor: 'pointer', background: isSelected ? P.accentSoft : idx % 2 === 1 ? P.surface2 : 'transparent', outline: isSelected ? `1px solid ${P.accentBorder}` : 'none' }}>
+                    style={{ cursor: 'pointer', background: isSelected ? P.accentSoft : idx % 2 === 1 ? P.canvas : 'transparent', outline: isSelected ? `1px solid ${P.accentBorder}` : 'none' }}>
                     <td style={{ ...td, width: 32 }}>
                       <button onClick={(e) => { e.stopPropagation(); onToggleExpanded(inv.id); }} aria-label={isExpanded ? 'Collapse AI matches' : 'Show AI matches'} title={isExpanded ? 'Collapse AI matches' : 'Show AI matches'}
                         style={{ display: 'inline-flex', height: 24, width: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', cursor: 'pointer', background: isExpanded ? P.accentSoft : 'transparent', color: isExpanded ? (P.mode === 'dark' ? P.accent : P.accentBorder) : P.inkMute }}>
@@ -259,7 +259,7 @@
                     <td style={{ ...td, textAlign: 'right' }}><InvoiceRowActions inv={inv} isMapped={isMapped} /></td>
                   </tr>
                   {isExpanded && (
-                    <tr style={{ background: isSelected ? P.accentSoft : P.surface2 }}>
+                    <tr style={{ background: isSelected ? P.accentSoft : P.canvas }}>
                       <td colSpan={8} style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}` }}><MatchPreview invoice={inv} /></td>
                     </tr>)}
                 </React.Fragment>);
@@ -308,7 +308,7 @@
             <MicroLabel style={{ marginBottom: 8 }}>Line items ({invoice.lineItems.length})</MicroLabel>
             <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: 10, overflow: 'hidden' }}>
               <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-                <thead style={{ background: P.surface2 }}>
+                <thead style={{ background: P.canvas }}>
                   <tr>
                     <th style={{ textAlign: 'left', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12 }}>Product</th>
                     <th style={{ textAlign: 'right', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12 }}>Qty</th>
@@ -332,11 +332,11 @@
             </div>
           </div>
           {invoice.notes && (
-            <div style={{ marginTop: 20, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface3, fontSize: 13, color: P.ink2 }}>
+            <div style={{ marginTop: 20, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas2, fontSize: 13, color: P.ink2 }}>
               <MicroLabel style={{ marginBottom: 4 }}>Note</MicroLabel>{invoice.notes}
             </div>)}
         </div>
-        <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, background: P.bg }}>
+        <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, background: P.canvas }}>
           <PBtn variant="accent" full iconRight="arrow-right" onClick={() => navigate(`#/invoices/${invoice.id}`)}>Open detail</PBtn>
           <PBtn variant="secondary" icon="shield" onClick={() => navigate(`#/invoices/${invoice.id}`)}>3-way match</PBtn>
         </div>

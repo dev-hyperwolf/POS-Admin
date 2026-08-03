@@ -130,7 +130,7 @@
         <div className="hd-prod" style={{ padding: '0 20px 20px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Card padding={0} style={{ overflow: 'hidden' }}>
-              <div style={{ aspectRatio: '1 / 1', background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ aspectRatio: '1 / 1', background: P.canvas2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Thumb item={{ hue: product.hue }} size={160} radius={24} />
               </div>
               <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: `1px solid ${P.hairline2}` }}>
@@ -150,7 +150,7 @@
               {product.traits.length > 0 && (
                 <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {product.traits.map((t) => (
-                    <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: '0 8px', borderRadius: 99, background: P.surface3, color: P.ink2, border: `1px solid ${P.hairline2}`, fontSize: 11 }}>
+                    <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: '0 8px', borderRadius: 99, background: P.canvas2, color: P.ink2, border: `1px solid ${P.hairline2}`, fontSize: 11 }}>
                       <Icon name="sparkle" size={9} stroke={2} />{t}
                     </span>))}
                 </div>)}
@@ -166,7 +166,7 @@
               </div>
               {tpl && (
                 <button onClick={() => navigate('#/products/shells')}
-                  style={{ marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface3, padding: '8px 12px', cursor: 'pointer', fontFamily: P.fontSans }}>
+                  style={{ marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.canvas2, padding: '8px 12px', cursor: 'pointer', fontFamily: P.fontSans }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <Icon name="tag" size={12} stroke={2} color={accentInk} />
                     <div style={{ minWidth: 0, textAlign: 'left' }}>
@@ -318,7 +318,7 @@
             {shells.map((t) => {
               const bound = PR.PRODUCTS.filter((p) => p.productShellId === t.id);
               return (
-                <div key={t.id} style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, padding: 12, background: P.surface2 }}>
+                <div key={t.id} style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, padding: 12, background: P.canvas }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="tag" size={12} stroke={2} color={accentInk} /><span style={{ fontSize: 13, color: P.ink }}>{t.name}</span></div>
                   <div style={{ marginTop: 4, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(t.basePriceCents / 100)} · {HD.formatPercent(t.marginPct, 0)}</div>
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -361,7 +361,7 @@
               <div style={{ padding: 20 }}>
                 <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Update shell?</h2>
                 <p style={{ margin: '6px 0 16px', fontSize: 13, color: P.inkDim }}>{confirming.shell.productCount} product{confirming.shell.productCount === 1 ? '' : 's'} will reflect the new retail price the next time the menu rebuilds.</p>
-                <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface3, padding: 12, fontSize: 12 }}>
+                <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas2, padding: 12, fontSize: 12 }}>
                   <Row label="Old price" value={HD.formatCurrency(confirming.shell.basePriceCents / 100)} />
                   <Row label="New price" value={HD.formatCurrency(confirming.basePriceCents / 100)} emphasis />
                   <Row label="Old margin" value={HD.formatPercent(confirming.shell.marginPct, 0)} />
