@@ -16,6 +16,8 @@ const CAT_COLOR = {
   All:          '#6E6E66',
 };
 
+const B = window.HW_BRANDS.name;
+
 function P_(name, sku, brand, strain, cat, thc, wt, price, was, qty, hue){
   // deterministic unit cost → profit margin (varies 28%–68% by sku)
   const h = sku.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0);
@@ -26,30 +28,30 @@ function P_(name, sku, brand, strain, cat, thc, wt, price, was, qty, hue){
 }
 
 const PRODUCTS = [
-  P_('Cake Crasher','H480PRO1','Papa\u2019s Herb','Indica','Pre-Rolls',28.6,'1g',15,20,37,16),
-  P_('Blueberry Pancakes','F2Q4EN2C','WVY','Hybrid','Flower',null,'1g',17,20,1,118),
-  P_('CDS Product','212FFSAFA','818 Enjoy','Sativa','Wellness',12,'12g',12,null,50,168),
-  P_('Product Willy','WIL20X9','Arcata Fire','Hybrid','Flower',20,'20g',24,26,106,120),
-  P_('Doubleshot','DBL78MG','Casual','Hybrid','Edibles',78,'10mg',20,null,84,330),
-  P_('Fruit Punch All-In-One','FP94AIO','Papa\u2019s Herb','Sativa','Vapes',94.2,'1g',28,null,36,215),
-  P_('Cheetah Piss Pre-Roll','CHP1GPR','Mary Jones','Sativa','Pre-Rolls',null,'1g',5,null,278,18),
-  P_('Neutron Cookies Ounce Smalls','NCO28SM','Baggie Buds','Indica','Flower',25.7,'28g',77,null,220,118),
-  P_('Gooberz Ready-To-Roll','GBZ35RR','Casual','Hybrid','Flower',25.8,'3.5g',10,null,196,116),
-  P_('Blast Radius Smalls','BRD35SM','Allswell','Hybrid','Flower',27.8,'3.5g',1,13,459,112),
-  P_('Blast Off Smalls','BOF35SM','Allswell','Indica','Flower',28.0,'3.5g',13,null,231,114),
-  P_('Space Ripper Ounce Smalls','SRO28SM','Allswell','Indica','Flower',28.7,'28g',2,77,200,118),
-  P_('First Class Funk Live Resin','FCF1LRS','West Coast Cure','Hybrid','Concentrates',72.2,'1g',22,23,40,38),
-  P_('Thin Mint Sugar','TMS1SUG','West Coast Trading','Hybrid','Concentrates',76.8,'1g',2,13,6,36),
-  P_('Firewalker Sugar','FWK1SUG','West Coast Trading','Sativa','Concentrates',75.9,'1g',5,13,35,40),
-  P_('Bumble Bee Honey Joint','BBH2JNT','Alpine Vapor','Hybrid','Pre-Rolls',null,'2g',32,34,215,20),
-  P_('Lunar Drift Indica Drops','LDI4DRP','KIVA','Indica','Edibles',28.5,'4g',40,null,558,328),
-  P_('Weed Kick THCa Joint 6th','BNJNJ0IK','3C Farms','Hybrid','Wellness',25,'4g',45,1000,161,168),
-  P_('Bay Weeds Yo','984X9CJO','Blaze Mota','Sativa','Concentrates',null,null,28,null,40,38),
-  P_('Candy Kush THCa Flower 8th','FFF81Q98','Baggie Buds','Hybrid','Flower',null,'3.5g',35,null,72,110),
-  P_('Ganja-12 Distillate','GNJ1123','AMMO','Hybrid','Vapes',88,'1g',38,null,52,215),
-  P_('Archest Pre-Roll Pack','ARCH001','Mary Jones','Indica','Pre-Rolls',null,'5x.5g',30,null,44,18),
-  P_('Sour Tangie Live Badder','STG1BAD','West Coast Cure','Sativa','Concentrates',74.1,'1g',26,32,58,36),
-  P_('Midnight Mint Gummies','MMG100E','KIVA','Indica','Edibles',null,'100mg',18,null,310,330),
+  P_('Cake Crasher','H480PRO1',B.jeeter,'Indica','Pre-Rolls',28.6,'1g',15,20,37,16),
+  P_('Blueberry Pancakes','F2Q4EN2C',B.lowell,'Hybrid','Flower',null,'1g',17,20,1,118),
+  P_('CDS Product','212FFSAFA',B.cann,'Sativa','Wellness',12,'12g',12,null,50,168),
+  P_('Product Willy','WIL20X9',B.connected,'Hybrid','Flower',20,'20g',24,26,106,120),
+  P_('Doubleshot','DBL78MG',B.wyld,'Hybrid','Edibles',78,'10mg',20,null,84,330),
+  P_('Fruit Punch All-In-One','FP94AIO',B.stiiizy,'Sativa','Vapes',94.2,'1g',28,null,36,215),
+  P_('Cheetah Piss Pre-Roll','CHP1GPR',B.jeeter,'Sativa','Pre-Rolls',null,'1g',5,null,278,18),
+  P_('Neutron Cookies Ounce Smalls','NCO28SM',B.lowell,'Indica','Flower',25.7,'28g',77,null,220,118),
+  P_('Gooberz Ready-To-Roll','GBZ35RR',B.alien,'Hybrid','Flower',25.8,'3.5g',10,null,196,116),
+  P_('Blast Radius Smalls','BRD35SM',B.connected,'Hybrid','Flower',27.8,'3.5g',1,13,459,112),
+  P_('Blast Off Smalls','BOF35SM',B.connected,'Indica','Flower',28.0,'3.5g',13,null,231,114),
+  P_('Space Ripper Ounce Smalls','SRO28SM',B.connected,'Indica','Flower',28.7,'28g',2,77,200,118),
+  P_('First Class Funk Live Resin','FCF1LRS',B.raw,'Hybrid','Concentrates',72.2,'1g',22,23,40,38),
+  P_('Thin Mint Sugar','TMS1SUG',B.labs710,'Hybrid','Concentrates',76.8,'1g',2,13,6,36),
+  P_('Firewalker Sugar','FWK1SUG',B.labs710,'Sativa','Concentrates',75.9,'1g',5,13,35,40),
+  P_('Bumble Bee Honey Joint','BBH2JNT',B.jeeter,'Hybrid','Pre-Rolls',null,'2g',32,34,215,20),
+  P_('Lunar Drift Indica Drops','LDI4DRP',B.kiva,'Indica','Edibles',28.5,'4g',40,null,558,328),
+  P_('Weed Kick THCa Joint 6th','BNJNJ0IK',B.papa,'Hybrid','Wellness',25,'4g',45,1000,161,168),
+  P_('Bay Weeds Yo','984X9CJO',B.raw,'Sativa','Concentrates',null,null,28,null,40,38),
+  P_('Candy Kush THCa Flower 8th','FFF81Q98',B.lowell,'Hybrid','Flower',null,'3.5g',35,null,72,110),
+  P_('Ganja-12 Distillate','GNJ1123',B.heavy,'Hybrid','Vapes',88,'1g',38,null,52,215),
+  P_('Archest Pre-Roll Pack','ARCH001',B.jeeter,'Indica','Pre-Rolls',null,'5x.5g',30,null,44,18),
+  P_('Sour Tangie Live Badder','STG1BAD',B.raw,'Sativa','Concentrates',74.1,'1g',26,32,58,36),
+  P_('Midnight Mint Gummies','MMG100E',B.kiva,'Indica','Edibles',null,'100mg',18,null,310,330),
 ];
 
 // Members / customers
@@ -76,11 +78,12 @@ function visitOrdinal(n){ n = n || 1; return n >= 3 ? 3 : n; } // 1|2|3 for colo
 
 // Loyalty rewards the associate can redeem against a member's points
 const REWARDS = [
-  { id:'5off',   label:'$5 off',         cost:500,  icon:'tag',     kind:'discount' },
-  { id:'preroll',label:'Free pre-roll',  cost:750,  icon:'gift',    kind:'item' },
-  { id:'10off',  label:'$10 off',        cost:1000, icon:'tag',     kind:'discount' },
-  { id:'15pct',  label:'15% off order',  cost:1500, icon:'percent', kind:'discount' },
-  { id:'merch',  label:'Branded grinder',cost:2500, icon:'gift',    kind:'item' },
+  { id:'250off', label:'$2.50 off', short:'$2.50', cost:100, value:2.5, icon:'tag',  kind:'discount' },
+  { id:'5off',   label:'$5 off',    short:'$5',    cost:200, value:5,   icon:'tag',  kind:'discount' },
+  { id:'10off',  label:'$10 off',   short:'$10',   cost:400, value:10,  icon:'tag',  kind:'discount' },
+  { id:'20off',  label:'$20 off',   short:'$20',   cost:800, value:20,  icon:'tag',  kind:'discount' },
+  // Birthday is a membership perk, not a points redemption — no cost gate.
+  { id:'bday',   label:'Birthday $20', short:'$20', cost:0, value:20,  icon:'gift', kind:'discount', bday:true },
 ];
 
 // Waiting-room pool — people who can be grouped as guests under a check-in

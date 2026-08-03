@@ -13,11 +13,14 @@ const PAY = {
     { id: 'flat6', label: '6% flat',      short: '6%',        rate: 0.06, flat: 0,    note: '6% of the card amount' },
     { id: 'p550',  label: '5% + $0.50',   short: '5%+50¢',    rate: 0.05, flat: 0.50, note: '5% of card + $0.50 fixed' },
   ],
-  // Points → redeemable dollar rewards (item rewards carry value 0)
+  // Points → redeemable dollar rewards. Same fixed ladder as the register,
+  // plus the birthday $20, which is a membership perk and costs no points.
   rewards: [
-    { id: '5off',    label: '$5 off',       cost: 500,  value: 5 },
-    { id: 'preroll', label: 'Free pre-roll', cost: 750,  value: 0, item: true },
-    { id: '10off',   label: '$10 off',      cost: 1000, value: 10 },
+    { id: '250off', label: '$2.50 off',    cost: 100, value: 2.5 },
+    { id: '5off',   label: '$5 off',       cost: 200, value: 5 },
+    { id: '10off',  label: '$10 off',      cost: 400, value: 10 },
+    { id: '20off',  label: '$20 off',      cost: 800, value: 20 },
+    { id: 'bday',   label: 'Birthday $20', cost: 0,   value: 20, bday: true },
   ],
   fee(base, opt) { if (!opt || base <= 0) return 0; return Math.round((base * opt.rate + opt.flat) * 100) / 100; },
 };

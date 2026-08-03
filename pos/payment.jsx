@@ -11,11 +11,14 @@ const FEE_OPTS = [
 ];
 const feeAmt = (base, opt) => (!opt || base <= 0) ? 0 : _c2(base * opt.rate + opt.flat);
 
-// Points → CASH rewards only (fixed tiers, item rewards removed)
+// Points → CASH rewards only. Same fixed ladder the register's rewards card
+// shows, plus the birthday $20 which is a perk and costs no points.
 const CASH_REWARDS = [
-  { id: 'r5',  label: '$5 off',  cost: 500,  value: 5 },
-  { id: 'r10', label: '$10 off', cost: 1000, value: 10 },
-  { id: 'r15', label: '$15 off', cost: 1500, value: 15 },
+  { id: 'r250', label: '$2.50 off', cost: 100, value: 2.5 },
+  { id: 'r5',  label: '$5 off',  cost: 200,  value: 5 },
+  { id: 'r10', label: '$10 off', cost: 400, value: 10 },
+  { id: 'r20', label: '$20 off', cost: 800, value: 20 },
+  { id: 'rbd', label: 'Birthday $20', cost: 0, value: 20, bday: true },
 ];
 
 // keypad reducer
@@ -305,7 +308,7 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
               {creditsOpen && <div style={{ padding: '0 16px 15px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <Eyebrow style={{ marginBottom: 8 }}>Redeem points · cash off</Eyebrow>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{CASH_REWARDS.map((r) => { const a = reward === r.id, can = points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.cost}p</span></button>; })}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{CASH_REWARDS.map((r) => { const a = reward === r.id, can = r.bday || points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.bday ? 'perk' : r.cost + 'p'}</span></button>; })}</div>
                 </div>
                 <div>
                   <Eyebrow style={{ marginBottom: 8 }}>Wallet credit</Eyebrow>

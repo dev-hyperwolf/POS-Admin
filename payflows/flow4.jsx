@@ -52,7 +52,7 @@ window.Flow4 = function Flow4() {
           {creditsOpen && <div style={{ padding: '0 16px 15px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <Eyebrow style={{ marginBottom: 8 }}>Redeem points</Eyebrow>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{window.PAY.rewards.map((r) => { const a = reward === r.id, can = cust.points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.cost}p</span></button>; })}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{window.PAY.rewards.map((r) => { const a = reward === r.id, can = (r.bday || cust.points >= r.cost); return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.cost}p</span></button>; })}</div>
             </div>
             <div>
               <Eyebrow style={{ marginBottom: 8 }}>Wallet credit</Eyebrow>

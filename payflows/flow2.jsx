@@ -54,7 +54,7 @@ window.Flow2 = function Flow2() {
           <div style={{ borderTop: `1px solid ${P.hairline2}`, paddingTop: 13 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}><Icon name="star" size={13} color={P.accent} /><span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Redeem points</span></div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {window.PAY.rewards.map((r) => { const a = reward === r.id, can = cust.points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '6px 10px', background: a ? P.accent : P.surface, color: a ? P.accentInk : P.ink2, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}</button>; })}
+              {window.PAY.rewards.map((r) => { const a = reward === r.id, can = (r.bday || cust.points >= r.cost); return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '6px 10px', background: a ? P.accent : P.surface, color: a ? P.accentInk : P.ink2, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}</button>; })}
             </div>
           </div>
           <div>

@@ -201,7 +201,7 @@
   function ProductCard({ product, navigate }) {
     const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
     const s = PR.summarize(product);
-    const tpl = PR.getPricingTemplate(product.pricingTemplateId);
+    const tpl = PR.getProductShell(product.productShellId);
     const weightLabel = `${product.weight.value}${product.weight.unit}`;
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     return (
@@ -221,8 +221,8 @@
           </div>
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span style={{ fontSize: 20, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{s.effectiveRetailCents != null ? HD.formatCurrency(s.effectiveRetailCents / 100) : '—'}</span>
-            {s.retailFromTemplate && tpl
-              ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 6px', borderRadius: 99, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em' }}>from template</span>
+            {s.retailFromShell && tpl
+              ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 6px', borderRadius: 99, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em' }}>from shell</span>
               : product.customRetailCents != null
                 ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 6px', borderRadius: 99, background: HD.tone(P, 'warn').bg, color: HD.tone(P, 'warn').fg, border: `1px solid ${HD.tone(P, 'warn').fg}4d`, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em' }}>custom</span>
                 : null}
@@ -239,6 +239,9 @@
 
   window.ScreenProducts = function ScreenProducts({ navigate }) {
     const P = useP(), PR = window.HD_PRODUCTS, HD = window.HD;
+    // "New product" is the SAME flow the POS catalog uses — pos/product-shell.jsx.
+    // Not a second implementation: the component is loaded, not copied.
+    const [addOpen, setAddOpen] = React.useState(false);
     const [query, setQuery] = React.useState('');
     const [brandFilter, setBrandFilter] = React.useState(null);
     const [categoryFilter, setCategoryFilter] = React.useState(null);
@@ -274,10 +277,10 @@
             <p style={{ margin: '4px 0 0', fontSize: 13, color: P.inkMute }}>Customer-facing SKU families. Each card wraps the batches sitting underneath it.</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <PBtn size="sm" variant="secondary" icon="sliders" onClick={() => navigate('#/products/pricing-templates')}>
-              Pricing templates <span style={{ marginLeft: 4, color: P.inkMute, fontFamily: P.fontMono }}>{PR.PRICING_TEMPLATES.length}</span>
+            <PBtn size="sm" variant="secondary" icon="sliders" onClick={() => navigate('#/products/shells')}>
+              Product shells <span style={{ marginLeft: 4, color: P.inkMute, fontFamily: P.fontMono }}>{PR.PRODUCT_SHELLS.length}</span>
             </PBtn>
-            <PBtn size="sm" variant="accent" icon="plus" onClick={() => window.hdToast?.({ title: 'New product', description: 'The create flow lands in a later pass.', tone: 'info' })}>New product</PBtn>
+            <PBtn size="sm" variant="accent" icon="plus" onClick={() => setAddOpen(true)}>New product</PBtn>
           </div>
         </header>
 
@@ -317,6 +320,9 @@
               {visible.map((p) => <ProductCard key={p.id} product={p} navigate={navigate} />)}
             </div>}
         </div>
+        {addOpen && window.AddProductFlow && (
+          <window.AddProductFlow entry="pipeline" onClose={() => setAddOpen(false)}
+            onDone={() => { setAddOpen(false); window.hdToast?.({ title: 'Product created', description: 'Added to the shell as a new variation. It will appear on the next catalog sync.', tone: 'ok' }); }} />)}
       </div>);
   };
 })();

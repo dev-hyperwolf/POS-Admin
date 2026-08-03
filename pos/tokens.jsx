@@ -47,6 +47,9 @@ const LIGHT = {
   // Strain
   indica:'#7E55C9', sativa:'#D98316', hybrid:'#3F9E72',
 
+  // Categorical wayfinding hues (decorative only, never status)
+  hue:{ blue:'#1F5FA8', violet:'#6D4AC8', teal:'#0E7C6B', green:'#2C7A34', pink:'#B4306A' },
+
   // Field
   field:'#FFFFFF', fieldBorder:'rgba(15,15,12,.18)',
 
@@ -92,6 +95,8 @@ const DARK = {
   neutral:'#9A968B', neutralSoft:'rgba(245,243,234,.08)',
 
   indica:'#A789E0', sativa:'#E5A24E', hybrid:'#5DBE93',
+
+  hue:{ blue:'#8FC2FF', violet:'#B79CFF', teal:'#67D6C4', green:'#8FD68B', pink:'#F7A8C4' },
 
   field:'#15150F', fieldBorder:'rgba(245,243,234,.22)',
 

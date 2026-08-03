@@ -1,35 +1,35 @@
-// ── Product wrappers, pricing templates, product batches ──────────────────
+// ── Product wrappers, product shells, product batches ─────────────────────
 // Verbatim port of prototype/lib/fixtures/products.ts + fake-product-matcher.ts.
 ;(function () {
   const PRODUCTS_NOW = new Date('2026-04-20T18:30:00-07:00').getTime();
   const daysAgoIso = (days) => new Date(PRODUCTS_NOW - days * 86400000).toISOString();
   const daysAheadIso = (days) => new Date(PRODUCTS_NOW + days * 86400000).toISOString();
 
-  const PRICING_TEMPLATES = [
-    { id: 'pt-edibles-100mg', name: 'Premium Edibles 100mg', basePriceCents: 2200, marginPct: 0.55, appliesToCategory: 'Edibles', productCount: 4 },
-    { id: 'pt-cart-1g', name: 'Premium 1g Cart', basePriceCents: 4500, marginPct: 0.5, appliesToCategory: 'Vapes', productCount: 4 },
-    { id: 'pt-preroll-pack', name: 'Pre-Roll Pack', basePriceCents: 3800, marginPct: 0.48, appliesToCategory: 'Pre-Rolls', productCount: 3 },
+  const PRODUCT_SHELLS = [
+    { id: 'sh-edibles-100mg', name: 'Premium Edibles 100mg', basePriceCents: 2200, marginPct: 0.55, appliesToCategory: 'Edibles', productCount: 4 },
+    { id: 'sh-cart-1g', name: 'Premium 1g Cart', basePriceCents: 4500, marginPct: 0.5, appliesToCategory: 'Vapes', productCount: 4 },
+    { id: 'sh-preroll-pack', name: 'Pre-Roll Pack', basePriceCents: 3800, marginPct: 0.48, appliesToCategory: 'Pre-Rolls', productCount: 3 },
   ];
-  const getPricingTemplate = (id) => (id ? PRICING_TEMPLATES.find((t) => t.id === id) ?? null : null);
-  const productRetailCents = (product, template) => {
+  const getProductShell = (id) => (id ? PRODUCT_SHELLS.find((t) => t.id === id) ?? null : null);
+  const productRetailCents = (product, shell) => {
     if (product.customRetailCents != null) return product.customRetailCents;
-    if (template) return template.basePriceCents;
+    if (shell) return shell.basePriceCents;
     return null;
   };
 
   const PRODUCT_SEEDS = [
-    { id: 'p-kiva-camino-wild', name: 'Camino Wild Berry Gummies', brandId: 'v-kiva', brandName: 'Kiva', type: 'hybrid', weight: { value: 100, unit: 'mg' }, traits: ['vegan', 'live resin', 'fast-onset'], pricingTemplateId: 'pt-edibles-100mg', customRetailCents: null, category: 'Edibles', sku: 'HD-KIVA-001', photoSeed: 11 },
-    { id: 'p-kiva-terra-espresso', name: 'Terra Bites Milk Chocolate Espresso', brandId: 'v-kiva', brandName: 'Kiva', type: 'hybrid', weight: { value: 100, unit: 'mg' }, traits: ['small-batch', 'espresso'], pricingTemplateId: 'pt-edibles-100mg', customRetailCents: null, category: 'Edibles', sku: 'HD-KIVA-002', photoSeed: 12 },
-    { id: 'p-kiva-petra-moroccan', name: 'Petra Mints Moroccan', brandId: 'v-kiva', brandName: 'Kiva', type: 'sativa', weight: { value: 100, unit: 'mg' }, traits: ['low-cal', 'discreet'], pricingTemplateId: 'pt-edibles-100mg', customRetailCents: 2500, category: 'Edibles', sku: 'HD-KIVA-003', photoSeed: 13 },
-    { id: 'p-wyld-raspberry', name: 'Raspberry Sativa Gummies', brandId: 'v-wyld', brandName: 'Wyld', type: 'sativa', weight: { value: 100, unit: 'mg' }, traits: ['real-fruit', 'vegan'], pricingTemplateId: 'pt-edibles-100mg', customRetailCents: null, category: 'Edibles', sku: 'HD-WYLD-001', photoSeed: 21 },
-    { id: 'p-stiiizy-blue-dream', name: 'Pod Blue Dream Live Resin', brandId: 'v-stiiizy', brandName: 'Stiiizy', type: 'hybrid', weight: { value: 0.5, unit: 'g' }, traits: ['live resin', 'proprietary pod'], pricingTemplateId: 'pt-cart-1g', customRetailCents: 3200, category: 'Vapes', sku: 'HD-STII-001', photoSeed: 31 },
-    { id: 'p-stiiizy-sour-diesel', name: 'Pod Sour Diesel', brandId: 'v-stiiizy', brandName: 'Stiiizy', type: 'sativa', weight: { value: 1, unit: 'g' }, traits: ['classic strain'], pricingTemplateId: 'pt-cart-1g', customRetailCents: null, category: 'Vapes', sku: 'HD-STII-002', photoSeed: 32 },
-    { id: 'p-hh-og-kush', name: 'OG Kush Cartridge', brandId: 'v-heavy', brandName: 'Heavy Hitters', type: 'indica', weight: { value: 1, unit: 'g' }, traits: ['high-potency', 'ceramic coil'], pricingTemplateId: 'pt-cart-1g', customRetailCents: null, category: 'Vapes', sku: 'HD-HEAV-001', photoSeed: 41 },
-    { id: 'p-hh-diamond-pineapple', name: 'Diamond Pineapple', brandId: 'v-heavy', brandName: 'Heavy Hitters', type: 'sativa', weight: { value: 1, unit: 'g' }, traits: ['diamond-infused'], pricingTemplateId: 'pt-cart-1g', customRetailCents: null, category: 'Vapes', sku: 'HD-HEAV-002', photoSeed: 42 },
-    { id: 'p-jeeter-baby-churros', name: 'Baby Cannon Churros', brandId: 'v-jeeter', brandName: 'Jeeter', type: 'hybrid', weight: { value: 1.3, unit: 'g' }, traits: ['infused', 'kief-coated'], pricingTemplateId: 'pt-preroll-pack', customRetailCents: null, category: 'Pre-Rolls', sku: 'HD-JEET-001', photoSeed: 51 },
-    { id: 'p-jeeter-joints-runtz', name: 'Joints Runtz 5-Pack', brandId: 'v-jeeter', brandName: 'Jeeter', type: 'hybrid', weight: { value: 5, unit: 'pk' }, traits: ['5-pack', 'indoor'], pricingTemplateId: 'pt-preroll-pack', customRetailCents: null, category: 'Pre-Rolls', sku: 'HD-JEET-002', photoSeed: 52 },
-    { id: 'p-cookies-lpc', name: 'London Pound Cake Pre-Roll', brandId: 'v-cookies', brandName: 'Cookies', type: 'indica', weight: { value: 1, unit: 'g' }, traits: ['single', 'indoor'], pricingTemplateId: 'pt-preroll-pack', customRetailCents: null, category: 'Pre-Rolls', sku: 'HD-COOK-001', photoSeed: 61 },
-    { id: 'p-cookies-gary-payton', name: 'Gary Payton Flower', brandId: 'v-cookies', brandName: 'Cookies', type: 'hybrid', weight: { value: 3.5, unit: 'g' }, traits: ['indoor', 'exotics'], pricingTemplateId: null, customRetailCents: 5800, category: 'Flower', sku: 'HD-COOK-002', photoSeed: 62 },
+    { id: 'p-kiva-camino-wild', name: 'Camino Wild Berry Gummies', brandId: 'v-kiva', brandName: 'Kiva', type: 'hybrid', weight: { value: 100, unit: 'mg' }, traits: ['vegan', 'live resin', 'fast-onset'], productShellId: 'sh-edibles-100mg', customRetailCents: null, category: 'Edibles', sku: 'HD-KIVA-001', photoSeed: 11 },
+    { id: 'p-kiva-terra-espresso', name: 'Terra Bites Milk Chocolate Espresso', brandId: 'v-kiva', brandName: 'Kiva', type: 'hybrid', weight: { value: 100, unit: 'mg' }, traits: ['small-batch', 'espresso'], productShellId: 'sh-edibles-100mg', customRetailCents: null, category: 'Edibles', sku: 'HD-KIVA-002', photoSeed: 12 },
+    { id: 'p-kiva-petra-moroccan', name: 'Petra Mints Moroccan', brandId: 'v-kiva', brandName: 'Kiva', type: 'sativa', weight: { value: 100, unit: 'mg' }, traits: ['low-cal', 'discreet'], productShellId: 'sh-edibles-100mg', customRetailCents: 2500, category: 'Edibles', sku: 'HD-KIVA-003', photoSeed: 13 },
+    { id: 'p-wyld-raspberry', name: 'Raspberry Sativa Gummies', brandId: 'v-wyld', brandName: 'Wyld', type: 'sativa', weight: { value: 100, unit: 'mg' }, traits: ['real-fruit', 'vegan'], productShellId: 'sh-edibles-100mg', customRetailCents: null, category: 'Edibles', sku: 'HD-WYLD-001', photoSeed: 21 },
+    { id: 'p-stiiizy-blue-dream', name: 'Pod Blue Dream Live Resin', brandId: 'v-stiiizy', brandName: 'Stiiizy', type: 'hybrid', weight: { value: 0.5, unit: 'g' }, traits: ['live resin', 'proprietary pod'], productShellId: 'sh-cart-1g', customRetailCents: 3200, category: 'Vapes', sku: 'HD-STII-001', photoSeed: 31 },
+    { id: 'p-stiiizy-sour-diesel', name: 'Pod Sour Diesel', brandId: 'v-stiiizy', brandName: 'Stiiizy', type: 'sativa', weight: { value: 1, unit: 'g' }, traits: ['classic strain'], productShellId: 'sh-cart-1g', customRetailCents: null, category: 'Vapes', sku: 'HD-STII-002', photoSeed: 32 },
+    { id: 'p-hh-og-kush', name: 'OG Kush Cartridge', brandId: 'v-heavy', brandName: 'Heavy Hitters', type: 'indica', weight: { value: 1, unit: 'g' }, traits: ['high-potency', 'ceramic coil'], productShellId: 'sh-cart-1g', customRetailCents: null, category: 'Vapes', sku: 'HD-HEAV-001', photoSeed: 41 },
+    { id: 'p-hh-diamond-pineapple', name: 'Diamond Pineapple', brandId: 'v-heavy', brandName: 'Heavy Hitters', type: 'sativa', weight: { value: 1, unit: 'g' }, traits: ['diamond-infused'], productShellId: 'sh-cart-1g', customRetailCents: null, category: 'Vapes', sku: 'HD-HEAV-002', photoSeed: 42 },
+    { id: 'p-jeeter-baby-churros', name: 'Baby Cannon Churros', brandId: 'v-jeeter', brandName: 'Jeeter', type: 'hybrid', weight: { value: 1.3, unit: 'g' }, traits: ['infused', 'kief-coated'], productShellId: 'sh-preroll-pack', customRetailCents: null, category: 'Pre-Rolls', sku: 'HD-JEET-001', photoSeed: 51 },
+    { id: 'p-jeeter-joints-runtz', name: 'Joints Runtz 5-Pack', brandId: 'v-jeeter', brandName: 'Jeeter', type: 'hybrid', weight: { value: 5, unit: 'pk' }, traits: ['5-pack', 'indoor'], productShellId: 'sh-preroll-pack', customRetailCents: null, category: 'Pre-Rolls', sku: 'HD-JEET-002', photoSeed: 52 },
+    { id: 'p-cookies-lpc', name: 'London Pound Cake Pre-Roll', brandId: 'v-cookies', brandName: 'Cookies', type: 'indica', weight: { value: 1, unit: 'g' }, traits: ['single', 'indoor'], productShellId: 'sh-preroll-pack', customRetailCents: null, category: 'Pre-Rolls', sku: 'HD-COOK-001', photoSeed: 61 },
+    { id: 'p-cookies-gary-payton', name: 'Gary Payton Flower', brandId: 'v-cookies', brandName: 'Cookies', type: 'hybrid', weight: { value: 3.5, unit: 'g' }, traits: ['indoor', 'exotics'], productShellId: null, customRetailCents: 5800, category: 'Flower', sku: 'HD-COOK-002', photoSeed: 62 },
   ];
 
   // Brand hues drive the product thumbnails (rendered as token gradients
@@ -37,9 +37,9 @@
   const HUE_BY_BRAND = { 'v-kiva': 24, 'v-wyld': 340, 'v-stiiizy': 222, 'v-heavy': 0, 'v-jeeter': 36, 'v-cookies': 152 };
 
   const PRODUCTS = PRODUCT_SEEDS.map((s) => ({
-    id: s.id, name: s.name, brandId: s.brandId, brandName: s.brandName, type: s.type, weight: s.weight,
+    id: s.id, name: s.name, brandId: s.brandId, brandName: (window.HW_BRANDS.byId[s.brandId] || {}).name || s.brandName, type: s.type, weight: s.weight,
     traits: s.traits, hue: HUE_BY_BRAND[s.brandId] ?? 90, photoSeed: s.photoSeed,
-    pricingTemplateId: s.pricingTemplateId, customRetailCents: s.customRetailCents, category: s.category, sku: s.sku, active: true,
+    productShellId: s.productShellId, customRetailCents: s.customRetailCents, category: s.category, sku: s.sku, active: true,
   }));
   const getProduct = (id) => PRODUCTS.find((p) => p.id === id) ?? null;
 
@@ -63,7 +63,7 @@
   function batchesForProduct(p, idx) {
     const count = range(2, 5);
     const rows = [];
-    const tpl = getPricingTemplate(p.pricingTemplateId);
+    const tpl = getProductShell(p.productShellId);
     const retail = productRetailCents(p, tpl) ?? 3000;
     const targetMargin = tpl?.marginPct ?? 0.5;
     const baseCost = Math.round(retail * (1 - targetMargin));
@@ -103,11 +103,11 @@
   function summarize(product) {
     const batches = batchesFor(product.id);
     const total = batches.reduce((acc, b) => acc + b.qtyOnHand, 0);
-    const tpl = getPricingTemplate(product.pricingTemplateId);
+    const tpl = getProductShell(product.productShellId);
     return {
       batchCount: batches.length, totalQtyOnHand: total, hasNearExpiry: hasNearExpiryBatch(product.id),
       effectiveRetailCents: productRetailCents(product, tpl),
-      retailFromTemplate: product.customRetailCents == null && product.pricingTemplateId != null,
+      retailFromShell: product.customRetailCents == null && product.productShellId != null,
     };
   }
 
@@ -163,7 +163,7 @@
   }
 
   window.HD_PRODUCTS = {
-    PRICING_TEMPLATES, getPricingTemplate, productRetailCents, PRODUCTS, getProduct,
+    PRODUCT_SHELLS, getProductShell, productRetailCents, PRODUCTS, getProduct,
     PRODUCT_BATCHES, batchesFor, hasNearExpiryBatch, UNMAPPED_BATCHES, summarize,
     batchExpiryStatus, batchMarginPct, getMappedProductId, mapBatchToProduct, subscribeMappings,
     matchLineToProduct, PRODUCTS_NOW,

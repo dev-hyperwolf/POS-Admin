@@ -8,7 +8,9 @@ If you add, rename or retire a file, update the hub in the same turn.
 | App | Entry | Source |
 |---|---|---|
 | POS | `Hyperwolf POS.html` | `pos/` |
+| METRC Batch Pipeline | `METRC Batch Pipeline.html` | `pipeline/` |
 | Promotions Suite | `Promotions Suite.html` | `pweb/` (shell + screens) + `promo/` (data, atoms, builder) |
+| Engage | `Hyperwolf Engage.html` | `engage/` |
 | Shop @ Home | `Shop at Home.html` | `athome/admin.jsx` |
 | Members CRM | `Members CRM.html` | `athome/crm.jsx` |
 | Customer Account | `Customer Account.html` | `athome/account-a/b/c.jsx` + `account-switch.jsx` |
@@ -25,6 +27,11 @@ If you add, rename or retire a file, update the hub in the same turn.
 - `pos/atoms.jsx` — Card, KPI, Pill, PBtn, Field, DataTable, StrainPill, etc.
 - `shared/app-nav.js` — **the one nav list** every left rail renders (`window.HW_NAV`).
   Add an app here once and it appears in every app's rail.
+- `shared/brands.js` — **the one brand (vendor) DB** (`window.HW_BRANDS`). POS catalog rows, POS
+  shells, the pipeline vendor list and buyer analytics all read from it. Never write a brand name
+  as a literal and never start a second list; vendors ARE brands.
+- `shared/hd-ui.jsx` — Hyperdrive UI kit (status pill, stat tile, tables, sheet, toast) used by
+  the pipeline and Engage. `shared/hd-format.jsx` is the generic entity/tone/format helper set.
 - `shared/app-rail.jsx` — **the one rail component** (`window.HWRail`). Every app renders
   `<window.HWRail active="<its id>" />`. No app defines its own rail markup.
 - `shared/app-switcher.js` — floating cross-app launcher. Keep its list in sync with the hub.
@@ -41,6 +48,14 @@ folder → `shared/app-switcher.js`, `shared/tour-steps.js`, `shared/tour.js`.
 - `exports/` — self-contained offline builds, one per app, named `<App> (standalone).html`.
   Auto-generated; never edited by hand; regenerate rather than patch.
 - `uploads/` — the user's own files. Never delete or rewrite these.
+
+## Repo mirror (dev-hyperwolf/POS-Admin, GitHub Pages)
+
+This project is mirrored 1:1 to a repo. Keep these four root files intact and current:
+`README.md` (repo front page), `HANDOFF.md` (design-system spec + recreation brief for the two
+Hyperdrive consoles), `index.html` (redirects to `Hyperwolf.html`), `.nojekyll` (stops Jekyll
+mangling `{{ }}` in inline JSX). Never build a separate handoff/export folder — the whole project
+IS the handoff.
 
 ## Rules
 

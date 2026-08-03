@@ -339,7 +339,7 @@ function BookScreen({ back }){ const P=useP(); const [addr,setAddr]=useState(0);
 
 // ══ SCREEN: POINTS ════════════════════════════════════════════════════════
 function PointsScreen({ back }){ const P=useP(); const pct=ME.points/(ME.points+ME.pointsToNext);
-  const rewards=[['$10 off','1,000 pts',true],['$25 off','2,500 pts',true],['Free preroll 5pk','1,500 pts',true],['$50 off','5,000 pts',false]];
+  const rewards=[['$2.50 off','100 pts',true],['$5 off','200 pts',true],['$10 off','400 pts',true],['$20 off','800 pts',true],['Birthday $20','perk',true]];
   return (<div>
   <ScreenHead title="Points & rewards" onBack={back}/>
   <div style={{ padding:'14px 16px 24px', display:'flex', flexDirection:'column', gap:16 }}>

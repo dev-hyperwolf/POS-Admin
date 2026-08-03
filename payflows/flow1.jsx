@@ -119,10 +119,10 @@ function StepCredits({ P, reward, setReward, wallet, setWallet, balance }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}><Icon name="star" size={14} color={P.accent} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Redeem points</span><span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>· {cust.points.toLocaleString()} available</span></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {window.PAY.rewards.map((r) => {
-              const can = cust.points >= r.cost, a = reward === r.id;
+              const can = (r.bday || cust.points >= r.cost), a = reward === r.id;
               return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '9px 13px', background: a ? P.accentSoft : P.surface, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, textAlign: 'left', fontFamily: P.fontSans }}>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{r.label}</span>
-                <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{r.cost} pts{r.item ? ' · item' : ''}</span>
+                <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{r.bday ? 'birthday perk' : r.cost + ' pts'}</span>
               </button>;
             })}
           </div>

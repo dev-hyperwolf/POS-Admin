@@ -21,23 +21,8 @@
   const NOW = new Date('2026-04-20T18:30:00-07:00').getTime();
   const daysAgo = (days, hours = 0) => new Date(NOW - days * 86400000 - hours * 3600000).toISOString();
 
-  const VENDORS = [
-    { id: 'v-kiva', name: 'Kiva Confections', category: 'Edibles' },
-    { id: 'v-stiiizy', name: 'STIIIZY', category: 'Vape' },
-    { id: 'v-jeeter', name: 'Jeeter', category: 'Pre-roll' },
-    { id: 'v-lowell', name: 'Lowell Farms', category: 'Flower' },
-    { id: 'v-raw', name: 'Raw Garden', category: 'Concentrate' },
-    { id: 'v-papa', name: 'Papa & Barkley', category: 'Topical' },
-    { id: 'v-cann', name: 'Cann', category: 'Beverage' },
-    { id: 'v-heavy', name: 'Heavy Hitters', category: 'Vape' },
-    { id: 'v-wyld', name: 'Wyld', category: 'Edibles' },
-    { id: 'v-connected', name: 'Connected', category: 'Flower' },
-    { id: 'v-select', name: 'Select', category: 'Vape' },
-    { id: 'v-pax', name: 'Pax Labs', category: 'Hardware' },
-    { id: 'v-camino', name: 'Camino', category: 'Edibles' },
-    { id: 'v-alien', name: 'Alien Labs', category: 'Flower' },
-    { id: 'v-710', name: '710 Labs', category: 'Concentrate' },
-  ];
+  // The one brand DB — shared/brands.js. Vendors ARE brands; there is no second list.
+  const VENDORS = window.HW_BRANDS.list.map((b) => ({ id: b.id, name: b.name, category: b.category }));
 
   const PRODUCTS = {
     'v-kiva': ['Kiva Terra Bites Milk Chocolate Espresso 100mg', 'Kiva Camino Gummies Wild Berry 100mg', 'Kiva Dark Chocolate Bar 60mg', 'Kiva Petra Mints Moroccan 100mg'],
@@ -55,6 +40,7 @@
     'v-camino': ['Camino Wild Berry Gummies 100mg', 'Camino Pineapple Habanero Gummies', 'Camino Midnight Blueberry Sleep', 'Camino Sparkling Pear'],
     'v-alien': ['Alien Labs Biskante 3.5g', 'Alien Labs Milk Cake Preroll', 'Alien Labs Area 41 Live Resin 1g', 'Alien Labs Atomic Apple 3.5g'],
     'v-710': ['710 Labs Persy Badder 1g', '710 Labs Water Hash 1g', '710 Labs Persy Rosin 1g', '710 Labs Live Diamonds 1g'],
+    'v-cookies': ['Cookies Gary Payton 3.5g', 'Cookies Cereal Milk 3.5g', 'Cookies London Pound Cake Pre-Roll 1g', 'Cookies Georgia Pie 3.5g'],
   };
 
   const ENTITY_IDS = ['thc', 'ccd', 'ah', 'hwd'];

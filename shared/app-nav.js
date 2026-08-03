@@ -10,13 +10,13 @@
     { id: 'catalog', label: 'Catalog', icon: 'package', pos: 'catalog' },
     { id: 'batches', label: 'Batches', icon: 'box', href: 'METRC Batch Pipeline.html' },
     { id: 'promos', label: 'Promos', icon: 'tag', href: 'Promotions Suite.html' },
-    { id: 'engage', label: 'Engage', icon: 'megaphone', href: 'Hyperwolf Engage.html' },
     { id: 'members', label: 'Members', icon: 'users', pos: 'members' },
-    { id: 'shophome', label: '@ Home', icon: 'route', href: 'Shop at Home.html' },
+    { id: 'terminals', label: 'Terminals', icon: 'card', href: 'POS Terminal Configuration.html' },
     { id: 'delivery', label: 'Delivery', icon: 'pin', href: 'Hyperwolf Delivery.html' },
     { id: 'logistics', label: 'Dispatch', icon: 'truck', href: 'Hyperdrive Logistics.html' },
-    { id: 'terminals', label: 'Terminals', icon: 'card', href: 'POS Terminal Configuration.html' },
-    { id: 'driver', label: 'Drivers App', icon: 'phone', href: 'Hyperwolf Driver App.html' }
+    { id: 'shophome', label: '@ Home', icon: 'route', href: 'Shop at Home.html' },
+    { id: 'driver', label: 'Drivers App', icon: 'phone', href: 'Hyperwolf Driver App.html' },
+    { id: 'engage', label: 'Engage', icon: 'megaphone', href: 'Hyperwolf Engage.html' }
   ];
   var SETTINGS = { id: 'settings', label: 'Settings', icon: 'settings', pos: 'settings' };
 

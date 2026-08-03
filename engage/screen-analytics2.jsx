@@ -41,7 +41,7 @@
                     {c.curve.map((v, i) => (
                       <TD key={i} align="right" mono>
                         {v == null ? <span style={{ color: P.inkFaint }}>—</span>
-                          : <span style={{ display: 'inline-block', minWidth: 46, borderRadius: 5, padding: '2px 6px', background: `color-mix(in oklab, ${P.accent} ${Math.round(12 + v * 0.7)}%, ${P.surface})`, color: v > 60 ? (P.mode === 'dark' ? '#15140f' : P.ink) : P.ink2 }}>{v}%</span>}
+                          : <span style={{ display: 'inline-block', minWidth: 46, borderRadius: 5, padding: '2px 6px', background: `color-mix(in oklab, ${P.accent} ${Math.round(12 + v * 0.7)}%, ${P.surface})`, color: v > 60 ? (P.mode === 'dark' ? P.accentInk : P.ink) : P.ink2 }}>{v}%</span>}
                       </TD>))}
                     <TD align="right" mono style={{ fontWeight: 600 }}>{HD.formatCents(c.ltv * 100, { showCents: false })}</TD>
                   </TR>))}

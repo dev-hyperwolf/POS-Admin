@@ -1,4 +1,4 @@
-// ── /products/[id] + /products/pricing-templates ──────────────────────────
+// ── /products/[id] + /products/shells ──────────────────────────────────────
 ;(function () {
   const useP = window.useP;
   const TYPE_LABEL = { sativa: 'Sativa', indica: 'Indica', hybrid: 'Hybrid', cbd: 'CBD', na: 'N/A' };
@@ -112,7 +112,7 @@
     }
 
     const batches = PR.batchesFor(product.id);
-    const tpl = PR.getPricingTemplate(product.pricingTemplateId);
+    const tpl = PR.getProductShell(product.productShellId);
     const retailCents = PR.productRetailCents(product, tpl);
     const totalOnHand = batches.reduce((acc, b) => acc + b.qtyOnHand, 0);
     const warn = HD.tone(P, 'warn');
@@ -161,11 +161,11 @@
               <div style={{ marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontSize: 26, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{retailCents != null ? HD.formatCurrency(retailCents / 100) : '—'}</span>
                 {product.customRetailCents != null ? <HDPill tone="warn" icon={false} size="sm" label="Custom override" />
-                  : tpl ? <HDPill tone="brand" icon={false} size="sm" label="From template" />
+                  : tpl ? <HDPill tone="brand" icon={false} size="sm" label="From shell" />
                   : <HDPill tone="neutral" icon={false} size="sm" label="Not set" />}
               </div>
               {tpl && (
-                <button onClick={() => navigate('#/products/pricing-templates')}
+                <button onClick={() => navigate('#/products/shells')}
                   style={{ marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface3, padding: '8px 12px', cursor: 'pointer', fontFamily: P.fontSans }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <Icon name="tag" size={12} stroke={2} color={accentInk} />
@@ -235,7 +235,7 @@
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
               <PBtn size="sm" variant="ghost" icon="pencil">Edit wrapper</PBtn>
               <PBtn size="sm" variant="ghost" icon="settings">Manage batches</PBtn>
-              <PBtn size="sm" variant="accent" icon="tag" onClick={() => navigate('#/products/pricing-templates')}>Adjust pricing</PBtn>
+              <PBtn size="sm" variant="accent" icon="tag" onClick={() => navigate('#/products/shells')}>Adjust pricing</PBtn>
             </div>
           </div>
         </div>
@@ -244,18 +244,18 @@
       </div>);
   };
 
-  // ── Pricing templates ───────────────────────────────────────────────────
-  window.ScreenPricingTemplates = function ScreenPricingTemplates({ navigate }) {
+  // ── Product shells ───────────────────────────────────────────────────
+  window.ScreenProductShells = function ScreenProductShells({ navigate }) {
     const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
-    const [templates, setTemplates] = React.useState(PR.PRICING_TEMPLATES);
+    const [shells, setShells] = React.useState(PR.PRODUCT_SHELLS);
     const [editing, setEditing] = React.useState(null);
     const [confirming, setConfirming] = React.useState(null);
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
 
     function commit() {
       if (!confirming) return;
-      setTemplates((cur) => cur.map((t) => (t.id === confirming.template.id ? { ...t, basePriceCents: confirming.basePriceCents, marginPct: confirming.marginPct } : t)));
-      window.hdToast?.({ title: 'Template updated', description: `${confirming.template.productCount} product${confirming.template.productCount === 1 ? '' : 's'} re-priced.`, tone: 'ok' });
+      setShells((cur) => cur.map((t) => (t.id === confirming.shell.id ? { ...t, basePriceCents: confirming.basePriceCents, marginPct: confirming.marginPct } : t)));
+      window.hdToast?.({ title: 'Shell updated', description: `${confirming.shell.productCount} product${confirming.shell.productCount === 1 ? '' : 's'} re-priced.`, tone: 'ok' });
       setConfirming(null); setEditing(null);
     }
 
@@ -269,29 +269,29 @@
       <div style={{ display: 'flex', flexDirection: 'column', padding: 20, gap: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: P.inkMute }}>
           <button onClick={() => navigate('#/products')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', cursor: 'pointer', fontSize: 12, fontFamily: P.fontSans }}>Products</button>
-          <Icon name="chevron-right" size={12} stroke={2} /><span style={{ color: P.ink }}>Pricing templates</span>
+          <Icon name="chevron-right" size={12} stroke={2} /><span style={{ color: P.ink }}>Product shells</span>
         </div>
 
         <header style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 260 }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Pricing templates</h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: P.inkMute }}>One template prices an entire SKU family. Update once, the menu reflects everywhere.</p>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Product shells</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: P.inkMute }}>One shell prices an entire SKU family. Update once, the menu reflects everywhere.</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 12, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
               <Icon name="arrow-left" size={12} stroke={2} />Back
             </button>
-            <PBtn size="sm" variant="accent" icon="plus">New template</PBtn>
+            <PBtn size="sm" variant="accent" icon="plus">New shell</PBtn>
           </div>
         </header>
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
             <HDTable>
-              <thead><tr><TH>Template</TH><TH>Audience</TH><TH align="right">Base price</TH><TH align="right">Target margin</TH><TH align="right">Products</TH><TH></TH></tr></thead>
+              <thead><tr><TH>Shell</TH><TH>Audience</TH><TH align="right">Base price</TH><TH align="right">Target margin</TH><TH align="right">Products</TH><TH></TH></tr></thead>
               <tbody>
-                {templates.map((t) => {
-                  const bound = PR.PRODUCTS.filter((p) => p.pricingTemplateId === t.id);
+                {shells.map((t) => {
+                  const bound = PR.PRODUCTS.filter((p) => p.productShellId === t.id);
                   return (
                     <TR key={t.id}>
                       <TD><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="tag" size={12} stroke={2} color={accentInk} /><span style={{ color: P.ink }}>{t.name}</span></div></TD>
@@ -303,7 +303,7 @@
                           {bound.length}<Icon name="chevron-right" size={11} stroke={2} />
                         </button>
                       </TD>
-                      <TD align="right"><PBtn size="xs" variant="ghost" icon="pencil" onClick={() => setEditing({ template: t, basePriceCents: t.basePriceCents, marginPct: t.marginPct })}>Edit</PBtn></TD>
+                      <TD align="right"><PBtn size="xs" variant="ghost" icon="pencil" onClick={() => setEditing({ shell: t, basePriceCents: t.basePriceCents, marginPct: t.marginPct })}>Edit</PBtn></TD>
                     </TR>);
                 })}
               </tbody>
@@ -312,11 +312,11 @@
         </Card>
 
         <Card padding={20}>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Products on each template</h2>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Products on each shell</h2>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: P.inkMute }}>A quick at-a-glance binding map — useful for spotting orphan products before a price change goes out.</p>
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-            {templates.map((t) => {
-              const bound = PR.PRODUCTS.filter((p) => p.pricingTemplateId === t.id);
+            {shells.map((t) => {
+              const bound = PR.PRODUCTS.filter((p) => p.productShellId === t.id);
               return (
                 <div key={t.id} style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, padding: 12, background: P.surface2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="tag" size={12} stroke={2} color={accentInk} /><span style={{ fontSize: 13, color: P.ink }}>{t.name}</span></div>
@@ -328,7 +328,7 @@
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                         {p.customRetailCents != null && <HDPill tone="warn" icon={false} size="sm" label="override" style={{ height: 16, fontSize: 9 }} />}
                       </button>))}
-                    {bound.length === 0 && <span style={{ fontSize: 12, color: P.inkMute }}>No products on this template.</span>}
+                    {bound.length === 0 && <span style={{ fontSize: 12, color: P.inkMute }}>No products on this shell.</span>}
                   </div>
                 </div>);
             })}
@@ -340,8 +340,8 @@
             <div onClick={() => setEditing(null)} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
             <Card padding={0} style={{ position: 'relative', width: 440, maxWidth: '92vw' }}>
               <div style={{ padding: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Edit {editing.template.name}</h2>
-                <p style={{ margin: '6px 0 16px', fontSize: 13, color: P.inkDim }}>Changes will affect {editing.template.productCount} product{editing.template.productCount === 1 ? '' : 's'} bound to this template.</p>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Edit {editing.shell.name}</h2>
+                <p style={{ margin: '6px 0 16px', fontSize: 13, color: P.inkDim }}>Changes will affect {editing.shell.productCount} product{editing.shell.productCount === 1 ? '' : 's'} bound to this shell.</p>
                 <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, marginBottom: 6 }}>Base price ($)</label>
                 <Field type="number" step={0.5} value={(editing.basePriceCents / 100).toFixed(2)} onChange={(e) => setEditing({ ...editing, basePriceCents: Math.round(Number(e.target.value || 0) * 100) })} />
                 <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, margin: '12px 0 6px' }}>Target margin (%)</label>
@@ -359,12 +359,12 @@
             <div onClick={() => setConfirming(null)} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
             <Card padding={0} style={{ position: 'relative', width: 440, maxWidth: '92vw' }}>
               <div style={{ padding: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Update template?</h2>
-                <p style={{ margin: '6px 0 16px', fontSize: 13, color: P.inkDim }}>{confirming.template.productCount} product{confirming.template.productCount === 1 ? '' : 's'} will reflect the new retail price the next time the menu rebuilds.</p>
+                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Update shell?</h2>
+                <p style={{ margin: '6px 0 16px', fontSize: 13, color: P.inkDim }}>{confirming.shell.productCount} product{confirming.shell.productCount === 1 ? '' : 's'} will reflect the new retail price the next time the menu rebuilds.</p>
                 <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface3, padding: 12, fontSize: 12 }}>
-                  <Row label="Old price" value={HD.formatCurrency(confirming.template.basePriceCents / 100)} />
+                  <Row label="Old price" value={HD.formatCurrency(confirming.shell.basePriceCents / 100)} />
                   <Row label="New price" value={HD.formatCurrency(confirming.basePriceCents / 100)} emphasis />
-                  <Row label="Old margin" value={HD.formatPercent(confirming.template.marginPct, 0)} />
+                  <Row label="Old margin" value={HD.formatPercent(confirming.shell.marginPct, 0)} />
                   <Row label="New margin" value={HD.formatPercent(confirming.marginPct, 0)} emphasis />
                 </div>
               </div>

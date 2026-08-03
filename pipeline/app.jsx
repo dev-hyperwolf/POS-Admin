@@ -109,7 +109,7 @@
     const items = React.useMemo(() => NAV_GROUPS.flatMap((g) => g.items.filter((i) => !i.inactive).map((i) => ({ ...i, group: g.label }))).concat([
       { href: '#/batches/archive', label: 'Batch archive', group: 'Operations', icon: 'box' },
       { href: '#/batches/merge', label: 'Merge packages', group: 'Operations', icon: 'swap' },
-      { href: '#/products/pricing-templates', label: 'Pricing templates', group: 'Operations', icon: 'dollar' },
+      { href: '#/products/shells', label: 'Product shells', group: 'Operations', icon: 'dollar' },
       { href: '#/credits/new', label: 'New credit memo', group: 'Finance', icon: 'plus' },
     ]), []);
     const filtered = items.filter((i) => i.label.toLowerCase().includes(q.trim().toLowerCase()));
@@ -221,7 +221,7 @@
     else if (path === '/scan') screen = window.ScreenScan ? <ScreenScan {...ctx} /> : <Placeholder title="Scan" />;
     else if (path === '/inventory') screen = window.ScreenInventory ? <ScreenInventory {...ctx} /> : <Placeholder title="Inventory" />;
     else if (path === '/products') screen = window.ScreenProducts ? <ScreenProducts {...ctx} /> : <Placeholder title="Products" />;
-    else if (path === '/products/pricing-templates') screen = window.ScreenPricingTemplates ? <ScreenPricingTemplates {...ctx} /> : <Placeholder title="Pricing templates" />;
+    else if (path === '/products/shells') screen = window.ScreenProductShells ? <ScreenProductShells {...ctx} /> : <Placeholder title="Product shells" />;
     else if (path.startsWith('/products/')) screen = window.ScreenProductDetail ? <ScreenProductDetail {...ctx} /> : <Placeholder title="Product" />;
     else if (path === '/ap') screen = window.ScreenAP ? <ScreenAP {...ctx} /> : <Placeholder title="AP" />;
     else if (path === '/credits') screen = window.ScreenCredits ? <ScreenCredits {...ctx} /> : <Placeholder title="Credits" />;

@@ -97,7 +97,7 @@
                 <button key={`${r}-${f}`} onClick={() => onCell?.(r, f, count)} title={`R${r} F${f} · ${HD.formatNumber(count)} customers`}
                   style={{ height: 52, borderRadius: 8, border: `1px solid ${P.hairline2}`, cursor: 'pointer', fontFamily: P.fontMono, fontSize: 11,
                     background: count === 0 ? P.surface2 : `color-mix(in oklab, ${P.accent} ${Math.round(18 + intensity * 72)}%, ${P.surface})`,
-                    color: intensity > 0.55 ? (P.mode === 'dark' ? '#15140f' : P.ink) : P.ink2 }}>
+                    color: intensity > 0.55 ? (P.mode === 'dark' ? P.accentInk : P.ink) : P.ink2 }}>
                   {count ? HD.formatNumber(count) : '—'}
                 </button>);
             }))}

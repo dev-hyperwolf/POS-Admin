@@ -3,6 +3,7 @@
 // and lib/fake-pipeline-config.ts. Tones resolve against pos/tokens.jsx —
 // no color literals live here.
 ;(function () {
+  const BASE = window.HD;
   const ENTITIES = [
     { id: 'thc', name: 'The Highest Craft', short: 'THC', hue: 'accent' },
     { id: 'ccd', name: 'Circle City', short: 'CCD', hue: 'blue' },
@@ -10,34 +11,9 @@
     { id: 'hwd', name: 'Hyperwolf Delivery', short: 'HWD', hue: 'violet' },
   ];
 
-  // Categorical wayfinding hues (decorative only, never status) + status
-  // tones, both resolved from the live theme palette.
-  function hueColor(P, hue) {
-    switch (hue) {
-      case 'blue': return P.info;
-      case 'violet': return P.indica;
-      case 'teal': return P.cat.wellness;
-      case 'green': return P.hybrid;
-      case 'pink': return P.cat.edibles;
-      case 'accent': return P.accent;
-      default: return P.inkDim;
-    }
-  }
-
-  // tone → { fg, bg } for pills, dots, column headers and card accents.
-  function tone(P, t) {
-    switch (t) {
-      case 'ok': return { fg: P.good, bg: P.goodSoft, pill: 'good' };
-      case 'warn': return { fg: P.warn, bg: P.warnSoft, pill: 'warn' };
-      case 'blocked': return { fg: P.bad, bg: P.badSoft, pill: 'bad' };
-      case 'info': return { fg: P.info, bg: P.infoSoft, pill: 'info' };
-      case 'quarantine': return { fg: P.indica, bg: P.indica + (P.mode === 'dark' ? '28' : '1F'), pill: 'neutral' };
-      case 'sealing': return { fg: P.cat.wellness, bg: P.cat.wellness + (P.mode === 'dark' ? '28' : '1F'), pill: 'neutral' };
-      case 'archived': return { fg: P.neutral, bg: P.neutralSoft, pill: 'neutral' };
-      case 'brand': return { fg: P.mode === 'dark' ? P.accent : P.accentBorder, bg: P.accentSoft, pill: 'accent' };
-      default: return { fg: P.ink2, bg: P.neutralSoft, pill: 'neutral' };
-    }
-  }
+  // Categorical wayfinding hues + status tones both come from hd-format.
+  const hueColor = BASE.hueColor;
+  const tone = BASE.tone;
 
   const BATCH_STATUS_LABEL = {
     incoming: 'Incoming', received: 'Received', labeling: 'Labeling', sealing: 'Sealing', staging: 'Staging',
@@ -305,20 +281,9 @@
     return rem ? `${d}d ${rem}h` : `${d}d`;
   }
 
-  // METRC / HUID short forms — mid-ellipsis for METRC, last-4 for HUIDs.
-  function uidKind(value) {
-    if (/^HWID-/i.test(value)) return 'huid';
-    if (/^[0-9A-Fa-f]{24}$/.test(value)) return value.toUpperCase().startsWith('48') ? 'huid' : 'metrc';
-    return value.toUpperCase().startsWith('1A') ? 'metrc' : 'huid';
-  }
-  function uidShort(value, kind) {
-    if (/^HWID-/i.test(value)) return value.toUpperCase();
-    if (kind === 'huid') return `HWID-${value.slice(-4).toUpperCase()}`;
-    if (value.length >= 24) return `${value.slice(0, 9)}…${value.slice(-4).toUpperCase()}`;
-    return value.toUpperCase();
-  }
+  // METRC / HUID short forms live in shared/hd-format.jsx.
 
-  window.HD = {
+  window.HD = Object.assign({}, BASE, {
     ENTITIES, hueColor, tone,
     BATCH_STATUS_LABEL, BATCH_STATUS_ORDER, batchStatusTone,
     INVOICE_STATUS_LABEL, invoiceStatusTone, varianceTone, INBOX_STATUS_META, INBOX_STATUS_ORDER,
@@ -327,6 +292,5 @@
     canTransition, canTransitionForEntity, stageSeverity, stageAccentTone,
     isArchived, archivedAt,
     formatCurrency, formatNumber, formatPercent, formatDate, formatDateTime, relativeTime, relativeOrDate, ageInStatus,
-    uidKind, uidShort,
-  };
+  });
 })();

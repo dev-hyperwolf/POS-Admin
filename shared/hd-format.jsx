@@ -1,7 +1,8 @@
 // ── Generic Hyperdrive helpers for apps outside the pipeline ───────────────
-// Entities · hues · tones · formatting. pipeline/domain.jsx supersets this
-// with batch-specific domain logic; apps that only need the generic slice
-// (Engage, etc.) load this file instead.
+// Entities · hues · tones · UID formatting · number/date formatting.
+// Every color resolves from pos/tokens.jsx — no literals live here.
+// pipeline/domain.jsx loads on top of this file and supersets it with
+// batch-specific domain logic; it does not redefine anything below.
 ;(function () {
   const ENTITIES = [
     { id: 'thc', name: 'THC Flower Manufacturing', short: 'THC', hue: 'green' },
@@ -10,24 +11,21 @@
     { id: 'hwd', name: 'Hyperwolf Delivery', short: 'HWD', hue: 'teal' },
   ];
 
-  const hueColor = (P, hue) => ({
-    violet: P.mode === 'dark' ? '#B79CFF' : '#6D4AC8',
-    teal: P.mode === 'dark' ? '#67D6C4' : '#0E7C6B',
-    pink: P.mode === 'dark' ? '#F7A8C4' : '#B4306A',
-    green: P.mode === 'dark' ? '#8FD68B' : '#2C7A34',
-    blue: P.mode === 'dark' ? '#8FC2FF' : '#1F5FA8',
-    neutral: P.inkMute,
-  }[hue] || P.inkMute);
+  // Categorical wayfinding hues (decorative only, never status).
+  const hueColor = (P, hue) => (hue === 'accent' ? P.accent : (P.hue && P.hue[hue]) || P.inkMute);
 
+  // tone → { fg, bg, pill } for pills, dots, column headers and card accents.
   function tone(P, t) {
-    const d = P.mode === 'dark';
     switch (t) {
-      case 'ok': return { fg: d ? '#8FD68B' : '#2C7A34', bg: d ? 'rgba(143,214,139,.14)' : 'rgba(44,122,52,.10)' };
-      case 'warn': return { fg: d ? '#F3C969' : '#8A5B00', bg: d ? 'rgba(243,201,105,.14)' : 'rgba(138,91,0,.10)' };
-      case 'blocked': return { fg: d ? '#F09A94' : '#A8332B', bg: d ? 'rgba(240,154,148,.14)' : 'rgba(168,51,43,.10)' };
-      case 'info': return { fg: d ? '#8FC2FF' : '#1F5FA8', bg: d ? 'rgba(143,194,255,.14)' : 'rgba(31,95,168,.10)' };
-      case 'brand': return { fg: d ? P.accent : P.accentBorder, bg: P.accentSoft };
-      default: return { fg: P.ink2, bg: P.surface3 };
+      case 'ok': return { fg: P.good, bg: P.goodSoft, pill: 'good' };
+      case 'warn': return { fg: P.warn, bg: P.warnSoft, pill: 'warn' };
+      case 'blocked': return { fg: P.bad, bg: P.badSoft, pill: 'bad' };
+      case 'info': return { fg: P.info, bg: P.infoSoft, pill: 'info' };
+      case 'quarantine': return { fg: P.indica, bg: P.indica + (P.mode === 'dark' ? '28' : '1F'), pill: 'neutral' };
+      case 'sealing': return { fg: P.cat.wellness, bg: P.cat.wellness + (P.mode === 'dark' ? '28' : '1F'), pill: 'neutral' };
+      case 'archived': return { fg: P.neutral, bg: P.neutralSoft, pill: 'neutral' };
+      case 'brand': return { fg: P.mode === 'dark' ? P.accent : P.accentBorder, bg: P.accentSoft, pill: 'accent' };
+      default: return { fg: P.ink2, bg: P.neutralSoft, pill: 'neutral' };
     }
   }
 
@@ -55,8 +53,24 @@
     return abs(`${Math.floor(s / 31536000)}y`);
   }
 
-  const uidKind = () => 'huid';
-  const uidShort = (v) => String(v).toUpperCase();
+  // METRC / HUID short forms — mid-ellipsis for METRC, last-4 for HUIDs.
+  function uidKind(value) {
+    const v = String(value);
+    if (/^HWID-/i.test(v)) return 'huid';
+    if (/^INV-/i.test(v)) return 'invoice';
+    if (/^(ORD|SO)-/i.test(v)) return 'order';
+    if (/^[0-9A-Fa-f]{24}$/.test(v)) return v.toUpperCase().startsWith('48') ? 'huid' : 'metrc';
+    return v.toUpperCase().startsWith('1A') ? 'metrc' : 'huid';
+  }
+  function uidShort(value, kind) {
+    const v = String(value);
+    const k = kind || uidKind(v);
+    if (/^HWID-/i.test(v)) return v.toUpperCase();
+    if (k === 'invoice' || k === 'order') return v.toUpperCase();
+    if (k === 'huid') return `HWID-${v.slice(-4).toUpperCase()}`;
+    if (v.length >= 24) return `${v.slice(0, 9)}…${v.slice(-4).toUpperCase()}`;
+    return v.toUpperCase();
+  }
 
   window.HD = {
     ENTITIES, hueColor, tone,

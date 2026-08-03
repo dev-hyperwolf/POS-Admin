@@ -52,7 +52,7 @@ window.Flow3 = function Flow3() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Icon name="star" size={15} color={P.accent} />
             <span style={{ fontSize: 12.5, fontWeight: 700, flex: '0 0 auto' }}>Redeem points</span>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>{window.PAY.rewards.map((r) => chip(reward === r.id, r.label, () => setReward(reward === r.id ? null : r.id), cust.points < r.cost, r.id))}</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>{window.PAY.rewards.map((r) => chip(reward === r.id, r.label, () => setReward(reward === r.id ? null : r.id), cust.points < r.cost && !r.bday, r.id))}</div>
             <span style={{ fontSize: 14, fontWeight: 700, fontFamily: P.fontMono, color: rewardVal ? P.good : P.inkMute }}>{rewardVal ? '− ' + money(rewardVal) : '—'}</span>
           </div>
           <Bar frac={afterReward / txn.total} color={P.accent} />

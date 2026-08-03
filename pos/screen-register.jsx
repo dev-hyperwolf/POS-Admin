@@ -25,6 +25,12 @@ window.RegisterScreen = function RegisterScreen() {
   const [chipView, setChipView] = React.useState('bar'); // claimed-customer layout: bar | detailed | compact
   const [toast, setToast] = React.useState(null);
 
+  // Keep the floating switcher / tour launcher off the TENDER button.
+  React.useEffect(() => {
+    document.body.setAttribute('data-hw-float', 'clear-cart');
+    return () => document.body.removeAttribute('data-hw-float');
+  }, []);
+
   const find = (sku) => products.find((p) => p.sku === sku);
   const add = (p) => setCart((c) => {const e = c.find((x) => x.sku === p.sku);if (e) return c.map((x) => x.sku === p.sku ? { ...x, qty: x.qty + 1 } : x);return [...c, { sku: p.sku, qty: 1, disc: 0 }];});
   const setQty = (sku, qty) => setCart((c) => qty <= 0 ? c.filter((x) => x.sku !== sku) : c.map((x) => x.sku === sku ? { ...x, qty } : x));
@@ -512,7 +518,7 @@ function MemberDetails({ customer, guests, onClose }) {
   const mmic = 'MMIC-' + (25800 + seed * 137).toString().slice(0, 5);
   const medMd = pick(['Dr. A. Okafor', 'Dr. L. Brandt', 'Dr. S. Patel', 'Dr. R. Nguyen']);
   const medIssued = pick(['Jan 2026', 'Nov 2025', 'Mar 2026', 'Aug 2025']);
-  const orders = [{ id: '00219', date: 'Jun 8', items: 3, total: 41.0, tag: 'Papa’s Herb · Pre-Rolls' }, { id: '00204', date: 'Jun 1', items: 2, total: 28.5, tag: 'WVY · Flower' }, { id: '00188', date: 'May 24', items: 5, total: 96.2, tag: 'KIVA · Edibles' }, { id: '00171', date: 'May 18', items: 1, total: 15.0, tag: 'Allswell · Flower' }, { id: '00150', date: 'May 9', items: 4, total: 62.4, tag: 'West Coast Cure · Concentrates' }, { id: '00132', date: 'Apr 30', items: 2, total: 33.2, tag: 'AMMO · Vapes' }];
+  const orders = [{ id: '00219', date: 'Jun 8', items: 3, total: 41.0, tag: window.HW_BRANDS.name.jeeter + ' · Pre-Rolls' }, { id: '00204', date: 'Jun 1', items: 2, total: 28.5, tag: window.HW_BRANDS.name.lowell + ' · Flower' }, { id: '00188', date: 'May 24', items: 5, total: 96.2, tag: 'KIVA · Edibles' }, { id: '00171', date: 'May 18', items: 1, total: 15.0, tag: 'Allswell · Flower' }, { id: '00150', date: 'May 9', items: 4, total: 62.4, tag: 'West Coast Cure · Concentrates' }, { id: '00132', date: 'Apr 30', items: 2, total: 33.2, tag: 'AMMO · Vapes' }];
   const referrals = (guests && guests.length ? guests.map((g)=>window.guestName?window.guestName(g):g) : ['Dev Anand', 'Mia Tran']).slice(0, 4);
 
   const [lb, setLb] = React.useState(null); // enlarged photo

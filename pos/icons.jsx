@@ -64,7 +64,7 @@ window.Icon = function Icon({ name, size = 16, stroke = 1.7, color = 'currentCol
     case 'percent':return <svg {...props}><path d="M5 19L19 5" /><circle cx="7" cy="7" r="2.5" /><circle cx="17" cy="17" r="2.5" /></svg>;
     case 'cash':return <svg {...props}><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 10v4M18 10v4" /></svg>;
     case 'card':return <svg {...props}><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h4" /></svg>;
-    case 'split':return <svg {...props}><path d="M6 21V9a3 3 0 013-3h6M14 3l3 3-3 3M18 21v-6" /><path d="M6 9L4 7M6 9l2-2" /></svg>;
+    case 'split':return <svg {...props}><circle cx="12" cy="4.2" r="2.3" /><path d="M12 6.5c0 4.4-5 3.6-5 8v2.2" /><path d="M12 6.5c0 4.4 5 3.6 5 8v2.2" /><path d="M4.6 14.6L7 17.1l2.4-2.5" /><path d="M14.6 14.6L17 17.1l2.4-2.5" /></svg>;
     case 'swap':return <svg {...props}><path d="M17 3l4 4-4 4" /><path d="M3 7h18" /><path d="M7 21l-4-4 4-4" /><path d="M21 17H3" /></svg>;
     case 'handoff':return <svg {...props}><circle cx="8" cy="7" r="3.2" /><path d="M2.5 20c0-3.3 2.6-5.5 5.5-5.5" /><path d="M13 16h8" /><path d="M18 13l3 3-3 3" /></svg>;
     case 'wallet':return <svg {...props}><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /><path d="M16 14h2" /><path d="M17 6V4a1 1 0 00-1.3-.95L4 6" /></svg>;

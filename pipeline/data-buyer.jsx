@@ -1,6 +1,7 @@
 // ── Buyer analytics fixtures — SKU-level performance data ─────────────────
 // Verbatim port of prototype/lib/fixtures/buyer-analytics.ts (seed 913177).
 ;(function () {
+  const BN = window.HW_BRANDS.name;
   const BUYER_CATEGORIES = ['Flower', 'Vapes', 'Edibles', 'Pre-Rolls', 'Concentrates', 'Topicals', 'Accessories'];
 
   function mulberry32(seed) {
@@ -19,36 +20,36 @@
   const ENTITY_IDS = ['thc', 'ccd', 'ah', 'hwd'];
 
   const SKU_SEEDS = [
-    { brand: 'Kiva', category: 'Edibles', productName: 'Kiva Camino Wild Berry Gummies 100mg', archetype: 'hot_hero' },
-    { brand: 'Kiva', category: 'Edibles', productName: 'Kiva Terra Bites Milk Chocolate Espresso 100mg', archetype: 'steady' },
-    { brand: 'Kiva', category: 'Edibles', productName: 'Kiva Petra Mints Moroccan 100mg', archetype: 'premium_slow' },
-    { brand: 'Kiva', category: 'Edibles', productName: 'Kiva Dark Chocolate Bar 60mg', archetype: 'dog' },
-    { brand: 'Stiiizy', category: 'Vapes', productName: 'Stiiizy Pod Blue Dream Live Resin 0.5g', archetype: 'hot_hero' },
-    { brand: 'Stiiizy', category: 'Vapes', productName: 'Stiiizy Pod Sour Diesel 1g', archetype: 'steady' },
-    { brand: 'Stiiizy', category: 'Vapes', productName: 'Stiiizy Liiil Disposable OG Kush 1g', archetype: 'stockout' },
-    { brand: 'Stiiizy', category: 'Edibles', productName: 'Stiiizy 40s Gummies Strawberry', archetype: 'steady' },
-    { brand: 'Wyld', category: 'Edibles', productName: 'Wyld Raspberry Sativa Gummies 100mg', archetype: 'hot_hero' },
-    { brand: 'Wyld', category: 'Edibles', productName: 'Wyld Elderberry Indica Gummies 100mg', archetype: 'steady' },
-    { brand: 'Wyld', category: 'Edibles', productName: 'Wyld Marionberry Hybrid Gummies 100mg', archetype: 'premium_slow' },
-    { brand: 'Heavy Hitters', category: 'Vapes', productName: 'Heavy Hitters OG Kush Cartridge 1g', archetype: 'hot_hero' },
-    { brand: 'Heavy Hitters', category: 'Vapes', productName: 'Heavy Hitters Diamond Pineapple 1g', archetype: 'stockout' },
-    { brand: 'Heavy Hitters', category: 'Vapes', productName: 'Heavy Hitters Disposable Blueberry 1g', archetype: 'steady' },
-    { brand: 'Raw Garden', category: 'Concentrates', productName: 'Raw Garden Refined Live Resin Pineapple OG 1g', archetype: 'hot_hero' },
-    { brand: 'Raw Garden', category: 'Vapes', productName: 'Raw Garden Classic Cart Strawberry Shortcake 0.5g', archetype: 'steady' },
-    { brand: 'Raw Garden', category: 'Concentrates', productName: 'Raw Garden Crushed Diamonds 1g', archetype: 'premium_slow' },
-    { brand: 'Raw Garden', category: 'Concentrates', productName: 'Raw Garden Live Rosin 1g', archetype: 'dog' },
-    { brand: 'Cookies', category: 'Flower', productName: 'Cookies Gary Payton 3.5g', archetype: 'hot_hero' },
-    { brand: 'Cookies', category: 'Flower', productName: 'Cookies Cereal Milk 3.5g', archetype: 'steady' },
-    { brand: 'Cookies', category: 'Pre-Rolls', productName: 'Cookies Pre-Roll London Pound Cake 1g', archetype: 'stockout' },
-    { brand: 'Jeeter', category: 'Pre-Rolls', productName: 'Jeeter Baby Cannon Churros 1.3g', archetype: 'hot_hero' },
-    { brand: 'Jeeter', category: 'Pre-Rolls', productName: 'Jeeter XL Blueberry Kush 2g', archetype: 'steady' },
-    { brand: 'Jeeter', category: 'Pre-Rolls', productName: 'Jeeter Joints Runtz 1g 5-pack', archetype: 'premium_slow' },
-    { brand: 'Jeeter', category: 'Pre-Rolls', productName: 'Jeeter Infused Horchata 1g', archetype: 'dog' },
-    { brand: 'Papa & Barkley', category: 'Topicals', productName: 'P&B Releaf Balm 1.7oz', archetype: 'steady' },
-    { brand: 'Papa & Barkley', category: 'Topicals', productName: 'P&B Releaf Patch 30mg', archetype: 'premium_slow' },
-    { brand: 'Papa & Barkley', category: 'Topicals', productName: 'P&B 3:1 CBD:THC Tincture', archetype: 'dog' },
-    { brand: 'Pax Labs', category: 'Accessories', productName: 'Pax Era Pro Vaporizer', archetype: 'steady' },
-    { brand: 'Pax Labs', category: 'Accessories', productName: 'Pax Mini Onyx', archetype: 'premium_slow' },
+    { brand: BN.kiva, category: 'Edibles', productName: 'Kiva Camino Wild Berry Gummies 100mg', archetype: 'hot_hero' },
+    { brand: BN.kiva, category: 'Edibles', productName: 'Kiva Terra Bites Milk Chocolate Espresso 100mg', archetype: 'steady' },
+    { brand: BN.kiva, category: 'Edibles', productName: 'Kiva Petra Mints Moroccan 100mg', archetype: 'premium_slow' },
+    { brand: BN.kiva, category: 'Edibles', productName: 'Kiva Dark Chocolate Bar 60mg', archetype: 'dog' },
+    { brand: BN.stiiizy, category: 'Vapes', productName: 'Stiiizy Pod Blue Dream Live Resin 0.5g', archetype: 'hot_hero' },
+    { brand: BN.stiiizy, category: 'Vapes', productName: 'Stiiizy Pod Sour Diesel 1g', archetype: 'steady' },
+    { brand: BN.stiiizy, category: 'Vapes', productName: 'Stiiizy Liiil Disposable OG Kush 1g', archetype: 'stockout' },
+    { brand: BN.stiiizy, category: 'Edibles', productName: 'Stiiizy 40s Gummies Strawberry', archetype: 'steady' },
+    { brand: BN.wyld, category: 'Edibles', productName: 'Wyld Raspberry Sativa Gummies 100mg', archetype: 'hot_hero' },
+    { brand: BN.wyld, category: 'Edibles', productName: 'Wyld Elderberry Indica Gummies 100mg', archetype: 'steady' },
+    { brand: BN.wyld, category: 'Edibles', productName: 'Wyld Marionberry Hybrid Gummies 100mg', archetype: 'premium_slow' },
+    { brand: BN.heavy, category: 'Vapes', productName: 'Heavy Hitters OG Kush Cartridge 1g', archetype: 'hot_hero' },
+    { brand: BN.heavy, category: 'Vapes', productName: 'Heavy Hitters Diamond Pineapple 1g', archetype: 'stockout' },
+    { brand: BN.heavy, category: 'Vapes', productName: 'Heavy Hitters Disposable Blueberry 1g', archetype: 'steady' },
+    { brand: BN.raw, category: 'Concentrates', productName: 'Raw Garden Refined Live Resin Pineapple OG 1g', archetype: 'hot_hero' },
+    { brand: BN.raw, category: 'Vapes', productName: 'Raw Garden Classic Cart Strawberry Shortcake 0.5g', archetype: 'steady' },
+    { brand: BN.raw, category: 'Concentrates', productName: 'Raw Garden Crushed Diamonds 1g', archetype: 'premium_slow' },
+    { brand: BN.raw, category: 'Concentrates', productName: 'Raw Garden Live Rosin 1g', archetype: 'dog' },
+    { brand: BN.cookies, category: 'Flower', productName: 'Cookies Gary Payton 3.5g', archetype: 'hot_hero' },
+    { brand: BN.cookies, category: 'Flower', productName: 'Cookies Cereal Milk 3.5g', archetype: 'steady' },
+    { brand: BN.cookies, category: 'Pre-Rolls', productName: 'Cookies Pre-Roll London Pound Cake 1g', archetype: 'stockout' },
+    { brand: BN.jeeter, category: 'Pre-Rolls', productName: 'Jeeter Baby Cannon Churros 1.3g', archetype: 'hot_hero' },
+    { brand: BN.jeeter, category: 'Pre-Rolls', productName: 'Jeeter XL Blueberry Kush 2g', archetype: 'steady' },
+    { brand: BN.jeeter, category: 'Pre-Rolls', productName: 'Jeeter Joints Runtz 1g 5-pack', archetype: 'premium_slow' },
+    { brand: BN.jeeter, category: 'Pre-Rolls', productName: 'Jeeter Infused Horchata 1g', archetype: 'dog' },
+    { brand: BN.papa, category: 'Topicals', productName: 'P&B Releaf Balm 1.7oz', archetype: 'steady' },
+    { brand: BN.papa, category: 'Topicals', productName: 'P&B Releaf Patch 30mg', archetype: 'premium_slow' },
+    { brand: BN.papa, category: 'Topicals', productName: 'P&B 3:1 CBD:THC Tincture', archetype: 'dog' },
+    { brand: BN.pax, category: 'Accessories', productName: 'Pax Era Pro Vaporizer', archetype: 'steady' },
+    { brand: BN.pax, category: 'Accessories', productName: 'Pax Mini Onyx', archetype: 'premium_slow' },
   ];
 
   const PROFILES = {

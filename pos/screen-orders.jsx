@@ -1089,9 +1089,9 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const [showAdd, setShowAdd] = React.useState(false);
 
   const baseItems = [
-  { name: 'Cake Crasher', brand: 'Papa’s Herb', cat: 'Flower', qty: 4, price: 15 },
-  { name: 'Blueberry Pancakes', brand: 'WVY', cat: 'Pre-Rolls', qty: 1, price: 17 },
-  { name: 'Doubleshot Edible', brand: 'Casual', cat: 'Edibles', qty: 2, price: 20 }].
+  { name: 'Cake Crasher', brand: window.HW_BRANDS.name.jeeter, cat: 'Flower', qty: 4, price: 15 },
+  { name: 'Blueberry Pancakes', brand: window.HW_BRANDS.name.lowell, cat: 'Pre-Rolls', qty: 1, price: 17 },
+  { name: 'Doubleshot Edible', brand: window.HW_BRANDS.name.wyld, cat: 'Edibles', qty: 2, price: 20 }].
   slice(0, Math.max(1, Math.min(3, o.items || 1)));
 
   // ── Order metadata ──

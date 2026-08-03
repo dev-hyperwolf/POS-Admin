@@ -107,7 +107,7 @@
 
         <div style={{ padding: 16 }}>
           <div style={{ position: 'relative', aspectRatio: '4 / 5', width: '100%', borderRadius: 18, overflow: 'hidden', border: `1px solid ${P.hairline3}`,
-            background: `radial-gradient(circle at center, ${P.accent}12 0, transparent 60%), linear-gradient(180deg, #12120f 0%, #070706 100%)` }}>
+            background: `radial-gradient(circle at center, ${P.accent}12 0, transparent 60%), linear-gradient(180deg, ${P.rail} 0%, color-mix(in oklab, ${P.rail} 62%, black) 100%)` }}>
             <div style={{ position: 'absolute', inset: 24, border: `1px solid ${P.accent}44`, borderRadius: 12 }} />
             <div style={{ position: 'absolute', left: 24, right: 24, top: '50%', height: 2, background: P.accent, boxShadow: `0 0 12px ${P.accent}`, opacity: pulse ? 0 : .8, transition: 'opacity .7s' }} />
             <div style={{ position: 'absolute', top: 12, right: 12 }}>
