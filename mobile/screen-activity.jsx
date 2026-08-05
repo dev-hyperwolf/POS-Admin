@@ -21,7 +21,7 @@ function Donut({ segs, size = 150, thick = 22 }) {
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ fontSize: 32, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{done ? done.value : 0}</div>
-        <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.08em', marginTop: 3 }}>OF {total}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.08em', marginTop: 3 }}>OF {total}</div>
       </div>
     </div>);
 }
@@ -65,9 +65,9 @@ window.ActivityScreen = function ActivityScreen() {
 
   const kpi = (label, value, sub, icon, tint) =>
   <div style={{ flex: 1, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, padding: '13px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}><Icon name={icon} size={15} stroke={1.9} color={tint || P.inkMute} /><span style={{ fontSize: 11, color: P.inkDim, fontWeight: 600 }}>{label}</span></div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 6 }}>{sub}</div>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}><Icon name={icon} size={15} stroke={1.9} color={tint || P.inkMute} /><span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600 }}>{label}</span></div>
+      <div style={{ fontSize: 21, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 6 }}>{sub}</div>}
     </div>;
 
 
@@ -109,7 +109,7 @@ window.ActivityScreen = function ActivityScreen() {
 
       {isToday && <button onClick={() => window.M.go('discrepancy')} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '15px 16px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, cursor: 'pointer', textAlign: 'left', width: '100%' }}>
         <span style={{ width: 40, height: 40, borderRadius: 11, background: P.ink, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="cash" size={20} stroke={2} /></span>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>Reconcile pouch · {money(cashSum)} cash</div><div style={{ fontSize: 12, color: P.inkDim, marginTop: 2 }}>End-of-shift count & discrepancies</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Reconcile pouch · {money(cashSum)} cash</div><div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 2 }}>End-of-shift count & discrepancies</div></div>
         <Icon name="chevron-right" size={18} stroke={2} color={P.inkFaint} />
       </button>}
 
@@ -119,13 +119,13 @@ window.ActivityScreen = function ActivityScreen() {
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="sparkle" size={16} stroke={2} /></span>
           <Eyebrow>Your upsells · shop@home</Eyebrow>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{Math.round(up.attachRate * 100)}% attach</span>
+          <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{Math.round(up.attachRate * 100)}% attach</span>
         </div>
         <div style={{ display: 'flex' }}>
           {(isToday ? [['Times added', scaled(up.adds)], ['Items', scaled(up.items)], ['Extra revenue', money(scaledM(up.value))]] : [['Times added', scaled(up.adds)], ['Items added', scaled(up.items)], ['Attach rate', Math.round(up.attachRate * 100) + '%']]).map(([k, v], i) =>
           <div key={k} style={{ flex: 1, borderLeft: i ? `1px solid ${P.hairline}` : 'none', paddingLeft: i ? 14 : 0 }}>
-              <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{k}</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{v}</div>
+              <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{k}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{v}</div>
             </div>
           )}
         </div>
@@ -140,8 +140,8 @@ window.ActivityScreen = function ActivityScreen() {
             {segs.map((s) =>
             <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <span style={{ width: 11, height: 11, borderRadius: 3, background: s.color, flex: '0 0 auto' }} />
-                <span style={{ fontSize: 13, color: P.ink2, fontWeight: 600, flex: 1 }}>{s.label}</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{s.value}</span>
+                <span style={{ fontSize: 13.5, color: P.ink2, fontWeight: 600, flex: 1 }}>{s.label}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{s.value}</span>
               </div>
             )}
           </div>
@@ -152,16 +152,16 @@ window.ActivityScreen = function ActivityScreen() {
       {isToday && (() => {
         const filtered = ledger.filter((e) => (ledgerKind === 'all' || e.kind === ledgerKind) && (!ledgerQ.trim() || (e.label + ' ' + (e.order || '')).toLowerCase().includes(ledgerQ.toLowerCase())));
         return <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, padding: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 12 }}><Eyebrow>Cash & card ledger</Eyebrow><div style={{ flex: 1 }} /><span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>today</span></div>
+        <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: 12 }}><Eyebrow>Cash & card ledger</Eyebrow><div style={{ flex: 1 }} /><span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>today</span></div>
         <div style={{ marginBottom: 10 }}><Field icon="search" size="sm" placeholder="Search name or order" value={ledgerQ} onChange={(e) => setLedgerQ(e.target.value)} /></div>
-        <div style={{ display: 'flex', gap: 7, marginBottom: 12 }}>{[['all', 'All'], ['cash', 'Cash'], ['card', 'Card'], ['tip', 'Tips']].map(([k, l]) => { const a = ledgerKind === k; return <button key={k} onClick={() => setLedgerKind(k)} style={{ flex: 1, padding: '7px 4px', borderRadius: 99, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : 'transparent', color: a ? (P.mode === 'dark' ? P.accent : '#7A5A00') : P.ink2, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{l}</button>; })}</div>
+        <div style={{ display: 'flex', gap: 7, marginBottom: 12 }}>{[['all', 'All'], ['cash', 'Cash'], ['card', 'Card'], ['tip', 'Tips']].map(([k, l]) => { const a = ledgerKind === k; return <button key={k} onClick={() => setLedgerKind(k)} style={{ flex: 1, padding: '7px 4px', borderRadius: 99, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : 'transparent', color: a ? (P.accentText) : P.ink2, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{l}</button>; })}</div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {filtered.length === 0 && <div style={{ padding: '18px 0', textAlign: 'center', color: P.inkMute, fontSize: 12.5 }}>No matching entries</div>}
           {filtered.map((e, i) => {const [ic, c, lbl] = kindMeta[e.kind];return (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: i < filtered.length - 1 ? `1px solid ${P.hairline}` : 'none' }}>
               <span style={{ width: 30, height: 30, borderRadius: 8, background: c + (P.mode === 'dark' ? '22' : '18'), color: c, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={ic} size={15} stroke={2} /></span>
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.label}</div><div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{lbl}{e.order ? ' · ' + e.order : ''} · {e.t}</div></div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: e.kind === 'tip' ? '#E5A24E' : P.ink, fontFamily: P.fontMono }}>+{money(e.amt)}</span>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.label}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{lbl}{e.order ? ' · ' + e.order : ''} · {e.t}</div></div>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: e.kind === 'tip' ? '#E5A24E' : P.ink, fontFamily: P.fontMono }}>+{money(e.amt)}</span>
             </div>);})}
         </div>
       </div>; })()}

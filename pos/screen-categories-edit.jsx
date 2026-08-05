@@ -13,16 +13,16 @@ async function aiGen(prompt, fallback) {
 }
 function AiBtn({ onGen, label = 'Generate with AI' }) {
   const P = useP();const [busy, setBusy] = React.useState(false);
-  return <button onClick={async () => { setBusy(true); try { await onGen(); } finally { setBusy(false); } }} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 99, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', cursor: busy ? 'default' : 'pointer', fontFamily: P.fontSans, fontSize: 12, fontWeight: 700, opacity: busy ? .7 : 1 }}><Icon name="lightning" size={13} stroke={2} />{busy ? 'Writing…' : label}</button>;
+  return <button onClick={async () => { setBusy(true); try { await onGen(); } finally { setBusy(false); } }} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 99, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', cursor: busy ? 'default' : 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700, opacity: busy ? .7 : 1 }}><Icon name="lightning" size={13} stroke={2} />{busy ? 'Writing…' : label}</button>;
 }
 
 // shared field atoms
 function Fld({ label, value, onChange, mono, placeholder, hint }) {
   const P = useP();
   return <label style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-    <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
-    <input value={value} placeholder={placeholder} onChange={onChange} style={{ padding: '10px 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, fontSize: 13, fontWeight: 600, color: P.ink, fontFamily: mono ? P.fontMono : P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
-    {hint && <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{hint}</span>}
+    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
+    <input value={value} placeholder={placeholder} onChange={onChange} style={{ padding: '10px 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, fontSize: 13.5, fontWeight: 600, color: P.ink, fontFamily: mono ? P.fontMono : P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
+    {hint && <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{hint}</span>}
   </label>;
 }
 
@@ -34,13 +34,13 @@ function RichText({ label, value, rows = 5, aiPrompt, aiFallback }) {
   const [busy, setBusy] = React.useState(false);
   React.useEffect(() => { setText(value || ''); }, [value]);
   const gen = async () => { setBusy(true); const out = await aiGen(aiPrompt, aiFallback); setBusy(false); if (out) setText(out); };
-  const btn = (ic, txt) => <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 28, height: 28, padding: '0 5px', background: 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', color: P.ink2, fontSize: 14, fontWeight: 700, fontFamily: txt ? P.fontSans : 'serif' }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface3} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>{ic ? <Icon name={ic} size={15} stroke={1.9} /> : txt}</button>;
+  const btn = (ic, txt) => <button style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 28, height: 28, padding: '0 5px', background: 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', color: P.ink2, fontSize: 13.5, fontWeight: 700, fontFamily: txt ? P.fontSans : 'serif' }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface3} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>{ic ? <Icon name={ic} size={15} stroke={1.9} /> : txt}</button>;
   const sep = <span style={{ width: 1, height: 16, background: P.hairline2, margin: '0 3px' }} />;
   return <label style={{ display: 'flex', flexDirection: 'column', gap: 6, gridColumn: '1/-1' }}>
-    <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
+    <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
     <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, overflow: 'hidden', background: P.field || P.surface }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', padding: '5px 8px', borderBottom: `1px solid ${P.hairline}`, background: P.surface2 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: P.ink2, padding: '0 8px', height: 28, borderRadius: 6 }}>Normal<Icon name="chevron-down" size={11} stroke={2.2} color={P.inkMute} /></span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: P.ink2, padding: '0 8px', height: 28, borderRadius: 6 }}>Normal<Icon name="chevron-down" size={11} stroke={2.2} color={P.inkMute} /></span>
         {sep}{btn(null, 'B')}{btn(null, 'I')}{btn(null, 'U')}{btn(null, 'S')}{sep}{btn('note', null)}{btn('list', null)}{sep}{btn('link', null)}
         <span style={{ flex: 1 }} />
         {aiPrompt && <button onClick={gen} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 99, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', cursor: busy ? 'default' : 'pointer', fontFamily: P.fontSans, fontSize: 11.5, fontWeight: 700, opacity: busy ? .7 : 1 }}><Icon name="lightning" size={12} stroke={2} />{busy ? 'Writing…' : 'Generate with AI'}</button>}
@@ -55,7 +55,7 @@ function ImgSlot({ id, label, aspect = '1 / 1', note, grow }) {
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 9, flex: grow ? '1 1 300px' : '0 0 auto', minWidth: 0 }}>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
       <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{label}</span>
-      {note && <span style={{ fontSize: 10.5, fontWeight: 500, color: P.inkMute, fontFamily: P.fontMono }}>{note}</span>}
+      {note && <span style={{ fontSize: 11.5, fontWeight: 500, color: P.inkMute, fontFamily: P.fontMono }}>{note}</span>}
     </div>
     <div style={{ position: 'relative', width: grow ? '100%' : 208, maxWidth: '100%', aspectRatio: aspect, borderRadius: P.r12, overflow: 'hidden', border: `1px solid ${P.hairline2}`, background: P.surface2 }}>
       <image-slot id={id} shape="rounded" placeholder={`Drop ${label.replace('*', '').toLowerCase()}`} style={{ width: '100%', height: '100%', display: 'block' }}></image-slot>
@@ -72,7 +72,7 @@ function FaqList({ seed }) {
   const P = useP();
   const [faqs, setFaqs] = React.useState(seed || []);
   return <Card padding={0}>
-    <div style={{ padding: '13px 18px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>FAQ's</div><div style={{ fontSize: 11, color: P.inkDim, marginTop: 1 }}>Shown on the category page &amp; used for SEO rich results</div></div>
+    <div style={{ padding: '13px 18px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>FAQ's</div><div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 1 }}>Shown on the category page &amp; used for SEO rich results</div></div>
     <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
       {faqs.map((f, i) => <div key={i} style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12, padding: 14, position: 'relative' }}>
         <button onClick={() => setFaqs(faqs.filter((_, j) => j !== i))} style={{ position: 'absolute', top: 12, right: 12, background: 'transparent', border: 'none', cursor: 'pointer', color: P.bad, display: 'flex', padding: 4 }}><Icon name="trash" size={15} stroke={1.9} /></button>
@@ -88,7 +88,7 @@ function InlineWmMap({ sub, onChange, onSkip }) {
   const P = useP();const [open, setOpen] = React.useState(false);
   return <div style={{ position: 'relative' }}>
     <button onClick={() => setOpen((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: P.r10, border: `1px solid ${sub.wm.length ? P.hairline2 : sub.skip ? P.hairline2 : P.warn}`, background: sub.wm.length || sub.skip ? P.surface : P.warnSoft, cursor: 'pointer', fontFamily: P.fontSans }}>
-      {sub.wm.length ? <WmPill sub={sub} /> : sub.skip ? <span style={{ fontSize: 12, fontWeight: 700, color: P.inkMute }}>Not synced</span> : <span style={{ fontSize: 12, fontWeight: 700, color: P.warn }}>Map to Weedmaps</span>}
+      {sub.wm.length ? <WmPill sub={sub} /> : sub.skip ? <span style={{ fontSize: 12.5, fontWeight: 700, color: P.inkMute }}>Not synced</span> : <span style={{ fontSize: 12.5, fontWeight: 700, color: P.warn }}>Map to Weedmaps</span>}
       <Icon name="chevron-down" size={13} stroke={2.2} color={P.inkMute} />
     </button>
     {open && <WmMultiPicker value={sub.wm} skip={sub.skip} anchor="left" onChange={(wm) => onChange(wm)} onSkip={(sk) => onSkip(sk)} onClose={() => setOpen(false)} />}
@@ -109,9 +109,9 @@ window.CategoryEdit = function CategoryEdit({ cat, onBack, onSave, onSetSub }) {
 
   return <div style={{ maxWidth: 1080, margin: '0 auto' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-      <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 19, fontWeight: 800, letterSpacing: '-.02em', fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={20} stroke={2.2} />Update Web Category</button>
+      <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={20} stroke={2.2} />Update Web Category</button>
       <div style={{ flex: 1 }} />
-      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Status</span>
+      <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Status</span>
       <Seg value={d.status} onChange={(v) => up({ status: v })} size="md" options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]} />
     </div>
 
@@ -133,8 +133,8 @@ window.CategoryEdit = function CategoryEdit({ cat, onBack, onSave, onSetSub }) {
       {/* Inline Weedmaps mapping per sub-category (Option A) */}
       <Card padding={0}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 18px', borderBottom: `1px solid ${P.hairline}` }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>Taxonomy mapping</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Taxonomy mapping</span>
           {unmapped > 0 ? <span style={{ fontSize: 11.5, fontWeight: 700, color: P.warn }}>· {unmapped} unmapped</span> : <span style={{ fontSize: 11.5, fontWeight: 700, color: P.good }}>· all set</span>}
         </div>
         <div style={{ padding: '6px 18px 12px' }}>
@@ -152,11 +152,11 @@ window.CategoryEdit = function CategoryEdit({ cat, onBack, onSave, onSetSub }) {
 
       <Sec title="Meta Properties" cols={1} right={<AiBtn label="Generate with AI" onGen={genMeta} />}>
         <div><Fld label="Meta Title*" value={d.metaT} onChange={(e) => up({ metaT: e.target.value })} />
-          <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 5 }}>Character Count: {d.metaT.length} <span style={{ color: P.info }}>(Recommended Characters: 60)</span></div></div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 5 }}>Character Count: {d.metaT.length} <span style={{ color: P.info }}>(Recommended Characters: 60)</span></div></div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta Description*</span>
+          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta Description*</span>
           <textarea value={d.metaD} onChange={(e) => up({ metaD: e.target.value })} rows={2} style={{ padding: '10px 12px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, fontSize: 12.5, color: P.ink, fontFamily: P.fontSans, outline: 'none', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
-          <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>Character Count: {d.metaD.length} <span style={{ color: P.info }}>(Recommended Characters: 160)</span></span>
+          <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>Character Count: {d.metaD.length} <span style={{ color: P.info }}>(Recommended Characters: 160)</span></span>
         </div>
       </Sec>
 
@@ -182,9 +182,9 @@ window.SubCategoryEdit = function SubCategoryEdit({ cat, sub, onBack, onSetSub }
 
   return <div style={{ maxWidth: 1080, margin: '0 auto' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-      <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 19, fontWeight: 800, letterSpacing: '-.02em', fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={20} stroke={2.2} />Update Sub Category</button>
+      <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={20} stroke={2.2} />Update Sub Category</button>
       <div style={{ flex: 1 }} />
-      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Status</span>
+      <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Status</span>
       <Seg value={d.status} onChange={(v) => up({ status: v })} size="md" options={[{ value: 'Active', label: 'Active' }, { value: 'Inactive', label: 'Inactive' }]} />
     </div>
 
@@ -197,13 +197,13 @@ window.SubCategoryEdit = function SubCategoryEdit({ cat, sub, onBack, onSetSub }
       {/* Inline Weedmaps mapping for THIS sub-category (Option A) */}
       <Card padding={0}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 18px', borderBottom: `1px solid ${P.hairline}` }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>Taxonomy mapping</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Taxonomy mapping</span>
         </div>
         <div style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
             <span style={{ width: 34, height: 34, borderRadius: 9, background: catColor(cat.name), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><Icon name="grid" size={17} stroke={1.9} /></span>
-            <div><div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{sub.name}</div><div style={{ fontSize: 11, color: P.inkMute }}>in {cat.name}</div></div>
+            <div><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{sub.name}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>in {cat.name}</div></div>
           </div>
           <Icon name="arrow-right" size={18} color={P.inkFaint} />
           <InlineWmMap sub={sub} onChange={(wm) => onSetSub(cat.id, sub.name, { wm, skip: wm.length ? false : sub.skip })} onSkip={(skip) => onSetSub(cat.id, sub.name, { skip, wm: skip ? [] : sub.wm })} />
@@ -227,22 +227,22 @@ window.SubCategoryEdit = function SubCategoryEdit({ cat, sub, onBack, onSetSub }
 
       <Sec title="Sub Category Info" cols={1}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Sub Categories</span>
+          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Sub Categories</span>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 11, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, minHeight: 48 }}>
-            {cat.subs.map((s) => <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: s.name === sub.name ? P.ink : P.ink2, background: s.name === sub.name ? P.accentSoft : P.surface2, border: `1px solid ${s.name === sub.name ? P.accentBorder : P.hairline2}`, borderRadius: 99, padding: '5px 10px' }}>{s.name}<Icon name="x" size={12} stroke={2.4} color={P.inkMute} /></span>)}
-            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12, color: P.inkMute, padding: '5px 6px' }}>Categories…</span>
+            {cat.subs.map((s) => <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: s.name === sub.name ? P.ink : P.ink2, background: s.name === sub.name ? P.accentSoft : P.surface2, border: `1px solid ${s.name === sub.name ? P.accentBorder : P.hairline2}`, borderRadius: 99, padding: '5px 10px' }}>{s.name}<Icon name="x" size={12} stroke={2.4} color={P.inkMute} /></span>)}
+            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 12.5, color: P.inkMute, padding: '5px 6px' }}>Categories…</span>
           </div>
         </div>
       </Sec>
 
       <Sec title="Meta Properties" cols={2} right={<AiBtn label="Generate with AI" onGen={genMeta} />}>
         <div><Fld label="Meta Title*" value={d.metaT} onChange={(e) => up({ metaT: e.target.value })} />
-          <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 5 }}>Character Count: {d.metaT.length} <span style={{ color: P.info }}>(Recommended Characters: 60)</span></div></div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 5 }}>Character Count: {d.metaT.length} <span style={{ color: P.info }}>(Recommended Characters: 60)</span></div></div>
         <Fld label="Created By" value={d.by} onChange={(e) => up({ by: e.target.value })} />
         <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta Description*</span>
+          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta Description*</span>
           <textarea value={d.metaD} onChange={(e) => up({ metaD: e.target.value })} rows={2} style={{ padding: '10px 12px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, fontSize: 12.5, color: P.ink, fontFamily: P.fontSans, outline: 'none', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }} />
-          <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>Character Count: {d.metaD.length} <span style={{ color: P.info }}>(Recommended Characters: 160)</span></span>
+          <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>Character Count: {d.metaD.length} <span style={{ color: P.info }}>(Recommended Characters: 160)</span></span>
         </div>
       </Sec>
 

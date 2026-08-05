@@ -11,8 +11,8 @@ function IDPhoto({ base, h = 150, onZoom }) {
   return (
     <button onClick={onZoom} style={{ position: 'relative', width: '100%', height: h, borderRadius: P.r14, overflow: 'hidden', border: `1px solid ${P.hairline2}`, cursor: 'zoom-in', padding: 0, background: `linear-gradient(135deg, ${P.mode === 'dark' ? '#242a1c' : '#e9ecdd'}, ${P.mode === 'dark' ? '#1a1e14' : '#dfe3d2'})` }}>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Avatar name={base.name} size={h * 0.42} /></div>
-      <div style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', fontFamily: P.fontMono }}>ID ON FILE · 21+</div>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,.6))' }}><div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{base.name}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,.75)', fontFamily: P.fontMono }}>DOB 09/14/1992 · CA</div></div>
+      <div style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', fontFamily: P.fontMono }}>ID ON FILE · 21+</div>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,.6))' }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{base.name}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,.75)', fontFamily: P.fontMono }}>DOB 09/14/1992 · CA</div></div>
       <div style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 99, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><Icon name="search" size={13} stroke={2.2} /></div>
     </button>);
 }
@@ -30,8 +30,8 @@ function StreetView({ base, h = 150, onZoom }) {
         <rect x="54" y="70" width="12" height="42" fill={P.mode === 'dark' ? '#2a2e3a' : '#a7afbe'} />
         <path d="M0 120 L300 108" stroke={P.mode === 'dark' ? '#2a2e3a' : '#c9cfd9'} strokeWidth="3" />
       </svg>
-      <div style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', fontFamily: P.fontMono }}>STREET VIEW</div>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,.55))' }}><div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{base.addr}</div></div>
+      <div style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', fontFamily: P.fontMono }}>STREET VIEW</div>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,.55))' }}><div style={{ fontSize: 12.5, fontWeight: 700, color: '#fff' }}>{base.addr}</div></div>
       <div style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 99, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><Icon name="search" size={13} stroke={2.2} /></div>
     </button>);
 }
@@ -50,7 +50,7 @@ function ArrivalSection({ base, onZoom }) {
       {layout === 'split' ?
       <div style={{ display: 'flex', gap: 10 }}><div style={{ flex: 1 }}><IDPhoto base={base} h={150} onZoom={() => onZoom('id')} /></div><div style={{ flex: 1 }}><StreetView base={base} h={150} onZoom={() => onZoom('street')} /></div></div> :
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><StreetView base={base} h={168} onZoom={() => onZoom('street')} /><IDPhoto base={base} h={150} onZoom={() => onZoom('id')} /></div>}
-      <div style={{ fontSize: 10.5, color: P.inkMute, marginTop: 8, textAlign: 'center' }}>Tap to enlarge · your team's preferred layout is saved</div>
+      <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 8, textAlign: 'center' }}>Tap to enlarge · your team's preferred layout is saved</div>
     </div>);
 }
 
@@ -73,9 +73,9 @@ window.IDCapture = function IDCapture({ name, onCancel, onCaptured }) {
           <div style={{ color: 'rgba(255,255,255,.85)', fontSize: 13.5, textAlign: 'center', maxWidth: 280, lineHeight: 1.5 }}>Lay the <b style={{ color: '#fff' }}>front of the ID</b> flat inside the frame. Fill the box and avoid glare.</div>
         </> : <>
           <div style={{ width: CW, height: CH, borderRadius: 12, overflow: 'hidden', border: `2px solid ${P.good}`, background: `linear-gradient(135deg, #2b3220, #1a1e14)`, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Avatar name={name} size={70} /><span style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 9.5, fontWeight: 700, fontFamily: P.fontMono }}>ID CAPTURED</span>
+            <Avatar name={name} size={70} /><span style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 10, fontWeight: 700, fontFamily: P.fontMono }}>ID CAPTURED</span>
           </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: P.good, fontSize: 14, fontWeight: 700 }}><Icon name="check-circle" size={17} stroke={2} />Looks good — clear & readable</div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: P.good, fontSize: 13.5, fontWeight: 700 }}><Icon name="check-circle" size={17} stroke={2} />Looks good — clear & readable</div>
         </>}
       </div>
       <div style={{ padding: '16px 20px 40px', background: '#0c0c0c' }}>
@@ -93,7 +93,7 @@ function ZoomView({ kind, base, onClose }) {
   return (
     <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 170, background: 'rgba(0,0,0,.86)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fade .15s ease' }}>
       <div style={{ width: '100%', maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>{kind === 'id' ? <IDPhoto base={base} h={380} onZoom={() => {}} /> : <StreetView base={base} h={340} onZoom={() => {}} />}</div>
-      <button onClick={onClose} style={{ marginTop: 20, padding: '11px 22px', background: 'rgba(255,255,255,.14)', color: '#fff', border: 'none', borderRadius: 99, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Close</button>
+      <button onClick={onClose} style={{ marginTop: 20, padding: '11px 22px', background: 'rgba(255,255,255,.14)', color: '#fff', border: 'none', borderRadius: 99, fontSize: 13.5, fontWeight: 700, cursor: 'pointer' }}>Close</button>
     </div>);
 }
 
@@ -107,13 +107,13 @@ function ScanRow({ l, count, onScan, mode }) {
       <div style={{ position: 'relative' }}><Thumb item={l.p} size={44} />{done && <span style={{ position: 'absolute', top: -5, right: -5, width: 20, height: 20, borderRadius: 99, background: P.good, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${P.bg}` }}><Icon name="check" size={11} stroke={3} /></span>}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.p ? l.p.name : l.sku}</div>
-        <div style={{ fontSize: 11, color: done ? P.good : P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>{l.p ? `${l.p.brand}` : ''} · Batch {batch}{done ? ' ✓' : ''}</div>
+        <div style={{ fontSize: 11.5, color: done ? P.good : P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>{l.p ? `${l.p.brand}` : ''} · Batch {batch}{done ? ' ✓' : ''}</div>
         {l.qty > 1 && <div style={{ display: 'flex', gap: 3, marginTop: 5 }}>{Array.from({ length: l.qty }).map((_, i) => <span key={i} style={{ width: 16, height: 5, borderRadius: 3, background: i < count ? P.good : P.hairline3 }} />)}</div>}
       </div>
       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: done ? P.good : P.ink2, fontFamily: P.fontMono }}>{count}/{l.qty}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: done ? P.good : P.ink2, fontFamily: P.fontMono }}>{count}/{l.qty}</div>
         {mode === 'peritem' && (done ?
-        <span style={{ fontSize: 11, fontWeight: 700, color: P.good }}>Verified</span> :
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: P.good }}>Verified</span> :
         <button data-tour="scan" onClick={onScan} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', background: P.ink, color: P.surface, border: 'none', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}><Icon name="barcode" size={13} stroke={2} />Scan {l.qty > 1 ? `(${count + 1}/${l.qty})` : ''}</button>)}
       </div>
     </div>);
@@ -136,7 +136,7 @@ function Scanner({ items, scanned, onScanOne, onDone, onClose }) {
         <div style={{ width: 250, height: 250, border: `3px solid ${P.accent}`, borderRadius: 24, position: 'relative', boxShadow: '0 0 0 9999px rgba(0,0,0,.35)' }}>
           <div style={{ position: 'absolute', left: 12, right: 12, top: '50%', height: 2, background: P.accent, boxShadow: `0 0 12px ${P.accent}`, animation: 'hwscan 1.6s ease-in-out infinite' }} />
         </div>
-        <div style={{ position: 'absolute', bottom: 26, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,.8)', fontSize: 13, fontFamily: P.fontMono }}>{next ? `${next.p ? next.p.name : next.sku} — unit ${nextUnit} of ${next.qty}` : 'All units verified'}</div>
+        <div style={{ position: 'absolute', bottom: 26, left: 0, right: 0, textAlign: 'center', color: 'rgba(255,255,255,.8)', fontSize: 13.5, fontFamily: P.fontMono }}>{next ? `${next.p ? next.p.name : next.sku} — unit ${nextUnit} of ${next.qty}` : 'All units verified'}</div>
       </div>
       <div style={{ padding: '16px 20px 40px', background: '#0c0c0c' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}><span style={{ color: 'rgba(255,255,255,.7)', fontSize: 12.5, fontFamily: P.fontMono }}>{doneUnits}/{totalUnits} units verified</span><span style={{ color: P.accent, fontSize: 12.5, fontWeight: 700, fontFamily: P.fontMono }}>{next ? `Batch ${next.p ? window.MD.batchOf(next.p) : ''}` : 'Done'}</span></div>
@@ -174,11 +174,11 @@ window.TaskScreen = function TaskScreen({ taskId }) {
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 130px' }}>
         {/* status + on-time */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: P[st.color] || P.inkDim }}>{st.label}</span>
-          {base.prio && !done && <span style={{ padding: '2px 9px', borderRadius: 99, background: window.MD.PRIO[base.prio].bg, color: window.MD.PRIO[base.prio].fg, fontSize: 10.5, fontWeight: 700 }}>{window.MD.PRIO[base.prio].label}</span>}
-          {v && v.short && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px 2px 7px', borderRadius: 99, background: v.color + (P.mode === 'dark' ? '26' : '1f'), color: v.color, fontSize: 10.5, fontWeight: 800 }}><Icon name={v.icon} size={11} stroke={2.2} />{v.short}</span>}
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: P[st.color] || P.inkDim }}>{st.label}</span>
+          {base.prio && !done && <span style={{ padding: '2px 9px', borderRadius: 99, background: window.MD.PRIO[base.prio].bg, color: window.MD.PRIO[base.prio].fg, fontSize: 11.5, fontWeight: 700 }}>{window.MD.PRIO[base.prio].label}</span>}
+          {v && v.short && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px 2px 7px', borderRadius: 99, background: v.color + (P.mode === 'dark' ? '26' : '1f'), color: v.color, fontSize: 11.5, fontWeight: 800 }}><Icon name={v.icon} size={11} stroke={2.2} />{v.short}</span>}
           <div style={{ flex: 1 }} />
-          {base.eta && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: P[es.color] + (P.mode === 'dark' ? '22' : '18'), color: P[es.color], fontSize: 11, fontWeight: 700 }}><Icon name={es.icon} size={12} stroke={2} />{es.label}</span>}
+          {base.eta && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: P[es.color] + (P.mode === 'dark' ? '22' : '18'), color: P[es.color], fontSize: 11.5, fontWeight: 700 }}><Icon name={es.icon} size={12} stroke={2} />{es.label}</span>}
         </div>
 
         {/* new / VIP guest banner — prominent */}
@@ -197,7 +197,7 @@ window.TaskScreen = function TaskScreen({ taskId }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0' }}>
             <span style={{ width: 36, height: 36, borderRadius: 9, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="pin" size={17} stroke={1.8} /></span>
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Address</div><div style={{ fontSize: 14, fontWeight: 600, color: P.ink, marginTop: 2 }}>{base.addr}{base.city ? `, ${base.city}` : ''} {base.zip || ''}</div></div>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 11.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Address</div><div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, marginTop: 2 }}>{base.addr}{base.city ? `, ${base.city}` : ''} {base.zip || ''}</div></div>
             <button onClick={() => window.M.flash('Opening navigation')} style={{ padding: '9px 14px', background: P.ink, color: P.surface, border: 'none', borderRadius: P.r10, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="route" size={14} stroke={2} />Go</button>
           </div>
         </Card>
@@ -205,12 +205,12 @@ window.TaskScreen = function TaskScreen({ taskId }) {
         {/* items + barcode scan */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
           <Eyebrow>Verify order · {totals.count} items</Eyebrow><div style={{ flex: 1 }} />
-          {!done && <button onClick={() => {window.M.startCart(taskId, items);window.M.push('shop', { taskId });}} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Icon name="plus" size={13} stroke={2.2} />Add / edit</button>}
+          {!done && <button onClick={() => {window.M.startCart(taskId, items);window.M.push('shop', { taskId });}} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}><Icon name="plus" size={13} stroke={2.2} />Add / edit</button>}
         </div>
 
         {!done && <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <Icon name={allScanned ? 'check-circle' : 'barcode'} size={17} stroke={2} color={allScanned ? P.good : P.ink2} />
-          <div style={{ flex: 1, minWidth: 0 }}><span style={{ fontSize: 13, fontWeight: 700, color: allScanned ? P.good : P.ink }}>{allScanned ? 'All items scanned & verified' : `Scan to verify · ${doneUnits}/${totalUnits} units`}</span></div>
+          <div style={{ flex: 1, minWidth: 0 }}><span style={{ fontSize: 13.5, fontWeight: 700, color: allScanned ? P.good : P.ink }}>{allScanned ? 'All items scanned & verified' : `Scan to verify · ${doneUnits}/${totalUnits} units`}</span></div>
           {!allScanned && <button onClick={() => setScanning(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px', background: P.ink, color: P.bg, border: 'none', borderRadius: 99, fontSize: 12.5, fontWeight: 800, cursor: 'pointer', flex: '0 0 auto' }}><Icon name="scan" size={14} stroke={2.2} color={P.bg} />Scan all</button>}
         </div>}
 
@@ -224,14 +224,14 @@ window.TaskScreen = function TaskScreen({ taskId }) {
         {/* BIG to-collect / total */}
         <div style={{ background: cod ? P.accentSoft : P.surface, border: `1.5px solid ${cod ? P.accentBorder : P.hairline2}`, borderRadius: P.r16, padding: '16px 18px', display: 'flex', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: cod ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkMute, fontFamily: P.fontMono }}>{cod ? 'To collect' : 'Order total'}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: cod ? P.accentText : P.inkMute, fontFamily: P.fontMono }}>{cod ? 'To collect' : 'Order total'}</div>
             {cod && <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 3 }}>Marked <b style={{ textTransform: 'capitalize' }}>{base.tender}</b> at checkout</div>}
           </div>
           <div style={{ flex: 1 }} />
           <div style={{ fontSize: 36, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, letterSpacing: '-.01em' }}>{window.HW.fmt.money(totals.total)}</div>
         </div>
 
-        {!done && <button onClick={() => window.M.openSheet('moretime', { task: base })} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '16px auto 0', padding: '10px 14px', background: 'transparent', border: 'none', color: P.inkDim, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><Icon name="clock" size={15} stroke={2} />Customer not ready?</button>}
+        {!done && <button onClick={() => window.M.openSheet('moretime', { task: base })} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '16px auto 0', padding: '10px 14px', background: 'transparent', border: 'none', color: P.inkDim, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}><Icon name="clock" size={15} stroke={2} />Customer not ready?</button>}
       </div>
 
       {/* footer */}
@@ -267,12 +267,12 @@ window.MoreTimeSheet = function MoreTimeSheet({ task }) {
     <window.Sheet title="Customer needs more time?" onClose={() => window.M.closeSheet()} footer={
       <PBtn variant="accent" size="xl" full icon="check" disabled={!choice} onClick={rec}>{choice === 'reroute' ? 'Reroute & come back' : choice === 'resched' ? 'Reschedule this stop' : 'Confirm'}</PBtn>
     }>
-      <div style={{ fontSize: 13, color: P.inkDim, lineHeight: 1.5, marginBottom: 14 }}>How long do they need? We'll suggest the smartest move so your route stays tight.</div>
+      <div style={{ fontSize: 13.5, color: P.inkDim, lineHeight: 1.5, marginBottom: 14 }}>How long do they need? We'll suggest the smartest move so your route stays tight.</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {opts.map((o) => { const a = choice === o.id; return (
           <button key={o.id} onClick={() => setChoice(o.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 15px', background: a ? o.tint + (P.mode === 'dark' ? '1f' : '14') : P.surface2, border: `1.5px solid ${a ? o.tint : P.hairline2}`, borderRadius: P.r14, cursor: 'pointer', textAlign: 'left' }}>
             <span style={{ width: 40, height: 40, borderRadius: 11, background: o.tint + (P.mode === 'dark' ? '22' : '18'), color: o.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={o.icon} size={20} stroke={1.9} /></span>
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>{o.title}</span><span style={{ fontSize: 10.5, fontWeight: 700, color: o.tint, fontFamily: P.fontMono }}>{o.mins}</span></div><div style={{ fontSize: 12, color: P.inkDim, marginTop: 2, lineHeight: 1.4 }}>{o.desc}</div></div>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>{o.title}</span><span style={{ fontSize: 11.5, fontWeight: 700, color: o.tint, fontFamily: P.fontMono }}>{o.mins}</span></div><div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 2, lineHeight: 1.4 }}>{o.desc}</div></div>
             {a && <Icon name="check-circle" size={18} stroke={2} color={o.tint} />}
           </button>); })}
       </div>

@@ -130,7 +130,7 @@ function TopBar(){
     <button onClick={toggle} title="Toggle theme" style={{ width:38, height:38, borderRadius:10, border:'none', background:'transparent', cursor:'pointer', color:P.inkDim, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={mode==='dark'?'sun':'moon'} size={18}/></button>
     <div style={{ display:'flex', alignItems:'center', gap:9, paddingLeft:6 }}>
       <Avatar name="Manisha Saini" size={34} hue={172}/>
-      <div style={{ lineHeight:1.15 }}><div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>Manisha Saini</div><div style={{ fontSize:10.5, color:P.inkMute }}>Dispatch · Ops</div></div>
+      <div style={{ lineHeight:1.15 }}><div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>Manisha Saini</div><div style={{ fontSize: 11.5, color:P.inkMute }}>Dispatch · Ops</div></div>
     </div>
   </header>);
 }
@@ -187,18 +187,18 @@ function BoardView({ onOpen }){
     </div>
 
     <div style={{ border:`1px solid ${P.hairline2}`, borderRadius:P.r14, overflow:'hidden', background:P.surface }}>
-      <div style={{ display:'grid', gridTemplateColumns:'150px 1.4fr 1.2fr 130px 1fr 120px 40px', gap:0, padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize:10.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
+      <div style={{ display:'grid', gridTemplateColumns:'150px 1.4fr 1.2fr 130px 1fr 120px 40px', gap:0, padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
         <div>Window · ID</div><div>Customer</div><div>Region · Address</div><div>Genius</div><div>Status</div><div style={{textAlign:'right'}}>Cart · Deposit</div><div/>
       </div>
       {filtered.map((a,i)=>{ const g=geniusBy(a.genius); const st=STATUS[a.status]; return (
         <div key={a.id} onClick={()=>onOpen(a.id)} style={{ display:'grid', gridTemplateColumns:'150px 1.4fr 1.2fr 130px 1fr 120px 40px', gap:0, padding:'14px 18px', borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center', cursor:'pointer', transition:'background .1s' }}
           onMouseEnter={e=>e.currentTarget.style.background=P.surface2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-          <div><div className="mono" style={{ fontSize:13, fontWeight:700, color:P.ink, fontVariantNumeric:'tabular-nums' }}>{a.win}</div><div className="mono" style={{ fontSize:10.5, color:P.inkMute }}>{a.id}</div></div>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}><Avatar name={a.cust} size={32} crown={a.tier==='Gold'}/><div><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{a.cust}</div><div style={{ fontSize:11, color:P.inkMute }}>{a.tier!=='—'?`${a.tier} · ${a.member}`:'Non-member'}</div></div></div>
-          <div><div style={{ fontSize:12.5, color:P.ink, fontWeight:500 }}>{a.region}</div><div style={{ fontSize:11, color:P.inkMute }}>{a.addr}</div></div>
-          <div>{g? <div style={{ display:'flex', alignItems:'center', gap:7 }}><Avatar name={g.name} size={24}/><span style={{ fontSize:12, color:P.ink, fontWeight:500 }}>{g.name.split(' ')[0]}</span></div> : <Pill kind="warn" soft>Unassigned</Pill>}</div>
+          <div><div className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.ink, fontVariantNumeric:'tabular-nums' }}>{a.win}</div><div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>{a.id}</div></div>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}><Avatar name={a.cust} size={32} crown={a.tier==='Gold'}/><div><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{a.cust}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{a.tier!=='—'?`${a.tier} · ${a.member}`:'Non-member'}</div></div></div>
+          <div><div style={{ fontSize:12.5, color:P.ink, fontWeight:500 }}>{a.region}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{a.addr}</div></div>
+          <div>{g? <div style={{ display:'flex', alignItems:'center', gap:7 }}><Avatar name={g.name} size={24}/><span style={{ fontSize: 12.5, color:P.ink, fontWeight:500 }}>{g.name.split(' ')[0]}</span></div> : <Pill kind="warn" soft>Unassigned</Pill>}</div>
           <div><Pill kind={st.kind} soft dot={st.dot}>{st.label}</Pill>{a.status==='completed'&&a.rating&&<span className="mono" style={{ marginLeft:7, fontSize:11.5, color:P.inkDim }}>★ {a.rating.toFixed(1)}</span>}</div>
-          <div style={{ textAlign:'right' }}>{a.subtotal? <Money n={a.subtotal} strong/> : <span style={{ fontSize:12.5, color:P.inkMute }}>—</span>}<div className="mono" style={{ fontSize:10.5, color:a.deposit==='pending'?P.warn:P.inkMute, marginTop:1 }}>{a.deposit==='pending'?'deposit due':`dep ${a.deposit}`}</div></div>
+          <div style={{ textAlign:'right' }}>{a.subtotal? <Money n={a.subtotal} strong/> : <span style={{ fontSize:12.5, color:P.inkMute }}>—</span>}<div className="mono" style={{ fontSize: 11.5, color:a.deposit==='pending'?P.warn:P.inkMute, marginTop:1 }}>{a.deposit==='pending'?'deposit due':`dep ${a.deposit}`}</div></div>
           <div style={{ textAlign:'right', color:P.inkFaint }}><Icon name="chevron-right" size={18}/></div>
         </div>); })}
     </div>
@@ -227,8 +227,8 @@ function MapView({ onOpen }){
         ))}
         {REGIONS.map(r=>(
           <div key={r.id+'l'} style={{ position:'absolute', left:`${r.cx*100}%`, top:`${r.cy*100}%`, transform:'translate(-50%,-50%)', textAlign:'center', pointerEvents:'none' }}>
-            <div style={{ fontSize:11, fontWeight:700, color:r.live?P.ink:P.inkFaint, letterSpacing:'.02em', whiteSpace:'nowrap' }}>{r.name}</div>
-            <div className="mono" style={{ fontSize:9.5, color:r.live?P.inkMute:P.inkFaint }}>{r.live?`${r.today} today · ${r.wait}`:'not live'}</div>
+            <div style={{ fontSize: 11.5, fontWeight:700, color:r.live?P.ink:P.inkFaint, letterSpacing:'.02em', whiteSpace:'nowrap' }}>{r.name}</div>
+            <div className="mono" style={{ fontSize: 10, color:r.live?P.inkMute:P.inkFaint }}>{r.live?`${r.today} today · ${r.wait}`:'not live'}</div>
           </div>
         ))}
         {/* genius pins */}
@@ -236,7 +236,7 @@ function MapView({ onOpen }){
           <button key={g.id} onClick={()=>setSel(g.id)} style={{ position:'absolute', left:`${g.mx*100}%`, top:`${g.my*100}%`, transform:'translate(-50%,-100%)', border:'none', background:'transparent', cursor:'pointer', zIndex:on?5:2 }}>
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', filter:on?`drop-shadow(0 6px 12px ${P.scrim})`:'none' }}>
               <div style={{ padding:'3px 8px 3px 4px', background:P.surface, border:`1.5px solid ${on?c:P.hairline2}`, borderRadius:99, display:'flex', alignItems:'center', gap:5, boxShadow:P.shadowSm }}>
-                <Avatar name={g.name} size={20}/><span style={{ fontSize:11, fontWeight:700, color:P.ink }}>{g.name.split(' ')[0]}</span>
+                <Avatar name={g.name} size={20}/><span style={{ fontSize: 11.5, fontWeight:700, color:P.ink }}>{g.name.split(' ')[0]}</span>
                 {g.status==='en_route'&&<Icon name="route" size={12} color={c}/>}
               </div>
               <div style={{ width:2, height:12, background:on?c:P.hairline3 }}/>
@@ -254,7 +254,7 @@ function MapView({ onOpen }){
           {GENIUSES.map((g,i)=>{ const gs=GSTATUS[g.status]; return (
             <div key={g.id} onClick={()=>setSel(g.id)} style={{ display:'flex', alignItems:'center', gap:10, padding:'11px 15px', borderTop:i?`1px solid ${P.hairline}`:'none', cursor:'pointer', background:sel===g.id?P.accentSoft:'transparent' }}>
               <Avatar name={g.name} size={30}/>
-              <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:600, color:P.ink }}>{g.name}</div><div style={{ fontSize:10.5, color:P.inkMute }}>{g.region}</div></div>
+              <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:600, color:P.ink }}>{g.name}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{g.region}</div></div>
               <Pill kind={gs.kind} soft>{gs.label}</Pill>
             </div>); })}
         </Card>
@@ -263,7 +263,7 @@ function MapView({ onOpen }){
           {active.map((a,i)=>{ const g=geniusBy(a.genius); const st=STATUS[a.status]; return (
             <div key={a.id} onClick={()=>onOpen(a.id)} style={{ padding:'11px 15px', borderTop:i?`1px solid ${P.hairline}`:'none', cursor:'pointer' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}><span style={{ fontSize:12.5, fontWeight:600, color:P.ink }}>{a.cust}</span><Pill kind={st.kind} soft dot={st.dot}>{st.label}</Pill></div>
-              <div style={{ fontSize:11, color:P.inkMute, marginTop:2 }}>{a.win} · {a.region}{g?` · ${g.name.split(' ')[0]}`:''}</div>
+              <div style={{ fontSize: 11.5, color:P.inkMute, marginTop:2 }}>{a.win} · {a.region}{g?` · ${g.name.split(' ')[0]}`:''}</div>
             </div>); })}
         </Card>
       </div>
@@ -289,7 +289,7 @@ function GeniusesView(){
             <Avatar name={g.name} size={54}/>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:9 }}><span style={{ fontSize:16, fontWeight:700, color:P.ink }}>{g.name}</span><Pill kind={gs.kind} soft dot>{gs.label}</Pill></div>
-              <div style={{ fontSize:12, color:P.inkMute, marginTop:2 }}>{g.region} · genius since {g.since}</div>
+              <div style={{ fontSize: 12.5, color:P.inkMute, marginTop:2 }}>{g.region} · genius since {g.since}</div>
               <div style={{ display:'flex', gap:20, marginTop:12 }}>
                 <StatCol label="Rating">★ {g.rating.toFixed(1)}</StatCol>
                 <StatCol label="Today">{g.sessions} sessions</StatCol>
@@ -317,15 +317,15 @@ function RegionsView(){
     <SectionHead level={1} eyebrow="Shop @ Home · Setup" title="Regions & availability" subtitle="Turn service zones on and off, set operating windows, and control the guardrails for every house call." action={<Btn kind="primary" icon="plus">Add region</Btn>}/>
     <div style={{ display:'grid', gridTemplateColumns:'1.5fr 1fr', gap:16, alignItems:'start' }}>
       <div style={{ border:`1px solid ${P.hairline2}`, borderRadius:P.r14, overflow:'hidden', background:P.surface }}>
-        <div style={{ display:'grid', gridTemplateColumns:'1.4fr 90px 100px 90px 70px', padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize:10.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1.4fr 90px 100px 90px 70px', padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
           <div>Region</div><div>Geniuses</div><div>Window</div><div>Today</div><div style={{textAlign:'right'}}>Live</div>
         </div>
         {rows.map((r,i)=>(
           <div key={r.id} style={{ display:'grid', gridTemplateColumns:'1.4fr 90px 100px 90px 70px', padding:'14px 18px', borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center' }}>
             <div style={{ display:'flex', alignItems:'center', gap:9 }}><Icon name="map" size={16} color={r.live?P.ink:P.inkFaint}/><span style={{ fontSize:13.5, fontWeight:600, color:r.live?P.ink:P.inkMute }}>{r.name}</span></div>
-            <div className="mono" style={{ fontSize:13, color:P.inkDim }}>{r.geniuses||'—'}</div>
-            <div className="mono" style={{ fontSize:12, color:P.inkDim }}>{r.slots}</div>
-            <div className="mono" style={{ fontSize:13, color:P.ink }}>{r.today}</div>
+            <div className="mono" style={{ fontSize: 13.5, color:P.inkDim }}>{r.geniuses||'—'}</div>
+            <div className="mono" style={{ fontSize: 12.5, color:P.inkDim }}>{r.slots}</div>
+            <div className="mono" style={{ fontSize: 13.5, color:P.ink }}>{r.today}</div>
             <div style={{ textAlign:'right' }}><Switch on={r.live} onChange={()=>toggle(r.id)}/></div>
           </div>
         ))}
@@ -335,7 +335,7 @@ function RegionsView(){
         <div style={{ marginTop:14, display:'flex', flexDirection:'column', gap:0 }}>
           {[['Minimum order','$150'],['Deposit (refundable)','$100'],['Max session length','45 min'],['Service radius','15 mi from hub'],['Booking window','Same-day + 3 days'],['Buffer between calls','30 min']].map((row,i)=>(
             <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 0', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
-              <span style={{ fontSize:13, color:P.inkDim }}>{row[0]}</span>
+              <span style={{ fontSize: 13.5, color:P.inkDim }}>{row[0]}</span>
               <span className="mono" style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{row[1]}</span>
             </div>
           ))}
@@ -343,7 +343,7 @@ function RegionsView(){
         <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:12 }}>
           {[['VIP members only','Restrict house calls to Gold + invited tiers',true],['ID scan on arrival','Genius must scan ID before session',true],['Auto-decline out of zone','Refund deposit automatically',true]].map((row,i)=>(
             <div key={i} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
-              <div><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>{row[0]}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{row[1]}</div></div>
+              <div><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{row[0]}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{row[1]}</div></div>
               <Switch on={row[2]} onChange={()=>{}}/>
             </div>
           ))}
@@ -371,7 +371,7 @@ function ApptDetail({ id, onClose }){
       <div style={{ padding:'18px 24px', borderBottom:`1px solid ${P.hairline2}`, background:P.surface, display:'flex', alignItems:'center', gap:14 }}>
         <Avatar name={a.cust} size={44} crown={a.tier==='Gold'}/>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}><span style={{ fontSize:18, fontWeight:700, color:P.ink }}>{a.cust}</span><Pill kind={st.kind} soft dot={st.dot}>{st.label}</Pill></div>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}><span style={{ fontSize: 16, fontWeight:700, color:P.ink }}>{a.cust}</span><Pill kind={st.kind} soft dot={st.dot}>{st.label}</Pill></div>
           <div className="mono" style={{ fontSize:11.5, color:P.inkMute, marginTop:2 }}>{a.id} · {a.tier!=='—'?`${a.tier} member · ${a.member}`:'Non-member'} · {a.orders} orders · LTV {money(a.ltv)}</div>
         </div>
         <IconBtn icon="phone" title="Call"/>
@@ -381,8 +381,8 @@ function ApptDetail({ id, onClose }){
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:0, background:P.surface, borderBottom:`1px solid ${P.hairline2}` }}>
         {[['Window',a.win],['Region',a.region],['Genius',g?g.name:'Unassigned'],['Deposit',a.deposit==='pending'?'Due $100':`$${a.dep} ${a.deposit}`]].map((m,i)=>(
           <div key={i} style={{ padding:'12px 20px', borderLeft:i?`1px solid ${P.hairline}`:'none' }}>
-            <div style={{ fontSize:9.5, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, fontWeight:600 }}>{m[0]}</div>
-            <div style={{ fontSize:13, fontWeight:600, color:P.ink, marginTop:3 }}>{m[1]}</div>
+            <div style={{ fontSize: 10, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, fontWeight:600 }}>{m[0]}</div>
+            <div style={{ fontSize: 13.5, fontWeight:600, color:P.ink, marginTop:3 }}>{m[1]}</div>
           </div>
         ))}
       </div>
@@ -398,7 +398,7 @@ function ApptDetail({ id, onClose }){
           <Section title="What the customer said">
             <div style={{ padding:16, background:P.accentSoft, border:`1px solid ${P.accentBorder}`, borderRadius:P.r12, display:'flex', gap:12 }}>
               <Icon name="note" size={18} color={P.mode==='dark'?P.accent:P.accentInk}/>
-              <div style={{ fontSize:14, lineHeight:1.55, color:P.ink, fontStyle:'italic' }}>“{a.notes}”</div>
+              <div style={{ fontSize: 13.5, lineHeight:1.55, color:P.ink, fontStyle:'italic' }}>“{a.notes}”</div>
             </div>
           </Section>
           {a.status==='requested' && (
@@ -407,7 +407,7 @@ function ApptDetail({ id, onClose }){
                 {GENIUSES.filter(x=>x.status!=='off').map(x=>{ const xs=GSTATUS[x.status]; const match=x.region===a.region; return (
                   <div key={x.id} style={{ display:'flex', alignItems:'center', gap:11, padding:'10px 12px', border:`1px solid ${match?P.accentBorder:P.hairline2}`, borderRadius:P.r10, background:match?P.accentSoft:P.surface }}>
                     <Avatar name={x.name} size={30}/>
-                    <div style={{ flex:1 }}><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>{x.name} {match&&<span style={{ fontSize:10.5, color:P.mode==='dark'?P.accent:P.accentInk, fontWeight:700 }}>· in zone</span>}</div><div style={{ fontSize:11, color:P.inkMute }}>{x.region} · ★ {x.rating} · {x.sessions} today</div></div>
+                    <div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{x.name} {match&&<span style={{ fontSize: 11.5, color:P.mode==='dark'?P.accent:P.accentInk, fontWeight:700 }}>· in zone</span>}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{x.region} · ★ {x.rating} · {x.sessions} today</div></div>
                     <Pill kind={xs.kind} soft>{xs.label}</Pill>
                     <Btn kind={match?'primary':'ghost'} sm>Assign</Btn>
                   </div>); })}
@@ -418,7 +418,7 @@ function ApptDetail({ id, onClose }){
             <Section title="Assigned genius">
               <Card padding={14} style={{ display:'flex', alignItems:'center', gap:13 }}>
                 <Avatar name={g.name} size={40}/>
-                <div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:700, color:P.ink }}>{g.name}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{g.vehicle}</div></div>
+                <div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>{g.name}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{g.vehicle}</div></div>
                 <StatCol label="Rating">★ {g.rating.toFixed(1)}</StatCol>
                 <StatCol label="ETA">{a.status==='en_route'?'2:15p':a.status==='in_session'?'On site':'—'}</StatCol>
                 <Btn kind="ghost" sm icon="phone">Call</Btn>
@@ -439,12 +439,12 @@ function ApptDetail({ id, onClose }){
               {a.cart.map((it,i)=>(
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 15px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
                   <div style={{ width:40, height:40, borderRadius:8, background:P.surface3, display:'flex', alignItems:'center', justifyContent:'center', flex:'0 0 auto' }}><Icon name="leaf" size={18} color={P.inkDim}/></div>
-                  <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>{it.name}</div><div style={{ marginTop:3 }}>{it.strain&&<StrainPill type={it.strain} thc={it.thc}/>}<span style={{ fontSize:11, color:P.inkMute, marginLeft:it.strain?8:0 }}>{it.cat}</span></div></div>
+                  <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{it.name}</div><div style={{ marginTop:3 }}>{it.strain&&<StrainPill type={it.strain} thc={it.thc}/>}<span style={{ fontSize: 11.5, color:P.inkMute, marginLeft:it.strain?8:0 }}>{it.cat}</span></div></div>
                   <span className="mono" style={{ fontSize:12.5, color:P.inkDim }}>×{it.qty}</span>
                   <Money n={it.price*it.qty} strong/>
                 </div>
               ))}
-            </div>) : <div style={{ padding:'30px', textAlign:'center', color:P.inkMute, fontSize:13, border:`1px dashed ${P.hairline3}`, borderRadius:P.r12 }}>Cart is empty — the genius builds it live during the visit.</div>}
+            </div>) : <div style={{ padding:'30px', textAlign:'center', color:P.inkMute, fontSize: 13.5, border:`1px dashed ${P.hairline3}`, borderRadius:P.r12 }}>Cart is empty — the genius builds it live during the visit.</div>}
           </Section>
           {a.cart&&a.cart.length>0 && (
             <div style={{ marginLeft:'auto', width:280, display:'flex', flexDirection:'column', gap:8 }}>
@@ -452,7 +452,7 @@ function ApptDetail({ id, onClose }){
                 <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:12.5, color:P.inkDim }}><span>{r[0]}</span><span className="mono">{r[1]<0?'−':''}{money(Math.abs(r[1]))}</span></div>
               ))}
               <div style={{ display:'flex', justifyContent:'space-between', paddingTop:9, borderTop:`1px solid ${P.hairline2}` }}><span style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>Est. total</span><Money n={Math.round(cartTotal*0.9*1.27)} strong size={15}/></div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:12, color:P.good }}><span>− Deposit applied</span><span className="mono">−{money(a.dep)}</span></div>
+              <div style={{ display:'flex', justifyContent:'space-between', fontSize: 12.5, color:P.good }}><span>− Deposit applied</span><span className="mono">−{money(a.dep)}</span></div>
             </div>
           )}
         </>)}
@@ -477,12 +477,12 @@ function ApptDetail({ id, onClose }){
         )}
 
         {tab==='chat' && (
-          <Section title="Conversation" right={<span style={{ fontSize:11, color:P.inkMute }}>Customer ⇄ Genius · monitored</span>}>
+          <Section title="Conversation" right={<span style={{ fontSize: 11.5, color:P.inkMute }}>Customer ⇄ Genius · monitored</span>}>
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-              {CHAT_2041.map((c,i)=>{ if(c.who==='sys') return (<div key={i} style={{ textAlign:'center' }}><span className="mono" style={{ fontSize:10.5, color:P.inkMute, background:P.surface3, padding:'4px 10px', borderRadius:99 }}>{c.m} · {c.t}</span></div>);
+              {CHAT_2041.map((c,i)=>{ if(c.who==='sys') return (<div key={i} style={{ textAlign:'center' }}><span className="mono" style={{ fontSize: 11.5, color:P.inkMute, background:P.surface3, padding:'4px 10px', borderRadius:99 }}>{c.m} · {c.t}</span></div>);
                 const mine=c.who==='genius'; return (
                 <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:mine?'flex-end':'flex-start' }}>
-                  <div style={{ maxWidth:'78%', padding:'10px 13px', borderRadius:14, background:mine?P.ink:P.surface, color:mine?P.surface:P.ink, border:mine?'none':`1px solid ${P.hairline2}`, fontSize:13, lineHeight:1.5 }}>{c.m}</div>
+                  <div style={{ maxWidth:'78%', padding:'10px 13px', borderRadius:14, background:mine?P.ink:P.surface, color:mine?P.surface:P.ink, border:mine?'none':`1px solid ${P.hairline2}`, fontSize: 13.5, lineHeight:1.5 }}>{c.m}</div>
                   <span className="mono" style={{ fontSize:10, color:P.inkMute, marginTop:3 }}>{c.who==='cx'?a.cust.split(' ')[0]:g?g.name.split(' ')[0]:'Genius'} · {c.t}</span>
                 </div>); })}
             </div>
@@ -522,10 +522,10 @@ function ApptDetail({ id, onClose }){
             <div style={{ padding:16, background:P.surface, border:`1px solid ${P.hairline2}`, borderRadius:P.r12 }}>
               <div style={{ display:'flex', gap:3, marginBottom:8 }}>{[1,2,3,4,5].map(n=><Icon key={n} name="starFilled" size={16} color={n<=a.rating?P.accent:P.hairline3}/>)}</div>
               <div style={{ fontSize:13.5, lineHeight:1.55, color:P.ink, fontStyle:'italic' }}>“{a.rating===5?'Wesley knew exactly what to recommend for the hike. Fast, friendly, felt like a private shop at my door.':'Good visit, learned a lot about dosing. Would have liked a bit more variety in stock.'}”</div>
-              <div style={{ fontSize:11, color:P.inkMute, marginTop:8 }}>— {a.cust} · {g?g.name:'genius'}</div>
+              <div style={{ fontSize: 11.5, color:P.inkMute, marginTop:8 }}>— {a.cust} · {g?g.name:'genius'}</div>
             </div>
           </Section>
-          <Section title="Genius notes"><div style={{ fontSize:13, lineHeight:1.55, color:P.inkDim }}>Restocked customer on their usual. Recommended the new sleep tincture — added to favorites. Flagged interest in concentrates for next visit.</div></Section>
+          <Section title="Genius notes"><div style={{ fontSize: 13.5, lineHeight:1.55, color:P.inkDim }}>Restocked customer on their usual. Recommended the new sleep tincture — added to favorites. Flagged interest in concentrates for next visit.</div></Section>
           <div style={{ display:'flex', gap:10 }}><Btn kind="ghost" icon="printer">Print receipt</Btn><Btn kind="ghost" icon="download">Export report</Btn></div>
         </>)}
       </div>
@@ -566,7 +566,7 @@ function Shell(){
             <Icon name={s.icon} size={15} stroke={2}/>{s.label}
           </button>); })}
         <div style={{ flex:1 }}/>
-        <span className="mono" style={{ fontSize:11, color:P.inkMute }}>{TODAY} · 2:35p PT</span>
+        <span className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>{TODAY} · 2:35p PT</span>
       </div>
       <main style={{ flex:1, overflow:'auto', minHeight:0 }}>
         {view==='board' && <BoardView onOpen={setOpen}/>}

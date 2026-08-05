@@ -32,7 +32,7 @@ function WmPanel({ title, sub, right, children, pad = 18 }) {
 
 function WmActorChip({ actor }) {
   const c = WM_ACTOR[actor] || '#7C7869';
-  return <span style={{ fontSize:9, fontWeight:800, letterSpacing:'.04em', textTransform:'uppercase', color:'#fff', background:c, borderRadius:20, padding:'2px 8px', whiteSpace:'nowrap' }}>{actor}</span>;
+  return <span style={{ fontSize: 10, fontWeight:800, letterSpacing:'.04em', textTransform:'uppercase', color:'#fff', background:c, borderRadius:20, padding:'2px 8px', whiteSpace:'nowrap' }}>{actor}</span>;
 }
 
 function WmOrderFlow() {
@@ -46,7 +46,7 @@ function WmOrderFlow() {
               <WmActorChip actor={s.actor} /><span style={{ fontFamily:P.fontMono, fontSize:10, fontWeight:800, color:P.inkFaint }}>{i + 1}</span>
             </div>
             <div style={{ fontSize:12.5, fontWeight:700, color:P.ink, lineHeight:1.25, marginBottom:3 }}>{s.t}</div>
-            <div style={{ fontSize:10.5, color:P.inkDim, lineHeight:1.4 }}>{s.d}</div>
+            <div style={{ fontSize: 11.5, color:P.inkDim, lineHeight:1.4 }}>{s.d}</div>
           </div>
           {i < WM_ORDER_FLOW.length - 1 && <div style={{ display:'flex', alignItems:'center', color:P.inkFaint, padding:'0 3px' }}><Icon name="chevron-right" size={16} stroke={2.2} /></div>}
         </React.Fragment>))}
@@ -68,11 +68,11 @@ function WmRegionMap() {
             return (
               <tr key={r.region}>
                 <td style={{ padding:'11px 14px', borderTop:`1px solid ${P.hairline}`, fontWeight:700, color:P.ink }}>{r.region}<div style={{ fontSize:10, fontWeight:500, color: on ? P.good : P.warn, fontFamily:P.fontMono }}>{on}/{r.drivers.length} on shift</div></td>
-                <td style={{ padding:'11px 14px', borderTop:`1px solid ${P.hairline}`, fontFamily:P.fontMono, fontSize:11, color:P.ink2 }}>{r.zips.join(' · ')}</td>
+                <td style={{ padding:'11px 14px', borderTop:`1px solid ${P.hairline}`, fontFamily:P.fontMono, fontSize: 11.5, color:P.ink2 }}>{r.zips.join(' · ')}</td>
                 <td style={{ padding:'11px 14px', borderTop:`1px solid ${P.hairline}` }}>
                   <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                     {r.drivers.map((d) => (
-                      <span key={d.n} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background: d.on ? P.goodSoft : P.neutralSoft, color: d.on ? P.good : P.inkDim }}>
+                      <span key={d.n} style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize: 11.5, fontWeight:600, padding:'2px 8px', borderRadius:20, background: d.on ? P.goodSoft : P.neutralSoft, color: d.on ? P.good : P.inkDim }}>
                         <span style={{ width:6, height:6, borderRadius:99, background: d.on ? P.good : P.inkMute }} />{d.n} · {d.kit} SKUs</span>))}
                   </div>
                 </td>
@@ -97,8 +97,8 @@ function wmMapPill(m) {
 function WmField({ label, value, mono }) {
   const P = useP();
   return <div style={{ display:'flex', flexDirection:'column', gap:2, minWidth:0 }}>
-    <span style={{ fontSize:9, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase', color:P.inkMute }}>{label}</span>
-    <span style={{ fontSize:12, color:P.ink, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak:'break-word' }}>{value}</span>
+    <span style={{ fontSize: 10, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase', color:P.inkMute }}>{label}</span>
+    <span style={{ fontSize: 12.5, color:P.ink, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak:'break-word' }}>{value}</span>
   </div>;
 }
 function WmGroup({ title, children }) {
@@ -305,12 +305,12 @@ window.WeedmapsView = function WeedmapsView({ promos = [], setPromos, onOpen, on
           <WmOrderFlow />
           <div style={{ marginTop:14, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             <div style={{ background:P.surface2, border:`1px solid ${P.hairline}`, borderRadius:P.r10, padding:'11px 13px' }}>
-              <div style={{ fontSize:11, fontWeight:800, letterSpacing:'.05em', textTransform:'uppercase', color:P.info, marginBottom:4 }}>Delivery orders</div>
-              <div style={{ fontSize:12, color:P.ink2, lineHeight:1.55 }}>Come from Weedmaps → we resolve <b>zip → region → one on-shift driver</b>, and only offer SKUs in that driver’s kit. The order binds to that driver.</div>
+              <div style={{ fontSize: 11.5, fontWeight:800, letterSpacing:'.05em', textTransform:'uppercase', color:P.info, marginBottom:4 }}>Delivery orders</div>
+              <div style={{ fontSize: 12.5, color:P.ink2, lineHeight:1.55 }}>Come from Weedmaps → we resolve <b>zip → region → one on-shift driver</b>, and only offer SKUs in that driver’s kit. The order binds to that driver.</div>
             </div>
             <div style={{ background:P.surface2, border:`1px solid ${P.hairline}`, borderRadius:P.r10, padding:'11px 13px' }}>
-              <div style={{ fontSize:11, fontWeight:800, letterSpacing:'.05em', textTransform:'uppercase', color:P.warn, marginBottom:4 }}>Pickup orders</div>
-              <div style={{ fontSize:12, color:P.ink2, lineHeight:1.55 }}>Also from Weedmaps, but fulfilled from <b>store on-hand stock</b> — no driver, no routing. The order binds to the <b>{WM_STORE.name}</b> store and is marked ready for pickup.</div>
+              <div style={{ fontSize: 11.5, fontWeight:800, letterSpacing:'.05em', textTransform:'uppercase', color:P.warn, marginBottom:4 }}>Pickup orders</div>
+              <div style={{ fontSize: 12.5, color:P.ink2, lineHeight:1.55 }}>Also from Weedmaps, but fulfilled from <b>store on-hand stock</b> — no driver, no routing. The order binds to the <b>{WM_STORE.name}</b> store and is marked ready for pickup.</div>
             </div>
           </div>
         </WmPanel>
@@ -325,10 +325,10 @@ window.WeedmapsView = function WeedmapsView({ promos = [], setPromos, onOpen, on
             {Object.values(WM_LISTINGS).map((l) => (
               <div key={l.id} style={{ border:`1px solid ${P.hairline2}`, borderLeft:`3px solid ${l.kind === 'Pickup' ? P.warn : P.info}`, borderRadius:P.r10, padding:'12px 14px' }}>
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:P.ink }}>{l.name}</span>
+                  <span style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>{l.name}</span>
                   <Pill kind={l.kind === 'Pickup' ? 'warn' : 'info'}>{l.kind}</Pill>
                 </div>
-                <div style={{ fontSize:11, color:P.inkDim, fontFamily:P.fontMono, marginBottom:4 }}>wmid {l.id} · {l.policy}</div>
+                <div style={{ fontSize: 11.5, color:P.inkDim, fontFamily:P.fontMono, marginBottom:4 }}>wmid {l.id} · {l.policy}</div>
                 <div style={{ fontSize:11.5, color:P.ink2, lineHeight:1.45 }}>{l.desc}</div>
               </div>))}
           </div>

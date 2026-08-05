@@ -48,10 +48,10 @@ window.Flow5 = function Flow5() {
       <button onClick={() => on && setActive(id)} disabled={!on} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textAlign: 'left', background: a ? P.accentSoft : P.surface, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, cursor: on ? 'pointer' : 'not-allowed', opacity: on ? 1 : .6, fontFamily: P.fontSans }}>
         <span style={{ width: 36, height: 36, borderRadius: 9, flex: '0 0 auto', background: a ? P.accent : P.surface3, color: a ? P.accentInk : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={locked ? 'lock' : ic} size={18} stroke={1.8} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{label}{a && <span style={{ marginLeft: 7, fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.08em' }}>◀ TYPING</span>}</div>
-          <div style={{ fontSize: 10.5, color: locked ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{locked ? 'Enter cash first' : note}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{label}{a && <span style={{ marginLeft: 7, fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.08em' }}>◀ TYPING</span>}</div>
+          <div style={{ fontSize: 11.5, color: locked ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{locked ? 'Enter cash first' : note}</div>
         </div>
-        <span style={{ fontSize: 18, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(val)}</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(val)}</span>
       </button>
     );
   };
@@ -59,7 +59,7 @@ window.Flow5 = function Flow5() {
   return (
     <window.FlowFrame title="Smart calculator" tag="Flow 5 · Keypad"
       foot={<div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 22px', borderTop: `1px solid ${P.hairline2}`, background: P.surface }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 700, color: Math.abs(remaining) < 0.005 ? P.good : P.warn }}><Icon name={Math.abs(remaining) < 0.005 ? 'check-circle' : 'info'} size={15} stroke={2} />{Math.abs(remaining) < 0.005 ? 'Fully allocated' : `${money(Math.abs(remaining))} ${remaining > 0 ? 'unassigned' : 'over'}`}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 700, color: Math.abs(remaining) < 0.005 ? P.good : P.warn }}><Icon name={Math.abs(remaining) < 0.005 ? 'check-circle' : 'info'} size={15} stroke={2} />{Math.abs(remaining) < 0.005 ? 'Fully allocated' : `${money(Math.abs(remaining))} ${remaining > 0 ? 'unassigned' : 'over'}`}</div>
         <div style={{ flex: 1 }} />
         <window.PBtn variant="accent" size="lg" icon="check" disabled={!ready} onClick={() => setDone(true)}>Complete</window.PBtn>
       </div>}>
@@ -70,15 +70,15 @@ window.Flow5 = function Flow5() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Seg value={mode} onChange={setMode2} options={[{ value: 'cash', label: 'All cash' }, { value: 'card', label: 'All card' }, { value: 'split', label: 'Split' }]} />
             <div style={{ flex: 1 }} />
-            <div style={{ textAlign: 'right' }}><div style={{ fontSize: 9.5, color: P.inkMute, letterSpacing: '.1em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Balance</div><div style={{ fontSize: 22, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(balance)}</div></div>
+            <div style={{ textAlign: 'right' }}><div style={{ fontSize: 10, color: P.inkMute, letterSpacing: '.1em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Balance</div><div style={{ fontSize: 21, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(balance)}</div></div>
           </div>
 
           {/* credit pills */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, alignItems: 'center' }}>
             <Icon name="gift" size={13} color={P.inkDim} />
-            {window.PAY.rewards.map((r) => { const a = reward === r.id, can = cust.points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '5px 10px', background: a ? P.accent : P.surface, color: a ? P.accentInk : P.ink2, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 99, fontSize: 11, fontWeight: 700, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}</button>; })}
+            {window.PAY.rewards.map((r) => { const a = reward === r.id, can = cust.points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '5px 10px', background: a ? P.accent : P.surface, color: a ? P.accentInk : P.ink2, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}</button>; })}
             <span style={{ width: 1, height: 16, background: P.hairline2 }} />
-            {[5, cust.wallet].filter((v, i, a) => a.indexOf(v) === i).map((v) => { const a = wallet === v; return <button key={v} onClick={() => setWallet(a ? 0 : v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', background: a ? P.accent : P.surface, color: a ? P.accentInk : P.ink2, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 99, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="wallet" size={11} />{v === cust.wallet ? `Wallet ${money(v)}` : money(v)}</button>; })}
+            {[5, cust.wallet].filter((v, i, a) => a.indexOf(v) === i).map((v) => { const a = wallet === v; return <button key={v} onClick={() => setWallet(a ? 0 : v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', background: a ? P.accent : P.surface, color: a ? P.accentInk : P.ink2, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="wallet" size={11} />{v === cust.wallet ? `Wallet ${money(v)}` : money(v)}</button>; })}
           </div>
 
           {/* buckets */}
@@ -89,7 +89,7 @@ window.Flow5 = function Flow5() {
 
           {/* fee strip */}
           {mode !== 'cash' && cardBase > 0 && <div style={{ marginTop: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}><Icon name="percent" size={12} color={P.inkDim} /><span style={{ fontSize: 11, fontWeight: 700, color: P.ink }}>Fee on card {money(cardBase)}</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}><Icon name="percent" size={12} color={P.inkDim} /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Fee on card {money(cardBase)}</span></div>
             <window.FeeCompare base={cardBase} value={feeOpt} onChange={setFeeOpt} layout="strip" />
           </div>}
         </div>
@@ -97,8 +97,8 @@ window.Flow5 = function Flow5() {
         {/* Right — keypad */}
         <div style={{ flex: '0 0 268px', background: P.surface2, borderLeft: `1px solid ${P.hairline2}`, padding: '18px 18px', display: 'flex', flexDirection: 'column' }}>
           <Eyebrow style={{ marginBottom: 8 }}>Feeding: {active === 'cash' ? 'Cash' : 'Card'}{cardLocked && active === 'card' ? ' (locked)' : ''}</Eyebrow>
-          <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '13px 15px', textAlign: 'right', fontSize: 24, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${(active === 'cash' ? cash : cardStr) === '' ? '0.00' : (active === 'cash' ? cash : cardStr)}</div>
-          <button onClick={fillRemaining} disabled={mode === 'card'} style={{ padding: '9px 0', marginBottom: 10, background: P.surface, border: `1px dashed ${P.hairline3}`, borderRadius: P.r10, fontSize: 12, fontWeight: 700, color: mode === 'card' ? P.inkFaint : P.info, cursor: mode === 'card' ? 'not-allowed' : 'pointer', fontFamily: P.fontSans }}>Fill remaining · {money(Math.max(0, mode === 'split' ? c2(balance - cashNum) : balance))}</button>
+          <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '13px 15px', textAlign: 'right', fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${(active === 'cash' ? cash : cardStr) === '' ? '0.00' : (active === 'cash' ? cash : cardStr)}</div>
+          <button onClick={fillRemaining} disabled={mode === 'card'} style={{ padding: '9px 0', marginBottom: 10, background: P.surface, border: `1px dashed ${P.hairline3}`, borderRadius: P.r10, fontSize: 12.5, fontWeight: 700, color: mode === 'card' ? P.inkFaint : P.info, cursor: mode === 'card' ? 'not-allowed' : 'pointer', fontFamily: P.fontSans }}>Fill remaining · {money(Math.max(0, mode === 'split' ? c2(balance - cashNum) : balance))}</button>
           <window.PadKeys onPress={pad} />
         </div>
       </div>

@@ -43,7 +43,7 @@ window.Flow2 = function Flow2() {
           <div>
             <Eyebrow style={{ marginBottom: 9 }}>Order · {txn.items} items</Eyebrow>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {txn.lines.map((l) => <div key={l.name} style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Thumb item={l} size={30} /><span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</span><span style={{ fontSize: 12, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(l.price)}</span></div>)}
+              {txn.lines.map((l) => <div key={l.name} style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Thumb item={l} size={30} /><span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</span><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(l.price)}</span></div>)}
             </div>
             <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', gap: 5 }}>
               <window.KV k="Subtotal" v={money(txn.sub)} />
@@ -52,13 +52,13 @@ window.Flow2 = function Flow2() {
             </div>
           </div>
           <div style={{ borderTop: `1px solid ${P.hairline2}`, paddingTop: 13 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}><Icon name="star" size={13} color={P.accent} /><span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Redeem points</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}><Icon name="star" size={13} color={P.accent} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Redeem points</span></div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {window.PAY.rewards.map((r) => { const a = reward === r.id, can = (r.bday || cust.points >= r.cost); return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '6px 10px', background: a ? P.accent : P.surface, color: a ? P.accentInk : P.ink2, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}</button>; })}
             </div>
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}><Icon name="wallet" size={13} color={P.good} /><span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Wallet</span><span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{money(cust.wallet)}</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 9 }}><Icon name="wallet" size={13} color={P.good} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Wallet</span><span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{money(cust.wallet)}</span></div>
             <div style={{ display: 'flex', gap: 6 }}>
               {[0, 5, 10, cust.wallet].filter((v, i, a) => a.indexOf(v) === i).map((v) => { const a = wallet === v; return <button key={v} onClick={() => setWallet(v)} style={{ flex: 1, padding: '7px 6px', background: a ? P.accentSoft : P.surface, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: 8, fontSize: 11.5, fontWeight: 700, color: P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>{v === 0 ? 'Off' : v === cust.wallet ? 'Max' : money(v)}</button>; })}
             </div>
@@ -72,7 +72,7 @@ window.Flow2 = function Flow2() {
             <window.Pill kind={kind === 'Split' ? 'accent' : 'neutral'} icon={kind === 'All cash' ? 'cash' : kind === 'All card' ? 'card' : 'split'}>{kind}</window.Pill>
           </div>
           <div style={{ display: 'flex', gap: 8, margin: '14px 0 6px' }}>
-            {[['cash', 'All cash'], ['half', '50 / 50'], ['card', 'All card']].map(([k, l]) => <button key={k} onClick={() => preset(k)} style={{ flex: 1, padding: '8px 0', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 12, fontWeight: 700, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>{l}</button>)}
+            {[['cash', 'All cash'], ['half', '50 / 50'], ['card', 'All card']].map(([k, l]) => <button key={k} onClick={() => preset(k)} style={{ flex: 1, padding: '8px 0', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 12.5, fontWeight: 700, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>{l}</button>)}
           </div>
 
           {/* slider */}
@@ -83,19 +83,19 @@ window.Flow2 = function Flow2() {
               <input type="range" min={0} max={Math.max(1, balance)} step={0.01} value={cashV} onChange={(e) => setCash(parseFloat(e.target.value))} style={{ position: 'absolute', inset: 0, width: '100%', margin: 0, opacity: 0, cursor: 'pointer' }} />
               <div style={{ position: 'absolute', top: '50%', left: `calc(${pct}% )`, transform: 'translate(-50%,-50%)', width: 22, height: 22, borderRadius: 99, background: '#fff', border: `2px solid ${P.info}`, boxShadow: P.shadowMd, pointerEvents: 'none' }} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}><span>← more cash</span><span>more card →</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}><span>← more cash</span><span>more card →</span></div>
           </div>
 
           {/* two tender cards */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
             <div style={{ padding: '14px 16px', background: P.surface, border: `1.5px solid ${cashV > 0 ? P.hairline3 : P.hairline}`, borderRadius: P.r14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}><Icon name="cash" size={16} color={P.ink2} /><span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Cash</span><span style={{ marginLeft: 'auto', fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono }}>no fee</span></div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(cashV)}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}><Icon name="cash" size={16} color={P.ink2} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Cash</span><span style={{ marginLeft: 'auto', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>no fee</span></div>
+              <div style={{ fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(cashV)}</div>
             </div>
             <div style={{ padding: '14px 16px', background: P.surface, border: `1.5px solid ${cardBase > 0 ? P.accentBorder : P.hairline}`, borderRadius: P.r14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}><Icon name="card" size={16} color={P.ink2} /><span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Card</span><span style={{ marginLeft: 'auto', fontSize: 9.5, color: P.warn, fontWeight: 700, fontFamily: P.fontMono }}>+ fee</span></div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(cardCharged)}</div>
-              <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 2 }}>{money(cardBase)} base + {money(feeAmt)} fee</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}><Icon name="card" size={16} color={P.ink2} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Card</span><span style={{ marginLeft: 'auto', fontSize: 10, color: P.warn, fontWeight: 700, fontFamily: P.fontMono }}>+ fee</span></div>
+              <div style={{ fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{money(cardCharged)}</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 2 }}>{money(cardBase)} base + {money(feeAmt)} fee</div>
             </div>
           </div>
 

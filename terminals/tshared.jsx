@@ -49,7 +49,7 @@ window.PeriphChip = function PeriphChip({ icon, label, sub, ok = true, missing, 
       <Icon name={icon} size={14} stroke={1.8} color={c} />
       <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15, minWidth: 0 }}>
         <span style={{ fontSize: 11.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{missing ? 'No ' + label.toLowerCase() : label}{sub && !missing && <span style={{ color: P.inkMute, fontWeight: 500 }}> · {sub}</span>}</span>
-        {tag && <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{tag}</span>}
+        {tag && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{tag}</span>}
       </span>
     </span>);
 };
@@ -69,7 +69,7 @@ window.BindLine = function BindLine({ device, locked = true }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.inkDim }}>
       {locked && <Icon name="lock" size={12} stroke={1.9} color={P.inkMute} />}
       Bound to <span style={{ fontWeight: 600, color: P.ink2 }}>{device.model}</span>
-      <span style={{ fontFamily: P.fontMono, fontSize: 10.5, color: P.inkMute }}>{device.tag}</span>
+      <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{device.tag}</span>
     </span>);
 };
 
@@ -117,12 +117,12 @@ window.TSelect = function TSelect({ value, placeholder = 'Select…', options, o
                 <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search…" style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: P.fontSans, fontSize: 12.5, color: P.ink }} />
               </div>
             </div>}
-            {shown.length === 0 && <div style={{ padding: '10px', fontSize: 12, color: P.inkMute, textAlign: 'center' }}>No matches</div>}
+            {shown.length === 0 && <div style={{ padding: '10px', fontSize: 12.5, color: P.inkMute, textAlign: 'center' }}>No matches</div>}
             {shown.map((o) => {const a = o.value === value;return (
                 <button key={o.value} onClick={() => {onChange(o.value);setOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 10px', background: a ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.label}</span>
-                  {o.sub && <span style={{ display: 'block', fontSize: 10.5, color: P.inkMute, fontFamily: o.mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.sub}</span>}
+                  {o.sub && <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: o.mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.sub}</span>}
                 </span>
                 {a && <Icon name="check" size={15} stroke={2.4} color={P.ink} />}
               </button>);})}
@@ -134,7 +134,7 @@ window.TSelect = function TSelect({ value, placeholder = 'Select…', options, o
 // Field label
 window.FLabel = function FLabel({ children, hint }) {
   const P = useP();
-  return <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.02em', color: P.inkDim, marginBottom: 7, display: 'flex', alignItems: 'center', gap: 6 }}>{children}{hint && <span style={{ fontWeight: 400, color: P.inkMute }}>{hint}</span>}</div>;
+  return <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '.02em', color: P.inkDim, marginBottom: 7, display: 'flex', alignItems: 'center', gap: 6 }}>{children}{hint && <span style={{ fontWeight: 400, color: P.inkMute }}>{hint}</span>}</div>;
 };
 
 // ── Overlay (portaled to viewport so it's always visible on the canvas) ─────
@@ -152,7 +152,7 @@ window.ModalHead = function ModalHead({ title, eyebrow, onClose, closeIcon, clos
   const P = useP();
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '20px 22px 16px', borderBottom: `1px solid ${P.hairline}` }}>
-      <div>{eyebrow && <Eyebrow style={{ marginBottom: 6 }}>{eyebrow}</Eyebrow>}<h3 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>{title}</h3></div>
+      <div>{eyebrow && <Eyebrow style={{ marginBottom: 6 }}>{eyebrow}</Eyebrow>}<h3 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>{title}</h3></div>
       <IconBtn icon={closeIcon || 'x'} title={closeTitle || 'Close'} onClick={onClose} />
     </div>);
 };
@@ -176,7 +176,7 @@ window.AddTerminal = function AddTerminal({ onClose }) {
         </span>
         <span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{title}</span>
         <span style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.45 }}>{desc}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 2, fontSize: 11, color: P.inkMute }}><Icon name="link" size={12} stroke={1.9} />{detected}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 2, fontSize: 11.5, color: P.inkMute }}><Icon name="link" size={12} stroke={1.9} />{detected}</span>
       </button>);
   };
 
@@ -190,7 +190,7 @@ window.AddTerminal = function AddTerminal({ onClose }) {
             <KindCard k="driver" icon="truck" title="Mobile terminal" desc="A driver’s phone in the field. Uses the region’s static Credit Card Reader — one driver per region." detected="Auto-binds to the driver’s phone" />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, padding: '11px 13px', background: P.infoSoft, borderRadius: P.r10 }}>
-            <Icon name="info" size={15} color={P.info} /><span style={{ fontSize: 12, color: P.ink2, lineHeight: 1.4 }}>The device is detected and locked automatically — one terminal per device, no IDs to copy.</span>
+            <Icon name="info" size={15} color={P.info} /><span style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.4 }}>The device is detected and locked automatically — one terminal per device, no IDs to copy.</span>
           </div>
         </>}
         {step === 2 && kind === 'station' && <StationForm name={name} setName={setName} model={tk.drawerModel} />}
@@ -246,8 +246,8 @@ function DriverForm({ name, setName, region, setRegion, regReader }) {
         options={T_REGIONS.map((r) => ({ value: r.id, label: r.id + ' ' + r.name, sub: r.reader ? 'Credit Card Reader: ' + r.reader.model + ' · SN ' + r.reader.sn + ' · static' : 'No reader assigned yet', mono: true }))} />
       </div>
       <div style={{ display: 'flex', gap: 10, padding: '13px 15px', background: region ? regReader ? P.accentSoft : P.warnSoft : P.surface2, border: `1px solid ${region ? regReader ? P.accentBorder : P.warn + '55' : P.hairline}`, borderRadius: P.r12 }}>
-        <Icon name={regReader ? 'card' : 'info'} size={17} color={regReader ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.warn} />
-        <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.45 }}>
+        <Icon name={regReader ? 'card' : 'info'} size={17} color={regReader ? P.accentText : P.warn} />
+        <div style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.45 }}>
           {!region && <>Pick a region — it already has a <b>static Credit Card Reader</b>, so there’s nothing to map day-to-day.</>}
           {region && regReader && <><b>Credit Card Reader:</b> {regReader.model} <span style={{ fontFamily: P.fontMono, color: P.inkDim }}>SN {regReader.sn}</span>. Static to {regionName(region)} — this driver uses it automatically.</>}
           {region && !regReader && <><b>{regionName(region)} has no Credit Card Reader yet.</b> Assign one to the region and it stays put — flagged until then.</>}
@@ -272,8 +272,8 @@ window.ScheduleDrawer = function ScheduleDrawer({ onClose }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink }}>{p.name}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 2 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: roleTint(p.role) === P.accent ? (P.mode === 'dark' ? P.accent : '#7A5A00') : roleTint(p.role) }}>{roleLabel(p.role)}</span>
-          {p.time && <span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{p.time}</span>}
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: roleTint(p.role) === P.accent ? (P.accentText) : roleTint(p.role) }}>{roleLabel(p.role)}</span>
+          {p.time && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.time}</span>}
         </div>
       </div>
       {p.region ?
@@ -285,8 +285,8 @@ window.ScheduleDrawer = function ScheduleDrawer({ onClose }) {
       <div style={{ padding: '20px 22px 16px', borderBottom: `1px solid ${P.hairline}` }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6, fontSize: 10.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.04em' }}><Icon name="calendar" size={13} /> SYNCED FROM CONNECTEAM</div>
-            <h3 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Shift schedule</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6, fontSize: 11.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.04em' }}><Icon name="calendar" size={13} /> SYNCED FROM CONNECTEAM</div>
+            <h3 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Shift schedule</h3>
           </div>
           <IconBtn icon="x" onClick={onClose} />
         </div>
@@ -301,11 +301,11 @@ window.ScheduleDrawer = function ScheduleDrawer({ onClose }) {
           {off.map((p, i) =>
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 22px', borderTop: `1px solid ${P.hairline}`, opacity: .6 }}>
               <Avatar name={p.name} size={32} />
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink }}>{p.name}</div><div style={{ fontSize: 10.5, fontWeight: 600, color: P.inkMute, textTransform: 'uppercase', letterSpacing: '.04em' }}>{p.role === 'driver' ? 'Driver' : p.role === 'manager' ? 'Manager' : 'Cashier'}</div></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink }}>{p.name}</div><div style={{ fontSize: 11.5, fontWeight: 600, color: P.inkMute, textTransform: 'uppercase', letterSpacing: '.04em' }}>{p.role === 'driver' ? 'Driver' : p.role === 'manager' ? 'Manager' : 'Cashier'}</div></div>
               <Pill kind="neutral">Off</Pill>
             </div>)}
         </>}
-        <div style={{ padding: '14px 22px', fontSize: 11, color: P.inkMute, lineHeight: 1.5 }}>Drivers who are off hold no region today — their region shows as open coverage on the board until someone is scheduled.</div>
+        <div style={{ padding: '14px 22px', fontSize: 11.5, color: P.inkMute, lineHeight: 1.5 }}>Drivers who are off hold no region today — their region shows as open coverage on the board until someone is scheduled.</div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '12px 22px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
         <PBtn variant="secondary" size="sm" icon="refresh">Re-sync</PBtn>
@@ -328,7 +328,7 @@ window.ScheduleStrip = function ScheduleStrip({ onClose }) {
   const groups = {};
   working.forEach((p) => { const k = p.region ? p.region.slice(0, 2) : 'floor'; (groups[k] = groups[k] || []).push(p); });
   Object.values(groups).forEach((a) => a.sort((x, y) => startMin(x.time) - startMin(y.time)));
-  const roleInk = (r) => r === 'driver' ? (P.mode === 'dark' ? P.accent : '#7A5A00') : r === 'manager' ? P.indica : P.hybrid;
+  const roleInk = (r) => r === 'driver' ? (P.accentText) : r === 'manager' ? P.indica : P.hybrid;
   const roleLabel = (r) => r === 'driver' ? 'Driver' : r === 'manager' ? 'Manager' : 'Cashier';
   const Tile = ({ p }) =>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, opacity: p.off ? .55 : 1 }}>
@@ -336,20 +336,20 @@ window.ScheduleStrip = function ScheduleStrip({ onClose }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
-          <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: roleInk(p.role) }}>{roleLabel(p.role)}</span>
-          {p.time && <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.time}</span>}
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: roleInk(p.role) }}>{roleLabel(p.role)}</span>
+          {p.time && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.time}</span>}
         </div>
       </div>
       {p.off ? <Pill kind="neutral">Off</Pill> :
-        p.region ? <span style={{ fontFamily: P.fontMono, fontSize: 11, fontWeight: 700, color: '#fff', background: regionColor(p.region), padding: '3px 8px', borderRadius: P.r8 }}>{p.region}</span> :
-        p.station ? <span style={{ fontSize: 10.5, color: P.inkDim, fontWeight: 600, textAlign: 'right', maxWidth: 74 }}>{p.station}</span> : null}
+        p.region ? <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#fff', background: regionColor(p.region), padding: '3px 8px', borderRadius: P.r8 }}>{p.region}</span> :
+        p.station ? <span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600, textAlign: 'right', maxWidth: 74 }}>{p.station}</span> : null}
     </div>;
   return (
     <div style={{ marginBottom: 24, background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: P.r8, background: P.ink, color: P.surface, flex: '0 0 auto' }}><Icon name="calendar" size={16} stroke={2} /></span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 9.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.05em' }}>SYNCED FROM CONNECTEAM</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.05em' }}>SYNCED FROM CONNECTEAM</div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>Shift schedule</h2>
         </div>
         <div style={{ flex: 1 }} />
@@ -364,8 +364,8 @@ window.ScheduleStrip = function ScheduleStrip({ onClose }) {
             <div key={k}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
                 <span style={{ width: 9, height: 9, borderRadius: 3, background: k === 'floor' ? P.ink : regionColor(k + '1'), flex: '0 0 auto' }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>{GROUP_LABEL[k]}</span>
-                <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{groups[k].length}</span>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{GROUP_LABEL[k]}</span>
+                <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{groups[k].length}</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 10 }}>
                 {groups[k].map((p, i) => <Tile key={i} p={p} />)}
@@ -391,7 +391,7 @@ function RegionTile({ region, reader, onAssign }) {
   return (
     <div style={{ padding: '11px 13px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-        <span style={{ fontFamily: P.fontMono, fontSize: 11, fontWeight: 700, color: '#fff', background: regionColor(region.id), padding: '3px 8px', borderRadius: P.r8, flex: '0 0 auto' }}>{region.id}</span>
+        <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#fff', background: regionColor(region.id), padding: '3px 8px', borderRadius: P.r8, flex: '0 0 auto' }}>{region.id}</span>
         <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{region.name}</span>
       </div>
       {assigning ?
@@ -400,7 +400,7 @@ function RegionTile({ region, reader, onAssign }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             {reader ?
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}><Icon name="card" size={13} color={P.inkMute} style={{ flex: '0 0 auto' }} /><span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reader.model}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>SN {reader.sn} · static</span></span></span> :
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}><Icon name="card" size={13} color={P.inkMute} style={{ flex: '0 0 auto' }} /><span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reader.model}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>SN {reader.sn} · static</span></span></span> :
               <Pill kind="warn" dot>No reader</Pill>}
           </div>
           <PBtn variant={reader ? 'ghost' : 'accent'} size="xs" icon={reader ? 'refresh' : 'link'} onClick={() => setAssigning(true)} style={{ flex: '0 0 auto' }}>{reader ? 'Swap' : 'Assign'}</PBtn>
@@ -420,7 +420,7 @@ window.RegionReaderPanel = function RegionReaderPanel({ readers, onAssign, onClo
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: P.r8, background: P.accent, color: P.accentInk, flex: '0 0 auto' }}><Icon name="card" size={16} stroke={2} /></span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.05em' }}>SET ONCE · INHERITS TO WHOEVER DRIVES THE REGION</div>
+          <div style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.05em' }}>SET ONCE · INHERITS TO WHOEVER DRIVES THE REGION</div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>Region card readers</h2>
         </div>
         <div style={{ flex: 1 }} />
@@ -432,8 +432,8 @@ window.RegionReaderPanel = function RegionReaderPanel({ readers, onAssign, onClo
           <div key={k}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
               <span style={{ width: 9, height: 9, borderRadius: 3, background: regionColor(k + '1'), flex: '0 0 auto' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>{GROUP_LABEL[k]}</span>
-              <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{groups[k].filter((r) => readers[r.id]).length}/{groups[k].length}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{GROUP_LABEL[k]}</span>
+              <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{groups[k].filter((r) => readers[r.id]).length}/{groups[k].length}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 10 }}>
               {groups[k].map((r) => <RegionTile key={r.id} region={r} reader={readers[r.id]} onAssign={onAssign} />)}
@@ -450,13 +450,13 @@ function RegionReaderRow({ region, reader, onAssign }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 22px', borderTop: `1px solid ${P.hairline}` }}>
       <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#fff', background: regionColor(region.id), padding: '4px 9px', borderRadius: P.r8, flex: '0 0 auto' }}>{region.id}</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: P.ink, minWidth: 96 }}>{region.name}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, minWidth: 96 }}>{region.name}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         {assigning ?
           <div style={{ maxWidth: 240 }}><TSelect size="sm" icon="card" placeholder="Pick a reader…" value={null} options={READER_POOL}
             onChange={(v) => { const rd = READER_POOL.find((x) => x.value === v); onAssign(region.id, { model: rd.model, sn: rd.sn }); setAssigning(false); }} /></div> :
           reader ?
-          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="card" size={14} color={P.inkMute} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{reader.model}</span><span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>SN {reader.sn} · static</span></span> :
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="card" size={14} color={P.inkMute} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{reader.model}</span><span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>SN {reader.sn} · static</span></span> :
           <Pill kind="warn" dot>No reader mapped</Pill>}
       </div>
       {!assigning && <PBtn variant={reader ? 'ghost' : 'accent'} size="xs" icon={reader ? 'refresh' : 'link'} onClick={() => setAssigning(true)}>{reader ? 'Swap' : 'Assign'}</PBtn>}
@@ -470,7 +470,7 @@ window.RegionReaderMap = function RegionReaderMap({ readers, onAssign, onClose }
     <Overlay onClose={onClose} width={560}>
       <ModalHead eyebrow="Set once · inherits to whoever drives the region" title="Map Credit Card Readers to regions" onClose={onClose} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '16px 22px 6px', padding: '11px 14px', background: P.infoSoft, borderRadius: P.r10 }}>
-        <Icon name="info" size={16} color={P.info} /><span style={{ fontSize: 12, color: P.ink2, lineHeight: 1.4 }}>A reader is <b>static to its region</b>, not the driver. Map it here one time — every driver assigned to that region inherits it, no per-shift setup.</span>
+        <Icon name="info" size={16} color={P.info} /><span style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.4 }}>A reader is <b>static to its region</b>, not the driver. Map it here one time — every driver assigned to that region inherits it, no per-shift setup.</span>
       </div>
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {T_REGIONS.map((r) => <RegionReaderRow key={r.id} region={r} reader={readers[r.id]} onAssign={onAssign} />)}
@@ -512,8 +512,8 @@ window.TerminalDetail = function TerminalDetail({ t, onClose, onReconcile, onOpe
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <TypeGlyph kind={t.kind} size={46} />
           <div style={{ minWidth: 0 }}>
-            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>{t.name}</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 5 }}><StatusDot online={t.online} /><span style={{ fontSize: 12, color: P.inkDim }}>{t.online ? 'Online' : 'Offline'} · {t.lastActive}</span></div>
+            <h3 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>{t.name}</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 5 }}><StatusDot online={t.online} /><span style={{ fontSize: 12.5, color: P.inkDim }}>{t.online ? 'Online' : 'Offline'} · {t.lastActive}</span></div>
           </div>
         </div>
         {attn.length > 0 && <div style={{ marginTop: 14 }}><AttnPills t={t} /></div>}
@@ -535,7 +535,7 @@ window.TerminalDetail = function TerminalDetail({ t, onClose, onReconcile, onOpe
       </div>
       <div style={{ overflowY: 'auto', flex: 1 }}>
         <Section title="Assigned to">
-          {t.employee ? <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Avatar name={t.employee} size={30} /><div><div style={{ fontSize: 13, fontWeight: 600, color: P.ink }}>{t.employee}</div><div style={{ fontSize: 11, color: P.inkMute }}>{isDriver ? regionName(t.region) + ' · today' : 'Signed in'}</div></div></div> :
+          {t.employee ? <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Avatar name={t.employee} size={30} /><div><div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink }}>{t.employee}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>{isDriver ? regionName(t.region) + ' · today' : 'Signed in'}</div></div></div> :
           <div style={{ fontSize: 12.5, color: P.inkMute, fontStyle: 'italic' }}>No one signed in</div>}
         </Section>
         <Section title="Device binding">
@@ -555,12 +555,12 @@ window.TerminalDetail = function TerminalDetail({ t, onClose, onReconcile, onOpe
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: P.surface2, borderRadius: P.r10 }}>
             <Icon name={dl.icon} size={20} color={dl.tone === 'bad' ? P.bad : P.ink2} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: P.inkMute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>{dl.label}</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: dl.tone === 'bad' ? P.bad : P.ink, fontFamily: P.fontMono }}>{dl.value}{dl.sub && <span style={{ fontSize: 11.5, fontWeight: 500, color: P.inkDim, marginLeft: 8 }}>{dl.sub}</span>}</div>
+              <div style={{ fontSize: 11.5, color: P.inkMute, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>{dl.label}</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: dl.tone === 'bad' ? P.bad : P.ink, fontFamily: P.fontMono }}>{dl.value}{dl.sub && <span style={{ fontSize: 11.5, fontWeight: 500, color: P.inkDim, marginLeft: 8 }}>{dl.sub}</span>}</div>
             </div>
           </div>
-          {isDriver && <div style={{ marginTop: 8 }}><KV k="Starting change" v={money(t.bag.float)} mono /><div style={{ fontSize: 11, color: P.inkMute, marginTop: 4, lineHeight: 1.45 }}>Driver starts each shift with {money(t.bag.float)} in change. Region is assigned per shift — the reader stays with the region.</div></div>}
-          {!isDriver && tk.drawerModel !== 'device' && <div style={{ fontSize: 11, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>{DRAWER_MODEL_INFO[tk.drawerModel].blurb}</div>}
+          {isDriver && <div style={{ marginTop: 8 }}><KV k="Starting change" v={money(t.bag.float)} mono /><div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 4, lineHeight: 1.45 }}>Driver starts each shift with {money(t.bag.float)} in change. Region is assigned per shift — the reader stays with the region.</div></div>}
+          {!isDriver && tk.drawerModel !== 'device' && <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>{DRAWER_MODEL_INFO[tk.drawerModel].blurb}</div>}
         </Section>
         <Section title={'Activity log · ' + log.length + ' events'}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -574,7 +574,7 @@ window.TerminalDetail = function TerminalDetail({ t, onClose, onReconcile, onOpe
                 <div style={{ paddingBottom: i < log.length - 1 ? 13 : 0, minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 650, color: P.ink, lineHeight: 1.3 }}>{e.t}</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, flex: '0 0 auto' }}>{e.at}</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, flex: '0 0 auto' }}>{e.at}</span>
                   </div>
                   {e.d && <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 2, lineHeight: 1.45 }}>{e.d}</div>}
                 </div>

@@ -59,17 +59,17 @@ function resolve(surfaceId, day, {rank, pins, rotate}){
 function HeroBox({p, small}){
   return (<div style={{ borderRadius:8, padding: small?'6px 8px':'7px 9px', background:p.color, color:textOn(p.color), display:'flex', flexDirection:'column', justifyContent:'center', minHeight: small?38:44, lineHeight:1.1 }}>
     <span style={{ fontWeight:800, fontSize: small?10.5:11, letterSpacing:'-.01em' }}>{p.name}</span>
-    <span style={{ fontFamily:"'JetBrains Mono',monospace", fontWeight:700, fontSize:8, opacity:.85, letterSpacing:'.06em', marginTop:2 }}>{p.badge}</span>
+    <span style={{ fontFamily:"'JetBrains Mono',monospace", fontWeight:700, fontSize: 10, opacity:.85, letterSpacing:'.06em', marginTop:2 }}>{p.badge}</span>
   </div>);
 }
-function Bar({p}){ return (<div style={{ borderRadius:6, padding:'4px 7px', background:p.color, color:textOn(p.color), fontSize:9.5, fontWeight:700, display:'flex', alignItems:'center', gap:5, lineHeight:1 }}><span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</span><span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:8, opacity:.8, marginLeft:'auto', whiteSpace:'nowrap' }}>{p.badge}</span></div>); }
+function Bar({p}){ return (<div style={{ borderRadius:6, padding:'4px 7px', background:p.color, color:textOn(p.color), fontSize: 10, fontWeight:700, display:'flex', alignItems:'center', gap:5, lineHeight:1 }}><span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</span><span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize: 10, opacity:.8, marginLeft:'auto', whiteSpace:'nowrap' }}>{p.badge}</span></div>); }
 function Dot({c,s=8}){ return <span style={{ width:s, height:s, borderRadius:99, background:c, flex:'0 0 auto', display:'inline-block' }}/>; }
-function MiniChip({p}){ const P=useP(); return (<span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:999, background:P.surface, border:`1px solid ${P.hairline2}`, fontSize:11, fontWeight:600, color:P.ink, whiteSpace:'nowrap' }}><Dot c={p.color}/>{p.name}</span>); }
+function MiniChip({p}){ const P=useP(); return (<span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:999, background:P.surface, border:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600, color:P.ink, whiteSpace:'nowrap' }}><Dot c={p.color}/>{p.name}</span>); }
 function DaySelect({ day, setDay }){
   const P=useP();
   return (<div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>{DAYS.map(d=>{ const a=d.k===day; return (
     <button key={d.k} onClick={()=>setDay(d.k)} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1, padding:'6px 12px', borderRadius:9, background:a?P.ink:P.surface, color:a?P.surface:P.ink2, border:`1px solid ${a?P.ink:P.hairline2}`, cursor:'pointer', fontFamily:P.fontSans }}>
-      <span style={{ fontSize:12, fontWeight:700 }}>{d.l}</span>
+      <span style={{ fontSize: 12.5, fontWeight:700 }}>{d.l}</span>
       {d.k===WK_TODAY && <span style={{ fontSize:7.5, fontWeight:700, fontFamily:P.fontMono, letterSpacing:'.06em', color:a?P.accent:P.accent }}>TODAY</span>}
     </button>); })}</div>);
 }
@@ -82,7 +82,7 @@ function Matrix({ engine }){
     <div key={surfaceId+'-'+day} style={{ borderRight:`1px solid ${P.hairline}`, borderBottom:`1px solid ${P.hairline}`, padding:'8px 9px', background:isToday?(P.mode==='dark'?'rgba(255,209,0,.06)':'rgba(255,209,0,.10)'):'transparent' }}>{render}</div>); };
   return (<Card padding={0} style={{ overflow:'hidden' }}>
     <div style={{ padding:'15px 18px', borderBottom:`1px solid ${P.hairline2}`, display:'flex', alignItems:'center', gap:12 }}>
-      <div><Eyebrow>Auto-resolved · read-only view</Eyebrow><div style={{ fontSize:18, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>Week of Jul 6–12</div></div>
+      <div><Eyebrow>Auto-resolved · read-only view</Eyebrow><div style={{ fontSize: 16, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>Week of Jul 6–12</div></div>
       <div style={{ flex:1 }}/>
       {conflicts>0 ? <Pill kind="warn" dot>{conflicts} slot conflict{conflicts>1?'s':''}</Pill> : <Pill kind="good" dot>All slots resolved</Pill>}
       <Pill kind="neutral">15 promos live</Pill>
@@ -91,30 +91,30 @@ function Matrix({ engine }){
       {/* header */}
       <div style={{ background:P.surface2, borderBottom:`1px solid ${P.hairline}`, borderRight:`1px solid ${P.hairline}` }}/>
       {DAYS.map(d=>(<div key={d.k} style={{ background:d.k===WK_TODAY?(P.mode==='dark'?'rgba(255,209,0,.12)':'rgba(255,209,0,.20)'):P.surface2, borderBottom:`1px solid ${P.hairline}`, borderRight:`1px solid ${P.hairline}`, padding:'8px 9px' }}>
-        <div style={{ fontSize:11, fontWeight:800 }}>{d.l}</div><div style={{ fontSize:9.5, fontFamily:P.fontMono, color:P.inkMute }}>{d.d}</div></div>))}
+        <div style={{ fontSize: 11.5, fontWeight:800 }}>{d.l}</div><div style={{ fontSize: 10, fontFamily:P.fontMono, color:P.inkMute }}>{d.d}</div></div>))}
       {/* surface rows */}
       {WS.map(s=>(<React.Fragment key={s.id}>
         <div style={{ background:P.surface2, borderRight:`1px solid ${P.hairline}`, borderBottom:`1px solid ${P.hairline}`, padding:'8px 9px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-          <div style={{ fontSize:11.5, fontWeight:800 }}>{s.label}</div><div style={{ fontSize:9.5, fontFamily:P.fontMono, color:P.inkMute }}>{s.sub}</div>
+          <div style={{ fontSize:11.5, fontWeight:800 }}>{s.label}</div><div style={{ fontSize: 10, fontFamily:P.fontMono, color:P.inkMute }}>{s.sub}</div>
         </div>
         {DAYS.map(d=>{ const r=resolve(s.id,d.k,engine); return cell(s.id,d.k,
           s.id==='home_hero' ? (
             r.onAir.length ? <div style={{ position:'relative' }}>
               <HeroBox p={r.onAir[0]}/>
-              {r.contested && !r.rotating && !engine.pins[s.id] && <span style={{ position:'absolute', top:-6, right:-6, background:P.warn, color:'#fff', fontSize:9, fontWeight:700, fontFamily:P.fontMono, padding:'2px 5px', borderRadius:99, border:`2px solid ${P.surface}`, display:'flex', alignItems:'center', gap:2 }}>⚠{r.benched.length}</span>}
-              {r.rotating && <span style={{ position:'absolute', top:-7, right:-7, background:P.ink, color:P.surface, fontSize:8.5, fontWeight:700, fontFamily:P.fontMono, padding:'2px 5px 2px 4px', borderRadius:99, border:`2px solid ${P.surface}`, display:'flex', alignItems:'center', gap:2 }}><Icon name="refresh" size={9} stroke={2.4}/>{r.elig.length}</span>}
-            </div> : <span style={{ color:P.inkFaint, fontSize:11 }}>—</span>
+              {r.contested && !r.rotating && !engine.pins[s.id] && <span style={{ position:'absolute', top:-6, right:-6, background:P.warn, color:'#fff', fontSize: 10, fontWeight:700, fontFamily:P.fontMono, padding:'2px 5px', borderRadius:99, border:`2px solid ${P.surface}`, display:'flex', alignItems:'center', gap:2 }}>⚠{r.benched.length}</span>}
+              {r.rotating && <span style={{ position:'absolute', top:-7, right:-7, background:P.ink, color:P.surface, fontSize: 10, fontWeight:700, fontFamily:P.fontMono, padding:'2px 5px 2px 4px', borderRadius:99, border:`2px solid ${P.surface}`, display:'flex', alignItems:'center', gap:2 }}><Icon name="refresh" size={9} stroke={2.4}/>{r.elig.length}</span>}
+            </div> : <span style={{ color:P.inkFaint, fontSize: 11.5 }}>—</span>
           ) : s.id==='home_banner' ? (
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
               {r.onAir.map(p=><Bar key={p.id} p={p}/>)}
-              {r.benched.length>0 && <span style={{ fontSize:9.5, fontFamily:P.fontMono, color:P.inkMute }}>+{r.benched.length} queued</span>}
+              {r.benched.length>0 && <span style={{ fontSize: 10, fontFamily:P.fontMono, color:P.inkMute }}>+{r.benched.length} queued</span>}
             </div>
           ) : s.id==='shop_tile' ? (
-            r.onAir.length ? <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:999, background:P.surface2, border:`1px solid ${P.hairline2}`, fontSize:11, fontWeight:600 }}><Dot c={r.onAir[0].color}/>{r.onAir.length} tiles</span> : <span style={{ color:P.inkFaint, fontSize:11 }}>—</span>
+            r.onAir.length ? <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:999, background:P.surface2, border:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600 }}><Dot c={r.onAir[0].color}/>{r.onAir.length} tiles</span> : <span style={{ color:P.inkFaint, fontSize: 11.5 }}>—</span>
           ) : s.id==='brand_takeover' ? (
-            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>{r.onAir.map(p=><span key={p.id} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'3px 8px', borderRadius:999, background:P.surface2, border:`1px solid ${P.hairline2}`, fontSize:10.5, fontWeight:600 }}><Dot c={p.color} s={7}/>{p.brand}</span>)}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>{r.onAir.map(p=><span key={p.id} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'3px 8px', borderRadius:999, background:P.surface2, border:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600 }}><Dot c={p.color} s={7}/>{p.brand}</span>)}</div>
           ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>{r.onAir.map(p=><span key={p.id} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'3px 8px', borderRadius:999, background:P.surface2, border:`1px solid ${P.hairline2}`, fontSize:10.5, fontWeight:600 }}><Dot c={p.color} s={7}/>{p.name.split(' ')[0]}</span>)}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>{r.onAir.map(p=><span key={p.id} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'3px 8px', borderRadius:999, background:P.surface2, border:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600 }}><Dot c={p.color} s={7}/>{p.name.split(' ')[0]}</span>)}</div>
           )
         ); })}
       </React.Fragment>))}
@@ -131,7 +131,7 @@ function Stacks({ engine, setRank }){
   const cols=['home_hero','home_banner'];
   return (<div>
     <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:16, flexWrap:'wrap' }}>
-      <div><Eyebrow>Resolve by day</Eyebrow><div style={{ fontSize:18, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>{DAYS[day].l}, {DAYS[day].d}</div></div>
+      <div><Eyebrow>Resolve by day</Eyebrow><div style={{ fontSize: 16, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>{DAYS[day].l}, {DAYS[day].d}</div></div>
       <div style={{ flex:1 }}/>
       <DaySelect day={day} setDay={setDay}/>
     </div>
@@ -145,10 +145,10 @@ function Stacks({ engine, setRank }){
               <div key={p.id} draggable onDragStart={()=>{dragId.current=p.id;}} onDragOver={e=>e.preventDefault()} onDrop={()=>reorder(p.id)}
                 style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 11px', borderRadius:10, cursor:'grab',
                   background:on?P.surface:'transparent', border:`1px ${on?'solid':'dashed'} ${on?P.good:P.hairline2}`, boxShadow:on?`0 0 0 2px ${P.mode==='dark'?'rgba(70,192,126,.18)':'rgba(31,138,79,.14)'}`:'none', opacity:on?1:.55, transition:'opacity .12s' }}>
-                <span style={{ color:P.inkFaint, fontFamily:P.fontMono, fontWeight:700, fontSize:12, letterSpacing:'-1px' }}>⋮⋮</span>
+                <span style={{ color:P.inkFaint, fontFamily:P.fontMono, fontWeight:700, fontSize: 12.5, letterSpacing:'-1px' }}>⋮⋮</span>
                 <Dot c={p.color} s={9}/>
-                <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div><div style={{ fontSize:9.5, fontFamily:P.fontMono, color:P.inkMute }}>#{i+1} · {p.offer}</div></div>
-                <span style={{ fontFamily:P.fontMono, fontSize:8.5, fontWeight:700, letterSpacing:'.06em', padding:'2px 6px', borderRadius:99, background:on?(P.mode==='dark'?'rgba(70,192,126,.16)':'rgba(31,138,79,.14)'):P.surface3, color:on?P.good:P.inkMute }}>{on?(r.rotating?'ROTATES':'ON AIR'):'BENCHED'}</span>
+                <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.name}</div><div style={{ fontSize: 10, fontFamily:P.fontMono, color:P.inkMute }}>#{i+1} · {p.offer}</div></div>
+                <span style={{ fontFamily:P.fontMono, fontSize: 10, fontWeight:700, letterSpacing:'.06em', padding:'2px 6px', borderRadius:99, background:on?(P.mode==='dark'?'rgba(70,192,126,.16)':'rgba(31,138,79,.14)'):P.surface3, color:on?P.good:P.inkMute }}>{on?(r.rotating?'ROTATES':'ON AIR'):'BENCHED'}</span>
               </div>); })}
           </div>
         </Card>); })}
@@ -166,7 +166,7 @@ function Storefront({ engine }){
   const h=hero.onAir[0];
   return (<div>
     <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18, flexWrap:'wrap' }}>
-      <div><Eyebrow>Storefront preview</Eyebrow><div style={{ fontSize:18, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>What ships {DAYS[day].l}, {DAYS[day].d}</div></div>
+      <div><Eyebrow>Storefront preview</Eyebrow><div style={{ fontSize: 16, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>What ships {DAYS[day].l}, {DAYS[day].d}</div></div>
       <div style={{ flex:1 }}/>
       <DaySelect day={day} setDay={setDay}/>
     </div>
@@ -175,15 +175,15 @@ function Storefront({ engine }){
       <div style={{ width:284, borderRadius:40, background:'#000', padding:9, boxShadow:'0 30px 60px rgba(0,0,0,.3)', flex:'0 0 auto' }}>
         <div style={{ borderRadius:32, overflow:'hidden', background:'#0F0F0C', color:'#fff', position:'relative' }}>
           <div style={{ position:'absolute', top:8, left:'50%', transform:'translateX(-50%)', width:84, height:22, borderRadius:20, background:'#000', zIndex:5 }}/>
-          <div style={{ height:38, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 20px', fontSize:12, fontWeight:600 }}><span>9:41</span><span style={{ fontFamily:"'JetBrains Mono',monospace", opacity:.6, fontSize:9 }}>▮▮▮ ⌁</span></div>
+          <div style={{ height:38, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 20px', fontSize: 12.5, fontWeight:600 }}><span>9:41</span><span style={{ fontFamily:"'JetBrains Mono',monospace", opacity:.6, fontSize: 10 }}>▮▮▮ ⌁</span></div>
           <div style={{ padding:'2px 15px 18px' }}>
-            <div style={{ fontWeight:800, fontSize:14, marginBottom:12 }}>Good afternoon 👋</div>
+            <div style={{ fontWeight:800, fontSize: 13.5, marginBottom:12 }}>Good afternoon 👋</div>
             {h ? <div style={{ borderRadius:16, background:h.color, color:textOn(h.color), padding:'16px', position:'relative', overflow:'hidden' }}>
-              <span style={{ display:'inline-block', padding:'3px 8px', borderRadius:99, background:textOn(h.color), color:h.color, fontFamily:"'JetBrains Mono',monospace", fontSize:8.5, fontWeight:800, letterSpacing:'.06em', marginBottom:9 }}>{h.badge}</span>
-              <div style={{ fontSize:19, fontWeight:900, letterSpacing:'-.02em', lineHeight:1.05 }}>{h.name}</div>
-              <div style={{ fontSize:11, opacity:.82, marginTop:5 }}>{h.offer}</div>
-            </div> : <div style={{ borderRadius:16, border:'1px dashed rgba(255,255,255,.2)', padding:24, textAlign:'center', color:'rgba(255,255,255,.4)', fontSize:11 }}>No hero today</div>}
-            {hero.contested && !hero.rotating && !engine.pins.home_hero && <div style={{ fontSize:9.5, fontFamily:"'JetBrains Mono',monospace", color:'#E0A53A', marginTop:8, textAlign:'center' }}>⚠ {hero.benched.length} more want this slot</div>}
+              <span style={{ display:'inline-block', padding:'3px 8px', borderRadius:99, background:textOn(h.color), color:h.color, fontFamily:"'JetBrains Mono',monospace", fontSize: 10, fontWeight:800, letterSpacing:'.06em', marginBottom:9 }}>{h.badge}</span>
+              <div style={{ fontSize: 21, fontWeight:900, letterSpacing:'-.02em', lineHeight:1.05 }}>{h.name}</div>
+              <div style={{ fontSize: 11.5, opacity:.82, marginTop:5 }}>{h.offer}</div>
+            </div> : <div style={{ borderRadius:16, border:'1px dashed rgba(255,255,255,.2)', padding:24, textAlign:'center', color:'rgba(255,255,255,.4)', fontSize: 11.5 }}>No hero today</div>}
+            {hero.contested && !hero.rotating && !engine.pins.home_hero && <div style={{ fontSize: 10, fontFamily:"'JetBrains Mono',monospace", color:'#E0A53A', marginTop:8, textAlign:'center' }}>⚠ {hero.benched.length} more want this slot</div>}
             <div style={{ display:'flex', gap:5, justifyContent:'center', margin:'12px 0 10px' }}>{banner.onAir.map((_,i)=><span key={i} style={{ width:i===0?16:5, height:5, borderRadius:9, background:i===0?'#fff':'rgba(255,255,255,.3)' }}/>)}</div>
             {banner.onAir[0] && <div style={{ height:50, borderRadius:12, background:banner.onAir[0].color, color:textOn(banner.onAir[0].color), display:'flex', alignItems:'center', padding:'0 13px', fontWeight:800, fontSize:11.5 }}>{banner.onAir[0].name} · {banner.onAir[0].offer}</div>}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:7, marginTop:10 }}>{[0,1,2].map(i=><div key={i} style={{ height:50, borderRadius:11, background:'repeating-linear-gradient(135deg,#2a3a2a,#2a3a2a 7px,#243324 7px,#243324 14px)' }}/>)}</div>
@@ -199,7 +199,7 @@ function Storefront({ engine }){
               <div>{r.elig.map((p,i)=>{ const on = r.rotating || i<r.cap; return (
                 <div key={p.id} style={{ display:'flex', alignItems:'center', gap:11, padding:'10px 15px', borderTop:`1px solid ${P.hairline}` }}>
                   <Dot c={p.color} s={9}/><span style={{ fontSize:12.5, fontWeight:600, flex:1, color:on?P.ink:P.inkDim }}>{p.name}</span>
-                  <span style={{ fontFamily:P.fontMono, fontSize:8.5, fontWeight:700, letterSpacing:'.06em', padding:'2px 6px', borderRadius:99, background:on?(P.mode==='dark'?'rgba(70,192,126,.16)':'rgba(31,138,79,.14)'):P.surface3, color:on?P.good:P.inkMute }}>{on?(r.rotating?'ROTATES':'ON AIR'):'QUEUED'}</span>
+                  <span style={{ fontFamily:P.fontMono, fontSize: 10, fontWeight:700, letterSpacing:'.06em', padding:'2px 6px', borderRadius:99, background:on?(P.mode==='dark'?'rgba(70,192,126,.16)':'rgba(31,138,79,.14)'):P.surface3, color:on?P.good:P.inkMute }}>{on?(r.rotating?'ROTATES':'ON AIR'):'QUEUED'}</span>
                 </div>); })}</div>
             </div>))}
         </Card>
@@ -228,13 +228,13 @@ function Inbox({ engine, setEngine }){
 
   const Conf=({tone,icon,title,body,children})=>(<div style={{ padding:'15px 16px', borderBottom:`1px solid ${P.hairline}`, display:'flex', gap:13, alignItems:'flex-start' }}>
     <div style={{ width:34, height:34, borderRadius:9, flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, background: tone==='warn'?P.warnSoft:P.infoSoft, color: tone==='warn'?P.warn:P.info }}>{icon}</div>
-    <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:700 }}>{title}</div><div style={{ fontSize:12, color:P.inkDim, marginTop:2, lineHeight:1.5 }}>{body}</div><div style={{ display:'flex', gap:8, marginTop:11, flexWrap:'wrap' }}>{children}</div></div>
+    <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:700 }}>{title}</div><div style={{ fontSize: 12.5, color:P.inkDim, marginTop:2, lineHeight:1.5 }}>{body}</div><div style={{ display:'flex', gap:8, marginTop:11, flexWrap:'wrap' }}>{children}</div></div>
   </div>);
 
   return (<Card padding={0} style={{ maxWidth:640 }}>
-    <div style={{ padding:'15px 18px', borderBottom:`1px solid ${P.hairline2}` }}><Eyebrow>This week · exception queue</Eyebrow><div style={{ fontSize:18, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>{openCount} decision{openCount>1?'s':''} need you</div></div>
+    <div style={{ padding:'15px 18px', borderBottom:`1px solid ${P.hairline2}` }}><Eyebrow>This week · exception queue</Eyebrow><div style={{ fontSize: 16, fontWeight:800, letterSpacing:'-.02em', marginTop:3 }}>{openCount} decision{openCount>1?'s':''} need you</div></div>
     <div style={{ display:'flex', alignItems:'center', gap:10, padding:'13px 16px', background:P.mode==='dark'?'rgba(70,192,126,.10)':'rgba(31,138,79,.08)', borderBottom:`1px solid ${P.hairline}` }}>
-      <Dot c={P.good} s={9}/><span style={{ fontSize:12.5, fontWeight:600 }}>12 promos auto-placed across the week</span><span style={{ flex:1 }}/><span style={{ fontFamily:P.fontMono, fontSize:11, color:P.inkMute }}>no conflicts</span>
+      <Dot c={P.good} s={9}/><span style={{ fontSize:12.5, fontWeight:600 }}>12 promos auto-placed across the week</span><span style={{ flex:1 }}/><span style={{ fontFamily:P.fontMono, fontSize: 11.5, color:P.inkMute }}>no conflicts</span>
     </div>
 
     {heroDays.length>0 && !heroResolved && <Conf tone="warn" icon="⚠" title={`Home hero · ${heroDays.map(d=>d.l).join(', ')}`}
@@ -289,7 +289,7 @@ window.WeekView = function WeekView(){
           <button key={c.id} onClick={()=>setConcept(c.id)} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'8px 13px', borderRadius:7, border:'none', cursor:'pointer', fontFamily:P.fontSans, fontSize:12.5, fontWeight:600,
             background:a?P.surface:'transparent', color:a?P.ink:P.inkDim, boxShadow:a?P.shadowSm:'none' }}>
             <Icon name={c.icon} size={14} stroke={1.9}/>{c.label}
-            <span style={{ fontFamily:P.fontMono, fontSize:9.5, fontWeight:700, padding:'1px 5px', borderRadius:5, background:a?P.accentSoft:P.surface, color:a?(P.mode==='dark'?P.accent:'#7A5A00'):P.inkMute }}>{c.tag}</span>
+            <span style={{ fontFamily:P.fontMono, fontSize: 10, fontWeight:700, padding:'1px 5px', borderRadius:5, background:a?P.accentSoft:P.surface, color:a?(P.accentText):P.inkMute }}>{c.tag}</span>
           </button>); })}
       </div>
     </div>

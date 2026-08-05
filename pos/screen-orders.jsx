@@ -17,11 +17,22 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
   const [showCheckIn, setShowCheckIn] = React.useState(false);
   const [detail, setDetail] = React.useState(null);
   const [q, setQ] = React.useState('');
+  // Local overrides for order ↔ check-in binding (what the associate resolved
+  // this shift). bindOf() reads the engine's answer unless a human changed it.
+  const [binds, setBinds] = React.useState({});
+  const [matching, setMatching] = React.useState(null); // order awaiting a manual match
+  const bindOf = (o) => binds[o.id] || window.HW.bindFor(o);
+  const setBind = (id, b) => setBinds((prev) => ({ ...prev, [id]: b }));
+  const confirmBind = (o) => setBind(o.id, { ...bindOf(o), state: 'auto', conf: 100, confirmedBy: 'Manisha Saini' });
+  const bindTo = (o, checkinId, guest) => setBind(o.id, { state: 'auto', conf: 100, checkinId, guest, signals: ['handle'], boundBy: 'Manisha Saini' });
   const orders = window.HW.ORDERS;
   const checkins = window.HW.CHECKINS;
   const isDelivery = tab === 'delivery';
   const channelOf = (o) => isDelivery ? o.channel === 'Delivery' : o.channel === 'Store';
   const visible = orders.filter((o) => channelOf(o) && (!q || (o.name + o.id).toLowerCase().includes(q.toLowerCase())));
+  // An order with no owner never enters the fulfilment flow — it waits in the lane.
+  const unowned = visible.filter((o) => bindOf(o).state === 'none');
+  const owned = visible.filter((o) => bindOf(o).state !== 'none');
 
   return (
     <div style={{ maxWidth: 1500, margin: '0 auto' }}>
@@ -42,7 +53,7 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
         {/* Delivery gets its own layout options — board / list / map */}
         {isDelivery &&
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.08em', textTransform: 'uppercase' }}>View</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.08em', textTransform: 'uppercase' }}>View</span>
             <Seg value={['regions', 'drivers'].includes(view) ? view : 'dispatch'} onChange={setView} size="md" options={[
           { value: 'dispatch', label: 'Dispatch', icon: 'list' },
           { value: 'regions', label: 'Regions', icon: 'map' },
@@ -62,21 +73,27 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
         <div style={{ width: 260 }}><Field icon="search" placeholder="Search order # or customer…" value={q} onChange={(e) => setQ(e.target.value)} size="sm" /></div>
         <DateRange />
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{visible.length} order{visible.length === 1 ? '' : 's'} shown below</span>
+        <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{visible.length} order{visible.length === 1 ? '' : 's'} shown below</span>
         {q && <PBtn variant="ghost" size="xs" icon="x" onClick={() => setQ('')}>Clear</PBtn>}
       </div>
 
       {/* Pickup → board. Delivery → board / list / map */}
       {!isDelivery ?
-      <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'minmax(286px, 1fr)', gap: 14, overflowX: 'auto', paddingBottom: 8, marginTop: 4 }}>
-          {STAGES.map((st) => {
-          const items = visible.filter((o) => o.stage === st.id);
-          return <Column key={st.id} stage={st} items={items} onStartSale={onStartSale} onOpen={setDetail} />;
-        })}
-        </div> :
+      <>
+          {unowned.length > 0 && <UnownedBanner items={unowned} onResolve={() => setMatching(unowned[0])} />}
+          <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'minmax(286px, 1fr)', gap: 14, overflowX: 'auto', paddingBottom: 8, marginTop: 4 }}>
+            {unowned.length > 0 && <MatchLane items={unowned} bindOf={bindOf} onBind={bindTo} onMatch={setMatching} onOpen={setDetail} />}
+            {STAGES.map((st) => {
+            const items = owned.filter((o) => o.stage === st.id);
+            return <Column key={st.id} stage={st} items={items} onStartSale={onStartSale} onOpen={setDetail} bindOf={bindOf} onConfirm={confirmBind} onMatch={setMatching} />;
+          })}
+          </div>
+        </> :
       view === 'regions' ? <RegionsView items={visible} onStartSale={onStartSale} onOpen={setDetail} /> :
       view === 'drivers' ? <DriversView items={visible} onStartSale={onStartSale} onOpen={setDetail} /> :
       <DispatchView items={visible} onStartSale={onStartSale} onOpen={setDetail} />}
+
+      {matching && <MatchSheet o={matching} bind={bindOf(matching)} onBind={(cid, guest) => {bindTo(matching, cid, guest);setMatching(null);}} onClose={() => setMatching(null)} />}
 
       {showCheckIn && <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={({ start }) => {setShowCheckIn(false);if (start) onStartSale();}} />}
       {detail && <OrderDetails o={detail} onClose={() => setDetail(null)} />}
@@ -121,7 +138,7 @@ function CheckInCard({ c, onStartSale }) {
           {guests.slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -11, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={window.guestName ? window.guestName(g) : g} size={26} /></span>)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}{guests.length > 0 && <span style={{ fontSize: 9.5, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '1px 6px', borderRadius: 99 }}>+{guests.length}</span>}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}{guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '1px 6px', borderRadius: 99 }}>+{guests.length}</span>}</div>
           {c.second && <span style={{ fontSize: 10, fontWeight: 600, color: P.warn, background: P.warnSoft, padding: '1px 6px', borderRadius: 99 }}>Second visit</span>}
         </div>
         <IconBtn icon="x" size={14} style={{ width: 28, height: 28 }} />
@@ -137,7 +154,7 @@ function CheckInCard({ c, onStartSale }) {
           <Icon name="user-plus" size={13} stroke={2} />{guests.length > 0 ? `Party of ${1 + guests.length} · edit` : 'Add guest to check-in'}
         </button>
       </div>
-      <button onClick={onStartSale} style={{ width: '100%', padding: '10px', background: claimed ? P.surface3 : P.accent, color: claimed ? P.ink : P.accentInk, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: '0 0 11px 11px' }}>
+      <button data-hw-i onClick={onStartSale} style={{ width: '100%', padding: '10px', background: claimed ? P.surface3 : P.ink, color: claimed ? P.ink : P.surface, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: '0 0 11px 11px' }}>
         {claimed ? <><Icon name="check" size={14} stroke={2.5} />Claimed by {c.claimedBy.split(' ')[0]}</> : <>Claim & start sale<Icon name="arrow-right" size={14} stroke={2.2} /></>}
       </button>
 
@@ -146,7 +163,7 @@ function CheckInCard({ c, onStartSale }) {
           <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px, 94vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
               <Avatar name={c.name} size={32} crown={c.member} />
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>{c.name.split(' ')[0]}’s party</div><div style={{ fontSize: 11, color: P.inkDim }}>Check-in · {c.type} · {c.wait}</div></div>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{c.name.split(' ')[0]}’s party</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Check-in · {c.type} · {c.wait}</div></div>
               <IconBtn icon="x" size={16} onClick={() => setOpen(false)} />
             </div>
             <p style={{ margin: '0 0 13px', fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>Add guests to this check-in. Guests are tracked as referrals; the sale stays on {c.name.split(' ')[0]}.</p>
@@ -159,7 +176,7 @@ function CheckInCard({ c, onStartSale }) {
 
 }
 
-function Column({ stage, items, onStartSale, onOpen }) {
+function Column({ stage, items, onStartSale, onOpen, bindOf, onConfirm, onMatch }) {
   const P = useP();
   const c = stage.color(P);
   const sum = items.reduce((s, o) => s + o.total, 0);
@@ -168,48 +185,274 @@ function Column({ stage, items, onStartSale, onOpen }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px 11px' }}>
         <span style={{ width: 8, height: 8, borderRadius: 99, background: c }} />
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{stage.label}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, background: P.surface3, padding: '1px 7px', borderRadius: 99 }}>{items.length}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, background: P.surface3, padding: '1px 7px', borderRadius: 99 }}>{items.length}</span>
         <div style={{ flex: 1 }} />
-        {sum > 0 && <span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{window.HW.fmt.money0(sum)}</span>}
+        {sum > 0 && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{window.HW.fmt.money0(sum)}</span>}
       </div>
       <div style={{ background: P.bg2, border: `1px solid ${P.hairline}`, borderRadius: P.r14, borderTop: `2px solid ${c}`, padding: 10, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 200, flex: 1 }}>
-        {items.length === 0 && <div style={{ padding: '30px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12 }}>No orders</div>}
-        {items.map((o) => <OrderCard key={o.id} o={o} onStartSale={onStartSale} onOpen={onOpen} />)}
+        {items.length === 0 && <div style={{ padding: '30px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12.5 }}>No orders</div>}
+        {items.map((o) => <OrderCard key={o.id} o={o} onStartSale={onStartSale} onOpen={onOpen} bindOf={bindOf} onConfirm={onConfirm} onMatch={onMatch} />)}
       </div>
     </div>);
 
 }
 
-function OrderCard({ o, onStartSale, onOpen }) {
+// ── Order ↔ check-in ownership ────────────────────────────────────────────
+// One strip per card answering the only question that stops the floor turning
+// into chaos: whose order is this? Green = matched. Amber = matched, needs a
+// nod. Red = nobody, and the card cannot move.
+function BindStrip({ bind, o, onConfirm, onMatch }) {
+  const P = useP();
+  const ci = bind.checkinId ? window.HW.checkinById(bind.checkinId) : null;
+  const who = bind.guest || (ci ? ci.name : null);
+  const stop = (e) => e.stopPropagation();
+  const sig = (bind.signals || []).map((s) => window.HW.SIGNAL_LABEL[s] || s).join(' + ');
+
+  if (bind.self) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 9, paddingTop: 8, borderTop: `1px solid ${P.hairline}`, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>
+        <Icon name="user-check" size={12} stroke={1.9} color={P.good} />own account · signed in
+      </div>);
+  }
+
+  const tone = bind.state === 'auto' ? P.good : bind.state === 'confirm' ? P.warn : P.bad;
+  const soft = bind.state === 'auto' ? P.goodSoft : bind.state === 'confirm' ? P.warnSoft : P.badSoft;
+  return (
+    <div style={{ marginTop: 9 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', background: soft, border: `1px solid ${tone}55`, borderRadius: P.r10 }}>
+        {who ? <Avatar name={who} size={24} /> :
+        <span style={{ width: 24, height: 24, borderRadius: 99, border: `1.5px dashed ${P.hairline3}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 800, color: P.inkMute, flex: '0 0 auto' }}>?</span>}
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: bind.state === 'none' ? P.bad : P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {bind.state === 'none' ? 'No owner' : who}{bind.state === 'confirm' ? ' ?' : ''}
+          </span>
+          <span style={{ display: 'block', fontSize: 10, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {bind.state === 'none' ? bind.why : bind.guest ? `guest in ${ci ? ci.name.split(' ')[0] : 'a'}’s party · ${sig}` : `${sig} · in store ${ci ? ci.wait.replace(/^0h /, '') : ''}`}
+          </span>
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 800, color: tone, fontFamily: P.fontMono, flex: '0 0 auto' }}>{bind.conf}</span>
+        {bind.state === 'auto' && <Icon name="check-circle" size={13} stroke={2.2} color={P.good} />}
+      </div>
+      {bind.state === 'confirm' &&
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }} onClick={stop}>
+          <PBtn variant="ghost" size="xs" onClick={() => onMatch && onMatch(o)}>Not them</PBtn>
+          <div style={{ flex: 1 }} />
+          <PBtn variant="accent" size="xs" icon="check" onClick={() => onConfirm && onConfirm(o)}>Yes, that’s them</PBtn>
+        </div>}
+      {bind.state === 'none' &&
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }} onClick={stop}>
+          <Pill kind="bad" dot>blocked from packing</Pill>
+          <div style={{ flex: 1 }} />
+          <PBtn variant="accent" size="xs" icon="link" onClick={() => onMatch && onMatch(o)}>Match…</PBtn>
+        </div>}
+    </div>);
+
+}
+
+// The lane. Not a stage — a holding pen with candidates resolvable in one tap.
+function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
+  const P = useP();
+  const sum = items.reduce((s, o) => s + o.total, 0);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }} data-tour="match-lane">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px 11px' }}>
+        <span style={{ width: 8, height: 8, borderRadius: 99, background: P.bad }} />
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Needs match</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', fontFamily: P.fontMono, background: P.bad, padding: '1px 7px', borderRadius: 99 }}>{items.length}</span>
+        <div style={{ flex: 1 }} />
+        <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{window.HW.fmt.money0(sum)}</span>
+      </div>
+      <div style={{ background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r14, borderTop: `2px solid ${P.bad}`, padding: 10, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 200, flex: 1 }}>
+        <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.45, padding: '0 2px' }}>Not a stage — orders wait here until a person owns them. They cannot be packed.</div>
+        {items.map((o) => {
+          const bind = bindOf(o);
+          const cands = (bind.candidates || []).map((c) => ({ ...c, ci: window.HW.checkinById(c.checkinId) })).filter((c) => c.ci);
+          return (
+            <div key={o.id} onClick={() => onOpen && onOpen(o)} title="Open the order" style={{ background: P.surface, border: `1px solid ${P.bad}`, borderRadius: P.r12, padding: '11px 12px', boxShadow: P.shadowSm, cursor: 'pointer', transition: 'box-shadow .14s, transform .14s' }}
+              onMouseEnter={(e) => {e.currentTarget.style.boxShadow = P.shadowMd;e.currentTarget.style.transform = 'translateY(-1px)';}}
+              onMouseLeave={(e) => {e.currentTarget.style.boxShadow = P.shadowSm;e.currentTarget.style.transform = 'none';}}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, background: P.surface3, padding: '2px 7px', borderRadius: 6 }}>#{o.id}</span>
+                <div style={{ flex: 1 }} />
+                {o.source === 'Weedmaps' ? <WmOrderTag /> : <Pill kind="ghost">{o.source}</Pill>}
+              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 2 }}>
+                <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{o.items} item{o.items > 1 ? 's' : ''} · {o.age}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{window.HW.fmt.money(o.total)}</span>
+              </div>
+              <div style={{ fontSize: 10, color: P.bad, lineHeight: 1.4, margin: '7px 0 0' }}>{bind.why}</div>
+              <div onClick={(e) => e.stopPropagation()}>
+              {cands.length > 0 ? <>
+                <Eyebrow style={{ margin: '10px 0 5px' }}>Best candidates</Eyebrow>
+                {cands.map((c, i) =>
+              <div key={c.checkinId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 7px', marginBottom: 5, background: i === 0 ? P.surface : P.surface2, border: `1px solid ${i === 0 ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, boxShadow: i === 0 ? `0 0 0 2px ${P.accentSoft}` : 'none' }}>
+                    <Avatar name={c.ci.name} size={24} crown={c.ci.member} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.ci.name}</span>
+                      <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>in store {c.ci.wait.replace(/^0h /, '')} · no order yet</span>
+                    </span>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: c.conf >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono }}>{c.conf}</span>
+                    <PBtn variant={i === 0 ? 'accent' : 'secondary'} size="xs" onClick={() => onBind(o, c.checkinId)}>Bind</PBtn>
+                  </div>
+              )}
+              </> :
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '9px 0 0', padding: '8px 9px', background: P.infoSoft, borderRadius: P.r10 }}>
+                <Icon name="info" size={12} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Nobody in the room is a plausible match — search the customer book or check them in from the order.</span>
+              </div>}
+              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                <PBtn variant="secondary" size="xs" icon="search" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Search</PBtn>
+                <PBtn variant="soft" size="xs" icon="user-plus" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Check in &amp; bind</PBtn>
+              </div>
+              </div>
+            </div>);
+        })}
+      </div>
+    </div>);
+
+}
+
+function UnownedBanner({ items, onResolve }) {
+  const P = useP();
+  const sum = items.reduce((s, o) => s + o.total, 0);
+  const oldest = items.reduce((a, o) => o.age > a ? o.age : a, '0h 0m');
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 14, padding: '11px 15px', background: P.surface, border: `1px solid ${P.warn}`, borderLeft: `4px solid ${P.warn}`, borderRadius: P.r12 }}>
+      <span style={{ width: 30, height: 30, borderRadius: 9, background: P.warnSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="shield" size={16} stroke={2} color={P.warn} /></span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{items.length} order{items.length > 1 ? 's' : ''} on the floor with no owner</span>
+        <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, marginTop: 2 }}>Oldest has been waiting {oldest} · {window.HW.fmt.money(sum)} of product can’t be packed until each one is matched to a check-in.</span>
+      </span>
+      <PBtn variant="accent" size="sm" icon="link" onClick={onResolve}>Resolve</PBtn>
+    </div>);
+
+}
+
+// Manual mapping — the fallback when the engine can't decide. Bind to someone
+// in the room, to any customer in the book, or check the person in from here.
+function MatchSheet({ o, bind, onBind, onClose }) {
+  const P = useP();
+  const [q, setQ] = React.useState('');
+  const [tabv, setTabv] = React.useState('room');
+  const wm = window.HW.WM_ORDER[o.id] || {};
+  const checkins = window.HW.CHECKINS;
+  const scored = (ci) => {const c = (bind.candidates || []).find((x) => x.checkinId === ci.id);return c ? c.conf : 5;};
+  const inRoom = checkins.slice().sort((a, b) => scored(b) - scored(a));
+  const ql = q.trim().toLowerCase();
+  const book = ql ? window.HW.MEMBERS.filter((m) => (m.name + m.email + m.phone).toLowerCase().includes(ql)) : window.HW.MEMBERS.slice(0, 5);
+  // Guests already on record inside a party are bindable people too.
+  const partyGuests = [];
+  checkins.forEach((ci) => (ci.guests || []).forEach((g) => partyGuests.push({ ci, name: window.guestName ? window.guestName(g) : g })));
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(640px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
+          <span style={{ width: 30, height: 30, borderRadius: 8, background: '#1F5FC0', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="link" size={15} stroke={2} color="#fff" /></span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>Who is this order for?</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>#{o.id} · {o.name} · {o.items} item{o.items > 1 ? 's' : ''} · {window.HW.fmt.money(o.total)}</span>
+          </span>
+          <IconBtn icon="x" size={17} onClick={onClose} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 9, padding: '12px 18px 0', alignItems: 'center' }}>
+          <Seg value={tabv} onChange={setTabv} size="sm" options={[{ value: 'room', label: 'In the store', icon: 'users', count: checkins.length }, { value: 'book', label: 'All customers', icon: 'search' }]} />
+          <div style={{ flex: 1 }} />
+          {bind.why && <span style={{ fontSize: 11.5, color: P.bad, fontFamily: P.fontMono }}>{bind.conf} · auto-match failed</span>}
+        </div>
+
+        <div style={{ padding: '12px 18px 16px', display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 420, overflowY: 'auto' }}>
+          {wm.contact &&
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 9, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+              {[['Handle', wm.contact.name], ['Phone', wm.contact.phone || '— none sent —'], ['E-mail', wm.contact.email]].map(([k, v]) =>
+            <span key={k}><span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>{k}</span><span style={{ display: 'block', fontSize: 11.5, color: v && v.indexOf('none') < 0 ? P.ink2 : P.bad, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v}</span></span>
+            )}
+            </div>}
+
+          {tabv === 'room' ? <>
+            <Eyebrow>People in the store · ranked by match</Eyebrow>
+            {inRoom.map((ci) => {const s = scored(ci);const top = s >= 40;
+              return (
+                <div key={ci.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: P.surface, border: `1px solid ${top ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, boxShadow: top ? `0 0 0 2px ${P.accentSoft}` : 'none' }}>
+                  <Avatar name={ci.name} size={30} crown={ci.member} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{ci.name}</span>
+                    <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>in store {ci.wait.replace(/^0h /, '')} · {ci.type}{(ci.guests || []).length ? ` · party of ${1 + ci.guests.length}` : ''}</span>
+                  </span>
+                  <span style={{ width: 64 }}><BarMeter value={s / 100} color={s >= 50 ? P.warn : P.neutral} height={4} /></span>
+                  <span style={{ fontSize: 11.5, fontWeight: 800, color: s >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono, width: 22, textAlign: 'right' }}>{s}</span>
+                  <PBtn variant={top ? 'accent' : 'secondary'} size="xs" onClick={() => onBind(ci.id)}>Bind</PBtn>
+                </div>);
+            })}
+            {partyGuests.length > 0 && <>
+              <Eyebrow style={{ marginTop: 4 }}>Guests inside a party · bindable too</Eyebrow>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {partyGuests.map((g) =>
+                <button key={g.ci.id + g.name} onClick={() => onBind(g.ci.id, g.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, fontSize: 11.5, fontWeight: 600, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
+                    <Avatar name={g.name} size={18} />{g.name}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>· {g.ci.name.split(' ')[0]}’s party</span>
+                  </button>
+                )}
+              </div>
+            </>}
+          </> : <>
+            <Field icon="search" placeholder="Search every customer by name, e-mail or phone…" size="sm" value={q} autoFocus onChange={(e) => setQ(e.target.value)} />
+            {book.map((m) =>
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
+                <Avatar name={m.name} size={30} crown={m.member} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{m.name}</span>
+                  <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.points} pts · not in the store</span>
+                </span>
+                <PBtn variant="secondary" size="xs" icon="user-check" onClick={() => onBind(null, m.name)}>Check in &amp; bind</PBtn>
+              </div>
+            )}
+            {book.length === 0 && <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No customer matches “{q}”</div>}
+          </>}
+
+          <div style={{ display: 'flex', gap: 8, padding: '9px 11px', background: P.infoSoft, borderRadius: P.r10 }}>
+            <Icon name="info" size={13} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
+            <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Binding writes <b style={{ fontFamily: P.fontMono }}>{o.name}</b> onto that customer’s record, so every future order from this handle matches silently. The lane shrinks every time you use it.</span>
+          </div>
+        </div>
+      </div>
+    </div>);
+
+}
+
+function OrderCard({ o, onStartSale, onOpen, bindOf, onConfirm, onMatch }) {
   const P = useP();
   const stale = o.age.startsWith('2') || o.age.includes('h') && parseInt(o.age) >= 2;
   const wm = o.source === 'Weedmaps' ? window.HW.WM_ORDER[o.id] : null;
+  const bind = bindOf ? bindOf(o) : window.HW.bindFor(o);
   return (
     <div onClick={() => onOpen ? onOpen(o) : onStartSale()} style={{ background: P.surface, border: `1px solid ${wm && wm.level === 'high' ? P.bad : P.hairline2}`, borderRadius: P.r12, padding: '12px 13px', cursor: 'pointer', boxShadow: P.shadowSm, transition: 'box-shadow .14s, transform .14s' }}
     onMouseEnter={(e) => {e.currentTarget.style.boxShadow = P.shadowMd;e.currentTarget.style.transform = 'translateY(-1px)';}}
     onMouseLeave={(e) => {e.currentTarget.style.boxShadow = P.shadowSm;e.currentTarget.style.transform = 'none';}}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between', marginBottom: 9 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, background: P.surface3, padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>#{o.id}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, background: P.surface3, padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>#{o.id}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          {wm && wm.level === 'high' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 800, color: '#fff', background: P.bad, padding: '2px 7px', borderRadius: 99 }}><Icon name="shield" size={10} stroke={2.4} />Review</span>}
+          {wm && wm.level === 'high' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#fff', background: P.bad, padding: '2px 7px', borderRadius: 99 }}><Icon name="shield" size={10} stroke={2.4} />Review</span>}
           {wm ? <WmOrderTag /> : o.badge === 'Member' ? <Pill kind="accent" icon="crown" title="Loyalty member — earns points and member pricing">Member</Pill> : null}
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
         <Avatar name={o.name} size={30} crown={o.badge === 'Member'} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</div>
-          <div style={{ fontSize: 10.5, color: P.inkMute }}>{o.items} item{o.items > 1 ? 's' : ''}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute }}>{o.items} item{o.items > 1 ? 's' : ''}</div>
         </div>
         <span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(o.total)}</span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '3px 10px', fontSize: 10.5, color: P.inkDim, paddingTop: 9, borderTop: `1px solid ${P.hairline}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '3px 10px', fontSize: 11.5, color: P.inkDim, paddingTop: 9, borderTop: `1px solid ${P.hairline}` }}>
         <span>Source <b style={{ color: P.ink2, fontWeight: 600 }}>{o.source}</b></span>
         <span style={{ textAlign: 'right' }}>Pay <b style={{ color: P.ink2, fontWeight: 600 }}>{o.pay}</b></span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 9, fontSize: 11, color: stale ? P.warn : P.inkMute, fontFamily: P.fontMono }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 9, fontSize: 11.5, color: stale ? P.warn : P.inkMute, fontFamily: P.fontMono }}>
         <Icon name="clock" size={12} stroke={1.9} />{o.age}{stale && <span style={{ marginLeft: 'auto', color: P.warn, fontWeight: 600 }}>● aging</span>}
       </div>
+      <BindStrip bind={bind} o={o} onConfirm={onConfirm} onMatch={onMatch} />
     </div>);
 
 }
@@ -226,8 +469,8 @@ function WmStatusMapModal({ onClose }) {
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 95, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fade .15s ease' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(680px, 96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Order status mapping</div><div style={{ fontSize: 11, color: P.inkDim }}>How our fulfillment stages map to Weedmaps statuses — and what the customer sees</div></div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Order status mapping</div><div style={{ fontSize: 11.5, color: P.inkDim }}>How our fulfillment stages map to Weedmaps statuses — and what the customer sees</div></div>
         <IconBtn icon="x" size={18} onClick={onClose} />
       </div>
       <div style={{ overflowY: 'auto', padding: 18 }}>
@@ -236,21 +479,21 @@ function WmStatusMapModal({ onClose }) {
           <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}><b style={{ color: P.ink2 }}>DRAFT</b> — Weedmaps sends the cart to our synchronous webhook first; we validate stock &amp; pricing before it ever becomes an order in this queue.</div>
         </div>
         <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, padding: '9px 14px', background: P.surface2, fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>
+          <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, padding: '9px 14px', background: P.surface2, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>
             <span>Our status</span><span>Weedmaps status</span><span>Customer sees</span>
           </div>
           {rows.map((r, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, alignItems: 'center', padding: '11px 14px', borderTop: `1px solid ${P.hairline}` }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: P.ink }}><span style={{ width: 8, height: 8, borderRadius: 99, background: r.color, flex: '0 0 auto' }} />{r.our}</span>
             <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#1F5FC0' }}>{r.wm || '—'}</span>
-            <span style={{ fontSize: 12, color: toneC(r.tone) }}>{r.cust || '—'}</span>
+            <span style={{ fontSize: 12.5, color: toneC(r.tone) }}>{r.cust || '—'}</span>
           </div>)}
           <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, alignItems: 'center', padding: '11px 14px', borderTop: `1px solid ${P.hairline}`, background: P.badSoft }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: P.ink }}><span style={{ width: 8, height: 8, borderRadius: 99, background: P.bad, flex: '0 0 auto' }} />Canceled / rejected</span>
             <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#1F5FC0' }}>{map.canceled.wm}</span>
-            <span style={{ fontSize: 12, color: P.bad }}>{map.canceled.cust}</span>
+            <span style={{ fontSize: 12.5, color: P.bad }}>{map.canceled.cust}</span>
           </div>
         </div>
-        <div style={{ fontSize: 11, color: P.inkDim, lineHeight: 1.5, marginTop: 12 }}>Advancing a Weedmaps order through these stages pushes the mapped status back to Weedmaps automatically — that’s what tells the customer where their order is. This same mapping drives the status strip inside each Weedmaps order.</div>
+        <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5, marginTop: 12 }}>Advancing a Weedmaps order through these stages pushes the mapped status back to Weedmaps automatically — that’s what tells the customer where their order is. This same mapping drives the status strip inside each Weedmaps order.</div>
       </div>
     </div>
   </div>;
@@ -282,22 +525,22 @@ function DeliveryList({ items, onStartSale }) {
               <Avatar name={o.name} size={28} crown={o.badge === 'Member'} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap' }}>{o.name}</div>
-                <div style={{ fontSize: 10.5, color: P.inkMute }}>{o.items} item{o.items > 1 ? 's' : ''} · {o.pay}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute }}>{o.items} item{o.items > 1 ? 's' : ''} · {o.pay}</div>
               </div>
             </div> },
       { label: 'Drop-off', render: (o) => {const d = dlv[o.id] || {};return (
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: P.ink2, fontWeight: 600, whiteSpace: 'nowrap' }}>{d.addr || '—'}</div>
-              <div style={{ fontSize: 10.5, color: P.inkMute, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={11} />{d.zone || '—'}</div>
+              <div style={{ fontSize: 12.5, color: P.ink2, fontWeight: 600, whiteSpace: 'nowrap' }}>{d.addr || '—'}</div>
+              <div style={{ fontSize: 11.5, color: P.inkMute, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={11} />{d.zone || '—'}</div>
             </div>);} },
-      { label: 'Distance', align: 'right', width: 88, render: (o) => <span style={{ fontFamily: P.fontMono, fontSize: 12, color: P.ink2 }}>{dlv[o.id]?.dist?.toFixed(1) ?? '—'} mi</span> },
+      { label: 'Distance', align: 'right', width: 88, render: (o) => <span style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink2 }}>{dlv[o.id]?.dist?.toFixed(1) ?? '—'} mi</span> },
       { label: 'ETA window', align: 'left', width: 128, render: (o) => {const d = dlv[o.id] || {};return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: P.fontMono, fontSize: 11.5, color: P.ink2 }}><Icon name="clock" size={12} color={P.inkMute} />{d.win || '—'}</span>);} },
       { label: 'Driver', width: 120, render: (o) => {const dr = dlv[o.id]?.driver || 'Unassigned';const un = dr === 'Unassigned';return (
             <Pill kind={un ? 'warn' : 'neutral'} dot>{un ? 'Unassigned' : dr}</Pill>);} },
       { label: 'Stage', width: 150, render: (o) => {const st = stageMeta(o.stage);return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 600, color: P.ink2 }}><span style={{ width: 7, height: 7, borderRadius: 99, background: st.color(P) }} />{st.label}</span>);} },
-      { label: 'Total', align: 'right', width: 80, render: (o) => <span style={{ fontFamily: P.fontMono, fontSize: 13, fontWeight: 700, color: P.ink }}>{window.HW.fmt.money(o.total)}</span> },
+      { label: 'Total', align: 'right', width: 80, render: (o) => <span style={{ fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: P.ink }}>{window.HW.fmt.money(o.total)}</span> },
       { label: '', align: 'right', width: 40, render: () => <Icon name="chevron-right" size={15} color={P.inkFaint} /> }]
       }
       rows={items} />
@@ -338,7 +581,7 @@ function DeliveryMap({ items, onStartSale }) {
         </div>
         {/* zone labels */}
         {zones.map((z, i) =>
-        <span key={z} style={{ position: 'absolute', left: `${[14, 68, 18, 72][i]}%`, top: `${[16, 14, 80, 72][i]}%`, fontSize: 10.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkFaint, fontFamily: P.fontMono }}>{z}</span>
+        <span key={z} style={{ position: 'absolute', left: `${[14, 68, 18, 72][i]}%`, top: `${[16, 14, 80, 72][i]}%`, fontSize: 11.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkFaint, fontFamily: P.fontMono }}>{z}</span>
         )}
         {/* pins */}
         {items.map((o, i) => {const d = dlv[o.id] || { x: .5, y: .5 };const a = sel === o.id;const st = stageMeta(o.stage);
@@ -346,16 +589,16 @@ function DeliveryMap({ items, onStartSale }) {
             <button key={o.id} onClick={() => setSel(o.id)} style={{ position: 'absolute', left: `${d.x * 100}%`, top: `${d.y * 100}%`, transform: 'translate(-50%,-100%)', background: 'none', border: 'none', cursor: 'pointer', zIndex: a ? 5 : 2 }}>
               <span style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <span style={{ width: a ? 30 : 24, height: a ? 30 : 24, borderRadius: '50% 50% 50% 2px', transform: 'rotate(45deg)', background: a ? P.accent : P.surface, border: `2px solid ${a ? P.accentInk : st.color(P)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: P.shadowMd, transition: 'all .12s' }}>
-                  <span style={{ transform: 'rotate(-45deg)', fontSize: 11, fontWeight: 800, color: a ? P.accentInk : P.ink, fontFamily: P.fontMono }}>{i + 1}</span>
+                  <span style={{ transform: 'rotate(-45deg)', fontSize: 11.5, fontWeight: 800, color: a ? P.accentInk : P.ink, fontFamily: P.fontMono }}>{i + 1}</span>
                 </span>
-                {a && <span style={{ marginTop: 6, fontSize: 10.5, fontWeight: 700, color: P.ink, background: P.surface, padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap', boxShadow: P.shadowSm }}>{window.HW.fmt.money(o.total)} · {d.eta}m</span>}
+                {a && <span style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: P.ink, background: P.surface, padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap', boxShadow: P.shadowSm }}>{window.HW.fmt.money(o.total)} · {d.eta}m</span>}
               </span>
             </button>);
         })}
         {/* legend */}
         <div style={{ position: 'absolute', left: 12, bottom: 12, display: 'flex', gap: 12, padding: '8px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, boxShadow: P.shadowSm }}>
           {STAGES.filter((s) => ['verify', 'pack', 'packing', 'ready'].includes(s.id)).map((s) =>
-          <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, color: P.inkDim, fontWeight: 600 }}><span style={{ width: 8, height: 8, borderRadius: 99, background: s.color(P) }} />{s.label}</span>
+          <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: P.inkDim, fontWeight: 600 }}><span style={{ width: 8, height: 8, borderRadius: 99, background: s.color(P) }} />{s.label}</span>
           )}
         </div>
       </div>
@@ -375,11 +618,11 @@ function DeliveryMap({ items, onStartSale }) {
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap' }}>{o.name}</span>
                   <span style={{ fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 700, color: P.ink }}>{window.HW.fmt.money(o.total)}</span>
                 </div>
-                <div style={{ fontSize: 11, color: P.inkDim, display: 'flex', alignItems: 'center', gap: 5, margin: '3px 0 7px' }}><Icon name="pin" size={11} color={P.inkMute} />{d.addr} · {d.zone}</div>
+                <div style={{ fontSize: 11.5, color: P.inkDim, display: 'flex', alignItems: 'center', gap: 5, margin: '3px 0 7px' }}><Icon name="pin" size={11} color={P.inkMute} />{d.addr} · {d.zone}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: P.fontMono, fontSize: 10.5, color: P.inkDim }}><Icon name="route" size={11} />{d.dist} mi</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: P.fontMono, fontSize: 10.5, color: P.inkDim }}><Icon name="clock" size={11} />{d.win}</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, color: P.ink2 }}><span style={{ width: 6, height: 6, borderRadius: 99, background: st.color(P) }} />{st.label}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim }}><Icon name="route" size={11} />{d.dist} mi</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim }}><Icon name="clock" size={11} />{d.win}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: P.ink2 }}><span style={{ width: 6, height: 6, borderRadius: 99, background: st.color(P) }} />{st.label}</span>
                 </div>
                 {a &&
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10 }}>
@@ -424,7 +667,7 @@ function PromoEditor({ promo, promoAmt, referral, referralAmt, onPromo, onReferr
   const Chip = ({ label, amt, tone, onClear, icon }) =>
   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: tone + '14', border: `1px solid ${tone}44`, borderRadius: P.r8 }}>
       <Icon name={icon} size={13} stroke={2.2} color={tone} />
-      <span style={{ flex: 1, minWidth: 0, fontSize: 12, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       <span style={{ fontSize: 12.5, fontWeight: 800, color: tone, fontFamily: P.fontMono }}>−{fmt.money(amt)}</span>
       <IconBtn icon="x" size={12} style={{ width: 22, height: 22 }} onClick={onClear} />
     </div>;
@@ -432,7 +675,7 @@ function PromoEditor({ promo, promoAmt, referral, referralAmt, onPromo, onReferr
     <div style={{ marginBottom: 10, padding: 11, background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
         <Icon name="tag" size={13} stroke={2} color={P.ink2} />
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.ink2 }}>Promotions &amp; referrals</span>
+        <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.ink2 }}>Promotions &amp; referrals</span>
       </div>
       {(promo || referral) &&
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 9 }}>
@@ -444,7 +687,7 @@ function PromoEditor({ promo, promoAmt, referral, referralAmt, onPromo, onReferr
         <div style={{ flex: 1, minWidth: 0 }}><Field mono size="sm" icon="percent" value={code} placeholder={kind === 'promo' ? 'e.g. SUMMER15' : 'e.g. REF-NINA'} onChange={(e) => {setCode(e.target.value.toUpperCase());setErr('');}} /></div>
         <PBtn variant="accent" size="sm" icon="check" disabled={!code.trim()} onClick={apply}>Apply</PBtn>
       </div>
-      {err && <div style={{ fontSize: 10.5, color: P.bad, fontWeight: 600, marginTop: 6 }}>{err}</div>}
+      {err && <div style={{ fontSize: 11.5, color: P.bad, fontWeight: 600, marginTop: 6 }}>{err}</div>}
       <div style={{ fontSize: 10, color: P.inkMute, marginTop: 7, lineHeight: 1.45 }}>Discounts apply to the cart and spread proportionally across items, so tax and any refund stay correct.</div>
     </div>);
 }
@@ -458,7 +701,7 @@ function DateRange() {
     <div style={{ position: 'relative' }}>
       <button onClick={() => setOpen((o) => !o)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 13px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans }}>
         <Icon name="calendar" size={15} stroke={1.9} color={P.inkMute} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{label}</span>
         <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} />
       </button>
       {open && <>
@@ -472,10 +715,10 @@ function DateRange() {
             )}
           </div>
           <div style={{ padding: '10px 4px 2px', marginTop: 4, borderTop: `1px solid ${P.hairline}` }}>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>Custom range</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>Custom range</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 12px 1fr', alignItems: 'center', gap: 6 }}>
               <div style={{ minWidth: 0 }}><Field icon="calendar" placeholder="From" size="sm" mono /></div>
-              <span style={{ color: P.inkMute, textAlign: 'center', fontSize: 12 }}>–</span>
+              <span style={{ color: P.inkMute, textAlign: 'center', fontSize: 12.5 }}>–</span>
               <div style={{ minWidth: 0 }}><Field icon="calendar" placeholder="To" size="sm" mono /></div>
             </div>
           </div>
@@ -505,7 +748,7 @@ function DispatchView({ items, onStartSale, onOpen }) {
   const [region, setRegion] = React.useState('All');
   const [unOnly, setUnOnly] = React.useState(false);
   const rows = items.filter((o) => {const d = dlv[o.id] || {};const un = (d.driver || 'Unassigned') === 'Unassigned';return (region === 'All' || d.zone === region) && (!unOnly || un);});
-  const Chip = ({ active, onClick, children }) => <button onClick={onClick} style={{ flex: '0 0 auto', padding: '6px 12px', borderRadius: P.r999, border: `1px solid ${active ? P.ink : P.hairline2}`, background: active ? P.ink : P.surface, color: active ? P.surface : P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{children}</button>;
+  const Chip = ({ active, onClick, children }) => <button onClick={onClick} style={{ flex: '0 0 auto', padding: '6px 12px', borderRadius: P.r999, border: `1px solid ${active ? P.ink : P.hairline2}`, background: active ? P.ink : P.surface, color: active ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{children}</button>;
   return (
     <div style={{ marginTop: 4 }}>
       <FleetBar P={P} />
@@ -521,7 +764,7 @@ function DispatchView({ items, onStartSale, onOpen }) {
       { label: 'Order', width: 96, render: (o) => <span style={{ fontFamily: P.fontMono, fontWeight: 700, fontSize: 11.5, color: P.ink2 }}>#{o.num}</span> },
       { label: 'Customer', render: (o) => <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Avatar name={o.name} size={26} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap' }}>{o.name}</span></div> },
       { label: 'Source', width: 108, render: (o) => o.source === 'Weedmaps' ? <WmOrderTag /> : <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>In-house</span> },
-      { label: 'Region', render: (o) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: P.ink2 }}><Icon name="pin" size={12} color={P.inkMute} />{dlv[o.id]?.zone || '—'}</span> },
+      { label: 'Region', render: (o) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: P.ink2 }}><Icon name="pin" size={12} color={P.inkMute} />{dlv[o.id]?.zone || '—'}</span> },
       { label: 'Driver', render: (o) => {const dr = dlv[o.id]?.driver || 'Unassigned';const un = dr === 'Unassigned';return <Pill kind={un ? 'warn' : 'neutral'} dot>{un ? 'Unassigned' : dr}</Pill>;} },
       { label: 'ETA window', width: 116, render: (o) => <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.ink2 }}>{dlv[o.id]?.win || '—'}</span> },
       { label: 'Total', align: 'right', width: 80, render: (o) => <span style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{window.HW.fmt.money(o.total)}</span> },
@@ -549,18 +792,18 @@ function RegionsView({ items, onStartSale, onOpen }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 4px 11px' }}>
                 <Icon name="pin" size={14} color={P.ink2} />
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{r}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, background: P.surface3, padding: '1px 7px', borderRadius: 99 }}>{ords.length}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, background: P.surface3, padding: '1px 7px', borderRadius: 99 }}>{ords.length}</span>
                 <div style={{ flex: 1 }} />
-                <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>{onR}/{drv.length} drv</span>
+                <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{onR}/{drv.length} drv</span>
               </div>
               <div style={{ background: P.bg2, border: `1px solid ${P.hairline}`, borderRadius: P.r14, padding: 10, display: 'flex', flexDirection: 'column', gap: 9, minHeight: 150, flex: 1 }}>
                 {drv.length > 0 &&
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{drv.map((d) => <span key={d.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 600, color: P.ink2, background: P.surface, border: `1px solid ${P.hairline2}`, padding: '3px 8px', borderRadius: 99 }}><span style={{ width: 5, height: 5, borderRadius: 99, background: d.status === 'on-route' ? P.good : d.status === 'idle' ? P.warn : P.inkFaint }} />{d.name.split(' ')[0]} {d.stops}/{d.cap}</span>)}</div>}
-                {ords.length === 0 && <div style={{ padding: '22px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12 }}>No active orders</div>}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{drv.map((d) => <span key={d.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: P.ink2, background: P.surface, border: `1px solid ${P.hairline2}`, padding: '3px 8px', borderRadius: 99 }}><span style={{ width: 5, height: 5, borderRadius: 99, background: d.status === 'on-route' ? P.good : d.status === 'idle' ? P.warn : P.inkFaint }} />{d.name.split(' ')[0]} {d.stops}/{d.cap}</span>)}</div>}
+                {ords.length === 0 && <div style={{ padding: '22px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12.5 }}>No active orders</div>}
                 {ords.map((o) => {const d = dlv[o.id] || {};return (
                     <div key={o.id} onClick={() => onOpen(o)} style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: '9px 11px', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</span><span style={{ fontFamily: P.fontMono, fontWeight: 700, fontSize: 12.5, color: P.ink }}>{window.HW.fmt.money(o.total)}</span></div>
-                    <div style={{ fontSize: 10.5, color: P.inkDim, marginTop: 3, fontFamily: P.fontMono }}>{d.addr} · {d.win}</div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 3, fontFamily: P.fontMono }}>{d.addr} · {d.win}</div>
                   </div>);})}
               </div>
             </div>);
@@ -584,17 +827,17 @@ function DriversView({ items, onStartSale }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Avatar name={d.name} size={34} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{d.name}</div>
-                  <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={11} />{d.region}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{d.name}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={11} />{d.region}</div>
                 </div>
                 <Pill kind={d.status === 'on-route' ? 'good' : d.status === 'idle' ? 'warn' : 'neutral'} dot>{d.status}</Pill>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
                 <div style={{ flex: 1 }}><BarMeter value={pct} color={col} height={6} /></div>
-                <span style={{ fontSize: 11, fontFamily: P.fontMono, color: P.ink2, fontWeight: 600 }}>{d.stops}/{d.cap}</span>
+                <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: P.ink2, fontWeight: 600 }}>{d.stops}/{d.cap}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 }}>
-                <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>ETA next {d.eta}</span>
+                <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>ETA next {d.eta}</span>
                 <PBtn variant="soft" size="xs" icon="route">Route</PBtn>
               </div>
             </div>);})}
@@ -605,11 +848,11 @@ function DriversView({ items, onStartSale }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {unassigned.map((o) => {const d = dlv[o.id] || {};return (
               <div key={o.id} style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: '10px 11px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</span><span style={{ fontFamily: P.fontMono, fontWeight: 700, fontSize: 12, color: P.ink, flex: '0 0 auto' }}>{window.HW.fmt.money(o.total)}</span></div>
-              <div style={{ fontSize: 10.5, color: P.inkDim, margin: '3px 0 9px', fontFamily: P.fontMono }}>{d.zone} · {d.win}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</span><span style={{ fontFamily: P.fontMono, fontWeight: 700, fontSize: 12.5, color: P.ink, flex: '0 0 auto' }}>{window.HW.fmt.money(o.total)}</span></div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, margin: '3px 0 9px', fontFamily: P.fontMono }}>{d.zone} · {d.win}</div>
               <PBtn variant="accent" size="xs" icon="user-check" full>Assign driver</PBtn>
             </div>);})}
-          {unassigned.length === 0 && <div style={{ padding: '20px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12 }}>All orders assigned</div>}
+          {unassigned.length === 0 && <div style={{ padding: '20px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12.5 }}>All orders assigned</div>}
         </div>
       </div>
     </div>);
@@ -654,7 +897,7 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
             {brandOpen && <>
               <div onClick={() => setBrandOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
               <div style={{ position: 'absolute', top: 'calc(100% + 5px)', left: 0, width: 220, maxHeight: 240, overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, boxShadow: P.shadowLg, padding: 6, zIndex: 61 }}>
-                {brands.size > 0 && <button onClick={() => setBrands(new Set())} style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '6px 8px', background: 'transparent', border: 'none', borderRadius: 7, color: P.inkDim, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, marginBottom: 2 }}><Icon name="x" size={11} stroke={2} />Clear all</button>}
+                {brands.size > 0 && <button onClick={() => setBrands(new Set())} style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '6px 8px', background: 'transparent', border: 'none', borderRadius: 7, color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, marginBottom: 2 }}><Icon name="x" size={11} stroke={2} />Clear all</button>}
                 {allBrands.map((b) => {const on = brands.has(b);return (
                     <button key={b} onClick={() => toggleBrand(b)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 8px', background: on ? P.accentSoft : 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                     <Check on={on} onChange={() => toggleBrand(b)} size={15} />
@@ -672,9 +915,9 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
         </div>
         {/* smart filters */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', paddingBottom: 1 }}>
-          <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="sparkle" size={11} stroke={1.9} />Smart</span>
+          <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="sparkle" size={11} stroke={1.9} />Smart</span>
           {smartChips.map(([k, label]) => {const a = smart === k;return (
-              <button key={k} onClick={() => setSmart(a ? 'none' : k)} style={{ flex: '0 0 auto', padding: '5px 10px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: a ? P.ink : P.ink2, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{label}</button>);})}
+              <button key={k} onClick={() => setSmart(a ? 'none' : k)} style={{ flex: '0 0 auto', padding: '5px 10px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: a ? P.ink : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{label}</button>);})}
         </div>
       </div>
       {/* results */}
@@ -686,13 +929,13 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
             <div key={p.sku} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 8px', borderRadius: 8 }}>
             <Thumb item={p} size={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
               <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 6, height: 6, borderRadius: 99, background: window.HW.CAT_COLOR[p.cat] || P.neutral, flex: '0 0 auto' }} />{p.brand} · {p.qty} left</div>
             </div>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: p.was ? P.bad : P.ink, fontFamily: P.fontMono }}>{fmt.money0(p.price)}</span>
-            <button onClick={() => onAdd(p)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 10px', background: added ? P.goodSoft : P.accent, color: added ? P.good : P.accentInk, border: 'none', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name={added ? 'check' : 'plus'} size={12} stroke={2.4} />{added ? `In order (${added.qty})` : 'Add'}</button>
+            <button onClick={() => onAdd(p)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 10px', background: added ? P.goodSoft : P.accent, color: added ? P.good : P.accentInk, border: 'none', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name={added ? 'check' : 'plus'} size={12} stroke={2.4} />{added ? `In order (${added.qty})` : 'Add'}</button>
           </div>);})}
-        {rows.length === 0 && <div style={{ padding: '26px 8px', textAlign: 'center', fontSize: 12, color: P.inkMute }}>No products match these filters</div>}
+        {rows.length === 0 && <div style={{ padding: '26px 8px', textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No products match these filters</div>}
       </div>
     </div>);
 
@@ -714,7 +957,7 @@ function PayPart({ pt, P, fmt, single }) {
           <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{isCash ? 'Cash' : `${pt.brand} ••${pt.last4}`}</div>
           <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{isCash ? 'Cash tender' : `${pt.type} · ${pt.entry} · ${pt.aid}`}</div>
         </div>
-        <span style={{ fontSize: 14, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{fmt.money(pt.amount)}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{fmt.money(pt.amount)}</span>
       </div>
       <div style={{ borderTop: `1px solid ${P.hairline}`, paddingTop: 7 }}>
         {isCash ? <>
@@ -735,7 +978,7 @@ function PayPart({ pt, P, fmt, single }) {
 // ── Weedmaps order block — status mapping · fraud verification · identity merge
 function WmOrderTag() {
   const P = useP();
-  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, letterSpacing: '.02em' }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, letterSpacing: '.02em' }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>;
 }
 function WmCheckRow({ label, state }) {
   const P = useP();
@@ -749,7 +992,7 @@ function WmCheckRow({ label, state }) {
   return <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: P.surface, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
     <Icon name={m.ic} size={14} stroke={2} color={m.c} />
     <span style={{ flex: 1, fontSize: 11.5, fontWeight: 600, color: P.ink2 }}>{label}</span>
-    <span style={{ fontSize: 10.5, fontWeight: 700, color: m.c, fontFamily: P.fontMono }}>{m.t}</span>
+    <span style={{ fontSize: 11.5, fontWeight: 700, color: m.c, fontFamily: P.fontMono }}>{m.t}</span>
   </div>;
 }
 function WmMergeCandidate({ m, conf, onMerge, primary }) {
@@ -760,11 +1003,11 @@ function WmMergeCandidate({ m, conf, onMerge, primary }) {
       <Avatar name={m.name} size={32} crown={m.member} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{m.name}</div>
-        <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.visits} visit{m.visits > 1 ? 's' : ''}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.visits} visit{m.visits > 1 ? 's' : ''}</div>
       </div>
-      {conf != null && <span style={{ fontSize: 10.5, fontWeight: 800, color: conf >= 0.9 ? P.good : conf >= 0.7 ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{Math.round(conf * 100)}%</span>}
+      {conf != null && <span style={{ fontSize: 11.5, fontWeight: 800, color: conf >= 0.9 ? P.good : conf >= 0.7 ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{Math.round(conf * 100)}%</span>}
     </div>
-    <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>
+    <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>
       <span>{m.email}</span><span style={{ marginLeft: 'auto' }}>{fmt.money(m.wallet)} wallet</span>
     </div>
     {onMerge && <div style={{ marginTop: 9 }}><PBtn variant={primary ? 'accent' : 'secondary'} size="sm" icon="link" full onClick={onMerge}>Merge into {m.name.split(' ')[0]}</PBtn></div>}
@@ -783,13 +1026,13 @@ function WmOrderBlock({ o, wm, onLog }) {
   const cand = (wm.candidates || []).map((id) => window.HW.memberById(id)).filter(Boolean);
   const MATCH_LABEL = { phone: 'Phone', email: 'Email', name: 'Name', id: 'ID', device: 'Device' };
   const badState = (s) => ['invalid', 'missing', 'suspicious', 'unverified'].includes(s);
-  const MatchChips = () => (wm.matchOn || []).length > 0 ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 9 }}>{wm.matchOn.map((k) => <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, color: P.good, background: P.goodSoft, borderRadius: 99, padding: '3px 9px' }}><Icon name="check" size={11} stroke={2.6} />{MATCH_LABEL[k] || k} match</span>)}</div> : null;
+  const MatchChips = () => (wm.matchOn || []).length > 0 ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 9 }}>{wm.matchOn.map((k) => <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: P.good, background: P.goodSoft, borderRadius: 99, padding: '3px 9px' }}><Icon name="check" size={11} stroke={2.6} />{MATCH_LABEL[k] || k} match</span>)}</div> : null;
   const CompareRows = ({ m }) => m ? <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden', marginBottom: 9 }}>
-    <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr 1fr', gap: 10, padding: '6px 11px', background: P.surface2, fontSize: 8.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}><span>Field</span><span>Weedmaps order</span><span>Matched customer</span></div>
+    <div style={{ display: 'grid', gridTemplateColumns: '58px 1fr 1fr', gap: 10, padding: '6px 11px', background: P.surface2, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}><span>Field</span><span>Weedmaps order</span><span>Matched customer</span></div>
     {[['Name', wm.contact && wm.contact.name, m.name, 'name'], ['Phone', wm.contact && wm.contact.phone, m.phone, 'phone']].map(([lb, a, b, key]) => {const on = (wm.matchOn || []).includes(key);return <div key={lb} style={{ display: 'grid', gridTemplateColumns: '58px 1fr 1fr', gap: 10, padding: '7px 11px', borderTop: `1px solid ${P.hairline}`, alignItems: 'center' }}>
-      <span style={{ fontSize: 10.5, fontWeight: 700, color: on ? P.good : P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 4 }}>{on && <Icon name="check" size={11} stroke={2.6} color={P.good} />}{lb}</span>
-      <span style={{ fontSize: 11, fontFamily: P.fontMono, color: P.ink2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a || '—'}</span>
-      <span style={{ fontSize: 11, fontFamily: P.fontMono, color: on ? P.ink : P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b || '—'}</span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? P.good : P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 4 }}>{on && <Icon name="check" size={11} stroke={2.6} color={P.good} />}{lb}</span>
+      <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: P.ink2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a || '—'}</span>
+      <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: on ? P.ink : P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b || '—'}</span>
     </div>;})}
   </div> : null;
 
@@ -804,6 +1047,14 @@ function WmOrderBlock({ o, wm, onLog }) {
   const [peek, setPeek] = React.useState(false);
   const peekTarget = matched || (cand.length === 1 ? cand[0] : null);
   const isDel = !!wm.delivery;
+  const [door, setDoor] = React.useState(false); // deferred to a driver ID scan at the door
+  // Who needs what: the remote ID check (nobody has ever held this person's ID) applies to
+  // ANY Weedmaps order, pickup or delivery — WM never passes us a document. The
+  // phone-binding SMS is delivery-only, because that is the one question a
+  // remote order raises. Either way the control is hoisted out of the fold.
+  const remoteUp = idvA.tier === 0;
+  const smsUp = isDel && idvA.tier === 1;
+  const verifyUp = remoteUp || smsUp;
   // Progressive disclosure. All the same data, but only what needs a DECISION
   // is open on arrival — the rest is one click away with its state summarised
   // on the closed header, so nothing is hidden, just not shouted at once.
@@ -815,7 +1066,7 @@ function WmOrderBlock({ o, wm, onLog }) {
         <Icon name={icon} size={14} stroke={1.9} color={c} />
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{title}</span>
         <div style={{ flex: 1 }} />
-        {status && <span style={{ fontSize: 10.5, fontWeight: 700, color: c, whiteSpace: 'nowrap' }}>{status}</span>}
+        {status && <span style={{ fontSize: 11.5, fontWeight: 700, color: c, whiteSpace: 'nowrap' }}>{status}</span>}
         <Icon name="chevron-down" size={15} stroke={2.2} color={P.inkMute} style={{ transform: o ? 'rotate(180deg)' : 'none', transition: 'transform .15s', flex: '0 0 auto' }} />
       </button>
       {o && <div style={{ padding: '12px 12px 12px', borderTop: `1px solid ${P.hairline}` }}>{children}</div>}
@@ -825,7 +1076,7 @@ function WmOrderBlock({ o, wm, onLog }) {
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 13, border: `1px solid ${gate && verify === 'pending' ? P.bad : '#1F5FC0'}`, borderRadius: P.r14, background: P.mode === 'dark' ? 'rgba(31,95,192,.08)' : 'rgba(31,95,192,.05)' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
       <WmOrderTag />
-      <span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{wm.wmId} · Payment collected on handover</span>
+      <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{wm.wmId} · Payment collected on handover</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: isDel ? P.info : P.ink2, background: isDel ? P.infoSoft : P.surface3, borderRadius: 99, padding: '2px 8px' }}><Icon name={isDel ? 'truck' : 'shop'} size={11} stroke={2.2} />{isDel ? 'Delivery' : 'Pickup'}</span>
       <div style={{ flex: 1 }} />
     </div>
@@ -834,15 +1085,28 @@ function WmOrderBlock({ o, wm, onLog }) {
       {[[verify === 'approved' ? 'check-circle' : verify === 'hold' ? 'clock' : 'shield', verify === 'approved' ? 'Verified' : verify === 'hold' ? 'On hold' : verify === 'canceled' ? 'Rejected' : 'Needs verification', verify === 'approved' ? P.good : verify === 'hold' ? P.warn : verify === 'canceled' ? P.bad : gate ? P.bad : P.warn],
       ['user-check', merge === 'merged' ? 'Customer merged' : wm.match === 'existing' ? 'Match to confirm' : wm.match === 'ambiguous' ? 'Two possible matches' : 'New customer', merge === 'merged' ? P.good : wm.match === 'new' ? P.ink2 : P.warn],
       [isDel ? 'truck' : 'shop', isDel ? idvA.tier >= 2 ? 'Delivery cleared' : 'ID check pending' : 'ID checked at the counter', isDel ? idvA.tier >= 2 ? P.good : P.warn : P.ink2]].map(([ic, lb, c]) =>
-      <span key={lb} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99, background: c + '14', color: c, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name={ic} size={12} stroke={2.2} />{lb}</span>)}
+      <span key={lb} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99, background: c + '14', color: c, fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name={ic} size={12} stroke={2.2} />{lb}</span>)}
     </div>
+    {/* Phone confirmation / remote ID check — the one action staff need to reach
+        WITHOUT digging through a fold, so it sits right under the triage chips on
+        any delivery order still waiting on it. Pickup never gets an SMS. */}
+    {verifyUp && <div data-hw="wm-sms">
+      {remoteUp ?
+      <window.RemoteIdPanel phone={(idv && idv.phone || {}).value || wm.contact.phone} remoteId={idv && idv.remoteId || wm.remoteId} onLog={onLog} onDoor={() => setDoor(true)} /> :
+      <window.SmsVerifyPanel phone={(idv && idv.phone || {}).value || wm.contact.phone} state={(idv && idv.phone || {}).sentAt ? 'sent' : 'idle'} sentAt={(idv && idv.phone || {}).sentAt} onLog={onLog} />}
+    </div>}
+    {door && <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 11px', background: P.goodSoft, border: `1px solid ${P.good}44`, borderRadius: P.r10 }}>
+      <Icon name="scan" size={15} color={P.good} />
+      <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}><b>Deferred to a door scan.</b> The driver inspects and photographs the ID on delivery — that clears the account permanently, exactly like a counter scan.</span>
+      <PBtn variant="ghost" size="xs" icon="x" onClick={() => setDoor(false)}>Undo</PBtn>
+    </div>}
     {/* Order data as submitted on Weedmaps */}
     {view === 'detailed' && wm.contact && <Fold id="wm-submitted" icon="user" title="Order details" status="as submitted on Weedmaps" defOpen>
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="user" size={13} stroke={1.9} color={P.ink2} /><span style={{ fontSize: 11, fontWeight: 700, color: P.ink }}>Contact on file</span><button onClick={() => setPeek(true)} title="Open the customer profile" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="user-check" size={11} stroke={2.2} />View profile</button></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="user" size={13} stroke={1.9} color={P.ink2} /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Contact on file</span><button onClick={() => setPeek(true)} title="Open the customer profile" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="user-check" size={11} stroke={2.2} />View profile</button></div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px', padding: '11px 12px', background: P.surface }}>
         {[['Name', wm.contact.name, wm.checks.name, false], ['Phone', wm.contact.phone, wm.checks.phone, true], ['Email', 'Not provided by Weedmaps', 'na', false], ...(wm.contact.address ? [['Delivery address', wm.contact.address, wm.checks.address, true]] : [])].map(([lb, val, st, mono]) => {const bad = badState(st);return <div key={lb} style={{ minWidth: 0, gridColumn: lb === 'Delivery address' ? '1/-1' : 'auto' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{lb}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{lb}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: bad ? P.bad : P.ink, fontFamily: mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</span>{bad && <Icon name="shield" size={11} stroke={2} color={P.bad} style={{ flex: '0 0 auto' }} />}</div>
         </div>;})}
       </div>
@@ -852,22 +1116,22 @@ function WmOrderBlock({ o, wm, onLog }) {
       <React.Fragment key={k}>
         {i > 0 && <div style={{ display: 'flex', alignItems: 'center', padding: '0 2px', color: P.inkFaint }}><Icon name="chevron-right" size={15} stroke={2.2} /></div>}
         <div style={{ flex: 1, minWidth: 0, padding: '10px 12px' }}>
-          <div style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: c, fontFamily: i === 1 ? P.fontMono : P.fontSans, marginTop: 2, lineHeight: 1.3 }}>{v}</div>
+          <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: c, fontFamily: i === 1 ? P.fontMono : P.fontSans, marginTop: 2, lineHeight: 1.3 }}>{v}</div>
         </div>
       </React.Fragment>)}
     </div>
     {/* WM status progression — reference, not a decision. Folded by default. */}
     <Fold id="wm-status" icon="link" title="Weedmaps order status" status={cur.wm.replace(/_/g, ' ')} tone="good">
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="link" size={12} color="#1F5FC0" /><span style={{ fontSize: 11, fontWeight: 700, color: P.ink }}>What the customer sees</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>on weedmaps.com</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="link" size={12} color="#1F5FC0" /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>What the customer sees</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>on weedmaps.com</span></div>
       <div style={{ padding: '14px 14px 12px', background: P.surface }}>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
           {window.HW.WM_STATUS_ORDER.map((ws, i) => {const ci = window.HW.WM_STATUS_ORDER.indexOf(cur.wm);const active = i === ci;const done = i < ci;return <React.Fragment key={ws}>
             {i > 0 && <div style={{ flex: 1, height: 2, background: i <= ci ? P.good : P.hairline2, marginTop: 9 }} />}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: 76 }}>
               <span style={{ width: 20, height: 20, borderRadius: 99, background: active ? '#1F5FC0' : done ? P.good : P.surface3, color: active || done ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', border: active || done ? 'none' : `1px solid ${P.hairline2}`, boxShadow: active ? '0 0 0 3px rgba(31,95,192,.18)' : 'none' }}>{done ? <Icon name="check" size={12} stroke={2.6} /> : <span style={{ fontSize: 10, fontWeight: 800, fontFamily: P.fontMono }}>{i + 1}</span>}</span>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '.02em', color: active ? P.ink : P.inkMute, textAlign: 'center', lineHeight: 1.2, fontFamily: P.fontMono }}>{ws.replace(/_/g, ' ')}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.02em', color: active ? P.ink : P.inkMute, textAlign: 'center', lineHeight: 1.2, fontFamily: P.fontMono }}>{ws.replace(/_/g, ' ')}</span>
             </div>
           </React.Fragment>;})}
         </div>
@@ -881,9 +1145,9 @@ function WmOrderBlock({ o, wm, onLog }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
         <Icon name="shield" size={15} stroke={1.9} color={riskC} />
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Risk score</span>
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: riskC, fontFamily: P.fontMono, textTransform: 'capitalize' }}>{wm.level} risk</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: riskC, fontFamily: P.fontMono, textTransform: 'capitalize' }}>{wm.level} risk</span>
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>score {wm.risk}/100</span>
+        <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>score {wm.risk}/100</span>
       </div>
       <div style={{ height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden', marginBottom: 10 }}><div style={{ width: `${wm.risk}%`, height: '100%', background: riskC }} /></div>
       {view !== 'detailed' && (wm.flags && wm.flags.length ? <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 600, color: P.bad, marginBottom: 2 }}><Icon name="shield" size={13} stroke={2} color={P.bad} />{wm.flags.length} signal{wm.flags.length > 1 ? 's' : ''} to review before releasing</div> : <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 600, color: P.good, marginBottom: 2 }}><Icon name="check-circle" size={13} stroke={2} color={P.good} />Identity checks passed</div>)}
@@ -895,7 +1159,7 @@ function WmOrderBlock({ o, wm, onLog }) {
       </div>}
       {wm.flags && wm.flags.length > 0 &&
         <div style={{ marginTop: 9, padding: '10px 12px', background: P.badSoft, borderRadius: P.r10 }}>
-        <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: P.bad, marginBottom: 6 }}>{wm.flags.length} fraud signal{wm.flags.length > 1 ? 's' : ''}</div>
+        <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: P.bad, marginBottom: 6 }}>{wm.flags.length} fraud signal{wm.flags.length > 1 ? 's' : ''}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {wm.flags.map((f, i) => <div key={i} style={{ display: 'flex', gap: 7, fontSize: 11.5, color: P.ink2, lineHeight: 1.4 }}><Icon name="x" size={13} stroke={2.6} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />{f}</div>)}
         </div>
@@ -910,7 +1174,7 @@ function WmOrderBlock({ o, wm, onLog }) {
       </div> :
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 11, padding: '10px 12px', borderRadius: P.r10, background: verify === 'approved' ? P.goodSoft : verify === 'hold' ? P.warnSoft : P.badSoft }}>
         <Icon name={verify === 'approved' ? 'check-circle' : verify === 'hold' ? 'clock' : 'shield'} size={16} stroke={2} color={verify === 'approved' ? P.good : verify === 'hold' ? P.warn : P.bad} />
-        <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: P.ink }}>{verify === 'approved' ? 'Verified — cleared for fulfillment' : verify === 'hold' ? 'On hold — awaiting verification' : 'Rejected & reported as fraud'}</span>
+        <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: P.ink }}>{verify === 'approved' ? 'Verified — cleared for fulfillment' : verify === 'hold' ? 'On hold — awaiting verification' : 'Rejected & reported as fraud'}</span>
         {verify !== 'approved' && <PBtn variant="soft" size="sm" onClick={() => doVerify('approved')}>Override & release</PBtn>}
       </div>}
     </div></Fold>
@@ -929,8 +1193,8 @@ function WmOrderBlock({ o, wm, onLog }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
         <Icon name="link" size={16} stroke={2} color={P.good} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Merged into {matched ? matched.name : 'existing customer'}</div>
-          <div style={{ fontSize: 10.5, color: P.inkDim }}>This order + WM profile now live under one customer. Logged to their history in Members.</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Merged into {matched ? matched.name : 'existing customer'}</div>
+          <div style={{ fontSize: 11.5, color: P.inkDim }}>This order + WM profile now live under one customer. Logged to their history in Members.</div>
         </div>
       </div> :
         wm.match === 'existing' ? <>
@@ -948,33 +1212,34 @@ function WmOrderBlock({ o, wm, onLog }) {
       </> : <>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
           <Icon name="user-plus" size={16} stroke={1.9} color={P.ink2} />
-          <div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>No match — a new customer will be created</div><div style={{ fontSize: 10.5, color: P.inkDim }}>Or search and link to an existing profile manually.</div></div>
+          <div style={{ flex: 1 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>No match — a new customer will be created</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Or search and link to an existing profile manually.</div></div>
           <PBtn variant="secondary" size="sm" icon="search">Find customer</PBtn>
         </div>
       </>}
-      {merge === 'separate' && <div style={{ marginTop: 8, fontSize: 11, color: P.inkDim, fontStyle: 'italic' }}>Kept separate — recorded in the customer’s history.</div>}
+      {merge === 'separate' && <div style={{ marginTop: 8, fontSize: 11.5, color: P.inkDim, fontStyle: 'italic' }}>Kept separate — recorded in the customer’s history.</div>}
       {/* Identity assurance. The SMS is a DELIVERY gate only — a Weedmaps
              pickup order is cleared by the counter ID check like any walk-in, so
              nothing is ever texted for one. */}
       <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${P.hairline}` }} data-hw="wm-assurance">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <Icon name="shield" size={14} stroke={1.9} color={P.ink2} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Verification status</span>
-          <span style={{ fontSize: 10.5, color: P.inkMute }}>· what this customer has already cleared</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Verification status</span>
+          <span style={{ fontSize: 11.5, color: P.inkMute }}>· what this customer has already cleared</span>
+          {verifyUp && <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: P.warn, whiteSpace: 'nowrap' }}><Icon name="arrow-up" size={11} stroke={2.4} color={P.warn} />{remoteUp ? 'ID check link is at the top' : 'resend is at the top'}</span>}
         </div>
         {!isDel ? <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
           <Icon name="shop" size={15} color={P.ink2} style={{ flex: '0 0 auto', marginTop: 1 }} />
           <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
-            <b>Pickup — no verification SMS is sent.</b> They collect in store, so the counter scans and photographs their ID at hand-off exactly like any walk-in. The SMS only exists to bind an account for <b>remote</b> orders.
+            <b>Pickup — no phone-binding SMS is sent.</b> They collect in store, so the counter scans and photographs their ID at hand-off exactly like any walk-in. The binding SMS only exists for <b>remote</b> orders — but if you want their ID on file before they arrive, the <b>ID check link above</b> does it.
           </div>
         </div> : idv ? <>
           <window.IdentityLadder v={idv} compact />
-          {idvA.tier === 1 && <div style={{ marginTop: 11 }} data-hw="wm-sms">
+          {!verifyUp && idvA.tier === 1 && <div style={{ marginTop: 11 }} data-hw="wm-sms-fold">
             <window.SmsVerifyPanel phone={(idv.phone || {}).value || wm.contact.phone} state={(idv.phone || {}).sentAt ? 'sent' : 'idle'} sentAt={(idv.phone || {}).sentAt} onLog={onLog} />
           </div>}
           {idvA.tier === 2 && <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 11px', background: P.goodSoft, borderRadius: P.r10 }}>
             <Icon name="check-circle" size={15} color={P.good} />
-            <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Cleared {idvA.via === 'persona' ? 'by a Persona remote check' : idvA.via === 'door' ? 'by a driver ID scan at the door' : 'in store — ID scanned at the counter'}. <b>No Persona check needed</b>, now or later.</span>
+            <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Cleared {idvA.via === 'remote' ? 'by a remote ID check' : idvA.via === 'door' ? 'by a driver ID scan at the door' : 'in store — ID scanned at the counter'}. <b>No Persona check needed</b>, now or later.</span>
           </div>}
         </> : <>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
@@ -984,25 +1249,13 @@ function WmOrderBlock({ o, wm, onLog }) {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 12px', background: P.infoSoft, border: `1px solid ${P.info}44`, borderRadius: P.r10 }}>
-            <Icon name="phone" size={15} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
+            <Icon name="scan" size={15} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Persona link sent automatically</div>
-              <div style={{ fontSize: 10.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>Weedmaps passes no verified document, so the system sends a Persona link the moment a new WM <b>delivery</b> contact appears. Nobody has to remember to trigger it.</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 10.5, fontFamily: P.fontMono, color: P.inkMute }}>
-                <span style={{ width: 6, height: 6, borderRadius: 99, background: P.good, flex: '0 0 auto' }} />
-                <span style={{ color: P.ink2 }}>Sent 4 min ago</span><span style={{ opacity: .5 }}>·</span><span style={{ color: P.good, fontWeight: 700 }}>Delivered</span><span style={{ opacity: .5 }}>·</span><span>carrier ack 1.1s</span>
-              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>ID check link sent automatically</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>Weedmaps passes no verified document, so the system sends a remote ID-check link the moment a new WM contact appears. Nobody has to remember to trigger it — and the send, resend and door-scan controls are {verifyUp ? 'at the top of this block' : 'right below'}.</div>
             </div>
           </div>
-          <div style={{ marginTop: 9 }}>
-            <window.SmsVerifyPanel phone={wm.contact.phone} onLog={onLog} compact
-              attempts={[{ at: '4 min ago', by: 'System · auto', status: 'delivered', receipt: 'carrier ack 1.1s' }]} />
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
-            <PBtn variant="secondary" size="sm" icon="refresh" onClick={() => onLog && onLog({ who: 'Manisha Saini', role: 'You', action: 'Resent Persona link to ' + wm.contact.phone, time: 'just now', icon: 'phone' })}>Resend Persona link</PBtn>
-            <PBtn variant="secondary" size="sm" icon="truck" onClick={() => onLog && onLog({ who: 'Manisha Saini', role: 'You', action: 'Deferred verification to the door — driver will scan ID on delivery', time: 'just now', icon: 'scan' })}>Verify at the door instead</PBtn>
-          </div>
-          <div style={{ fontSize: 10.5, color: P.inkMute, marginTop: 7, lineHeight: 1.45 }}>Either clears them permanently. Door-scan keeps the first order frictionless — the driver’s scan upgrades the account for every order after it.</div>
+          {!verifyUp && <window.RemoteIdPanel phone={wm.contact.phone} remoteId={idv && idv.remoteId || wm.remoteId} onLog={onLog} onDoor={() => setDoor(true)} />}
         </>}
       </div>
     </div></Fold>
@@ -1029,7 +1282,7 @@ function PackScanner({ items, packScan, onScanOne, onDone, onClose }) {
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
         <span style={{ width: 32, height: 32, borderRadius: 8, background: P.ink, color: P.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={17} stroke={2} /></span>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Scan to pack</div><div style={{ fontSize: 11, color: P.inkDim }}>Hardware scanner · reserves stock · no status change</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Scan to pack</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Hardware scanner · reserves stock · no status change</div></div>
         <IconBtn icon="x" size={18} onClick={onClose} />
       </div>
       <div style={{ padding: '16px 18px', borderBottom: `1px solid ${P.hairline}` }}>
@@ -1037,23 +1290,23 @@ function PackScanner({ items, packScan, onScanOne, onDone, onClose }) {
           <span style={{ width: 9, height: 9, borderRadius: 99, background: allDone ? P.good : P.accent, flex: '0 0 auto' }} />
           <Icon name="package" size={18} stroke={1.9} color={P.ink2} style={{ flex: '0 0 auto' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <input ref={inputRef} autoFocus value={buf} onChange={(e) => setBuf(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault();scan();}}} placeholder={allDone ? 'All items packed' : 'Waiting for scan…'} disabled={allDone} style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: 14, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }} />
-            <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>{allDone ? 'Done' : nl ? `Next: ${nl.name} · unit ${cnt(next) + 1}/${nl.qty}` : ''}</div>
+            <input ref={inputRef} autoFocus value={buf} onChange={(e) => setBuf(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault();scan();}}} placeholder={allDone ? 'All items packed' : 'Waiting for scan…'} disabled={allDone} style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: 13.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }} />
+            <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{allDone ? 'Done' : nl ? `Next: ${nl.name} · unit ${cnt(next) + 1}/${nl.qty}` : ''}</div>
           </div>
           {!allDone && <PBtn variant="secondary" size="sm" icon="package" onClick={scan}>Simulate scan</PBtn>}
         </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: P.inkDim, display: 'flex', alignItems: 'center', gap: 6 }}>{last && !allDone ? <span style={{ color: P.good, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check-circle" size={13} stroke={2} />Scanned {last}</span> : <span style={{ fontFamily: P.fontMono }}>Field stays focused — each scan from the handheld registers a unit &amp; reserves stock.</span>}</div>
+        <div style={{ marginTop: 8, fontSize: 11.5, color: P.inkDim, display: 'flex', alignItems: 'center', gap: 6 }}>{last && !allDone ? <span style={{ color: P.good, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="check-circle" size={13} stroke={2} />Scanned {last}</span> : <span style={{ fontFamily: P.fontMono }}>Field stays focused — each scan from the handheld registers a unit &amp; reserves stock.</span>}</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 18px' }}>
         {items.map((l, i) => {const c = Math.min(l.qty, cnt(i));const complete = c >= l.qty;const isNext = i === next;return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', marginBottom: 8, background: complete ? P.goodSoft : isNext ? P.accentSoft : P.surface2, border: `1px solid ${complete ? P.good : isNext ? P.accentBorder : P.hairline2}`, borderRadius: P.r10 }}>
             {complete ? <Icon name="check-circle" size={17} stroke={2} color={P.good} style={{ flex: '0 0 auto' }} /> : <span style={{ flex: '0 0 auto', width: 17, height: 17, borderRadius: 99, border: `2px solid ${isNext ? P.accent : P.hairline3}` }} />}
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.name}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, fontFamily: P.fontMono, color: complete ? P.good : P.ink2 }}>{c}/{l.qty}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, fontFamily: P.fontMono, color: complete ? P.good : P.ink2 }}>{c}/{l.qty}</span>
           </div>);})}
       </div>
       <div style={{ padding: '14px 18px', borderTop: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, fontFamily: P.fontMono, color: allDone ? P.good : P.ink2 }}>{doneUnits}/{totalUnits} units packed &amp; reserved</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, fontFamily: P.fontMono, color: allDone ? P.good : P.ink2 }}>{doneUnits}/{totalUnits} units packed &amp; reserved</span>
         <div style={{ flex: 1 }} />
         <PBtn variant={allDone ? 'accent' : 'secondary'} size="md" icon="check" onClick={onDone}>{allDone ? `Done — ${totalUnits} packed` : 'Done'}</PBtn>
       </div>
@@ -1225,9 +1478,9 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
       <span style={{ flex: '0 0 auto', width: 28, height: 28, borderRadius: 7, background: P.surface3, color: P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}><Icon name={icon} size={14} stroke={1.9} /></span>
       <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', lineHeight: 1.5, whiteSpace: 'nowrap' }}>{label}</span>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: accent ? P.mode === 'light' ? '#7A5A00' : P.accent : P.ink, lineHeight: 1.4, whiteSpace: 'nowrap' }}>{value}</span>
-        {sub && <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, lineHeight: 1.4, whiteSpace: 'nowrap' }}>{sub}</span>}
+        <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', lineHeight: 1.5, whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: accent ? P.accentText : P.ink, lineHeight: 1.4, whiteSpace: 'nowrap' }}>{value}</span>
+        {sub && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, lineHeight: 1.4, whiteSpace: 'nowrap' }}>{sub}</span>}
       </div>
     </div>;
   const TotRow = ({ k, v, color, strong, neg }) =>
@@ -1244,12 +1497,12 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
           <Avatar name={o.name} size={38} crown={o.badge === 'Member'} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>{o.name}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>{o.name}</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: P.ink2, background: P.surface3, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}><Icon name={channelMeta.icon} size={11} stroke={2} />{channelMeta.label}</span>
             </div>
-            <div style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>Order #{o.id} · {date}</div>
+            <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>Order #{o.id} · {date}</div>
           </div>
-          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1 }}><span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute }}>Total</span><span style={{ fontSize: 23, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, letterSpacing: '-.01em', marginTop: 3 }}>{fmt.money(grand)}</span></span>
+          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1 }}><span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute }}>Total</span><span style={{ fontSize: 21, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, letterSpacing: '-.01em', marginTop: 3 }}>{fmt.money(grand)}</span></span>
           {inFulfillment && !editOpen && !savedEdit &&
           <PBtn variant="secondary" size="sm" icon="pencil" style={{ flex: '0 0 auto' }} onClick={startEdit}>Edit order</PBtn>}
           <IconBtn icon="x" size={17} onClick={onClose} />
@@ -1262,21 +1515,21 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
           {inFulfillment && (editOpen || savedEdit) &&
           <div style={{ border: `1px solid ${editOpen ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, background: editOpen ? P.accentSoft : P.surface2, padding: 13 }}>
               {savedEdit ?
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Icon name="check-circle" size={20} stroke={2} color={P.good} /><div style={{ flex: 1 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Order updated</div><div style={{ fontSize: 10.5, color: P.inkDim }}>Logged to activity · no payment taken · balance settles at {channel === 'delivery' ? 'delivery' : 'pickup'}.</div></div><PBtn variant="soft" size="sm" onClick={() => setSavedEdit(false)}>Edit again</PBtn></div> :
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Icon name="check-circle" size={20} stroke={2} color={P.good} /><div style={{ flex: 1 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Order updated</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Logged to activity · no payment taken · balance settles at {channel === 'delivery' ? 'delivery' : 'pickup'}.</div></div><PBtn variant="soft" size="sm" onClick={() => setSavedEdit(false)}>Edit again</PBtn></div> :
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon name="pencil" size={15} stroke={1.9} color={P.ink2} />
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Editing order</span>
-                    <span style={{ fontSize: 10.5, color: P.inkDim, fontWeight: 600 }}>Adjust items below — no payment taken · balance settles at {channel === 'delivery' ? 'delivery' : 'pickup'}.</span>
+                    <span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600 }}>Adjust items below — no payment taken · balance settles at {channel === 'delivery' ? 'delivery' : 'pickup'}.</span>
                   </div>
-                  <input value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Reason for edit (e.g. out of stock, customer added an item)…" style={{ width: '100%', padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 12, fontFamily: P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
+                  <input value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="Reason for edit (e.g. out of stock, customer added an item)…" style={{ width: '100%', padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 12.5, fontFamily: P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
                   {needsApproval &&
               <label style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: approval ? P.goodSoft : P.warnSoft, borderRadius: P.r10, cursor: 'pointer' }}>
                       <Check on={approval} onChange={() => setApproval((a) => !a)} size={18} />
                       <Icon name="shield" size={15} stroke={1.9} color={approval ? P.good : P.warn} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Manager approval required</div>
-                        <div style={{ fontSize: 10.5, color: P.inkDim }}>{removedCount > 0 ? 'Removing items' : 'Refund to wallet'} needs a manager. {approval ? 'Approved · Carla M.' : 'Tap to approve.'}</div>
+                        <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Manager approval required</div>
+                        <div style={{ fontSize: 11.5, color: P.inkDim }}>{removedCount > 0 ? 'Removing items' : 'Refund to wallet'} needs a manager. {approval ? 'Approved · Carla M.' : 'Tap to approve.'}</div>
                       </div>
                     </label>}
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -1300,7 +1553,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {hasDisc &&
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: P.r10 }}>
-                  <Icon name="tag" size={14} stroke={1.9} color={P.mode === 'light' ? '#7A5A00' : P.accent} />
+                  <Icon name="tag" size={14} stroke={1.9} color={P.accentText} />
                   <div><div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Discount · {discReason}</div><div style={{ fontSize: 10, color: P.inkDim, fontFamily: P.fontMono }}>−{fmt.money(discAmt)} applied</div></div>
                 </div>}
               {hasPromo &&
@@ -1321,7 +1574,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {payment.parts.map((pt, i) => <PayPart key={i} pt={pt} P={P} fmt={fmt} single={payment.parts.length === 1} />)}
               {payment.kind === 'split' &&
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', fontSize: 12, fontWeight: 700, color: P.ink }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', fontSize: 12.5, fontWeight: 700, color: P.ink }}>
                   <span>Total captured</span><span style={{ fontFamily: P.fontMono }}>{fmt.money(grand)}</span>
                 </div>}
             </div>
@@ -1332,9 +1585,9 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
               <span style={{ flex: '0 0 auto', width: 30, height: 30, borderRadius: 7, background: P.surface3, color: P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="clock" size={15} stroke={1.9} /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{`Payment due at ${settleAt}`}</div>
-                <div style={{ fontSize: 10.5, color: P.inkDim }}>{`${payLabel.replace(/ ••\d+$/, '')} selected — nothing is captured until the order is handed over at ${settleAt}.`}</div>
+                <div style={{ fontSize: 11.5, color: P.inkDim }}>{`${payLabel.replace(/ ••\d+$/, '')} selected — nothing is captured until the order is handed over at ${settleAt}.`}</div>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{fmt.money(grand)}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{fmt.money(grand)}</span>
             </div>
           </div>}
 
@@ -1342,10 +1595,10 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
               <Eyebrow>Items{editOpen ? ' · editing' : ''}</Eyebrow>
-              {claimOpen && <span style={{ fontSize: 10.5, color: P.inkDim, fontWeight: 600 }}>Select item(s) &amp; qty to return</span>}
-              {editOpen && <span style={{ fontSize: 10.5, color: P.inkDim, fontWeight: 600 }}>Adjust qty or remove — no payment taken</span>}
+              {claimOpen && <span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600 }}>Select item(s) &amp; qty to return</span>}
+              {editOpen && <span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600 }}>Adjust qty or remove — no payment taken</span>}
               {inFulfillment && !editOpen && !claimOpen && <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: P.fontMono, color: items.reduce((a, l, i) => a + Math.min(l.qty, packScan[i] || 0), 0) >= items.reduce((a, l) => a + l.qty, 0) ? P.good : P.inkMute }}>{items.reduce((a, l, i) => a + Math.min(l.qty, packScan[i] || 0), 0)}/{items.reduce((a, l) => a + l.qty, 0)} packed</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: P.fontMono, color: items.reduce((a, l, i) => a + Math.min(l.qty, packScan[i] || 0), 0) >= items.reduce((a, l) => a + l.qty, 0) ? P.good : P.inkMute }}>{items.reduce((a, l, i) => a + Math.min(l.qty, packScan[i] || 0), 0)}/{items.reduce((a, l) => a + l.qty, 0)} packed</span>
                 <PBtn variant={items.reduce((a, l, i) => a + Math.min(l.qty, packScan[i] || 0), 0) >= items.reduce((a, l) => a + l.qty, 0) ? 'soft' : 'accent'} size="sm" icon="package" onClick={() => setScanOpen(true)}>{items.reduce((a, l, i) => a + Math.min(l.qty, packScan[i] || 0), 0) >= items.reduce((a, l) => a + l.qty, 0) ? 'Re-scan' : 'Scan to pack'}</PBtn>
               </div>}
             </div>
@@ -1356,7 +1609,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                     <Thumb item={{ name: l.name, cat: l.cat }} size={34} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, textDecoration: l.qty === 0 ? 'line-through' : 'none' }}>{l.name}</div>
-                      <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{l.brand} · {fmt.money(l.price)} ea</div>
+                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{l.brand} · {fmt.money(l.price)} ea</div>
                     </div>
                     <Stepper value={l.qty} min={0} max={99} onChange={(q) => draftSetQty(i, q)} size="sm" />
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, width: 56, textAlign: 'right' }}>{fmt.money(l.price * l.qty)}</span>
@@ -1364,7 +1617,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                   </div>
               )}
                 <div style={{ position: 'relative' }}>
-                  <button onClick={() => setShowAdd((s) => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px', background: showAdd ? P.surface3 : 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, color: P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name={showAdd ? 'x' : 'plus'} size={14} stroke={2.2} />{showAdd ? 'Close product picker' : 'Add item'}</button>
+                  <button onClick={() => setShowAdd((s) => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px', background: showAdd ? P.surface3 : 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name={showAdd ? 'x' : 'plus'} size={14} stroke={2.2} />{showAdd ? 'Close product picker' : 'Add item'}</button>
                   {showAdd && <AddItemPanel P={P} fmt={fmt} draft={draft} onAdd={draftAdd} />}
                 </div>
               </div> :
@@ -1381,7 +1634,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                     <Thumb item={{ name: l.name, cat: l.cat }} size={34} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{l.name}</div>
-                      <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{l.brand} · {fmt.money(l.price)} ea{l.discShare > 0 ? ` · −${fmt.money(l.discShare)} disc` : ''}</div>
+                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{l.brand} · {fmt.money(l.price)} ea{l.discShare > 0 ? ` · −${fmt.money(l.discShare)} disc` : ''}</div>
                     </div>
                     {/* per-item qty selector when this item is selected & qty>1 (comment 7) */}
                     {pickable && active && l.qty > 1 ?
@@ -1389,10 +1642,10 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                         <Stepper value={selected[i]} min={1} max={l.qty} onChange={(q) => setItemQty(i, q)} size="sm" />
                         <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>of {l.qty}</span>
                       </div> :
-                    <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>×{l.qty}</span>}
+                    <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>×{l.qty}</span>}
                     <div style={{ width: 64, textAlign: 'right' }}>
                       <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{fmt.money(l.net)}</div>
-                      {l.discShare > 0 && <div style={{ fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono, textDecoration: 'line-through' }}>{fmt.money(l.gross)}</div>}
+                      {l.discShare > 0 && <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, textDecoration: 'line-through' }}>{fmt.money(l.gross)}</div>}
                     </div>
                   </div>);
               })}
@@ -1410,7 +1663,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                   <Icon name={balanceDiff > 0 ? 'cash' : balanceDiff < 0 ? 'wallet' : 'check'} size={15} color={balanceDiff > 0 ? P.warn : balanceDiff < 0 ? P.good : P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{balanceDiff > 0 ? `Balance due at ${channel === 'delivery' ? 'delivery' : 'pickup'}` : balanceDiff < 0 ? 'Overpayment — credited to wallet' : 'No balance change'}</div>
-                    <div style={{ fontSize: 10.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>{balanceDiff > 0 ? 'Collect the difference when the order is handed over.' : balanceDiff < 0 ? 'Applied automatically on save — store credit, not a cash refund. Nothing to click.' : 'The edited order costs the same as the original.'}</div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>{balanceDiff > 0 ? 'Collect the difference when the order is handed over.' : balanceDiff < 0 ? 'Applied automatically on save — store credit, not a cash refund. Nothing to click.' : 'The edited order costs the same as the original.'}</div>
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 800, fontFamily: P.fontMono, flex: '0 0 auto', color: balanceDiff > 0 ? P.warn : balanceDiff < 0 ? P.good : P.inkMute }}>{balanceDiff > 0 ? '+' : balanceDiff < 0 ? '−' : ''}{fmt.money(Math.abs(balanceDiff))}</span>
                 </div>
@@ -1442,12 +1695,12 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
               {fullLog.map((e, i) =>
               <div key={i} style={{ display: 'flex', gap: 11, position: 'relative' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 auto' }}>
-                    <span style={{ width: 26, height: 26, borderRadius: 99, background: e.accent ? P.accentSoft : P.surface3, color: e.accent ? P.mode === 'light' ? '#7A5A00' : P.accent : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${e.accent ? P.accentBorder : P.hairline2}` }}><Icon name={e.icon} size={13} stroke={1.9} /></span>
+                    <span style={{ width: 26, height: 26, borderRadius: 99, background: e.accent ? P.accentSoft : P.surface3, color: e.accent ? P.accentText : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${e.accent ? P.accentBorder : P.hairline2}` }}><Icon name={e.icon} size={13} stroke={1.9} /></span>
                     {i < fullLog.length - 1 && <span style={{ width: 1.5, flex: 1, minHeight: 14, background: P.hairline2 }} />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0, paddingBottom: i < fullLog.length - 1 ? 12 : 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: P.ink, lineHeight: 1.35 }}>{e.action}</div>
-                    <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{e.who} · {e.role} · {e.time}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.35 }}>{e.action}</div>
+                    <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{e.who} · {e.role} · {e.time}</div>
                   </div>
                 </div>
               )}
@@ -1463,7 +1716,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                   <span style={{ flex: '0 0 auto', width: 32, height: 32, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="refresh" size={17} stroke={1.9} /></span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Start a return / exchange / warranty</div>
-                    <div style={{ fontSize: 10.5, color: P.inkDim }}>One flow — select items, choose a reason, credit the wallet.</div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim }}>One flow — select items, choose a reason, credit the wallet.</div>
                   </div>
                   <Icon name="chevron-right" size={16} color={P.inkFaint} />
                 </button> :
@@ -1471,7 +1724,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                     <Icon name="refresh" size={14} stroke={1.9} color={P.ink2} />
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Return · Exchange · Warranty</span>
-                    <span style={{ fontSize: 10.5, color: P.inkDim, fontWeight: 600 }}>{refundUnits > 0 ? `${refundUnits} unit${refundUnits > 1 ? 's' : ''} selected` : 'select items above'}</span>
+                    <span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600 }}>{refundUnits > 0 ? `${refundUnits} unit${refundUnits > 1 ? 's' : ''} selected` : 'select items above'}</span>
                   </div>
 
                   {/* Reason */}
@@ -1485,13 +1738,13 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                     </div>
                   </div>
 
-                  <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional) — condition, manager approval…" style={{ width: '100%', padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 12, fontFamily: P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
+                  <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional) — condition, manager approval…" style={{ width: '100%', padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 12.5, fontFamily: P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
                     <Icon name="wallet" size={16} stroke={1.9} color={P.good} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>Credited to customer wallet</div>
-                      <div style={{ fontSize: 10.5, color: P.inkDim }}>Item value incl. tax · proportional discount applied · no cash refunds.</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Credited to customer wallet</div>
+                      <div style={{ fontSize: 11.5, color: P.inkDim }}>Item value incl. tax · proportional discount applied · no cash refunds.</div>
                     </div>
                     <span style={{ fontSize: 15, fontWeight: 700, color: P.good, fontFamily: P.fontMono }}>+{fmt.money(refundAmt)}</span>
                   </div>
@@ -1507,8 +1760,8 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', background: P.goodSoft, borderRadius: P.r12 }}>
               <Icon name="check-circle" size={22} stroke={2} color={P.good} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{fmt.money(refundAmt)} credited to {o.name.split(' ')[0]}’s wallet</div>
-                <div style={{ fontSize: 11, color: P.inkDim }}>{refundUnits} unit{refundUnits > 1 ? 's' : ''} · {reason} · receipt sent</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{fmt.money(refundAmt)} credited to {o.name.split(' ')[0]}’s wallet</div>
+                <div style={{ fontSize: 11.5, color: P.inkDim }}>{refundUnits} unit{refundUnits > 1 ? 's' : ''} · {reason} · receipt sent</div>
               </div>
               <PBtn variant="soft" size="md" onClick={onClose}>Done</PBtn>
             </div>}

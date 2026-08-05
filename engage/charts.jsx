@@ -13,11 +13,11 @@
       <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
         {rows.map((r, i) => (
           <li key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ width: 92, flex: '0 0 92px', fontSize: 12, color: P.ink2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
+            <span style={{ width: 92, flex: '0 0 92px', fontSize: 12.5, color: P.ink2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
             <span style={{ flex: 1, height, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}>
               <span style={{ display: 'block', height: '100%', width: `${(r.value / max) * 100}%`, background: r.color || chartColor(P, i), borderRadius: 99 }} />
             </span>
-            <span style={{ width: 76, textAlign: 'right', fontSize: 12, fontFamily: P.fontMono, color: P.ink }}>{valueFormat ? valueFormat(r.value) : r.value}</span>
+            <span style={{ width: 76, textAlign: 'right', fontSize: 12.5, fontFamily: P.fontMono, color: P.ink }}>{valueFormat ? valueFormat(r.value) : r.value}</span>
           </li>))}
       </ul>);
   };
@@ -54,7 +54,7 @@
         </svg>
         <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           {series.map((s, si) => (
-            <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: P.inkDim }}>
+            <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.inkDim }}>
               <span style={{ height: 8, width: 8, borderRadius: 99, background: s.color || chartColor(P, si) }} />{s.name}
             </span>))}
         </div>
@@ -67,8 +67,8 @@
     return (
       <div style={{ marginTop: 18, borderTop: `1px solid ${P.hairline2}`, paddingTop: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: P.inkMute }}>{label} · {days.length} days</p>
-          <p style={{ margin: 0, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>floor {(min * 100).toFixed(2)}%</p>
+          <p style={{ margin: 0, fontSize: 11.5, fontWeight: 500, color: P.inkMute }}>{label} · {days.length} days</p>
+          <p style={{ margin: 0, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>floor {(min * 100).toFixed(2)}%</p>
         </div>
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'flex-end', gap: 3, height: 40 }}>
           {days.map((d) => (
@@ -95,7 +95,7 @@
               const intensity = count / max;
               return (
                 <button key={`${r}-${f}`} onClick={() => onCell?.(r, f, count)} title={`R${r} F${f} · ${HD.formatNumber(count)} customers`}
-                  style={{ height: 52, borderRadius: 8, border: `1px solid ${P.hairline2}`, cursor: 'pointer', fontFamily: P.fontMono, fontSize: 11,
+                  style={{ height: 52, borderRadius: 8, border: `1px solid ${P.hairline2}`, cursor: 'pointer', fontFamily: P.fontMono, fontSize: 11.5,
                     background: count === 0 ? P.surface2 : `color-mix(in oklab, ${P.accent} ${Math.round(18 + intensity * 72)}%, ${P.surface})`,
                     color: intensity > 0.55 ? (P.mode === 'dark' ? P.accentInk : P.ink) : P.ink2 }}>
                   {count ? HD.formatNumber(count) : '—'}
@@ -105,7 +105,7 @@
           <div style={{ marginTop: 6, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
             {[1, 2, 3, 4, 5].map((f) => <div key={f} style={{ textAlign: 'center', fontSize: 10, fontFamily: P.fontMono, color: P.inkMute }}>F{f}</div>)}
           </div>
-          <p style={{ margin: '10px 0 0', fontSize: 11, color: P.inkMute }}>R5 = most recent · F5 = most frequent · {HD.formatNumber(total)} customers bucketed</p>
+          <p style={{ margin: '10px 0 0', fontSize: 11.5, color: P.inkMute }}>R5 = most recent · F5 = most frequent · {HD.formatNumber(total)} customers bucketed</p>
         </div>
       </div>);
   };
@@ -115,7 +115,7 @@
     const max = Math.max(...values, 1);
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: 74, flex: '0 0 74px', fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{label}</span>
+        <span style={{ width: 74, flex: '0 0 74px', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{label}</span>
         <div style={{ flex: 1, display: 'flex', gap: 3 }}>
           {values.map((v, i) => (
             <div key={i} title={format ? format(v) : String(v)} style={{ flex: 1, height: 26, borderRadius: 4, border: `1px solid ${P.hairline}`,

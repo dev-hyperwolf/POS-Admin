@@ -39,17 +39,17 @@ window.MsgTemplatesSheet = function MsgTemplatesSheet({ task }) {
     }>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 2px 12px' }}>
         <Icon name="info" size={15} stroke={2} color={P.inkMute} />
-        <span style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.4 }}>Company-controlled. Drivers send these — they can't free-type.</span>
+        <span style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.4 }}>Company-controlled. Drivers send these — they can't free-type.</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {tpls.map((t) => (
           <div key={t.id} style={{ padding: '13px 15px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{t.label}</span><div style={{ flex: 1 }} />
-              <button onClick={() => window.M.openSheet('editmsg', { id: t.id, task })} style={{ padding: '5px 10px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
+              <button onClick={() => window.M.openSheet('editmsg', { id: t.id, task })} style={{ padding: '5px 10px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
               <button onClick={() => window.M.deleteTemplate(t.id)} style={{ width: 28, height: 28, borderRadius: P.r8, background: 'transparent', border: `1px solid ${P.hairline2}`, color: P.bad, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="trash" size={14} stroke={2} /></button>
             </div>
-            <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.45, fontFamily: P.fontMono }}>{t.body}</div>
+            <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.45, fontFamily: P.fontMono }}>{t.body}</div>
           </div>
         ))}
       </div>
@@ -74,14 +74,14 @@ window.EditMsgSheet = function EditMsgSheet({ id, task }) {
       <Eyebrow style={{ marginBottom: 8 }}>Label</Eyebrow>
       <div style={{ marginBottom: 16 }}><Field icon="tag" placeholder="e.g. On my way" value={label} onChange={(e) => setLabel(e.target.value)} /></div>
       <Eyebrow style={{ marginBottom: 8 }}>Message</Eyebrow>
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="Type the message…" style={{ width: '100%', resize: 'none', padding: '12px 14px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, color: P.ink, fontSize: 14, fontFamily: P.fontSans, outline: 'none', marginBottom: 12 }} />
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="Type the message…" style={{ width: '100%', resize: 'none', padding: '12px 14px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none', marginBottom: 12 }} />
       <Eyebrow style={{ marginBottom: 8 }}>Insert a dynamic field</Eyebrow>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-        {window.MD.MSG_PARAMS.map((p) => <button key={p} onClick={() => setBody((b) => (b + (b && !b.endsWith(' ') ? ' ' : '') + p))} style={{ padding: '8px 12px', borderRadius: 99, border: `1.5px solid ${P.accentBorder}`, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{PARAM_LABEL[p]}</button>)}
+        {window.MD.MSG_PARAMS.map((p) => <button key={p} onClick={() => setBody((b) => (b + (b && !b.endsWith(' ') ? ' ' : '') + p))} style={{ padding: '8px 12px', borderRadius: 99, border: `1.5px solid ${P.accentBorder}`, background: P.accentSoft, color: P.accentText, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{PARAM_LABEL[p]}</button>)}
       </div>
       <div style={{ padding: '13px 15px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r12 }}>
-        <div style={{ fontSize: 10.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, marginBottom: 6 }}>Preview</div>
-        <div style={{ fontSize: 13, color: P.ink2, lineHeight: 1.5 }}>{body ? window.MD.fillMsg(body, ctx) : 'Your message will appear here…'}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, marginBottom: 6 }}>Preview</div>
+        <div style={{ fontSize: 13.5, color: P.ink2, lineHeight: 1.5 }}>{body ? window.MD.fillMsg(body, ctx) : 'Your message will appear here…'}</div>
       </div>
     </window.Sheet>);
 };

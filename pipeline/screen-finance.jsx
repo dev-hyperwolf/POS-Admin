@@ -16,10 +16,10 @@
   function MetricBlock({ label, value, sub }) {
     const P = useP();
     return (
-      <div style={{ borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, padding: 12 }}>
+      <div style={{ borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, padding: 12 }}>
         <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>{label}</div>
-        <div style={{ marginTop: 2, fontSize: 18, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-        {sub && <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2 }}>{sub}</div>}
+        <div style={{ marginTop: 2, fontSize: 16, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
+        {sub && <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>{sub}</div>}
       </div>);
   }
 
@@ -38,8 +38,8 @@
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <MicroLabel>Invoice</MicroLabel>
-              <h2 style={{ margin: '2px 0 0', fontSize: 22, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{invoice.invoiceNumber}</h2>
-              <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13, color: P.inkMute }}>
+              <h2 style={{ margin: '2px 0 0', fontSize: 21, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{invoice.invoiceNumber}</h2>
+              <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13.5, color: P.inkMute }}>
                 <span>{invoice.vendorName}</span><span>·</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ height: 8, width: 8, borderRadius: 99, background: HD.hueColor(P, entity?.hue) }} />{entity?.short}
@@ -61,10 +61,10 @@
             <MicroLabel style={{ marginBottom: 8 }}>Line items</MicroLabel>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: `1px solid ${P.hairline2}`, borderRadius: 8 }}>
               {invoice.lineItems.map((li, i) => (
-                <li key={li.id} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 13, borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
+                <li key={li.id} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 13.5, borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{li.productName}</div>
-                    <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>{li.sku} · {li.qty} @ {HD.formatCurrency(li.unitCost)}</div>
+                    <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{li.sku} · {li.qty} @ {HD.formatCurrency(li.unitCost)}</div>
                   </div>
                   <div style={{ fontFamily: P.fontMono, color: P.ink }}>{HD.formatCurrency(li.total)}</div>
                 </li>))}
@@ -73,16 +73,16 @@
           {invoice.manifestId && (
             <section>
               <MicroLabel style={{ marginBottom: 8 }}>Matched manifest</MicroLabel>
-              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}>
                 <Icon name="link" size={14} stroke={1.9} color={P.inkMute} />
                 <span style={{ fontFamily: P.fontMono, color: P.ink }}>{invoice.manifestId}</span>
-                <span title="Manifest ↔ invoice ↔ receipt" style={{ marginLeft: 'auto', fontSize: 11, color: HD.tone(P, 'ok').fg }}>3-way match</span>
+                <span title="Manifest ↔ invoice ↔ receipt" style={{ marginLeft: 'auto', fontSize: 11.5, color: HD.tone(P, 'ok').fg }}>3-way match</span>
               </div>
             </section>)}
           <section>
             <MicroLabel style={{ marginBottom: 8 }}>Linked credit memo</MicroLabel>
             {linkedMemo ? (
-              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <div style={{ padding: '10px 12px', borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}>
                 <Icon name="link" size={14} stroke={1.9} color={HD.tone(P, 'ok').fg} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ fontFamily: P.fontMono, color: P.ink }}>{linkedMemo.memoNumber}</span>
@@ -91,17 +91,17 @@
                 <button onClick={() => setLinkedMemoId(null)} aria-label="Unlink credit memo" style={{ background: 'none', border: 'none', color: P.inkMute, cursor: 'pointer', display: 'inline-flex' }}><Icon name="x" size={14} stroke={2} /></button>
               </div>
             ) : (
-              <div style={{ fontSize: 13, color: P.inkMute }}>No credit memo linked. Use <span style={{ color: P.ink2 }}>Link credit memo</span> below to apply an existing memo. New memos are created in the Credits tab.</div>)}
+              <div style={{ fontSize: 13.5, color: P.inkMute }}>No credit memo linked. Use <span style={{ color: P.ink2 }}>Link credit memo</span> below to apply an existing memo. New memos are created in the Credits tab.</div>)}
           </section>
           <section>
             <MicroLabel style={{ marginBottom: 8 }}>Payment history</MicroLabel>
             {invoice.payments.length === 0
-              ? <div style={{ fontSize: 13, color: P.inkMute }}>No payments recorded yet.</div>
+              ? <div style={{ fontSize: 13.5, color: P.inkMute }}>No payments recorded yet.</div>
               : <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: `1px solid ${P.hairline2}`, borderRadius: 8 }}>
                 {invoice.payments.map((p, i) => (
-                  <li key={p.id} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
+                  <li key={p.id} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13.5, borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ textTransform: 'uppercase', fontSize: 11, color: P.inkMute, letterSpacing: '.06em' }}>{p.method.replace('_', ' ')}</span>
+                      <span style={{ textTransform: 'uppercase', fontSize: 11.5, color: P.inkMute, letterSpacing: '.06em' }}>{p.method.replace('_', ' ')}</span>
                       <span style={{ color: P.inkMute }}>{HD.relativeTime(p.at)}</span>
                     </div>
                     <div style={{ fontFamily: P.fontMono, color: P.ink }}>{HD.formatCurrency(p.amount)}</div>
@@ -111,7 +111,7 @@
           {invoice.notes && (
             <section>
               <MicroLabel style={{ marginBottom: 8 }}>Notes</MicroLabel>
-              <div style={{ fontSize: 13, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.canvas }}>{invoice.notes}</div>
+              <div style={{ fontSize: 13.5, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.surface2 }}>{invoice.notes}</div>
             </section>)}
         </div>
         <footer style={{ flex: '0 0 auto', padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', flexWrap: 'wrap', gap: 8, position: 'relative' }}>
@@ -122,11 +122,11 @@
               <div style={{ position: 'absolute', bottom: 40, left: 0, zIndex: 60, minWidth: 280, maxHeight: 300, overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: 10, boxShadow: P.shadowLg, padding: 4 }}>
                 <div style={{ padding: '6px 8px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Existing memos · {invoice.vendorName}</div>
                 {linkableMemos.length === 0
-                  ? <div style={{ padding: '8px', fontSize: 12, color: P.inkMute }}>No unlinked credit memos for this vendor. Create one in the Credits tab.</div>
+                  ? <div style={{ padding: '8px', fontSize: 12.5, color: P.inkMute }}>No unlinked credit memos for this vendor. Create one in the Credits tab.</div>
                   : linkableMemos.map((m) => (
                     <button key={m.id} onClick={() => { setLinkedMemoId(m.id); setMenuOpen(false); }}
-                      style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: P.ink, fontFamily: P.fontSans, textAlign: 'left' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                      style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12.5, color: P.ink, fontFamily: P.fontSans, textAlign: 'left' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                       <span style={{ fontFamily: P.fontMono }}>{m.memoNumber}</span>
                       <span style={{ color: P.inkMute, textTransform: 'capitalize' }}>{m.source.replace('_', ' ')}</span>
                       <span style={{ marginLeft: 'auto', fontFamily: P.fontMono, color: P.ink2 }}>{HD.formatCurrency(m.amount)}</span>
@@ -190,9 +190,9 @@
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {AP_FILTERS.map((f) => (
               <button key={f.value} onClick={() => setFilter(f.value)}
-                style={{ height: 32, padding: '0 12px', borderRadius: 99, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: P.fontSans,
+                style={{ height: 32, padding: '0 12px', borderRadius: 99, fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: P.fontSans,
                   background: filter === f.value ? P.accentSoft : 'transparent', color: filter === f.value ? accentInk : P.inkDim, border: `1px solid ${filter === f.value ? P.accentBorder : P.hairline2}` }}>
-                {f.label}<span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{counts[f.value]}</span>
+                {f.label}<span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{counts[f.value]}</span>
               </button>))}
           </div>
           <div style={{ marginLeft: 'auto', width: 320 }}>
@@ -218,19 +218,19 @@
                         <TR key={inv.id} onClick={() => setSelected(inv)}>
                           <TD><HDPill tone={apStatusTone(inv.status)} label={apShortStatus(inv.status)} size="sm" /></TD>
                           <TD mono>{inv.invoiceNumber}</TD>
-                          <TD>{inv.manifestId ? <span style={{ fontFamily: P.fontMono, fontSize: 12, color: P.ink2 }}>{HD.uidShort(inv.manifestId, 'metrc')}</span> : <span title="No matching METRC manifest" style={{ fontSize: 12, color: HD.tone(P, 'warn').fg }}>Unmatched</span>}</TD>
+                          <TD>{inv.manifestId ? <span style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink2 }}>{HD.uidShort(inv.manifestId, 'metrc')}</span> : <span title="No matching METRC manifest" style={{ fontSize: 12.5, color: HD.tone(P, 'warn').fg }}>Unmatched</span>}</TD>
                           <TD>
                             <div style={{ color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>{inv.vendorName}</div>
-                            <div style={{ fontSize: 11, color: P.inkMute }}>{inv.vendorCategory}</div>
+                            <div style={{ fontSize: 11.5, color: P.inkMute }}>{inv.vendorCategory}</div>
                           </TD>
                           <TD>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: P.ink2 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: P.ink2 }}>
                               <span style={{ height: 8, width: 8, borderRadius: 99, background: HD.hueColor(P, entity?.hue) }} />{entity?.short}
                             </span>
                           </TD>
                           <TD>
-                            <div style={{ fontSize: 13, color: P.ink }}>{HD.formatDate(inv.dueDate)}</div>
-                            <div style={{ fontSize: 11, color: P.inkMute }}>
+                            <div style={{ fontSize: 13.5, color: P.ink }}>{HD.formatDate(inv.dueDate)}</div>
+                            <div style={{ fontSize: 11.5, color: P.inkMute }}>
                               {inv.status === 'paid' ? `Paid ${HD.relativeTime(inv.paidDate || inv.dueDate)}` : daysUntilDue < 0 ? `${Math.abs(daysUntilDue)}d overdue` : daysUntilDue === 0 ? 'Today' : `in ${daysUntilDue}d`}
                             </div>
                           </TD>
@@ -245,7 +245,7 @@
               </HDTable>
             </div>
           </Card>
-          <p style={{ marginTop: 12, fontSize: 12, color: P.inkMute }}>Showing {filtered.length} of {OPS.AP_INVOICES.length} invoices. Click a row to open the invoice drawer.</p>
+          <p style={{ marginTop: 12, fontSize: 12.5, color: P.inkMute }}>Showing {filtered.length} of {OPS.AP_INVOICES.length} invoices. Click a row to open the invoice drawer.</p>
         </div>
 
         <APDrawer invoice={selected} open={selected !== null} onClose={() => setSelected(null)} />
@@ -278,11 +278,11 @@
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <MicroLabel>Credit memo</MicroLabel>
-              <h2 style={{ margin: '2px 0 0', fontSize: 22, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{memo.memoNumber}</h2>
+              <h2 style={{ margin: '2px 0 0', fontSize: 21, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{memo.memoNumber}</h2>
             </div>
             <IconBtn icon="x" size={16} onClick={onClose} style={{ width: 30, height: 30, margin: -4 }} />
           </div>
-          <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13, color: P.inkMute }}>
+          <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 13.5, color: P.inkMute }}>
             <span>{memo.vendorName}</span><span>·</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ height: 8, width: 8, borderRadius: 99, background: HD.hueColor(P, entity?.hue) }} />{entity?.short}</span>
             <span>·</span><span>Created {HD.relativeTime(memo.createdAt)}</span>
@@ -300,19 +300,19 @@
         <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 24 }}>
           <section>
             <MicroLabel style={{ marginBottom: 8 }}>Reason</MicroLabel>
-            <p style={{ margin: 0, fontSize: 13, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.canvas }}>{memo.reason}</p>
+            <p style={{ margin: 0, fontSize: 13.5, color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 8, padding: '8px 12px', background: P.surface2 }}>{memo.reason}</p>
           </section>
           <section>
             <MicroLabel style={{ marginBottom: 8 }}>Evidence</MicroLabel>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: `1px solid ${P.hairline2}`, borderRadius: 8 }}>
               {memo.evidence.map((ev, i) => (
-                <li key={ev.id} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
-                  <span style={{ height: 32, width: 32, borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: P.inkMute }}>
+                <li key={ev.id} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 13.5, borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
+                  <span style={{ height: 32, width: 32, borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: P.inkMute }}>
                     <Icon name={evIcon(ev.kind)} size={14} stroke={1.9} />
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ color: P.ink }}>{ev.label}</div>
-                    <div style={{ fontSize: 11, color: P.inkMute }}>{ev.capturedBy} · {HD.relativeTime(ev.capturedAt)}</div>
+                    <div style={{ fontSize: 11.5, color: P.inkMute }}>{ev.capturedBy} · {HD.relativeTime(ev.capturedAt)}</div>
                   </div>
                   <PBtn size="xs" variant="ghost">View</PBtn>
                 </li>))}
@@ -322,10 +322,10 @@
             <MicroLabel style={{ marginBottom: 8 }}>Audit trail</MicroLabel>
             <ol style={{ listStyle: 'none', margin: 0, padding: '0 0 0 16px', borderLeft: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
               {memo.audit.map((ev) => (
-                <li key={ev.id} style={{ fontSize: 13, position: 'relative' }}>
+                <li key={ev.id} style={{ fontSize: 13.5, position: 'relative' }}>
                   <span style={{ position: 'absolute', left: -21, top: 5, height: 10, width: 10, borderRadius: 99, background: P.accent }} />
                   <div style={{ color: P.ink }}>{ev.action}</div>
-                  <div style={{ fontSize: 11, color: P.inkMute }}>{ev.actor} · {HD.formatDate(ev.at)}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute }}>{ev.actor} · {HD.formatDate(ev.at)}</div>
                 </li>))}
             </ol>
           </section>
@@ -380,15 +380,15 @@
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {SOURCE_FILTERS.map((f) => (
               <button key={f.value} onClick={() => setSource(f.value)}
-                style={{ height: 32, padding: '0 12px', borderRadius: 99, fontSize: 13, cursor: 'pointer', fontFamily: P.fontSans,
+                style={{ height: 32, padding: '0 12px', borderRadius: 99, fontSize: 13.5, cursor: 'pointer', fontFamily: P.fontSans,
                   background: source === f.value ? P.accentSoft : 'transparent', color: source === f.value ? accentInk : P.inkDim, border: `1px solid ${source === f.value ? P.accentBorder : P.hairline2}` }}>{f.label}</button>))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
               {STATUS_FILTERS.map((f) => (
                 <button key={f.value} onClick={() => setStatus(f.value)}
-                  style={{ height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer', fontFamily: P.fontSans,
-                    background: status === f.value ? P.canvas2 : 'transparent', color: status === f.value ? P.ink : P.inkMute, border: `1px solid ${status === f.value ? P.hairline3 : P.hairline2}` }}>{f.label}</button>))}
+                  style={{ height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans,
+                    background: status === f.value ? P.surface3 : 'transparent', color: status === f.value ? P.ink : P.inkMute, border: `1px solid ${status === f.value ? P.hairline3 : P.hairline2}` }}>{f.label}</button>))}
               <span style={{ height: 20, width: 1, background: P.hairline2, margin: '0 4px' }} />
               <MultiSelectFilter label="Brand / Vendor" options={vendorOptions.map((v) => ({ id: v, label: v }))} value={vendor} onChange={setVendor} />
             </div>
@@ -413,12 +413,12 @@
                         <TD><HDPill tone={sourceTone(m.source)} icon={false} size="sm" label={sourceLabel(m.source)} /></TD>
                         <TD>
                           <div style={{ color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>{m.vendorName}</div>
-                          <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>{m.memoNumber}</div>
+                          <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{m.memoNumber}</div>
                         </TD>
                         <TD align="right" mono>{HD.formatCurrency(m.amount)}</TD>
-                        <TD style={{ color: P.inkMute, fontSize: 13 }}>{HD.relativeTime(m.createdAt)}</TD>
+                        <TD style={{ color: P.inkMute, fontSize: 13.5 }}>{HD.relativeTime(m.createdAt)}</TD>
                         <TD><HDPill tone={creditTone(m.status)} label={creditLabel(m.status)} size="sm" /></TD>
-                        <TD>{m.linkedInvoiceNumber ? <span style={{ fontFamily: P.fontMono, fontSize: 12, color: P.ink2 }}>{m.linkedInvoiceNumber}</span> : <span style={{ fontSize: 12, color: P.inkMute }}>Unlinked</span>}</TD>
+                        <TD>{m.linkedInvoiceNumber ? <span style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink2 }}>{m.linkedInvoiceNumber}</span> : <span style={{ fontSize: 12.5, color: P.inkMute }}>Unlinked</span>}</TD>
                         <TD align="right">
                           <PBtn size="xs" variant={m.status === 'pending' ? 'accent' : m.status === 'approved' ? 'secondary' : 'ghost'} onClick={(e) => e.stopPropagation()}>
                             {m.status === 'pending' ? 'Approve' : m.status === 'approved' ? 'Apply' : m.status === 'disputed' ? 'Resolve' : 'View'}
@@ -429,7 +429,7 @@
               </HDTable>
             </div>
           </Card>
-          <p style={{ marginTop: 12, fontSize: 12, color: P.inkMute }}>Showing {filtered.length} of {OPS.CREDIT_MEMOS.length} credits. Click a row to open evidence + audit trail.</p>
+          <p style={{ marginTop: 12, fontSize: 12.5, color: P.inkMute }}>Showing {filtered.length} of {OPS.CREDIT_MEMOS.length} credits. Click a row to open evidence + audit trail.</p>
         </div>
 
         <CreditDrawer memo={selected} open={selected !== null} onClose={() => setSelected(null)} />
@@ -458,8 +458,8 @@
             <Icon name="receipt" size={18} stroke={1.9} />
           </span>
           <div>
-            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>A credit memo must be tied to an existing invoice.</h3>
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: P.inkDim, lineHeight: 1.5 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>A credit memo must be tied to an existing invoice.</h3>
+            <p style={{ margin: '6px 0 0', fontSize: 13.5, color: P.inkDim, lineHeight: 1.5 }}>
               Pick an invoice from the Inbox first, then use the Action Bar's <span style={{ color: P.ink, fontWeight: 600 }}>Open credit memo</span> option. Credits cannot exist without a source document — this keeps every credit auditable back to the AP entry it offsets.
             </p>
           </div>
@@ -469,7 +469,7 @@
             <PBtn variant="accent" icon="download" onClick={() => navigate('#/inbox')}>Browse invoices</PBtn>
             <PBtn variant="secondary" onClick={() => navigate('#/credits')}>View existing credits</PBtn>
           </div>
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${P.hairline2}`, fontSize: 12, color: P.inkMute, lineHeight: 1.5 }}>
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${P.hairline2}`, fontSize: 12.5, color: P.inkMute, lineHeight: 1.5 }}>
             <span style={{ fontWeight: 600, color: P.ink2 }}>How this normally works:</span> a buyer reviews an invoice, spots a damage / short-ship / pricing discrepancy, and opens a credit memo right from the variance panel. The credit lands here pre-filled with the distributor and the impacted line items.
           </div>
         </div>
@@ -506,12 +506,12 @@
 
     return (
       <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <button onClick={() => navigate('#/credits')} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 13, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
+        <button onClick={() => navigate('#/credits')} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 13.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
           <Icon name="arrow-left" size={14} stroke={2} /> Back to credits
         </button>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>New credit memo</h1>
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: P.inkDim }}>Credits are issued by a distributor against an existing invoice.</p>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>New credit memo</h1>
+          <p style={{ margin: '6px 0 0', fontSize: 13.5, color: P.inkDim }}>Credits are issued by a distributor against an existing invoice.</p>
         </div>
 
         {!invoice ? <MissingInvoiceCard navigate={navigate} /> : (
@@ -524,23 +524,23 @@
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <MicroLabel>Credit memo to</MicroLabel>
                   <DisplayNum size={22}>{invoice.vendorName}</DisplayNum>
-                  <div style={{ fontSize: 12, color: P.inkMute, marginTop: 2 }}>Distributor (payee) · {linesByBrand.length} {linesByBrand.length === 1 ? 'brand' : 'brands'} on this invoice</div>
+                  <div style={{ fontSize: 12.5, color: P.inkMute, marginTop: 2 }}>Distributor (payee) · {linesByBrand.length} {linesByBrand.length === 1 ? 'brand' : 'brands'} on this invoice</div>
                 </div>
                 <div style={{ textAlign: 'right', flex: '0 0 auto' }}>
                   <MicroLabel align="right">Source invoice</MicroLabel>
-                  <button onClick={() => navigate(`#/invoices/${invoice.id}`)} style={{ background: 'none', border: 'none', padding: 0, fontFamily: P.fontMono, fontSize: 14, color: P.ink, cursor: 'pointer' }}>{invoice.invoiceNumber}</button>
-                  <div style={{ fontSize: 12, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{HD.formatCurrency(invoice.total)}</div>
+                  <button onClick={() => navigate(`#/invoices/${invoice.id}`)} style={{ background: 'none', border: 'none', padding: 0, fontFamily: P.fontMono, fontSize: 13.5, color: P.ink, cursor: 'pointer' }}>{invoice.invoiceNumber}</button>
+                  <div style={{ fontSize: 12.5, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{HD.formatCurrency(invoice.total)}</div>
                 </div>
               </Card>
 
               <Card padding={0}>
                 <div style={{ padding: '16px 20px 8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Brands on this credit</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: 12, color: P.inkMute }}>Select the line items to credit. A single memo can cover any mix of brands the distributor carries.</p>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Brands on this credit</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.inkMute }}>Select the line items to credit. A single memo can cover any mix of brands the distributor carries.</p>
                   </div>
                   <span title="A distributor often carries multiple brands. This credit memo applies against your balance with the distributor; line items can be from any of the brands they distribute."
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.canvas2, color: P.inkMute, fontSize: 11, cursor: 'help', flex: '0 0 auto' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface3, color: P.inkMute, fontSize: 11.5, cursor: 'help', flex: '0 0 auto' }}>
                     <Icon name="help" size={12} stroke={2} />One distributor, many brands
                   </span>
                 </div>
@@ -551,14 +551,14 @@
                     const allChecked = lines.every((l) => selected.has(l.id));
                     return (
                       <div key={brand} style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: `1px solid ${P.hairline2}`, background: P.canvas }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface2 }}>
                           <Check on={allChecked} onChange={() => toggleBrand(lines)} size={18} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: P.ink }}>{brand}</span>
+                              <span style={{ fontSize: 13.5, fontWeight: 600, color: P.ink }}>{brand}</span>
                               <HDPill tone="neutral" icon={false} size="sm" label={`${lines.length} ${lines.length === 1 ? 'line' : 'lines'}`} />
                             </div>
-                            <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{brandTotalQty.toLocaleString()} units · {HD.formatCurrency(brandTotal, { showCents: false })}</div>
+                            <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{brandTotalQty.toLocaleString()} units · {HD.formatCurrency(brandTotal, { showCents: false })}</div>
                           </div>
                         </div>
                         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -569,12 +569,12 @@
                                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer', background: checked ? P.accentSoft : 'transparent' }}>
                                   <Check on={checked} onChange={() => toggleLine(li.id)} size={18} />
                                   <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 13, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{li.productName}</div>
-                                    <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute, marginTop: 2 }}>{li.sku}</div>
+                                    <div style={{ fontSize: 13.5, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{li.productName}</div>
+                                    <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>{li.sku}</div>
                                   </div>
                                   <div style={{ textAlign: 'right', flex: '0 0 auto' }}>
                                     <div style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink }}>{li.qty} × {HD.formatCurrency(li.unitCost)}</div>
-                                    <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>{HD.formatCurrency(li.qty * li.unitCost)}</div>
+                                    <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{HD.formatCurrency(li.qty * li.unitCost)}</div>
                                   </div>
                                 </label>
                               </li>);
@@ -588,22 +588,22 @@
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <Card padding={0}>
-                <div style={{ padding: '16px 20px 8px' }}><h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Credit details</h3></div>
+                <div style={{ padding: '16px 20px 8px' }}><h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Credit details</h3></div>
                 <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>
                     <MicroLabel style={{ marginBottom: 6 }}>Amount</MicroLabel>
                     <Field mono value={memoTotal} onChange={(e) => setMemoTotal(e.target.value)} placeholder={HD.formatCurrency(computedTotal)} inputMode="decimal" />
-                    <p style={{ margin: '6px 0 0', fontSize: 11, color: P.inkMute }}>Defaults to the sum of selected lines (<span style={{ fontFamily: P.fontMono }}>{HD.formatCurrency(computedTotal)}</span>). Override if the credit only covers part of a line.</p>
+                    <p style={{ margin: '6px 0 0', fontSize: 11.5, color: P.inkMute }}>Defaults to the sum of selected lines (<span style={{ fontFamily: P.fontMono }}>{HD.formatCurrency(computedTotal)}</span>). Override if the credit only covers part of a line.</p>
                   </div>
                   <div>
                     <MicroLabel style={{ marginBottom: 6 }}>Reason</MicroLabel>
                     <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="e.g. 8 units arrived crushed; photos attached on source invoice."
-                      style={{ width: '100%', padding: '10px 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, color: P.ink, fontSize: 13, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} />
+                      style={{ width: '100%', padding: '10px 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} />
                   </div>
                 </div>
               </Card>
 
-              <Card padding={16} style={{ fontSize: 12, color: P.inkMute, lineHeight: 1.5 }}>
+              <Card padding={16} style={{ fontSize: 12.5, color: P.inkMute, lineHeight: 1.5 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: P.ink2, marginBottom: 8 }}>
                   <Icon name="note" size={13} stroke={1.9} /><span style={{ fontWeight: 600 }}>How this memo will apply</span>
                 </div>

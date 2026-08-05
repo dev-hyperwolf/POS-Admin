@@ -53,7 +53,7 @@ window.CatalogScreen = function CatalogScreen() {
         <Thumb item={r} size={40} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 230 }}>{r.name}</div>
-          <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.03em', marginTop: 1 }}>{r.sku}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.03em', marginTop: 1 }}>{r.sku}</div>
         </div>
       </div> },
   { label: 'Weedmaps', width: '132px', render: (r) => <WmDot wm={r.wm} onClick={() => setDetail(r)} /> },
@@ -68,7 +68,7 @@ window.CatalogScreen = function CatalogScreen() {
       </div>);} },
   { label: 'Price', align: 'right', render: (r) =>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, justifyContent: 'flex-end' }}>
-        {r.was && <span style={{ fontSize: 11, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{window.HW.fmt.money0(r.was)}</span>}
+        {r.was && <span style={{ fontSize: 11.5, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{window.HW.fmt.money0(r.was)}</span>}
         <span style={{ fontSize: 13.5, fontWeight: 700, color: r.was ? P.bad : P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money0(r.price)}</span>
       </div> },
   { label: 'Status', render: (r) => r.active ? <Pill kind="good" dot>Active</Pill> : <Pill kind="neutral" dot>Inactive</Pill> },
@@ -86,7 +86,7 @@ window.CatalogScreen = function CatalogScreen() {
       const on = section === k;
       return <button key={k} onClick={() => setSection(k)} title={k === 'shells' ? 'Product shells — the family template every product hangs off' : 'Every individual product (a variation of a shell)'} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, border: 'none', background: on ? P.surface : 'transparent', color: on ? P.ink : P.inkDim, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, boxShadow: on ? P.shadowSm : 'none', transition: 'all .12s' }}>
           <Icon name={ic} size={14} stroke={on ? 2 : 1.8} />{label}
-          <span style={{ fontSize: 11, fontFamily: P.fontMono, color: on ? P.inkMute : P.inkFaint }}>{n}</span>
+          <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: on ? P.inkMute : P.inkFaint }}>{n}</span>
         </button>;
     })}
     </div>;
@@ -137,7 +137,7 @@ window.CatalogScreen = function CatalogScreen() {
           map(([k, label, ic]) => {
             const a = smart === k;
             const n = all.filter((p) => (cat === 'All' || p.cat === cat) && SMART[k](p)).length;
-            return <button key={k} onClick={() => setSmart(a ? 'none' : k)} disabled={n === 0} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: n === 0 ? P.inkFaint : a ? P.ink : P.ink2, fontSize: 12, fontWeight: 600, cursor: n === 0 ? 'default' : 'pointer', opacity: n === 0 ? .5 : 1, fontFamily: P.fontSans, whiteSpace: 'nowrap', transition: 'all .12s' }}>
+            return <button key={k} onClick={() => setSmart(a ? 'none' : k)} disabled={n === 0} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: n === 0 ? P.inkFaint : a ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: n === 0 ? 'default' : 'pointer', opacity: n === 0 ? .5 : 1, fontFamily: P.fontSans, whiteSpace: 'nowrap', transition: 'all .12s' }}>
               <Icon name={ic} size={12.5} stroke={1.9} />{label}<span style={{ fontSize: 10, fontFamily: P.fontMono, opacity: .7 }}>{n}</span>
             </button>;
           })}
@@ -163,7 +163,7 @@ window.CatalogScreen = function CatalogScreen() {
       <DataTable columns={cols} rows={rows} rowKey={(r) => r.sku} selectedKeys={sel} /> :
       <CatalogGrid rows={rows} sel={sel} toggle={toggle} onOpen={setDetail} />}
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, fontSize: 12, color: P.inkDim }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, fontSize: 12.5, color: P.inkDim }}>
         <span style={{ fontFamily: P.fontMono }}>Showing {rows.length} of {all.length}</span>
         <div style={{ display: 'flex', gap: 6 }}>
           <PBtn variant="ghost" size="sm" icon="chevron-left" disabled>Prev</PBtn>
@@ -185,7 +185,7 @@ function tagTint(str, P) {
   return { bg: `hsl(${hue} ${dark ? 42 : 82}% ${dark ? 15 : 96}%)`, fg: `hsl(${hue} ${dark ? 68 : 52}% ${dark ? 72 : 34}%)`, border: `hsl(${hue} ${dark ? 38 : 68}% ${dark ? 26 : 87}%)` };
 }
 
-function bulkBtn(P) {return { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'rgba(255,255,255,.08)', color: P.surface, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans };}
+function bulkBtn(P) {return { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'rgba(255,255,255,.08)', color: P.surface, border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans };}
 
 // Profit-margin color: higher = healthier
 function marginColor(P, m) {return m >= 0.55 ? P.good : m >= 0.42 ? P.mode === 'light' ? '#B07A12' : P.warn : P.bad;}
@@ -200,7 +200,7 @@ function MarginFilter({ value, onChange, rows, all }) {
   const active = value > 0;
   return (
     <div style={{ position: 'relative', flex: '0 0 auto' }}>
-      <button onClick={() => setOpen((o) => !o)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r10, border: `1px solid ${active || open ? P.accentBorder : P.hairline2}`, background: active ? P.accentSoft : P.surface, color: P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r10, border: `1px solid ${active || open ? P.accentBorder : P.hairline2}`, background: active ? P.accentSoft : P.surface, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
         <Icon name="percent" size={13} stroke={1.9} />Margin{active ? ` ≥${value}%` : ''}<Icon name="chevron-down" size={12} stroke={2.2} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
       </button>
       {open && <>
@@ -208,7 +208,7 @@ function MarginFilter({ value, onChange, rows, all }) {
         <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, width: 272, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, padding: 14, zIndex: 51 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Minimum profit margin</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: marginColor(P, value / 100), fontFamily: P.fontMono }}>≥{value}%</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: marginColor(P, value / 100), fontFamily: P.fontMono }}>≥{value}%</span>
           </div>
           <input type="range" min="0" max="80" step="5" value={value} onChange={(e) => onChange(+e.target.value)} style={{ width: '100%', accentColor: P.accent, cursor: 'pointer' }} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '11px 0 12px' }}>
@@ -217,7 +217,7 @@ function MarginFilter({ value, onChange, rows, all }) {
               return <button key={p} onClick={() => onChange(p)} style={{ padding: '5px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: a ? P.ink : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{p === 0 ? 'All' : `≥${p}%`}</button>;
             })}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${P.hairline}`, fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${P.hairline}`, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>
             <span>{matched} of {all.length} match</span>
             <span>catalog avg {avg}%</span>
           </div>
@@ -236,11 +236,11 @@ function MetricRibbon({ active, inactive, lowStock }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: '0 0 auto' }}>
         <span style={{ width: 26, height: 26, borderRadius: 7, background: accent ? P.accent : P.surface3, color: accent ? P.accentInk : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={icon} size={14} stroke={1.9} /></span>
         <div style={{ lineHeight: 1.15 }}>
-          <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</div>
+          <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
-            {sub && <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{sub}</span>}
-            {delta != null && <span style={{ fontSize: 10.5, fontWeight: 700, color: dc, fontFamily: P.fontMono }}>{delta > 0 ? '▲' : '▼'}{Math.abs(delta)}%</span>}
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
+            {sub && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{sub}</span>}
+            {delta != null && <span style={{ fontSize: 11.5, fontWeight: 700, color: dc, fontFamily: P.fontMono }}>{delta > 0 ? '▲' : '▼'}{Math.abs(delta)}%</span>}
           </div>
         </div>
       </div>);
@@ -269,12 +269,12 @@ function MetricCompact({ active, inactive, lowStock }) {
     const dc = !delta ? P.inkMute : deltaKind === 'bad' ? P.bad : P.good;
     return (
       <div style={{ background: P.surface, border: `1px solid ${accent ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, padding: '10px 13px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, boxShadow: P.shadowSm }}>
-        <span style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span>
-          {delta != null && <span style={{ fontSize: 10.5, fontWeight: 700, color: dc, fontFamily: P.fontMono }}>{delta > 0 ? '▲' : '▼'}{Math.abs(delta)}%</span>}
+          <span style={{ fontSize: 16, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span>
+          {delta != null && <span style={{ fontSize: 11.5, fontWeight: 700, color: dc, fontFamily: P.fontMono }}>{delta > 0 ? '▲' : '▼'}{Math.abs(delta)}%</span>}
         </div>
-        {sub && <span style={{ fontSize: 10.5, color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>}
+        {sub && <span style={{ fontSize: 11.5, color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>}
       </div>);
 
   };
@@ -294,7 +294,7 @@ function MetricLine({ active, inactive, lowStock, total }) {
   const P = useP();
   const dot = (c) => <span style={{ width: 6, height: 6, borderRadius: 99, background: c, display: 'inline-block' }} />;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '6px 0 16px', fontSize: 12, color: P.inkDim, fontFamily: P.fontMono }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '6px 0 16px', fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>{dot(P.good)}{active} active</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>{dot(P.inkFaint)}{inactive} inactive</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>{dot(P.warn)}{lowStock} low stock</span>
@@ -316,13 +316,13 @@ function CatalogGrid({ rows, sel, toggle, onOpen }) {
           <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 5 }}>{r.was && <Pill kind="bad">Sale</Pill>}<WmChip wm={r.wm} /></div>
         </div>
         <div style={{ padding: '11px 12px 13px' }}>
-          <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginBottom: 3 }}>{r.brand}</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: P.ink, lineHeight: 1.25, marginBottom: 8, minHeight: 32 }}>{r.name}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginBottom: 3 }}>{r.brand}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, marginBottom: 8, minHeight: 32 }}>{r.name}</div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {r.strain ? <StrainPill type={r.strain} thc={r.thc} /> : <span style={{ fontSize: 11, color: P.inkFaint }}>—</span>}
+            {r.strain ? <StrainPill type={r.strain} thc={r.thc} /> : <span style={{ fontSize: 11.5, color: P.inkFaint }}>—</span>}
             <span style={{ fontSize: 13.5, fontWeight: 700, color: r.was ? P.bad : P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money0(r.price)}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, fontSize: 10.5, fontFamily: P.fontMono }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, fontSize: 11.5, fontFamily: P.fontMono }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: P.inkMute }}><span style={{ width: 7, height: 7, borderRadius: 2, background: window.HW.CAT_COLOR[r.cat] || P.neutral }} />{r.cat}</span>
             <span style={{ fontWeight: 700, color: marginColor(P, r.margin) }}>{Math.round(r.margin * 100)}% mgn</span>
           </div>
@@ -351,14 +351,14 @@ function WmDot({ wm, onClick }) {
   return <button onClick={(e) => {e.stopPropagation();onClick && onClick();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontFamily: P.fontSans }}>
     <span style={{ width: 8, height: 8, borderRadius: 99, background: m.c, flex: '0 0 auto' }} />
     <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, textAlign: 'left' }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: P.ink2 }}>{m.label}</span>
-      <span style={{ fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono }}>{listingsSub(wm)}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{m.label}</span>
+      <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{listingsSub(wm)}</span>
     </span>
   </button>;
 }
 function WmChip({ wm }) {
   const P = useP();const m = wmStateMeta(wm.state, P);
-  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: 9, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.04em' }}><span style={{ width: 6, height: 6, borderRadius: 99, background: m.c }} />WM</span>;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.04em' }}><span style={{ width: 6, height: 6, borderRadius: 99, background: m.c }} />WM</span>;
 }
 
 // ── Product detail — dedicated full page (Overview + inventory + compliance + Weedmaps)
@@ -440,16 +440,16 @@ function AiEffects({ product }) {
   React.useEffect(() => {fetchEffects();}, [fetchEffects]);
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Reported effects</span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 99, padding: '2px 7px' }}><Icon name="lightning" size={9} stroke={2} />{state === 'fallback' ? 'AI · offline' : 'AI'}</span>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Reported effects</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', color: P.accentText, background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 99, padding: '2px 7px' }}><Icon name="lightning" size={9} stroke={2} />{state === 'fallback' ? 'AI · offline' : 'AI'}</span>
       <div style={{ flex: 1 }} />
-      <button onClick={fetchEffects} disabled={state === 'loading'} title="Regenerate with AI" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: state === 'loading' ? 'default' : 'pointer', color: P.inkDim, fontSize: 11, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="refresh" size={13} stroke={2} style={{ animation: state === 'loading' ? 'hwspin 0.8s linear infinite' : 'none' }} />Regenerate</button>
+      <button onClick={fetchEffects} disabled={state === 'loading'} title="Regenerate with AI" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: state === 'loading' ? 'default' : 'pointer', color: P.inkDim, fontSize: 11.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="refresh" size={13} stroke={2} style={{ animation: state === 'loading' ? 'hwspin 0.8s linear infinite' : 'none' }} />Regenerate</button>
     </div>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {state === 'loading' ? [0, 1, 2].map((i) => <span key={i} style={{ width: 82, height: 32, borderRadius: 99, background: `linear-gradient(90deg, ${P.surface2}, ${P.surface3}, ${P.surface2})`, backgroundSize: '200% 100%', animation: 'shimmer 1.1s ease-in-out infinite' }} />) :
       effects.map((e) => {const t = tagTint(e, P);return <span key={e} style={{ display: 'inline-flex', alignItems: 'center', padding: '7px 14px', background: t.bg, border: `1px solid ${t.border}`, borderRadius: 99, fontSize: 12.5, fontWeight: 700, color: t.fg }}>{e}</span>;})}
     </div>
-    {state === 'fallback' && <span style={{ fontSize: 10.5, color: P.inkMute }}>Showing strain defaults — AI couldn’t be reached. Try Regenerate.</span>}
+    {state === 'fallback' && <span style={{ fontSize: 11.5, color: P.inkMute }}>Showing strain defaults — AI couldn’t be reached. Try Regenerate.</span>}
   </div>;
 }
 
@@ -473,14 +473,14 @@ function WmResyncButton({ p }) {
       {p.wm.state === 'error' && st === 'idle' && <PBtn variant="secondary" size="sm" icon="tag">Fix</PBtn>}
     </div>
     {st === 'syncing' && <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
-      {STEPS.map((s, i) => {const done = i < step,cur = i === step;return <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: cur ? P.ink : done ? P.ink2 : P.inkMute }}>
+      {STEPS.map((s, i) => {const done = i < step,cur = i === step;return <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: cur ? P.ink : done ? P.ink2 : P.inkMute }}>
         {done ? <Icon name="check-circle" size={13} stroke={2} color={P.good} /> : cur ? <Icon name="refresh" size={13} stroke={2} color="#1F5FC0" style={{ animation: 'hwspin .8s linear infinite' }} /> : <span style={{ width: 13, height: 13, borderRadius: 99, border: `1.5px solid ${P.hairline3}` }} />}
         {s}{cur ? '…' : ''}
       </div>;})}
     </div>}
     {st === 'done' && <div style={{ display: 'flex', gap: 9, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
       <Icon name="check-circle" size={15} stroke={2} color={P.good} style={{ flex: '0 0 auto', marginTop: 1 }} />
-      <div style={{ fontSize: 11, color: P.ink2, lineHeight: 1.5 }}><b style={{ color: P.ink }}>Synced just now.</b> Price, availability &amp; the menu item were pushed to Weedmaps. {listings} listing{listings.includes('·') ? 's' : ''} live · <button onClick={() => setSt('idle')} style={{ background: 'none', border: 'none', padding: 0, color: P.info, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11 }}>sync again</button></div>
+      <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b style={{ color: P.ink }}>Synced just now.</b> Price, availability &amp; the menu item were pushed to Weedmaps. {listings} listing{listings.includes('·') ? 's' : ''} live · <button onClick={() => setSt('idle')} style={{ background: 'none', border: 'none', padding: 0, color: P.info, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5 }}>sync again</button></div>
     </div>}
   </div>;
 }
@@ -525,13 +525,13 @@ function StorefrontContent({ p }) {
   const AiTag2 = ({ field }) => {
     const st = aiSrc[field], on = st === 'ai';
     return <span title={on ? 'Drafted by AI' : st === 'edited' ? 'AI draft, edited by a person' : 'Local draft — the model could not be reached'}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', borderRadius: 99, padding: '2px 6px',
-        color: on ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkMute, background: on ? P.accentSoft : P.surface3, border: `1px solid ${on ? P.accentBorder : P.hairline2}` }}>
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', borderRadius: 99, padding: '2px 6px',
+        color: on ? P.accentText : P.inkMute, background: on ? P.accentSoft : P.surface3, border: `1px solid ${on ? P.accentBorder : P.hairline2}` }}>
       <Icon name="lightning" size={9} stroke={2} />{st === 'edited' ? 'AI · EDITED' : on ? 'AI' : 'AI · OFFLINE'}</span>;
   };
   const Redraft2 = ({ field, onClick }) =>
   <button onClick={onClick} disabled={!!aiBusy[field]} title="Re-draft with AI"
-    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: aiBusy[field] ? 'default' : 'pointer', color: P.inkDim, fontSize: 11, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}>
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: aiBusy[field] ? 'default' : 'pointer', color: P.inkDim, fontSize: 11.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}>
     <Icon name="refresh" size={12} stroke={2} style={{ animation: aiBusy[field] ? 'hwspin 0.8s linear infinite' : 'none' }} />{aiBusy[field] ? 'Drafting' : 'Redraft'}</button>;
   const redraftDesc = () => ask('desc', 'Write ONE product description of 2 sentences (max 40 words) for the online menu. Prose only — no heading, no label, no markdown.', (t, prose) => {if (!prose) throw new Error('empty');setDescVal(prose);}, () => setDescVal(desc));
   const redraftHow = () => ask('how', 'Write ONE "how to use" instruction of 1–2 sentences, including storage. Prose only — no heading, no label, no markdown.', (t, prose) => {if (!prose) throw new Error('empty');setHowVal(prose);}, () => setHowVal(directions));
@@ -543,10 +543,10 @@ function StorefrontContent({ p }) {
   const [howEdit, setHowEdit] = React.useState(false);
   const [descVal, setDescVal] = React.useState(desc);
   const [howVal, setHowVal] = React.useState(directions);
-  const faqInp = { flex: 1, minWidth: 0, padding: '8px 10px', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, background: P.surface, color: P.ink, fontSize: 12, outline: 'none', fontFamily: P.fontSans };
+  const faqInp = { flex: 1, minWidth: 0, padding: '8px 10px', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, background: P.surface, color: P.ink, fontSize: 12.5, outline: 'none', fontFamily: P.fontSans };
   const Head = ({ icon, title, sub }) => <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
     <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={15} stroke={1.9} /></span>
-    <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</div>{sub && <div style={{ fontSize: 11, color: P.inkDim }}>{sub}</div>}</div>
+    <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</div>{sub && <div style={{ fontSize: 11.5, color: P.inkDim }}>{sub}</div>}</div>
   </div>;
   const gallery = [1, 2, 3];
   return <Card padding={0}>
@@ -560,56 +560,56 @@ function StorefrontContent({ p }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
           {gallery.map((n) => <div key={n} style={{ position: 'relative', width: '100%', height: 84, overflow: 'hidden', borderRadius: 10, background: P.surface3 }}><image-slot id={`prod-photo-${p.sku}-${n}`} shape="rounded" radius="10" placeholder={`Photo ${n}`} style={{ width: '100%', height: '100%' }}></image-slot></div>)}
         </div>
-        <div style={{ fontSize: 10.5, color: P.inkMute, lineHeight: 1.45 }}>First image is the primary menu photo. Drop lifestyle & packaging shots into the gallery.</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, lineHeight: 1.45 }}>First image is the primary menu photo. Drop lifestyle & packaging shots into the gallery.</div>
         <div style={{ marginTop: 2, padding: 12, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Menu preview</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Menu preview</div>
           <div style={{ display: 'flex', gap: 10, padding: 10, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
             <Thumb item={p} size={52} />
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-              <div style={{ fontSize: 10.5, color: P.inkDim, marginTop: 1 }}>{p.brand} · {p.wt || '—'}</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 1 }}>{p.brand} · {p.wt || '—'}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 5 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.price)}</span>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.price)}</span>
                 {p.strain && <StrainPill type={p.strain} thc={p.thc} />}
               </div>
             </div>
           </div>
-          <div style={{ fontSize: 10.5, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>How this product reads on the online menu and the Weedmaps card — photo, name, price and strain, nothing else.</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>How this product reads on the online menu and the Weedmaps card — photo, name, price and strain, nothing else.</div>
         </div>
       </div>
       {/* copy */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>Description</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>Description</span>
             <AiTag2 field="desc" />
             <div style={{ flex: 1 }} />
             <Redraft2 field="desc" onClick={redraftDesc} />
-            <button onClick={() => setDescEdit((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}><Icon name={descEdit ? 'check' : 'pencil'} size={13} stroke={2} />{descEdit ? 'Done' : 'Edit'}</button>
+            <button onClick={() => setDescEdit((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}><Icon name={descEdit ? 'check' : 'pencil'} size={13} stroke={2} />{descEdit ? 'Done' : 'Edit'}</button>
           </div>
           {descEdit ?
-          <textarea value={descVal} onChange={(e) => {setDescVal(e.target.value);setAiSrc((x) => ({ ...x, desc: 'edited' }));}} rows={4} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: P.ink2, lineHeight: 1.6, textWrap: 'pretty' }}>{descVal}</p>}
+          <textarea value={descVal} onChange={(e) => {setDescVal(e.target.value);setAiSrc((x) => ({ ...x, desc: 'edited' }));}} rows={4} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13.5, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
+          <p style={{ margin: '6px 0 0', fontSize: 13.5, color: P.ink2, lineHeight: 1.6, textWrap: 'pretty' }}>{descVal}</p>}
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>How to use</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>How to use</span>
             <AiTag2 field="how" />
             <div style={{ flex: 1 }} />
             <Redraft2 field="how" onClick={redraftHow} />
-            <button onClick={() => setHowEdit((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}><Icon name={howEdit ? 'check' : 'pencil'} size={13} stroke={2} />{howEdit ? 'Done' : 'Edit'}</button>
+            <button onClick={() => setHowEdit((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}><Icon name={howEdit ? 'check' : 'pencil'} size={13} stroke={2} />{howEdit ? 'Done' : 'Edit'}</button>
           </div>
           {howEdit ?
-          <textarea value={howVal} onChange={(e) => {setHowVal(e.target.value);setAiSrc((x) => ({ ...x, how: 'edited' }));}} rows={3} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: P.ink2, lineHeight: 1.6 }}>{howVal}</p>}
+          <textarea value={howVal} onChange={(e) => {setHowVal(e.target.value);setAiSrc((x) => ({ ...x, how: 'edited' }));}} rows={3} style={{ width: '100%', marginTop: 6, padding: '9px 11px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, color: P.ink, fontSize: 13.5, lineHeight: 1.6, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} /> :
+          <p style={{ margin: '6px 0 0', fontSize: 13.5, color: P.ink2, lineHeight: 1.6 }}>{howVal}</p>}
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>FAQ</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>FAQ</span>
             <AiTag2 field="faq" />
             <div style={{ flex: 1 }} />
             <Redraft2 field="faq" onClick={redraftFaq} />
-            <button onClick={() => setEditFaq((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: P.info, fontFamily: P.fontSans }}><Icon name={editFaq ? 'check' : 'pencil'} size={13} stroke={2} />{editFaq ? 'Done' : 'Edit'}</button>
+            <button onClick={() => setEditFaq((e) => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: P.info, fontFamily: P.fontSans }}><Icon name={editFaq ? 'check' : 'pencil'} size={13} stroke={2} />{editFaq ? 'Done' : 'Edit'}</button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 8 }}>
             {editFaq ? <>
@@ -620,13 +620,13 @@ function StorefrontContent({ p }) {
                 </div>
                 <textarea value={f.a} onChange={(e) => setFaqList((l) => l.map((x, j) => j === i ? { ...x, a: e.target.value } : x))} placeholder="Answer" rows={2} style={{ ...faqInp, resize: 'vertical', lineHeight: 1.5 }} />
               </div>)}
-              <button onClick={() => setFaqList((l) => [...l, { q: '', a: '' }])} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', background: 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, cursor: 'pointer', color: P.info, fontSize: 12, fontWeight: 600, fontFamily: P.fontSans }}><Icon name="plus" size={14} stroke={2.2} />Add question</button>
+              <button onClick={() => setFaqList((l) => [...l, { q: '', a: '' }])} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', background: 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, cursor: 'pointer', color: P.info, fontSize: 12.5, fontWeight: 600, fontFamily: P.fontSans }}><Icon name="plus" size={14} stroke={2.2} />Add question</button>
             </> : faqList.map((f, i) => {const on = open === i;return <div key={i} style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, overflow: 'hidden' }}>
               <button onClick={() => setOpen(on ? -1 : i)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', background: on ? P.surface2 : P.surface, border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                 <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink }}>{f.q || 'Untitled question'}</span>
                 <Icon name="chevron-down" size={15} stroke={2.2} color={P.inkMute} style={{ transform: on ? 'rotate(180deg)' : 'none', transition: 'transform .15s', flex: '0 0 auto' }} />
               </button>
-              {on && <div style={{ padding: '0 13px 12px', fontSize: 12, color: P.inkDim, lineHeight: 1.55 }}>{f.a}</div>}
+              {on && <div style={{ padding: '0 13px 12px', fontSize: 12.5, color: P.inkDim, lineHeight: 1.55 }}>{f.a}</div>}
             </div>;})}
           </div>
         </div>
@@ -643,19 +643,19 @@ function InventoryByLocation({ stores, batches, totals }) {
   batches.forEach((b, i) => byStore[stores[i % stores.length].s].push(b));
   const gc = '1.7fr .8fr .8fr .8fr 20px';
   return <div style={{ gridColumn: '1/-1', border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
-    <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, padding: '8px 13px', background: P.surface2, fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>
+    <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, padding: '8px 13px', background: P.surface2, fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>
       <span>Location</span><span style={{ textAlign: 'right' }}>In region</span><span style={{ textAlign: 'right' }}>On hold</span><span style={{ textAlign: 'right' }}>Available</span><span />
     </div>
     {stores.map((st) => {const bs = byStore[st.s] || [];const open = exp === st.s;return <div key={st.s} style={{ borderTop: `1px solid ${P.hairline}` }}>
       <div onClick={() => setExp(open ? null : st.s)} style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, alignItems: 'center', padding: '10px 13px', cursor: 'pointer' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}><Icon name="shop" size={14} color={P.inkMute} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{st.s}{st.mine && <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 500 }}> · this store</span>}</span><span style={{ fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono }}>{bs.length} lot{bs.length !== 1 ? 's' : ''}</span></span>
-        <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13, fontWeight: 600, color: P.ink2 }}>{st.onHand}</span>
-        <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13, fontWeight: 600, color: st.onHold ? P.warn : P.inkFaint }}>{st.onHold}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}><Icon name="shop" size={14} color={P.inkMute} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{st.s}{st.mine && <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 500 }}> · this store</span>}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{bs.length} lot{bs.length !== 1 ? 's' : ''}</span></span>
+        <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 600, color: P.ink2 }}>{st.onHand}</span>
+        <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 600, color: st.onHold ? P.warn : P.inkFaint }}>{st.onHold}</span>
         <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: st.avail === 0 ? P.bad : st.avail < 10 ? P.warn : P.good }}>{st.avail}</span>
         <Icon name="chevron-down" size={14} stroke={2.2} color={P.inkMute} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
       </div>
       {open && <div style={{ padding: '2px 13px 11px 36px', display: 'flex', flexDirection: 'column', gap: 6, background: P.surface2 }}>
-        {bs.length === 0 ? <span style={{ fontSize: 11, color: P.inkMute }}>No batches at this location.</span> : bs.map((b) => <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, flexWrap: 'wrap' }}>
+        {bs.length === 0 ? <span style={{ fontSize: 11.5, color: P.inkMute }}>No batches at this location.</span> : bs.map((b) => <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{b.id}</span>
           <span style={{ fontFamily: P.fontMono, color: P.inkMute, flex: 1, minWidth: 80, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.metrc}</span>
           <span style={{ fontFamily: P.fontMono, color: P.ink2 }}>{b.thc}% THC</span>
@@ -666,9 +666,9 @@ function InventoryByLocation({ stores, batches, totals }) {
       </div>}
     </div>;})}
     <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, padding: '10px 13px', borderTop: `2px solid ${P.hairline2}`, background: P.surface2 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>All stores</span>
-      <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13, fontWeight: 700, color: P.ink }}>{totals.totOnHand}</span>
-      <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13, fontWeight: 700, color: P.warn }}>{totals.totHold}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>All stores</span>
+      <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: P.ink }}>{totals.totOnHand}</span>
+      <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: P.warn }}>{totals.totHold}</span>
       <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 800, color: P.good }}>{totals.totAvail}</span>
       <span />
     </div>
@@ -711,14 +711,14 @@ function ProductDetailPage({ p, onBack }) {
 
   const Fld = ({ label, value, mono, wide, color, locked, hint, onEditLocked, onChange, onCommit, right, placeholder }) =>
   <label style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0, gridColumn: wide ? '1/-1' : 'auto' }}>
-      <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{label}{hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}</span>
-      <div style={{ padding: '9px 12px', border: `1px solid ${locked ? P.hairline : P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: locked ? P.surface2 : P.field || P.surface, fontSize: 13, fontWeight: 600, color: color || (locked ? P.ink2 : P.ink), fontFamily: mono ? P.fontMono : P.fontSans, minHeight: 38, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{label}{hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}</span>
+      <div style={{ padding: '9px 12px', border: `1px solid ${locked ? P.hairline : P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: locked ? P.surface2 : P.field || P.surface, fontSize: 13.5, fontWeight: 600, color: color || (locked ? P.ink2 : P.ink), fontFamily: mono ? P.fontMono : P.fontSans, minHeight: 38, display: 'flex', alignItems: 'center', gap: 8 }}>
         {onChange ?
-      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onBlur={() => onCommit && onCommit()} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault();e.currentTarget.blur();}}} style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: color || P.ink, fontSize: 13, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, padding: 0 }} /> :
+      <input value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onBlur={() => onCommit && onCommit()} onKeyDown={(e) => {if (e.key === 'Enter') {e.preventDefault();e.currentTarget.blur();}}} style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: color || P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, padding: 0 }} /> :
       <span style={{ flex: 1, minWidth: 0, whiteSpace: wide ? 'normal' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>}
         {right}
         {locked && (onEditLocked ?
-      <button onClick={(e) => {e.preventDefault();onEditLocked();}} title="Edit in the product shell" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.info, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="pencil" size={11} stroke={2.2} />Edit in shell</button> :
+      <button onClick={(e) => {e.preventDefault();onEditLocked();}} title="Edit in the product shell" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.info, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="pencil" size={11} stroke={2.2} />Edit in shell</button> :
       <Icon name="lock" size={12} stroke={1.9} color={P.inkFaint} style={{ flex: '0 0 auto' }} />)}
       </div>
     </label>;
@@ -729,18 +729,18 @@ function ProductDetailPage({ p, onBack }) {
     const boxBorder = cf ? cf + '66' : tt ? tt.border : P.fieldBorder || P.hairline2;
     const accent = cf || (tt ? tt.fg : null);
     return <label style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-      <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{label}{hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}</span>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{label}{hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}</span>
       <div style={{ position: 'relative' }}>
-        <select value={value} onChange={(e) => onChange && onChange(e.target.value)} style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '9px 34px 9px 12px', border: `1px solid ${boxBorder}`, borderLeft: accent ? `3px solid ${accent}` : `1px solid ${boxBorder}`, borderRadius: P.r10, background: boxBg, fontSize: 13, fontWeight: 600, color: tt ? tt.fg : P.ink, fontFamily: P.fontSans, minHeight: 38, outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>{(options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>
+        <select value={value} onChange={(e) => onChange && onChange(e.target.value)} style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '9px 34px 9px 12px', border: `1px solid ${boxBorder}`, borderLeft: accent ? `3px solid ${accent}` : `1px solid ${boxBorder}`, borderRadius: P.r10, background: boxBg, fontSize: 13.5, fontWeight: 600, color: tt ? tt.fg : P.ink, fontFamily: P.fontSans, minHeight: 38, outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>{(options || []).map((o) => <option key={o} value={o}>{o}</option>)}</select>
         <Icon name="chevron-down" size={14} stroke={2.2} color={P.inkMute} style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       </div>
     </label>;
   };
   const FldNum = ({ label, value, onChange, suffix, decimals, color, hint }) =>
   <label style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-      <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{label}{hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}</span>
+      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 5 }}>{label}{hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, minHeight: 38 }}>
-        <input value={value} inputMode="decimal" onChange={(e) => {let v = e.target.value.replace(decimals ? /[^0-9.]/g : /[^0-9]/g, '');if (decimals) {const parts = v.split('.');if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');}onChange && onChange(v);}} style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: color || P.ink, fontSize: 13, fontWeight: 700, fontFamily: P.fontMono, padding: '9px 0' }} />
+        <input value={value} inputMode="decimal" onChange={(e) => {let v = e.target.value.replace(decimals ? /[^0-9.]/g : /[^0-9]/g, '');if (decimals) {const parts = v.split('.');if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');}onChange && onChange(v);}} style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: color || P.ink, fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono, padding: '9px 0' }} />
         {suffix && <span style={{ fontSize: 12.5, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, flex: '0 0 auto' }}>{suffix}</span>}
       </div>
     </label>;
@@ -748,7 +748,7 @@ function ProductDetailPage({ p, onBack }) {
   <Card padding={0}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={15} stroke={1.9} /></span>
-        <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</div>{sub && <div style={{ fontSize: 11, color: P.inkDim }}>{sub}</div>}</div>
+        <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</div>{sub && <div style={{ fontSize: 11.5, color: P.inkDim }}>{sub}</div>}</div>
         {right && <div style={{ marginLeft: 'auto', flex: '0 0 auto' }}>{right}</div>}
       </div>
       <div style={{ padding: 16, display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: '13px 14px' }}>{children}</div>
@@ -758,11 +758,11 @@ function ProductDetailPage({ p, onBack }) {
   // Terpenes: we do NOT collect percentages or mg — qualitative aroma + dominance only.
   const TERP_RANK = ['Dominant', 'Secondary', 'Present'];
   const terpProfile = terps.map((t, i) => ({ name: t, rank: TERP_RANK[i] || 'Present', note: TERP_INFO[t][0], color: TERP_INFO[t][1] }));
-  const rankTone = (r) => r === 'Dominant' ? { c: P.mode === 'dark' ? P.accent : '#7A5A00', bg: P.accentSoft } : r === 'Secondary' ? { c: P.ink2, bg: P.surface3 } : { c: P.inkMute, bg: P.surface3 };
+  const rankTone = (r) => r === 'Dominant' ? { c: P.accentText, bg: P.accentSoft } : r === 'Secondary' ? { c: P.ink2, bg: P.surface3 } : { c: P.inkMute, bg: P.surface3 };
   const TerpRow = ({ t }) => {const rt = rankTone(t.rank);return <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
     <span style={{ width: 9, height: 9, borderRadius: 3, background: t.color, flex: '0 0 auto' }} />
-    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t.name}</div><div style={{ fontSize: 10.5, color: P.inkMute }}>{t.note}</div></div>
-    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: rt.c, background: rt.bg, borderRadius: 6, padding: '3px 8px' }}>{t.rank}</span>
+    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t.name}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>{t.note}</div></div>
+    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: rt.c, background: rt.bg, borderRadius: 6, padding: '3px 8px' }}>{t.rank}</span>
   </div>;};
   // inventory per store — on hand / on hold / available
   const storeInv = PROD_STORES.map((s, i) => {const onHand = i === 0 ? p.qty : Math.max(0, Math.round(p.qty * [1, .42, .68, .25][i]));const onHold = Math.round(onHand * [0.12, 0.05, 0.18, 0.08][i]);return { s, onHand, onHold, avail: onHand - onHold, mine: i === 0 };});
@@ -825,13 +825,13 @@ function ProductDetailPage({ p, onBack }) {
     const st = metaSrc[field];
     const on = st === 'ai';
     return <span title={on ? 'Drafted by AI' : st === 'edited' ? 'AI draft, edited by a person' : 'Local draft — the model could not be reached'}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', borderRadius: 99, padding: '2px 6px',
-        color: on ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkMute, background: on ? P.accentSoft : P.surface3, border: `1px solid ${on ? P.accentBorder : P.hairline2}` }}>
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', borderRadius: 99, padding: '2px 6px',
+        color: on ? P.accentText : P.inkMute, background: on ? P.accentSoft : P.surface3, border: `1px solid ${on ? P.accentBorder : P.hairline2}` }}>
       <Icon name="lightning" size={9} stroke={2} />{st === 'edited' ? 'AI · EDITED' : on ? 'AI' : 'AI · OFFLINE'}</span>;
   };
   const Redraft = ({ field }) =>
   <button onClick={(e) => {e.preventDefault();draftMeta(field);}} disabled={!!metaBusy[field]} title="Re-draft this field with AI"
-    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.inkDim, fontSize: 10.5, fontWeight: 700, cursor: metaBusy[field] ? 'default' : 'pointer', fontFamily: P.fontSans }}>
+    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.inkDim, fontSize: 11.5, fontWeight: 700, cursor: metaBusy[field] ? 'default' : 'pointer', fontFamily: P.fontSans }}>
     <Icon name="refresh" size={11} stroke={2.2} style={{ animation: metaBusy[field] ? 'hwspin 0.8s linear infinite' : 'none' }} />{metaBusy[field] ? 'Drafting' : 'Redraft'}</button>;
   const BatchPanel = () => {
     const [bq, setBq] = React.useState('');const [showAll, setShowAll] = React.useState(false);
@@ -841,27 +841,27 @@ function ProductDetailPage({ p, onBack }) {
     return <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface2, borderBottom: `1px solid ${P.hairline}`, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Batches</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, background: P.surface3, padding: '2px 8px', borderRadius: 99 }}>{batches.length}</span>
-        <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{totalUnits} units · {potency} · FIFO</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, background: P.surface3, padding: '2px 8px', borderRadius: 99 }}>{batches.length}</span>
+        <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{totalUnits} units · {potency} · FIFO</span>
         <div style={{ flex: 1 }} />
         <div style={{ width: 186 }}><Field icon="search" placeholder="Batch or METRC…" value={bq} onChange={(e) => setBq(e.target.value)} size="sm" mono /></div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: gc, gap: '0 22px', padding: '9px 14px', fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, borderBottom: `1px solid ${P.hairline}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: gc, gap: '0 22px', padding: '9px 14px', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, borderBottom: `1px solid ${P.hairline}` }}>
         <span>Batch</span><span>METRC tag</span><span style={{ textAlign: 'right' }}>Units</span><span style={{ textAlign: 'right' }}>THC</span><span style={{ textAlign: 'right' }}>CBD</span><span>Expires</span><span>COA</span>
       </div>
       <div style={{ maxHeight: showAll ? 340 : 'none', overflowY: showAll ? 'auto' : 'visible' }}>
         {shown.map((b, i) => <div key={b.id + i} style={{ display: 'grid', gridTemplateColumns: gc, gap: '0 22px', alignItems: 'center', padding: '11px 14px', borderTop: i ? `1px solid ${P.hairline}` : 'none', background: i % 2 ? P.surface2 : 'transparent' }}>
           <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink }}>{b.id}</span>
-          <span style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{b.metrc}</span>
-          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12, fontWeight: 600, color: P.ink2 }}>{b.qty}</span>
-          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12, fontWeight: 600, color: P.ink }}>{b.thc}%</span>
-          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12, color: P.inkDim }}>{b.cbd}%</span>
-          <span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{b.exp}</span>
+          <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{b.metrc}</span>
+          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{b.qty}</span>
+          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 600, color: P.ink }}>{b.thc}%</span>
+          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12.5, color: P.inkDim }}>{b.cbd}%</span>
+          <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{b.exp}</span>
           <span>{b.coa === 'Passed' ? <Pill kind="good" dot>Passed</Pill> : <Pill kind="warn" dot>Pending</Pill>}</span>
         </div>)}
-        {filtered.length === 0 && <div style={{ padding: '20px', textAlign: 'center', fontSize: 12, color: P.inkMute }}>No batches match.</div>}
+        {filtered.length === 0 && <div style={{ padding: '20px', textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No batches match.</div>}
       </div>
-      {filtered.length > 5 && <button onClick={() => setShowAll((v) => !v)} style={{ width: '100%', padding: '10px', background: P.surface2, border: 'none', borderTop: `1px solid ${P.hairline}`, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12, fontWeight: 600, color: P.info }}>{showAll ? 'Show less' : `View all ${filtered.length} batches`}</button>}
+      {filtered.length > 5 && <button onClick={() => setShowAll((v) => !v)} style={{ width: '100%', padding: '10px', background: P.surface2, border: 'none', borderTop: `1px solid ${P.hairline}`, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 600, color: P.info }}>{showAll ? 'Show less' : `View all ${filtered.length} batches`}</button>}
     </div>;
   };
   const activity = [
@@ -876,7 +876,7 @@ function ProductDetailPage({ p, onBack }) {
     <div style={{ maxWidth: 1320, margin: '0 auto' }}>
       {/* Back + actions bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to catalog</button>
+        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to catalog</button>
         <div style={{ flex: 1 }} />
         <PBtn variant="secondary" size="md" icon="link">View on Weedmaps</PBtn>
         <PBtn variant="secondary" size="md" icon={p.active ? 'eye-off' : 'check-circle'}>{p.active ? 'Deactivate' : 'Activate'}</PBtn>
@@ -888,11 +888,11 @@ function ProductDetailPage({ p, onBack }) {
         <Thumb item={p} size={60} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{name}</span>
+            <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{name}</span>
             {p.strain && <StrainPill type={p.strain} />}
             {p.active ? <Pill kind="good" dot>Active</Pill> : <Pill kind="neutral" dot>Inactive</Pill>}
           </div>
-          <div style={{ fontSize: 12, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{p.sku} · {p.brand} · {p.cat}</div>
+          <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{p.sku} · {p.brand} · {p.cat}</div>
         </div>
       </div>
 
@@ -902,7 +902,7 @@ function ProductDetailPage({ p, onBack }) {
           <Sec icon="package" title="Product information" cols={3}>
             <Fld label="Product name" value={name} wide hint="The variation name inside the shell — the flavour or strain. Renaming here updates every store and channel." placeholder="e.g. Blue Dream" onChange={setName} onCommit={saveName}
             right={nameDirty ?
-            <button onClick={(e) => {e.preventDefault();saveName();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: 'none', background: P.accent, color: P.accentInk, fontSize: 10.5, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="check" size={11} stroke={2.6} />Save name</button> :
+            <button onClick={(e) => {e.preventDefault();saveName();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: 'none', background: P.accent, color: P.accentInk, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="check" size={11} stroke={2.6} />Save name</button> :
             <span title="Variation field — editable here" style={{ display: 'inline-flex', flex: '0 0 auto', color: P.inkFaint }}><Icon name="pencil" size={12} stroke={1.9} /></span>} />
             <Fld label="Brand" value={p.brand} locked onEditLocked={() => setShellEdit(true)} />
             <Fld label="Supplier / vendor" value={p.brand + ' Distribution'} locked hint="Licensed distributor this SKU is received from — read from the brand record." />
@@ -924,7 +924,7 @@ function ProductDetailPage({ p, onBack }) {
             <FldSelect label="Unit" value={unit} options={['gram', 'each', 'mg', 'oz', 'ml', 'pack']} onChange={setUnit} tint />
             <Fld label="THC · low" value={thcLo + '%'} mono locked hint="Lowest THC across in-stock batches. Rolled up from each batch — set on the batch, not here." />
             <Fld label="THC · high" value={thcHi + '%'} mono locked hint="Highest THC across in-stock batches. Rolled up from each batch — set on the batch, not here." />
-            <Fld label="THC · avg" value={thcAvg + '%'} mono locked color={P.mode === 'dark' ? P.accent : '#7A5A00'} hint="Weighted average across in-stock batches. Recomputes as batches arrive and sell through." />
+            <Fld label="THC · avg" value={thcAvg + '%'} mono locked color={P.accentText} hint="Weighted average across in-stock batches. Recomputes as batches arrive and sell through." />
             <div style={{ gridColumn: '1/-1' }}><AiEffects product={p} /></div>
             <div style={{ gridColumn: '1/-1' }}><TerpeneEditor initial={terpProfile} /></div>
           </Sec>
@@ -936,15 +936,15 @@ function ProductDetailPage({ p, onBack }) {
           <Sec icon="tag" title="Pricing & margin" cols={3}>
             <button onClick={() => setShellEdit(true)} title="Open the product shell" style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
               <span style={{ width: 30, height: 30, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="package" size={16} stroke={1.9} /></span>
-              <span style={{ flex: 1, minWidth: 0 }}><span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, display: 'block' }}>Product shell · source of truth</span><span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{shellName}</span> <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{shellId}</span></span>
+              <span style={{ flex: 1, minWidth: 0 }}><span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, display: 'block' }}>Product shell · source of truth</span><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{shellName}</span> <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{shellId}</span></span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: P.info }}>Open shell<Icon name="arrow-right" size={13} stroke={2.2} /></span>
             </button>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
-              <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 6 }}>Retail price{priceOverridden && <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: '.04em', color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 5, padding: '1px 6px' }}>OVERRIDDEN</span>}</span>
-              <div style={{ padding: '9px 12px', border: `1px solid ${priceOverridden ? P.accentBorder : P.hairline}`, borderRadius: P.r10, background: priceOverridden ? P.accentSoft : P.surface2, fontSize: 13, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, minHeight: 38, display: 'flex', alignItems: 'center' }}>{fmt.money(posPrice)}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: P.inkDim }}>
-                {priceOverridden ? <><span style={{ textDecoration: 'line-through', fontFamily: P.fontMono, color: P.inkMute }}>{fmt.money(shellPrice)}</span><span>shell</span><button onClick={() => setPosPrice(shellPrice)} style={{ background: 'none', border: 'none', padding: 0, color: P.info, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 10.5 }}>Revert to shell</button></> :
-                <><Icon name="link" size={11} color={P.inkMute} /><span>Synced from shell</span><button onClick={() => setPosPrice(Math.max(1, shellPrice - Math.max(1, Math.round(shellPrice * 0.1))))} style={{ background: 'none', border: 'none', padding: 0, color: P.info, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 10.5 }}>Override price</button></>}
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, display: 'inline-flex', alignItems: 'center', gap: 6 }}>Retail price{priceOverridden && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', color: P.accentText, background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 5, padding: '1px 6px' }}>OVERRIDDEN</span>}</span>
+              <div style={{ padding: '9px 12px', border: `1px solid ${priceOverridden ? P.accentBorder : P.hairline}`, borderRadius: P.r10, background: priceOverridden ? P.accentSoft : P.surface2, fontSize: 13.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, minHeight: 38, display: 'flex', alignItems: 'center' }}>{fmt.money(posPrice)}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.inkDim }}>
+                {priceOverridden ? <><span style={{ textDecoration: 'line-through', fontFamily: P.fontMono, color: P.inkMute }}>{fmt.money(shellPrice)}</span><span>shell</span><button onClick={() => setPosPrice(shellPrice)} style={{ background: 'none', border: 'none', padding: 0, color: P.info, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5 }}>Revert to shell</button></> :
+                <><Icon name="link" size={11} color={P.inkMute} /><span>Synced from shell</span><button onClick={() => setPosPrice(Math.max(1, shellPrice - Math.max(1, Math.round(shellPrice * 0.1))))} style={{ background: 'none', border: 'none', padding: 0, color: P.info, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5 }}>Override price</button></>}
               </div>
             </label>
             <Fld label="Compare-at" hint="The “was” price shown struck-through on menus to signal a markdown — usually the MSRP or pre-sale price. Leave blank when the item isn’t on sale." value={p.was ? fmt.money(p.was) : '—'} mono locked />
@@ -952,19 +952,19 @@ function ProductDetailPage({ p, onBack }) {
             <Fld label="Price / gram" value={perGram ? fmt.money(perGram) : '—'} mono locked />
             <Fld label="Tax category" value="CA Cannabis" locked />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Margin</span>
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Margin</span>
               <div style={{ minHeight: 38, display: 'flex', alignItems: 'center', gap: 9 }}>
                 <span style={{ fontSize: 15, fontWeight: 700, color: mc, fontFamily: P.fontMono }}>{Math.round(p.margin * 100)}%</span>
                 <span style={{ flex: 1, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}><span style={{ display: 'block', width: `${Math.round(p.margin * 100)}%`, height: '100%', background: mc }} /></span>
               </div>
             </div>
-            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: P.inkDim }}><Icon name="lock" size={12} stroke={1.9} color={P.inkMute} />Retail price, wholesale cost and tax come from the <b style={{ color: P.ink2 }}>product shell</b>. Override the retail price here only when this store must deviate from shell pricing; margin is derived from the effective price.</div>
+            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="lock" size={12} stroke={1.9} color={P.inkMute} />Retail price, wholesale cost and tax come from the <b style={{ color: P.ink2 }}>product shell</b>. Override the retail price here only when this store must deviate from shell pricing; margin is derived from the effective price.</div>
           </Sec>
 
           <Sec icon="package" title="Inventory by location" sub={`${totAvail} available · ${totHold} on hold · ${totOnHand} in region`} cols={1}>
             <InventoryByLocation stores={storeInv} batches={batches} totals={{ totOnHand, totHold, totAvail }} />
-            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: P.inkDim }}><Icon name="info" size={13} color={P.info} /><b style={{ color: P.ink2 }}>On hold</b> = reserved for open &amp; prepaid orders. <b style={{ color: P.ink2 }}>Available</b> = in region minus on hold. Expand a location to see the batches held there.</div>
-            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11, color: P.inkDim }}><Icon name="info" size={13} color={P.info} /><b style={{ color: P.ink2 }}>On hold</b> = reserved for open &amp; prepaid orders. <b style={{ color: P.ink2 }}>Available</b> = in region minus on hold.</div>
+            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="info" size={13} color={P.info} /><b style={{ color: P.ink2 }}>On hold</b> = reserved for open &amp; prepaid orders. <b style={{ color: P.ink2 }}>Available</b> = in region minus on hold. Expand a location to see the batches held there.</div>
+            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="info" size={13} color={P.info} /><b style={{ color: P.ink2 }}>On hold</b> = reserved for open &amp; prepaid orders. <b style={{ color: P.ink2 }}>Available</b> = in region minus on hold.</div>
           </Sec>
 
           <Sec icon="shield" title="Batches & traceability" sub="Per-batch METRC tags, potency and expiration" cols={1}>
@@ -976,13 +976,13 @@ function ProductDetailPage({ p, onBack }) {
             <div style={{ gridColumn: '1/-1' }}><Fld label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Meta title <AiTag field="title" /></span>} value={meta.title} wide hint="Recommended 50–60 characters." onChange={(v) => editMeta('title', v)} right={<Redraft field="title" />} /></div>
             <div style={{ gridColumn: '1/-1' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta description</span>
+                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Meta description</span>
                 <AiTag field="desc" />
                 <span style={{ fontSize: 10, color: meta.desc.length > 158 ? P.bad : P.inkMute, fontFamily: P.fontMono }}>{meta.desc.length}/158</span>
                 <div style={{ flex: 1 }} />
                 <Redraft field="desc" />
               </div>
-              <textarea value={meta.desc} onChange={(e) => editMeta('desc', e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: '9px 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, color: P.ink, fontSize: 13, fontFamily: P.fontSans, lineHeight: 1.5, outline: 'none' }} />
+              <textarea value={meta.desc} onChange={(e) => editMeta('desc', e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: '9px 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, lineHeight: 1.5, outline: 'none' }} />
             </div>
             <Fld label={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>URL slug <AiTag field="slug" /></span>} value={meta.slug} mono onChange={(v) => editMeta('slug', v)} right={<Redraft field="slug" />} />
             <Fld label="Canonical URL" value={'hyperwolf.com/shop/' + meta.slug} mono locked hint="Generated from the slug." />
@@ -990,17 +990,17 @@ function ProductDetailPage({ p, onBack }) {
             <Fld label="OG image" value="Storefront photo (product)" locked hint="Falls back to this product’s photo unless a social image is set." />
             <Fld label="Robots" value={p.active ? 'index, follow' : 'noindex'} locked hint="Inactive products are automatically de-indexed." />
             <div style={{ gridColumn: '1/-1', padding: '12px 14px', background: P.surface2, borderRadius: P.r10 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 7 }}>Search preview</div>
-              <div style={{ fontSize: 11, color: P.good, fontFamily: P.fontMono }}>hyperwolf.com › shop › {meta.slug}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 7 }}>Search preview</div>
+              <div style={{ fontSize: 11.5, color: P.good, fontFamily: P.fontMono }}>hyperwolf.com › shop › {meta.slug}</div>
               <div style={{ fontSize: 15, color: '#1a0dab', fontWeight: 600, marginTop: 3, lineHeight: 1.3 }}>{meta.title}</div>
-              <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.5, marginTop: 3 }}>{meta.desc}</div>
+              <div style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.5, marginTop: 3 }}>{meta.desc}</div>
             </div>
           </Sec>
 
           <Card padding={0}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
               <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="clock" size={15} stroke={1.9} /></span>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Activity log</div><div style={{ fontSize: 11, color: P.inkDim }}>Who changed what, and when</div></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Activity log</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Who changed what, and when</div></div>
             </div>
             <div style={{ padding: '14px 16px' }}>
               {activity.map((e, i) => <div key={i} style={{ display: 'flex', gap: 12 }}>
@@ -1010,7 +1010,7 @@ function ProductDetailPage({ p, onBack }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0, paddingBottom: i < activity.length - 1 ? 14 : 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.35 }}>{e.action}</div>
-                  <div style={{ fontSize: 11, color: P.inkDim, marginTop: 2 }}><span style={{ fontWeight: 700, color: P.ink2 }}>{e.who}</span> · {e.role} · <span style={{ fontFamily: P.fontMono }}>{e.time}</span></div>
+                  <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 2 }}><span style={{ fontWeight: 700, color: P.ink2 }}>{e.who}</span> · {e.role} · <span style={{ fontFamily: P.fontMono }}>{e.time}</span></div>
                 </div>
               </div>)}
             </div>
@@ -1021,12 +1021,12 @@ function ProductDetailPage({ p, onBack }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* At a glance — pricing, margin, stock (relocated out of the header) */}
           <Card padding={0}>
-            <div style={{ padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>At a glance</div></div>
+            <div style={{ padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>At a glance</div></div>
             <div style={{ padding: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
               {[['Price', fmt.money0(p.price), p.was ? P.bad : P.ink, p.was ? `was ${fmt.money0(p.was)}` : 'retail'], ['Margin', `${Math.round(p.margin * 100)}%`, mc, `wholesale ${fmt.money(p.cost)}`], ['On hand', totOnHand, totOnHand === 0 ? P.bad : totOnHand < 10 ? P.warn : P.ink, 'all stores'], ['Available', totAvail, totAvail === 0 ? P.bad : totAvail < 10 ? P.warn : P.good, `${totHold} on hold`]].map(([k, v, c, s]) =>
               <div key={k} style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderLeft: `3px solid ${c}`, borderRadius: P.r10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: c, fontFamily: P.fontMono, marginTop: 2 }}>{v}</div>
+                  <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: c, fontFamily: P.fontMono, marginTop: 2 }}>{v}</div>
                   <div style={{ fontSize: 10, color: P.inkDim }}>{s}</div>
                 </div>)}
             </div>
@@ -1035,27 +1035,27 @@ function ProductDetailPage({ p, onBack }) {
           {/* Weedmaps sync */}
           <Card padding={0}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: m.c }}><span style={{ width: 8, height: 8, borderRadius: 99, background: m.c }} />{m.label}</span>
             </div>
             <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 12 }} data-tour="wm-card">
-              <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }} data-tour="wm-listings">Last synced {p.wm.last} · {listingsSub(p.wm)}</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }} data-tour="wm-listings">Last synced {p.wm.last} · {listingsSub(p.wm)}</div>
               {p.wm.issue &&
               <div style={{ display: 'flex', gap: 9, padding: '10px 12px', background: p.wm.state === 'error' ? P.badSoft : P.warnSoft, borderRadius: P.r10 }}>
                 <Icon name="shield" size={15} stroke={1.9} color={p.wm.state === 'error' ? P.bad : P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                <div style={{ fontSize: 11, color: P.inkDim, lineHeight: 1.5 }}>{p.wm.issue}</div>
+                <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>{p.wm.issue}</div>
               </div>}
               <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }} data-tour="wm-extid">
                 <Icon name="lock" size={13} stroke={1.9} color={P.inkMute} />
-                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>external_id</div><div style={{ fontSize: 12, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
+                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>external_id</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {[{ ic: 'shop', c: P.warn, label: 'Pickup listings', on: pkOn, total: pkTot, live: onPickup, sub: onPickup ? 'store listings' : 'not listed', note: '2–3 store listings' }, { ic: 'truck', c: P.info, label: 'Delivery pins', on: dlOn, total: dlTot, live: onDelivery, sub: onDelivery ? `live in ${kits} on-shift kit${kits > 1 ? 's' : ''}` : 'not listed', note: 'one pin per city' }].map((r) =>
                 <div key={r.label} style={{ padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Icon name={r.ic} size={14} color={r.live ? r.c : P.inkFaint} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: P.ink, flex: 1 }}>{r.label}</span>
-                    <span style={{ fontSize: 11, fontFamily: P.fontMono, fontWeight: 700, color: r.live ? P.ink2 : P.inkFaint }}>{r.on}<span style={{ color: P.inkFaint, fontWeight: 500 }}> / {r.total}</span></span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, flex: 1 }}>{r.label}</span>
+                    <span style={{ fontSize: 11.5, fontFamily: P.fontMono, fontWeight: 700, color: r.live ? P.ink2 : P.inkFaint }}>{r.on}<span style={{ color: P.inkFaint, fontWeight: 500 }}> / {r.total}</span></span>
                     {r.live ? <Pill kind="good" dot>Live</Pill> : <Pill kind="neutral" dot>Off</Pill>}
                   </div>
                   <div style={{ height: 5, borderRadius: 99, background: P.surface3, overflow: 'hidden', marginTop: 7 }}><div style={{ width: `${Math.round(r.on / r.total * 100)}%`, height: '100%', background: r.live ? r.c : P.inkFaint }} /></div>
@@ -1063,18 +1063,18 @@ function ProductDetailPage({ p, onBack }) {
                 </div>)}
                 <button onClick={() => setWmMap(true)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px', background: 'transparent', border: 'none', cursor: 'pointer', color: P.info, fontSize: 11.5, fontWeight: 700, fontFamily: P.fontSans }}>View all listings<Icon name="arrow-right" size={13} stroke={2.2} /></button>
               </div>
-              <button onClick={() => setWmMap(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '9px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12, fontWeight: 700, color: P.ink2 }}><Icon name="link" size={14} stroke={1.9} />{wmConf ? `Match · ${Math.round(wmConf * 100)}% confidence` : 'Map to a Weedmaps product'}</button>
+              <button onClick={() => setWmMap(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '9px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700, color: P.ink2 }}><Icon name="link" size={14} stroke={1.9} />{wmConf ? `Match · ${Math.round(wmConf * 100)}% confidence` : 'Map to a Weedmaps product'}</button>
               <WmResyncButton p={p} />
             </div>
           </Card>
 
           {/* Performance */}
           <Card padding={0}>
-            <div style={{ padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Last 30 days</div></div>
+            <div style={{ padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Last 30 days</div></div>
             <div style={{ padding: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
               {[['Units sold', units30, 'all channels'], ['Revenue', fmt.money0(rev30), 'gross'], ['Velocity', `${(units30 / 30).toFixed(1)}/day`, 'avg'], ['Last sold', ['Today', 'Yesterday', '2d ago'][h % 3], '']].map(([k, v, s]) =>
               <div key={k} style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
+                  <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 2 }}>{v}</div>
                   {s && <div style={{ fontSize: 10, color: P.inkDim }}>{s}</div>}
                 </div>)}
@@ -1095,12 +1095,12 @@ function ProductTags() {
   return <Card padding={0}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
       <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="tag" size={15} stroke={1.9} /></span>
-      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Tags</div><div style={{ fontSize: 11, color: P.inkDim }}>Merchandising labels for search, filtering &amp; collections</div></div>
+      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Tags</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Merchandising labels for search, filtering &amp; collections</div></div>
     </div>
     <div style={{ padding: 16 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-        {tags.map((t, i) => {const tt = tagTint(t, P);return <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: tt.bg, border: `1px solid ${tt.border}`, borderRadius: 99, fontSize: 12, fontWeight: 600, color: tt.fg }}>{t}<button onClick={() => setTags((ts) => ts.filter((_, j) => j !== i))} title="Remove tag" style={{ display: 'flex', background: 'transparent', border: 'none', cursor: 'pointer', color: tt.fg, opacity: .7, padding: 0 }}><Icon name="x" size={12} stroke={2.4} /></button></span>;})}
-        <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => {if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {e.preventDefault();setTags((ts) => [...ts, tagInput.trim()]);setTagInput('');}}} placeholder="Add tag…" style={{ flex: '1 0 90px', minWidth: 90, padding: '5px 10px', border: `1px dashed ${P.hairline3}`, borderRadius: 99, background: 'transparent', color: P.ink, fontSize: 12, outline: 'none', fontFamily: P.fontSans }} />
+        {tags.map((t, i) => {const tt = tagTint(t, P);return <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: tt.bg, border: `1px solid ${tt.border}`, borderRadius: 99, fontSize: 12.5, fontWeight: 600, color: tt.fg }}>{t}<button onClick={() => setTags((ts) => ts.filter((_, j) => j !== i))} title="Remove tag" style={{ display: 'flex', background: 'transparent', border: 'none', cursor: 'pointer', color: tt.fg, opacity: .7, padding: 0 }}><Icon name="x" size={12} stroke={2.4} /></button></span>;})}
+        <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => {if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {e.preventDefault();setTags((ts) => [...ts, tagInput.trim()]);setTagInput('');}}} placeholder="Add tag…" style={{ flex: '1 0 90px', minWidth: 90, padding: '5px 10px', border: `1px dashed ${P.hairline3}`, borderRadius: 99, background: 'transparent', color: P.ink, fontSize: 12.5, outline: 'none', fontFamily: P.fontSans }} />
       </div>
     </div>
   </Card>;
@@ -1122,14 +1122,14 @@ function ProductTraits({ p, packN, pkgType }) {
   return <Card padding={0}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
       <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="layout" size={15} stroke={1.9} /></span>
-      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Product traits</div><div style={{ fontSize: 11, color: P.inkDim }}>Defaults come from the product shell — edit to override, or add your own</div></div>
+      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Product traits</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Defaults come from the product shell — edit to override, or add your own</div></div>
     </div>
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 9 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 92px 28px', gap: 9, fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}><span>Trait</span><span>Value</span><span /><span /></div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 92px 28px', gap: 9, fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}><span>Trait</span><span>Value</span><span /><span /></div>
       {rows.map((r, i) => {const overridden = r.shell && r.v !== r.orig;return <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 92px 28px', gap: 9, alignItems: 'center' }}>
         {r.shell ? <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{r.k}</span> : <input value={r.k} onChange={(e) => setRows((rs) => rs.map((x, j) => j === i ? { ...x, k: e.target.value } : x))} placeholder="Trait name" style={inpS} />}
         <input value={r.v} onChange={(e) => set(i, e.target.value)} placeholder="Value" style={inpS} />
-        <span style={{ textAlign: 'right' }}>{r.shell ? overridden ? <button onClick={() => set(i, r.orig)} title="Reset to shell value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 8.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 99, padding: '2px 7px', cursor: 'pointer' }}>Overridden<Icon name="x" size={9} stroke={2.6} /></button> : <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute, border: `1px solid ${P.hairline2}`, borderRadius: 99, padding: '2px 7px' }}>Shell</span> : <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.info }}>Custom</span>}</span>
+        <span style={{ textAlign: 'right' }}>{r.shell ? overridden ? <button onClick={() => set(i, r.orig)} title="Reset to shell value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.accentText, background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 99, padding: '2px 7px', cursor: 'pointer' }}>Overridden<Icon name="x" size={9} stroke={2.6} /></button> : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute, border: `1px solid ${P.hairline2}`, borderRadius: 99, padding: '2px 7px' }}>Shell</span> : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.info }}>Custom</span>}</span>
         <button onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} title="Remove" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: P.inkMute, padding: 5, display: 'flex' }}><Icon name="trash" size={16} stroke={1.9} /></button>
       </div>;})}
       <button onClick={() => setRows((rs) => [...rs, { k: '', v: '', shell: false }])} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px', background: 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, cursor: 'pointer', color: P.info, fontSize: 12.5, fontWeight: 600, fontFamily: P.fontSans }}><Icon name="plus" size={15} stroke={2.2} />Add trait</button>
@@ -1151,17 +1151,17 @@ function GeneticsSection() {
   return <Card padding={0}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
       <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="link" size={15} stroke={1.9} /></span>
-      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Genetics</div><div style={{ fontSize: 11, color: P.inkDim }}>Link parent &amp; related strains from the strain database — add as many as you like</div></div>
+      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Genetics</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Link parent &amp; related strains from the strain database — add as many as you like</div></div>
     </div>
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {sel.map((s, i) => {const tt = tagTint(s.name, P);return <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 6px 5px 11px', background: tt.bg, border: `1px solid ${tt.border}`, borderRadius: 99 }}>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: tt.fg }}>{s.name}</span>
-          {s.isNew && <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.good }}>New</span>}
+          {s.isNew && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.good }}>New</span>}
           <select value={s.rel} onChange={(e) => setSel((ss) => ss.map((x, j) => j === i ? { ...x, rel: e.target.value } : x))} style={{ appearance: 'none', WebkitAppearance: 'none', border: `1px solid ${tt.border}`, background: P.surface, color: P.ink2, borderRadius: 99, fontSize: 10, fontWeight: 700, padding: '2px 6px', cursor: 'pointer', fontFamily: P.fontSans }}>{['Parent', 'Related', 'Cross', 'Phenotype'].map((o) => <option key={o} value={o}>{o}</option>)}</select>
           <button onClick={() => setSel((ss) => ss.filter((_, j) => j !== i))} title="Remove" style={{ display: 'flex', background: 'transparent', border: 'none', cursor: 'pointer', color: tt.fg, opacity: .7, padding: 0 }}><Icon name="x" size={13} stroke={2.4} /></button>
         </span>;})}
-        {sel.length === 0 && <span style={{ fontSize: 12, color: P.inkMute }}>No strains linked yet.</span>}
+        {sel.length === 0 && <span style={{ fontSize: 12.5, color: P.inkMute }}>No strains linked yet.</span>}
       </div>
       <div style={{ position: 'relative', maxWidth: 380 }}>
         <Field icon="search" placeholder="Search strains…" value={q} onChange={(e) => {setQ(e.target.value);setOpen(true);}} onFocus={() => setOpen(true)} size="md" />
@@ -1170,7 +1170,7 @@ function GeneticsSection() {
           <div style={{ position: 'absolute', top: 'calc(100% + 5px)', left: 0, right: 0, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, boxShadow: P.shadowLg, zIndex: 41, padding: 5, maxHeight: 260, overflowY: 'auto' }}>
             {matches.map((n) => <button key={n} onClick={() => add(n, false)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><Icon name="link" size={13} color={P.inkMute} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{n}</span></button>)}
             {!exact && <button onClick={() => add(q.trim(), true)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'transparent', border: 'none', borderTop: matches.length ? `1px solid ${P.hairline}` : 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><Icon name="plus" size={13} color={P.good} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Add “{q.trim()}” as a new strain</span></button>}
-            {matches.length === 0 && exact && <div style={{ padding: '8px 10px', fontSize: 12, color: P.inkMute }}>Already added.</div>}
+            {matches.length === 0 && exact && <div style={{ padding: '8px 10px', fontSize: 12.5, color: P.inkMute }}>Already added.</div>}
           </div>
         </>}
       </div>
@@ -1185,26 +1185,26 @@ function TerpeneEditor({ initial }) {
   const [list, setList] = React.useState(initial || []);
   const [open, setOpen] = React.useState(false);
   const RANKS = ['Dominant', 'Secondary', 'Present'];
-  const rankTone = (r) => r === 'Dominant' ? { c: P.mode === 'dark' ? P.accent : '#7A5A00', bg: P.accentSoft } : r === 'Secondary' ? { c: P.ink2, bg: P.surface3 } : { c: P.inkMute, bg: P.surface3 };
+  const rankTone = (r) => r === 'Dominant' ? { c: P.accentText, bg: P.accentSoft } : r === 'Secondary' ? { c: P.ink2, bg: P.surface3 } : { c: P.inkMute, bg: P.surface3 };
   const avail = Object.keys(TERP_INFO_M).filter((n) => !list.some((t) => t.name === n));
   const add = (n) => {setList((l) => [...l, { name: n, rank: 'Present', note: TERP_INFO_M[n][0], color: TERP_INFO_M[n][1] }]);setOpen(false);};
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 2, padding: 13, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Terpene profile</span><span style={{ fontSize: 10.5, color: P.inkMute }}>aroma &amp; dominance · we don’t track percentages</span></div>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Terpene profile</span><span style={{ fontSize: 11.5, color: P.inkMute }}>aroma &amp; dominance · we don’t track percentages</span></div>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {list.map((t, i) => {const rt = rankTone(t.rank);return <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <span style={{ width: 9, height: 9, borderRadius: 3, background: t.color, flex: '0 0 auto' }} />
-        <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t.name}</div><div style={{ fontSize: 10.5, color: P.inkMute }}>{t.note}</div></div>
-        <select value={t.rank} onChange={(e) => setList((l) => l.map((x, j) => j === i ? { ...x, rank: e.target.value } : x))} style={{ appearance: 'none', WebkitAppearance: 'none', border: 'none', background: rt.bg, color: rt.c, borderRadius: 6, fontSize: 9, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', padding: '3px 8px', cursor: 'pointer', fontFamily: P.fontSans }}>{RANKS.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+        <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t.name}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>{t.note}</div></div>
+        <select value={t.rank} onChange={(e) => setList((l) => l.map((x, j) => j === i ? { ...x, rank: e.target.value } : x))} style={{ appearance: 'none', WebkitAppearance: 'none', border: 'none', background: rt.bg, color: rt.c, borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', padding: '3px 8px', cursor: 'pointer', fontFamily: P.fontSans }}>{RANKS.map((o) => <option key={o} value={o}>{o}</option>)}</select>
         <button onClick={() => setList((l) => l.filter((_, j) => j !== i))} title="Remove terpene" style={{ display: 'flex', background: 'transparent', border: 'none', cursor: 'pointer', color: P.inkMute, padding: 3 }}><Icon name="x" size={14} stroke={2.2} /></button>
       </div>;})}
-      {list.length === 0 && <span style={{ fontSize: 12, color: P.inkMute }}>No terpenes added.</span>}
+      {list.length === 0 && <span style={{ fontSize: 12.5, color: P.inkMute }}>No terpenes added.</span>}
     </div>
     <div style={{ position: 'relative' }}>
-      <button onClick={() => setOpen((o) => !o)} disabled={avail.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', background: 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, cursor: avail.length ? 'pointer' : 'not-allowed', color: P.info, fontSize: 12, fontWeight: 600, fontFamily: P.fontSans, opacity: avail.length ? 1 : .5 }}><Icon name="plus" size={14} stroke={2.2} />Add terpene</button>
+      <button onClick={() => setOpen((o) => !o)} disabled={avail.length === 0} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', background: 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, cursor: avail.length ? 'pointer' : 'not-allowed', color: P.info, fontSize: 12.5, fontWeight: 600, fontFamily: P.fontSans, opacity: avail.length ? 1 : .5 }}><Icon name="plus" size={14} stroke={2.2} />Add terpene</button>
       {open && <>
         <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
         <div style={{ position: 'absolute', bottom: 'calc(100% + 5px)', left: 0, width: 240, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, boxShadow: P.shadowLg, zIndex: 41, padding: 5, maxHeight: 240, overflowY: 'auto' }}>
-          {avail.map((n) => <button key={n} onClick={() => add(n)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><span style={{ width: 8, height: 8, borderRadius: 2, background: TERP_INFO_M[n][1], flex: '0 0 auto' }} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{n}</span><span style={{ fontSize: 10.5, color: P.inkMute, marginLeft: 'auto' }}>{TERP_INFO_M[n][0]}</span></button>)}
+          {avail.map((n) => <button key={n} onClick={() => add(n)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><span style={{ width: 8, height: 8, borderRadius: 2, background: TERP_INFO_M[n][1], flex: '0 0 auto' }} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{n}</span><span style={{ fontSize: 11.5, color: P.inkMute, marginLeft: 'auto' }}>{TERP_INFO_M[n][0]}</span></button>)}
         </div>
       </>}
     </div>
@@ -1222,18 +1222,18 @@ function CustomAttributes() {
   return <Card padding={0}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
       <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="sliders" size={15} stroke={1.9} /></span>
-      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Custom attributes</div><div style={{ fontSize: 11, color: P.inkDim }}>Add, edit or remove your own product parameters — editable here (not shell-managed)</div></div>
+      <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Custom attributes</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Add, edit or remove your own product parameters — editable here (not shell-managed)</div></div>
     </div>
     <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 9 }}>
       <div>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Tags</div>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Tags</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-          {tags.map((t, i) => {const tt = tagTint(t, P);return <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: tt.bg, border: `1px solid ${tt.border}`, borderRadius: 99, fontSize: 12, fontWeight: 600, color: tt.fg }}>{t}<button onClick={() => setTags((ts) => ts.filter((_, j) => j !== i))} title="Remove tag" style={{ display: 'flex', background: 'transparent', border: 'none', cursor: 'pointer', color: tt.fg, opacity: .7, padding: 0 }}><Icon name="x" size={12} stroke={2.4} /></button></span>;})}
-          <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => {if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {e.preventDefault();setTags((ts) => [...ts, tagInput.trim()]);setTagInput('');}}} placeholder="Add tag…" style={{ flex: '1 0 90px', minWidth: 90, padding: '5px 10px', border: `1px dashed ${P.hairline3}`, borderRadius: 99, background: 'transparent', color: P.ink, fontSize: 12, outline: 'none', fontFamily: P.fontSans }} />
+          {tags.map((t, i) => {const tt = tagTint(t, P);return <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: tt.bg, border: `1px solid ${tt.border}`, borderRadius: 99, fontSize: 12.5, fontWeight: 600, color: tt.fg }}>{t}<button onClick={() => setTags((ts) => ts.filter((_, j) => j !== i))} title="Remove tag" style={{ display: 'flex', background: 'transparent', border: 'none', cursor: 'pointer', color: tt.fg, opacity: .7, padding: 0 }}><Icon name="x" size={12} stroke={2.4} /></button></span>;})}
+          <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => {if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {e.preventDefault();setTags((ts) => [...ts, tagInput.trim()]);setTagInput('');}}} placeholder="Add tag…" style={{ flex: '1 0 90px', minWidth: 90, padding: '5px 10px', border: `1px dashed ${P.hairline3}`, borderRadius: 99, background: 'transparent', color: P.ink, fontSize: 12.5, outline: 'none', fontFamily: P.fontSans }} />
         </div>
       </div>
       <div style={{ height: 1, background: P.hairline, margin: '3px 0' }} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 28px', gap: 9, fontSize: 9, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}><span>Name</span><span>Value</span><span /></div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 28px', gap: 9, fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}><span>Name</span><span>Value</span><span /></div>
       {rows.map((r, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 28px', gap: 9, alignItems: 'center' }}>
         <input value={r.k} onChange={(e) => set(i, 'k', e.target.value)} placeholder="Attribute name" style={inpS} />
         <input value={r.v} onChange={(e) => set(i, 'v', e.target.value)} placeholder="Value" style={inpS} />
@@ -1260,48 +1260,48 @@ function WmMatchModal({ p, conf, onClose }) {
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
-        <span style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>Product match & mapping</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Product match & mapping</span>
         <div style={{ flex: 1 }} />
         <IconBtn icon="x" onClick={onClose} />
       </div>
       <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><span style={{ fontSize: 13, fontWeight: 700, color: level.c }}>{level.t}</span>{conf > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono }}>{Math.round(conf * 100)}%</span>}<span style={{ marginLeft: 'auto', fontSize: 10.5, color: P.inkMute }}>auto-matched on name + brand + category</span></div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><span style={{ fontSize: 13.5, fontWeight: 700, color: level.c }}>{level.t}</span>{conf > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono }}>{Math.round(conf * 100)}%</span>}<span style={{ marginLeft: 'auto', fontSize: 11.5, color: P.inkMute }}>auto-matched on name + brand + category</span></div>
           <div style={{ height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden', marginTop: 8 }}><div style={{ width: `${Math.round((conf || 0) * 100)}%`, height: '100%', background: level.c }} /></div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 13 }}>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 9 }}>Our product</div>
-            <div style={{ display: 'flex', gap: 10 }}><Thumb item={p} size={54} /><div style={{ minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{p.name}</div><div style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{p.sku}</div></div></div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 9 }}>Our product</div>
+            <div style={{ display: 'flex', gap: 10 }}><Thumb item={p} size={54} /><div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{p.name}</div><div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.sku}</div></div></div>
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', p.brand], ['Category', p.cat], ['Price', fmt.money0(p.price)], ['Potency · per batch', potency]].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
           </div>
           <div style={{ border: `1px solid ${picked != null ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 13, background: picked != null ? P.accentSoft : P.surface }}>
-            <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#1F5FC0', marginBottom: 9 }}>Weedmaps product</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#1F5FC0', marginBottom: 9 }}>Weedmaps product</div>
             {picked != null ? <>
               <div style={{ display: 'flex', gap: 10 }}>
                 <div style={{ width: 54, height: 54, flex: '0 0 auto', borderRadius: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={20} stroke={1.7} color={P.inkMute} /></div>
-                <div style={{ minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{cands[picked].title}</div><div style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
+                <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{cands[picked].title}</div><div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', cands[picked].brand], ['Category', p.cat], ['Price on WM', fmt.money0(cands[picked].price)], ['Potency · per batch', potency]].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
-            </> : <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.5, padding: '12px 0' }}><b style={{ color: P.ink2 }}>Unmapped — custom Weedmaps product.</b> This SKU shows on Weedmaps as its own standalone (custom) listing, not linked to a shared catalog product. Search below to link it to a Weedmaps product instead.</div>}
+            </> : <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.5, padding: '12px 0' }}><b style={{ color: P.ink2 }}>Unmapped — custom Weedmaps product.</b> This SKU shows on Weedmaps as its own standalone (custom) listing, not linked to a shared catalog product. Search below to link it to a Weedmaps product instead.</div>}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Map manually — search the Weedmaps catalog</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Map manually — search the Weedmaps catalog</div>
           <div style={{ marginBottom: 10 }}><Field icon="search" placeholder="Search Weedmaps products…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {cands.map((c, i) => <button key={i} onClick={() => setPicked(i)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', background: picked === i ? P.accentSoft : P.surface, border: `1px solid ${picked === i ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
               <div style={{ width: 34, height: 34, flex: '0 0 auto', borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={15} stroke={1.7} color={P.inkFaint} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{c.title}</div><div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{c.brand} · {fmt.money0(c.price)}</div></div>
-              <span style={{ fontSize: 11, fontWeight: 800, color: c.conf >= 0.85 ? P.good : c.conf >= 0.6 ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{Math.round(c.conf * 100)}%</span>
-              {picked === i ? <Icon name="check-circle" size={17} stroke={2} color={P.good} /> : <span style={{ fontSize: 11, fontWeight: 700, color: P.info }}>Map</span>}
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{c.title}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{c.brand} · {fmt.money0(c.price)}</div></div>
+              <span style={{ fontSize: 11.5, fontWeight: 800, color: c.conf >= 0.85 ? P.good : c.conf >= 0.6 ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{Math.round(c.conf * 100)}%</span>
+              {picked === i ? <Icon name="check-circle" size={17} stroke={2} color={P.good} /> : <span style={{ fontSize: 11.5, fontWeight: 700, color: P.info }}>Map</span>}
             </button>)}
           </div>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 18px', borderTop: `1px solid ${P.hairline2}`, background: P.surface2 }}>
-        <span style={{ fontSize: 11, color: P.inkDim, flex: 1 }}>Mapping links our SKU to a shared Weedmaps product via <b style={{ color: P.ink2 }}>external_id</b>. <b style={{ color: P.ink2 }}>Unmapping</b> makes it a custom, Weedmaps-native product with its own listing.</span>
+        <span style={{ fontSize: 11.5, color: P.inkDim, flex: 1 }}>Mapping links our SKU to a shared Weedmaps product via <b style={{ color: P.ink2 }}>external_id</b>. <b style={{ color: P.ink2 }}>Unmapping</b> makes it a custom, Weedmaps-native product with its own listing.</span>
         {picked != null && <PBtn variant="ghost" size="sm" onClick={() => setPicked(null)}>Unmap · use custom product</PBtn>}
         <PBtn variant="accent" size="md" icon="check" onClick={onClose}>Confirm match</PBtn>
       </div>

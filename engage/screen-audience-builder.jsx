@@ -128,8 +128,8 @@
                     style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                     <Icon name="plus" size={11} stroke={2.4} color={accentInk} />
-                    <span style={{ flex: 1, fontFamily: P.fontMono, fontSize: 11, color: P.ink2, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.path.replace(/^customer\./, '')}</span>
-                    <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkFaint }}>{t.kind}</span>
+                    <span style={{ flex: 1, fontFamily: P.fontMono, fontSize: 11.5, color: P.ink2, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.path.replace(/^customer\./, '')}</span>
+                    <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkFaint }}>{t.kind}</span>
                   </button>))}
               </div>);
           })}
@@ -147,12 +147,12 @@
       <Card padding={0} style={{ overflow: 'hidden' }}>
         <button onClick={() => setOpen((o) => !o)} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '12px 16px', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}>
           <Icon name="help" size={14} stroke={2} color={P.inkMute} />
-          <span style={{ flex: 1, textAlign: 'left', fontSize: 13, fontWeight: 600, color: P.ink }}>Why this size?</span>
-          <span style={{ fontSize: 11, fontFamily: P.fontMono, color: P.inkMute }}>{HD.formatPercent(last.confidence, 0)} conf</span>
+          <span style={{ flex: 1, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: P.ink }}>Why this size?</span>
+          <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: P.inkMute }}>{HD.formatPercent(last.confidence, 0)} conf</span>
           <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} style={{ transform: open ? 'rotate(180deg)' : 'none' }} />
         </button>
         {open && (
-          <div style={{ padding: '0 16px 16px', fontSize: 12, color: P.inkDim }}>
+          <div style={{ padding: '0 16px 16px', fontSize: 12.5, color: P.inkDim }}>
             <p style={{ margin: 0, lineHeight: 1.5 }}>{last.rationale}</p>
             <MicroLabel style={{ marginTop: 12 }}>Resolved paths</MicroLabel>
             <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -161,11 +161,11 @@
             <MicroLabel style={{ marginTop: 12 }}>Turns</MicroLabel>
             <ol style={{ margin: '6px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
               {history.map((h, i) => (
-                <li key={i} style={{ fontSize: 11 }}>
+                <li key={i} style={{ fontSize: 11.5 }}>
                   <span style={{ textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>{h.kind}</span> · “{h.prompt}” → <span style={{ fontFamily: P.fontMono, color: P.ink }}>{HD.formatNumber(h.size)}</span>
                 </li>))}
             </ol>
-            <p style={{ margin: '12px 0 0', fontSize: 11, color: P.inkMute }}>Current live count: <span style={{ fontFamily: P.fontMono, color: P.ink }}>{HD.formatNumber(currentSize)}</span></p>
+            <p style={{ margin: '12px 0 0', fontSize: 11.5, color: P.inkMute }}>Current live count: <span style={{ fontFamily: P.fontMono, color: P.ink }}>{HD.formatNumber(currentSize)}</span></p>
           </div>)}
       </Card>);
   }
@@ -248,11 +248,11 @@
           <section style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
                   <Icon name="sparkle" size={11} stroke={2} color={accentInk} />AI audience builder
                 </div>
-                <h1 style={{ margin: '6px 0 0', fontSize: 24, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Who should we reach?</h1>
-                <p style={{ margin: '6px 0 0', maxWidth: 520, fontSize: 13, color: P.inkMute, lineHeight: 1.5 }}>
+                <h1 style={{ margin: '6px 0 0', fontSize: 30, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Who should we reach?</h1>
+                <p style={{ margin: '6px 0 0', maxWidth: 520, fontSize: 13.5, color: P.inkMute, lineHeight: 1.5 }}>
                   Describe the segment in plain English, or click traits in the catalog. We translate to a safe filter, validate every path, and show you the live count.
                 </p>
               </div>
@@ -260,7 +260,7 @@
             </div>
 
             {error && (
-              <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, borderRadius: 10, border: `1px solid ${HD.tone(P, 'blocked').fg}66`, background: HD.tone(P, 'blocked').bg, padding: 12, fontSize: 13, color: HD.tone(P, 'blocked').fg }}>
+              <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, borderRadius: 10, border: `1px solid ${HD.tone(P, 'blocked').fg}66`, background: HD.tone(P, 'blocked').bg, padding: 12, fontSize: 13.5, color: HD.tone(P, 'blocked').fg }}>
                 <Icon name="alert" size={15} stroke={2} /><p style={{ margin: 0 }}>{error}</p>
               </div>)}
 
@@ -275,7 +275,7 @@
                 placeholder={hasGenerated && hasFilters ? 'Refine: e.g. “narrow to flower-leaning customers only”' : 'e.g. Big spenders lapsed 30+ days with high churn risk and a win-back probability over 0.5'}
                 style={{ display: 'block', width: '100%', border: 'none', outline: 'none', resize: 'vertical', padding: 14, fontSize: 15, lineHeight: 1.5, color: P.ink, background: 'transparent', fontFamily: P.fontSans }} />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTop: `1px solid ${P.hairline2}`, background: P.surface2, padding: '8px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: P.inkMute }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.inkMute }}>
                   <Icon name="sparkle" size={11} stroke={2} />
                   {hasGenerated && hasFilters ? `Refining turn #${history.length} · prior DSL preserved` : 'Claude Sonnet 4.6 · never sees customer PII, only trait paths'}
                 </div>
@@ -294,7 +294,7 @@
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {EXAMPLES.map((ex) => (
                     <button key={ex} onClick={() => setPrompt(ex)}
-                      style={{ borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, padding: '5px 12px', fontSize: 12, color: P.inkDim, cursor: 'pointer', fontFamily: P.fontSans }}
+                      style={{ borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, padding: '5px 12px', fontSize: 12.5, color: P.inkDim, cursor: 'pointer', fontFamily: P.fontSans }}
                       onMouseEnter={(e) => { e.currentTarget.style.borderColor = P.accentBorder; e.currentTarget.style.color = P.ink; }}
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = P.hairline2; e.currentTarget.style.color = P.inkDim; }}>{ex}</button>))}
                 </div>
@@ -304,27 +304,27 @@
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Filters</h2>
+                <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Filters</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {hasFilters && (
-                    <button onClick={() => setOrGroup((o) => !o)} style={{ fontSize: 11, background: 'none', border: 'none', padding: 0, color: accentInk, cursor: 'pointer', fontFamily: P.fontSans, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                    <button onClick={() => setOrGroup((o) => !o)} style={{ fontSize: 11.5, background: 'none', border: 'none', padding: 0, color: accentInk, cursor: 'pointer', fontFamily: P.fontSans, textDecoration: 'underline', textUnderlineOffset: 2 }}>
                       {orGroup ? 'match ALL (AND)' : 'match ANY (OR)'}
                     </button>)}
-                  <span style={{ fontSize: 11, color: P.inkMute }}>{leaves.length === 0 ? 'No filters yet — generate, refine, or click a trait' : `${leaves.length} filter${leaves.length === 1 ? '' : 's'}`}</span>
+                  <span style={{ fontSize: 11.5, color: P.inkMute }}>{leaves.length === 0 ? 'No filters yet — generate, refine, or click a trait' : `${leaves.length} filter${leaves.length === 1 ? '' : 's'}`}</span>
                 </div>
               </div>
               {leaves.length === 0
-                ? <div style={{ marginTop: 12, borderRadius: P.r12, border: `1px dashed ${P.hairline2}`, background: P.surface2, padding: '24px 16px', textAlign: 'center', fontSize: 13, color: P.inkMute, lineHeight: 1.5 }}>
+                ? <div style={{ marginTop: 12, borderRadius: P.r12, border: `1px dashed ${P.hairline2}`, background: P.surface2, padding: '24px 16px', textAlign: 'center', fontSize: 13.5, color: P.inkMute, lineHeight: 1.5 }}>
                   Your filter chips will appear here. AND-grouped chips render flat; OR-grouped chips render in a wrapped panel. An empty filter set previews the full tenant size.
                 </div>
                 : <div style={{ marginTop: 12, borderRadius: P.r12, border: `1px ${orGroup ? 'dashed' : 'solid'} ${orGroup ? accentInk + '66' : P.hairline2}`, background: orGroup ? P.accentSoft : 'transparent', padding: orGroup ? 12 : 0 }}>
                   {orGroup && <div style={{ marginBottom: 8, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: accentInk }}>match any of</div>}
                   <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {leaves.map((l, i) => (
-                      <li key={l.path + i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, padding: '5px 8px 5px 12px', fontSize: 13 }}>
-                        <span style={{ fontFamily: P.fontMono, fontSize: 11, color: P.ink }}>{l.path}</span>
-                        <span style={{ fontSize: 11, color: P.inkMute }}>{OP_LABEL[l.op] || l.op}</span>
-                        <span style={{ color: P.ink2, fontFamily: P.fontMono, fontSize: 11 }}>{displayValue(l.path, l.value) || '—'}</span>
+                      <li key={l.path + i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, padding: '5px 8px 5px 12px', fontSize: 13.5 }}>
+                        <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.ink }}>{l.path}</span>
+                        <span style={{ fontSize: 11.5, color: P.inkMute }}>{OP_LABEL[l.op] || l.op}</span>
+                        <span style={{ color: P.ink2, fontFamily: P.fontMono, fontSize: 11.5 }}>{displayValue(l.path, l.value) || '—'}</span>
                         <button onClick={() => setLeaves((cur) => cur.filter((_, k) => k !== i))} aria-label={`Remove ${l.path}`}
                           style={{ display: 'flex', height: 18, width: 18, alignItems: 'center', justifyContent: 'center', borderRadius: 99, background: 'transparent', border: 'none', cursor: 'pointer', color: P.inkMute }}>
                           <Icon name="x" size={11} stroke={2.4} />
@@ -334,11 +334,11 @@
                 </div>}
 
               {unknownPaths.length > 0 && (
-                <div style={{ marginTop: 12, display: 'flex', alignItems: 'flex-start', gap: 8, borderRadius: 10, border: `1px solid ${HD.tone(P, 'blocked').fg}66`, background: HD.tone(P, 'blocked').bg, padding: 12, fontSize: 13, color: HD.tone(P, 'blocked').fg }}>
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'flex-start', gap: 8, borderRadius: 10, border: `1px solid ${HD.tone(P, 'blocked').fg}66`, background: HD.tone(P, 'blocked').bg, padding: 12, fontSize: 13.5, color: HD.tone(P, 'blocked').fg }}>
                   <Icon name="alert" size={15} stroke={2} />
                   <div>
                     <p style={{ margin: 0, fontWeight: 500 }}>{unknownPaths.length} unknown trait path{unknownPaths.length === 1 ? '' : 's'}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 11 }}>{unknownPaths.join(', ')} — these columns don't exist in your tenant's catalog. Refine the prompt or add custom traits first.</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11.5 }}>{unknownPaths.join(', ')} — these columns don't exist in your tenant's catalog. Refine the prompt or add custom traits first.</p>
                   </div>
                 </div>)}
             </div>
@@ -361,9 +361,9 @@
               </div>
               <div style={{ marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <span style={{ fontSize: 36, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1, letterSpacing: '-.02em' }}>{HD.formatNumber(size)}</span>
-                {delta !== 0 && <span style={{ fontSize: 12, fontWeight: 500, fontFamily: P.fontMono, color: delta > 0 ? HD.tone(P, 'ok').fg : HD.tone(P, 'blocked').fg }}>{delta > 0 ? '+' : ''}{HD.formatNumber(delta)}</span>}
+                {delta !== 0 && <span style={{ fontSize: 12.5, fontWeight: 500, fontFamily: P.fontMono, color: delta > 0 ? HD.tone(P, 'ok').fg : HD.tone(P, 'blocked').fg }}>{delta > 0 ? '+' : ''}{HD.formatNumber(delta)}</span>}
               </div>
-              <p style={{ margin: '6px 0 0', fontSize: 11, color: P.inkMute }}>matching customers · updates as you edit</p>
+              <p style={{ margin: '6px 0 0', fontSize: 11.5, color: P.inkMute }}>matching customers · updates as you edit</p>
             </Card>
 
             <WhyThisSize history={history} currentSize={size} />
@@ -371,8 +371,8 @@
             <Card padding={0} style={{ overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 16px', borderBottom: `1px solid ${P.hairline2}` }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>Sample profiles</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>
+                  <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Sample profiles</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>
                     {sample.length === 0 ? 'Add filters to preview matching customers' : `${visibleSample.length} of ${sample.length}${size > 50 ? '+' : ''} matches`}
                   </p>
                 </div>
@@ -380,12 +380,12 @@
               </div>
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 320, overflowY: 'auto' }}>
                 {visibleSample.length === 0
-                  ? <li style={{ padding: '24px 16px', textAlign: 'center', fontSize: 12, color: P.inkMute }}>Add filters or generate from a prompt to preview matching customers.</li>
+                  ? <li style={{ padding: '24px 16px', textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>Add filters or generate from a prompt to preview matching customers.</li>
                   : visibleSample.map((c) => (
                     <li key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', borderBottom: `1px solid ${P.hairline}` }}>
                       <span style={{ height: 28, width: 28, borderRadius: 99, background: P.surface3, color: P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="user" size={13} stroke={2} /></span>
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ margin: 0, fontFamily: P.fontMono, fontSize: 11, color: P.ink }}>{c.id.slice(0, 8)}…</p>
+                        <p style={{ margin: 0, fontFamily: P.fontMono, fontSize: 11.5, color: P.ink }}>{c.id.slice(0, 8)}…</p>
                         <p style={{ margin: 0, fontSize: 10, color: P.inkMute }}>PII redacted at read · decrypt context required</p>
                       </div>
                     </li>))}
@@ -393,8 +393,8 @@
             </Card>
 
             <Card padding={16} style={{ background: P.accentSoft, border: `1px solid ${P.accentBorder}` }}>
-              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: accentInk }}>Safety</p>
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: P.ink2, lineHeight: 1.5 }}>Every path is validated against your trait catalog. Unknown traits fail closed — the audience matches nobody rather than silently wrong.</p>
+              <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: accentInk }}>Safety</p>
+              <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.ink2, lineHeight: 1.5 }}>Every path is validated against your trait catalog. Unknown traits fail closed — the audience matches nobody rather than silently wrong.</p>
             </Card>
           </aside>
         </div>

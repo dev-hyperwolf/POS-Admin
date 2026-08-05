@@ -38,7 +38,7 @@
     const P = useP(), HD = window.HD;
     const active = hasActiveFilters(filters);
     return (
-      <div style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}`, background: P.canvas }}>
+      <div style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Field icon="search" size="sm" value={query} onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search by SKU, product, METRC, HUID, or brand…" aria-label="Search batches" type="search" />
@@ -51,8 +51,8 @@
           <MultiSelectFilter label="Age" options={AGE_BUCKETS.map((b) => ({ id: b, label: bucketLabel(b) }))} value={filters.age} onChange={(v) => onFiltersChange({ ...filters, age: v })} />
           <MultiSelectFilter label="Stockout risk" options={STOCKOUT_RISKS.map((s) => ({ id: s, label: STOCKOUT_RISK_LABEL[s] }))} value={filters.stockoutRisk} onChange={(v) => onFiltersChange({ ...filters, stockoutRisk: v })} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}>
-            {active && <button type="button" onClick={() => onFiltersChange(EMPTY_FILTERS)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12, color: P.inkDim, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontFamily: P.fontSans }}>Clear filters</button>}
-            <span style={{ fontSize: 12, color: P.inkMute, fontVariantNumeric: 'tabular-nums' }}>
+            {active && <button type="button" onClick={() => onFiltersChange(EMPTY_FILTERS)} style={{ background: 'none', border: 'none', padding: 0, fontSize: 12.5, color: P.inkDim, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontFamily: P.fontSans }}>Clear filters</button>}
+            <span style={{ fontSize: 12.5, color: P.inkMute, fontVariantNumeric: 'tabular-nums' }}>
               <span style={{ color: P.ink }}>{matchCount}</span> {matchCount === 1 ? 'batch' : 'batches'} matching
             </span>
           </div>
@@ -115,25 +115,25 @@
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 20px 12px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>Batch pipeline</h1>
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: P.inkMute }}>Drag cards across columns to progress.</p>
+            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>Batch pipeline</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 12.5, color: P.inkMute }}>Drag cards across columns to progress.</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
               {hasSealing && (
                 <div title={`Sealing active for ${entityMeta?.short ?? entity.toUpperCase()} · C12 shrink-tube tamper station`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px', borderRadius: 99, background: seal.bg, border: `1px solid ${seal.fg}66`, fontSize: 11, color: seal.fg }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px', borderRadius: 99, background: seal.bg, border: `1px solid ${seal.fg}66`, fontSize: 11.5, color: seal.fg }}>
                   <Icon name="shield" size={12} stroke={2} />
                   <span>Sealing active for {entityMeta?.short ?? entity.toUpperCase()}</span>
                   <span style={{ opacity: .7 }}>· C12 shrink-tube tamper station</span>
                 </div>)}
               {archivedCount > 0 && (
                 <button onClick={() => navigate('#/batches/archive')} title="View archived batches (approved · destroyed · resolved recalls · shelf-ready > 7d)"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px', borderRadius: 99, background: P.surface, border: `1px solid ${P.hairline2}`, fontSize: 11, color: P.inkDim, cursor: 'pointer', fontFamily: P.fontSans }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 9px', borderRadius: 99, background: P.surface, border: `1px solid ${P.hairline2}`, fontSize: 11.5, color: P.inkDim, cursor: 'pointer', fontFamily: P.fontSans }}>
                   <Icon name="box" size={11} stroke={2} />
                   <span>{archivedCount} archived · view archive →</span>
                 </button>)}
               {unmapped.length > 0 && (
                 <button onClick={() => navigate('#/products')} title="Map unmapped batches to a product wrapper"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, padding: '0 9px', borderRadius: 99, background: HD.tone(P, 'warn').bg, border: `1px solid ${HD.tone(P, 'warn').fg}4d`, color: HD.tone(P, 'warn').fg, fontSize: 11, cursor: 'pointer', fontFamily: P.fontSans }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 22, padding: '0 9px', borderRadius: 99, background: HD.tone(P, 'warn').bg, border: `1px solid ${HD.tone(P, 'warn').fg}4d`, color: HD.tone(P, 'warn').fg, fontSize: 11.5, cursor: 'pointer', fontFamily: P.fontSans }}>
                   <Icon name="link" size={11} stroke={2} />{unmapped.length} unmapped
                 </button>)}
             </div>
@@ -152,7 +152,7 @@
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 99, background: HD.hueColor(P, entityMeta?.hue), flex: '0 0 auto' }} />
                   <select aria-label="Entity filter" value={entity} onChange={(e) => setEntity(e.target.value)}
-                    style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13, padding: '3px 8px', color: P.ink, fontFamily: P.fontSans }}>
+                    style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13.5, padding: '3px 8px', color: P.ink, fontFamily: P.fontSans }}>
                     {HD.ENTITIES.map((opt) => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
                   </select>
                 </div>

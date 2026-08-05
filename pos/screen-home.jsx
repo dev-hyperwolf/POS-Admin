@@ -48,14 +48,14 @@ window.HomeScreen = function HomeScreen({ onNav }) {
 
   const CardHead = ({ icon, title, right }) => <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderBottom: `1px solid ${P.hairline}` }}>
     <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={15} stroke={1.9} /></span>
-    <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: P.ink }}>{title}</span>
+    <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</span>
     {right}
   </div>;
 
   const Stat = ({ label, value, sub, accent }) => <div style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderLeft: `3px solid ${accent ? P.accent : P.hairline2}`, borderRadius: P.r10, padding: '11px 13px' }}>
-    <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{label}</div>
-    <div style={{ fontSize: 20, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{value}</div>
-    {sub && <div style={{ fontSize: 10.5, color: P.inkDim, marginTop: 1 }}>{sub}</div>}
+    <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{label}</div>
+    <div style={{ fontSize: 21, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{value}</div>
+    {sub && <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 1 }}>{sub}</div>}
   </div>;
 
   return (
@@ -63,8 +63,8 @@ window.HomeScreen = function HomeScreen({ onNav }) {
       {/* greeting + shift */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{today}</div>
-          <h1 style={{ margin: '6px 0 0', fontSize: 28, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{greet}, {a.name.split(' ')[0]}</h1>
+          <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{today}</div>
+          <h1 style={{ margin: '6px 0 0', fontSize: 30, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{greet}, {a.name.split(' ')[0]}</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 13px', background: P.goodSoft, borderRadius: P.r999, fontSize: 12.5, fontWeight: 700, color: P.good }}><span style={{ width: 7, height: 7, borderRadius: 99, background: P.good }} />On shift · Register {S.registerId || '101'}</span>
@@ -83,16 +83,16 @@ window.HomeScreen = function HomeScreen({ onNav }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           {/* order queue at a glance */}
           <Card padding={0}>
-            <CardHead icon="board" title="Order queue" right={<button onClick={() => onNav('orders')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}>Open<Icon name="arrow-right" size={13} stroke={2.2} /></button>} />
+            <CardHead icon="board" title="Order queue" right={<button onClick={() => onNav('orders')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: P.info, fontFamily: P.fontSans }}>Open<Icon name="arrow-right" size={13} stroke={2.2} /></button>} />
             <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
               {byStage.map((s) => <button key={s.s} onClick={() => onNav('orders')} style={{ textAlign: 'left', background: P.surface2, border: `1px solid ${P.hairline}`, borderTop: `3px solid ${s.c}`, borderRadius: P.r10, padding: '12px 13px', cursor: 'pointer', fontFamily: P.fontSans }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{s.n}</div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: P.ink2, marginTop: 6 }}>{s.label}</div>
+                <div style={{ fontSize: 30, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{s.n}</div>
+                <div style={{ fontSize: 11.5, fontWeight: 600, color: P.ink2, marginTop: 6 }}>{s.label}</div>
               </button>)}
             </div>
             {wmVerify > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 16px 16px', padding: '10px 13px', background: P.badSoft, borderRadius: P.r10 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 7px', borderRadius: 99 }}>WM</span>
-              <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: P.ink }}>{wmVerify} Weedmaps order{wmVerify > 1 ? 's' : ''} awaiting identity verification before fulfilment</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 7px', borderRadius: 99 }}>WM</span>
+              <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink }}>{wmVerify} Weedmaps order{wmVerify > 1 ? 's' : ''} awaiting identity verification before fulfilment</span>
               <PBtn variant="secondary" size="sm" onClick={() => onNav('orders')}>Verify</PBtn>
             </div>}
           </Card>
@@ -105,7 +105,7 @@ window.HomeScreen = function HomeScreen({ onNav }) {
               {attention.map((x, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 16px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
                 <span style={{ width: 30, height: 30, borderRadius: 8, flex: '0 0 auto', background: P.surface3, color: x.c, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={x.icon} size={15} stroke={1.9} /></span>
                 <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink }}>{x.t}</span>
-                <button onClick={() => onNav(x.go)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: P.info, fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{x.cta}<Icon name="chevron-right" size={13} stroke={2.2} /></button>
+                <button onClick={() => onNav(x.go)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: P.info, fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{x.cta}<Icon name="chevron-right" size={13} stroke={2.2} /></button>
               </div>)}
             </div>
           </Card>
@@ -128,10 +128,10 @@ window.HomeScreen = function HomeScreen({ onNav }) {
             <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <span style={{ width: 8, height: 8, borderRadius: 99, background: P.good }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Drawer open</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>since 9:02 AM</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Drawer open</span>
+                <span style={{ marginLeft: 'auto', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>since 9:02 AM</span>
               </div>
-              <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.5 }}>You're signed in on <b style={{ color: P.ink2 }}>Register {S.registerId || '101'}</b>. Cash counts and close-out live in the drawer controls up top.</div>
+              <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.5 }}>You're signed in on <b style={{ color: P.ink2 }}>Register {S.registerId || '101'}</b>. Cash counts and close-out live in the drawer controls up top.</div>
               <PBtn variant="secondary" size="md" icon="register" full onClick={() => onNav('register')}>Go to register</PBtn>
             </div>
           </Card>

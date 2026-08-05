@@ -60,7 +60,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <Eyebrow>Party &amp; guests</Eyebrow>
-        <span style={{ marginLeft: 'auto', fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{list.length} guest{list.length === 1 ? '' : 's'}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{list.length} guest{list.length === 1 ? '' : 's'}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.infoSoft, borderRadius: P.r10, marginBottom: 11 }}>
         <Icon name="shield" size={14} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
@@ -80,7 +80,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
                 <Avatar name={m.name} size={26} crown={m.member} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: P.ink }}>{m.name}</span>
-                  <span style={{ display: 'block', fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.type}</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.type}</span>
                 </span>
                 <Pill kind="ghost" icon="link">Link</Pill>
               </button>)}
@@ -97,8 +97,8 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {poolNames.map((n) => {
               const m = window.HW.MEMBERS.find((x) => x.name === n);
-              return <button key={n} type="button" onClick={() => m ? linkMember(m) : startNew(n)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, fontSize: 12, fontWeight: 600, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
-                  <Icon name="plus" size={12} stroke={2.2} />{n}{!m && <span style={{ fontSize: 9.5, color: P.warn, fontWeight: 700 }}>new</span>}
+              return <button key={n} type="button" onClick={() => m ? linkMember(m) : startNew(n)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, fontSize: 12.5, fontWeight: 600, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
+                  <Icon name="plus" size={12} stroke={2.2} />{n}{!m && <span style={{ fontSize: 10, color: P.warn, fontWeight: 700 }}>new</span>}
                 </button>;})}
             </div>
           </div>}
@@ -128,7 +128,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
             <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Scan the ID and the name, date of birth and expiry fill themselves from the barcode. <b>Phone is the only thing you may need to add — and it is optional.</b></span>
           </div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 10.5, color: P.inkMute, lineHeight: 1.4, flex: 1 }}>Adding a phone lets them order delivery later without ever verifying again.</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute, lineHeight: 1.4, flex: 1 }}>Adding a phone lets them order delivery later without ever verifying again.</span>
             <PBtn variant="secondary" size="sm" onClick={() => setAdding(false)}>Cancel</PBtn>
             <PBtn variant="accent" size="sm" icon="check" disabled={!nf.doc} onClick={commitNew}>Add to party</PBtn>
           </div>
@@ -142,7 +142,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
               <Avatar name={gName(g)} size={26} crown={g.member} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gName(g)}</span>
-                <span style={{ display: 'block', fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{g.id ? 'Existing customer' : g.dob ? 'DOB ' + g.dob : 'No details captured'}{g.phone ? ' · ' + g.phone : ''}</span>
+                <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{g.id ? 'Existing customer' : g.dob ? 'DOB ' + g.dob : 'No details captured'}{g.phone ? ' · ' + g.phone : ''}</span>
               </span>
               <StatusPill g={g} />
               <Pill kind="ghost" icon="link">referral</Pill>
@@ -157,7 +157,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
           <span style={{ fontSize: 11.5, color: P.ink2 }}><b>{bad} guest{bad > 1 ? 's' : ''} without an ID.</b> Check-in is blocked until every person is on record.</span>
         </div>}
       {list.length > 0 && primaryName && bad === 0 &&
-      <div style={{ fontSize: 11, color: P.inkDim, marginTop: 9, display: 'flex', alignItems: 'center', gap: 5 }}>
+      <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 9, display: 'flex', alignItems: 'center', gap: 5 }}>
           <Icon name="info" size={12} color={P.inkMute} />Sale stays on <b style={{ color: P.ink2 }}>{primaryName.split(' ')[0]}</b> · {list.length} guest{list.length > 1 ? 's' : ''} on record, tracked as referrals
         </div>}
     </div>);
@@ -167,7 +167,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
 // New check-in flow. Captures primary customer + party at the start of the visit.
 function CILabel({ children }) {
   const P = useP();
-  return <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 5 }}>{children}</div>;
+  return <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 5 }}>{children}</div>;
 }
 function CIField({ label, value, onChange, placeholder, mono }) {
   const P = useP();
@@ -207,7 +207,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-check" size={16} stroke={2} color={P.accentInk} /></span>
-            <div><div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>New check-in</div><div style={{ fontSize: 11, color: P.inkDim }}>Start of visit · add the guest &amp; their party</div></div>
+            <div><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>New check-in</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Start of visit · add the guest &amp; their party</div></div>
           </div>
           <IconBtn icon="x" size={17} onClick={onClose} />
         </div>
@@ -221,7 +221,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                 <Avatar name={customer.name} size={36} crown={customer.member} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{customer.name}</div>
-                  <div style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{customer.points} pts · {customer.email}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{customer.points} pts · {customer.email}</div>
                 </div>
                 <PBtn variant="ghost" size="sm" icon="pencil" onClick={() => setCustomer(null)}>Change</PBtn>
               </div> :
@@ -268,7 +268,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                       <Avatar name={m.name} size={30} crown={m.member} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{m.name}</div>
-                        <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.type}</div>
+                        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.type}</div>
                       </div>
                       <Icon name="chevron-right" size={15} color={P.inkFaint} />
                     </button>

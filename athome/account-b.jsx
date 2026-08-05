@@ -76,10 +76,10 @@ function Row({ icon, label, sub, right, onClick, danger, badge }){ const P=useP(
   <button onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={onClick} style={{ width:'100%', display:'flex', alignItems:'center', gap:13, padding:'14px 4px', background:h&&onClick?P.surface2:'transparent', border:'none', borderRadius:12, cursor:onClick?'pointer':'default', textAlign:'left', transition:'background .12s' }}>
     {icon && <span style={{ width:38, height:38, borderRadius:11, background:danger?P.badSoft:P.surface3, color:danger?P.bad:P.ink, display:'flex', alignItems:'center', justifyContent:'center', flex:'0 0 auto' }}><Icon name={icon} size={18} stroke={1.9}/></span>}
     <span style={{ flex:1, minWidth:0 }}>
-      <span style={{ display:'block', fontSize:14.5, fontWeight:600, color:danger?P.bad:P.ink }}>{label}</span>
-      {sub && <span style={{ display:'block', fontSize:12, color:P.inkMute, marginTop:1 }}>{sub}</span>}
+      <span style={{ display:'block', fontSize: 16, fontWeight:600, color:danger?P.bad:P.ink }}>{label}</span>
+      {sub && <span style={{ display:'block', fontSize: 12.5, color:P.inkMute, marginTop:1 }}>{sub}</span>}
     </span>
-    {badge!=null && <span style={{ minWidth:20, height:20, padding:'0 6px', borderRadius:99, background:P.accent, color:P.accentInk, fontSize:11, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{badge}</span>}
+    {badge!=null && <span style={{ minWidth:20, height:20, padding:'0 6px', borderRadius:99, background:P.accent, color:P.accentInk, fontSize: 11.5, fontWeight:800, display:'flex', alignItems:'center', justifyContent:'center' }}>{badge}</span>}
     {right}
     {onClick && <Icon name="chevron-right" size={18} color={P.inkFaint}/>}
   </button>); }
@@ -87,7 +87,7 @@ function Row({ icon, label, sub, right, onClick, danger, badge }){ const P=useP(
 function ScreenHead({ title, onBack, right }){ const P=useP(); return (
   <div style={{ position:'sticky', top:0, zIndex:10, display:'flex', alignItems:'center', gap:12, padding:'14px 18px 12px', background:P.surface, borderBottom:`1px solid ${P.hairline}`, backdropFilter:'blur(8px)' }}>
     {onBack && <button onClick={onBack} style={{ width:34, height:34, borderRadius:10, border:'none', background:P.surface3, color:P.ink, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="chevron-left" size={20}/></button>}
-    <span style={{ flex:1, fontSize:17, fontWeight:800, letterSpacing:'-.01em', color:P.ink }}>{title}</span>
+    <span style={{ flex:1, fontSize: 16, fontWeight:800, letterSpacing:'-.01em', color:P.ink }}>{title}</span>
     {right}
   </div>); }
 
@@ -101,7 +101,7 @@ function Btn({ children, kind='primary', icon, sm, onClick, full, style }){ cons
 
 function StrainTag({ type, thc }){ const P=useP(); if(!type) return null; const c=type==='Indica'?P.indica:type==='Sativa'?P.sativa:P.hybrid; return (
   <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:P.fontMono }}>
-    <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 7px', borderRadius:99, background:c+(P.mode==='dark'?'28':'1F'), color:c, fontSize:9.5, fontWeight:700 }}><span style={{ width:5, height:5, borderRadius:99, background:c }}/>{type.toUpperCase()}</span>
+    <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 7px', borderRadius:99, background:c+(P.mode==='dark'?'28':'1F'), color:c, fontSize: 10, fontWeight:700 }}><span style={{ width:5, height:5, borderRadius:99, background:c }}/>{type.toUpperCase()}</span>
     {thc!=null&&<span style={{ fontSize:10, color:P.inkDim, fontWeight:600 }}>{thc}%</span>}</span>); }
 
 function Thumb({ hue, size=52 }){ const P=useP(); return (
@@ -115,9 +115,9 @@ function BentoTile({ icon, label, value, sub, tint, onClick, wide }){ const P=us
   <button onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={onClick} style={{ gridColumn:wide?'span 2':'auto', textAlign:'left', border:`1px solid ${P.hairline2}`, background:P.surface, borderRadius:18, padding:15, cursor:'pointer', display:'flex', flexDirection:'column', gap:9, transform:h?'translateY(-2px)':'none', boxShadow:h?P.shadowMd:P.shadowSm, transition:'all .14s' }}>
     <span style={{ width:34, height:34, borderRadius:10, background:tint||P.surface3, color:tint?'#1A1400':P.ink, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={icon} size={18} stroke={2}/></span>
     <div>
-      <div className="mono" style={{ fontSize:19, fontWeight:700, color:P.ink, lineHeight:1 }}>{value}</div>
-      <div style={{ fontSize:12, fontWeight:600, color:P.ink, marginTop:5 }}>{label}</div>
-      {sub && <div style={{ fontSize:11, color:P.inkMute, marginTop:1 }}>{sub}</div>}
+      <div className="mono" style={{ fontSize: 21, fontWeight:700, color:P.ink, lineHeight:1 }}>{value}</div>
+      <div style={{ fontSize: 12.5, fontWeight:600, color:P.ink, marginTop:5 }}>{label}</div>
+      {sub && <div style={{ fontSize: 11.5, color:P.inkMute, marginTop:1 }}>{sub}</div>}
     </div>
   </button>); }
 
@@ -127,7 +127,7 @@ function HubScreen({ go }){
   return (<div>
     {/* top bar */}
     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 18px 6px' }}>
-      <div><div style={{ fontSize:12, color:P.inkMute, fontWeight:500 }}>Good afternoon,</div><div style={{ fontSize:21, fontWeight:800, letterSpacing:'-.01em', color:P.ink }}>{ME.first}</div></div>
+      <div><div style={{ fontSize: 12.5, color:P.inkMute, fontWeight:500 }}>Good afternoon,</div><div style={{ fontSize:21, fontWeight:800, letterSpacing:'-.01em', color:P.ink }}>{ME.first}</div></div>
       <div style={{ display:'flex', gap:8 }}>
         <button onClick={toggle} style={{ width:36, height:36, borderRadius:11, border:`1px solid ${P.hairline2}`, background:P.surface, color:P.inkDim, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name={mode==='dark'?'sun':'moon'} size={17}/></button>
         <button onClick={()=>go('settings')} style={{ width:36, height:36, borderRadius:11, border:`1px solid ${P.hairline2}`, background:P.surface, color:P.inkDim, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><Icon name="settings" size={17}/></button>
@@ -142,16 +142,16 @@ function HubScreen({ go }){
         <div style={{ position:'relative', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ width:30, height:30, borderRadius:8, background:P.accent, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="logo-w" size={19} color={P.accentInk}/></div>
-            <span style={{ fontSize:12, fontWeight:800, letterSpacing:'.14em', color:'#fff', textTransform:'uppercase' }}>Hyperwolf</span>
+            <span style={{ fontSize: 12.5, fontWeight:800, letterSpacing:'.14em', color:'#fff', textTransform:'uppercase' }}>Hyperwolf</span>
           </div>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:99, background:P.accent, color:P.accentInk, fontSize:11, fontWeight:800 }}><Icon name="crown" size={12} color={P.accentInk}/>GOLD</span>
+          <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:99, background:P.accent, color:P.accentInk, fontSize: 11.5, fontWeight:800 }}><Icon name="crown" size={12} color={P.accentInk}/>GOLD</span>
         </div>
         <div style={{ position:'relative', marginTop:28 }}>
-          <div style={{ fontSize:19, fontWeight:800, color:'#fff', letterSpacing:'.01em' }}>{ME.name}</div>
-          <div className="mono" style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginTop:3, letterSpacing:'.12em' }}>•••• •••• {ME.id ? '1042' : '1042'} · MEMBER {ME.since.toUpperCase()}</div>
+          <div style={{ fontSize: 21, fontWeight:800, color:'#fff', letterSpacing:'.01em' }}>{ME.name}</div>
+          <div className="mono" style={{ fontSize: 12.5, color:'rgba(255,255,255,.5)', marginTop:3, letterSpacing:'.12em' }}>•••• •••• {ME.id ? '1042' : '1042'} · MEMBER {ME.since.toUpperCase()}</div>
         </div>
         <div style={{ position:'relative', display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginTop:16 }}>
-          <div><div className="mono" style={{ fontSize:26, fontWeight:700, color:P.accent, lineHeight:1 }}>{ME.points.toLocaleString()}</div><div style={{ fontSize:10.5, color:'rgba(255,255,255,.55)', marginTop:3, letterSpacing:'.06em' }}>POINTS · {ME.pointsToNext} to Platinum</div></div>
+          <div><div className="mono" style={{ fontSize: 30, fontWeight:700, color:P.accent, lineHeight:1 }}>{ME.points.toLocaleString()}</div><div style={{ fontSize: 11.5, color:'rgba(255,255,255,.55)', marginTop:3, letterSpacing:'.06em' }}>POINTS · {ME.pointsToNext} to Platinum</div></div>
           <div style={{ width:120 }}><div style={{ height:5, borderRadius:99, background:'rgba(255,255,255,.14)', overflow:'hidden' }}><div style={{ width:(pct*100)+'%', height:'100%', background:P.accent }}/></div></div>
         </div>
       </div>
@@ -172,7 +172,7 @@ function HubScreen({ go }){
     <div style={{ display:'flex', gap:9, padding:'10px 16px 2px' }}>
       {[['route','Book @ Home','athome'],['refresh','Reorder','faves'],['help','Support','support']].map((a,i)=>(
         <button key={i} onClick={()=>go(a[2])} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, padding:'12px 6px', borderRadius:14, border:`1px solid ${P.hairline2}`, background:P.surface, cursor:'pointer', color:P.ink }}>
-          <Icon name={a[0]} size={19} stroke={1.9}/><span style={{ fontSize:11, fontWeight:600 }}>{a[1]}</span>
+          <Icon name={a[0]} size={19} stroke={1.9}/><span style={{ fontSize: 11.5, fontWeight:600 }}>{a[1]}</span>
         </button>
       ))}
     </div>
@@ -195,13 +195,13 @@ function HubScreen({ go }){
         <Row icon="bell" label="Notifications & privacy" onClick={()=>go('settings')}/>
         <Row icon="lock" label="Sign out" danger onClick={()=>{}}/>
       </Group>
-      <div style={{ textAlign:'center', padding:'16px 0 4px', fontSize:11, color:P.inkFaint }} className="mono">Hyperwolf · member since {ME.since}</div>
+      <div style={{ textAlign:'center', padding:'16px 0 4px', fontSize: 11.5, color:P.inkFaint }} className="mono">Hyperwolf · member since {ME.since}</div>
     </div>
   </div>);
 }
 function Group({ title, children }){ const P=useP(); return (
   <div style={{ marginTop:16 }}>
-    <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'0 4px 2px' }}>{title}</div>
+    <div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'0 4px 2px' }}>{title}</div>
     <div>{children}</div>
   </div>); }
 
@@ -214,12 +214,12 @@ function OrdersScreen({ go, back }){ const P=useP(); return (<div>
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
           <span style={{ width:42, height:42, borderRadius:12, background:o.kind==='@ Home'?P.accent:P.surface3, color:o.kind==='@ Home'?P.accentInk:P.ink, display:'flex', alignItems:'center', justifyContent:'center', flex:'0 0 auto' }}><Icon name={o.kind==='@ Home'?'route':o.kind==='Pickup'?'shop':'truck'} size={19}/></span>
           <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize:14, fontWeight:700, color:P.ink }}>{o.kind}</span>{o.live&&<span style={{ fontSize:10, fontWeight:800, color:P.good, display:'inline-flex', alignItems:'center', gap:4 }}><span style={{ width:6, height:6, borderRadius:99, background:P.good }}/>LIVE</span>}</div>
-            <div className="mono" style={{ fontSize:11, color:P.inkMute, marginTop:1 }}>{o.id} · {o.date} · {o.items} items</div>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>{o.kind}</span>{o.live&&<span style={{ fontSize:10, fontWeight:800, color:P.good, display:'inline-flex', alignItems:'center', gap:4 }}><span style={{ width:6, height:6, borderRadius:99, background:P.good }}/>LIVE</span>}</div>
+            <div className="mono" style={{ fontSize: 11.5, color:P.inkMute, marginTop:1 }}>{o.id} · {o.date} · {o.items} items</div>
           </div>
           <div style={{ textAlign:'right' }}>
             <div style={{ fontSize:13.5, fontWeight:700, color:o.total?P.ink:P.good, fontFamily:o.total?P.fontMono:P.fontSans }}>{o.total?money(o.total):o.status}</div>
-            {o.rating&&<div className="mono" style={{ fontSize:11, color:P.inkMute, marginTop:1 }}>★ {o.rating}.0</div>}
+            {o.rating&&<div className="mono" style={{ fontSize: 11.5, color:P.inkMute, marginTop:1 }}>★ {o.rating}.0</div>}
           </div>
         </div>
       </Card2>
@@ -236,19 +236,19 @@ function OrderScreen({ id, back, go }){ const P=useP(); const o=ORDERS.find(x=>x
       <Card2 pad={0} style={{ overflow:'hidden' }}>
         <div style={{ height:150, position:'relative', background:P.mode==='dark'?'#0b0f0d':'#e9efe8' }}>
           <div style={{ position:'absolute', inset:0, backgroundImage:`linear-gradient(${P.hairline} 1px,transparent 1px),linear-gradient(90deg,${P.hairline} 1px,transparent 1px)`, backgroundSize:'32px 32px', opacity:.6 }}/>
-          <div style={{ position:'absolute', left:'70%', top:'62%', transform:'translate(-50%,-50%)' }}><span style={{ display:'flex', flexDirection:'column', alignItems:'center' }}><span style={{ padding:'3px 8px', background:P.accent, color:P.accentInk, borderRadius:99, fontSize:10.5, fontWeight:800 }}>You</span><span style={{ width:8, height:8, borderRadius:99, background:P.accentInk, marginTop:3 }}/></span></div>
+          <div style={{ position:'absolute', left:'70%', top:'62%', transform:'translate(-50%,-50%)' }}><span style={{ display:'flex', flexDirection:'column', alignItems:'center' }}><span style={{ padding:'3px 8px', background:P.accent, color:P.accentInk, borderRadius:99, fontSize: 11.5, fontWeight:800 }}>You</span><span style={{ width:8, height:8, borderRadius:99, background:P.accentInk, marginTop:3 }}/></span></div>
           <div style={{ position:'absolute', left:'26%', top:'34%' }}><span style={{ display:'flex', flexDirection:'column', alignItems:'center' }}><span style={{ padding:'2px 4px 2px 3px', background:P.surface, border:`1.5px solid ${P.good}`, borderRadius:99, display:'flex', alignItems:'center', gap:4 }}><Avatar name="Marcus Vale" size={18}/><span style={{ fontSize:10, fontWeight:700, color:P.ink, paddingRight:3 }}>Marcus</span></span></span></div>
           <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%' }}><line x1="27%" y1="38%" x2="69%" y2="60%" stroke={P.good} strokeWidth="2" strokeDasharray="4 4"/></svg>
         </div>
         <div style={{ padding:14, display:'flex', alignItems:'center', gap:12 }}>
           <Avatar name="Marcus Vale" size={44}/>
-          <div style={{ flex:1 }}><div style={{ fontSize:14.5, fontWeight:700, color:P.ink }}>Marcus Vale</div><div style={{ fontSize:11.5, color:P.inkMute }}>Your genius · ★ 4.9 · Tesla Model Y</div></div>
+          <div style={{ flex:1 }}><div style={{ fontSize: 16, fontWeight:700, color:P.ink }}>Marcus Vale</div><div style={{ fontSize:11.5, color:P.inkMute }}>Your genius · ★ 4.9 · Tesla Model Y</div></div>
           <button style={{ width:40, height:40, borderRadius:12, border:'none', background:P.surface3, color:P.ink, cursor:'pointer' }}><Icon name="phone" size={18}/></button>
           <button onClick={()=>go('support')} style={{ width:40, height:40, borderRadius:12, border:'none', background:P.ink, color:P.surface, cursor:'pointer' }}><Icon name="note" size={18}/></button>
         </div>
       </Card2>
       <Card2>
-        <div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:14 }}>Visit progress</div>
+        <div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:14 }}>Visit progress</div>
         {TRACK.map((s,i)=>(
           <div key={i} style={{ display:'flex', gap:13 }}>
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
@@ -256,7 +256,7 @@ function OrderScreen({ id, back, go }){ const P=useP(); const o=ORDERS.find(x=>x
               {i<TRACK.length-1&&<div style={{ width:2, flex:1, minHeight:22, background:s.done?P.good:P.hairline2 }}/>}
             </div>
             <div style={{ paddingBottom:16, flex:1 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize:13.5, fontWeight:600, color:s.done?P.ink:P.inkMute }}>{s.k}</span>{s.now&&<span style={{ fontSize:10, fontWeight:800, color:P.good }}>NOW</span>}<span className="mono" style={{ marginLeft:'auto', fontSize:11, color:P.inkMute }}>{s.t}</span></div>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize:13.5, fontWeight:600, color:s.done?P.ink:P.inkMute }}>{s.k}</span>{s.now&&<span style={{ fontSize:10, fontWeight:800, color:P.good }}>NOW</span>}<span className="mono" style={{ marginLeft:'auto', fontSize: 11.5, color:P.inkMute }}>{s.t}</span></div>
               {s.meta&&<div style={{ fontSize:11.5, color:P.inkMute, marginTop:1 }}>{s.meta}</div>}
             </div>
           </div>
@@ -269,18 +269,18 @@ function OrderScreen({ id, back, go }){ const P=useP(); const o=ORDERS.find(x=>x
     </>)}
     {!live && (<>
       <Card2>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}><div><div style={{ fontSize:15, fontWeight:700, color:P.ink }}>{o.kind}</div><div className="mono" style={{ fontSize:11.5, color:P.inkMute }}>{o.date}</div></div><span style={{ padding:'5px 11px', borderRadius:99, background:P.goodSoft, color:P.good, fontSize:12, fontWeight:700 }}>{o.status}</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}><div><div style={{ fontSize:15, fontWeight:700, color:P.ink }}>{o.kind}</div><div className="mono" style={{ fontSize:11.5, color:P.inkMute }}>{o.date}</div></div><span style={{ padding:'5px 11px', borderRadius:99, background:P.goodSoft, color:P.good, fontSize: 12.5, fontWeight:700 }}>{o.status}</span></div>
       </Card2>
       <Card2>
-        <div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:12 }}>{o.items} items</div>
+        <div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:12 }}>{o.items} items</div>
         {FAVES.slice(0,o.items>4?4:o.items).map((f,i)=>(
           <div key={i} style={{ display:'flex', alignItems:'center', gap:11, padding:'9px 0', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
             <Thumb hue={f.hue} size={42}/>
-            <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>{f.name}</div><div style={{ marginTop:2 }}><StrainTag type={f.strain} thc={f.thc}/></div></div>
+            <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{f.name}</div><div style={{ marginTop:2 }}><StrainTag type={f.strain} thc={f.thc}/></div></div>
             <span className="mono" style={{ fontSize:12.5, fontWeight:600, color:P.ink }}>{money(f.price)}</span>
           </div>
         ))}
-        <div style={{ display:'flex', justifyContent:'space-between', paddingTop:12, marginTop:6, borderTop:`1px solid ${P.hairline2}` }}><span style={{ fontSize:14, fontWeight:700, color:P.ink }}>Total</span><span className="mono" style={{ fontSize:15, fontWeight:700, color:P.ink }}>{money(o.total)}</span></div>
+        <div style={{ display:'flex', justifyContent:'space-between', paddingTop:12, marginTop:6, borderTop:`1px solid ${P.hairline2}` }}><span style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>Total</span><span className="mono" style={{ fontSize:15, fontWeight:700, color:P.ink }}>{money(o.total)}</span></div>
       </Card2>
       <Btn kind="primary" icon="refresh" full onClick={()=>{}}>Reorder these items</Btn>
     </>)}
@@ -294,31 +294,31 @@ function AtHomeScreen({ back, go }){ const P=useP(); return (<div>
     <div style={{ position:'relative', borderRadius:16, overflow:'hidden', padding:18, background:P.mode==='dark'?'linear-gradient(160deg,#1c1a12,#111)':'linear-gradient(160deg,#151310,#26261f)' }}>
       <div style={{ position:'absolute', top:-50, right:-40, width:180, height:180, borderRadius:'50%', background:`radial-gradient(circle,${P.accent}33,transparent 70%)` }}/>
       <div style={{ position:'relative' }}>
-        <span style={{ fontSize:11, fontWeight:800, letterSpacing:'.16em', color:P.accent, textTransform:'uppercase' }}>VIP Exclusive</span>
-        <div style={{ fontSize:22, fontWeight:800, color:'#fff', marginTop:6, lineHeight:1.15 }}>Bring the dispensary<br/>to your couch</div>
+        <span style={{ fontSize: 11.5, fontWeight:800, letterSpacing:'.16em', color:P.accent, textTransform:'uppercase' }}>VIP Exclusive</span>
+        <div style={{ fontSize: 21, fontWeight:800, color:'#fff', marginTop:6, lineHeight:1.15 }}>Bring the dispensary<br/>to your couch</div>
         <div style={{ fontSize:12.5, color:'rgba(255,255,255,.65)', marginTop:8, lineHeight:1.5 }}>A cannabis genius arrives with a full menu for up to 45 minutes. $150 min · $100 refundable deposit.</div>
         <div style={{ marginTop:14 }}><Btn kind="primary" icon="route" onClick={()=>go('book')}>Book a visit</Btn></div>
       </div>
     </div>
     <div>
-      <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'4px 4px 6px' }}>Live now</div>
+      <div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'4px 4px 6px' }}>Live now</div>
       <Card2 onClick={()=>go('order','A-2041')} style={{ borderColor:P.accentBorder }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <Avatar name="Marcus Vale" size={42}/>
-          <div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:700, color:P.ink }}>Marcus is with you</div><div style={{ fontSize:11.5, color:P.inkMute }}>A-2041 · shopping now · track visit</div></div>
+          <div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>Marcus is with you</div><div style={{ fontSize:11.5, color:P.inkMute }}>A-2041 · shopping now · track visit</div></div>
           <span style={{ width:9, height:9, borderRadius:99, background:P.good }}/>
         </div>
       </Card2>
     </div>
     <div>
-      <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'4px 4px 6px' }}>Past visits</div>
+      <div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'4px 4px 6px' }}>Past visits</div>
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
         {ORDERS.filter(o=>o.kind==='@ Home'&&!o.live).map(o=>(
           <Card2 key={o.id} onClick={()=>go('order',o.id)} pad={13}>
             <div style={{ display:'flex', alignItems:'center', gap:11 }}>
               <Avatar name={o.genius||'Marcus Vale'} size={38}/>
-              <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{o.genius}</div><div className="mono" style={{ fontSize:11, color:P.inkMute }}>{o.date} · {money(o.total)}</div></div>
-              <span className="mono" style={{ fontSize:12, color:P.inkMute }}>★ {o.rating}.0</span>
+              <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{o.genius}</div><div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>{o.date} · {money(o.total)}</div></div>
+              <span className="mono" style={{ fontSize: 12.5, color:P.inkMute }}>★ {o.rating}.0</span>
             </div>
           </Card2>
         ))}
@@ -333,26 +333,26 @@ function BookScreen({ back }){ const P=useP(); const [addr,setAddr]=useState(0);
   return (<div>
   <ScreenHead title="Book @ Home" onBack={back}/>
   <div style={{ padding:'14px 16px 100px', display:'flex', flexDirection:'column', gap:18 }}>
-    <div><div style={{ fontSize:13, fontWeight:700, color:P.ink, marginBottom:8 }}>Where</div>
+    <div><div style={{ fontSize: 13.5, fontWeight:700, color:P.ink, marginBottom:8 }}>Where</div>
       <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
         {ADDRESSES.map((a,i)=>(
           <button key={i} onClick={()=>a.zone&&setAddr(i)} disabled={!a.zone} style={{ display:'flex', alignItems:'center', gap:11, padding:'12px 14px', borderRadius:13, border:`1.5px solid ${addr===i?P.accentBorder:P.hairline2}`, background:addr===i?P.accentSoft:P.surface, cursor:a.zone?'pointer':'not-allowed', opacity:a.zone?1:.5, textAlign:'left' }}>
             <Icon name="pin" size={18} color={addr===i?P.accentInk:P.inkDim}/>
-            <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{a.label}{!a.zone&&<span style={{ fontSize:10.5, color:P.bad, fontWeight:600 }}> · outside zone</span>}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{a.line}</div></div>
+            <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{a.label}{!a.zone&&<span style={{ fontSize: 11.5, color:P.bad, fontWeight:600 }}> · outside zone</span>}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{a.line}</div></div>
             {addr===i&&a.zone&&<Icon name="check-circle" size={18} color={P.accentInk}/>}
           </button>
         ))}
       </div>
     </div>
-    <div><div style={{ fontSize:13, fontWeight:700, color:P.ink, marginBottom:8 }}>When · Today, Jul 8</div>
+    <div><div style={{ fontSize: 13.5, fontWeight:700, color:P.ink, marginBottom:8 }}>When · Today, Jul 8</div>
       <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
         {slots.map(s=>(<button key={s} onClick={()=>setSlot(s)} className="mono" style={{ padding:'9px 12px', borderRadius:11, border:`1.5px solid ${slot===s?P.accentBorder:P.hairline2}`, background:slot===s?P.accent:P.surface, color:slot===s?P.accentInk:P.ink, fontSize:12.5, fontWeight:700, cursor:'pointer' }}>{s}</button>))}
       </div>
     </div>
-    <div><div style={{ fontSize:13, fontWeight:700, color:P.ink, marginBottom:8 }}>Anything you're looking for?</div>
+    <div><div style={{ fontSize: 13.5, fontWeight:700, color:P.ink, marginBottom:8 }}>Anything you're looking for?</div>
       <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="e.g. restock rosin carts + something for sleep" style={{ width:'100%', minHeight:80, padding:13, borderRadius:13, border:`1px solid ${P.fieldBorder}`, background:P.field, color:P.ink, fontSize:13.5, fontFamily:P.fontSans, resize:'none', outline:'none' }}/>
     </div>
-    <Card2 style={{ background:P.surface2 }}><div style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}><span style={{ color:P.inkDim }}>Refundable deposit</span><span className="mono" style={{ fontWeight:700, color:P.ink }}>$100.00</span></div><div style={{ fontSize:11.5, color:P.inkMute, marginTop:5 }}>Applied to your order. Fully refunded if you cancel 2h before.</div></Card2>
+    <Card2 style={{ background:P.surface2 }}><div style={{ display:'flex', justifyContent:'space-between', fontSize: 13.5 }}><span style={{ color:P.inkDim }}>Refundable deposit</span><span className="mono" style={{ fontWeight:700, color:P.ink }}>$100.00</span></div><div style={{ fontSize:11.5, color:P.inkMute, marginTop:5 }}>Applied to your order. Fully refunded if you cancel 2h before.</div></Card2>
   </div>
   <div style={{ position:'absolute', left:0, right:0, bottom:56, padding:'12px 16px', background:P.surface, borderTop:`1px solid ${P.hairline2}` }}><Btn kind="primary" icon="lock" full>Confirm · pay $100 deposit</Btn></div>
 </div>); }
@@ -367,22 +367,22 @@ function PointsScreen({ back }){ const P=useP(); const pct=ME.points/(ME.points+
       <div style={{ position:'absolute', top:-60, left:'50%', transform:'translateX(-50%)', width:200, height:200, borderRadius:'50%', background:`radial-gradient(circle,${P.accent}30,transparent 70%)` }}/>
       <div style={{ position:'relative' }}>
         <div className="mono" style={{ fontSize:40, fontWeight:700, color:P.accent, lineHeight:1 }}>{ME.points.toLocaleString()}</div>
-        <div style={{ fontSize:12, color:'rgba(255,255,255,.6)', marginTop:4, letterSpacing:'.1em', textTransform:'uppercase' }}>Points balance</div>
+        <div style={{ fontSize: 12.5, color:'rgba(255,255,255,.6)', marginTop:4, letterSpacing:'.1em', textTransform:'uppercase' }}>Points balance</div>
         <div style={{ marginTop:14, height:8, borderRadius:99, background:'rgba(255,255,255,.12)', overflow:'hidden' }}><div style={{ width:(pct*100)+'%', height:'100%', background:P.accent }}/></div>
         <div style={{ fontSize:11.5, color:'rgba(255,255,255,.6)', marginTop:8 }}>{ME.pointsToNext} points to <b style={{ color:'#fff' }}>{ME.nextTier}</b> · Gold earns 2× on every order</div>
       </div>
     </div>
-    <div><div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>Redeem</div>
+    <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>Redeem</div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         {rewards.map((r,i)=>(<Card2 key={i} pad={14} style={{ opacity:r[2]?1:.55 }}>
           <Icon name="gift" size={20} color={r[2]?P.accent:P.inkMute}/>
-          <div style={{ fontSize:14.5, fontWeight:700, color:P.ink, marginTop:8 }}>{r[0]}</div>
+          <div style={{ fontSize: 16, fontWeight:700, color:P.ink, marginTop:8 }}>{r[0]}</div>
           <div className="mono" style={{ fontSize:11.5, color:P.inkMute, marginTop:2 }}>{r[1]}</div>
           <div style={{ marginTop:10 }}><Btn kind={r[2]?'dark':'ghost'} sm full>{r[2]?'Redeem':'Locked'}</Btn></div>
         </Card2>))}
       </div>
     </div>
-    <div><div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:4 }}>Activity</div>
+    <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:4 }}>Activity</div>
       {POINTS_LOG.map((l,i)=>(<div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 4px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
         <span style={{ width:34, height:34, borderRadius:10, background:l.plus?P.goodSoft:P.surface3, color:l.plus?P.good:P.inkDim, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={l.plus?'plus':'gift'} size={16} stroke={2.2}/></span>
         <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{l.t}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{l.d}</div></div>
@@ -397,23 +397,23 @@ function WalletScreen({ back }){ const P=useP(); return (<div>
   <ScreenHead title="Wallet" onBack={back}/>
   <div style={{ padding:'14px 16px 24px', display:'flex', flexDirection:'column', gap:16 }}>
     <div style={{ borderRadius:18, padding:20, background:P.mode==='dark'?'linear-gradient(150deg,#1c1a12,#111)':'linear-gradient(150deg,#151310,#26261f)' }}>
-      <div style={{ fontSize:11, letterSpacing:'.14em', color:'rgba(255,255,255,.55)', textTransform:'uppercase' }}>Store credit</div>
+      <div style={{ fontSize: 11.5, letterSpacing:'.14em', color:'rgba(255,255,255,.55)', textTransform:'uppercase' }}>Store credit</div>
       <div className="mono" style={{ fontSize:34, fontWeight:700, color:'#fff', marginTop:6 }}>{money2(ME.wallet)}</div>
       <div style={{ fontSize:11.5, color:'rgba(255,255,255,.55)', marginTop:4 }}>Auto-applies at checkout</div>
     </div>
-    <div><div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>Payment methods</div>
+    <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>Payment methods</div>
       <Card2 pad={0}>
         {[['Visa','•• 4021','card',true],['Apple Pay','default','wallet',false]].map((m,i)=>(
           <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 15px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
             <Icon name={m[2]} size={20} color={P.inkDim}/>
             <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{m[0]}</div><div className="mono" style={{ fontSize:11.5, color:P.inkMute }}>{m[1]}</div></div>
-            {m[3]&&<span style={{ fontSize:10.5, fontWeight:700, color:P.good }}>DEFAULT</span>}
+            {m[3]&&<span style={{ fontSize: 11.5, fontWeight:700, color:P.good }}>DEFAULT</span>}
           </div>
         ))}
         <div style={{ padding:'13px 15px', borderTop:`1px solid ${P.hairline}` }}><button style={{ display:'flex', alignItems:'center', gap:9, background:'none', border:'none', color:P.ink, fontSize:13.5, fontWeight:600, cursor:'pointer' }}><Icon name="plus" size={17}/>Add payment method</button></div>
       </Card2>
     </div>
-    <div><div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:4 }}>Credit activity</div>
+    <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:4 }}>Credit activity</div>
       {WALLET_LOG.map((l,i)=>(<div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 4px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
         <span style={{ width:34, height:34, borderRadius:10, background:l.plus?P.goodSoft:P.surface3, color:l.plus?P.good:P.inkDim, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={l.plus?'arrow-down':'arrow-up'} size={16} stroke={2.2}/></span>
         <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{l.t}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{l.d}</div></div>
@@ -432,10 +432,10 @@ function MembershipScreen({ back }){ const P=useP();
     <div style={{ borderRadius:18, padding:20, background:P.mode==='dark'?'linear-gradient(150deg,#2a2410,#151310)':'linear-gradient(150deg,#151310,#33301f)', position:'relative', overflow:'hidden' }}>
       <div style={{ position:'absolute', top:-40, right:-30, width:160, height:160, borderRadius:'50%', background:`radial-gradient(circle,${P.accent}44,transparent 70%)` }}/>
       <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div><div style={{ fontSize:11, letterSpacing:'.14em', color:'rgba(255,255,255,.6)', textTransform:'uppercase' }}>Current tier</div><div style={{ fontSize:26, fontWeight:800, color:'#fff', marginTop:4 }}>Gold VIP</div></div>
+        <div><div style={{ fontSize: 11.5, letterSpacing:'.14em', color:'rgba(255,255,255,.6)', textTransform:'uppercase' }}>Current tier</div><div style={{ fontSize: 30, fontWeight:800, color:'#fff', marginTop:4 }}>Gold VIP</div></div>
         <Icon name="crown" size={40} color={P.accent}/>
       </div>
-      <div style={{ position:'relative', fontSize:12, color:'rgba(255,255,255,.65)', marginTop:10 }}>660 pts from Platinum · member {ME.years}</div>
+      <div style={{ position:'relative', fontSize: 12.5, color:'rgba(255,255,255,.65)', marginTop:10 }}>660 pts from Platinum · member {ME.years}</div>
     </div>
     {tiers.map((t,i)=>{ const cur=t[0]==='Gold'; return (
       <Card2 key={i} style={{ borderColor:cur?P.accentBorder:P.hairline2, background:cur?P.accentSoft:P.surface }}>
@@ -453,7 +453,7 @@ function ReferralsScreen({ back }){ const P=useP(); return (<div>
       <div style={{ position:'absolute', top:-50, left:'50%', transform:'translateX(-50%)', width:180, height:180, borderRadius:'50%', background:`radial-gradient(circle,${P.accent}30,transparent 70%)` }}/>
       <div style={{ position:'relative' }}>
         <Icon name="gift" size={30} color={P.accent}/>
-        <div style={{ fontSize:20, fontWeight:800, color:'#fff', marginTop:8 }}>Give $25, get $25</div>
+        <div style={{ fontSize: 21, fontWeight:800, color:'#fff', marginTop:8 }}>Give $25, get $25</div>
         <div style={{ fontSize:12.5, color:'rgba(255,255,255,.65)', marginTop:6 }}>Friends get $25 off their first order. You get $25 credit when they buy.</div>
         <div style={{ marginTop:16, display:'flex', gap:8, alignItems:'center', background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.14)', borderRadius:12, padding:'11px 14px' }}>
           <span className="mono" style={{ flex:1, fontSize:15, fontWeight:700, color:'#fff', letterSpacing:'.08em' }}>REGGIE25</span>
@@ -462,14 +462,14 @@ function ReferralsScreen({ back }){ const P=useP(); return (<div>
       </div>
     </div>
     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-      <Card2 pad={14} style={{ textAlign:'center' }}><div className="mono" style={{ fontSize:22, fontWeight:700, color:P.ink }}>2</div><div style={{ fontSize:11, color:P.inkMute, marginTop:2 }}>Friends joined</div></Card2>
-      <Card2 pad={14} style={{ textAlign:'center' }}><div className="mono" style={{ fontSize:22, fontWeight:700, color:P.good }}>$50</div><div style={{ fontSize:11, color:P.inkMute, marginTop:2 }}>Earned</div></Card2>
+      <Card2 pad={14} style={{ textAlign:'center' }}><div className="mono" style={{ fontSize: 21, fontWeight:700, color:P.ink }}>2</div><div style={{ fontSize: 11.5, color:P.inkMute, marginTop:2 }}>Friends joined</div></Card2>
+      <Card2 pad={14} style={{ textAlign:'center' }}><div className="mono" style={{ fontSize: 21, fontWeight:700, color:P.good }}>$50</div><div style={{ fontSize: 11.5, color:P.inkMute, marginTop:2 }}>Earned</div></Card2>
     </div>
-    <div><div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:4 }}>Your invites</div>
+    <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:4 }}>Your invites</div>
       {REFERRALS.map((r,i)=>(<div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 4px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
         <Avatar name={r.name} size={36}/>
         <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{r.name}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{r.when}</div></div>
-        {r.status==='Joined'?<span className="mono" style={{ fontSize:13, fontWeight:700, color:P.good }}>+${r.reward}</span>:<span style={{ fontSize:11.5, fontWeight:600, color:P.inkMute }}>{r.status}</span>}
+        {r.status==='Joined'?<span className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.good }}>+${r.reward}</span>:<span style={{ fontSize:11.5, fontWeight:600, color:P.inkMute }}>{r.status}</span>}
       </div>))}
     </div>
   </div>
@@ -483,7 +483,7 @@ function ProfileScreen({ back }){ const P=useP(); return (<div>
       <Avatar name={ME.name} size={72} crown/>
       <button style={{ marginTop:10, fontSize:12.5, fontWeight:600, color:P.ink, background:P.surface3, border:'none', padding:'7px 14px', borderRadius:99, cursor:'pointer' }}>Edit photo</button>
     </div>
-    <div><div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>Personal info</div>
+    <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>Personal info</div>
       <Card2 pad={0}>
         {[['Full name',ME.name],['Phone',ME.phone],['Email',ME.email],['Date of birth',ME.dob]].map((f,i)=>(
           <div key={i} style={{ display:'flex', alignItems:'center', padding:'13px 15px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
@@ -494,11 +494,11 @@ function ProfileScreen({ back }){ const P=useP(); return (<div>
         ))}
       </Card2>
     </div>
-    <div><div style={{ fontSize:12, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>ID verification</div>
+    <div><div style={{ fontSize: 12.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, marginBottom:8 }}>ID verification</div>
       <Card2>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <span style={{ width:44, height:44, borderRadius:12, background:P.goodSoft, color:P.good, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="shield" size={22}/></span>
-          <div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:700, color:P.ink }}>Verified</div><div style={{ fontSize:11.5, color:P.inkMute }}>CA driver's license · expires {ME.idExpires}</div></div>
+          <div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>Verified</div><div style={{ fontSize:11.5, color:P.inkMute }}>CA driver's license · expires {ME.idExpires}</div></div>
           <Icon name="check-circle" size={22} color={P.good}/>
         </div>
         <div style={{ marginTop:12, padding:'10px 12px', background:P.surface2, borderRadius:11, fontSize:11.5, color:P.inkMute, display:'flex', gap:8 }}><Icon name="info" size={15} color={P.inkMute}/>Required for every order. Your genius re-scans on arrival for @ Home visits.</div>
@@ -515,10 +515,10 @@ function AddressesScreen({ back }){ const P=useP(); return (<div>
       <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
         <span style={{ width:40, height:40, borderRadius:11, background:P.surface3, color:P.ink, display:'flex', alignItems:'center', justifyContent:'center', flex:'0 0 auto' }}><Icon name="pin" size={19}/></span>
         <div style={{ flex:1 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize:14.5, fontWeight:700, color:P.ink }}>{a.label}</span>{a.def&&<span style={{ fontSize:10, fontWeight:800, color:P.accentInk, background:P.accent, padding:'2px 7px', borderRadius:99 }}>DEFAULT</span>}</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize: 16, fontWeight:700, color:P.ink }}>{a.label}</span>{a.def&&<span style={{ fontSize:10, fontWeight:800, color:P.accentInk, background:P.accent, padding:'2px 7px', borderRadius:99 }}>DEFAULT</span>}</div>
           <div style={{ fontSize:12.5, color:P.inkDim, marginTop:3 }}>{a.line}<br/>{a.city}</div>
           {a.note&&<div style={{ fontSize:11.5, color:P.inkMute, marginTop:5, fontStyle:'italic' }}>“{a.note}”</div>}
-          <div style={{ marginTop:8 }}>{a.zone?<span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, color:P.good }}><Icon name="route" size={13}/>@ Home available</span>:<span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:700, color:P.inkMute }}><Icon name="x" size={13}/>Outside @ Home zone</span>}</div>
+          <div style={{ marginTop:8 }}>{a.zone?<span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize: 11.5, fontWeight:700, color:P.good }}><Icon name="route" size={13}/>@ Home available</span>:<span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize: 11.5, fontWeight:700, color:P.inkMute }}><Icon name="x" size={13}/>Outside @ Home zone</span>}</div>
         </div>
         <Icon name="pencil" size={16} color={P.inkFaint}/>
       </div>
@@ -534,7 +534,7 @@ function FavesScreen({ back }){ const P=useP(); return (<div>
     {FAVES.map((f,i)=>(<Card2 key={i} pad={12}>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <Thumb hue={f.hue}/>
-        <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{f.name}</div><div style={{ marginTop:3, display:'flex', alignItems:'center', gap:8 }}><StrainTag type={f.strain} thc={f.thc}/><span style={{ fontSize:11, color:P.inkMute }}>{f.cat}</span></div></div>
+        <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{f.name}</div><div style={{ marginTop:3, display:'flex', alignItems:'center', gap:8 }}><StrainTag type={f.strain} thc={f.thc}/><span style={{ fontSize: 11.5, color:P.inkMute }}>{f.cat}</span></div></div>
         <div style={{ textAlign:'right' }}><div className="mono" style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{money(f.price)}</div><button style={{ marginTop:6, width:32, height:32, borderRadius:9, border:'none', background:P.accent, color:P.accentInk, cursor:'pointer' }}><Icon name="plus" size={17} stroke={2.4}/></button></div>
       </div>
     </Card2>))}
@@ -545,18 +545,18 @@ function FavesScreen({ back }){ const P=useP(); return (<div>
 function SettingsScreen({ back }){ const P=useP();
   const [s,setS]=useState({ deals:true, order:true, athome:true, sms:false, email:true, loc:true, share:false });
   const Toggle=({on,onClick})=>(<button onClick={onClick} style={{ width:44, height:26, borderRadius:99, background:on?P.accent:P.hairline3, border:'none', cursor:'pointer', padding:3, display:'flex' }}><span style={{ width:20, height:20, borderRadius:99, background:on?P.accentInk:P.surface, transform:on?'translateX(18px)':'none', transition:'transform .16s' }}/></button>);
-  const Item=({k,label,sub})=>(<div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 4px' }}><div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:600, color:P.ink }}>{label}</div>{sub&&<div style={{ fontSize:11.5, color:P.inkMute, marginTop:1 }}>{sub}</div>}</div><Toggle on={s[k]} onClick={()=>setS(v=>({...v,[k]:!v[k]}))}/></div>);
+  const Item=({k,label,sub})=>(<div style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 4px' }}><div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{label}</div>{sub&&<div style={{ fontSize:11.5, color:P.inkMute, marginTop:1 }}>{sub}</div>}</div><Toggle on={s[k]} onClick={()=>setS(v=>({...v,[k]:!v[k]}))}/></div>);
   return (<div>
   <ScreenHead title="Notifications & privacy" onBack={back}/>
   <div style={{ padding:'8px 16px 24px' }}>
-    <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'12px 4px 2px' }}>Notifications</div>
+    <div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'12px 4px 2px' }}>Notifications</div>
     <Item k="order" label="Order updates" sub="Status, delivery, @ Home progress"/>
     <div style={{ borderTop:`1px solid ${P.hairline}` }}/><Item k="athome" label="@ Home alerts" sub="When your genius is on the way"/>
     <div style={{ borderTop:`1px solid ${P.hairline}` }}/><Item k="deals" label="Deals & drops" sub="Weekly promos and new products"/>
-    <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'18px 4px 2px' }}>Channels</div>
+    <div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'18px 4px 2px' }}>Channels</div>
     <Item k="sms" label="Text messages"/>
     <div style={{ borderTop:`1px solid ${P.hairline}` }}/><Item k="email" label="Email"/>
-    <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'18px 4px 2px' }}>Privacy</div>
+    <div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'18px 4px 2px' }}>Privacy</div>
     <Item k="loc" label="Location while ordering" sub="For accurate @ Home ETAs"/>
     <div style={{ borderTop:`1px solid ${P.hairline}` }}/><Item k="share" label="Share purchase data" sub="Personalized recommendations"/>
     <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:2 }}>
@@ -573,7 +573,7 @@ function SupportScreen({ back }){ const P=useP();
   return (<div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
   <ScreenHead title="Support" onBack={back}/>
   <div style={{ flex:1, overflow:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:12 }}>
-    {msgs.map((c,i)=>{ if(c.who==='sys') return <div key={i} style={{ textAlign:'center' }}><span className="mono" style={{ fontSize:10.5, color:P.inkMute, background:P.surface3, padding:'4px 10px', borderRadius:99 }}>{c.m}</span></div>;
+    {msgs.map((c,i)=>{ if(c.who==='sys') return <div key={i} style={{ textAlign:'center' }}><span className="mono" style={{ fontSize: 11.5, color:P.inkMute, background:P.surface3, padding:'4px 10px', borderRadius:99 }}>{c.m}</span></div>;
       const me=c.who==='me'; return (<div key={i} style={{ display:'flex', justifyContent:me?'flex-end':'flex-start' }}><div style={{ maxWidth:'80%', padding:'11px 14px', borderRadius:16, background:me?P.ink:P.surface, color:me?P.surface:P.ink, border:me?'none':`1px solid ${P.hairline2}`, fontSize:13.5, lineHeight:1.5 }}>{c.m}</div></div>); })}
   </div>
   <div style={{ padding:'12px 16px', borderTop:`1px solid ${P.hairline2}`, background:P.surface, display:'flex', gap:9, alignItems:'center' }}>
@@ -631,7 +631,7 @@ function App(){
       <div style={{ position:'relative', width:'100%', height:'100%', borderRadius:37, overflow:'hidden', background:P.bg, display:'flex', flexDirection:'column' }}>
         {/* status bar */}
         <div style={{ height:44, flex:'0 0 44px', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 26px', background:P.surface, zIndex:20 }}>
-          <span className="mono" style={{ fontSize:13, fontWeight:700, color:P.ink }}>9:41</span>
+          <span className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>9:41</span>
           <div style={{ position:'absolute', left:'50%', top:9, transform:'translateX(-50%)', width:96, height:26, borderRadius:20, background:'#000' }}/>
           <span style={{ display:'flex', gap:5, alignItems:'center', color:P.ink }}><Icon name="target" size={13}/><Icon name="chart" size={13}/><span style={{ width:22, height:11, border:`1.4px solid ${P.ink}`, borderRadius:3, position:'relative' }}><span style={{ position:'absolute', inset:1.5, right:5, background:P.ink, borderRadius:1 }}/></span></span>
         </div>

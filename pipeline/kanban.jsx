@@ -22,12 +22,12 @@
         style={{ position: 'relative', overflow: 'hidden', flex: '0 0 auto', background: h ? P.canvas : P.surface, border: `1px solid ${h ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 12, cursor: 'grab', boxShadow: P.shadowSm, opacity: dragging ? .4 : 1, transform: dragging ? 'scale(.98)' : 'none', transition: 'background .12s, border-color .12s' }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: accent }} />
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <div style={{ height: 40, width: 40, borderRadius: 8, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', color: P.inkMute }}>
+          <div style={{ height: 40, width: 40, borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', color: P.inkMute }}>
             <Icon name="package" size={16} stroke={1.8} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, lineHeight: 1.25, color: P.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{batch.productName}</div>
-            <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{batch.sku}</div>
+            <div style={{ fontSize: 13.5, lineHeight: 1.25, color: P.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{batch.productName}</div>
+            <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{batch.sku}</div>
           </div>
           {sev !== 'fresh' && <HDPill tone={sev === 'hot' ? 'blocked' : 'warn'} icon={false} size="sm" label={`${HD.ageInStatus(batch.statusEnteredAt)} here`} style={{ flex: '0 0 auto' }} />}
           {tamperEvident && (
@@ -36,7 +36,7 @@
               <Icon name="shield" size={11} stroke={2} />
             </span>)}
         </div>
-        <div title={`${batch.qty} units at ${HD.formatCurrency(batch.unitValue)} wholesale cost each — ${HD.formatCurrency(batch.qty * batch.unitValue)} total batch value`} style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', fontSize: 12, fontFamily: P.fontMono, color: P.ink2 }}>
+        <div title={`${batch.qty} units at ${HD.formatCurrency(batch.unitValue)} wholesale cost each — ${HD.formatCurrency(batch.qty * batch.unitValue)} total batch value`} style={{ marginTop: 8, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', fontSize: 12.5, fontFamily: P.fontMono, color: P.ink2 }}>
           <span>{batch.qty} <span style={{ color: P.inkMute }}>units</span></span>
           <span style={{ color: P.inkMute }}>×</span>
           <span>{HD.formatCurrency(batch.unitValue)} <span style={{ color: P.inkMute }}>ea</span></span>
@@ -44,7 +44,7 @@
           <span>{HD.formatCurrency(batch.qty * batch.unitValue, { showCents: false })}</span>
         </div>
         {showSkipArrow && (
-          <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: seal.fg }}>
+          <div style={{ marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: seal.fg }}>
             <Icon name="arrow-right" size={10} stroke={2} />
             <span>{HD.BATCH_STATUS_LABEL[skipTargetKey] ?? skipTargetKey}<span style={{ color: P.inkMute }}> · skip seal</span></span>
           </div>)}
@@ -64,14 +64,14 @@
         <div style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}`, borderTop: `3px solid ${dot}`, position: 'sticky', top: 0, background: over ? P.accentSoft : P.surface, zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: 99, background: dot, flex: '0 0 auto' }} />
-            <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>{HD.BATCH_STATUS_LABEL[status]}</h3>
-            <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: dot, background: HD.tone(P, HD.batchStatusTone(status)).bg, borderRadius: 99, padding: '1px 7px', fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{batches.length}</span>
+            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>{HD.BATCH_STATUS_LABEL[status]}</h3>
+            <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 600, color: dot, background: HD.tone(P, HD.batchStatusTone(status)).bg, borderRadius: 99, padding: '1px 7px', fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{batches.length}</span>
           </div>
-          <div style={{ marginTop: 4, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(totalValue, { showCents: false })}</div>
+          <div style={{ marginTop: 4, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(totalValue, { showCents: false })}</div>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {batches.length === 0
-            ? <div style={{ textAlign: 'center', fontSize: 12, color: P.inkMute, padding: '24px 0', fontStyle: 'italic' }}>Empty</div>
+            ? <div style={{ textAlign: 'center', fontSize: 12.5, color: P.inkMute, padding: '24px 0', fontStyle: 'italic' }}>Empty</div>
             : batches.map((b) => (
               <BatchCard key={b.id} batch={b} boardEntity={boardEntity} dragging={dragId === b.id}
                 onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setDragId(b.id); }}
@@ -88,13 +88,13 @@
       <Sheet open={open} onClose={onClose} width={470}>
         <div style={{ padding: 20, borderBottom: `1px solid ${P.hairline2}` }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>{batch.productName}</h2>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>{batch.productName}</h2>
             <IconBtn icon="x" size={16} onClick={onClose} style={{ width: 30, height: 30, margin: -4 }} />
           </div>
           <div style={{ marginTop: 8 }}><UidChip value={batch.metrcPackageId} kind="metrc" /></div>
           <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <HDPill tone={HD.batchStatusTone(batch.status)} label={HD.BATCH_STATUS_LABEL[batch.status]} />
-            <span style={{ fontSize: 12, color: P.inkMute }}>In status · {HD.ageInStatus(batch.statusEnteredAt)}</span>
+            <span style={{ fontSize: 12.5, color: P.inkMute }}>In status · {HD.ageInStatus(batch.statusEnteredAt)}</span>
           </div>
         </div>
         <div style={{ flex: 1, overflow: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -121,25 +121,25 @@
               {batch.timeline.map((t) => (
                 <li key={t.id} style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: -22, top: 4, width: 12, height: 12, borderRadius: 99, background: P.accent, border: `2px solid ${P.surface}` }} />
-                  <div style={{ fontSize: 12, color: P.ink }}>{t.event}</div>
-                  <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatDateTime(t.at)} · {t.actor}</div>
+                  <div style={{ fontSize: 12.5, color: P.ink }}>{t.event}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatDateTime(t.at)} · {t.actor}</div>
                 </li>))}
             </ol>
           </div>
           <div>
             <MicroLabel style={{ marginBottom: 8 }}>Evidence</MicroLabel>
             {batch.evidence.length === 0
-              ? <div style={{ fontSize: 12, color: P.inkMute }}>No evidence captured.</div>
+              ? <div style={{ fontSize: 12.5, color: P.inkMute }}>No evidence captured.</div>
               : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {batch.evidence.map((e) => (
-                  <div key={e.id} title={`${e.label} · ${e.uploader}`} style={{ aspectRatio: '1 / 1', borderRadius: P.r10, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
+                  <div key={e.id} title={`${e.label} · ${e.uploader}`} style={{ aspectRatio: '1 / 1', borderRadius: P.r10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
                     <Icon name={e.kind === 'photo' ? 'camera' : e.kind === 'manifest' ? 'receipt' : 'note'} size={18} stroke={1.7} color={P.inkMute} />
                     <div style={{ fontSize: 10, color: P.ink2, textAlign: 'center', padding: '0 4px' }}>{e.label}</div>
                   </div>))}
               </div>}
           </div>
           {batch.notes && (
-            <div style={{ padding: 12, borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.canvas2, fontSize: 13, color: P.ink2 }}>
+            <div style={{ padding: 12, borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.surface3, fontSize: 13.5, color: P.ink2 }}>
               <MicroLabel style={{ marginBottom: 4 }}>Note</MicroLabel>
               {batch.notes}
             </div>)}
@@ -148,7 +148,7 @@
           <MicroLabel>Transition to</MicroLabel>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {validTargets.length === 0
-              ? <div style={{ fontSize: 12, color: P.inkMute }}>Terminal state — no further transitions.</div>
+              ? <div style={{ fontSize: 12.5, color: P.inkMute }}>Terminal state — no further transitions.</div>
               : validTargets.map((t) => (
                 <PBtn key={t} size="sm" variant={t === 'approved' ? 'accent' : 'secondary'} onClick={() => onTransition(batch.id, t)}>{HD.BATCH_STATUS_LABEL[t]}</PBtn>))}
           </div>

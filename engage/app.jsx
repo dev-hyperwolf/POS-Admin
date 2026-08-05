@@ -78,7 +78,7 @@
           </div>
           {!collapsed && <>
             <span style={{ fontSize: 16, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>Engage</span>
-            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, height: 18, padding: '0 6px', borderRadius: 4, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : P.accentBorder, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em' }}>Beta</span>
+            <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 3, height: 18, padding: '0 6px', borderRadius: 4, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : P.accentBorder, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em' }}>Beta</span>
           </>}
         </div>
         <nav style={{ flex: 1, overflowY: 'auto', padding: collapsed ? '8px 6px' : '8px' }}>
@@ -94,23 +94,23 @@
                   if (item.soon) {
                     return (
                       <li key={item.label}>
-                        <span title="Coming soon" aria-disabled="true" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: collapsed ? 0 : '0 12px', justifyContent: collapsed ? 'center' : 'flex-start', height: 34, borderRadius: 8, fontSize: 13, color: P.inkFaint, cursor: 'not-allowed' }}>
+                        <span title="Coming soon" aria-disabled="true" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: collapsed ? 0 : '0 12px', justifyContent: collapsed ? 'center' : 'flex-start', height: 34, borderRadius: 8, fontSize: 13.5, color: P.inkFaint, cursor: 'not-allowed' }}>
                           <Icon name={item.icon} size={16} stroke={1.8} color={color} />
-                          {!collapsed && <><span style={{ flex: 1 }}>{item.label}</span><span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '.06em' }}>soon</span></>}
+                          {!collapsed && <><span style={{ flex: 1 }}>{item.label}</span><span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em' }}>soon</span></>}
                         </span>
                       </li>);
                   }
                   return (
                     <li key={item.label}>
                       <button onClick={() => navigate(item.href)} title={collapsed ? item.label : undefined}
-                        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: collapsed ? 0 : '0 12px', justifyContent: collapsed ? 'center' : 'flex-start', height: 34, borderRadius: 8, fontSize: 13, textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
+                        style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: collapsed ? 0 : '0 12px', justifyContent: collapsed ? 'center' : 'flex-start', height: 34, borderRadius: 8, fontSize: 13.5, textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
                           background: active ? P.surface2 : 'transparent', color: active ? P.ink : P.inkDim, border: 'none', borderLeft: `2px solid ${active ? P.accent : 'transparent'}` }}
                         onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.surface2; }}
                         onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
                         <Icon name={item.icon} size={16} stroke={1.8} color={color} />
                         {!collapsed && <>
                           <span style={{ flex: 1 }}>{item.label}</span>
-                          {item.kbd && <kbd style={{ fontSize: 9, fontFamily: P.fontMono, color: P.inkMute, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 4px' }}>{item.kbd}</kbd>}
+                          {item.kbd && <kbd style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 4px' }}>{item.kbd}</kbd>}
                         </>}
                       </button>
                     </li>);
@@ -123,7 +123,7 @@
             style={{ height: 28, width: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'transparent', border: 'none', color: P.inkMute, cursor: 'pointer', flex: '0 0 auto' }}>
             <Icon name="chevron-left" size={15} stroke={2} style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }} />
           </button>
-          {!collapsed && <p style={{ margin: 0, flex: 1, fontSize: 11, lineHeight: 1.35, color: P.inkMute }}>Keyboard-first — press <kbd style={{ fontFamily: P.fontMono, fontSize: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 3, padding: '0 3px' }}>?</kbd> for shortcuts.</p>}
+          {!collapsed && <p style={{ margin: 0, flex: 1, fontSize: 11.5, lineHeight: 1.35, color: P.inkMute }}>Keyboard-first — press <kbd style={{ fontFamily: P.fontMono, fontSize: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 3, padding: '0 3px' }}>?</kbd> for shortcuts.</p>}
         </div>
       </aside>);
   }
@@ -136,10 +136,10 @@
     return (
       <div style={{ position: 'relative' }}>
         <button onClick={() => setOpen((o) => !o)} aria-label="Switch tenant"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 34, padding: '0 8px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans, fontSize: 13, color: P.ink }}>
-          <span style={{ height: 22, width: 22, borderRadius: 5, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700 }}>{initials(active.name)}</span>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 34, padding: '0 8px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans, fontSize: 13.5, color: P.ink }}>
+          <span style={{ height: 22, width: 22, borderRadius: 5, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{initials(active.name)}</span>
           <span style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{active.name}</span>
-          <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: window.HD.tone(P, 'warn').fg, background: window.HD.tone(P, 'warn').bg, borderRadius: 4, padding: '2px 5px' }}>Dev</span>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: window.HD.tone(P, 'warn').fg, background: window.HD.tone(P, 'warn').bg, borderRadius: 4, padding: '2px 5px' }}>Dev</span>
           <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} />
         </button>
         {open && <>
@@ -148,14 +148,14 @@
             <MicroLabel style={{ padding: '6px 8px' }}>Your tenants</MicroLabel>
             {D.TENANTS.map((t) => (
               <button key={t.id} onClick={() => setOpen(false)} style={{ display: 'flex', width: '100%', alignItems: 'flex-start', gap: 8, padding: '8px', borderRadius: 8, background: t.id === active.id ? P.surface3 : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
-                <span style={{ height: 22, width: 22, borderRadius: 5, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : P.accentBorder, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flex: '0 0 auto', marginTop: 1 }}>{initials(t.name)}</span>
+                <span style={{ height: 22, width: 22, borderRadius: 5, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : P.accentBorder, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flex: '0 0 auto', marginTop: 1 }}>{initials(t.name)}</span>
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13, color: P.ink }}>{t.name}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{t.slug} · {t.role} · {window.HD.formatNumber(t.customers)}</span>
+                  <span style={{ display: 'block', fontSize: 13.5, color: P.ink }}>{t.name}</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{t.slug} · {t.role} · {window.HD.formatNumber(t.customers)}</span>
                 </span>
               </button>))}
             <div style={{ height: 1, background: P.hairline2, margin: '6px 2px' }} />
-            <button onClick={() => setOpen(false)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: P.ink2, fontFamily: P.fontSans }}>Provision new tenant…</button>
+            <button onClick={() => setOpen(false)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13.5, color: P.ink2, fontFamily: P.fontSans }}>Provision new tenant…</button>
           </div>
         </>}
       </div>);
@@ -189,14 +189,14 @@
             <Field icon="search" size="sm" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search audiences, customers, templates…" />
           </div>
           <div style={{ maxHeight: 340, overflowY: 'auto', padding: 6 }}>
-            {filtered.length === 0 && <div style={{ padding: 16, fontSize: 12, color: P.inkMute, textAlign: 'center' }}>No matches.</div>}
+            {filtered.length === 0 && <div style={{ padding: 16, fontSize: 12.5, color: P.inkMute, textAlign: 'center' }}>No matches.</div>}
             {filtered.map((i) => (
               <button key={i.href + i.label} onClick={() => { navigate(i.href); onClose(); }}
-                style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 13, fontFamily: P.fontSans, textAlign: 'left' }}
+                style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, textAlign: 'left' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                 <Icon name={i.icon} size={15} stroke={1.8} color={P.inkMute} />
                 <span style={{ flex: 1 }}>{i.label}</span>
-                <span style={{ fontSize: 11, color: P.inkMute }}>{i.group}</span>
+                <span style={{ fontSize: 11.5, color: P.inkMute }}>{i.group}</span>
               </button>))}
           </div>
         </div>
@@ -211,7 +211,7 @@
       <header style={{ height: 56, flex: '0 0 56px', borderBottom: `1px solid ${P.hairline2}`, background: P.bg, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
         <TenantMenu />
         <div style={{ width: 1, height: 20, background: P.hairline2 }} />
-        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: P.inkDim, whiteSpace: 'nowrap' }}>
+        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: P.inkDim, whiteSpace: 'nowrap' }}>
           {crumbs.map((c, i) => (
             <React.Fragment key={c + i}>
               {i > 0 && <Icon name="chevron-right" size={13} stroke={2} style={{ opacity: .5 }} />}
@@ -220,7 +220,7 @@
         </nav>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
           <button type="button" onClick={onSearch} aria-label="Open command palette (⌘K)"
-            style={{ width: '100%', maxWidth: 400, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
+            style={{ width: '100%', maxWidth: 400, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
             <Icon name="search" size={14} stroke={1.9} />
             <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Search audiences, customers, templates…</span>
             <kbd style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 5px' }}>⌘K</kbd>

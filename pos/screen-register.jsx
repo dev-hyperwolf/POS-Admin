@@ -5,12 +5,16 @@ const TAX = 0.0822;
 window.RegisterScreen = function RegisterScreen() {
   const P = useP();
   const products = window.HW.PRODUCTS;
-  const [cart, setCart] = React.useState(() => [
-  { sku: 'H480PRO1', qty: 1, disc: 0 },
-  { sku: 'F2Q4EN2C', qty: 1, disc: 0 }]
-  );
-  const [customer, setCustomer] = React.useState(window.HW.MEMBERS[2]); // Girish — has points, shows rewards
-  const [guests, setGuests] = React.useState([]); // {name} — grouped under main customer, tracked as referrals
+  // ── Tickets ─────────────────────────────────────────────────────────────
+  // A party is ONE ticket by default — one cart, one checkout, which is what
+  // most visits are. A guest only gets their own ticket when the associate
+  // opens one for them, and the tab strip appears only once that happens.
+  const [tickets, setTickets] = React.useState(() => [{ id: 't1', person: window.HW.MEMBERS[2],
+    cart: [{ sku: 'H480PRO1', qty: 1, disc: 0 }, { sku: 'F2Q4EN2C', qty: 1, disc: 0 }], paid: false }]);
+  const [active, setActive] = React.useState(0);
+  const [guests, setGuests] = React.useState(() => [
+  { key: 'g-mia', id: null, name: 'Mia Tran', dob: '09/02/1988', phone: '(951) 555-0121', member: false, doc: { onFile: true } },
+  { key: 'g-sam', id: null, name: 'Sam Cole', dob: '12/21/1995', phone: '', member: false, doc: { onFile: true } }]); // party roster captured at check-in
   const [tab, setTab] = React.useState('products');
   const [cat, setCat] = React.useState('All');
   const [smart, setSmart] = React.useState('none'); // (legacy) smart up-sell filter
@@ -24,6 +28,14 @@ window.RegisterScreen = function RegisterScreen() {
   const [showDetails, setShowDetails] = React.useState(false); // member-details dropdown
   const [chipView, setChipView] = React.useState('bar'); // claimed-customer layout: bar | detailed | compact
   const [toast, setToast] = React.useState(null);
+
+  const t = tickets[active] || tickets[0];
+  const customer = t ? t.person : null;
+  const cart = t ? t.cart : [];
+  const multi = tickets.length > 1;
+  const setCart = (v) => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: typeof v === 'function' ? v(x.cart) : v } : x));
+  // A fresh check-in replaces the whole ticket set — new visit, new sale.
+  const openVisit = (person, g) => {setTickets([{ id: 't1', person, cart: [], paid: false }]);setActive(0);setGuests(g || []);};
 
   // Keep the floating switcher / tour launcher off the TENDER button.
   React.useEffect(() => {
@@ -41,22 +53,52 @@ window.RegisterScreen = function RegisterScreen() {
   const tax = sub * TAX;
   const total = sub + tax;
   const count = lines.reduce((s, l) => s + l.qty, 0);
+  const subOf = (c) => c.reduce((s, x) => {const p = find(x.sku);return s + (p ? (p.price - x.disc) * x.qty : 0);}, 0);
+  const totalOf = (c) => subOf(c) * (1 + TAX);
+  const partyTotal = tickets.reduce((s, x) => s + totalOf(x.cart), 0);
 
   const flash = (m) => {setToast(m);setTimeout(() => setToast(null), 1800);};
+
+  // Open a separate ticket for someone already in the party. Only possible for
+  // a guest whose ID is on record — a ticket is a legal transaction.
+  const startTicket = (g) => {
+    const gn = window.guestName ? window.guestName(g) : g;
+    const m = window.HW.MEMBERS.find((x) => x.name === gn) || (g && g.id ? window.HW.memberById(g.id) : null);
+    const person = m || { id: (g && g.key) || 'g-' + gn, name: gn, email: '—', phone: g && g.phone || '—',
+      points: 0, visits: 1, wallet: 0, type: 'AdultUse', member: false, guestOf: customer && customer.name };
+    setTickets((ts) => {setActive(ts.length);return [...ts, { id: 't' + (ts.length + 1), person, cart: [], paid: false }];});
+    flash(`Separate ticket opened for ${gn.split(' ')[0]}`);
+  };
+  const dropTicket = (i) => {
+    if (i === 0) return;
+    setTickets((ts) => ts.filter((_, idx) => idx !== i));
+    setActive((a) => a >= i ? Math.max(0, a - 1) : a);
+  };
+  const hasTicket = (name) => tickets.some((x) => x.person && x.person.name === name);
 
   // Load a waiting check-in into the sale (brings their party captured at check-in)
   const loadCheckIn = (ci) => {
     const m = window.HW.MEMBERS.find((x) => x.id === ci.memberId) || { name: ci.name, points: 0, type: ci.type, member: ci.member };
-    setCustomer(m);setGuests(ci.guests || []);
+    openVisit(m, ci.guests || []);
     flash(`${ci.name} loaded${ci.guests && ci.guests.length ? ` \u00b7 ${ci.guests.length} guest${ci.guests.length > 1 ? 's' : ''}` : ''}`);
   };
   // Completed new check-in from the modal
   const onCheckIn = ({ customer: c, guests: g }) => {
-    setCustomer(c);setGuests(g || []);setShowCheckIn(false);
+    openVisit(c, g || []);setShowCheckIn(false);
     flash(`${c.name} checked in${g && g.length ? ` with ${g.length} guest${g.length > 1 ? 's' : ''}` : ''}`);
   };
   // Search → select checks the customer in (no separate check-in button needed)
-  const checkInCustomer = (m) => {setCustomer(m);setGuests([]);flash(`${m.name.split(' ')[0]} checked in`);};
+  const checkInCustomer = (m) => {openVisit(m, []);flash(`${m.name.split(' ')[0]} checked in`);};
+  // Tender closes the ACTIVE ticket only, then lands on the next unpaid one.
+  const onPaid = () => {
+    setShowPay(false);
+    if (!multi) {setCart([]);flash('Sale complete · receipt printed');return;}
+    const paidIdx = active;
+    setTickets((ts) => ts.map((x, i) => i === paidIdx ? { ...x, paid: true } : x));
+    const next = tickets.findIndex((x, i) => i !== paidIdx && !x.paid);
+    if (next >= 0) {setActive(next);flash(`Paid · now on ${tickets[next].person.name.split(' ')[0]}’s ticket`);} else
+    flash('Party closed · every ticket paid');
+  };
 
   // Smart up-sell filters
   const SMART = {
@@ -80,9 +122,9 @@ window.RegisterScreen = function RegisterScreen() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 22px 10px' }}>
           <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="users" size={13} stroke={1.9} />Waiting {window.HW.CHECKINS.filter((c) => !c.claimedBy).length}</span>
-            <button onClick={() => setShowCheckIn(true)} title="New check-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 96, padding: '14px 8px', border: `1.5px dashed ${P.accentBorder}`, borderRadius: P.r12, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11, fontWeight: 700, transition: 'background .12s, border-color .12s, color .12s' }}
-              onMouseEnter={(e) => {e.currentTarget.style.background = P.accent;e.currentTarget.style.borderColor = P.accent;e.currentTarget.style.color = P.accentInk;}}
-              onMouseLeave={(e) => {e.currentTarget.style.background = P.accentSoft;e.currentTarget.style.borderColor = P.accentBorder;e.currentTarget.style.color = P.mode === 'dark' ? P.accent : '#7A5A00';}}>
+            <button onClick={() => setShowCheckIn(true)} title="New check-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 96, padding: '14px 8px', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r12, background: P.surface, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5, fontWeight: 700, transition: 'background .12s, border-color .12s, color .12s' }}
+              onMouseEnter={(e) => {e.currentTarget.style.background = P.surface3;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink;}}
+              onMouseLeave={(e) => {e.currentTarget.style.background = P.surface;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink2;}}>
               <span style={{ width: 28, height: 28, borderRadius: 99, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-plus" size={15} stroke={2.2} color={P.accentInk} /></span>
               New check-in
             </button>
@@ -92,8 +134,9 @@ window.RegisterScreen = function RegisterScreen() {
           </div>
         </div>
         {customer &&
-        <div style={{ padding: '0 22px 11px' }}>
-            <CustomerChip customer={customer} guests={guests} setGuests={setGuests} onClear={() => {setCustomer(null);setGuests([]);setShowDetails(false);}} detailsOpen={showDetails} onToggleDetails={() => setShowDetails((o) => !o)} view="detailed" />
+        <div style={{ padding: '11px 22px', background: P.canvas, borderTop: `1px solid ${P.hairline2}` }}>
+            <CustomerChip customer={customer} guests={guests} setGuests={setGuests} onClear={() => {openVisit(null, []);setShowDetails(false);}} detailsOpen={showDetails} onToggleDetails={() => setShowDetails((o) => !o)} view="detailed"
+            tickets={tickets} onStartTicket={startTicket} hasTicket={hasTicket} onPickTicket={setActive} activeTicket={active} />
           </div>}
       </div>
 
@@ -121,13 +164,13 @@ window.RegisterScreen = function RegisterScreen() {
                 const softBorder = `color-mix(in srgb, ${col} 42%, transparent)`;
                 return <button key={c} onClick={() => setCat(c)} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 13px', borderRadius: P.r999, border: `1px solid ${a ? col : softBorder}`, background: a ? col : softBg, color: a ? onColInk : P.ink, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, transition: 'all .12s' }}>
                   {c}
-                  <span style={{ fontSize: 10.5, fontFamily: P.fontMono, opacity: .7 }}>{isAll ? products.length : window.HW.catCount(c)}</span>
+                  <span style={{ fontSize: 11.5, fontFamily: P.fontMono, opacity: .7 }}>{isAll ? products.length : window.HW.catCount(c)}</span>
                 </button>;
               })}
             </div>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 22px 22px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px,1fr))', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(252px,1fr))', gap: 10 }}>
               {list.map((p) => <ProductRow key={p.sku} p={p} inCart={cart.find((c) => c.sku === p.sku)?.qty} onAdd={() => {add(p);flash(p.name + ' added');}} />)}
             </div>
             {list.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: P.inkMute }}>No products match</div>}
@@ -138,14 +181,16 @@ window.RegisterScreen = function RegisterScreen() {
         <CartPane P={P} lines={lines} sub={sub} tax={tax} total={total} count={count} pay={pay} setPay={setPay}
         setQty={setQty} remove={remove} setCart={setCart} customer={customer} cartSkus={cart.map((c) => c.sku)}
         onAdd={(p) => {add(p);flash(p.name + ' added');}}
+        tabs={multi ? <TicketTabs tickets={tickets} active={active} onPick={setActive} onDrop={dropTicket} totalOf={totalOf} /> : null}
+        footNote={multi ? <PartyTotalBar P={P} tickets={tickets} partyTotal={partyTotal} onPayAll={() => flash('One tender · all open tickets charged to ' + tickets[0].person.name.split(' ')[0])} /> : null}
         discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => setShowPay(true)} />
       </div>
 
       {showCheckIn && <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={onCheckIn} />}
 
-      {showPay && <PaymentModal total={total} sub={sub} tax={tax} count={count} customer={customer} onClose={() => setShowPay(false)} onDone={() => {setShowPay(false);setCart([]);flash('Sale complete · receipt printed');}} />}
+      {showPay && <PaymentModal total={total} sub={sub} tax={tax} count={count} customer={customer} onClose={() => setShowPay(false)} onDone={onPaid} />}
 
-      {toast && <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: P.ink, color: P.surface, padding: '11px 18px', borderRadius: P.r999, fontSize: 13, fontWeight: 600, boxShadow: P.shadowLg, display: 'flex', alignItems: 'center', gap: 9, zIndex: 60 }}><Icon name="check-circle" size={16} stroke={2} color={P.accent} />{toast}</div>}
+      {toast && <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: P.ink, color: P.surface, padding: '11px 18px', borderRadius: P.r999, fontSize: 13.5, fontWeight: 600, boxShadow: P.shadowLg, display: 'flex', alignItems: 'center', gap: 9, zIndex: 60 }}><Icon name="check-circle" size={16} stroke={2} color={P.accent} />{toast}</div>}
     </div>);
 
 };
@@ -168,10 +213,10 @@ function SalesRibbon({ P }) {
       {/* AOV with period toggle + goal */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, flex: '0 0 auto' }}>
         <div style={{ lineHeight: 1.15 }}>
-          <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>My AOV</div>
+          <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>My AOV</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(aov)}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, color: dl > 0 ? P.good : dl < 0 ? P.bad : P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{dl > 0 ? '▲' : dl < 0 ? '▼' : '—'}{Math.abs(dl)}%</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: dl > 0 ? P.good : dl < 0 ? P.bad : P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{dl > 0 ? '▲' : dl < 0 ? '▼' : '—'}{Math.abs(dl)}%</span>
           </div>
         </div>
         <Seg value={per} onChange={setPer} size="sm" options={[{ value: 'day', label: 'Day' }, { value: 'week', label: 'Wk' }, { value: 'month', label: 'Mo' }]} />
@@ -191,23 +236,25 @@ function RibMetric({ P, icon, label, value, sub, accent }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: '0 0 auto' }}>
       <span style={{ width: 26, height: 26, borderRadius: 7, background: accent ? P.accent : P.surface3, color: accent ? P.accentInk : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={14} stroke={1.9} /></span>
       <div style={{ lineHeight: 1.15 }}>
-        <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</div>
+        <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.09em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, letterSpacing: '-.01em' }}>{value}</span>
-          {sub && <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{sub}</span>}
+          {sub && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{sub}</span>}
         </div>
       </div>
     </div>);
 
 }
 
-// ── Customer chip — reflects the party captured at CHECK-IN; managing the
-// party here edits the check-in record (not a mid-sale add). ───────────────
-function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onToggleDetails, view = 'bar' }) {
+// ── Customer chip — reflects the party captured at CHECK-IN. Managing the party
+// here edits the check-in record, and a guest can be spun out onto their own
+// ticket when they're buying for themselves. ───────────────────────────────
+function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onToggleDetails, view = 'bar',
+  tickets = [], onStartTicket, hasTicket, onPickTicket, activeTicket = 0 }) {
   const P = useP();
   const [open, setOpen] = React.useState(false);
   const [mode, setMode] = React.useState('named');
-  const goldInk = P.mode === 'light' ? '#7A5A00' : P.accent;
+  const goldInk = P.accentText;
   const tier = customer.points >= 2000 ? 'Platinum' : customer.points >= 1000 ? 'Gold' : customer.points >= 300 ? 'Silver' : 'Bronze';
   const tierColor = tier === 'Platinum' ? P.info : tier === 'Gold' ? goldInk : tier === 'Silver' ? P.neutral : P.warn;
   // Same derivation the details panel uses for avg basket, so the rail and the
@@ -215,17 +262,17 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
   const chipLifetime = Math.round((customer.visits || 0) * 58 + (customer.points || 0) * 0.42);
   const chipAov = chipLifetime / Math.max(1, customer.visits || 1);
 
-  const Avatars = () =>
+  const Avatars = ({ solo }) =>
   <div style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
       <Avatar name={customer.name} size={32} crown={customer.member} />
-      {guests.slice(0, 3).map((g, i) => <span key={i} style={{ marginLeft: -10, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface2}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={26} /></span>)}
+      {!solo && guests.slice(0, 3).map((g, i) => <span key={i} style={{ marginLeft: -10, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface2}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={26} /></span>)}
     </div>;
 
   const NameRow = () =>
   <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>
       {customer.name}
       <VisitPill visit={customer.visits} />
-      {guests.length > 0 && <span style={{ fontSize: 9.5, fontWeight: 600, color: goldInk, background: P.accentSoft, padding: '1px 7px', borderRadius: 99 }}>+{guests.length} guest{guests.length > 1 ? 's' : ''}</span>}
+      {guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: goldInk, background: P.accentSoft, padding: '1px 7px', borderRadius: 99 }}>+{guests.length} guest{guests.length > 1 ? 's' : ''}</span>}
     </div>;
 
   const Actions = () =>
@@ -241,11 +288,11 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
 
   const Stat = ({ k, v, color }) =>
   <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, flex: '0 0 auto' }}>
-      <span style={{ fontSize: 8.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{k}</span>
-      <span style={{ fontSize: 12, fontWeight: 700, color: color || P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{v}</span>
+      <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{k}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: color || P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{v}</span>
     </div>;
 
-  const Sub = () => <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>{customer.points} pts · {customer.type}{guests.length > 0 ? ' · sale on main' : ''}</div>;
+  const Sub = () => <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{customer.points} pts · {customer.type}{guests.length > 0 ? ' · sale on main' : ''}</div>;
   const tierPill = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: tierColor, flex: '0 0 auto' }}><Icon name="crown" size={11} color={tierColor} />{tier.toUpperCase()}</span>;
   const vDiv = <span style={{ flex: '0 0 auto', width: 1, height: 26, background: P.hairline2 }} />;
 
@@ -258,20 +305,69 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
         <Actions />
       </div>;
   } else if (view === 'detailed') {
+    // Option A — stat cards. Each number gets an icon, a 19px mono numeral and
+    // a sub-line that turns it into a sentence. Phone is contact detail, not a
+    // metric, so it sits with the name and the freed room buys Lifetime spend.
+    const seed = (customer.name || '').length + (customer.visits || 1);
+    const pick = (arr) => arr[seed % arr.length];
+    const since = pick(['Mar 2022', 'Jul 2023', 'Nov 2021', 'Jan 2024', 'Sep 2022']);
+    const lastVisit = pick(['2 days ago', 'yesterday', '5 days ago', 'last week']);
+    const ready = (window.HW.REWARDS || []).filter((r) => !r.bday && customer.points >= r.cost).sort((a, b) => b.value - a.value)[0];
+    const nextR = (window.HW.REWARDS || []).filter((r) => !r.bday && customer.points < r.cost).sort((a, b) => a.cost - b.cost)[0];
+    // A guest spun onto their own ticket usually has no history — say so instead
+    // of showing a derived number that looks like real spend.
+    const guestOf = customer.guestOf;
+    const fresh = (customer.visits || 0) <= 1 && !customer.points;
+
+    const SCard = ({ icon, label, value, sub, subColor, valColor, hl }) =>
+    <div style={{ flex: '1 1 0', minWidth: 0, background: hl ? P.accentSoft : P.surface, border: `1px solid ${hl ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: '8px 10px 9px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+          <span style={{ width: 18, height: 18, borderRadius: 5, background: hl ? P.accent : P.surface3, color: hl ? P.accentInk : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={11} stroke={2} /></span>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: hl ? goldInk : P.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        </div>
+        <div style={{ fontFamily: P.fontMono, fontSize: 21, fontWeight: 700, letterSpacing: '-.02em', lineHeight: 1, color: valColor || P.ink, whiteSpace: 'nowrap' }}>{value}</div>
+        <div style={{ fontFamily: P.fontMono, fontSize: 10, color: subColor || P.inkMute, marginTop: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>
+      </div>;
+
     body =
-    <div onClick={onToggleDetails} title="Click to view full member details" style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '9px 14px', background: detailsOpen ? P.surface3 : P.surface2, border: `1px solid ${detailsOpen ? P.hairline3 : guests.length ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, width: '100%', cursor: 'pointer' }}>
-        <Stat k="Points" v={customer.points.toLocaleString()} />
-        <Stat k="Visits" v={customer.visits} />
-        <Stat k="Avg order" v={window.HW.fmt.money(chipAov)} />
-        <Stat k="Wallet" v={window.HW.fmt.money(customer.wallet || 0)} color={customer.wallet > 0 ? P.good : P.ink} />
-        <Stat k="Phone" v={customer.phone} />
-        <div style={{ flex: 1 }} />
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: P.inkDim, flex: '0 0 auto' }}>{detailsOpen ? 'Hide' : 'Details'}<Icon name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={13} stroke={2.2} /></span>
-        {vDiv}
-        {/* Customer identity moved to the right so it sits above the cart (comment) */}
-        <Avatars />
-        <div style={{ minWidth: 0, textAlign: 'right' }}><NameRow /><div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{customer.email}</div></div>
-        <Actions />
+    <div style={{ display: 'flex', alignItems: 'stretch', gap: 10, width: '100%' }}>
+        {/* Identity — name, contact, standing */}
+        <div onClick={onToggleDetails} title="Open full member details" style={{ flex: '0 0 214px', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: detailsOpen ? P.surface3 : P.surface2, border: `1px solid ${detailsOpen ? P.hairline3 : guests.length ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer' }}>
+          <Avatars solo={!!guestOf} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{customer.name}</div>
+            <div style={{ fontSize: 10, color: P.inkDim, fontFamily: P.fontMono, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{guestOf ? `guest of ${guestOf.split(' ')[0]}` : customer.phone}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 5 }}>
+              {tierPill}
+              <VisitPill visit={customer.visits} />
+              {!guestOf && guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: goldInk, background: P.accentSoft, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap' }}>+{guests.length}</span>}
+              {guestOf && <span style={{ fontSize: 10, fontWeight: 700, color: P.ink2, background: P.surface3, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap' }}>OWN TICKET</span>}
+            </div>
+          </div>
+        </div>
+        {/* The numbers */}
+        <SCard hl icon="star" label="Points" value={customer.points.toLocaleString()}
+        sub={ready ? `${ready.label} ready to redeem` : nextR ? `${nextR.cost - customer.points} to ${nextR.label}` : 'earning'}
+        subColor={ready ? goldInk : P.inkMute} />
+        <SCard icon="user-check" label="Visits" value={fresh ? 1 : customer.visits} sub={fresh ? 'first visit today' : `last · ${lastVisit}`} />
+        <SCard icon="chart-line" label="Avg order" value={fresh ? '—' : window.HW.fmt.money(chipAov)} valColor={fresh ? P.inkMute : P.ink} sub={fresh ? 'no orders yet' : `over ${customer.visits} order${customer.visits === 1 ? '' : 's'}`} />
+        <SCard icon="wallet" label="Wallet" value={window.HW.fmt.money(customer.wallet || 0)}
+        valColor={customer.wallet > 0 ? P.good : P.inkMute}
+        sub={customer.wallet > 0 ? 'store credit available' : 'no credit on account'}
+        subColor={customer.wallet > 0 ? P.good : P.inkMute} />
+        <SCard icon="cash" label="Lifetime" value={fresh ? '$0' : window.HW.fmt.money0(chipLifetime)} valColor={fresh ? P.inkMute : P.ink} sub={fresh ? 'new customer' : `since ${since}`} />
+        {/* Actions */}
+        <div style={{ flex: '0 0 106px', display: 'flex', flexDirection: 'column', gap: 5, justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <button onClick={onToggleDetails} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px 9px', background: detailsOpen ? P.surface3 : P.surface, color: P.ink2, border: `1px solid ${detailsOpen ? P.hairline3 : P.hairline2}`, borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, minHeight: 30 }}>
+            {detailsOpen ? 'Hide' : 'Details'}<Icon name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={12} stroke={2.2} />
+          </button>
+          <button onClick={() => setOpen((o) => !o)} title="Manage the party · open a separate ticket" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px 9px', background: open ? P.accent : P.surface, color: open ? P.accentInk : P.ink2, border: `1px solid ${open ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, minHeight: 30 }}>
+            <Icon name="users" size={13} stroke={2} />Party{guests.length > 0 ? ` ${1 + guests.length}` : ''}
+          </button>
+          <button onClick={onClear} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '5px 9px', background: 'transparent', color: P.inkMute, border: 'none', borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <Icon name="x" size={12} stroke={2.2} />Clear
+          </button>
+        </div>
       </div>;
   } else {
     body =
@@ -289,15 +385,96 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
       {body}
       {open && <>
         <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 50 }} />
-        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 320, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, padding: 14, zIndex: 51 }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 360, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, padding: 14, zIndex: 51, maxHeight: '70vh', overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <Icon name="user-check" size={15} stroke={1.9} color={P.ink2} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap' }}>Manage check-in party</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap' }}>Manage check-in party</span>
           </div>
           <p style={{ margin: '0 0 12px', fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>Editing the party for <b style={{ color: P.ink2 }}>{customer.name.split(' ')[0]}</b>’s check-in. Guests are added at check-in and tracked as referrals.</p>
+
+          {/* Tickets — the party is one sale unless a guest needs their own */}
+          {guests.length > 0 &&
+          <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 11, marginBottom: 13, background: P.surface2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+                <Eyebrow>Tickets</Eyebrow>
+                <span style={{ marginLeft: 'auto', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{tickets.length} open</span>
+              </div>
+              <p style={{ margin: '0 0 10px', fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>The party checks out on <b style={{ color: P.ink2 }}>one ticket</b> by default. Open a separate one only when a guest is buying for themselves — it becomes their own transaction, with their own purchase limit and points.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: activeTicket === 0 ? P.accentSoft : P.surface, border: `1px solid ${activeTicket === 0 ? P.accentBorder : P.hairline}`, borderRadius: P.r10 }}>
+                  <Avatar name={customer.name} size={24} crown={customer.member} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{customer.name.split(' ')[0]}</span>
+                    <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>main ticket</span>
+                  </span>
+                  {activeTicket === 0 ? <Pill kind="accent" dot>ringing</Pill> :
+                  <PBtn variant="secondary" size="xs" onClick={() => onPickTicket && onPickTicket(0)}>Switch</PBtn>}
+                </div>
+                {guests.map((g, i) => {
+                const gn = window.guestName ? window.guestName(g) : g;
+                const ok = !(window.guestIncomplete && window.guestIncomplete([g]) > 0);
+                const owns = hasTicket && hasTicket(gn);
+                const idx = tickets.findIndex((x) => x.person && x.person.name === gn);
+                return (
+                  <div key={gn + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: owns && activeTicket === idx ? P.accentSoft : P.surface, border: `1px solid ${owns ? activeTicket === idx ? P.accentBorder : P.hairline2 : P.hairline}`, borderRadius: P.r10 }}>
+                      <Avatar name={gn} size={24} />
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gn}</span>
+                        <span style={{ display: 'block', fontSize: 10, color: owns ? goldInk : P.inkMute, fontFamily: P.fontMono }}>{owns ? 'own ticket' : ok ? 'on the main ticket' : 'ID not captured'}</span>
+                      </span>
+                      {owns ?
+                    activeTicket === idx ? <Pill kind="accent" dot>ringing</Pill> :
+                    <PBtn variant="secondary" size="xs" onClick={() => onPickTicket && onPickTicket(idx)}>Switch</PBtn> :
+                    ok ?
+                    <PBtn variant="soft" size="xs" icon="plus" onClick={() => {onStartTicket && onStartTicket(g);setOpen(false);}}>Ticket</PBtn> :
+                    <Pill kind="bad" dot>needs ID</Pill>}
+                    </div>);
+              })}
+              </div>
+            </div>}
+
           <GuestEditor primaryName={customer.name} guests={guests} onChange={setGuests} />
         </div>
       </>}
+    </div>);
+
+}
+
+// ── Ticket tabs — only exist once a party has more than one ticket ─────────
+function TicketTabs({ tickets, active, onPick, onDrop, totalOf }) {
+  const P = useP();
+  const money = window.HW.fmt.money;
+  return (
+    <div style={{ display: 'flex', background: P.surface3, borderBottom: `1px solid ${P.hairline2}`, flex: '0 0 auto' }}>
+      {tickets.map((t, i) => {
+        const on = i === active;
+        const amt = totalOf(t.cart);
+        return (
+          <button key={t.id} onClick={() => onPick(i)} title={`${t.person.name} · ticket ${i + 1}`} style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', background: on ? P.surface2 : 'transparent', border: 'none', borderRight: i < tickets.length - 1 ? `1px solid ${P.hairline2}` : 'none', boxShadow: on ? `inset 0 2px 0 ${P.accent}` : 'none', cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
+            <Avatar name={t.person.name} size={24} crown={t.person.member} />
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.person.name.split(' ')[0]}</span>
+              <span style={{ display: 'block', fontSize: 10, color: t.paid ? P.good : on ? P.ink : P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{t.paid ? 'paid' : amt > 0 ? money(amt) : 'empty'}</span>
+            </span>
+            {t.paid && <Icon name="check-circle" size={13} stroke={2.2} color={P.good} />}
+            {!t.paid && i > 0 && amt === 0 && <span onClick={(e) => {e.stopPropagation();onDrop(i);}} title="Close this empty ticket" style={{ display: 'inline-flex', width: 18, height: 18, alignItems: 'center', justifyContent: 'center', color: P.inkMute }}><Icon name="x" size={11} stroke={2.4} /></span>}
+          </button>);
+      })}
+    </div>);
+
+}
+
+// Party total + one-tender shortcut. The host paying for everyone is the common
+// case — it stays N transactions, one card.
+function PartyTotalBar({ P, tickets, partyTotal, onPayAll }) {
+  const paid = tickets.filter((t) => t.paid).length;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 48px 8px 12px', background: P.highlightSoft, borderTop: `1px solid ${P.hairline2}`, flex: '0 0 auto' }}>
+      <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        Party <span style={{ fontFamily: P.fontMono, color: P.ink }}>{window.HW.fmt.money(partyTotal)}</span>
+        <span style={{ fontWeight: 600, opacity: .8 }}> · {paid} paid, {tickets.length - paid} open</span>
+      </span>
+      <PBtn variant="secondary" size="xs" icon="card" onClick={onPayAll} title={`One tender · charge every open ticket to ${tickets[0].person.name}`}>Pay all</PBtn>
     </div>);
 
 }
@@ -323,7 +500,7 @@ function BrandFilter({ products, brands, setBrands }) {
           <Icon name="tag" size={12.5} stroke={1.9} />Brands{brands.size > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: P.accentInk, background: P.accent, padding: '0 6px', borderRadius: 99, fontFamily: P.fontMono }}>{brands.size}</span>}<Icon name="chevron-down" size={12} stroke={2.2} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
         </button>
         {sel.map((b) =>
-        <button key={b} onClick={() => toggle(b)} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: P.r999, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, color: P.ink, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+        <button key={b} onClick={() => toggle(b)} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: P.r999, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, color: P.ink, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
             {b}<Icon name="x" size={11} stroke={2.2} color={P.inkMute} />
           </button>)}
         {brands.size > 0 && <button onClick={() => setBrands(new Set())} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: 'transparent', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="x" size={12} stroke={2} />Clear all</button>}
@@ -338,9 +515,9 @@ function BrandFilter({ products, brands, setBrands }) {
                 <button key={b} onClick={() => toggle(b)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', background: on ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                 <Check on={on} onChange={() => toggle(b)} size={16} />
                 <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b}</span>
-                <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{cnt(b)}</span>
+                <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{cnt(b)}</span>
               </button>);})}
-            {shown.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: P.inkMute }}>No brands match</div>}
+            {shown.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No brands match</div>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: `1px solid ${P.hairline}` }}>
             <button onClick={() => setBrands(new Set())} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="x" size={12} stroke={2} />Clear all</button>
@@ -367,7 +544,7 @@ function ProductSearch({ q, setQ, onScan }) {
     <div style={{ flex: '0 0 auto', width: 296 }}>
       <Field icon="search" placeholder="Search or scan products…" value={q} autoFocus onChange={(e) => setQ(e.target.value)} size="sm"
       suffix={<div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <button title="Scan barcode" onClick={onScan} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 7, color: P.ink2, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="scan" size={14} stroke={1.9} />Scan</button>
+          <button title="Scan barcode" onClick={onScan} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 7, color: P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="scan" size={14} stroke={1.9} />Scan</button>
           <button title="Close search" onClick={() => {setQ('');setOpen(false);}} style={{ display: 'inline-flex', width: 22, height: 22, alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: P.inkMute, cursor: 'pointer' }}><Icon name="x" size={14} stroke={2} /></button>
         </div>} />
     </div>);
@@ -407,9 +584,9 @@ function CustomerSearch({ onSelect, onNewCheckIn, activeName }) {
                   <Avatar name={m.name} size={30} crown={m.member} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{m.name}<VisitPill visit={m.visits} /></div>
-                    <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.points} pts</div>
+                    <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.points} pts</div>
                   </div>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 600, color: isActive ? P.inkMute : P.mode === 'light' ? '#7A5A00' : P.accent, whiteSpace: 'nowrap' }}>{isActive ? 'In sale' : 'Check in'}<Icon name="arrow-right" size={13} stroke={2.2} /></span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 600, color: isActive ? P.inkMute : P.ink, whiteSpace: 'nowrap' }}>{isActive ? 'In sale' : 'Check in'}<Icon name="arrow-right" size={13} stroke={2.2} /></span>
                 </button>);
 
           })}
@@ -432,7 +609,7 @@ function QueueToggle({ open, setOpen }) {
     <button onClick={() => setOpen((o) => !o)} title="Show / hide check-in queue" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 11px', background: open ? P.surface3 : P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, cursor: 'pointer', fontFamily: P.fontSans }}>
       <Icon name="users" size={14} stroke={1.9} color={P.ink2} />
       <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Waiting</span>
-      <span style={{ fontSize: 10.5, fontWeight: 700, color: P.accentInk, background: P.accent, padding: '1px 6px', borderRadius: 99, fontFamily: P.fontMono }}>{waiting}</span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, color: P.accentInk, background: P.accent, padding: '1px 6px', borderRadius: 99, fontFamily: P.fontMono }}>{waiting}</span>
       <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
     </button>);
 
@@ -448,8 +625,8 @@ function WaitRow({ c, active, onPick }) {
         {(c.guests || []).slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -9, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={22} /></span>)}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}<VisitPill visit={c.visit} />{c.guests && c.guests.length > 0 && <span style={{ fontSize: 9.5, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '0 6px', borderRadius: 99 }}>+{c.guests.length}</span>}</div>
-        <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{claimed ? `Claimed · ${c.claimedBy.split(' ')[0]}` : c.type} · {c.wait}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}<VisitPill visit={c.visit} />{c.guests && c.guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '0 6px', borderRadius: 99 }}>+{c.guests.length}</span>}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{claimed ? `Claimed · ${c.claimedBy.split(' ')[0]}` : c.type} · {c.wait}</div>
       </div>
       <Icon name="arrow-right" size={15} color={P.inkFaint} />
     </button>);
@@ -460,9 +637,9 @@ function WaitRow({ c, active, onPick }) {
 function VisitPill({ visit }) {
   const P = useP();
   const ord = window.HW.visitOrdinal(visit);
-  const fg = ord === 1 ? P.ink2 : ord === 2 ? P.info : P.mode === 'light' ? '#7A5A00' : P.accent;
-  const bg = ord === 1 ? P.neutralSoft : ord === 2 ? P.infoSoft : P.accentSoft;
-  return <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.02em', color: fg, background: bg, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontFamily: P.fontSans }}>{window.HW.visitLabel(visit)}</span>;
+  const fg = ord === 1 ? P.inkDim : ord === 2 ? P.info : P.ink;
+  const bg = ord === 1 ? P.neutralSoft : ord === 2 ? P.infoSoft : P.highlightSoft;
+  return <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.02em', color: fg, background: bg, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontFamily: P.fontSans }}>{window.HW.visitLabel(visit)}</span>;
 }
 
 function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
@@ -485,13 +662,13 @@ function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}{c.guests && c.guests.length > 0 ? <span style={{ color: P.inkMute, fontWeight: 600 }}> +{c.guests.length}</span> : ''}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                     <VisitPill visit={c.visit} />
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, color: claimed ? P.inkMute : P.warn, fontFamily: P.fontMono }}><Icon name="clock" size={10} stroke={2} />{shortWait(c)}</span>
-                    {claimed && <span style={{ marginLeft: 'auto', fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>· {c.claimedBy.split(' ')[0]}</span>}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, color: claimed ? P.inkMute : P.warn, fontFamily: P.fontMono }}><Icon name="clock" size={10} stroke={2} />{shortWait(c)}</span>
+                    {claimed && <span style={{ marginLeft: 'auto', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>· {c.claimedBy.split(' ')[0]}</span>}
                   </div>
                 </div>
               </div>
             </div>
-            <button onClick={() => onPick(c)} style={{ width: '100%', padding: '5px', background: claimed ? P.surface3 : P.accent, color: claimed ? P.ink : P.accentInk, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <button onClick={() => onPick(c)} style={{ width: '100%', minHeight: P.ctrlH.md, padding: '5px 10px', background: claimed ? P.surface3 : P.ink, color: claimed ? P.ink : P.surface, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
               {claimed ? 'Resume' : 'Claim'}<Icon name="arrow-right" size={12} stroke={2.3} />
             </button>
           </div>);
@@ -546,7 +723,7 @@ function MemberDetails({ customer, guests, onClose }) {
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', background: 'linear-gradient(transparent, rgba(0,0,0,.45))' }}>
         <span style={{ fontSize: big ? 12 : 10, fontWeight: 700, color: '#fff', letterSpacing: '.04em' }}>{p2.label}</span>
-        {!big && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9.5, fontWeight: 600, color: '#fff', background: 'rgba(0,0,0,.35)', padding: '2px 6px', borderRadius: 99 }}><Icon name="expand" size={10} stroke={2} />Enlarge</span>}
+        {!big && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, color: '#fff', background: 'rgba(0,0,0,.35)', padding: '2px 6px', borderRadius: 99 }}><Icon name="expand" size={10} stroke={2} />Enlarge</span>}
       </div>
     </button>;
 
@@ -561,8 +738,8 @@ function MemberDetails({ customer, guests, onClose }) {
     </div>;
   const KV = ({ k, v, mono = true }) =>
   <div style={{ padding: '3px 0' }}>
-      <div style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 1 }}>{k}</div>
-      <div style={{ fontSize: 12, color: P.ink2, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word', lineHeight: 1.3 }}>{v}</div>
+      <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 1 }}>{k}</div>
+      <div style={{ fontSize: 12.5, color: P.ink2, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word', lineHeight: 1.3 }}>{v}</div>
     </div>;
   // Editable field — pencil to edit inline, save commits
   const EditKV = ({ k, field, mono = true }) => {
@@ -570,12 +747,12 @@ function MemberDetails({ customer, guests, onClose }) {
     return (
       <div style={{ padding: '3px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-          <span style={{ fontSize: 9, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase' }}>{k}</span>
+          <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase' }}>{k}</span>
           <button onClick={() => setEditing(on ? null : field)} title={`Edit ${k}`} style={{ display: 'inline-flex', width: 18, height: 18, alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', color: on ? P.ink : P.inkMute, cursor: 'pointer' }}><Icon name={on ? 'check' : 'pencil'} size={12} stroke={2} /></button>
         </div>
         {on ?
-        <input value={f[field]} autoFocus onChange={(e) => set1(field, e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setEditing(null)} style={{ width: '100%', marginTop: 2, padding: '5px 8px', border: `1px solid ${P.accentBorder}`, borderRadius: 7, background: P.field, color: P.ink, fontSize: 12, fontFamily: mono ? P.fontMono : P.fontSans, outline: 'none' }} /> :
-        <div onClick={() => setEditing(field)} style={{ fontSize: 12, color: P.ink2, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word', lineHeight: 1.3, cursor: 'text' }}>{f[field]}</div>}
+        <input value={f[field]} autoFocus onChange={(e) => set1(field, e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setEditing(null)} style={{ width: '100%', marginTop: 2, padding: '5px 8px', border: `1px solid ${P.accentBorder}`, borderRadius: 7, background: P.field, color: P.ink, fontSize: 12.5, fontFamily: mono ? P.fontMono : P.fontSans, outline: 'none' }} /> :
+        <div onClick={() => setEditing(field)} style={{ fontSize: 12.5, color: P.ink2, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word', lineHeight: 1.3, cursor: 'text' }}>{f[field]}</div>}
       </div>);
 
   };
@@ -585,9 +762,9 @@ function MemberDetails({ customer, guests, onClose }) {
       <div style={{ padding: '13px 22px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
           <Icon name="user" size={15} stroke={1.9} color={P.ink2} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Member details</span>
-          <span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>· {m.name}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ID VERIFIED</span>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Member details</span>
+          <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>· {m.name}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ID VERIFIED</span>
           <div style={{ flex: 1 }} />
           <PBtn variant="ghost" size="xs" icon="x" onClick={onClose}>Close</PBtn>
         </div>
@@ -598,7 +775,7 @@ function MemberDetails({ customer, guests, onClose }) {
             {photos.map((p2) => <PhotoCard key={p2.id} p2={p2} />)}
           </div>
           <div style={{ flex: '0 0 196px', border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, padding: 12, display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', color: P.inkMute, marginBottom: 8 }}>LICENSE · {idNum}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: P.inkMute, marginBottom: 8 }}>LICENSE · {idNum}</span>
             <KV k="DOB" v={dob} />
             <EditKV k="Expiration" field="exp" />
             <div style={{ flex: 1 }} />
@@ -610,7 +787,7 @@ function MemberDetails({ customer, guests, onClose }) {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(196px, 1fr))', gap: 12, alignItems: 'start' }}>
-          <Panel title="Contact" icon="phone" action={<span style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600 }}>tap ✎ to edit</span>}>
+          <Panel title="Contact" icon="phone" action={<span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600 }}>tap ✎ to edit</span>}>
             <EditKV k="Phone" field="phone" />
             <EditKV k="Email" field="email" mono={false} />
             <EditKV k="Street" field="street" mono={false} />
@@ -626,7 +803,7 @@ function MemberDetails({ customer, guests, onClose }) {
           </Panel>
 
           {/* Medical card details (comment 3) */}
-          <Panel title="Medical card" icon="shield" action={isMed ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ACTIVE</span> : <span style={{ fontSize: 9, fontWeight: 700, color: P.inkMute }}>NONE</span>}>
+          <Panel title="Medical card" icon="shield" action={isMed ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ACTIVE</span> : <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute }}>NONE</span>}>
             {isMed ?
             <>
                 <KV k="MMIC #" v={mmic} />
@@ -634,7 +811,7 @@ function MemberDetails({ customer, guests, onClose }) {
                 <KV k="Recommending MD" v={medMd} mono={false} />
                 <KV k="Issued" v={medIssued} />
                 <div style={{ height: 1, background: P.hairline, margin: '7px 0' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: P.good, fontWeight: 600 }}><Icon name="check-circle" size={12} stroke={2} />Tax-exempt (MMIC verified)</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.good, fontWeight: 600 }}><Icon name="check-circle" size={12} stroke={2} />Tax-exempt (MMIC verified)</div>
                 <div style={{ marginTop: 9 }}><PBtn variant="soft" size="xs" icon="eye" onClick={() => setLb(photos[2])}>View card</PBtn></div>
               </> :
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '6px 0' }}>
@@ -652,13 +829,13 @@ function MemberDetails({ customer, guests, onClose }) {
                     <div style={{ fontSize: 11.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>#{o.id}</div>
                     <div style={{ fontSize: 10, color: P.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.date} · {o.tag}</div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(o.total)}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(o.total)}</span>
                   <Icon name="chevron-right" size={14} color={P.inkFaint} />
                 </button>
               )}
               {oList.length === 0 && <div style={{ padding: '14px 8px', textAlign: 'center', fontSize: 11.5, color: P.inkMute }}>No orders match</div>}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: P.inkDim }}><span>{m.visits} lifetime orders</span><span style={{ fontFamily: P.fontMono }}>avg {window.HW.fmt.money(avgBasket)}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11.5, color: P.inkDim }}><span>{m.visits} lifetime orders</span><span style={{ fontFamily: P.fontMono }}>avg {window.HW.fmt.money(avgBasket)}</span></div>
           </Panel>
 
           <Panel title="Referrals" icon="link">
@@ -679,7 +856,7 @@ function MemberDetails({ customer, guests, onClose }) {
       <div onClick={() => setLb(null)} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 30, animation: 'fade .15s ease' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 94vw)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: P.railBright }}>{lb.label} · {m.name}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: P.railBright }}>{lb.label} · {m.name}</span>
               <div style={{ display: 'flex', gap: 7 }}>
                 <PBtn variant="accent" size="sm" icon="upload">Replace image</PBtn>
                 <IconBtn icon="x" size={18} onClick={() => setLb(null)} style={{ color: P.railBright }} />
@@ -705,7 +882,7 @@ function ProductRow({ p, inCart, onAdd }) {
           <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.brand}</span>
           <span style={{ fontSize: 10, color: p.qty < 10 ? P.warn : P.inkFaint, fontFamily: P.fontMono, whiteSpace: 'nowrap', flex: '0 0 auto' }}>{p.qty} left</span>
         </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: P.ink, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
           {p.strain && <StrainPill type={p.strain} thc={p.thc} />}
           {p.wt && <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{p.wt}</span>}
@@ -713,7 +890,7 @@ function ProductRow({ p, inCart, onAdd }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-          {p.was && <span style={{ fontSize: 10.5, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.was)}</span>}
+          {p.was && <span style={{ fontSize: 11.5, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.was)}</span>}
           <span style={{ fontSize: 15, fontWeight: 700, color: p.was ? P.bad : P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money0(p.price)}</span>
         </div>
         <button onClick={(e) => {e.stopPropagation();onAdd();}} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: inCart ? P.ink : P.surface, color: inCart ? P.surface : P.ink, border: `1px solid ${inCart ? P.ink : P.hairline3}`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, minHeight: 30, transition: 'background .12s, border-color .12s' }}

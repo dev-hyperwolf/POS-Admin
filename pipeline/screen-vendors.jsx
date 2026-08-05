@@ -88,10 +88,10 @@
                   style={{ width: '100%', textAlign: 'left', padding: 12, borderRadius: 10, cursor: 'pointer', fontFamily: P.fontSans,
                     background: selected ? P.accentSoft : 'transparent', border: `1px solid ${selected ? P.accentBorder : 'transparent'}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontSize: 14, color: P.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</span>
-                    {v.alerts.length > 0 && <span style={{ fontSize: 11, background: warn.bg, color: warn.fg, padding: '2px 6px', borderRadius: 99, fontFamily: P.fontMono }}>{v.alerts.length}</span>}
+                    <span style={{ fontSize: 13.5, color: P.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</span>
+                    {v.alerts.length > 0 && <span style={{ fontSize: 11.5, background: warn.bg, color: warn.fg, padding: '2px 6px', borderRadius: 99, fontFamily: P.fontMono }}>{v.alerts.length}</span>}
                   </div>
-                  <div style={{ marginTop: 2, fontSize: 11, color: P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ marginTop: 2, fontSize: 11.5, color: P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>{v.category}</span>
                     <span style={{ fontFamily: P.fontMono }}>{HD.formatCurrency(v.totalSpend90d, { showCents: false })}</span>
                   </div>
@@ -118,8 +118,8 @@
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
             <div>
               <MicroLabel>Vendor scorecard · Last 90 days</MicroLabel>
-              <h1 style={{ margin: '2px 0 0', fontSize: 28, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>{vendor.name}</h1>
-              <div style={{ fontSize: 13, color: P.ink2, marginTop: 4 }}>
+              <h1 style={{ margin: '2px 0 0', fontSize: 30, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>{vendor.name}</h1>
+              <div style={{ fontSize: 13.5, color: P.ink2, marginTop: 4 }}>
                 {vendor.category} · {vendor.totalInvoices90d} invoices · <span style={{ fontFamily: P.fontMono }}>{HD.formatCurrency(vendor.totalSpend90d, { showCents: false })}</span> spend
               </div>
             </div>
@@ -131,27 +131,27 @@
           <MetricCards vendor={vendor} />
 
           <Card padding={0}>
-            <div style={{ padding: '16px 20px 8px' }}><h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Average unit cost · 12 months</h3></div>
+            <div style={{ padding: '16px 20px 8px' }}><h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Average unit cost · 12 months</h3></div>
             <div style={{ padding: '0 20px 20px' }}>
               <LineChart data={chartData} height={260} stroke={P.accent} valueFormatter={(v) => `$${v.toFixed(2)}`} />
             </div>
           </Card>
 
           <Card padding={0}>
-            <div style={{ padding: '16px 20px 8px' }}><h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Alerts &amp; anomalies</h3></div>
+            <div style={{ padding: '16px 20px 8px' }}><h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Alerts &amp; anomalies</h3></div>
             <div style={{ padding: '0 20px 20px' }}>
               {vendor.alerts.length === 0
-                ? <div style={{ fontSize: 14, color: P.ink2, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
+                ? <div style={{ fontSize: 13.5, color: P.ink2, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0' }}>
                   <Icon name="check-circle" size={16} stroke={2} color={HD.tone(P, 'ok').fg} />No anomalies in the last 14 days.
                 </div>
                 : <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {vendor.alerts.map((a) => (
-                    <li key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas }}>
+                    <li key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface2 }}>
                       <Icon name={a.severity === 'blocked' ? 'x' : a.severity === 'warn' ? 'flag' : 'info'} size={16} stroke={2}
                         color={HD.tone(P, a.severity === 'blocked' ? 'blocked' : a.severity === 'warn' ? 'warn' : 'info').fg} />
-                      <div style={{ flex: 1, fontSize: 13 }}>
+                      <div style={{ flex: 1, fontSize: 13.5 }}>
                         <div style={{ color: P.ink }}>{a.message}</div>
-                        <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{HD.formatDate(a.at)}</div>
+                        <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{HD.formatDate(a.at)}</div>
                       </div>
                     </li>))}
                 </ul>}
@@ -174,8 +174,8 @@
     return (
       <div>
         <MicroLabel>{label}</MicroLabel>
-        <div title={value} style={{ fontFamily: P.fontMono, fontSize: 13, marginTop: 2, color: emphasize ? accentInk : P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-        {sub && <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{sub}</div>}
+        <div title={value} style={{ fontFamily: P.fontMono, fontSize: 13.5, marginTop: 2, color: emphasize ? accentInk : P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
+        {sub && <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{sub}</div>}
       </div>);
   }
 
@@ -187,12 +187,12 @@
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <code style={{ fontFamily: P.fontMono, fontSize: 13, color: P.ink, fontWeight: 600, wordBreak: 'break-all' }}>{flag.key}</code>
+              <code style={{ fontFamily: P.fontMono, fontSize: 13.5, color: P.ink, fontWeight: 600, wordBreak: 'break-all' }}>{flag.key}</code>
               {modified && <HDPill tone="brand" icon={false} size="sm" label="modified" />}
               <HDPill tone="neutral" icon={false} size="sm" label={flag.type} />
               <HDPill tone="info" icon={false} size="sm" label={flag.scope} />
             </div>
-            <p style={{ margin: '6px 0 0', fontSize: 13, color: P.ink2, lineHeight: 1.4 }}>{flag.description}</p>
+            <p style={{ margin: '6px 0 0', fontSize: 13.5, color: P.ink2, lineHeight: 1.4 }}>{flag.description}</p>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${P.hairline2}` }}>
@@ -218,7 +218,7 @@
     const [testStaging, setTestStaging] = React.useState(true);
     React.useEffect(() => { if (flag) { setValue(String(flag.value)); setReason(''); setTestStaging(true); } }, [flag]);
     if (!flag || !open) return null;
-    const sel = { width: '100%', height: 40, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, fontSize: 13, padding: '0 12px', color: P.ink, fontFamily: P.fontSans };
+    const sel = { width: '100%', height: 40, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, fontSize: 13.5, padding: '0 12px', color: P.ink, fontFamily: P.fontSans };
     function handleSave() {
       if (!reason.trim()) { window.hdToast?.({ title: 'Reason required', description: 'Enter the reason for this flag change.', tone: 'warn' }); return; }
       let parsed = value;
@@ -233,9 +233,9 @@
         <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
         <Card padding={0} style={{ position: 'relative', width: 520, maxWidth: '92vw' }}>
           <div style={{ padding: 20 }}>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Edit flag</h2>
-            <div style={{ fontFamily: P.fontMono, fontSize: 12, color: P.inkMute, marginTop: 4 }}>{flag.key}</div>
-            <p style={{ margin: '16px 0 0', fontSize: 13, color: P.ink2 }}>{flag.description}</p>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Edit flag</h2>
+            <div style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.inkMute, marginTop: 4 }}>{flag.key}</div>
+            <p style={{ margin: '16px 0 0', fontSize: 13.5, color: P.ink2 }}>{flag.description}</p>
             <div style={{ marginTop: 16 }}>
               <MicroLabel style={{ marginBottom: 6 }}>New value</MicroLabel>
               {flag.type === 'boolean'
@@ -243,15 +243,15 @@
                 : flag.type === 'enum' && flag.enumOptions
                   ? <select value={value} onChange={(e) => setValue(e.target.value)} style={sel}>{flag.enumOptions.map((o) => <option key={o} value={o}>{o}</option>)}</select>
                   : <Field value={value} onChange={(e) => setValue(e.target.value)} type={flag.type === 'number' ? 'number' : 'text'} min={flag.min} max={flag.max} step={flag.type === 'number' && flag.max && flag.max < 2 ? '0.01' : '1'} />}
-              <div style={{ marginTop: 6, fontSize: 11, color: P.inkMute }}>Default: <span style={{ fontFamily: P.fontMono }}>{String(flag.default)}</span></div>
+              <div style={{ marginTop: 6, fontSize: 11.5, color: P.inkMute }}>Default: <span style={{ fontFamily: P.fontMono }}>{String(flag.default)}</span></div>
             </div>
             <div style={{ marginTop: 16 }}>
               <MicroLabel style={{ marginBottom: 6 }}>Reason (required)</MicroLabel>
               <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
                 placeholder="Why is this flag changing? e.g. STIIIZY invoices trending high variance — lowering auto-post threshold."
-                style={{ width: '100%', padding: '10px 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, color: P.ink, fontSize: 13, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} />
+                style={{ width: '100%', padding: '10px 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, resize: 'vertical', outline: 'none' }} />
             </div>
-            <label style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: P.ink2, cursor: 'pointer' }}>
+            <label style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: P.ink2, cursor: 'pointer' }}>
               <Check on={testStaging} onChange={setTestStaging} size={18} />Test in staging for 5 minutes before applying to prod
             </label>
           </div>
@@ -299,7 +299,7 @@
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {SETTINGS_NAV.map((s) => (
               <li key={s.key}>
-                <span aria-disabled={!s.active} style={{ display: 'flex', alignItems: 'center', height: 36, padding: '0 12px', borderRadius: 8, fontSize: 14, cursor: s.active ? 'default' : 'not-allowed',
+                <span aria-disabled={!s.active} style={{ display: 'flex', alignItems: 'center', height: 36, padding: '0 12px', borderRadius: 8, fontSize: 13.5, cursor: s.active ? 'default' : 'not-allowed',
                   background: s.active ? P.accentSoft : 'transparent', color: s.active ? accentInk : P.inkFaint, border: `1px solid ${s.active ? P.accentBorder : 'transparent'}` }}>{s.label}</span>
               </li>))}
           </ul>
@@ -307,8 +307,8 @@
         <div style={{ flex: 1, overflow: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 20 }}>
           <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>Feature flags</h1>
-              <p style={{ margin: '4px 0 0', fontSize: 13, color: P.inkDim, maxWidth: 620 }}>Runtime configuration for intake, OCR, METRC, and platform modules. Changes are audited and can be scoped per entity, role, or user.</p>
+              <h1 style={{ margin: 0, fontSize: 30, fontWeight: 600, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>Feature flags</h1>
+              <p style={{ margin: '4px 0 0', fontSize: 13.5, color: P.inkDim, maxWidth: 620 }}>Runtime configuration for intake, OCR, METRC, and platform modules. Changes are audited and can be scoped per entity, role, or user.</p>
             </div>
             <div style={{ width: 320 }}>
               <Field icon="search" size="sm" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search flag key or description" aria-label="Search flags" />

@@ -27,11 +27,11 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
         {/* appointment window banner */}
         <div style={{ background: P.indica, borderRadius: P.r20, padding: '16px 18px', marginBottom: 16, color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: 'rgba(255,255,255,.2)', fontSize: 11, fontWeight: 800 }}><Icon name="home" size={12} stroke={2.2} color="#fff" />SHOP@HOME</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: 'rgba(255,255,255,.2)', fontSize: 11.5, fontWeight: 800 }}><Icon name="home" size={12} stroke={2.2} color="#fff" />SHOP@HOME</span>
             <div style={{ flex: 1 }} />
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: 'rgba(255,255,255,.16)', fontSize: 11, fontWeight: 700 }}><Icon name={es.icon} size={12} stroke={2} color="#fff" />{es.label}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, background: 'rgba(255,255,255,.16)', fontSize: 11.5, fontWeight: 700 }}><Icon name={es.icon} size={12} stroke={2} color="#fff" />{es.label}</span>
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.01em' }}>{base.win}</div>
+          <div style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.01em' }}>{base.win}</div>
           <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,.75)', fontFamily: P.fontMono, marginTop: 3 }}>ETA {base.eta} · {base.dist} mi away</div>
         </div>
 
@@ -42,10 +42,10 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
         <Eyebrow style={{ marginBottom: 10 }}>Customer brief</Eyebrow>
         <Card style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 14 }}>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 10.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>AOV goal</div><div style={{ fontSize: 22, fontWeight: 800, color: P.accent, fontFamily: P.fontMono, marginTop: 2 }}>{_am(window.MD.AOV.target)}</div><div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 1 }}>min {_am(window.MD.AOV.min)}</div></div>
-            <div style={{ flex: 2, borderLeft: `1px solid ${P.hairline}`, paddingLeft: 14 }}><div style={{ fontSize: 10.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, marginBottom: 6 }}>Interested in</div><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{(brief.interests || []).map((c) => <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99, background: (window.HW.CAT_COLOR[c] || P.ink) + '22', color: window.HW.CAT_COLOR[c] || P.ink, fontSize: 12, fontWeight: 700 }}><span style={{ width: 7, height: 7, borderRadius: 99, background: window.HW.CAT_COLOR[c] || P.ink }} />{c}</span>)}</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 11.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>AOV goal</div><div style={{ fontSize: 21, fontWeight: 800, color: P.accent, fontFamily: P.fontMono, marginTop: 2 }}>{_am(window.MD.AOV.target)}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 1 }}>min {_am(window.MD.AOV.min)}</div></div>
+            <div style={{ flex: 2, borderLeft: `1px solid ${P.hairline}`, paddingLeft: 14 }}><div style={{ fontSize: 11.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, marginBottom: 6 }}>Interested in</div><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{(brief.interests || []).map((c) => <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99, background: (window.HW.CAT_COLOR[c] || P.ink) + '22', color: window.HW.CAT_COLOR[c] || P.ink, fontSize: 12.5, fontWeight: 700 }}><span style={{ width: 7, height: 7, borderRadius: 99, background: window.HW.CAT_COLOR[c] || P.ink }} />{c}</span>)}</div></div>
           </div>
-          {brief.note && <div style={{ display: 'flex', gap: 9, marginTop: 14, paddingTop: 13, borderTop: `1px solid ${P.hairline}` }}><Icon name="note" size={16} stroke={1.9} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} /><div style={{ fontSize: 13, color: P.ink2, lineHeight: 1.5 }}>{brief.note}</div></div>}
+          {brief.note && <div style={{ display: 'flex', gap: 9, marginTop: 14, paddingTop: 13, borderTop: `1px solid ${P.hairline}` }}><Icon name="note" size={16} stroke={1.9} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} /><div style={{ fontSize: 13.5, color: P.ink2, lineHeight: 1.5 }}>{brief.note}</div></div>}
           {brief.last && <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 10 }}>{brief.last}</div>}
         </Card>
 
@@ -56,7 +56,7 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
         <Card padding={0} style={{ padding: '2px 16px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0' }}>
             <span style={{ width: 36, height: 36, borderRadius: 9, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="pin" size={17} stroke={1.8} /></span>
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Address</div><div style={{ fontSize: 14, fontWeight: 600, color: P.ink, marginTop: 2 }}>{base.addr}, {base.city} {base.zip}</div></div>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 11.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Address</div><div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, marginTop: 2 }}>{base.addr}, {base.city} {base.zip}</div></div>
             <button onClick={() => window.M.flash('Opening navigation')} style={{ padding: '9px 14px', background: P.ink, color: P.surface, border: 'none', borderRadius: P.r10, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name="route" size={14} stroke={2} />Go</button>
           </div>
         </Card>
@@ -65,12 +65,12 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
         {idOk ?
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: P.goodSoft, border: `1px solid ${P.good}`, borderRadius: P.r16, marginBottom: 16 }}>
             <span style={{ width: 38, height: 38, borderRadius: 11, background: P.good, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="check" size={20} stroke={2.2} /></span>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>ID on file · 21+</div><div style={{ fontSize: 12, color: P.mode === 'dark' ? P.good : '#1B5E20', marginTop: 1, fontWeight: 600 }}>Verified — ready to shop</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>ID on file · 21+</div><div style={{ fontSize: 12.5, color: P.mode === 'dark' ? P.good : '#1B5E20', marginTop: 1, fontWeight: 600 }}>Verified — ready to shop</div></div>
           </div> :
 
         <button onClick={() => setShowIdCam(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 16px', background: P.surface, border: `1.5px solid ${P.warn}`, borderRadius: P.r16, cursor: 'pointer', marginBottom: 16 }}>
             <span style={{ width: 40, height: 40, borderRadius: 11, background: P.warnSoft, color: P.warn, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="camera" size={21} stroke={2} /></span>
-            <div style={{ flex: 1, textAlign: 'left' }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Scan customer ID · 21+</div><div style={{ fontSize: 12, color: P.warn, marginTop: 2, fontWeight: 600 }}>First-time guest — capture before shopping</div></div>
+            <div style={{ flex: 1, textAlign: 'left' }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Scan customer ID · 21+</div><div style={{ fontSize: 12.5, color: P.warn, marginTop: 2, fontWeight: 600 }}>First-time guest — capture before shopping</div></div>
             <Icon name="chevron-right" size={18} stroke={2} color={P.inkFaint} />
           </button>
         }

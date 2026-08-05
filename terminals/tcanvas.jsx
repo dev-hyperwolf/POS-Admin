@@ -9,12 +9,12 @@ function OptionsPanel() {
   React.useEffect(() => {try {const s = localStorage.getItem('hw_term_theme');if (s && s !== mode) toggle();} catch (e) {}}, []);
   const toggleTheme = () => {const next = mode === 'light' ? 'dark' : 'light';toggle();try {localStorage.setItem('hw_term_theme', next);} catch (e) {}};
   const Group = ({ label, hint, children }) => <div style={{ minWidth: 0 }}>
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>{hint && <span style={{ fontSize: 9.5, color: P.inkFaint }}>{hint}</span>}</div>
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>{hint && <span style={{ fontSize: 10, color: P.inkFaint }}>{hint}</span>}</div>
     {children}
   </div>;
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 22, flexWrap: 'wrap', padding: '14px 22px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface, fontFamily: P.fontSans }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: P.ink, marginRight: 'auto' }}><Icon name="sliders" size={16} />Display options<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 500, color: P.inkMute }}><Icon name="check-circle" size={12} color={P.good} />saved to this device</span></span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: P.ink, marginRight: 'auto' }}><Icon name="sliders" size={16} />Display options<span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 500, color: P.inkMute }}><Icon name="check-circle" size={12} color={P.good} />saved to this device</span></span>
       <Group label="Cash drawer model" hint="how a shift session tracks the drawer"><Seg value={tk.drawerModel} onChange={(v) => tk.setTweak('drawerModel', v)} options={[{ value: 'session', label: DRAWER_MODEL_INFO.session.name }, { value: 'merged', label: DRAWER_MODEL_INFO.merged.name }, { value: 'device', label: DRAWER_MODEL_INFO.device.name }]} /></Group>
       {/* The one theme control used in production — same icon button as every other app. */}
       <button onClick={toggleTheme} title="Toggle theme" style={{ width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: P.r10, color: P.ink2, cursor: 'pointer' }}><Icon name={mode === 'dark' ? 'sun' : 'moon'} size={18} stroke={1.9} /></button>

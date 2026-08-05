@@ -15,7 +15,7 @@ function TodaySeg() {
 
 function PrioTag({ prio }) {
   const P = useP();const d = window.MD.PRIO[prio];if (!d) return null;
-  return <span style={{ padding: '2px 9px', borderRadius: 99, background: d.bg, color: d.fg, fontSize: 10.5, fontWeight: 700 }}>{d.label}</span>;
+  return <span style={{ padding: '2px 9px', borderRadius: 99, background: d.bg, color: d.fg, fontSize: 11.5, fontWeight: 700 }}>{d.label}</span>;
 }
 
 // Pack status chip — not packed / partial / staged in van
@@ -46,7 +46,7 @@ function StopCard({ t }) {
   return (
     <div data-tour={done ? undefined : isAppt ? 'appt' : 'stop'} onClick={() => window.M.push(isAppt ? 'appointment' : 'task', { taskId: t.id })} style={{ background: P.surface, border: `1px solid ${done ? P.hairline : isAppt ? P.indica + '66' : P.hairline2}`, borderRadius: P.r16, padding: '14px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10, opacity: done ? 0.6 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-        {isAppt && !done && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px 2px 7px', borderRadius: 99, background: P.indica, color: '#fff', fontSize: 10.5, fontWeight: 800 }}><Icon name="home" size={11} stroke={2.2} color="#fff" />SHOP@HOME</span>}
+        {isAppt && !done && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px 2px 7px', borderRadius: 99, background: P.indica, color: '#fff', fontSize: 11.5, fontWeight: 800 }}><Icon name="home" size={11} stroke={2.2} color="#fff" />SHOP@HOME</span>}
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P[st.color] || P.inkDim }}>{st.label}</span>
         {!done && <PrioTag prio={t.prio} />}
         {!done && <window.VisitBadge visit={t.visit} size="md" />}
@@ -54,7 +54,7 @@ function StopCard({ t }) {
         <div style={{ flex: 1 }} />
         <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{t.order}</span>
       </div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: P.ink }}>{t.name}</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>{t.name}</div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, color: P.inkDim, fontSize: 12.5 }}><Icon name="pin" size={14} stroke={1.8} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} /><span>{t.addr}, {t.city} {t.zip}</span></div>
 
       {/* Appointment window (scheduled) shown alongside ETA */}
@@ -63,29 +63,29 @@ function StopCard({ t }) {
       {/* ETA / distance / (items or AOV goal) strip */}
       <div style={{ display: 'flex', gap: 8 }}>
         <div style={{ flex: 1, background: done ? P.surface2 : accentC + (P.mode === 'dark' ? '1c' : '14'), border: `1px solid ${done ? P.hairline : accentC + '44'}`, borderRadius: P.r12, padding: '9px 12px' }}>
-          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: done ? P.inkMute : accentC, fontFamily: P.fontMono }}>ETA</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: done ? P.ink2 : accentC, fontFamily: P.fontMono, lineHeight: 1.15, marginTop: 1 }}>{hasEta ? t.eta.replace(/\s?[AP]M/, '') : '—'}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: done ? P.inkMute : accentC, fontFamily: P.fontMono }}>ETA</div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: done ? P.ink2 : accentC, fontFamily: P.fontMono, lineHeight: 1.15, marginTop: 1 }}>{hasEta ? t.eta.replace(/\s?[AP]M/, '') : '—'}</div>
         </div>
         <div style={{ flex: 1, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12, padding: '9px 12px' }}>
-          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Distance</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1.15, marginTop: 1 }}>{t.dist !== '—' ? t.dist : '—'}<span style={{ fontSize: 11, fontWeight: 600, color: P.inkMute }}> mi</span></div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Distance</div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1.15, marginTop: 1 }}>{t.dist !== '—' ? t.dist : '—'}<span style={{ fontSize: 11.5, fontWeight: 600, color: P.inkMute }}> mi</span></div>
         </div>
         <div style={{ flex: 1, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12, padding: '9px 12px' }}>
-          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{isAppt ? 'AOV goal' : 'Items'}</div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1.15, marginTop: 1 }}>{isAppt ? window.HW.fmt.money(window.MD.AOV.target) : totals.count}</div>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{isAppt ? 'AOV goal' : 'Items'}</div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, lineHeight: 1.15, marginTop: 1 }}>{isAppt ? window.HW.fmt.money(window.MD.AOV.target) : totals.count}</div>
         </div>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
         {isAppt ? <>
           <Icon name="shop" size={14} stroke={2} color={P.indica} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: P.indica }}>Guest shops on arrival</span>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: P.indica }}>Guest shops on arrival</span>
           <div style={{ flex: 1 }} />
           <Icon name="chevron-right" size={16} stroke={2} color={P.inkFaint} />
         </> : <>
-          <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{latest ? `Arrive by ${latest}` : t.win}</span>
+          <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{latest ? `Arrive by ${latest}` : t.win}</span>
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: P.inkDim }}>To collect</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: P.inkDim }}>To collect</span>
           <span style={{ fontSize: 15, fontWeight: 800, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(totals.total)}</span>
           <Icon name="chevron-right" size={16} stroke={2} color={P.inkFaint} />
         </>}
@@ -124,7 +124,7 @@ function WelcomeHero() {
         <div style={{ position: 'absolute', left: 14, bottom: -6, width: 22, height: 22, borderRadius: 99, background: '#111', border: `3px solid ${P.inkMute}` }} />
         <div style={{ position: 'absolute', left: 104, bottom: -6, width: 22, height: 22, borderRadius: 99, background: '#111', border: `3px solid ${P.inkMute}` }} />
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: P.ink }}>Welcome Back!</div>
+      <div style={{ fontSize: 30, fontWeight: 800, color: P.ink }}>Welcome Back!</div>
       <div style={{ fontSize: 15, color: P.inkDim, marginTop: 10, lineHeight: 1.5 }}>Ready to hit the road? Go on duty to see today's stops.</div>
       <div style={{ marginTop: 22 }}><PBtn variant="accent" size="xl" icon="lightning" onClick={() => window.M.openSheet('onduty')}>Go On Duty</PBtn></div>
     </div>);
@@ -172,7 +172,7 @@ function VanPackBanner() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
         <span style={{ width: 36, height: 36, borderRadius: 10, background: allDone ? P.good : P.accent, color: allDone ? '#fff' : P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={allDone ? 'check-circle' : 'package'} size={20} stroke={2.1} color={allDone ? '#fff' : P.accentInk} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: P.ink }}>{allDone ? 'Van packed — ready to roll' : 'Pack your orders before you depart'}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: P.ink }}>{allDone ? 'Van packed — ready to roll' : 'Pack your orders before you depart'}</div>
           <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 1, fontFamily: P.fontMono }}>{fullN}/{stops.length} orders staged · {unitsPacked}/{unitsTotal} items</div>
         </div>
         {!allDone && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 99, background: P.accent, color: P.accentInk, fontSize: 12.5, fontWeight: 800, flex: '0 0 auto' }}>Pack<Icon name="chevron-right" size={14} stroke={2.4} color={P.accentInk} /></span>}
@@ -191,13 +191,13 @@ function ScanLine({ t, l }) {
     <button onClick={() => scanned ? window.M.unscanLine(t.id, l.sku) : window.M.scanLine(t.id, l.sku)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', background: scanned ? P.goodSoft : P.surface2, border: `1px solid ${scanned ? P.good + '55' : P.hairline2}`, borderRadius: P.r12, padding: '9px 11px', cursor: 'pointer' }}>
       <span style={{ width: 30, height: 30, borderRadius: 8, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: scanned ? P.good : P.surface3, color: scanned ? '#fff' : P.inkMute }}><Icon name={scanned ? 'check' : 'barcode'} size={16} stroke={2.2} color={scanned ? '#fff' : P.inkMute} /></span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 9.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.brand || 'Hyperwolf'}</span>
-        <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name || l.sku}</span>
-        <span style={{ display: 'block', fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 1 }}>{box} · ×{l.qty}</span>
+        <span style={{ display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.brand || 'Hyperwolf'}</span>
+        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name || l.sku}</span>
+        <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 1 }}>{box} · ×{l.qty}</span>
       </span>
       {scanned ?
-      <span style={{ fontSize: 11, fontWeight: 800, color: P.good, fontFamily: P.fontMono, flex: '0 0 auto' }}>SCANNED</span> :
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 99, background: P.ink, color: P.bg, fontSize: 12, fontWeight: 800, flex: '0 0 auto' }}><Icon name="scan" size={13} stroke={2.2} color={P.bg} />Scan</span>}
+      <span style={{ fontSize: 11.5, fontWeight: 800, color: P.good, fontFamily: P.fontMono, flex: '0 0 auto' }}>SCANNED</span> :
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 99, background: P.ink, color: P.bg, fontSize: 12.5, fontWeight: 800, flex: '0 0 auto' }}><Icon name="scan" size={13} stroke={2.2} color={P.bg} />Scan</span>}
     </button>);
 }
 
@@ -212,9 +212,9 @@ function PackRow({ t }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 11 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{t.name}</span><window.VisitBadge visit={t.visit} size="sm" /></div>
-          <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>{t.order} · {scannedLines}/{totals.line.length} lines scanned</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>{t.order} · {scannedLines}/{totals.line.length} lines scanned</div>
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 800, color: c, fontFamily: P.fontMono }}>{ps.state === 'full' ? <Icon name="check-circle" size={15} stroke={2.2} color={c} /> : null}{ps.packed}/{ps.total}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 800, color: c, fontFamily: P.fontMono }}>{ps.state === 'full' ? <Icon name="check-circle" size={15} stroke={2.2} color={c} /> : null}{ps.packed}/{ps.total}</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {totals.line.map((l, i) => <ScanLine key={i} t={t} l={l} />)}
@@ -239,7 +239,7 @@ window.PackingScreen = function PackingScreen() {
           <span style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.45 }}>Scan every item's barcode into the van before your first stop. Orders can only be staged by scanning — all {stops.length} must be complete before you roll.</span>
         </div>
         {stops.map((t) => <PackRow key={t.id} t={t} />)}
-        {allDone && <div style={{ textAlign: 'center', color: P.good, fontSize: 13, fontWeight: 700, padding: '8px 0' }}>All orders packed — you're ready to roll.</div>}
+        {allDone && <div style={{ textAlign: 'center', color: P.good, fontSize: 13.5, fontWeight: 700, padding: '8px 0' }}>All orders packed — you're ready to roll.</div>}
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
         {allDone ?
@@ -267,7 +267,7 @@ window.HomeScreen = function HomeScreen() {
           <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px 10px', flex: '0 0 auto' }}>
             <div style={{ fontSize: 12.5, color: P.inkMute, fontFamily: P.fontMono }}>{tab === 'today' ? `${window.MD.TASKS.length} stops today` : `${window.MD.SCHEDULED.length} scheduled · ${window.MD.SCHEDULED.filter((s) => s.appt).length} shop@home`}</div>
             <div style={{ flex: 1 }} />
-            <button onClick={() => window.M.openSheet('filters')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink2, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Filters<Icon name="chevron-down" size={15} stroke={2} color={P.info} /></button>
+            <button onClick={() => window.M.openSheet('filters')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Filters<Icon name="chevron-down" size={15} stroke={2} color={P.info} /></button>
           </div>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 16px 90px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {tab === 'today' ?
@@ -280,7 +280,7 @@ window.HomeScreen = function HomeScreen() {
             const doneBreaks = window.MD.BREAKS.filter((b) => b.status === 'completed');
             return [
             ...merged.map((e) => e.kind === 'stop' ? <StopCard key={e.t.id} t={e.t} /> : <BreakCard key={e.b.id} b={e.b} />),
-            ...(doneList.length + doneBreaks.length > 0 ? [<div key="dh" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 2px 0' }}><span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Completed</span><div style={{ flex: 1, height: 1, background: P.hairline2 }} /><span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{doneList.length}</span></div>] : []),
+            ...(doneList.length + doneBreaks.length > 0 ? [<div key="dh" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 2px 0' }}><span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Completed</span><div style={{ flex: 1, height: 1, background: P.hairline2 }} /><span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{doneList.length}</span></div>] : []),
             ...doneList.map((t) => <StopCard key={t.id} t={t} />),
             ...doneBreaks.map((b) => <BreakCard key={b.id} b={b} />)];
 

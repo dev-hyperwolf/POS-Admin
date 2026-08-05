@@ -44,7 +44,7 @@ window.PreviewView = function PreviewView({ promos, onOpen }) {
   onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
       <span style={{ width: 26, height: 26, borderRadius: 7, flex: '0 0 auto', background: p.creative.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={(PV.CAMPAIGNS.find((c) => c.id === p.campaign) || {}).icon || 'tag'} size={13} color={tOn(p.creative.color)} /></span>
       <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div><div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{PV.offerBadge(p)}</div></div>
-      {tag && <span style={{ fontFamily: P.fontMono, fontSize: 8.5, fontWeight: 700, letterSpacing: '.06em', padding: '2px 6px', borderRadius: 99, background: tagKind === 'air' ? P.mode === 'dark' ? 'rgba(70,192,126,.16)' : 'rgba(31,138,79,.14)' : P.surface3, color: tagKind === 'air' ? P.good : P.inkMute }}>{tag}</span>}
+      {tag && <span style={{ fontFamily: P.fontMono, fontSize: 10, fontWeight: 700, letterSpacing: '.06em', padding: '2px 6px', borderRadius: 99, background: tagKind === 'air' ? P.mode === 'dark' ? 'rgba(70,192,126,.16)' : 'rgba(31,138,79,.14)' : P.surface3, color: tagKind === 'air' ? P.good : P.inkMute }}>{tag}</span>}
       <Icon name="chevron-right" size={14} color={P.inkFaint} />
     </button>;
 
@@ -57,7 +57,7 @@ window.PreviewView = function PreviewView({ promos, onOpen }) {
     <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>{WDATES.map((dt, i) => {const a = i === dayIdx;return (
           <button key={i} onClick={() => setDayIdx(i)} style={{ flex: '1 1 0', minWidth: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '12px 16px', borderRadius: 12, background: a ? P.ink : P.surface, color: a ? P.surface : P.ink2, border: `1px solid ${a ? P.ink : P.hairline2}`, cursor: 'pointer', fontFamily: P.fontSans }}>
         <span style={{ fontSize: 15, fontWeight: 700 }}>{WLAB[i]}</span><span style={{ fontSize: 12.5, fontWeight: 600, fontFamily: P.fontMono, color: a ? 'rgba(255,255,255,.7)' : P.ink2 }}>{dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-        {i === PV_TODAY && <span style={{ fontSize: 8.5, fontWeight: 700, fontFamily: P.fontMono, color: P.accent }}>TODAY</span>}
+        {i === PV_TODAY && <span style={{ fontSize: 10, fontWeight: 700, fontFamily: P.fontMono, color: P.accent }}>TODAY</span>}
       </button>);})}</div>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 20, alignItems: 'start' }}>
@@ -68,15 +68,15 @@ window.PreviewView = function PreviewView({ promos, onOpen }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', borderBottom: `1px solid ${P.hairline}` }}>
               <span style={{ width: 28, height: 28, borderRadius: 7, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={s.icon} size={15} stroke={1.9} /></span>
               <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 800 }}>{s.label}</div></div>
-              <span title={s.tip} style={{ fontFamily: P.fontMono, fontSize: 9, color: P.inkMute, background: P.surface2, border: `1px solid ${P.hairline2}`, padding: '2px 7px', borderRadius: 99, cursor: 'help' }}>{s.cap}</span>
+              <span title={s.tip} style={{ fontFamily: P.fontMono, fontSize: 10, color: P.inkMute, background: P.surface2, border: `1px solid ${P.hairline2}`, padding: '2px 7px', borderRadius: 99, cursor: 'help' }}>{s.cap}</span>
             </div>
             {r.onAir.length === 0 ?
-              <div style={{ padding: '16px 13px', fontSize: 12, color: P.inkFaint }}>No promotion assigned {WLAB[dayIdx]}.</div> :
+              <div style={{ padding: '16px 13px', fontSize: 12.5, color: P.inkFaint }}>No promotion assigned {WLAB[dayIdx]}.</div> :
               <div>
                   {r.onAir.map((p) => <PromoRow key={p.id} p={p} tag={s.cap.includes('rotates') || s.id === 'home_hero' && r.rotating ? 'ON AIR' : s.id === 'shop_tile' || s.id === 'loyalty' ? null : 'ON AIR'} tagKind="air" />)}
                   {r.benched.length > 0 && (oversub ?
                 <div title="More promos match this slot than it can show at once, so they rotate (carousel) by priority — none are dropped." style={{ padding: '9px 13px', borderTop: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 8, background: P.warnSoft, cursor: 'help' }}>
-                        <Icon name="info" size={13} color={P.warn} /><span style={{ fontSize: 11, color: P.warn, flex: 1 }}>{r.benched.length} more want this slot</span>
+                        <Icon name="info" size={13} color={P.warn} /><span style={{ fontSize: 11.5, color: P.warn, flex: 1 }}>{r.benched.length} more want this slot</span>
                         <span style={{ fontFamily: P.fontMono, fontSize: 10, color: P.warn, fontWeight: 700 }}>rotating</span>
                       </div> :
                 r.benched.map((p) => <PromoRow key={p.id} p={p} tag="QUEUED" tagKind="q" />))}
@@ -98,7 +98,7 @@ window.PreviewView = function PreviewView({ promos, onOpen }) {
                 <span style={{ width: 30, height: 30, borderRadius: 8, flex: '0 0 auto', background: p.creative.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={(PV.CAMPAIGNS.find((c) => c.id === p.campaign) || {}).icon || 'tag'} size={15} color={tOn(p.creative.color)} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                  <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{PV.offerBadge(p)} · {summ.count != null ? summ.count + ' products' : 'storewide'}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{PV.offerBadge(p)} · {summ.count != null ? summ.count + ' products' : 'storewide'}</div>
                 </div>
                 <span onClick={(e) => {e.stopPropagation();onOpen(p.id);}} title="Edit promotion" style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.inkMute, cursor: 'pointer' }}><Icon name="pencil" size={14} /></span>
                 <Icon name="chevron-down" size={15} color={P.inkFaint} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
@@ -114,16 +114,16 @@ window.PreviewView = function PreviewView({ promos, onOpen }) {
                           {summ.list.map((pr, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 7, background: P.surface }}>
                             <span style={{ fontSize: 11.5, fontWeight: 600, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pr.n}</span>
                             <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{pr.b}</span>
-                            <span style={{ fontFamily: P.fontMono, fontSize: 11, fontWeight: 700 }}><span style={{ color: P.inkFaint, textDecoration: 'line-through', marginRight: 4 }}>${pr.was}</span><span style={{ color: P.good }}>${pr.now}</span></span>
+                            <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700 }}><span style={{ color: P.inkFaint, textDecoration: 'line-through', marginRight: 4 }}>${pr.was}</span><span style={{ color: P.good }}>${pr.now}</span></span>
                           </div>)}
                         </div>
                       </div>}
               </div>}
             </div>);})}
-          {activeToday.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: P.inkMute, fontSize: 13 }}>No promotions live this day.</div>}
+          {activeToday.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: P.inkMute, fontSize: 13.5 }}>No promotions live this day.</div>}
         </div>
         <div style={{ padding: '11px 15px', display: 'flex', alignItems: 'center', gap: 8, background: P.surface2 }}>
-          <Icon name="info" size={14} color={P.inkMute} /><span style={{ fontSize: 11, color: P.inkDim }}>Click a promotion to see its products on sale · pencil to edit.</span>
+          <Icon name="info" size={14} color={P.inkMute} /><span style={{ fontSize: 11.5, color: P.inkDim }}>Click a promotion to see its products on sale · pencil to edit.</span>
         </div>
       </Card>
     </div>

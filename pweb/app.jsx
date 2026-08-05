@@ -13,19 +13,19 @@ function SuiteTopBar({ onNew }) {
       <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>ALL STORES</span>
       <Icon name="chevron-down" size={14} stroke={2} color={P.inkMute} />
     </button>
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 11px', borderRadius: P.r999, background: P.accentSoft, border: `1px solid ${P.accentBorder}` }}>
-      <Icon name="link" size={13} color={P.mode === 'dark' ? P.accent : '#7A5A00'} />
-      <span style={{ fontSize: 11, fontWeight: 700, color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>Banners · Points · Catalog connected</span>
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 11px', borderRadius: P.r999, background: P.highlightSoft, border: `1px solid ${P.hairline2}` }}>
+      <Icon name="link" size={13} color={P.inkDim} />
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: P.ink2 }}>Banners · Points · Catalog connected</span>
     </div>
     <div style={{ flex: 1 }} />
-    <PBtn variant="accent" icon="plus" size="sm" onClick={onNew}>New promotion</PBtn>
+    <PBtn variant="secondary" icon="plus" size="sm" onClick={onNew}>New promotion</PBtn>
     <IconBtn icon="search" title="Search" />
     <IconBtn icon="bell" badge={true} badgeColor={P.warn} title="Alerts" />
     <button onClick={toggle} title="Toggle theme" style={{ width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: P.r10, color: P.ink2, cursor: 'pointer' }}><Icon name={mode === 'light' ? 'moon' : 'sun'} size={18} stroke={1.9} /></button>
     <div style={{ width: 1, height: 26, background: P.hairline2, margin: '0 2px' }} />
     <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 8px 4px 4px', background: 'transparent', border: 'none', borderRadius: P.r10, cursor: 'pointer' }}>
       <Avatar name="Manisha Saini" size={32} />
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Manisha Saini</span><span style={{ fontSize: 10.5, color: P.inkDim }}>Marketing</span></span>
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Manisha Saini</span><span style={{ fontSize: 11.5, color: P.inkDim }}>Marketing</span></span>
       <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} />
     </button>
   </header>;

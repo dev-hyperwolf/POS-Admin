@@ -237,11 +237,11 @@ function TextArea({ value, onChange, placeholder, rows=2 }){
 function DateInput({ value, onChange }){
   const P=useP(); const [f,setF]=useState(false);
   return (<input type="date" value={value||''} onChange={onChange} onFocus={()=>setF(true)} onBlur={()=>setF(false)}
-    style={{ width:'100%', padding:'10px 12px', background:P.field, border:`1px solid ${f?P.accentBorder:P.fieldBorder}`, borderRadius:P.r10, boxShadow:f?`0 0 0 3px ${P.accentSoft}`:'none', color:P.ink, fontSize:13, fontFamily:P.fontMono, outline:'none', colorScheme:P.mode, transition:'border-color .12s, box-shadow .12s' }}/>);
+    style={{ width:'100%', padding:'10px 12px', background:P.field, border:`1px solid ${f?P.accentBorder:P.fieldBorder}`, borderRadius:P.r10, boxShadow:f?`0 0 0 3px ${P.accentSoft}`:'none', color:P.ink, fontSize: 13.5, fontFamily:P.fontMono, outline:'none', colorScheme:P.mode, transition:'border-color .12s, box-shadow .12s' }}/>);
 }
 function Chip({ on, onClick, children, color }){
   const P=useP();
-  return (<button onClick={onClick} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'6px 11px', borderRadius:P.r999, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:P.fontSans,
+  return (<button onClick={onClick} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'6px 11px', borderRadius:P.r999, fontSize: 12.5, fontWeight:600, cursor:'pointer', fontFamily:P.fontSans,
     background:on ? (color?color:P.ink) : P.surface3, color:on ? (color?'#fff':P.surface) : P.ink2, border:`1px solid ${on ? (color||P.ink) : P.hairline2}`, transition:'all .12s' }}>
     {on && <Icon name="check" size={12} stroke={3}/>}{children}</button>);
 }
@@ -276,11 +276,11 @@ function CartVariant({ v, p, c, accent, ink, badge, rad, showBadge, Phone, Statu
   const sub=84, tax=7, total=sub-save+tax;
   const items=[{n:'House Blend 3.5g', b:'Hyperwolf', pr:50, hue:110},{n:'Live Resin Cart 1g', b:'Stilo Supply', pr:34, hue:265}];
   const T=(s)=>({ fontFamily:"'JetBrains Mono',monospace", ...s });
-  const CTA=({label='Checkout', kind='primary'})=> <div style={{ marginTop:12, padding:'14px', borderRadius:13, background: kind==='primary'?accent:'transparent', color: kind==='primary'?ink:'#fff', border: kind==='primary'?'none':'1px solid rgba(255,255,255,.2)', textAlign:'center', fontWeight:800, fontSize:14 }}>{label}</div>;
-  const Row=({it})=> <div style={{ display:'flex', gap:11, alignItems:'center', padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.08)' }}><SwatchImg h={it.hue} style={{ width:44, height:44, borderRadius:10 }}/><div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.n}</div><div style={{ fontSize:11, opacity:.55 }}>{it.b}</div></div><span style={T({ fontSize:12.5 })}>${it.pr}</span></div>;
-  const wrap=(title, body, foot)=> <Phone><Status/><div style={{ padding:'6px 16px 16px', color:'#fff' }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}><div style={{ fontWeight:800, fontSize:15 }}>{title}</div><span style={{ fontSize:11, opacity:.5, fontFamily:"'JetBrains Mono',monospace" }}>V{v}</span></div>{body}{foot}</div></Phone>;
-  const promoBanner=(compact)=> <div style={{ marginTop:14, borderRadius:13, background:accent, padding: compact?'10px 12px':'13px 14px', display:'flex', alignItems:'center', gap:11 }}><div style={{ width:compact?26:32, height:compact?26:32, borderRadius:9, background:ink, color:accent, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="tag" size={compact?14:16}/></div><div style={{ flex:1 }}><div style={{ color:ink, fontWeight:800, fontSize:12.5 }}>{p.name} applied</div><div style={{ color:ink, opacity:.8, fontSize:11 }}>{offerLabel(p)}</div></div><span style={T({ color:ink, fontWeight:900, fontSize:14 })}>−{money(save)}</span></div>;
-  const totalRow=(big)=> <div style={{ marginTop:14, display:'flex', justifyContent:'space-between', alignItems:'baseline' }}><span style={{ opacity:.7, fontSize:13 }}>Total</span><span style={T({ fontWeight:900, fontSize:big?24:19 })}>{money(total)}</span></div>;
+  const CTA=({label='Checkout', kind='primary'})=> <div style={{ marginTop:12, padding:'14px', borderRadius:13, background: kind==='primary'?accent:'transparent', color: kind==='primary'?ink:'#fff', border: kind==='primary'?'none':'1px solid rgba(255,255,255,.2)', textAlign:'center', fontWeight:800, fontSize: 13.5 }}>{label}</div>;
+  const Row=({it})=> <div style={{ display:'flex', gap:11, alignItems:'center', padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.08)' }}><SwatchImg h={it.hue} style={{ width:44, height:44, borderRadius:10 }}/><div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.n}</div><div style={{ fontSize: 11.5, opacity:.55 }}>{it.b}</div></div><span style={T({ fontSize:12.5 })}>${it.pr}</span></div>;
+  const wrap=(title, body, foot)=> <Phone><Status/><div style={{ padding:'6px 16px 16px', color:'#fff' }}><div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}><div style={{ fontWeight:800, fontSize:15 }}>{title}</div><span style={{ fontSize: 11.5, opacity:.5, fontFamily:"'JetBrains Mono',monospace" }}>V{v}</span></div>{body}{foot}</div></Phone>;
+  const promoBanner=(compact)=> <div style={{ marginTop:14, borderRadius:13, background:accent, padding: compact?'10px 12px':'13px 14px', display:'flex', alignItems:'center', gap:11 }}><div style={{ width:compact?26:32, height:compact?26:32, borderRadius:9, background:ink, color:accent, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="tag" size={compact?14:16}/></div><div style={{ flex:1 }}><div style={{ color:ink, fontWeight:800, fontSize:12.5 }}>{p.name} applied</div><div style={{ color:ink, opacity:.8, fontSize: 11.5 }}>{offerLabel(p)}</div></div><span style={T({ color:ink, fontWeight:900, fontSize: 13.5 })}>−{money(save)}</span></div>;
+  const totalRow=(big)=> <div style={{ marginTop:14, display:'flex', justifyContent:'space-between', alignItems:'baseline' }}><span style={{ opacity:.7, fontSize: 13.5 }}>Total</span><span style={T({ fontWeight:900, fontSize:big?24:19 })}>{money(total)}</span></div>;
 
   // 1 — Classic drawer
   if(v===1) return wrap('Your cart', <>{items.map((it,i)=><Row key={i} it={it}/>)}{promoBanner()}{totalRow(false)}</>, <CTA/>);
@@ -288,7 +288,7 @@ function CartVariant({ v, p, c, accent, ink, badge, rad, showBadge, Phone, Statu
   // 2 — Summary-first: big total up top, savings pill, slim items
   if(v===2) return wrap('Cart', <>
     <div style={{ borderRadius:16, background:'linear-gradient(135deg,#1c1c14,#0f0f0c)', border:`1px solid ${accent}44`, padding:'16px', marginBottom:14 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}><span style={{ fontSize:11, opacity:.6, letterSpacing:'.08em', fontFamily:"'JetBrains Mono',monospace" }}>ORDER TOTAL</span><span style={{ padding:'3px 9px', borderRadius:99, background:accent, color:ink, fontSize:10.5, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>SAVED {money(save)}</span></div>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}><span style={{ fontSize: 11.5, opacity:.6, letterSpacing:'.08em', fontFamily:"'JetBrains Mono',monospace" }}>ORDER TOTAL</span><span style={{ padding:'3px 9px', borderRadius:99, background:accent, color:ink, fontSize: 11.5, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>SAVED {money(save)}</span></div>
       <div style={T({ fontSize:34, fontWeight:900, color:accent, marginTop:6 })}>{money(total)}</div>
     </div>
     {items.map((it,i)=><Row key={i} it={it}/>)}
@@ -310,19 +310,19 @@ function CartVariant({ v, p, c, accent, ink, badge, rad, showBadge, Phone, Statu
       <div style={{ flex:1, padding:'11px 12px', borderRadius:11, border:'1px dashed rgba(255,255,255,.25)', fontSize:12.5, fontFamily:"'JetBrains Mono',monospace", color:'rgba(255,255,255,.5)' }}>{p.code||'PROMO CODE'}</div>
       <div style={{ padding:'11px 16px', borderRadius:11, background:accent, color:ink, fontWeight:800, fontSize:12.5 }}>Apply</div>
     </div>
-    <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:8, fontSize:12, color:accent }}><Icon name="check-circle" size={14} color={accent}/><span style={{ fontWeight:700 }}>{p.name} — saved {money(save)}</span></div>
+    <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:8, fontSize: 12.5, color:accent }}><Icon name="check-circle" size={14} color={accent}/><span style={{ fontWeight:700 }}>{p.name} — saved {money(save)}</span></div>
     {totalRow(false)}
   </>, <CTA/>);
 
   // 5 — Line-item savings (was/now)
   if(v===5) return wrap('Your cart', <>
-    {items.map((it,i)=><div key={i} style={{ display:'flex', gap:11, alignItems:'center', padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.08)' }}><SwatchImg h={it.hue} style={{ width:44, height:44, borderRadius:10 }}/><div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700 }}>{it.n}</div><span style={{ fontSize:10, color:accent, fontWeight:700 }}>{d.kind==='percent'?d.value+'% off':'Deal'}</span></div><div style={{ textAlign:'right' }}><div style={T({ fontSize:12.5, fontWeight:800 })}>${Math.round(it.pr*0.7)}</div><div style={T({ fontSize:10.5, opacity:.4, textDecoration:'line-through' })}>${it.pr}</div></div></div>)}
+    {items.map((it,i)=><div key={i} style={{ display:'flex', gap:11, alignItems:'center', padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.08)' }}><SwatchImg h={it.hue} style={{ width:44, height:44, borderRadius:10 }}/><div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700 }}>{it.n}</div><span style={{ fontSize:10, color:accent, fontWeight:700 }}>{d.kind==='percent'?d.value+'% off':'Deal'}</span></div><div style={{ textAlign:'right' }}><div style={T({ fontSize:12.5, fontWeight:800 })}>${Math.round(it.pr*0.7)}</div><div style={T({ fontSize: 11.5, opacity:.4, textDecoration:'line-through' })}>${it.pr}</div></div></div>)}
     {totalRow(false)}<div style={{ marginTop:4, textAlign:'right', fontSize:11.5, color:accent, fontWeight:700 }}>You saved {money(save)}</div>
   </>, <CTA/>);
 
   // 6 — Compact dense
   if(v===6) return wrap('Cart · 2 items', <>
-    {items.map((it,i)=><div key={i} style={{ display:'flex', alignItems:'center', gap:9, padding:'7px 0' }}><span style={T({ fontSize:11, opacity:.5, width:16 })}>{i+1}</span><div style={{ flex:1, fontSize:12.5, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.n}</div><span style={T({ fontSize:12 })}>${it.pr}</span></div>)}
+    {items.map((it,i)=><div key={i} style={{ display:'flex', alignItems:'center', gap:9, padding:'7px 0' }}><span style={T({ fontSize: 11.5, opacity:.5, width:16 })}>{i+1}</span><div style={{ flex:1, fontSize:12.5, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{it.n}</div><span style={T({ fontSize: 12.5 })}>${it.pr}</span></div>)}
     <div style={{ marginTop:12, borderRadius:12, background:accent, padding:'11px 13px', display:'flex', justifyContent:'space-between', alignItems:'center' }}><span style={{ color:ink, fontWeight:800, fontSize:12.5 }}>{p.name}</span><span style={T({ color:ink, fontWeight:900 })}>−{money(save)}</span></div>
     {totalRow(true)}
   </>, <CTA/>);
@@ -330,8 +330,8 @@ function CartVariant({ v, p, c, accent, ink, badge, rad, showBadge, Phone, Statu
   // 7 — Upsell
   if(v===7) return wrap('Your cart', <>
     {items.map((it,i)=><Row key={i} it={it}/>)}
-    <div style={{ marginTop:14, fontSize:11, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:'rgba(255,255,255,.5)', fontFamily:"'JetBrains Mono',monospace", marginBottom:9 }}>Frequently added</div>
-    <div style={{ display:'flex', gap:9, overflowX:'auto' }}>{[140,60,300].map((h,i)=><div key={i} style={{ flex:'0 0 84px' }}><SwatchImg h={h} style={{ height:64, borderRadius:11 }}/><div style={{ fontSize:10.5, fontWeight:700, marginTop:5 }}>Add +</div></div>)}</div>
+    <div style={{ marginTop:14, fontSize: 11.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:'rgba(255,255,255,.5)', fontFamily:"'JetBrains Mono',monospace", marginBottom:9 }}>Frequently added</div>
+    <div style={{ display:'flex', gap:9, overflowX:'auto' }}>{[140,60,300].map((h,i)=><div key={i} style={{ flex:'0 0 84px' }}><SwatchImg h={h} style={{ height:64, borderRadius:11 }}/><div style={{ fontSize: 11.5, fontWeight:700, marginTop:5 }}>Add +</div></div>)}</div>
     {totalRow(false)}
   </>, <CTA/>);
 
@@ -340,7 +340,7 @@ function CartVariant({ v, p, c, accent, ink, badge, rad, showBadge, Phone, Statu
     {items.map((it,i)=><Row key={i} it={it}/>)}
     <div style={{ marginTop:14, borderRadius:14, background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.08)', padding:'14px' }}>
       {[['Subtotal',money(sub)],[p.name,'−'+money(save)],['Tax',money(tax)]].map((r,i)=><div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', fontSize:12.5, color: i===1?accent:'rgba(255,255,255,.75)' }}><span>{r[0]}</span><span style={{ fontFamily:"'JetBrains Mono',monospace", fontWeight: i===1?800:500 }}>{r[1]}</span></div>)}
-      <div style={{ display:'flex', justifyContent:'space-between', padding:'9px 0 0', marginTop:6, borderTop:'1px solid rgba(255,255,255,.1)' }}><span style={{ fontWeight:800 }}>Total</span><span style={T({ fontWeight:900, fontSize:17 })}>{money(total)}</span></div>
+      <div style={{ display:'flex', justifyContent:'space-between', padding:'9px 0 0', marginTop:6, borderTop:'1px solid rgba(255,255,255,.1)' }}><span style={{ fontWeight:800 }}>Total</span><span style={T({ fontWeight:900, fontSize: 16 })}>{money(total)}</span></div>
     </div>
   </>, <CTA/>);
 
@@ -348,7 +348,7 @@ function CartVariant({ v, p, c, accent, ink, badge, rad, showBadge, Phone, Statu
   if(v===9) return wrap('Your cart', <>
     {items.map((it,i)=><Row key={i} it={it}/>)}
     {promoBanner(true)}
-    <div style={{ marginTop:10, borderRadius:12, border:`1px solid ${accent}44`, padding:'11px 13px', display:'flex', alignItems:'center', gap:10 }}><Icon name="star" size={16} color={accent}/><div style={{ flex:1, fontSize:12, fontWeight:700 }}>You&rsquo;ll earn <span style={{ color:accent }}>+{Math.round(total*2)} pts</span> on this order</div></div>
+    <div style={{ marginTop:10, borderRadius:12, border:`1px solid ${accent}44`, padding:'11px 13px', display:'flex', alignItems:'center', gap:10 }}><Icon name="star" size={16} color={accent}/><div style={{ flex:1, fontSize: 12.5, fontWeight:700 }}>You&rsquo;ll earn <span style={{ color:accent }}>+{Math.round(total*2)} pts</span> on this order</div></div>
     {totalRow(false)}
   </>, <CTA/>);
 
@@ -357,8 +357,8 @@ function CartVariant({ v, p, c, accent, ink, badge, rad, showBadge, Phone, Statu
     {items.map((it,i)=><Row key={i} it={it}/>)}
     {promoBanner(true)}{totalRow(true)}
     <div style={{ marginTop:14, display:'flex', flexDirection:'column', gap:9 }}>
-      <div style={{ padding:'13px', borderRadius:12, background:'#fff', color:'#000', textAlign:'center', fontWeight:800, fontSize:14 }}> Pay</div>
-      <div style={{ padding:'13px', borderRadius:12, background:'rgba(255,255,255,.1)', color:'#fff', textAlign:'center', fontWeight:700, fontSize:13, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}><Icon name="tag" size={15}/>Pay with card</div>
+      <div style={{ padding:'13px', borderRadius:12, background:'#fff', color:'#000', textAlign:'center', fontWeight:800, fontSize: 13.5 }}> Pay</div>
+      <div style={{ padding:'13px', borderRadius:12, background:'rgba(255,255,255,.1)', color:'#fff', textAlign:'center', fontWeight:700, fontSize: 13.5, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}><Icon name="tag" size={15}/>Pay with card</div>
     </div>
   </>, null);
 }
@@ -381,7 +381,7 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
           {children}
         </div>
       </div>;
-  const Status = ()=> device==='mobile' ? <div style={{ height:40, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 20px', color:'#fff', fontSize:12, fontWeight:600 }}><span>9:41</span><span style={{ fontFamily:"'JetBrains Mono',monospace", opacity:.6, fontSize:9 }}>▮▮▮ ⌁</span></div> : null;
+  const Status = ()=> device==='mobile' ? <div style={{ height:40, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 20px', color:'#fff', fontSize: 12.5, fontWeight:600 }}><span>9:41</span><span style={{ fontFamily:"'JetBrains Mono',monospace", opacity:.6, fontSize: 10 }}>▮▮▮ ⌁</span></div> : null;
 
   // HOME HERO — big takeover
   if(surface==='home_hero'){
@@ -400,10 +400,10 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
         <div style={{ borderRadius:rad(20), overflow:'hidden', position:'relative', background:accent, padding:device==='desktop'?'30px 30px':'22px 20px', minHeight:device==='desktop'?230:280, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
           <SwatchImg h={(BRANDS.find(b=>p.discount.items?.includes(b.id))||{}).hue||90} style={{ position:'absolute', inset:0, opacity:.28, mixBlendMode:'overlay' }}/>
           <div style={{ position:'relative' }}>
-            {showBadge && <span style={{ display:'inline-block', padding:'5px 10px', borderRadius:99, background:ink, color:accent, fontSize:11, fontWeight:800, letterSpacing:'.06em', fontFamily:"'JetBrains Mono',monospace", marginBottom:12 }}>{badge}</span>}
+            {showBadge && <span style={{ display:'inline-block', padding:'5px 10px', borderRadius:99, background:ink, color:accent, fontSize: 11.5, fontWeight:800, letterSpacing:'.06em', fontFamily:"'JetBrains Mono',monospace", marginBottom:12 }}>{badge}</span>}
             <div style={{ color:ink, fontSize:device==='desktop'?34:28, fontWeight:900, letterSpacing:'-.03em', lineHeight:1.02 }}>{c.headline}</div>
-            <div style={{ color:ink, opacity:.82, fontSize:14, marginTop:9, maxWidth:440, lineHeight:1.4 }}>{c.subhead}</div>
-            <div style={{ marginTop:16, textAlign:ctaAlign }}><span style={{ display:'inline-block', padding:'11px 18px', borderRadius:12, background:ink, color:accent, fontWeight:800, fontSize:14 }}>{c.cta} →</span></div>
+            <div style={{ color:ink, opacity:.82, fontSize: 13.5, marginTop:9, maxWidth:440, lineHeight:1.4 }}>{c.subhead}</div>
+            <div style={{ marginTop:16, textAlign:ctaAlign }}><span style={{ display:'inline-block', padding:'11px 18px', borderRadius:12, background:ink, color:accent, fontWeight:800, fontSize: 13.5 }}>{c.cta} →</span></div>
           </div>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:12 }}>
@@ -416,7 +416,7 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
               style={{ borderRadius:14, overflow:'hidden', background:APP_CARD, position:'relative', cursor:onCardClick?'pointer':(editable?'grab':'default'), boxShadow:editable?'0 2px 8px rgba(0,0,0,.25)':'none' }}>
             <SwatchImg h={card.hue} style={{ height:70 }}/>
             {editable && <span style={{ position:'absolute', top:6, right:6, width:20, height:20, borderRadius:6, background:'rgba(0,0,0,.55)', display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="drag" size={11} color="#fff"/></span>}
-            {card.tag && <span style={{ position:'absolute', top:6, left:6, padding:'2px 6px', borderRadius:99, background:accent, color:ink, fontSize:8.5, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>{card.tag}</span>}
+            {card.tag && <span style={{ position:'absolute', top:6, left:6, padding:'2px 6px', borderRadius:99, background:accent, color:ink, fontSize: 10, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>{card.tag}</span>}
             <div style={{ padding:'8px 10px' }}><div style={{ color:'#fff', fontSize:11.5, fontWeight:700 }}>{card.label}</div><div style={{ height:7, width:'40%', background:'rgba(255,255,255,.14)', borderRadius:4, marginTop:6 }}/></div>
           </div>))}
         </div>
@@ -430,14 +430,14 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
     const Body = (<div style={{ borderRadius:rad(18), overflow:'hidden', position:'relative', background:accent, display:'flex', alignItems:'stretch', minHeight:118 }}>
       <SwatchImg h={(BRANDS.find(b=>p.discount.items?.includes(b.id))||{}).hue||90} style={{ position:'absolute', inset:0, opacity:.2, mixBlendMode:'overlay' }}/>
       <div style={{ position:'relative', flex:1, padding:'16px 16px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-        {showBadge && <span style={{ alignSelf:'flex-start', display:'inline-block', padding:'3px 8px', borderRadius:99, background:ink, color:accent, fontSize:9.5, fontWeight:800, letterSpacing:'.06em', fontFamily:"'JetBrains Mono',monospace", marginBottom:8 }}>{badge}</span>}
-        <div style={{ color:ink, fontSize:19, fontWeight:900, letterSpacing:'-.025em', lineHeight:1.05 }}>{c.headline}</div>
-        <div style={{ color:ink, opacity:.78, fontSize:12, marginTop:4, lineHeight:1.35 }}>{c.subhead}</div>
+        {showBadge && <span style={{ alignSelf:'flex-start', display:'inline-block', padding:'3px 8px', borderRadius:99, background:ink, color:accent, fontSize: 10, fontWeight:800, letterSpacing:'.06em', fontFamily:"'JetBrains Mono',monospace", marginBottom:8 }}>{badge}</span>}
+        <div style={{ color:ink, fontSize: 21, fontWeight:900, letterSpacing:'-.025em', lineHeight:1.05 }}>{c.headline}</div>
+        <div style={{ color:ink, opacity:.78, fontSize: 12.5, marginTop:4, lineHeight:1.35 }}>{c.subhead}</div>
         <div style={{ marginTop:12, textAlign:ctaAlign }}><span style={{ display:'inline-block', padding:'9px 15px', borderRadius:11, background:ink, color:accent, fontWeight:800, fontSize:12.5 }}>{c.cta} →</span></div>
       </div>
       <div style={{ position:'relative', width:96, flex:'0 0 auto', borderLeft:`1px dashed ${ink}33`, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', color:ink }}>
         <div style={{ fontSize:34, fontWeight:900, letterSpacing:'-.04em', lineHeight:.9, fontFamily:"'JetBrains Mono',monospace" }}>{pct}</div>
-        <div style={{ fontSize:9, fontWeight:800, letterSpacing:'.12em', textTransform:'uppercase', opacity:.7, marginTop:3 }}>{p.discount&&p.discount.kind==='bogo'?'2 for 1':'off'}</div>
+        <div style={{ fontSize: 10, fontWeight:800, letterSpacing:'.12em', textTransform:'uppercase', opacity:.7, marginTop:3 }}>{p.discount&&p.discount.kind==='bogo'?'2 for 1':'off'}</div>
       </div>
     </div>);
     if(isCat){
@@ -445,15 +445,15 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
       return (<Phone><Status/>
         <div style={{ padding:'6px 16px 16px' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:9 }}>
-            <span style={{ color:'#fff', fontWeight:800, fontSize:13 }}>Flower</span>
-            <span style={{ color:'rgba(255,255,255,.5)', fontSize:11 }}>See all →</span>
+            <span style={{ color:'#fff', fontWeight:800, fontSize: 13.5 }}>Flower</span>
+            <span style={{ color:'rgba(255,255,255,.5)', fontSize: 11.5 }}>See all →</span>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:14 }}>{[0,1].map(i=><div key={i} style={{ borderRadius:12, overflow:'hidden', background:APP_CARD }}><SwatchImg h={100+i*40} style={{ height:64 }}/></div>)}</div>
           {Body}
           {lay.slider && <div style={{ display:'flex', justifyContent:'center', gap:5, marginTop:10 }}>{[0,1,2].map(i=><span key={i} style={{ width:i===0?16:6, height:6, borderRadius:6, background:i===0?accent:'rgba(255,255,255,.25)' }}/>)}</div>}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:16, marginBottom:9 }}>
-            <span style={{ color:'#fff', fontWeight:800, fontSize:13 }}>Vape</span>
-            <span style={{ color:'rgba(255,255,255,.5)', fontSize:11 }}>See all →</span>
+            <span style={{ color:'#fff', fontWeight:800, fontSize: 13.5 }}>Vape</span>
+            <span style={{ color:'rgba(255,255,255,.5)', fontSize: 11.5 }}>See all →</span>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>{[0,1].map(i=><div key={i} style={{ borderRadius:12, overflow:'hidden', background:APP_CARD }}><SwatchImg h={200+i*40} style={{ height:64 }}/></div>)}</div>
         </div></Phone>);
@@ -476,8 +476,8 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
         <div style={{ color:'#fff', fontWeight:800, fontSize:15, marginBottom:12 }}>Shop</div>
         <div style={{ display:'grid', gridTemplateColumns:device==='desktop'?'repeat(4,1fr)':'1fr 1fr', gap:10 }}>
           <div style={{ gridColumn:device==='desktop'?'span 2':'span 2', borderRadius:14, overflow:'hidden', position:'relative', background:accent, padding:'14px 14px', minHeight:104, display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
-            <span style={{ alignSelf:'flex-start', padding:'3px 8px', borderRadius:99, background:ink, color:accent, fontSize:9.5, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>{badge}</span>
-            <div><div style={{ color:ink, fontSize:16, fontWeight:900, letterSpacing:'-.02em', lineHeight:1.05 }}>{c.headline}</div><div style={{ color:ink, opacity:.8, fontSize:11, marginTop:3 }}>{c.cta} →</div></div>
+            <span style={{ alignSelf:'flex-start', padding:'3px 8px', borderRadius:99, background:ink, color:accent, fontSize: 10, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>{badge}</span>
+            <div><div style={{ color:ink, fontSize:16, fontWeight:900, letterSpacing:'-.02em', lineHeight:1.05 }}>{c.headline}</div><div style={{ color:ink, opacity:.8, fontSize: 11.5, marginTop:3 }}>{c.cta} →</div></div>
           </div>
           {[0,1,2,3].map(i=>(<div key={i} style={{ borderRadius:14, overflow:'hidden', background:APP_CARD }}><SwatchImg h={70+i*55} style={{ height:78 }}/><div style={{ padding:'8px 10px' }}><div style={{ height:8, width:'75%', background:'rgba(255,255,255,.2)', borderRadius:4 }}/><div style={{ height:8, width:'45%', background:'rgba(255,255,255,.12)', borderRadius:4, marginTop:6 }}/></div></div>))}
         </div>
@@ -493,12 +493,12 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
           <SwatchImg h={brand.hue} style={{ position:'absolute', inset:0, opacity:.3, mixBlendMode:'overlay' }}/>
           <div style={{ position:'relative' }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
-              <div style={{ width:40, height:40, borderRadius:11, background:ink, color:accent, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:18 }}>{brand.name[0]}</div>
-              <div style={{ color:ink, fontWeight:900, fontSize:18, letterSpacing:'-.02em' }}>{brand.name}</div>
+              <div style={{ width:40, height:40, borderRadius:11, background:ink, color:accent, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:900, fontSize: 16 }}>{brand.name[0]}</div>
+              <div style={{ color:ink, fontWeight:900, fontSize: 16, letterSpacing:'-.02em' }}>{brand.name}</div>
             </div>
             <span style={{ display:'inline-block', padding:'4px 9px', borderRadius:99, background:ink, color:accent, fontSize:10, fontWeight:800, fontFamily:"'JetBrains Mono',monospace", marginBottom:8 }}>{badge}</span>
             <div style={{ color:ink, fontSize:device==='desktop'?28:22, fontWeight:900, letterSpacing:'-.02em', lineHeight:1.05 }}>{c.headline}</div>
-            <div style={{ color:ink, opacity:.82, fontSize:13, marginTop:7, maxWidth:420 }}>{c.subhead}</div>
+            <div style={{ color:ink, opacity:.82, fontSize: 13.5, marginTop:7, maxWidth:420 }}>{c.subhead}</div>
           </div>
         </div>
         <div style={{ padding:'14px 16px', display:'grid', gridTemplateColumns:device==='desktop'?'repeat(4,1fr)':'1fr 1fr', gap:10 }}>
@@ -519,7 +519,7 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
           <span style={{ width:30, height:30, borderRadius:99, background:`${ink}22`, color:ink, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700 }}>×</span>
         </div>
         <div style={{ position:'relative', flex:1, display:'flex', flexDirection:'column', justifyContent:'flex-end', padding: device==='desktop'?'0 26px 28px':'0 22px 30px' }}>
-          {showBadge && <span style={{ alignSelf:'flex-start', padding:'6px 12px', borderRadius:99, background:ink, color:accent, fontSize:12, fontWeight:800, letterSpacing:'.05em', fontFamily:"'JetBrains Mono',monospace", marginBottom:14 }}>{badge}</span>}
+          {showBadge && <span style={{ alignSelf:'flex-start', padding:'6px 12px', borderRadius:99, background:ink, color:accent, fontSize: 12.5, fontWeight:800, letterSpacing:'.05em', fontFamily:"'JetBrains Mono',monospace", marginBottom:14 }}>{badge}</span>}
           <div style={{ color:ink, fontSize: device==='desktop'?46:38, fontWeight:900, letterSpacing:'-.04em', lineHeight:.98 }}>{c.headline}</div>
           <div style={{ color:ink, opacity:.85, fontSize:15, marginTop:12, maxWidth:440, lineHeight:1.4 }}>{c.subhead}</div>
           <div style={{ marginTop:22, display:'flex', flexDirection:'column', gap:10 }}>
@@ -542,15 +542,15 @@ function SurfaceRender({ promo:p, surface, device, childCards, onReorderChild, o
       <div style={{ padding:'6px 16px 16px', color:'#fff' }}>
         <div style={{ fontWeight:800, fontSize:15, marginBottom:14 }}>Rewards</div>
         <div style={{ borderRadius:16, background:'linear-gradient(135deg,#1c1c14,#0f0f0c)', border:'1px solid rgba(255,209,0,.25)', padding:'16px', marginBottom:14 }}>
-          <div style={{ fontSize:11, opacity:.6, letterSpacing:'.08em', fontFamily:"'JetBrains Mono',monospace" }}>YOUR POINTS</div>
+          <div style={{ fontSize: 11.5, opacity:.6, letterSpacing:'.08em', fontFamily:"'JetBrains Mono',monospace" }}>YOUR POINTS</div>
           <div style={{ fontSize:32, fontWeight:900, fontFamily:"'JetBrains Mono',monospace", color:'#FFD100', marginTop:4 }}>4,820</div>
         </div>
         <div style={{ borderRadius:16, overflow:'hidden', position:'relative', background:accent, padding:'16px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
             <div style={{ width:34, height:34, borderRadius:10, background:ink, color:accent, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="star" size={17}/></div>
-            <span style={{ padding:'3px 8px', borderRadius:99, background:ink, color:accent, fontSize:9.5, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>{badge}</span>
+            <span style={{ padding:'3px 8px', borderRadius:99, background:ink, color:accent, fontSize: 10, fontWeight:800, fontFamily:"'JetBrains Mono',monospace" }}>{badge}</span>
           </div>
-          <div style={{ color:ink, fontSize:18, fontWeight:900, letterSpacing:'-.02em' }}>{c.headline}</div>
+          <div style={{ color:ink, fontSize: 16, fontWeight:900, letterSpacing:'-.02em' }}>{c.headline}</div>
           <div style={{ color:ink, opacity:.82, fontSize:12.5, marginTop:5 }}>{c.subhead}</div>
           <div style={{ marginTop:12, display:'inline-block', padding:'9px 14px', borderRadius:10, background:ink, color:accent, fontWeight:800, fontSize:12.5 }}>{c.cta}</div>
         </div>

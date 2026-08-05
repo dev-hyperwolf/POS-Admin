@@ -86,7 +86,7 @@ function TopBar(){ const P=useP(); const { mode, toggle }=useTheme(); return (
     <div style={{ width:300 }}><Field icon="search" placeholder="Search members…" size="sm"/></div>
     <IconBtn icon="bell" badge={2}/>
     <button onClick={toggle} style={{ width:38, height:38, borderRadius:10, border:'none', background:'transparent', cursor:'pointer', color:P.inkDim, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={mode==='dark'?'sun':'moon'} size={18}/></button>
-    <div style={{ display:'flex', alignItems:'center', gap:9, paddingLeft:6 }}><Avatar name="Manisha Saini" size={34} hue={172}/><div style={{ lineHeight:1.15 }}><div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>Manisha Saini</div><div style={{ fontSize:10.5, color:P.inkMute }}>Ops · Admin</div></div></div>
+    <div style={{ display:'flex', alignItems:'center', gap:9, paddingLeft:6 }}><Avatar name="Manisha Saini" size={34} hue={172}/><div style={{ lineHeight:1.15 }}><div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>Manisha Saini</div><div style={{ fontSize: 11.5, color:P.inkMute }}>Ops · Admin</div></div></div>
   </header>); }
 
 // ── members list column ──────────────────────────────────────────────────
@@ -95,14 +95,14 @@ function MembersList({ sel, onSel }){ const P=useP(); const [q,setQ]=useState(''
   const TSTAT={active:{l:'Active',k:'good'},new:{l:'New',k:'info'},flagged:{l:'Flagged',k:'bad'}};
   return (<div style={{ width:320, flex:'0 0 320px', borderRight:`1px solid ${P.hairline2}`, background:P.surface, display:'flex', flexDirection:'column', minHeight:0 }}>
     <div style={{ padding:'16px 16px 12px', borderBottom:`1px solid ${P.hairline}` }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}><span style={{ fontSize:16, fontWeight:800, color:P.ink }}>Members</span><span className="mono" style={{ fontSize:11, color:P.inkMute }}>4,218 total</span></div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}><span style={{ fontSize:16, fontWeight:800, color:P.ink }}>Members</span><span className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>4,218 total</span></div>
       <Field icon="search" placeholder="Search members…" value={q} onChange={e=>setQ(e.target.value)} size="sm"/>
     </div>
     <div style={{ flex:1, overflow:'auto' }}>
       {rows.map(m=>{ const a=sel===m.id; const ts=TSTAT[m.status]; return (
         <button key={m.id} onClick={()=>onSel(m.id)} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'12px 16px', border:'none', borderLeft:`3px solid ${a?P.accent:'transparent'}`, background:a?P.accentSoft:'transparent', cursor:'pointer', textAlign:'left', borderBottom:`1px solid ${P.hairline}` }}>
           <IDPhoto size={38} radius={10} showTag={false} badge={m.tier==='Gold'}/>
-          <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{m.name}</div><div className="mono" style={{ fontSize:11, color:P.inkMute }}>{m.tier!=='—'?m.tier:'Guest'} · {m.orders} ord · {money(m.ltv)}</div></div>
+          <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{m.name}</div><div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>{m.tier!=='—'?m.tier:'Guest'} · {m.orders} ord · {money(m.ltv)}</div></div>
           <Pill kind={ts.k} soft>{ts.l}</Pill>
         </button>); })}
     </div>
@@ -115,14 +115,14 @@ function RecordHeader(){ const P=useP(); return (
       <IDPhoto size={64} radius={15} badge/>
       <div style={{ flex:'1 1 300px', minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:11 }}>
-          <span style={{ fontSize:26, fontWeight:800, letterSpacing:'-.02em', color:P.ink }}>{REC.name}</span>
-          <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 11px', borderRadius:99, background:P.accent, color:P.accentInk, fontSize:12, fontWeight:800 }}><Icon name="crown" size={13} color={P.accentInk}/>Gold VIP</span>
+          <span style={{ fontSize: 30, fontWeight:800, letterSpacing:'-.02em', color:P.ink }}>{REC.name}</span>
+          <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 11px', borderRadius:99, background:P.accent, color:P.accentInk, fontSize: 12.5, fontWeight:800 }}><Icon name="crown" size={13} color={P.accentInk}/>Gold VIP</span>
           {REC.idVerified&&<Pill kind="good" soft icon="shield">ID verified</Pill>}
         </div>
-        <div className="mono" style={{ fontSize:12, color:P.inkMute, marginTop:6 }}>{REC.id} · member {REC.years} · since {REC.since} · {REC.region}</div>
+        <div className="mono" style={{ fontSize: 12.5, color:P.inkMute, marginTop:6 }}>{REC.id} · member {REC.years} · since {REC.since} · {REC.region}</div>
         <div style={{ display:'flex', gap:7, flexWrap:'wrap', marginTop:11 }}>
-          {REC.tags.map(t=>{ const c=P[TAGTINT[t]||'neutral']; return (<span key={t} style={{ fontSize:11, fontWeight:700, color:c, background:c+(P.mode==='dark'?'26':'1F'), border:`1px solid ${c}${P.mode==='dark'?'44':'55'}`, padding:'4px 10px', borderRadius:99 }}>{t}</span>); })}
-          <button style={{ fontSize:11, fontWeight:600, color:P.inkMute, background:'transparent', border:`1px dashed ${P.hairline3}`, padding:'4px 10px', borderRadius:99, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4 }}><Icon name="plus" size={12}/>Tag</button>
+          {REC.tags.map(t=>{ const c=P[TAGTINT[t]||'neutral']; return (<span key={t} style={{ fontSize: 11.5, fontWeight:700, color:c, background:c+(P.mode==='dark'?'26':'1F'), border:`1px solid ${c}${P.mode==='dark'?'44':'55'}`, padding:'4px 10px', borderRadius:99 }}>{t}</span>); })}
+          <button style={{ fontSize: 11.5, fontWeight:600, color:P.inkMute, background:'transparent', border:`1px dashed ${P.hairline3}`, padding:'4px 10px', borderRadius:99, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4 }}><Icon name="plus" size={12}/>Tag</button>
         </div>
       </div>
       <div style={{ display:'flex', gap:8, flex:'0 0 auto', flexWrap:'wrap' }}>
@@ -138,7 +138,7 @@ function RecordHeader(){ const P=useP(); return (
     </div>
   </div>); }
 function BtnG({ children, icon, primary }){ const P=useP(); const [h,setH]=useState(false); return (
-  <button onClick={()=>railGo(item)} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 14px', fontSize:13, fontWeight:600, borderRadius:10, cursor:'pointer', border:`1px solid ${primary?P.accentBorder:P.hairline2}`, background:primary?P.accent:(h?P.surface3:'transparent'), color:primary?P.accentInk:P.ink }}><Icon name={icon} size={15} stroke={2}/>{children}</button>); }
+  <button onClick={()=>railGo(item)} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'9px 14px', fontSize: 13.5, fontWeight:600, borderRadius:10, cursor:'pointer', border:`1px solid ${primary?P.accentBorder:P.hairline2}`, background:primary?P.accent:(h?P.surface3:'transparent'), color:primary?P.accentInk:P.ink }}><Icon name={icon} size={15} stroke={2}/>{children}</button>); }
 
 // ── tab bodies ─────────────────────────────────────────────────────────
 function InfoRow({ label, value, edit=true }){ const P=useP(); return (
@@ -168,7 +168,7 @@ function OverviewTab(){ const P=useP(); return (
           <IDPhoto size={72} radius={12}/>
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}><span style={{ fontSize:15, fontWeight:700, color:P.ink }}>Verified</span><Pill kind="good" soft icon="check-circle">Face match</Pill></div>
-            <div style={{ fontSize:12, color:P.inkMute, marginTop:3 }}>{REC.idType}</div>
+            <div style={{ fontSize: 12.5, color:P.inkMute, marginTop:3 }}>{REC.idType}</div>
             <div className="mono" style={{ fontSize:11.5, color:P.inkMute, marginTop:2 }}>DL ••• 4821 · exp {REC.idExpires} · DOB {REC.dob}</div>
           </div>
           <BtnG icon="expand">Full scan</BtnG>
@@ -178,7 +178,7 @@ function OverviewTab(){ const P=useP(); return (
         <SectionHead level={3} eyebrow="Behavior" title="Preferences & signals"/>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginTop:8 }}>
           {[['Preference',REC.pref],['Order frequency',REC.freq],['Account standing','Good · no chargebacks'],['Refunds / disputes',`${REC.refunds} / ${REC.disputes}`],['Referrals',`${REC.referrals} joined`],['Marketing opt-in',REC.marketing?'Yes · email':'No']].map((r,i)=>(
-            <div key={i}><div style={{ fontSize:10.5, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, fontWeight:600 }}>{r[0]}</div><div style={{ fontSize:13.5, fontWeight:600, color:P.ink, marginTop:3 }}>{r[1]}</div></div>
+            <div key={i}><div style={{ fontSize: 11.5, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, fontWeight:600 }}>{r[0]}</div><div style={{ fontSize:13.5, fontWeight:600, color:P.ink, marginTop:3 }}>{r[1]}</div></div>
           ))}
         </div>
       </Card>
@@ -188,7 +188,7 @@ function OverviewTab(){ const P=useP(); return (
         <SectionHead level={3} eyebrow="Tier" title="Membership"/>
         <div style={{ padding:16, borderRadius:12, background:P.mode==='dark'?'linear-gradient(150deg,#2a2410,#151310)':'linear-gradient(150deg,#151310,#33301f)', position:'relative', overflow:'hidden' }}>
           <div style={{ position:'absolute', top:-30, right:-20, width:120, height:120, borderRadius:'50%', background:`radial-gradient(circle,${P.accent}44,transparent 70%)` }}/>
-          <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between' }}><span style={{ fontSize:20, fontWeight:800, color:'#fff' }}>Gold VIP</span><Icon name="crown" size={26} color={P.accent}/></div>
+          <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'space-between' }}><span style={{ fontSize: 21, fontWeight:800, color:'#fff' }}>Gold VIP</span><Icon name="crown" size={26} color={P.accent}/></div>
           <div style={{ position:'relative', marginTop:12, height:7, borderRadius:99, background:'rgba(255,255,255,.14)', overflow:'hidden' }}><div style={{ width:'81%', height:'100%', background:P.accent }}/></div>
           <div style={{ position:'relative', fontSize:11.5, color:'rgba(255,255,255,.65)', marginTop:8 }}>{REC.toNext} pts to Platinum</div>
         </div>
@@ -198,7 +198,7 @@ function OverviewTab(){ const P=useP(); return (
         <SectionHead level={3} eyebrow="Comms" title="Channels" action={null}/>
         <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
           {[['Marketing email',REC.email_opt],['SMS',REC.sms],['Push notifications',true],['@ Home alerts',true]].map((r,i)=>(
-            <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'11px 0', borderTop:i?`1px solid ${P.hairline}`:'none' }}><span style={{ fontSize:13, color:P.ink }}>{r[0]}</span><Switch on={r[1]} onChange={()=>{}}/></div>
+            <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'11px 0', borderTop:i?`1px solid ${P.hairline}`:'none' }}><span style={{ fontSize: 13.5, color:P.ink }}>{r[0]}</span><Switch on={r[1]} onChange={()=>{}}/></div>
           ))}
         </div>
       </Card>
@@ -207,17 +207,17 @@ function OverviewTab(){ const P=useP(); return (
 
 function OrdersTab(){ const P=useP(); return (
   <Card padding={0} style={{ overflow:'hidden' }}>
-    <div style={{ display:'grid', gridTemplateColumns:'110px 1fr 120px 90px 110px 90px', padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize:10.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
+    <div style={{ display:'grid', gridTemplateColumns:'110px 1fr 120px 90px 110px 90px', padding:'11px 18px', background:P.surface2, borderBottom:`1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkDim }}>
       <div>Order</div><div>Date · genius</div><div>Type</div><div>Items</div><div>Status</div><div style={{textAlign:'right'}}>Total</div>
     </div>
     {ORDERS.map((o,i)=>{ const st=STATUSMAP[o.status]; return (
       <div key={o.id} style={{ display:'grid', gridTemplateColumns:'110px 1fr 120px 90px 110px 90px', padding:'13px 18px', borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center', cursor:'pointer' }} onMouseEnter={e=>e.currentTarget.style.background=P.surface2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
         <span className="mono" style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>{o.id}</span>
-        <div><span style={{ fontSize:13, color:P.ink }}>{o.date}</span>{o.genius&&<span style={{ fontSize:11.5, color:P.inkMute }}> · {o.genius}</span>}</div>
+        <div><span style={{ fontSize: 13.5, color:P.ink }}>{o.date}</span>{o.genius&&<span style={{ fontSize:11.5, color:P.inkMute }}> · {o.genius}</span>}</div>
         <div><span style={{ display:'inline-flex', alignItems:'center', gap:6, fontSize:12.5, color:P.inkDim }}><Icon name={o.kind==='@ Home'?'route':o.kind==='Pickup'?'shop':'truck'} size={15}/>{o.kind}</span></div>
         <span className="mono" style={{ fontSize:12.5, color:P.inkDim }}>{o.items}</span>
         <div><Pill kind={st.k} soft dot={o.status==='in_session'}>{st.l}</Pill></div>
-        <div style={{ textAlign:'right' }}>{o.total?<span className="mono" style={{ fontSize:13, fontWeight:700, color:P.ink }}>{money(o.total)}</span>:<span style={{ fontSize:12, color:P.inkMute }}>live</span>}{o.rating&&<div className="mono" style={{ fontSize:11, color:P.inkMute }}>★ {o.rating}</div>}</div>
+        <div style={{ textAlign:'right' }}>{o.total?<span className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>{money(o.total)}</span>:<span style={{ fontSize: 12.5, color:P.inkMute }}>live</span>}{o.rating&&<div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>★ {o.rating}</div>}</div>
       </div>); })}
   </Card>); }
 
@@ -235,9 +235,9 @@ function AtHomeTab(){ const P=useP(); return (
         {VISITS.map((v,i)=>(
           <div key={v.id} style={{ display:'flex', alignItems:'center', gap:13, padding:'13px 0', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
             <Avatar name={v.genius} size={40}/>
-            <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{v.genius}{v.status==='in_session'&&<span style={{ fontSize:11, fontWeight:700, color:P.good }}> · live now</span>}</div><div className="mono" style={{ fontSize:11.5, color:P.inkMute }}>{v.id} · {v.date} · {v.items} items</div></div>
+            <div style={{ flex:1 }}><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{v.genius}{v.status==='in_session'&&<span style={{ fontSize: 11.5, fontWeight:700, color:P.good }}> · live now</span>}</div><div className="mono" style={{ fontSize:11.5, color:P.inkMute }}>{v.id} · {v.date} · {v.items} items</div></div>
             {v.total?<span className="mono" style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{money(v.total)}</span>:<Pill kind="good" soft dot>In session</Pill>}
-            {v.rating&&<span className="mono" style={{ fontSize:12, color:P.inkMute, marginLeft:10 }}>★ {v.rating}</span>}
+            {v.rating&&<span className="mono" style={{ fontSize: 12.5, color:P.inkMute, marginLeft:10 }}>★ {v.rating}</span>}
           </div>
         ))}
       </div>
@@ -245,7 +245,7 @@ function AtHomeTab(){ const P=useP(); return (
     <Card style={{ background:P.accentSoft, border:`1px solid ${P.accentBorder}` }}>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <span style={{ position:'relative', width:10, height:10 }}><span style={{ position:'absolute', inset:0, borderRadius:99, background:P.good }}/><span style={{ position:'absolute', inset:-4, borderRadius:99, border:`1.5px solid ${P.good}`, animation:'shPing 1.8s ease-out infinite' }}/></span>
-        <div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:800, color:P.ink }}>Live visit in progress — A-2041</div><div style={{ fontSize:12, color:P.mode==='dark'?'rgba(0,0,0,.6)':'rgba(26,20,0,.7)' }}>Marcus Vale · started 2:17p · deposit $100 held</div></div>
+        <div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:800, color:P.ink }}>Live visit in progress — A-2041</div><div style={{ fontSize: 12.5, color:P.mode==='dark'?'rgba(0,0,0,.6)':'rgba(26,20,0,.7)' }}>Marcus Vale · started 2:17p · deposit $100 held</div></div>
         <BtnG icon="external">Open in @ Home</BtnG>
       </div>
     </Card>
@@ -255,10 +255,10 @@ function WalletTab(){ const P=useP(); return (
   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(300px,1fr))', gap:16 }}>
     <Card>
       <SectionHead level={3} eyebrow="Loyalty" title="Points" action={<BtnG icon="target">Adjust</BtnG>}/>
-      <div className="mono" style={{ fontSize:32, fontWeight:700, color:P.ink }}>{REC.points.toLocaleString()} <span style={{ fontSize:14, color:P.inkMute }}>pts</span></div>
+      <div className="mono" style={{ fontSize:32, fontWeight:700, color:P.ink }}>{REC.points.toLocaleString()} <span style={{ fontSize: 13.5, color:P.inkMute }}>pts</span></div>
       <div style={{ marginTop:14, display:'flex', flexDirection:'column' }}>
         {[['Earned','Jul 2 · H-8841','+212',true],['Bonus','Jun 12 · Gold 2×','+388',true],['Redeemed','Jun 24 · $10 off','−1,000',false]].map((r,i)=>(
-          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderTop:`1px solid ${P.hairline}` }}><div style={{ flex:1 }}><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>{r[0]}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{r[1]}</div></div><span className="mono" style={{ fontSize:13, fontWeight:700, color:r[3]?P.good:P.ink }}>{r[2]}</span></div>
+          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderTop:`1px solid ${P.hairline}` }}><div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{r[0]}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{r[1]}</div></div><span className="mono" style={{ fontSize: 13.5, fontWeight:700, color:r[3]?P.good:P.ink }}>{r[2]}</span></div>
         ))}
       </div>
     </Card>
@@ -267,7 +267,7 @@ function WalletTab(){ const P=useP(); return (
       <div className="mono" style={{ fontSize:32, fontWeight:700, color:P.ink }}>{money2(REC.wallet)}</div>
       <div style={{ marginTop:14, display:'flex', flexDirection:'column' }}>
         {[['Referral bonus','Jul 5 · Dana joined','+$25.00',true],['Order credit used','Jul 2 · H-8841','−$15.00',false],['Refund','Jun 20 · out-of-stock','+$32.50',true]].map((r,i)=>(
-          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderTop:`1px solid ${P.hairline}` }}><div style={{ flex:1 }}><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>{r[0]}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{r[1]}</div></div><span className="mono" style={{ fontSize:13, fontWeight:700, color:r[3]?P.good:P.ink }}>{r[2]}</span></div>
+          <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderTop:`1px solid ${P.hairline}` }}><div style={{ flex:1 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>{r[0]}</div><div style={{ fontSize:11.5, color:P.inkMute }}>{r[1]}</div></div><span className="mono" style={{ fontSize: 13.5, fontWeight:700, color:r[3]?P.good:P.ink }}>{r[2]}</span></div>
         ))}
       </div>
     </Card>
@@ -291,7 +291,7 @@ function ActivityTab(){ const P=useP(); return (
       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
         {NOTES.map((n,i)=>(
           <div key={i} style={{ padding:13, borderRadius:12, background:P.surface2, border:`1px solid ${P.hairline}` }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><Avatar name={n.by} size={22}/><span style={{ fontSize:12, fontWeight:700, color:P.ink }}>{n.by}</span><span style={{ fontSize:10.5, color:P.inkMute }}>{n.role}</span><span className="mono" style={{ marginLeft:'auto', fontSize:10.5, color:P.inkMute }}>{n.when}</span></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><Avatar name={n.by} size={22}/><span style={{ fontSize: 12.5, fontWeight:700, color:P.ink }}>{n.by}</span><span style={{ fontSize: 11.5, color:P.inkMute }}>{n.role}</span><span className="mono" style={{ marginLeft:'auto', fontSize: 11.5, color:P.inkMute }}>{n.when}</span></div>
             <div style={{ fontSize:12.5, lineHeight:1.5, color:P.ink2 }}>{n.text}</div>
           </div>
         ))}

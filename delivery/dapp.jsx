@@ -13,9 +13,9 @@ function PageHeader({ onAdd, mode, onToggleTheme }) {
   const P = useP();
   return <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 20 }}>
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, fontSize: 11, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.04em' }}><Icon name="truck" size={13} stroke={1.8} /> Operations <Icon name="chevron-right" size={12} /> <span style={{ color: P.ink2, fontWeight: 600 }}>Delivery</span></div>
-      <h1 style={{ margin: 0, fontSize: 29, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Delivery</h1>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, fontSize: 13, color: P.inkDim }}><span style={{ width: 7, height: 7, borderRadius: 99, background: P.good }} />4 counties · {D.SUBREGIONS.length} sub-regions · {D.SUBREGIONS.filter((s) => s.status === 'on').length} drivers on shift</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, fontSize: 11.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.04em' }}><Icon name="truck" size={13} stroke={1.8} /> Operations <Icon name="chevron-right" size={12} /> <span style={{ color: P.ink2, fontWeight: 600 }}>Delivery</span></div>
+      <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Delivery</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, fontSize: 13.5, color: P.inkDim }}><span style={{ width: 7, height: 7, borderRadius: 99, background: P.good }} />4 counties · {D.SUBREGIONS.length} sub-regions · {D.SUBREGIONS.filter((s) => s.status === 'on').length} drivers on shift</div>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <button onClick={onToggleTheme} title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`} style={{ width: 40, height: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink2, cursor: 'pointer' }}><Icon name={mode === 'light' ? 'moon' : 'sun'} size={18} stroke={1.9} /></button>
@@ -33,11 +33,11 @@ function CallOffCard({ c }) {
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{c.driver}</span>
-        <span style={{ fontFamily: P.fontMono, fontSize: 10.5, fontWeight: 700, color: '#fff', background: cty.color, padding: '2px 7px', borderRadius: 6 }}>{c.region}</span>
+        <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#fff', background: cty.color, padding: '2px 7px', borderRadius: 6 }}>{c.region}</span>
         <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{c.shift}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: col }}><span style={{ width: 6, height: 6, borderRadius: 99, background: col }} />Called off · {c.reason}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: col }}><span style={{ width: 6, height: 6, borderRadius: 99, background: col }} />Called off · {c.reason}</span>
       </div>
-      <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 3 }}>Submitted via call-off form · {c.at}{c.cover ? ` · covered by ${c.cover}` : ''}</div>
+      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 3 }}>Submitted via call-off form · {c.at}{c.cover ? ` · covered by ${c.cover}` : ''}</div>
     </div>
     {open ? <PBtn variant="accent" size="sm" icon="user-check">Cover shift</PBtn> : <Pill kind="good" dot>Covered</Pill>}
   </div>;
@@ -65,11 +65,11 @@ function ScheduleWeek() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 1 }}>
-          {calledOff ? <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.bad }}>Called off</span> : <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>Driver</span>}
-          {p.time && <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, textDecoration: calledOff ? 'line-through' : 'none' }}>{p.time}</span>}
+          {calledOff ? <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.bad }}>Called off</span> : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>Driver</span>}
+          {p.time && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, textDecoration: calledOff ? 'line-through' : 'none' }}>{p.time}</span>}
         </div>
       </div>
-      {cty && <span style={{ fontFamily: P.fontMono, fontSize: 11, fontWeight: 700, color: '#fff', background: cty.color, padding: '3px 8px', borderRadius: P.r8, opacity: calledOff ? .5 : 1 }}>{p.region}</span>}
+      {cty && <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#fff', background: cty.color, padding: '3px 8px', borderRadius: P.r8, opacity: calledOff ? .5 : 1 }}>{p.region}</span>}
     </div>;
   };
 
@@ -79,7 +79,7 @@ function ScheduleWeek() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: P.r8, background: P.ink, color: P.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="calendar" size={16} stroke={2} /></span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 9.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.05em' }}>SYNCED FROM CONNECTEAM</div>
+          <div style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.05em' }}>SYNCED FROM CONNECTEAM</div>
           <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: '-.01em', color: P.ink }}>Driver schedule</h2>
         </div>
         <div style={{ flex: 1 }} />
@@ -89,7 +89,7 @@ function ScheduleWeek() {
       <div style={{ display: 'flex', gap: 6, padding: '12px 18px', borderBottom: `1px solid ${P.hairline}`, overflowX: 'auto' }}>
         {D.WEEK.map((d) => {const on = day === d.key;const co = D.CALLOFFS.some((c) => c.day === d.key);return (
             <button key={d.key} onClick={() => setDay(d.key)} style={{ position: 'relative', flex: '1 0 auto', minWidth: 104, padding: '11px 15px', borderRadius: P.r10, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'center' }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{d.label}{d.today && <span style={{ fontSize: 9.5, fontWeight: 800, marginLeft: 5, color: on ? P.accent : P.good }}>TODAY</span>}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700 }}>{d.label}{d.today && <span style={{ fontSize: 10, fontWeight: 800, marginLeft: 5, color: on ? P.accent : P.good }}>TODAY</span>}</div>
             <div style={{ fontSize: 11.5, fontFamily: P.fontMono, opacity: .72, marginTop: 2 }}>{d.date}</div>
             {co && <span style={{ position: 'absolute', top: 6, right: 8, width: 6, height: 6, borderRadius: 99, background: P.bad }} />}
           </button>);})}
@@ -99,14 +99,14 @@ function ScheduleWeek() {
         <div key={c.id}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
               <span style={{ width: 9, height: 9, borderRadius: 3, background: c.color }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>{c.name}</span>
-              <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{groups[c.id].length}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{c.name}</span>
+              <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{groups[c.id].length}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 10 }}>{groups[c.id].map((p, i) => <Tile key={i} p={p} />)}</div>
           </div>)}
         {off.length > 0 && <>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkDim, marginTop: 4 }}>Off · {off.length}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 10 }}>{off.map((p, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, opacity: .55 }}><Avatar name={p.name} size={30} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{p.name}</div><div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: P.inkMute }}>Driver</div></div><Pill kind="neutral">Off</Pill></div>)}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(232px, 1fr))', gap: 10 }}>{off.map((p, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, opacity: .55 }}><Avatar name={p.name} size={30} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{p.name}</div><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: P.inkMute }}>Driver</div></div><Pill kind="neutral">Off</Pill></div>)}</div>
         </>}
       </div>
     </div>
@@ -130,10 +130,10 @@ function ScheduleWeek() {
 function SettingRow({ label, value, overridden }) {
   const P = useP();
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-    <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
+    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <span style={{ fontSize: 14, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span>
-      {overridden ? <span style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 5, padding: '1px 5px' }}>Override</span> : <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute }}>central</span>}
+      <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span>
+      {overridden ? <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 5, padding: '1px 5px' }}>Override</span> : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute }}>central</span>}
     </div>
   </div>;
 }
@@ -155,8 +155,8 @@ function settingsCells(sr) {
 function WmParam({ label, value, mono }) {
   const P = useP();
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
-    <span style={{ fontSize: 12, fontWeight: 600, color: P.ink, fontFamily: mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
+    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
+    <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span>
   </div>;
 }
 function WmPinRow({ pin, expanded, onToggle }) {
@@ -166,10 +166,10 @@ function WmPinRow({ pin, expanded, onToggle }) {
     <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 11, padding: '10px 13px', background: 'transparent', border: 'none', borderLeft: `3px solid ${accent}`, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
       <span style={{ width: 26, height: 26, borderRadius: 7, background: pin.cty ? pin.cty.color : P.surface3, color: pin.cty ? '#fff' : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={pin.kind === 'Pickup' ? 'shop' : 'truck'} size={14} stroke={1.9} /></span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pin.city}</div>
-        <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{pin.kind} · {pin.cty ? pin.cty.name : pin.store} · wmid {pin.wmid}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pin.city}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{pin.kind} · {pin.cty ? pin.cty.name : pin.store} · wmid {pin.wmid}</div>
       </div>
-      <span style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{pin.ext}</span>
+      <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{pin.ext}</span>
       {pin.live ? <Pill kind="good" dot>Live</Pill> : <Pill kind="warn" dot>Paused</Pill>}
       <Icon name="chevron-down" size={15} stroke={2.2} color={P.inkMute} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s', flex: '0 0 auto' }} />
     </button>
@@ -177,8 +177,8 @@ function WmPinRow({ pin, expanded, onToggle }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}`, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 9.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 7px', borderRadius: 99 }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Fetched from Weedmaps</span>
-            <span style={{ fontSize: 10.5, color: P.inkMute }}>read-only · issued & owned by the WM pin</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 7px', borderRadius: 99 }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Fetched from Weedmaps</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute }}>read-only · issued & owned by the WM pin</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '12px 16px', padding: '12px 14px' }}>
             <WmParam label="WM pin ID" value={pin.pinId} mono />
@@ -192,8 +192,8 @@ function WmPinRow({ pin, expanded, onToggle }) {
         </div>
         <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}`, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 9.5, fontWeight: 800, color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, padding: '2px 7px', borderRadius: 99 }}><Icon name="pin" size={10} stroke={2} />Set in Hyperwolf</span>
-            <span style={{ fontSize: 10.5, color: P.inkMute }}>we set these · pushed to the pin</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 800, color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, padding: '2px 7px', borderRadius: 99 }}><Icon name="pin" size={10} stroke={2} />Set in Hyperwolf</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute }}>we set these · pushed to the pin</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '12px 16px', padding: '12px 14px' }}>
             <WmParam label="external_id" value={pin.ext} mono />
@@ -209,7 +209,7 @@ function WmPinRow({ pin, expanded, onToggle }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         <PBtn variant="secondary" size="sm" icon="refresh">Re-sync pin</PBtn>
         <PBtn variant="ghost" size="sm" icon="link">Open on Weedmaps</PBtn>
-        <span style={{ fontSize: 10.5, color: P.inkMute, marginLeft: 'auto' }}>Parameters are scoped to this pin.</span>
+        <span style={{ fontSize: 11.5, color: P.inkMute, marginLeft: 'auto' }}>Parameters are scoped to this pin.</span>
       </div>
     </div>}
   </div>;
@@ -221,13 +221,13 @@ function AddWmPinModal({ kind, onClose, onSave }) {
   const [pinId, setPinId] = React.useState('');
   const [menuId, setMenuId] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
-  const inp = { width: '100%', padding: '10px 12px', background: P.field || P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink, fontSize: 14, fontFamily: P.fontSans, outline: 'none' };
+  const inp = { width: '100%', padding: '10px 12px', background: P.field || P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' };
   const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, display: 'block', marginBottom: 6 };
   const save = () => {if (!city.trim()) return;onSave({ city: city.trim(), assoc: assoc.trim(), pinId: pinId.trim(), menuId: menuId.trim(), apiKey: apiKey.trim() });};
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: P.scrim, zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px,96vw)', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
         <span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>New {kind.toLowerCase()} pin</span>
         <div style={{ flex: 1 }} /><IconBtn icon="x" onClick={onClose} />
       </div>
@@ -235,11 +235,11 @@ function AddWmPinModal({ kind, onClose, onSave }) {
         <div><span style={lbl}>City</span><input value={city} onChange={(e) => setCity(e.target.value)} placeholder="e.g. Pasadena" style={inp} autoFocus /></div>
         <div><span style={lbl}>{kind === 'Pickup' ? 'Store' : 'County / region'}</span><input value={assoc} onChange={(e) => setAssoc(e.target.value)} placeholder={kind === 'Pickup' ? 'e.g. Hyperwolf' : 'e.g. Los Angeles County'} style={inp} /></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div><span style={lbl}>WM pin ID <span style={{ textTransform: 'none', color: P.inkFaint, fontWeight: 600 }}>· optional</span></span><input value={pinId} onChange={(e) => setPinId(e.target.value)} placeholder="PIN-00000" style={{ ...inp, fontFamily: P.fontMono, fontSize: 13 }} /></div>
-          <div><span style={lbl}>Menu ID <span style={{ textTransform: 'none', color: P.inkFaint, fontWeight: 600 }}>· optional</span></span><input value={menuId} onChange={(e) => setMenuId(e.target.value)} placeholder="menu_del_xxxx" style={{ ...inp, fontFamily: P.fontMono, fontSize: 13 }} /></div>
+          <div><span style={lbl}>WM pin ID <span style={{ textTransform: 'none', color: P.inkFaint, fontWeight: 600 }}>· optional</span></span><input value={pinId} onChange={(e) => setPinId(e.target.value)} placeholder="PIN-00000" style={{ ...inp, fontFamily: P.fontMono, fontSize: 13.5 }} /></div>
+          <div><span style={lbl}>Menu ID <span style={{ textTransform: 'none', color: P.inkFaint, fontWeight: 600 }}>· optional</span></span><input value={menuId} onChange={(e) => setMenuId(e.target.value)} placeholder="menu_del_xxxx" style={{ ...inp, fontFamily: P.fontMono, fontSize: 13.5 }} /></div>
         </div>
-        <div><span style={lbl}>API / sync key <span style={{ textTransform: 'none', color: P.inkFaint, fontWeight: 600 }}>· optional</span></span><input value={apiKey} onChange={(e) => setApiKey(e.target.value)} type="password" placeholder="ptok_••••••••" style={{ ...inp, fontFamily: P.fontMono, fontSize: 13 }} /></div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.surface2, borderRadius: P.r10, fontSize: 11, color: P.inkDim, lineHeight: 1.5 }}><Icon name="info" size={13} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} /><span>Paste an existing pin&rsquo;s ID, menu ID &amp; API key to <b style={{ color: P.ink2 }}>link</b> it now — or leave blank and Weedmaps issues them on create, starting <b style={{ color: P.ink2 }}>paused</b> until first sync.</span></div>
+        <div><span style={lbl}>API / sync key <span style={{ textTransform: 'none', color: P.inkFaint, fontWeight: 600 }}>· optional</span></span><input value={apiKey} onChange={(e) => setApiKey(e.target.value)} type="password" placeholder="ptok_••••••••" style={{ ...inp, fontFamily: P.fontMono, fontSize: 13.5 }} /></div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.surface2, borderRadius: P.r10, fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}><Icon name="info" size={13} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} /><span>Paste an existing pin&rsquo;s ID, menu ID &amp; API key to <b style={{ color: P.ink2 }}>link</b> it now — or leave blank and Weedmaps issues them on create, starting <b style={{ color: P.ink2 }}>paused</b> until first sync.</span></div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '0 18px 18px' }}>
         <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
@@ -289,17 +289,17 @@ function WeedmapsPanel({ regions }) {
   { k: 'Webhook secret', v: 'whsec_…9d2', note: 'HMAC-verified' },
   { k: 'Merchant ID', v: 'HW-CA-0001', note: 'partner account' }];
 
-  const TabBtn = ({ id, label, n }) => {const on = tab === id;return <button onClick={() => {setTab(id);setOpen(null);}} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: P.r999, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700 }}><Icon name={id === 'pickup' ? 'shop' : 'truck'} size={14} stroke={1.9} />{label}<span style={{ fontSize: 11, fontFamily: P.fontMono, opacity: .7 }}>{n}</span></button>;};
+  const TabBtn = ({ id, label, n }) => {const on = tab === id;return <button onClick={() => {setTab(id);setOpen(null);}} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: P.r999, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700 }}><Icon name={id === 'pickup' ? 'shop' : 'truck'} size={14} stroke={1.9} />{label}<span style={{ fontSize: 11.5, fontFamily: P.fontMono, opacity: .7 }}>{n}</span></button>;};
 
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
     {/* account credentials — shared by every pin */}
     <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, overflow: 'hidden' }}>
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Account credentials</span><Icon name="lock" size={13} color={P.inkMute} /><span style={{ fontSize: 11, color: P.inkDim }}>One partner account — shared by all {allDelivery.length + allPickup.length} pins. Menu, hours &amp; availability are set per pin below.</span></div>
+      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Account credentials</span><Icon name="lock" size={13} color={P.inkMute} /><span style={{ fontSize: 11.5, color: P.inkDim }}>One partner account — shared by all {allDelivery.length + allPickup.length} pins. Menu, hours &amp; availability are set per pin below.</span></div>
       <div style={{ padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 10 }}>
         {creds.map((c) => <div key={c.k} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
           <span style={{ width: 7, height: 7, borderRadius: 99, background: P.good, flex: '0 0 auto' }} />
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>{c.k}</div><div style={{ fontSize: 10, color: P.inkMute }}>{c.note}</div></div>
-          <span style={{ fontSize: 11, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{c.v}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{c.v}</span>
         </div>)}
       </div>
     </div>
@@ -308,7 +308,7 @@ function WeedmapsPanel({ regions }) {
     <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, overflow: 'hidden' }}>
       <div style={{ padding: '12px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Weedmaps pins</span>
-        <span style={{ fontSize: 11, color: P.inkDim }}>One pin per city · {liveCount}/{pins.length} live</span>
+        <span style={{ fontSize: 11.5, color: P.inkDim }}>One pin per city · {liveCount}/{pins.length} live</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: '#1F5FC0' }} />from Weedmaps</span><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: P.accent }} />set here</span></span>
         <div style={{ flex: 1 }} />
         <div style={{ display: 'flex', gap: 6 }}><TabBtn id="delivery" label="Delivery" n={allDelivery.length} /><TabBtn id="pickup" label="Pickup" n={allPickup.length} /></div>
@@ -339,7 +339,7 @@ function RegionsHome({ onOpen, regions }) {
   return <div>
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Coverage map · 3 options</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Coverage map · 3 options</span>
         <div style={{ flex: 1 }} />
         <Seg value={mode} onChange={setMode} size="sm" options={modes} />
         <Toggle on={buffer} set={setBuffer}>Buffer</Toggle>
@@ -356,9 +356,9 @@ function RegionsHome({ onOpen, regions }) {
         const subs = regions.filter((s) => s.county === c.id);
         return <div key={c.id}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12 }}>
-            <span style={{ width: 29, height: 29, borderRadius: P.r8, background: c.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono, fontWeight: 800, fontSize: 12 }}>{c.id}</span>
+            <span style={{ width: 29, height: 29, borderRadius: P.r8, background: c.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono, fontWeight: 800, fontSize: 12.5 }}>{c.id}</span>
             <h2 style={{ margin: 0, fontSize: 16.5, fontWeight: 700, letterSpacing: '-.015em', color: P.ink }}>{c.name}</h2>
-            <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{subs.length} sub-regions</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{subs.length} sub-regions</span>
             <span style={{ flex: 1, height: 1, background: P.hairline }} />
             {/* central settings summary */}
             <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
@@ -372,9 +372,9 @@ function RegionsHome({ onOpen, regions }) {
               onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                   <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#fff', background: c.color, padding: '3px 8px', borderRadius: P.r8 }}>{s.id}</span>
-                  <span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: P.ink }}>{s.city}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{s.kml ? 'KML uploaded' : 'no KML'}</span></span>
+                  <span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{s.city}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{s.kml ? 'KML uploaded' : 'no KML'}</span></span>
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><Avatar name={s.driver} size={24} /><span style={{ fontSize: 12, color: P.ink2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.driver}</span></span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><Avatar name={s.driver} size={24} /><span style={{ fontSize: 12.5, color: P.ink2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.driver}</span></span>
                 {cells.map((cell) => <SettingRow key={cell.label} {...cell} />)}
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>{s.status === 'on' ? <Pill kind="good" dot>On</Pill> : <Pill kind="neutral" dot>Off</Pill>}<Icon name="chevron-right" size={15} color={P.inkFaint} /></span>
               </div>;
@@ -391,13 +391,13 @@ function EditableSetting({ label, prefix, suffix, value, overridden, onChange, o
   const P = useP();
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-      <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim }}>{label}</span>
-      {overridden ? <button onClick={onReset} title="Reset to central value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 99, padding: '2px 7px', cursor: 'pointer' }}>Overridden<Icon name="x" size={10} stroke={2.6} /></button> : <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute, border: `1px solid ${P.hairline2}`, borderRadius: 99, padding: '2px 7px' }}>Central</span>}
+      <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim }}>{label}</span>
+      {overridden ? <button onClick={onReset} title="Reset to central value" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: 99, padding: '2px 7px', cursor: 'pointer' }}>Overridden<Icon name="x" size={10} stroke={2.6} /></button> : <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute, border: `1px solid ${P.hairline2}`, borderRadius: 99, padding: '2px 7px' }}>Central</span>}
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, background: P.surface, border: `1px solid ${overridden ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, padding: '0 11px', height: 40, minWidth: 0 }}>
       {prefix && <span style={{ fontSize: 15, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, marginRight: 2 }}>{prefix}</span>}
-      <input value={value} onChange={(e) => onChange(e.target.value)} style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: P.ink, fontSize: 14.5, fontWeight: 700, fontFamily: P.fontMono, padding: 0 }} />
-      {suffix && <span style={{ fontSize: 13, fontWeight: 600, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 4 }}>{suffix}</span>}
+      <input value={value} onChange={(e) => onChange(e.target.value)} style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', outline: 'none', color: P.ink, fontSize: 16, fontWeight: 700, fontFamily: P.fontMono, padding: 0 }} />
+      {suffix && <span style={{ fontSize: 13.5, fontWeight: 600, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 4 }}>{suffix}</span>}
     </div>
   </div>;
 }
@@ -418,7 +418,7 @@ function KmlList({ region, color, onChange }) {
       <span style={{ width: 11, height: 11, borderRadius: 3, background: k.on ? color : P.inkFaint, flex: '0 0 auto' }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.name}</div>
-        <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{k.on ? 'active · routing enabled' : 'hidden · not routing'}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{k.on ? 'active · routing enabled' : 'hidden · not routing'}</div>
       </div>
       <button onClick={() => toggle(i)} title={k.on ? 'Turn off' : 'Turn on'} style={{ position: 'relative', width: 40, height: 23, borderRadius: 99, border: 'none', cursor: 'pointer', background: k.on ? P.good : P.hairline3, transition: 'background .15s', flex: '0 0 auto' }}>
         <span style={{ position: 'absolute', top: 2.5, left: k.on ? 20 : 2.5, width: 18, height: 18, borderRadius: 99, background: '#fff', transition: 'left .15s', boxShadow: '0 1px 2px rgba(0,0,0,.3)' }} />
@@ -454,8 +454,8 @@ function AddRegionModal({ regions, onClose, onSave }) {
     const rid = newCty ? `${countyId}-01` : id;
     onSave({ id: rid, county: countyId, city: city.trim() || rid, driver: 'Unassigned', status: 'on', kml: false, pts: hex, override: {}, kmls: [] });
   };
-  const inp = { width: '100%', height: 42, border: `1px solid ${P.hairline2}`, background: P.surface, borderRadius: P.r10, padding: '0 12px', fontSize: 14, color: P.ink, fontFamily: P.fontSans, outline: 'none' };
-  const lbl = { fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim, marginBottom: 6, display: 'block' };
+  const inp = { width: '100%', height: 42, border: `1px solid ${P.hairline2}`, background: P.surface, borderRadius: P.r10, padding: '0 12px', fontSize: 13.5, color: P.ink, fontFamily: P.fontSans, outline: 'none' };
+  const lbl = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim, marginBottom: 6, display: 'block' };
 
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px', overflowY: 'auto' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(480px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
@@ -467,8 +467,8 @@ function AddRegionModal({ regions, onClose, onSave }) {
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 15 }}>
         <div><span style={lbl}>County</span>
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-            {D.COUNTIES.map((c) => {const on = !newCty && county === c.id;return <button key={c.id} onClick={() => {setNewCty(false);setCounty(c.id);}} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r999, border: `1px solid ${on ? c.color : P.hairline2}`, background: on ? c.color : P.surface, color: on ? '#fff' : P.ink2, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: P.fontSans }}><span style={{ width: 8, height: 8, borderRadius: 2, background: on ? '#fff' : c.color }} />{c.name}</button>;})}
-            <button onClick={() => setNewCty(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r999, border: `1px dashed ${newCty ? cty.color : P.hairline3}`, background: newCty ? cty.color : P.surface, color: newCty ? '#fff' : P.info, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: P.fontSans }}><Icon name="plus" size={13} stroke={2.4} color={newCty ? '#fff' : P.info} />New county</button>
+            {D.COUNTIES.map((c) => {const on = !newCty && county === c.id;return <button key={c.id} onClick={() => {setNewCty(false);setCounty(c.id);}} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r999, border: `1px solid ${on ? c.color : P.hairline2}`, background: on ? c.color : P.surface, color: on ? '#fff' : P.ink2, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: P.fontSans }}><span style={{ width: 8, height: 8, borderRadius: 2, background: on ? '#fff' : c.color }} />{c.name}</button>;})}
+            <button onClick={() => setNewCty(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r999, border: `1px dashed ${newCty ? cty.color : P.hairline3}`, background: newCty ? cty.color : P.surface, color: newCty ? '#fff' : P.info, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: P.fontSans }}><Icon name="plus" size={13} stroke={2.4} color={newCty ? '#fff' : P.info} />New county</button>
           </div>
           {newCty && <input value={newCtyName} onChange={(e) => setNewCtyName(e.target.value)} placeholder="New county name (e.g. San Diego County)" style={{ ...inp, marginTop: 8 }} autoFocus />}
         </div>
@@ -503,7 +503,7 @@ function RegionDetail({ region, onBack, onChange }) {
 
 
   return <div>
-    <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13, fontWeight: 600, fontFamily: P.fontSans, padding: 0, marginBottom: 16 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to regions</button>
+    <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0, marginBottom: 16 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to regions</button>
 
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, marginBottom: 16, boxShadow: P.shadowSm, flexWrap: 'wrap' }}>
       <span style={{ width: 46, height: 46, borderRadius: P.r10, background: c.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono, fontWeight: 800, fontSize: 15 }}>{s.id}</span>
@@ -518,11 +518,11 @@ function RegionDetail({ region, onBack, onChange }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 15, padding: '15px 18px', background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: P.r16, marginBottom: 16 }}>
       <Avatar name={s.driver} size={52} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 10.5, fontWeight: 800, letterSpacing: '.11em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00' }}><Icon name="truck" size={14} stroke={2.2} />Today&rsquo;s driver</div>
-        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.15, marginTop: 2 }}>{s.driver}</div>
-        <div style={{ fontSize: 12, color: P.inkDim, marginTop: 3 }}>Rotates daily · pulled from the ConnecTeam schedule. Check the Schedule section for who covers {s.id} on other days.</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, fontWeight: 800, letterSpacing: '.11em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00' }}><Icon name="truck" size={14} stroke={2.2} />Today&rsquo;s driver</div>
+        <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.15, marginTop: 2 }}>{s.driver}</div>
+        <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 3 }}>Rotates daily · pulled from the ConnecTeam schedule. Check the Schedule section for who covers {s.id} on other days.</div>
       </div>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: P.fontMono, fontSize: 12, fontWeight: 700, color: '#fff', background: c.color, padding: '6px 12px', borderRadius: P.r999, flex: '0 0 auto' }}><span style={{ width: 7, height: 7, borderRadius: 99, background: '#fff' }} />{s.id}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 700, color: '#fff', background: c.color, padding: '6px 12px', borderRadius: P.r999, flex: '0 0 auto' }}><span style={{ width: 7, height: 7, borderRadius: 99, background: '#fff' }} />{s.id}</span>
     </div>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 380px', gap: 16, alignItems: 'start' }}>
@@ -534,18 +534,18 @@ function RegionDetail({ region, onBack, onChange }) {
         <Card padding={0}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: `1px solid ${P.hairline}` }}>
             <span style={{ width: 28, height: 28, borderRadius: 7, background: c.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="settings" size={15} stroke={2} /></span>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>Delivery settings</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Inherited from {c.id} · edit any field to override</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Delivery settings</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Inherited from {c.id} · edit any field to override</div></div>
           </div>
           <div style={{ padding: 16, display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
             {fields.map((f) => <EditableSetting key={f.key} label={f.label} prefix={f.prefix} suffix={f.suffix} value={f.value} overridden={ov(f.key)} onChange={(v) => setField(f.key, v)} onReset={() => reset(f.key)} />)}
           </div>
           <div style={{ padding: '0 16px 16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, fontSize: 12, color: P.inkDim, lineHeight: 1.5 }}><Icon name="info" size={15} color={P.info} style={{ flex: '0 0 auto' }} /><span><b style={{ color: P.ink2 }}>Central</b> values come from {c.name} ({central.open}–{central.close} · min {money(central.min)} · buffer {central.buffer}mi). Editing a field creates an <b style={{ color: P.ink2 }}>override</b> for {s.id} only; reset any override to fall back to central.</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, fontSize: 12.5, color: P.inkDim, lineHeight: 1.5 }}><Icon name="info" size={15} color={P.info} style={{ flex: '0 0 auto' }} /><span><b style={{ color: P.ink2 }}>Central</b> values come from {c.name} ({central.open}–{central.close} · min {money(central.min)} · buffer {central.buffer}mi). Editing a field creates an <b style={{ color: P.ink2 }}>override</b> for {s.id} only; reset any override to fall back to central.</span></div>
           </div>
         </Card>
         <Card padding={0}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 16px', borderBottom: `1px solid ${P.hairline}` }}>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>KML files</div><div style={{ fontSize: 11.5, color: P.inkDim }}>{(s.kmls || []).filter((k) => k.on).length} active · toggle any on / off</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>KML files</div><div style={{ fontSize: 11.5, color: P.inkDim }}>{(s.kmls || []).filter((k) => k.on).length} active · toggle any on / off</div></div>
           </div>
           <div style={{ padding: 16 }}>
             <KmlList region={s} color={c.color} onChange={onChange} />
@@ -561,7 +561,7 @@ function SectionBanner({ icon, title, sub }) {
   const P = useP();
   return <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 14 }}>
     <span style={{ width: 32, height: 32, borderRadius: P.r8, background: P.ink, color: P.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={17} stroke={2} /></span>
-    <div><h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, letterSpacing: '-.015em', color: P.ink }}>{title}</h2>{sub && <div style={{ fontSize: 12, color: P.inkDim, marginTop: 1 }}>{sub}</div>}</div>
+    <div><h2 style={{ margin: 0, fontSize: 21, fontWeight: 700, letterSpacing: '-.015em', color: P.ink }}>{title}</h2>{sub && <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 1 }}>{sub}</div>}</div>
     <span style={{ flex: 1, height: 1, background: P.hairline }} />
   </div>;
 }

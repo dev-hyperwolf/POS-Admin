@@ -32,7 +32,7 @@
     const c = HD.tone(P, online ? 'ok' : 'warn');
     return (
       <button onClick={onToggle} aria-label={online ? 'Online — toggle to simulate offline' : 'Offline — toggle to simulate online'}
-        style={{ height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6, background: c.bg, color: c.fg, border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}>
+        style={{ height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12.5, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6, background: c.bg, color: c.fg, border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}>
         <Icon name={online ? 'link' : 'x'} size={12} stroke={2} />{online ? 'Online' : 'Offline · queueing'}
       </button>);
   }
@@ -48,12 +48,12 @@
               <Icon name="check" size={14} stroke={2.6} color={ok.fg} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.productName}</div>
-              <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.code}</div>
+              <div style={{ fontSize: 13.5, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.productName}</div>
+              <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.code}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontFamily: P.fontMono, fontSize: 13, color: P.ink }}>{s.qty}</div>
-              <div style={{ fontSize: 11, color: P.inkMute }}>{HD.relativeTime(s.at, Date.now())}</div>
+              <div style={{ fontFamily: P.fontMono, fontSize: 13.5, color: P.ink }}>{s.qty}</div>
+              <div style={{ fontSize: 11.5, color: P.inkMute }}>{HD.relativeTime(s.at, Date.now())}</div>
             </div>
           </li>))}
       </ul>);
@@ -100,7 +100,7 @@
           <IconBtn icon="arrow-left" size={18} onClick={() => navigate('#/inbox')} title="Back" style={{ width: 36, height: 36 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <MicroLabel>Intake · manifest</MicroLabel>
-            <div style={{ fontFamily: P.fontMono, fontSize: 13, color: P.ink }}>{trackingId}</div>
+            <div style={{ fontFamily: P.fontMono, fontSize: 13.5, color: P.ink }}>{trackingId}</div>
           </div>
           <OfflineChip online={online} onToggle={() => setOnline((o) => !o)} />
         </header>
@@ -117,7 +117,7 @@
                 <Icon name="lightning" size={16} />
               </button>
             </div>
-            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 96, textAlign: 'center', color: 'rgba(255,255,255,.55)', fontSize: 12, fontWeight: 500, pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 96, textAlign: 'center', color: 'rgba(255,255,255,.55)', fontSize: 12.5, fontWeight: 500, pointerEvents: 'none' }}>
               Align package barcode in frame · tap to simulate
             </div>
             <div style={{ position: 'absolute', left: 0, right: 0, bottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -136,24 +136,24 @@
               <React.Fragment>
                 <div style={{ fontSize: 15, color: P.ink, fontWeight: 500, marginTop: 4, lineHeight: 1.3 }}>{last.productName}</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-                  <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>{last.code}</div>
+                  <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{last.code}</div>
                   <div style={{ fontFamily: P.fontMono, fontSize: 15, color: P.ink, fontWeight: 600 }}>Qty {last.qty}</div>
                 </div>
               </React.Fragment>
-            ) : <div style={{ fontSize: 13, color: P.inkMute, marginTop: 4 }}>No scans yet. Tap the shutter to start.</div>}
+            ) : <div style={{ fontSize: 13.5, color: P.inkMute, marginTop: 4 }}>No scans yet. Tap the shutter to start.</div>}
           </Card>
         </div>
 
         <div style={{ flex: 1, padding: 16, overflow: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <MicroLabel>Recent scans</MicroLabel>
-            <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{history.length} total</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{history.length} total</span>
           </div>
           <Card padding={16} radius={18}><ScanHistory items={history.slice(0, 5)} /></Card>
         </div>
 
         <button onClick={() => setManualOpen(true)}
-          style={{ position: 'sticky', bottom: 20, alignSelf: 'flex-end', marginRight: 20, height: 56, padding: '0 20px', borderRadius: 99, background: P.accent, color: P.accentInk, border: 'none', boxShadow: P.shadowLg, display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: P.fontSans, zIndex: 40 }}>
+          style={{ position: 'sticky', bottom: 20, alignSelf: 'flex-end', marginRight: 20, height: 56, padding: '0 20px', borderRadius: 99, background: P.accent, color: P.accentInk, border: 'none', boxShadow: P.shadowLg, display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 13.5, cursor: 'pointer', fontFamily: P.fontSans, zIndex: 40 }}>
           <Icon name="plus" size={18} stroke={2.4} />Manual entry
         </button>
 
@@ -162,10 +162,10 @@
             <div onClick={() => setManualOpen(false)} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
             <Card padding={0} style={{ position: 'relative', width: 420, maxWidth: '92vw' }}>
               <div style={{ padding: 20 }}>
-                <h2 style={{ margin: '0 0 12px', fontSize: 17, fontWeight: 600, color: P.ink }}>Manual entry</h2>
-                <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, marginBottom: 6 }}>METRC package ID</label>
+                <h2 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600, color: P.ink }}>Manual entry</h2>
+                <label style={{ display: 'block', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, marginBottom: 6 }}>METRC package ID</label>
                 <Field mono value={manualCode} onChange={(e) => setManualCode(e.target.value)} placeholder="1A4060300012345670000…" autoComplete="off" />
-                <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, margin: '12px 0 6px' }}>Quantity</label>
+                <label style={{ display: 'block', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, margin: '12px 0 6px' }}>Quantity</label>
                 <Field value={manualQty} onChange={(e) => setManualQty(e.target.value)} type="number" inputMode="numeric" placeholder="48" />
               </div>
               <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>

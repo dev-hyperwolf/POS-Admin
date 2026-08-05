@@ -72,7 +72,7 @@ window.FeeCompare = function FeeCompare({ base, value, onChange, layout = 'cards
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
               padding: '9px 12px', background: a ? P.accentSoft : P.surface, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`,
               borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>{o.label}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{o.label}</span>
               <span style={{ fontSize: 12.5, fontWeight: 700, color: a ? P.ink : P.inkDim, fontFamily: P.fontMono }}>+{money(f)}</span>
             </button>
           );
@@ -91,14 +91,14 @@ window.FeeCompare = function FeeCompare({ base, value, onChange, layout = 'cards
             borderRadius: P.r12, cursor: 'pointer', fontFamily: P.fontSans }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ width: 16, height: 16, borderRadius: 99, border: `2px solid ${a ? P.accent : P.hairline3}`, background: a ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>{a && <Icon name="check" size={9} stroke={3.4} color={P.accentInk} />}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{o.label}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{o.label}</span>
             </div>
-            <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.note}</div>
+            <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.note}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 2 }}>
-              <span style={{ fontSize: 10.5, color: P.inkDim, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Fee</span>
+              <span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Fee</span>
               <span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>+{money(f)}</span>
             </div>
-            <div style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono, borderTop: `1px dashed ${P.hairline2}`, paddingTop: 6 }}>Card charged <b style={{ color: P.ink }}>{money(tot)}</b></div>
+            <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, borderTop: `1px dashed ${P.hairline2}`, paddingTop: 6 }}>Card charged <b style={{ color: P.ink }}>{money(tot)}</b></div>
           </button>
         );
       })}
@@ -129,15 +129,15 @@ window.FlowFrame = function FlowFrame({ title, tag, children, foot }) {
       <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 11, padding: '14px 20px', background: P.surface, borderBottom: `1px solid ${P.hairline2}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="receipt" size={16} stroke={1.9} /></span>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: P.ink, lineHeight: 1.1 }}>{title}</div>
-          <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.06em', textTransform: 'uppercase' }}>{tag}</div>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, lineHeight: 1.1 }}>{title}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.06em', textTransform: 'uppercase' }}>{tag}</div>
         </div>
         <div style={{ flex: 1 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px 5px 6px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: 99 }}>
           <Avatar name={PAY.cust.name} size={24} hue={PAY.cust.hue} />
           <div style={{ lineHeight: 1.15 }}>
             <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>{PAY.cust.name}</div>
-            <div style={{ fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono }}>{PAY.cust.points.toLocaleString()} pts · {money(PAY.cust.wallet)} wallet</div>
+            <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{PAY.cust.points.toLocaleString()} pts · {money(PAY.cust.wallet)} wallet</div>
           </div>
         </div>
       </div>

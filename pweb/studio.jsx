@@ -55,7 +55,7 @@ function DealBoardConfig({ dealOn, setDealOn, toggleDeal, copy, setCopy, week, s
   const allIds = BR.map((b) => b.id);
   const setMany = (ids, on) => setDealOn((prev) => {const n = new Set(prev);ids.forEach((id) => on ? n.add(id) : n.delete(id));return n;});
   const fld = fldSm(P);
-  const lbl = { fontSize: 10.5, fontWeight: 600, color: P.inkMute, marginBottom: 4, fontFamily: P.fontMono, letterSpacing: '.04em', textTransform: 'uppercase' };
+  const lbl = { fontSize: 11.5, fontWeight: 600, color: P.inkMute, marginBottom: 4, fontFamily: P.fontMono, letterSpacing: '.04em', textTransform: 'uppercase' };
   return <div style={{ marginBottom: 16 }}>
     {showCopy && <div style={{ marginBottom: 16 }}>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, marginBottom: 9 }}>Board copy</div>
@@ -69,9 +69,9 @@ function DealBoardConfig({ dealOn, setDealOn, toggleDeal, copy, setCopy, week, s
     </div>}
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, marginTop: showCopy ? 14 : 0 }}>
       <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2 }}>Deal board contents</div>
-      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: P.fontMono, color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>{dealOn.size} of {BR.length} staged</span>
+      <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: P.fontMono, color: P.accentText }}>{dealOn.size} of {BR.length} staged</span>
     </div>
-    <div style={{ fontSize: 11, color: P.inkDim, marginBottom: 10, lineHeight: 1.5 }}>Choose which brand promotions compose the board — grouped by the category they render into. The preview updates live.</div>
+    <div style={{ fontSize: 11.5, color: P.inkDim, marginBottom: 10, lineHeight: 1.5 }}>Choose which brand promotions compose the board — grouped by the category they render into. The preview updates live.</div>
     <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
       <button onClick={() => setMany(allIds, true)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>Select all</button>
       <button onClick={() => setMany(allIds, false)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>Clear all</button>
@@ -83,14 +83,14 @@ function DealBoardConfig({ dealOn, setDealOn, toggleDeal, copy, setCopy, week, s
         return <div key={cat} style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, borderLeft: `3px solid ${cc}`, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 11px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}>
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.1em', color: cc, fontFamily: P.fontMono, flex: 1 }}>{cat.toUpperCase()}</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, fontFamily: P.fontMono, color: P.inkFaint }}>{onCount}/{rows.length}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: P.fontMono, color: P.inkFaint }}>{onCount}/{rows.length}</span>
             <button onClick={() => setMany(ids, !allOn)} style={{ padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: 'transparent', color: P.ink2, fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>{allOn ? 'None' : 'All'}</button>
           </div>
           {rows.map((b) => {const on = dealOn.has(b.id);const co = window.dayCallout && window.dayCallout(b.days, window.WM_TODAY_DOW);const lt = co && { today: { background: '#FDECEA', color: '#D2483F' }, soon: { background: '#FBF3D6', color: '#8A6200' }, past: { background: P.surface3, color: P.inkFaint }, range: { background: P.surface3, color: P.inkDim } }[co.tone];return <button key={b.id} onClick={() => toggleDeal(b.id)} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 11px', border: 'none', borderTop: `1px solid ${P.hairline}`, background: on ? P.surface : P.surface3, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, opacity: on ? 1 : .6 }}>
             <span style={{ width: 22, height: 22, borderRadius: 6, flex: '0 0 auto', background: window.weeklyGrad ? window.weeklyGrad(b.hue, P.mode === 'dark') : `hsl(${b.hue} 55% 50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', fontFamily: P.fontMono }}>{b.name[0]}</span>
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: P.ink, lineHeight: 1.2 }}>{b.name}</span>
-            {co && <span style={{ fontSize: 8.5, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.03em', padding: '2px 6px', borderRadius: 5, whiteSpace: 'nowrap', ...lt }}>{co.text}</span>}
-            <span style={{ fontSize: 11, fontWeight: 800, fontFamily: P.fontMono, color: P.mode === 'dark' ? P.accent : '#7A5A00', whiteSpace: 'nowrap' }}>{b.badge.replace(' OFF', '')}</span>
+            {co && <span style={{ fontSize: 10, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.03em', padding: '2px 6px', borderRadius: 5, whiteSpace: 'nowrap', ...lt }}>{co.text}</span>}
+            <span style={{ fontSize: 11.5, fontWeight: 800, fontFamily: P.fontMono, color: P.accentText, whiteSpace: 'nowrap' }}>{b.badge.replace(' OFF', '')}</span>
             <span style={{ width: 18, height: 18, borderRadius: 5, flex: '0 0 auto', border: `1.5px solid ${on ? P.ink : P.hairline3}`, background: on ? P.ink : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{on && <Icon name="check" size={12} stroke={3} color={P.surface} />}</span>
           </button>;})}
         </div>;
@@ -128,13 +128,13 @@ function HeroShop({ promo, device, onBack }) {
   const desk = device === 'desktop';
   const head = <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: desk ? '14px 16px' : '8px 14px 12px' }}>
     <span onClick={onBack} style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,255,255,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: '0 0 auto' }}><Icon name="chevron-left" size={15} color="#fff" /></span>
-    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{promo.name}</div><div style={{ fontSize: 9.5, color: 'rgba(255,255,255,.55)', fontFamily: "'JetBrains Mono',monospace" }}>{summ.count != null ? summ.count + ' products' : 'storewide'} · filtered</div></div>
-    <span style={{ padding: '3px 8px', borderRadius: 99, background: accent, color: ink, fontSize: 8.5, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{badge}</span>
+    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 800, color: '#fff' }}>{promo.name}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)', fontFamily: "'JetBrains Mono',monospace" }}>{summ.count != null ? summ.count + ' products' : 'storewide'} · filtered</div></div>
+    <span style={{ padding: '3px 8px', borderRadius: 99, background: accent, color: ink, fontSize: 10, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace" }}>{badge}</span>
   </div>;
   const grid = <div style={{ padding: '0 14px 16px', display: 'grid', gridTemplateColumns: desk ? 'repeat(4,1fr)' : '1fr 1fr', gap: 9 }}>
     {list.map((pr, i) => <div key={i} style={{ borderRadius: 11, overflow: 'hidden', background: '#17170F' }}>
       <div style={{ height: 64, background: `repeating-linear-gradient(135deg,hsl(${i * 47 % 360} 34% 30%),hsl(${i * 47 % 360} 34% 30%) 7px,hsl(${i * 47 % 360} 34% 24%) 7px,hsl(${i * 47 % 360} 34% 24%) 14px)` }} />
-      <div style={{ padding: '7px 9px' }}><div style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pr.n}</div><div style={{ fontSize: 8.5, color: 'rgba(255,255,255,.5)' }}>{pr.b}</div>{pr.was > 0 && <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, marginTop: 3 }}><span style={{ color: 'rgba(255,255,255,.4)', textDecoration: 'line-through', marginRight: 4 }}>${pr.was}</span><span style={{ color: accent === '#FFD100' ? '#FFD100' : '#6ee7a8' }}>${pr.now}</span></div>}</div>
+      <div style={{ padding: '7px 9px' }}><div style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pr.n}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,.5)' }}>{pr.b}</div>{pr.was > 0 && <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 700, marginTop: 3 }}><span style={{ color: 'rgba(255,255,255,.4)', textDecoration: 'line-through', marginRight: 4 }}>${pr.was}</span><span style={{ color: accent === '#FFD100' ? '#FFD100' : '#6ee7a8' }}>${pr.now}</span></div>}</div>
     </div>)}
   </div>;
   if (desk) return <div style={{ width: 760, borderRadius: 14, overflow: 'hidden', background: '#0F0F0C', boxShadow: '0 24px 60px rgba(0,0,0,.28)' }}><div style={{ height: 30 }} />{head}{grid}</div>;
@@ -147,7 +147,7 @@ function HeroDeal({ promo, device, list }) {
   const ink = accent === '#FFD100' ? '#1A1400' : '#fff';
   const mobile = device === 'mobile';
   const banner = <div style={{ background: accent, color: ink, padding: mobile ? '16px 16px 20px' : '24px 26px 26px' }}>
-    <span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: 99, background: ink, color: accent, fontSize: 9.5, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", marginBottom: 9 }}>{ST.offerBadge(promo)}</span>
+    <span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: 99, background: ink, color: accent, fontSize: 10, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", marginBottom: 9 }}>{ST.offerBadge(promo)}</span>
     <div style={{ fontSize: mobile ? 22 : 32, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1 }}>{promo.creative.headline || promo.name}</div>
     <div style={{ fontSize: mobile ? 12 : 14, opacity: .85, marginTop: 8, maxWidth: 460 }}>{promo.creative.subhead || ''}</div>
   </div>;
@@ -199,7 +199,7 @@ window.StudioView = function StudioView({ promos, setPromos, onOpen }) {
   const lay = selPromo.layout || {};
   const rew = selPromo.rewards || {};
   const patchRewards = (patch) => setPromos((prev) => prev.map((p) => p.id === selPromo.id ? { ...p, rewards: { ...(p.rewards || {}), ...patch } } : p));
-  const inp = { width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13, fontFamily: P.fontSans, outline: 'none' };
+  const inp = { width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' };
 
   const move = (sid, dir) => setOrder((prev) => {const a = prev.slice();const i = a.indexOf(sid);const j = i + dir;if (j < 0 || j >= a.length) return prev;[a[i], a[j]] = [a[j], a[i]];return a;});
   const toggleHide = (sid) => setHidden((prev) => {const n = new Set(prev);n.has(sid) ? n.delete(sid) : n.add(sid);return n;});
@@ -235,7 +235,7 @@ window.StudioView = function StudioView({ promos, setPromos, onOpen }) {
   };
 
   const Seg2 = ({ value, onChange, options }) => <div style={{ display: 'inline-flex', background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: 2, gap: 2 }}>
-    {options.map((o) => {const a = o.value === value;return <button key={o.value} onClick={() => onChange(o.value)} style={{ padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12, fontWeight: 600, background: a ? P.surface : 'transparent', color: a ? P.ink : P.inkDim, boxShadow: a ? P.shadowSm : 'none' }}>{o.label}</button>;})}
+    {options.map((o) => {const a = o.value === value;return <button key={o.value} onClick={() => onChange(o.value)} style={{ padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 600, background: a ? P.surface : 'transparent', color: a ? P.ink : P.inkDim, boxShadow: a ? P.shadowSm : 'none' }}>{o.label}</button>;})}
   </div>;
 
   const FldRow = ({ label, hint, children }) => <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 16 }}>
@@ -263,38 +263,38 @@ window.StudioView = function StudioView({ promos, setPromos, onOpen }) {
         <Card padding={0}>
           <div style={{ padding: '15px 16px', borderBottom: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ width: 30, height: 30, borderRadius: 8, background: selPromo.creative.color, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={cardMeta(sel).id === 'loyalty' ? 'star' : 'layout'} size={15} color={selPromo.creative.color === '#FFD100' ? '#1A1400' : '#fff'} /></span>
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{cardMeta(sel).label}</div><div style={{ fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selPromo.name}</div></div>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{cardMeta(sel).label}</div><div style={{ fontSize: 13.5, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selPromo.name}</div></div>
           </div>
           {SURFACE_USE[sel] && <div style={{ padding: '10px 16px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}>
-            <div style={{ display: 'flex', gap: 8 }}><Icon name="eye" size={14} color={P.inkMute} style={{ marginTop: 1, flex: '0 0 auto' }} /><span style={{ fontSize: 11, color: P.inkDim, lineHeight: 1.5 }}>{SURFACE_USE[sel]}</span></div>
+            <div style={{ display: 'flex', gap: 8 }}><Icon name="eye" size={14} color={P.inkMute} style={{ marginTop: 1, flex: '0 0 auto' }} /><span style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>{SURFACE_USE[sel]}</span></div>
             {SURFACE_WHERE[sel] && <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 9, paddingLeft: 22, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.08em', color: P.inkFaint, fontFamily: P.fontMono }}>SHOWS ON</span>
-              {SURFACE_WHERE[sel].map((pg) => <span key={pg} style={{ padding: '2px 8px', borderRadius: 99, background: P.surface, border: `1px solid ${P.hairline2}`, fontSize: 10.5, fontWeight: 700, color: P.ink2 }}>{pg}</span>)}
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: P.inkFaint, fontFamily: P.fontMono }}>SHOWS ON</span>
+              {SURFACE_WHERE[sel].map((pg) => <span key={pg} style={{ padding: '2px 8px', borderRadius: 99, background: P.surface, border: `1px solid ${P.hairline2}`, fontSize: 11.5, fontWeight: 700, color: P.ink2 }}>{pg}</span>)}
             </div>}
             {HERO_VS_BOARD[sel] && <div style={{ marginTop: 10, padding: '9px 11px', borderRadius: P.r10, background: P.accentSoft, border: `1px solid ${P.accentBorder}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}><Icon name="grid" size={12} color={P.mode === 'dark' ? P.accent : '#7A5A00'} /><span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.08em', color: P.mode === 'dark' ? P.accent : '#7A5A00', fontFamily: P.fontMono }}>HERO vs. DEAL BOARD</span></div>
-              <div style={{ fontSize: 11, color: P.ink2, lineHeight: 1.55 }}>{HERO_VS_BOARD[sel]}</div>
-              <div style={{ fontSize: 11, color: P.inkDim, lineHeight: 1.55, marginTop: 7, paddingTop: 7, borderTop: `1px solid ${P.hairline}` }}><b style={{ color: P.ink2 }}>If they overlap:</b> {CONFLICT_NOTE}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}><Icon name="grid" size={12} color={P.accentText} /><span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', color: P.accentText, fontFamily: P.fontMono }}>HERO vs. DEAL BOARD</span></div>
+              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.55 }}>{HERO_VS_BOARD[sel]}</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55, marginTop: 7, paddingTop: 7, borderTop: `1px solid ${P.hairline}` }}><b style={{ color: P.ink2 }}>If they overlap:</b> {CONFLICT_NOTE}</div>
             </div>}
           </div>}
 
           <div style={{ padding: '16px', maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
             {/* which promo feeds this card */}
             <FldRow label="Promotion shown" hint="on this card">
-              <select value={selPromoId} onChange={(e) => setPBS((prev) => ({ ...prev, [sel]: e.target.value }))} style={{ width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13, fontFamily: P.fontSans, outline: 'none' }}>
+              <select value={selPromoId} onChange={(e) => setPBS((prev) => ({ ...prev, [sel]: e.target.value }))} style={{ width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' }}>
                 {eligiblePromos.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </FldRow>
             {sel !== 'cart' && sel !== 'loyalty' && <div style={{ marginBottom: 16 }}>
-              <button onClick={() => setCarouselOpen(true)} style={{ width: '100%', padding: '11px', borderRadius: P.r10, border: `1px solid ${P.ink}`, background: P.ink, color: P.surface, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Icon name="grid" size={15} />{carousel ? 'Edit product carousel' : 'Configure product carousel'}</button>
-              {carousel && <div style={{ marginTop: 8, fontSize: 11, color: P.inkDim, fontFamily: P.fontMono }}>{carousel.name} · {(carousel.picked || []).length} products · {carousel.brands.length || 'all'} brands</div>}
+              <button onClick={() => setCarouselOpen(true)} style={{ width: '100%', padding: '11px', borderRadius: P.r10, border: `1px solid ${P.ink}`, background: P.ink, color: P.surface, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Icon name="grid" size={15} />{carousel ? 'Edit product carousel' : 'Configure product carousel'}</button>
+              {carousel && <div style={{ marginTop: 8, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{carousel.name} · {(carousel.picked || []).length} products · {carousel.brands.length || 'all'} brands</div>}
             </div>}
 
             {(sel === 'weekly_deal' || sel === 'hero_deal') && <DealBoardConfig dealOn={dealOn} setDealOn={setDealOn} toggleDeal={toggleDeal} copy={dealCopy} setCopy={setDealCopy} week={dealWeek} setWeek={setDealWeek} showCopy={sel === 'weekly_deal'} />}
 
             {sel === 'category_banner' && <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, marginBottom: 4 }}>Shows on category pages</div>
-              <div style={{ fontSize: 11, color: P.inkDim, marginBottom: 10, lineHeight: 1.5 }}>Which category pages this banner appears on. Auto uses the categories the promotion&rsquo;s products belong to — a promo spanning multiple brands/categories shows on each matching category page.</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, marginBottom: 10, lineHeight: 1.5 }}>Which category pages this banner appears on. Auto uses the categories the promotion&rsquo;s products belong to — a promo spanning multiple brands/categories shows on each matching category page.</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}><Switch on={catAuto} onChange={setCatAuto} /><span style={{ fontSize: 12.5, color: P.inkDim }}>{catAuto ? 'Auto — from the promotion’s products' : 'Manual — pick categories below'}</span></div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, opacity: catAuto ? .5 : 1, pointerEvents: catAuto ? 'none' : 'auto' }}>
                 {(window.WEEKLY_CATS || []).map((c) => {const on = catTargets.has(c);const cc = (window.WEEKLY_CAT_COLOR || {})[c] || P.ink;return <button key={c} onClick={() => toggleCatTarget(c)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 99, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5, fontWeight: 600, border: `1px solid ${on ? cc : P.hairline2}`, background: on ? cc + '22' : 'transparent', color: on ? P.ink : P.ink2 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: cc }} />{c}</button>;})}
@@ -304,9 +304,9 @@ window.StudioView = function StudioView({ promos, setPromos, onOpen }) {
             {sel === 'home_hero' && <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2 }}>Inner cards</div>
-                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: P.fontMono, color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>{heroCards.length} of 6 linked</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: P.fontMono, color: P.accentText }}>{heroCards.length} of 6 linked</span>
               </div>
-              <div style={{ fontSize: 11, color: P.inkDim, marginBottom: 12, lineHeight: 1.5 }}>Each tile links to a promotion — tapping it on the hero opens that promo&rsquo;s filtered shop. Use the arrows to set display order.</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, marginBottom: 12, lineHeight: 1.5 }}>Each tile links to a promotion — tapping it on the hero opens that promo&rsquo;s filtered shop. Use the arrows to set display order.</div>
               <div style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
                 {heroCards.map((hc, i) => <div key={hc.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 11px', borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}`, background: P.surface }}>
                   <span style={{ width: 22, height: 22, borderRadius: 6, flex: '0 0 auto', background: window.weeklyGrad ? window.weeklyGrad(hc.hue, P.mode === 'dark') : `hsl(${hc.hue} 55% 50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', fontFamily: P.fontMono }}>{(hc.label || '?')[0]}</span>
@@ -320,42 +320,42 @@ window.StudioView = function StudioView({ promos, setPromos, onOpen }) {
                 </div>)}
               </div>
               <button onClick={addHero} disabled={heroCards.length >= 6} style={{ width: '100%', marginTop: 8, padding: '8px 0', borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface, color: heroCards.length >= 6 ? P.inkMute : P.ink, fontSize: 11.5, fontWeight: 700, cursor: heroCards.length >= 6 ? 'default' : 'pointer', fontFamily: P.fontSans }}>+ Add inner card</button>
-              <div style={{ marginTop: 9, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', borderRadius: P.r10, background: P.surface2, border: `1px dashed ${P.hairline3}` }}><Icon name="link" size={13} color={P.inkMute} style={{ marginTop: 1 }} /><span style={{ fontSize: 11, color: P.inkDim, lineHeight: 1.5 }}>Tap a tile on the hero preview to see the exact <b style={{ color: P.ink }}>filtered shop</b> a shopper lands on.</span></div>
+              <div style={{ marginTop: 9, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', borderRadius: P.r10, background: P.surface2, border: `1px dashed ${P.hairline3}` }}><Icon name="link" size={13} color={P.inkMute} style={{ marginTop: 1 }} /><span style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>Tap a tile on the hero preview to see the exact <b style={{ color: P.ink }}>filtered shop</b> a shopper lands on.</span></div>
             </div>}
 
             {sel === 'cart' && <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, marginBottom: 9 }}>Cart / checkout layout <span style={{ color: P.inkMute, fontWeight: 400 }}>· 10 options</span></div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 6 }}>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {const on = (lay.cartVariant || 1) === n;return <button key={n} onClick={() => patchLayout({ cartVariant: n })} title={CART_VARIANTS[n - 1]} style={{ padding: '9px 0', borderRadius: 8, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontMono }}>{n}</button>;})}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {const on = (lay.cartVariant || 1) === n;return <button key={n} onClick={() => patchLayout({ cartVariant: n })} title={CART_VARIANTS[n - 1]} style={{ padding: '9px 0', borderRadius: 8, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontMono }}>{n}</button>;})}
               </div>
               <div style={{ marginTop: 8, fontSize: 11.5, color: P.inkDim }}>{CART_VARIANTS[(lay.cartVariant || 1) - 1]}</div>
             </div>}
 
             <div style={{ height: 1, background: P.hairline, margin: '4px 0 16px' }} />
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 12 }}>Creative</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 12 }}>Creative</div>
             <FldRow label="Theme color">
               <ST.ColorSwatch value={selPromo.creative.color} onChange={(c) => patchCreative({ color: c })} />
             </FldRow>
             <FldRow label="Headline">
-              <input value={selPromo.creative.headline || ''} onChange={(e) => patchCreative({ headline: e.target.value })} style={{ width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13, fontFamily: P.fontSans, outline: 'none' }} />
+              <input value={selPromo.creative.headline || ''} onChange={(e) => patchCreative({ headline: e.target.value })} style={{ width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' }} />
             </FldRow>
             <FldRow label="Subhead">
-              <textarea value={selPromo.creative.subhead || ''} onChange={(e) => patchCreative({ subhead: e.target.value })} rows={2} style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13, fontFamily: P.fontSans, lineHeight: 1.5, outline: 'none' }} />
+              <textarea value={selPromo.creative.subhead || ''} onChange={(e) => patchCreative({ subhead: e.target.value })} rows={2} style={{ width: '100%', resize: 'vertical', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, lineHeight: 1.5, outline: 'none' }} />
             </FldRow>
             <FldRow label="Button label">
-              <input value={selPromo.creative.cta || ''} onChange={(e) => patchCreative({ cta: e.target.value })} style={{ width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13, fontFamily: P.fontSans, outline: 'none' }} />
+              <input value={selPromo.creative.cta || ''} onChange={(e) => patchCreative({ cta: e.target.value })} style={{ width: '100%', padding: '10px 12px', borderRadius: P.r10, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' }} />
             </FldRow>
             <FldRow label="Font color" hint="auto = best contrast on the theme"><MiniSwatch value={selPromo.creative.textColor} onChange={(c) => patchCreative({ textColor: c })} opts={['auto', '#FFFFFF', '#0F0F0C']} /></FldRow>
             <FldRow label="Button color" hint="auto = inverse of theme"><MiniSwatch value={selPromo.creative.btnColor} onChange={(c) => patchCreative({ btnColor: c })} opts={['auto', '#0F0F0C', '#FFFFFF', '#FFD100']} /></FldRow>
             <FldRow label="Image" hint="1200×675px · 16:9 · fills the card behind copy">
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 56, borderRadius: P.r10, border: `1px dashed ${P.hairline3}`, background: P.surface2, color: P.inkMute, fontSize: 12, fontFamily: P.fontMono, cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 56, borderRadius: P.r10, border: `1px dashed ${P.hairline3}`, background: P.surface2, color: P.inkMute, fontSize: 12.5, fontFamily: P.fontMono, cursor: 'pointer' }}>
                 <Icon name="box-add" size={16} />{selPromo.creative.image ? 'Replace image' : 'Upload PNG / JPG'}
                 <input type="file" accept="image/*" onChange={(e) => {const f = e.target.files && e.target.files[0];if (f) patchCreative({ image: URL.createObjectURL(f) });}} style={{ display: 'none' }} />
               </label>
             </FldRow>
 
             <div style={{ height: 1, background: P.hairline, margin: '4px 0 16px' }} />
-            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 12 }}>Layout</div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 12 }}>Layout</div>
 
             <FldRow label="Button position">
               <Seg2 value={lay.ctaAlign || 'left'} onChange={(v) => patchLayout({ ctaAlign: v })} options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} />
@@ -372,8 +372,8 @@ window.StudioView = function StudioView({ promos, setPromos, onOpen }) {
 
             {sel === 'loyalty' && <>
               <div style={{ height: 1, background: P.hairline, margin: '4px 0 16px' }} />
-              <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 6 }}>Points & rewards</div>
-              <div style={{ fontSize: 11, color: P.inkDim, marginBottom: 12, lineHeight: 1.5 }}>This card lives in the app&rsquo;s <b style={{ color: P.ink }}>Rewards / points hub</b> — and can also be pinned to the home banner.</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 6 }}>Points & rewards</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, marginBottom: 12, lineHeight: 1.5 }}>This card lives in the app&rsquo;s <b style={{ color: P.ink }}>Rewards / points hub</b> — and can also be pinned to the home banner.</div>
               <FldRow label="Points multiplier" hint="× earned on this promo"><input type="number" value={rew.pointsMult || 1} onChange={(e) => patchRewards({ pointsMult: Number(e.target.value) || 1 })} style={inp} /></FldRow>
               <FldRow label="Bonus points" hint="flat, on redemption"><input type="number" value={rew.bonus || 0} onChange={(e) => patchRewards({ bonus: Number(e.target.value) || 0 })} style={inp} /></FldRow>
               <FldRow label="Points to unlock" hint="min balance to use"><input type="number" value={rew.threshold || 0} onChange={(e) => patchRewards({ threshold: Number(e.target.value) || 0 })} style={inp} /></FldRow>
@@ -382,12 +382,12 @@ window.StudioView = function StudioView({ promos, setPromos, onOpen }) {
             </>}
 
             <div style={{ height: 1, background: P.hairline, margin: '4px 0 14px' }} />
-            <button onClick={() => onOpen(selPromo.id)} style={{ width: '100%', padding: '11px', borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.surface2, color: P.ink, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <button onClick={() => onOpen(selPromo.id)} style={{ width: '100%', padding: '11px', borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.surface2, color: P.ink, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <Icon name="pencil" size={15} />Open full promotion
             </button>
             <div style={{ marginTop: 12, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 11px', borderRadius: P.r10, background: P.accentSoft, border: `1px solid ${P.accentBorder}` }}>
-              <Icon name="check-circle" size={14} color={P.mode === 'dark' ? P.accent : '#7A5A00'} style={{ marginTop: 1 }} />
-              <span style={{ fontSize: 11, color: P.mode === 'dark' ? P.accent : '#7A5A00', lineHeight: 1.5 }}>Edits save live to <b>{selPromo.name}</b> — the same record the Live board and site read.</span>
+              <Icon name="check-circle" size={14} color={P.accentText} style={{ marginTop: 1 }} />
+              <span style={{ fontSize: 11.5, color: P.accentText, lineHeight: 1.5 }}>Edits save live to <b>{selPromo.name}</b> — the same record the Live board and site read.</span>
             </div>
           </div>
         </Card>

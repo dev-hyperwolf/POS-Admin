@@ -28,17 +28,17 @@
         <TD><UidChip value={batch.metrcPackageId} kind="metrc" size="sm" /></TD>
         <TD align="right" mono>
           <div style={{ color: P.ink }}>{batch.qtyOnHand}</div>
-          <div style={{ fontSize: 11, color: P.inkMute }}>of {batch.qtyReceived}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute }}>of {batch.qtyReceived}</div>
         </TD>
         <TD align="right" mono>{batch.thcPct != null ? `${batch.thcPct.toFixed(1)}%` : batch.thcMg != null ? `${batch.thcMg}mg` : '—'}</TD>
         <TD>
-          <div style={{ fontSize: 12, color: P.ink2 }}>Pkg {HD.formatDate(batch.packageDate)}</div>
-          <div style={{ fontSize: 12 }}>Exp <ExpiryCell iso={batch.expirationDate} /></div>
+          <div style={{ fontSize: 12.5, color: P.ink2 }}>Pkg {HD.formatDate(batch.packageDate)}</div>
+          <div style={{ fontSize: 12.5 }}>Exp <ExpiryCell iso={batch.expirationDate} /></div>
         </TD>
         <TD align="right" mono>{HD.formatCurrency(batch.wholesaleCostCents / 100)}</TD>
         <TD align="right" mono style={{ color: marginColor }}>{margin == null ? '—' : HD.formatPercent(margin, 0)}</TD>
         <TD>
-          <button onClick={() => navigate('#/ap')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: accentInk, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: P.fontMono, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+          <button onClick={() => navigate('#/ap')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: accentInk, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: P.fontMono, textDecoration: 'underline', textUnderlineOffset: 2 }}>
             <Icon name="receipt" size={11} stroke={2} />{batch.sourceInvoiceId}
           </button>
         </TD>
@@ -57,9 +57,9 @@
         <div style={{ padding: 20, borderBottom: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <MicroLabel>Map batch to product</MicroLabel>
-            <h2 style={{ margin: '4px 0 0', fontSize: 17, fontWeight: 600, color: P.ink }}>{sourceBatch.productName}</h2>
+            <h2 style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 600, color: P.ink }}>{sourceBatch.productName}</h2>
             <div style={{ marginTop: 8 }}><UidChip value={sourceBatch.metrcPackageId} kind="metrc" size="sm" /></div>
-            <div style={{ marginTop: 6, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{sourceBatch.brand} · {sourceBatch.category} · {sourceBatch.qty} units</div>
+            <div style={{ marginTop: 6, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{sourceBatch.brand} · {sourceBatch.category} · {sourceBatch.qty} units</div>
           </div>
           <IconBtn icon="x" size={16} onClick={onClose} style={{ width: 30, height: 30, margin: -4 }} />
         </div>
@@ -71,12 +71,12 @@
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans,
                   background: picked === c.productId ? P.accentSoft : P.surface, border: `1px solid ${picked === c.productId ? P.accent : P.hairline2}` }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: P.ink }}>{c.brandName} · {c.productName}</div>
-                  <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{Math.round(c.confidence * 100)}% match</div>
+                  <div style={{ fontSize: 13.5, color: P.ink }}>{c.brandName} · {c.productName}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{Math.round(c.confidence * 100)}% match</div>
                 </div>
                 {picked === c.productId && <Icon name="check" size={16} stroke={2.6} color={P.mode === 'dark' ? P.accent : P.accentBorder} />}
               </button>))}
-            {suggestions.length === 0 && <div style={{ fontSize: 12, color: P.inkMute }}>No confident wrapper suggestions — create a new one.</div>}
+            {suggestions.length === 0 && <div style={{ fontSize: 12.5, color: P.inkMute }}>No confident wrapper suggestions — create a new one.</div>}
           </div>
         </div>
         <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', gap: 8 }}>
@@ -104,7 +104,7 @@
           <Card padding={40} style={{ textAlign: 'center' }}>
             <Icon name="search" size={28} stroke={1.6} color={P.inkMute} />
             <div style={{ color: P.ink, marginTop: 8 }}>Product not found.</div>
-            <button onClick={() => navigate('#/products')} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: accentInk, fontSize: 13, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <button onClick={() => navigate('#/products')} style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: accentInk, fontSize: 13.5, cursor: 'pointer', fontFamily: P.fontSans }}>
               <Icon name="arrow-left" size={12} stroke={2} /> Back to products
             </button>
           </Card>
@@ -119,8 +119,8 @@
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '20px 20px 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: P.inkMute }}>
-          <button onClick={() => navigate('#/products')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', cursor: 'pointer', fontSize: 12, fontFamily: P.fontSans }}>Products</button>
+        <div style={{ padding: '20px 20px 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: P.inkMute }}>
+          <button onClick={() => navigate('#/products')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', cursor: 'pointer', fontSize: 12.5, fontFamily: P.fontSans }}>Products</button>
           <Icon name="chevron-right" size={12} stroke={2} />
           <span style={{ color: P.ink2 }}>{product.brandName}</span>
           <Icon name="chevron-right" size={12} stroke={2} />
@@ -130,7 +130,7 @@
         <div className="hd-prod" style={{ padding: '0 20px 20px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <Card padding={0} style={{ overflow: 'hidden' }}>
-              <div style={{ aspectRatio: '1 / 1', background: P.canvas2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ aspectRatio: '1 / 1', background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Thumb item={{ hue: product.hue }} size={160} radius={24} />
               </div>
               <div style={{ display: 'flex', gap: 8, padding: 12, borderTop: `1px solid ${P.hairline2}` }}>
@@ -139,18 +139,18 @@
             </Card>
 
             <Card padding={20}>
-              <div style={{ fontSize: 12, color: P.inkMute }}>{product.brandName}</div>
-              <h1 style={{ margin: '2px 0 0', fontSize: 20, fontWeight: 600, color: P.ink, lineHeight: 1.3 }}>{product.name}</h1>
+              <div style={{ fontSize: 12.5, color: P.inkMute }}>{product.brandName}</div>
+              <h1 style={{ margin: '2px 0 0', fontSize: 21, fontWeight: 600, color: P.ink, lineHeight: 1.3 }}>{product.name}</h1>
               <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                 <HDPill tone="brand" icon={false} size="sm" label={TYPE_LABEL[product.type]} />
-                <span style={{ fontSize: 12, color: P.ink2, fontFamily: P.fontMono }}>{product.weight.value}{product.weight.unit}</span>
+                <span style={{ fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono }}>{product.weight.value}{product.weight.unit}</span>
                 <span style={{ color: P.inkMute }}>·</span>
-                <span style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>{product.sku}</span>
+                <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{product.sku}</span>
               </div>
               {product.traits.length > 0 && (
                 <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {product.traits.map((t) => (
-                    <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: '0 8px', borderRadius: 99, background: P.canvas2, color: P.ink2, border: `1px solid ${P.hairline2}`, fontSize: 11 }}>
+                    <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: '0 8px', borderRadius: 99, background: P.surface3, color: P.ink2, border: `1px solid ${P.hairline2}`, fontSize: 11.5 }}>
                       <Icon name="sparkle" size={9} stroke={2} />{t}
                     </span>))}
                 </div>)}
@@ -159,24 +159,24 @@
             <Card padding={20}>
               <MicroLabel>Retail price</MicroLabel>
               <div style={{ marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 26, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{retailCents != null ? HD.formatCurrency(retailCents / 100) : '—'}</span>
+                <span style={{ fontSize: 30, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{retailCents != null ? HD.formatCurrency(retailCents / 100) : '—'}</span>
                 {product.customRetailCents != null ? <HDPill tone="warn" icon={false} size="sm" label="Custom override" />
                   : tpl ? <HDPill tone="brand" icon={false} size="sm" label="From shell" />
                   : <HDPill tone="neutral" icon={false} size="sm" label="Not set" />}
               </div>
               {tpl && (
                 <button onClick={() => navigate('#/products/shells')}
-                  style={{ marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.canvas2, padding: '8px 12px', cursor: 'pointer', fontFamily: P.fontSans }}>
+                  style={{ marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface3, padding: '8px 12px', cursor: 'pointer', fontFamily: P.fontSans }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <Icon name="tag" size={12} stroke={2} color={accentInk} />
                     <div style={{ minWidth: 0, textAlign: 'left' }}>
-                      <div style={{ fontSize: 12, color: P.ink }}>{tpl.name}</div>
-                      <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(tpl.basePriceCents / 100)} · {HD.formatPercent(tpl.marginPct, 0)} target margin</div>
+                      <div style={{ fontSize: 12.5, color: P.ink }}>{tpl.name}</div>
+                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(tpl.basePriceCents / 100)} · {HD.formatPercent(tpl.marginPct, 0)} target margin</div>
                     </div>
                   </div>
                   <Icon name="chevron-right" size={12} stroke={2} color={P.inkMute} />
                 </button>)}
-              <button style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, color: accentInk, fontSize: 12, cursor: 'pointer', fontFamily: P.fontSans, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+              <button style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, color: accentInk, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans, textDecoration: 'underline', textUnderlineOffset: 2 }}>
                 <Icon name="pencil" size={11} stroke={2} />Edit retail
               </button>
             </Card>
@@ -188,12 +188,12 @@
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                   <Icon name="flag" size={16} stroke={2} color={warn.fg} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: P.ink }}>{PR.UNMAPPED_BATCHES.length} batch{PR.UNMAPPED_BATCHES.length === 1 ? '' : 'es'} on the floor aren't mapped to a product yet</div>
-                    <div style={{ fontSize: 12, color: P.ink2, marginTop: 2 }}>Map them so retail price + the menu pull in correctly.</div>
+                    <div style={{ fontSize: 13.5, color: P.ink }}>{PR.UNMAPPED_BATCHES.length} batch{PR.UNMAPPED_BATCHES.length === 1 ? '' : 'es'} on the floor aren't mapped to a product yet</div>
+                    <div style={{ fontSize: 12.5, color: P.ink2, marginTop: 2 }}>Map them so retail price + the menu pull in correctly.</div>
                     <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {PR.UNMAPPED_BATCHES.slice(0, 3).map((u) => (
                         <button key={u.id} onClick={() => { setActiveUnmapped(u); setAttachOpen(true); }}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 12px 0 8px', borderRadius: 99, background: P.surface, border: `1px solid ${P.hairline2}`, fontSize: 12, cursor: 'pointer', fontFamily: P.fontSans }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 28, padding: '0 12px 0 8px', borderRadius: 99, background: P.surface, border: `1px solid ${P.hairline2}`, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans }}>
                           <span style={{ fontFamily: P.fontMono, fontSize: 10, color: P.inkMute }}>{u.metrcPackageId.slice(0, 6)}…</span>
                           <span style={{ color: P.ink2, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.productName}</span>
                         </button>))}
@@ -206,7 +206,7 @@
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Batches ({batches.length})</h2>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: P.inkMute, fontFamily: P.fontMono }}>{totalOnHand} units on hand across {batches.length} {batches.length === 1 ? 'lot' : 'lots'}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 12.5, color: P.inkMute, fontFamily: P.fontMono }}>{totalOnHand} units on hand across {batches.length} {batches.length === 1 ? 'lot' : 'lots'}</p>
                 </div>
                 <PBtn size="sm" variant="secondary" icon="plus" style={{ marginLeft: 'auto' }}>Add batch</PBtn>
               </div>
@@ -229,7 +229,7 @@
 
         <div style={{ position: 'sticky', bottom: 0, background: P.surface, borderTop: `1px solid ${P.hairline2}` }}>
           <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 12, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 12.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
               <Icon name="arrow-left" size={12} stroke={2} />Back
             </button>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -267,18 +267,18 @@
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', padding: 20, gap: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: P.inkMute }}>
-          <button onClick={() => navigate('#/products')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', cursor: 'pointer', fontSize: 12, fontFamily: P.fontSans }}>Products</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: P.inkMute }}>
+          <button onClick={() => navigate('#/products')} style={{ background: 'none', border: 'none', padding: 0, color: 'inherit', cursor: 'pointer', fontSize: 12.5, fontFamily: P.fontSans }}>Products</button>
           <Icon name="chevron-right" size={12} stroke={2} /><span style={{ color: P.ink }}>Product shells</span>
         </div>
 
         <header style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 260 }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Product shells</h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: P.inkMute }}>One shell prices an entire SKU family. Update once, the menu reflects everywhere.</p>
+            <h1 style={{ margin: 0, fontSize: 21, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Product shells</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13.5, color: P.inkMute }}>One shell prices an entire SKU family. Update once, the menu reflects everywhere.</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 12, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 12.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
               <Icon name="arrow-left" size={12} stroke={2} />Back
             </button>
             <PBtn size="sm" variant="accent" icon="plus">New shell</PBtn>
@@ -299,7 +299,7 @@
                       <TD align="right" mono>{HD.formatCurrency(t.basePriceCents / 100)}</TD>
                       <TD align="right" mono style={{ color: P.ink2 }}>{HD.formatPercent(t.marginPct, 0)}</TD>
                       <TD align="right" mono>
-                        <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, color: accentInk, cursor: 'pointer', fontFamily: P.fontMono, fontSize: 13 }}>
+                        <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, color: accentInk, cursor: 'pointer', fontFamily: P.fontMono, fontSize: 13.5 }}>
                           {bound.length}<Icon name="chevron-right" size={11} stroke={2} />
                         </button>
                       </TD>
@@ -313,22 +313,22 @@
 
         <Card padding={20}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Products on each shell</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: P.inkMute }}>A quick at-a-glance binding map — useful for spotting orphan products before a price change goes out.</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12.5, color: P.inkMute }}>A quick at-a-glance binding map — useful for spotting orphan products before a price change goes out.</p>
           <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
             {shells.map((t) => {
               const bound = PR.PRODUCTS.filter((p) => p.productShellId === t.id);
               return (
-                <div key={t.id} style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, padding: 12, background: P.canvas }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="tag" size={12} stroke={2} color={accentInk} /><span style={{ fontSize: 13, color: P.ink }}>{t.name}</span></div>
-                  <div style={{ marginTop: 4, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(t.basePriceCents / 100)} · {HD.formatPercent(t.marginPct, 0)}</div>
+                <div key={t.id} style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, padding: 12, background: P.surface2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="tag" size={12} stroke={2} color={accentInk} /><span style={{ fontSize: 13.5, color: P.ink }}>{t.name}</span></div>
+                  <div style={{ marginTop: 4, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(t.basePriceCents / 100)} · {HD.formatPercent(t.marginPct, 0)}</div>
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {bound.map((p) => (
-                      <button key={p.id} onClick={() => navigate(`#/products/${p.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: P.ink2, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                      <button key={p.id} onClick={() => navigate(`#/products/${p.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: P.ink2, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                         <span style={{ height: 6, width: 6, borderRadius: 99, background: P.accent, flex: '0 0 auto' }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                        {p.customRetailCents != null && <HDPill tone="warn" icon={false} size="sm" label="override" style={{ height: 16, fontSize: 9 }} />}
+                        {p.customRetailCents != null && <HDPill tone="warn" icon={false} size="sm" label="override" style={{ height: 16, fontSize: 10 }} />}
                       </button>))}
-                    {bound.length === 0 && <span style={{ fontSize: 12, color: P.inkMute }}>No products on this shell.</span>}
+                    {bound.length === 0 && <span style={{ fontSize: 12.5, color: P.inkMute }}>No products on this shell.</span>}
                   </div>
                 </div>);
             })}
@@ -340,11 +340,11 @@
             <div onClick={() => setEditing(null)} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
             <Card padding={0} style={{ position: 'relative', width: 440, maxWidth: '92vw' }}>
               <div style={{ padding: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Edit {editing.shell.name}</h2>
-                <p style={{ margin: '6px 0 16px', fontSize: 13, color: P.inkDim }}>Changes will affect {editing.shell.productCount} product{editing.shell.productCount === 1 ? '' : 's'} bound to this shell.</p>
-                <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, marginBottom: 6 }}>Base price ($)</label>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Edit {editing.shell.name}</h2>
+                <p style={{ margin: '6px 0 16px', fontSize: 13.5, color: P.inkDim }}>Changes will affect {editing.shell.productCount} product{editing.shell.productCount === 1 ? '' : 's'} bound to this shell.</p>
+                <label style={{ display: 'block', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, marginBottom: 6 }}>Base price ($)</label>
                 <Field type="number" step={0.5} value={(editing.basePriceCents / 100).toFixed(2)} onChange={(e) => setEditing({ ...editing, basePriceCents: Math.round(Number(e.target.value || 0) * 100) })} />
-                <label style={{ display: 'block', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, margin: '12px 0 6px' }}>Target margin (%)</label>
+                <label style={{ display: 'block', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, margin: '12px 0 6px' }}>Target margin (%)</label>
                 <Field type="number" step={1} value={Math.round(editing.marginPct * 100)} onChange={(e) => setEditing({ ...editing, marginPct: Math.max(0, Math.min(95, Number(e.target.value || 0))) / 100 })} />
               </div>
               <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -359,9 +359,9 @@
             <div onClick={() => setConfirming(null)} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
             <Card padding={0} style={{ position: 'relative', width: 440, maxWidth: '92vw' }}>
               <div style={{ padding: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Update shell?</h2>
-                <p style={{ margin: '6px 0 16px', fontSize: 13, color: P.inkDim }}>{confirming.shell.productCount} product{confirming.shell.productCount === 1 ? '' : 's'} will reflect the new retail price the next time the menu rebuilds.</p>
-                <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas2, padding: 12, fontSize: 12 }}>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Update shell?</h2>
+                <p style={{ margin: '6px 0 16px', fontSize: 13.5, color: P.inkDim }}>{confirming.shell.productCount} product{confirming.shell.productCount === 1 ? '' : 's'} will reflect the new retail price the next time the menu rebuilds.</p>
+                <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface3, padding: 12, fontSize: 12.5 }}>
                   <Row label="Old price" value={HD.formatCurrency(confirming.shell.basePriceCents / 100)} />
                   <Row label="New price" value={HD.formatCurrency(confirming.basePriceCents / 100)} emphasis />
                   <Row label="Old margin" value={HD.formatPercent(confirming.shell.marginPct, 0)} />

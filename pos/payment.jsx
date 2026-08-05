@@ -35,7 +35,7 @@ function Pad({ onPress }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 7 }}>
       {['1','2','3','4','5','6','7','8','9','.','0','del'].map((k) => (
-        <button key={k} onClick={() => onPress(k)} style={{ padding: '13px 0', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 17, fontWeight: 600, color: k === 'del' ? P.bad : P.ink, cursor: 'pointer', fontFamily: P.fontMono, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 46 }}>{k === 'del' ? <Icon name="x" size={17} stroke={2.2} /> : k}</button>
+        <button key={k} onClick={() => onPress(k)} style={{ padding: '13px 0', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 16, fontWeight: 600, color: k === 'del' ? P.bad : P.ink, cursor: 'pointer', fontFamily: P.fontMono, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 46 }}>{k === 'del' ? <Icon name="x" size={17} stroke={2.2} /> : k}</button>
       ))}
     </div>
   );
@@ -52,11 +52,11 @@ function FeeCompare({ base, value, onChange }) {
           <button key={o.id} onClick={() => onChange(o.id)} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', textAlign: 'left', background: a ? P.accentSoft : P.surface, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', fontFamily: P.fontSans }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <span style={{ width: 16, height: 16, borderRadius: 99, border: `2px solid ${a ? P.accent : P.hairline3}`, background: a ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>{a && <Icon name="check" size={9} stroke={3.4} color={P.accentInk} />}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{o.label}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{o.label}</span>
             </div>
-            <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.note}</div>
+            <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.note}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginTop: 2 }}><span style={{ fontSize: 10, color: P.inkDim, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>Fee</span><span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>+{_money(f)}</span></div>
-            <div style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono, borderTop: `1px dashed ${P.hairline2}`, paddingTop: 6 }}>Card charged <b style={{ color: P.ink }}>{_money(tot)}</b></div>
+            <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, borderTop: `1px dashed ${P.hairline2}`, paddingTop: 6 }}>Card charged <b style={{ color: P.ink }}>{_money(tot)}</b></div>
           </button>
         );
       })}
@@ -105,13 +105,13 @@ window.CardTerminal = function CardTerminal({ amount, feeLabel, onApproved, onDe
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'stretch', padding: '9px 13px', marginBottom: 18, background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
             <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="card" size={16} stroke={1.9} /></span>
             <div style={{ minWidth: 0, lineHeight: 1.25 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>LeisurePay Lane 03</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>LeisurePay Lane 03</div>
               <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>Device LP-A7F4-2291 · v2.4</div>
             </div>
             <div style={{ flex: 1 }} />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: 99 }}>
               <span style={{ width: 7, height: 7, borderRadius: 99, background: sdot }} />
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: online ? P.ink2 : P.warn, fontFamily: P.fontMono, letterSpacing: '.04em' }}>{slabel}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: online ? P.ink2 : P.warn, fontFamily: P.fontMono, letterSpacing: '.04em' }}>{slabel}</span>
             </span>
           </div>
         );
@@ -122,8 +122,8 @@ window.CardTerminal = function CardTerminal({ amount, feeLabel, onApproved, onDe
           const done = i < activeIdx || phase === 'approved' && i <= 3, cur = i === activeIdx && phase !== 'declined';
           return <React.Fragment key={s[0]}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 18, height: 18, borderRadius: 99, background: done ? P.good : cur ? P.ink : P.surface3, color: done || cur ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9.5, fontWeight: 700, fontFamily: P.fontMono, border: `1px solid ${done ? P.good : cur ? P.ink : P.hairline2}` }}>{done ? <Icon name="check" size={10} stroke={3} color="#fff" /> : i + 1}</span>
-              <span style={{ fontSize: 10.5, fontWeight: cur ? 700 : 600, color: cur ? P.ink : done ? P.ink2 : P.inkMute, whiteSpace: 'nowrap' }}>{s[1]}</span>
+              <span style={{ width: 18, height: 18, borderRadius: 99, background: done ? P.good : cur ? P.ink : P.surface3, color: done || cur ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, fontFamily: P.fontMono, border: `1px solid ${done ? P.good : cur ? P.ink : P.hairline2}` }}>{done ? <Icon name="check" size={10} stroke={3} color="#fff" /> : i + 1}</span>
+              <span style={{ fontSize: 11.5, fontWeight: cur ? 700 : 600, color: cur ? P.ink : done ? P.ink2 : P.inkMute, whiteSpace: 'nowrap' }}>{s[1]}</span>
             </div>
             {i < steps.length - 1 && <span style={{ width: 16, height: 1, background: P.hairline2 }} />}
           </React.Fragment>;
@@ -182,7 +182,7 @@ window.ReceiptActions = function ReceiptActions({ sale, compact }) {
           <PBtn variant="accent" size="sm" icon="arrow-right" disabled={!/.+@.+\..+/.test(addr)} onClick={() => { flash('Receipt emailed to ' + addr); setEmailing(false); }}>Send</PBtn>
         </div>
       )}
-      {sale?.email && !emailing && <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 7 }}>On file: {sale.email}</div>}
+      {sale?.email && !emailing && <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 7 }}>On file: {sale.email}</div>}
       {toast && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 9, fontSize: 11.5, fontWeight: 600, color: P.good }}><Icon name="check-circle" size={13} stroke={2} />{toast}</div>}
     </div>
   );
@@ -246,7 +246,7 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 20px', borderBottom: `1px solid ${P.hairline2}`, flex: '0 0 auto' }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="receipt" size={16} stroke={1.9} /></span>
-          <div><div style={{ fontSize: 14, fontWeight: 700, color: P.ink, lineHeight: 1.1 }}>Take payment</div><div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.04em' }}>{count} items · {customer?.name || 'Guest'}</div></div>
+          <div><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, lineHeight: 1.1 }}>Take payment</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, letterSpacing: '.04em' }}>{count} items · {customer?.name || 'Guest'}</div></div>
           <div style={{ flex: 1 }} />
           <IconBtn icon="x" size={17} onClick={onClose} />
         </div>
@@ -256,7 +256,7 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
           <div style={{ padding: '26px 26px 24px', overflowY: 'auto' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <span style={{ width: 62, height: 62, borderRadius: 99, background: P.goodSoft, color: P.good, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={32} stroke={2.4} /></span>
-              <div style={{ textAlign: 'center' }}><div style={{ fontSize: 20, fontWeight: 700, color: P.ink }}>Payment complete</div><div style={{ fontSize: 12, color: P.inkDim, marginTop: 3, fontFamily: P.fontMono }}>{sale.id} · receipt printed{(sale.method !== 'card') ? ' · drawer opened' : ''}</div></div>
+              <div style={{ textAlign: 'center' }}><div style={{ fontSize: 21, fontWeight: 700, color: P.ink }}>Payment complete</div><div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 3, fontFamily: P.fontMono }}>{sale.id} · receipt printed{(sale.method !== 'card') ? ' · drawer opened' : ''}</div></div>
               {sale.change > 0 && <div style={{ padding: '9px 18px', background: P.goodSoft, borderRadius: P.r12, fontSize: 15, fontWeight: 700, color: P.good, fontFamily: P.fontMono }}>Change due {_money(sale.change)}</div>}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
@@ -294,8 +294,8 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
           <div style={{ padding: '18px 22px 22px', overflowY: 'auto', position: 'relative' }}>
             {/* balance banner */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: P.ink, borderRadius: P.r16, color: '#fff', marginBottom: 14 }}>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono }}>Balance due</div><div style={{ fontSize: 30, fontWeight: 700, fontFamily: P.fontMono, color: P.accent, letterSpacing: '-.01em' }}>{_money(balance)}</div></div>
-              <div style={{ textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono, lineHeight: 1.7 }}>Total {_money(total)}<br />{credits > 0 ? `Credits − ${_money(credits)}` : 'No credits applied'}</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 11.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono }}>Balance due</div><div style={{ fontSize: 30, fontWeight: 700, fontFamily: P.fontMono, color: P.accent, letterSpacing: '-.01em' }}>{_money(balance)}</div></div>
+              <div style={{ textAlign: 'right', fontSize: 11.5, color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono, lineHeight: 1.7 }}>Total {_money(total)}<br />{credits > 0 ? `Credits − ${_money(credits)}` : 'No credits applied'}</div>
             </div>
 
             {/* credits collapsible */}
@@ -308,11 +308,11 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
               {creditsOpen && <div style={{ padding: '0 16px 15px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <Eyebrow style={{ marginBottom: 8 }}>Redeem points · cash off</Eyebrow>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{CASH_REWARDS.map((r) => { const a = reward === r.id, can = r.bday || points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.bday ? 'perk' : r.cost + 'p'}</span></button>; })}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{CASH_REWARDS.map((r) => { const a = reward === r.id, can = r.bday || points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.bday ? 'perk' : r.cost + 'p'}</span></button>; })}</div>
                 </div>
                 <div>
                   <Eyebrow style={{ marginBottom: 8 }}>Wallet credit</Eyebrow>
-                  {wallet0 > 0 ? <div style={{ display: 'flex', gap: 8 }}>{[0, 5, 10, wallet0].filter((v, i, a) => a.indexOf(v) === i && v <= wallet0).map((v) => { const a = walletAmt === v; return <button key={v} onClick={() => setWalletAmt(v)} style={{ flex: 1, padding: '11px 8px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>{v === 0 ? 'None' : v === wallet0 ? `Max ${_money(v)}` : _money(v)}</button>; })}</div>
+                  {wallet0 > 0 ? <div style={{ display: 'flex', gap: 8 }}>{[0, 5, 10, wallet0].filter((v, i, a) => a.indexOf(v) === i && v <= wallet0).map((v) => { const a = walletAmt === v; return <button key={v} onClick={() => setWalletAmt(v)} style={{ flex: 1, padding: '11px 8px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>{v === 0 ? 'None' : v === wallet0 ? `Max ${_money(v)}` : _money(v)}</button>; })}</div>
                     : <div style={{ fontSize: 11.5, color: P.inkMute }}>No wallet balance on file.</div>}
                 </div>
               </div>}
@@ -325,7 +325,7 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
                 <button key={v} onClick={() => { setMethod(v); if (v !== 'split') setCash(''); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, padding: '22px 12px', background: P.surface, border: `1.5px solid ${P.hairline2}`, borderRadius: P.r16, cursor: 'pointer', fontFamily: P.fontSans }}>
                   <span style={{ width: 52, height: 52, borderRadius: 14, background: P.surface3, color: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={26} stroke={1.7} /></span>
                   <span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{l}</span>
-                  <span style={{ fontSize: 11, color: P.inkDim, textAlign: 'center' }}>{d}</span>
+                  <span style={{ fontSize: 11.5, color: P.inkDim, textAlign: 'center' }}>{d}</span>
                 </button>
               ))}
             </div>
@@ -343,7 +343,7 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
                 {method === 'split' && <div style={{ display: 'flex', gap: 20 }}>
                   <div style={{ flex: '0 0 250px' }}>
                     <Eyebrow style={{ marginBottom: 8 }}>Cash portion (entered first)</Eyebrow>
-                    <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 24, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
+                    <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
                     <Pad onPress={pad} />
                   </div>
                   <div style={{ flex: 1 }}>
@@ -362,12 +362,12 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
                 {method === 'cash' && <div style={{ display: 'flex', gap: 20 }}>
                   <div style={{ flex: '0 0 250px' }}>
                     <Eyebrow style={{ marginBottom: 8 }}>Cash tendered</Eyebrow>
-                    <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 24, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
+                    <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
                     <Pad onPress={pad} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <Eyebrow style={{ marginBottom: 8 }}>Quick cash</Eyebrow>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>{[Math.ceil(balance), Math.ceil(balance / 5) * 5, Math.ceil(balance / 10) * 10, Math.ceil(balance / 20) * 20].filter((v, i, a) => a.indexOf(v) === i).map((v) => <button key={v} onClick={() => setCash(v.toFixed(2))} style={{ padding: '11px 16px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 14, fontWeight: 700, color: P.info, cursor: 'pointer', fontFamily: P.fontMono }}>{_money(v)}</button>)}</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>{[Math.ceil(balance), Math.ceil(balance / 5) * 5, Math.ceil(balance / 10) * 10, Math.ceil(balance / 20) * 20].filter((v, i, a) => a.indexOf(v) === i).map((v) => <button key={v} onClick={() => setCash(v.toFixed(2))} style={{ padding: '11px 16px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.info, cursor: 'pointer', fontFamily: P.fontMono }}>{_money(v)}</button>)}</div>
                     <div style={{ padding: '14px 16px', borderRadius: P.r12, background: change >= 0 ? P.goodSoft : P.badSoft }}><KV k={change >= 0 ? 'Change due' : 'Still owed'} v={_money(Math.abs(change))} strong color={change >= 0 ? P.good : P.bad} /></div>
                   </div>
                 </div>}

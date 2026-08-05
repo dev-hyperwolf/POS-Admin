@@ -8,7 +8,7 @@
     const item = (tone, label, flag) => {
       const c = HD.tone(P, tone);
       return (
-        <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: P.ink2 }}>
+        <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.ink2 }}>
           {flag ? <Icon name="flag" size={11} stroke={2} color={c.fg} /> : <span style={{ width: 8, height: 8, borderRadius: 99, background: c.fg }} />}
           {label}
         </span>);
@@ -18,7 +18,7 @@
         <span style={{ textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, fontSize: 10 }}>Mapping</span>
         {item('ok', '≥92% mapped')}{item('warn', '70–92% needs check')}{item('blocked', 'unmapped', true)}
         <span title="≥92% — auto-mapped: exact SKU + qty or sum-match with siblings. 70–92% — needs check: fuzzy SKU or qty-only match. Unmapped — no plausible match; blocks auto-post until resolved."
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: P.inkMute, cursor: 'help' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: P.inkMute, cursor: 'help' }}>
           <Icon name="info" size={12} stroke={2} /><span>legend</span>
         </span>
       </div>);
@@ -32,8 +32,8 @@
     const c = highlight ? HD.tone(P, highlight) : null;
     return (
       <div title={tooltip} style={{ padding: '12px', borderLeft: `1px solid ${P.hairline2}`, textAlign: 'right', background: c ? c.bg : 'transparent' }}>
-        <div style={{ fontFamily: P.fontMono, fontSize: 14, color: c ? c.fg : P.ink }}>{qty} × {HD.formatCurrency(unit)}</div>
-        <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute, marginTop: 2 }}>= {HD.formatCurrency(qty * unit)}</div>
+        <div style={{ fontFamily: P.fontMono, fontSize: 13.5, color: c ? c.fg : P.ink }}>{qty} × {HD.formatCurrency(unit)}</div>
+        <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>= {HD.formatCurrency(qty * unit)}</div>
       </div>);
   }
 
@@ -43,12 +43,12 @@
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     const unmapped = uid.matchReason === 'unmapped';
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: GRID, background: P.canvas, borderBottom: `1px solid ${P.hairline}` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: GRID, background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}>
         <div />
         <div style={{ paddingLeft: 24, paddingRight: 12, paddingTop: 8, paddingBottom: 8, display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
           {isSibling && <span aria-hidden="true" style={{ position: 'absolute', left: 12, top: 0, bottom: 0, width: 2, background: P.accentBorder, opacity: .6 }} />}
           {isSibling && (
-            <span title={`Sibling ${siblingIndex} of ${siblingCount}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 16, padding: '0 6px', borderRadius: 3, background: P.accentSoft, color: accentInk, fontSize: 9, fontWeight: 700, fontFamily: P.fontMono, letterSpacing: '.06em' }}>{siblingIndex}/{siblingCount}</span>)}
+            <span title={`Sibling ${siblingIndex} of ${siblingCount}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 16, padding: '0 6px', borderRadius: 3, background: P.accentSoft, color: accentInk, fontSize: 10, fontWeight: 700, fontFamily: P.fontMono, letterSpacing: '.06em' }}>{siblingIndex}/{siblingCount}</span>)}
           <UidChip value={uid.uid} kind="metrc" size="sm" />
           {unmapped
             ? <span title="No confident map — manual review required" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, color: HD.tone(P, 'blocked').fg }}><Icon name="flag" size={10} stroke={2} />unmapped</span>
@@ -57,9 +57,9 @@
               <span style={{ fontSize: 10, color: high ? P.inkMute : HD.tone(P, 'warn').fg }}>{(uid.confidence * 100).toFixed(0)}%</span>
             </span>}
         </div>
-        <div style={{ padding: '8px 12px', textAlign: 'right' }}><span style={{ fontFamily: P.fontMono, fontSize: 12, color: P.ink2 }}>{uid.qty} units</span></div>
-        <div style={{ padding: '8px 12px', textAlign: 'right' }}><span style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>{high ? 'mapped' : 'needs check'}</span></div>
-        <div style={{ padding: '8px 12px', textAlign: 'right' }}><span style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>= {HD.formatCurrency(uid.qty * totalUnit)}</span></div>
+        <div style={{ padding: '8px 12px', textAlign: 'right' }}><span style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink2 }}>{uid.qty} units</span></div>
+        <div style={{ padding: '8px 12px', textAlign: 'right' }}><span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{high ? 'mapped' : 'needs check'}</span></div>
+        <div style={{ padding: '8px 12px', textAlign: 'right' }}><span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>= {HD.formatCurrency(uid.qty * totalUnit)}</span></div>
       </div>);
   }
 
@@ -89,19 +89,19 @@
           </button>
           <div style={{ padding: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, color: P.ink }}>{li.productName}</span>
+              <span style={{ fontSize: 13.5, color: P.ink }}>{li.productName}</span>
               {isSiblingGroup && <span title={`${uids.length} sibling packages map to this line`} style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 8px', borderRadius: 99, background: P.accentSoft, border: `1px solid ${P.accentBorder}`, color: accentInk, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>{uids.length} siblings</span>}
             </div>
-            <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute, marginTop: 2 }}>{li.sku}</div>
+            <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>{li.sku}</div>
             {hasUids && (
-              <div style={{ fontSize: 11, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 11.5, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ color: P.inkMute, fontFamily: P.fontMono }}>{uids.length} UID{uids.length === 1 ? '' : 's'}</span>
                 <span style={{ color: P.inkMute }}>·</span>
                 {sumConfirmed && isSiblingGroup
                   ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: HD.tone(P, 'ok').fg, fontFamily: P.fontMono }}><Icon name="check" size={10} stroke={2.6} />sum {mappedQty}/{manifest}</span>
                   : <span style={{ fontFamily: P.fontMono, color: qtyMismatch ? HD.tone(P, 'warn').fg : P.inkMute }}>{mappedQty}/{manifest} units mapped</span>}
               </div>)}
-            {li.varianceNote && <div style={{ fontSize: 11, color: HD.tone(P, 'warn').fg, marginTop: 4 }}>{li.varianceNote}</div>}
+            {li.varianceNote && <div style={{ fontSize: 11.5, color: HD.tone(P, 'warn').fg, marginTop: 4 }}>{li.varianceNote}</div>}
           </div>
           <VarianceCell qty={manifest} unit={expectedUnit} highlight={qtyVariance && manifest !== invoiceQty ? sev : undefined} tooltip={`Manifest qty ${manifest}`} />
           <VarianceCell qty={receipt} unit={expectedUnit} highlight={receipt !== manifest || receipt !== invoiceQty ? sev : undefined}
@@ -117,7 +117,7 @@
   function ThreeWayMatch({ invoice }) {
     const P = useP(), HD = window.HD;
     const head = (label, tone) => (
-      <div style={{ padding: '10px 12px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, fontWeight: 500, borderBottom: `1px solid ${P.hairline2}`, background: P.canvas, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ padding: '10px 12px', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, fontWeight: 500, borderBottom: `1px solid ${P.hairline2}`, background: P.surface2, display: 'flex', alignItems: 'center', gap: 6 }}>
         {tone && <span style={{ width: 8, height: 8, borderRadius: 99, background: tone === 'brand' ? P.accent : HD.tone(P, tone).fg }} />}
         {label}
       </div>);
@@ -139,19 +139,19 @@
     const qtyShort = variances.filter((li) => (li.receiptQty ?? 0) < (li.invoiceQty ?? 0)).reduce((s, li) => s + ((li.invoiceQty ?? 0) - (li.receiptQty ?? 0)) * li.unitCost, 0);
     const costDiff = variances.reduce((s, li) => s + (li.unitCost - (li.expectedUnitCost ?? li.unitCost)) * (li.receiptQty ?? li.qty), 0);
     const Row = ({ icon, tone, label, value, bold }) => (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13.5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: P.ink2 }}><Icon name={icon} size={14} stroke={1.9} color={HD.tone(P, tone).fg} /><span>{label}</span></div>
         <span style={{ fontFamily: P.fontMono, color: P.ink, fontWeight: bold ? 600 : 400 }}>{value}</span>
       </div>);
     return (
       <Card padding={0}>
         <div style={{ padding: '14px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Variance summary</h3>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Variance summary</h3>
           {invoice.varianceSeverity !== 'none' && <HDPill tone={invoice.varianceSeverity === 'critical' || invoice.varianceSeverity === 'major' ? 'blocked' : 'warn'} icon={false} size="sm" label={invoice.varianceSeverity} />}
         </div>
         <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {invoice.varianceSeverity === 'none'
-            ? <div style={{ fontSize: 13, color: P.inkDim, padding: '8px 0' }}>No variances detected. Ready to post.</div>
+            ? <div style={{ fontSize: 13.5, color: P.inkDim, padding: '8px 0' }}>No variances detected. Ready to post.</div>
             : (
               <React.Fragment>
                 <Row icon="box" tone="blocked" label="Short ship" value={HD.formatCurrency(qtyShort)} />
@@ -160,7 +160,7 @@
                 <Row icon="flag" tone="warn" label="Total variance" value={HD.formatCurrency(invoice.varianceAmount)} bold />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
                   {variances.map((li) => (
-                    <div key={li.id} style={{ fontSize: 12, borderLeft: `2px solid ${HD.tone(P, 'warn').fg}99`, paddingLeft: 8, paddingTop: 2, paddingBottom: 2 }}>
+                    <div key={li.id} style={{ fontSize: 12.5, borderLeft: `2px solid ${HD.tone(P, 'warn').fg}99`, paddingLeft: 8, paddingTop: 2, paddingBottom: 2 }}>
                       <div style={{ color: P.ink2 }}>{li.productName}</div>
                       <div style={{ color: P.inkMute }}>{li.varianceNote}</div>
                     </div>))}
@@ -179,12 +179,12 @@
     ];
     return (
       <Card padding={0}>
-        <div style={{ padding: '14px 16px 8px' }}><h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Evidence</h3></div>
+        <div style={{ padding: '14px 16px 8px' }}><h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Evidence</h3></div>
         <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {items.map((it) => (
-            <div key={it.id} style={{ aspectRatio: '1 / 1', borderRadius: 10, background: P.canvas2, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
+            <div key={it.id} style={{ aspectRatio: '1 / 1', borderRadius: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, cursor: 'pointer' }}>
               <Icon name={it.icon} size={18} stroke={1.7} color={P.inkMute} />
-              <div style={{ fontSize: 11, color: P.ink2, textAlign: 'center', padding: '0 4px' }}>{it.label}</div>
+              <div style={{ fontSize: 11.5, color: P.ink2, textAlign: 'center', padding: '0 4px' }}>{it.label}</div>
               <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatDate(invoice.receivedDate)}</div>
             </div>))}
         </div>
@@ -219,17 +219,17 @@
     const bestScore = candidates[0]?.score ?? 0;
     const [selectedId, setSelectedId] = React.useState(bestScore >= 0.5 ? candidates[0]?.line.id ?? null : null);
     const Row = ({ label, value, bold, tone }) => (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5 }}>
         <span style={{ color: P.inkMute }}>{label}</span>
         <span style={{ fontFamily: P.fontMono, fontWeight: bold ? 600 : 400, color: tone ? HD.tone(P, tone).fg : P.ink }}>{value}</span>
       </div>);
     return (
-      <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas, padding: 12 }}>
+      <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface2, padding: 12 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
           <div style={{ minWidth: 0 }}>
             <UidChip value={u.uid} kind="metrc" size="md" />
-            <div style={{ fontSize: 13, color: P.ink, marginTop: 6 }}>{u.productHint ?? <span style={{ color: P.inkMute, fontStyle: 'italic' }}>unknown product</span>}</div>
-            <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2 }}>{u.qty} units · {u.reason}</div>
+            <div style={{ fontSize: 13.5, color: P.ink, marginTop: 6 }}>{u.productHint ?? <span style={{ color: P.inkMute, fontStyle: 'italic' }}>unknown product</span>}</div>
+            <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>{u.qty} units · {u.reason}</div>
           </div>
         </div>
         <MicroLabel style={{ marginBottom: 8 }}>Candidate invoice lines</MicroLabel>
@@ -243,8 +243,8 @@
               <button key={c.line.id} onClick={() => setSelectedId(c.line.id)} aria-pressed={selected}
                 style={{ position: 'relative', textAlign: 'left', borderRadius: 10, padding: 12, cursor: 'pointer', fontFamily: P.fontSans,
                   background: selected ? P.accentSoft : P.surface, border: `1px solid ${selected ? P.accent : isBest ? P.accentBorder : P.hairline2}` }}>
-                {isBest && <span style={{ position: 'absolute', top: -8, left: 8, display: 'inline-flex', alignItems: 'center', gap: 4, height: 18, padding: '0 6px', borderRadius: 99, background: P.accent, color: P.accentInk, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}><Icon name="sparkle" size={9} stroke={2.4} />best pair</span>}
-                <div style={{ fontSize: 12, color: P.ink, minHeight: 34 }}>{c.line.productName}</div>
+                {isBest && <span style={{ position: 'absolute', top: -8, left: 8, display: 'inline-flex', alignItems: 'center', gap: 4, height: 18, padding: '0 6px', borderRadius: 99, background: P.accent, color: P.accentInk, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}><Icon name="sparkle" size={9} stroke={2.4} />best pair</span>}
+                <div style={{ fontSize: 12.5, color: P.ink, minHeight: 34 }}>{c.line.productName}</div>
                 <div style={{ fontFamily: P.fontMono, fontSize: 10, color: P.inkMute, marginTop: 4 }}>{c.line.sku}</div>
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <Row label="Line qty" value={`${c.line.qty}`} />
@@ -258,11 +258,11 @@
           })}
         </div>
         {candidates.length > 3 && (
-          <button onClick={() => setShowAll((v) => !v)} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontSize: 11, color: P.inkMute, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontFamily: P.fontSans }}>
+          <button onClick={() => setShowAll((v) => !v)} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontSize: 11.5, color: P.inkMute, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontFamily: P.fontSans }}>
             {showAll ? 'Show top 3 candidates' : `Show all ${candidates.length} lines`}
           </button>)}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${P.hairline2}` }}>
-          <span style={{ marginRight: 'auto', fontSize: 11, color: P.inkMute }}>
+          <span style={{ marginRight: 'auto', fontSize: 11.5, color: P.inkMute }}>
             {selectedId ? `Ready to map to ${candidates.find((c) => c.line.id === selectedId)?.line.productName.slice(0, 40)}` : 'Pick a candidate to continue.'}
           </span>
           <PBtn size="sm" variant="accent" icon="check" disabled={!selectedId} onClick={() => {
@@ -286,20 +286,20 @@
           <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, borderRadius: P.r12, border: `1px solid ${bad.fg}66`, background: bad.bg, padding: '12px 16px' }}>
             <Icon name="flag" size={18} stroke={2} color={bad.fg} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, color: bad.fg, fontWeight: 500 }}>{remaining.length} manifest UID{remaining.length === 1 ? '' : 's'} couldn't be mapped. Review below.</div>
-              <div style={{ fontSize: 12, color: P.inkMute, marginTop: 2 }}>Auto-post is blocked until every UID is resolved.</div>
+              <div style={{ fontSize: 13.5, color: bad.fg, fontWeight: 500 }}>{remaining.length} manifest UID{remaining.length === 1 ? '' : 's'} couldn't be mapped. Review below.</div>
+              <div style={{ fontSize: 12.5, color: P.inkMute, marginTop: 2 }}>Auto-post is blocked until every UID is resolved.</div>
             </div>
           </div>
         ) : (
           <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 12, borderRadius: P.r12, border: `1px solid ${ok.fg}4d`, background: ok.bg, padding: '12px 16px' }}>
             <Icon name="check" size={18} stroke={2.4} color={ok.fg} />
-            <div style={{ fontSize: 13, color: ok.fg }}>All {initial.length} manifest UID{initial.length === 1 ? ' is' : 's are'} mapped. Ready to post.</div>
+            <div style={{ fontSize: 13.5, color: ok.fg }}>All {initial.length} manifest UID{initial.length === 1 ? ' is' : 's are'} mapped. Ready to post.</div>
           </div>)}
         {remaining.length > 0 && (
           <Card padding={0}>
             <div style={{ padding: '14px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Unmapped manifest UIDs</h3>
-              <span style={{ fontSize: 11, color: P.inkMute }}>{remaining.length} of {initial.length} remaining</span>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Unmapped manifest UIDs</h3>
+              <span style={{ fontSize: 11.5, color: P.inkMute }}>{remaining.length} of {initial.length} remaining</span>
             </div>
             <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {remaining.map((u) => (
@@ -321,7 +321,7 @@
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     return (
       <div style={{ padding: 20, maxWidth: 1400, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <button onClick={() => navigate('#/inbox')} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 13, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
+        <button onClick={() => navigate('#/inbox')} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, fontSize: 13.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
           <Icon name="arrow-left" size={14} stroke={2} /> Back to inbox
         </button>
 
@@ -332,7 +332,7 @@
             </div>
             <div>
               <MicroLabel>{invoice.vendorName} · {invoice.entity.toUpperCase()}</MicroLabel>
-              <h1 style={{ margin: '2px 0 0', fontSize: 28, fontWeight: 600, color: P.ink, lineHeight: 1.1, fontFamily: P.fontMono, letterSpacing: '-.01em' }}>{invoice.invoiceNumber}</h1>
+              <h1 style={{ margin: '2px 0 0', fontSize: 30, fontWeight: 600, color: P.ink, lineHeight: 1.1, fontFamily: P.fontMono, letterSpacing: '-.01em' }}>{invoice.invoiceNumber}</h1>
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <HDPill tone={HD.invoiceStatusTone(invoice.status)} label={HD.INVOICE_STATUS_LABEL[invoice.status]} />
                 <HDPill tone="neutral" icon={false} size="sm" label={`OCR ${(invoice.confidence * 100).toFixed(0)}%`} />
@@ -348,14 +348,14 @@
               <div>
                 <MicroLabel style={{ marginBottom: 4 }}>Amendment</MicroLabel>
                 <select value={selectedVersion} onChange={(e) => setSelectedVersion(e.target.value)}
-                  style={{ minWidth: 120, height: 34, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13, padding: '0 10px', color: P.ink, fontFamily: P.fontSans }}>
+                  style={{ minWidth: 120, height: 34, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13.5, padding: '0 10px', color: P.ink, fontFamily: P.fontSans }}>
                   {Array.from({ length: invoice.version }, (_, i) => <option key={i + 1} value={String(i + 1)}>v{i + 1} {i + 1 === invoice.version ? '(current)' : ''}</option>)}
                 </select>
               </div>)}
             <div style={{ textAlign: 'right' }}>
               <MicroLabel align="right">Invoice total</MicroLabel>
               <DisplayNum size={40} style={{ marginTop: 4 }}>{HD.formatCurrency(invoice.total)}</DisplayNum>
-              <div style={{ fontSize: 12, color: P.inkMute, marginTop: 4, fontFamily: P.fontMono }}>{HD.formatCurrency(invoice.subtotal)} subtotal · {HD.formatCurrency(invoice.tax)} tax</div>
+              <div style={{ fontSize: 12.5, color: P.inkMute, marginTop: 4, fontFamily: P.fontMono }}>{HD.formatCurrency(invoice.subtotal)} subtotal · {HD.formatCurrency(invoice.tax)} tax</div>
             </div>
           </div>
         </div>
@@ -365,8 +365,8 @@
         <div className="hd-2col">
           <Card padding={0}>
             <div style={{ padding: '14px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>3-way match</h3>
-              <div style={{ fontSize: 11, color: P.inkMute }}>METRC manifest · Receipt · Vendor invoice · UIDs</div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>3-way match</h3>
+              <div style={{ fontSize: 11.5, color: P.inkMute }}>METRC manifest · Receipt · Vendor invoice · UIDs</div>
             </div>
             <div style={{ padding: '0 16px 16px' }}><ThreeWayMatch invoice={invoice} /></div>
           </Card>
@@ -376,7 +376,7 @@
           </div>
         </div>
 
-        <div style={{ position: 'sticky', bottom: 0, margin: '0 -20px', padding: '12px 20px', borderTop: `1px solid ${P.hairline2}`, background: P.canvas }}>
+        <div style={{ position: 'sticky', bottom: 0, margin: '0 -20px', padding: '12px 20px', borderTop: `1px solid ${P.hairline2}`, background: P.surface2 }}>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <PBtn variant="secondary" icon="refresh" onClick={() => navigate(`#/credits/new?invoiceId=${invoice.id}`)}>Open credit memo</PBtn>
             <PBtn variant="secondary" icon="mail" onClick={() => window.hdToast?.({ title: 'Corrected invoice requested', description: 'Vendor portal notification sent.', tone: 'info' })}>Request corrected invoice</PBtn>

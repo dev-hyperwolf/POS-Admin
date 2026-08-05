@@ -24,7 +24,7 @@ window.DutyToggle = function DutyToggle() {
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 16.5, fontWeight: 800, color: P.ink, lineHeight: 1.15 }}>{on ? 'On Duty' : 'Off Duty'}</span>
-        <span style={{ display: 'block', fontSize: 11, color: on ? P.good : P.inkMute, fontFamily: P.fontMono, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
+        <span style={{ display: 'block', fontSize: 11.5, color: on ? P.good : P.inkMute, fontFamily: P.fontMono, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>
       </span>
       <DutySwitch on={on} />
     </button>);
@@ -54,8 +54,8 @@ window.AppHeader = function AppHeader({ tab }) {
     <div style={{ padding: '2px 16px 10px', display: 'flex', flexDirection: 'column', gap: 11, flex: '0 0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{greet}</div>
-          <div style={{ fontSize: 23, fontWeight: 800, color: P.ink, lineHeight: 1.1, marginTop: 2 }}>{firstName}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>{greet}</div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: P.ink, lineHeight: 1.1, marginTop: 2 }}>{firstName}</div>
         </div>
         <HdrIcon icon="bell" badge={unread} onClick={() => window.M.push('notifs')} />
       </div>
@@ -63,7 +63,7 @@ window.AppHeader = function AppHeader({ tab }) {
     </div>);
   return (
     <div style={{ padding: '6px 16px 8px', display: 'flex', alignItems: 'center', gap: 10, flex: '0 0 auto' }}>
-      <div style={{ width: 8 }} /><div style={{ flex: 1, textAlign: 'center', fontSize: 20, fontWeight: 700, color: P.ink }}>{titles[tab]}</div><HdrIcon icon="bell" badge={unread} onClick={() => window.M.push('notifs')} />
+      <div style={{ width: 8 }} /><div style={{ flex: 1, textAlign: 'center', fontSize: 21, fontWeight: 700, color: P.ink }}>{titles[tab]}</div><HdrIcon icon="bell" badge={unread} onClick={() => window.M.push('notifs')} />
     </div>);
 
 };
@@ -83,7 +83,7 @@ window.BreakBanner = function BreakBanner() {
   return (
     <div onClick={() => window.M.push('breaktimer')} style={{ margin: '2px 16px 10px', padding: '12px 15px', border: `1px solid ${P.indica}55`, borderRadius: P.r14, display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer', background: P.indica + (P.mode === 'dark' ? '26' : '14') }}>
       <span style={{ width: 32, height: 32, borderRadius: 9, background: P.indica, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="clock" size={17} color="#fff" stroke={2.2} /></span>
-      <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: P.ink }}>Your {b.label.split('(')[0].trim()} break ends in <span style={{ fontFamily: P.fontMono, color: P.indica }}>{mm}:{ss}</span></span>
+      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: P.ink }}>Your {b.label.split('(')[0].trim()} break ends in <span style={{ fontFamily: P.fontMono, color: P.indica }}>{mm}:{ss}</span></span>
       <Icon name="chevron-right" size={16} stroke={2} color={P.indica} />
     </div>);
 
@@ -100,7 +100,7 @@ window.BottomNav = function BottomNav() {
       {items.map(([id, label, icon, isPush]) => {const a = isPush ? topName === 'help' : tab === id && !topName;return (
           <button key={id} onClick={() => isPush ? window.M.push('help') : window.M.go(id)} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: 'transparent', border: 'none', cursor: 'pointer', color: a ? P.ink : P.inkMute }}>
           <Icon name={icon} size={22} stroke={a ? 2.1 : 1.7} />
-          <span style={{ fontSize: 10.5, fontWeight: a ? 700 : 500 }}>{label}</span>
+          <span style={{ fontSize: 11.5, fontWeight: a ? 700 : 500 }}>{label}</span>
         </button>);})}
     </div>);
 
@@ -141,8 +141,8 @@ window.VisitBanner = function VisitBanner({ visit }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', background: c + (P.mode === 'dark' ? '1f' : '18'), border: `1.5px solid ${c}`, borderRadius: P.r14 }}>
       <span style={{ width: 40, height: 40, borderRadius: 11, background: c, color: '#1A1400', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={v.icon} size={21} stroke={2.2} color="#1A1400" /></span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: P.ink }}>{v.label}</div>
-        <div style={{ fontSize: 12, color: P.ink2, marginTop: 2, lineHeight: 1.4 }}>{msg}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: P.ink }}>{v.label}</div>
+        <div style={{ fontSize: 12.5, color: P.ink2, marginTop: 2, lineHeight: 1.4 }}>{msg}</div>
       </div>
     </div>);
 

@@ -23,7 +23,7 @@ function DayDots({ days }) {
   const P = useP();const full = days.length === 7;
   const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-    <span style={{ display: 'inline-flex', gap: 5 }}>{WK_DOW.map((d, i) => {const on = days.includes(i);return <span key={i} title={names[i] + (on ? ' · on' : ' · off')} style={{ width: 18, height: 18, borderRadius: 5, fontSize: 10.5, fontWeight: 800, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? full ? P.good : P.ink : 'transparent', color: on ? '#fff' : P.inkFaint, border: on ? 'none' : `1px solid ${P.hairline2}` }}>{d}</span>;})}</span>
+    <span style={{ display: 'inline-flex', gap: 5 }}>{WK_DOW.map((d, i) => {const on = days.includes(i);return <span key={i} title={names[i] + (on ? ' · on' : ' · off')} style={{ width: 18, height: 18, borderRadius: 5, fontSize: 11.5, fontWeight: 800, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? full ? P.good : P.ink : 'transparent', color: on ? '#fff' : P.inkFaint, border: on ? 'none' : `1px solid ${P.hairline2}` }}>{d}</span>;})}</span>
     <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: P.fontMono, color: full ? P.good : P.inkDim, whiteSpace: 'nowrap' }}>{full ? 'All week' : days.length + (days.length === 1 ? ' day' : ' days')}</span>
   </span>;
 }
@@ -60,7 +60,7 @@ function DayTag({ days, today = TODAY_DOW, size }) {
   const P = useP();
   const co = dayCallout(days, today);if (!co) return null;
   const sm = size === 'sm';
-  const base = { fontFamily: P.fontMono, fontSize: sm ? 8 : 8.5, fontWeight: 800, letterSpacing: '.04em', padding: sm ? '1px 5px' : '2px 6px', borderRadius: 6, whiteSpace: 'nowrap', display: 'inline-block', lineHeight: 1.35 };
+  const base = { fontFamily: P.fontMono, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', padding: sm ? '1px 5px' : '2px 6px', borderRadius: 6, whiteSpace: 'nowrap', display: 'inline-block', lineHeight: 1.3 };
   const tones = {
     today: { background: '#FF5C4D', color: '#fff', boxShadow: '0 0 0 3px rgba(255,92,77,.22)' },
     soon: { background: 'rgba(255,209,0,.16)', color: '#FFD100', border: '1px solid rgba(255,209,0,.42)' },
@@ -76,12 +76,12 @@ function BrandTile({ b, dark }) {
   return <div style={{ borderRadius: 14, overflow: 'hidden', background: P.surface, border: `1px solid ${P.hairline2}`, boxShadow: P.shadowSm }}>
     <div style={{ height: 78, position: 'relative', background: brandGrad(b.hue, dark), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 30% 24%, rgba(255,255,255,.4), transparent 58%)' }} />
-      <span style={{ fontFamily: P.fontMono, fontWeight: 800, fontSize: 20, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,.25)' }}>{b.name[0]}</span>
-      <span style={{ position: 'absolute', top: 8, left: 8, padding: '3px 7px', borderRadius: 99, background: 'rgba(0,0,0,.55)', color: '#fff', fontSize: 9, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.04em' }}>{shortBadge(b.badge)}</span>
+      <span style={{ fontFamily: P.fontMono, fontWeight: 800, fontSize: 21, color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,.25)' }}>{b.name[0]}</span>
+      <span style={{ position: 'absolute', top: 8, left: 8, padding: '3px 7px', borderRadius: 99, background: 'rgba(0,0,0,.55)', color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.04em' }}>{shortBadge(b.badge)}</span>
       {dayCallout(b.days, TODAY_DOW) && <span style={{ position: 'absolute', top: 8, right: 8 }}><DayTag days={b.days} size="sm" /></span>}
     </div>
     <div style={{ padding: '8px 10px' }}>
-      <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}>{b.name}</div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.2 }}>{b.name}</div>
       <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>{b.cat}</div>
     </div>
   </div>;
@@ -122,20 +122,20 @@ function DealBoard({ list, weekLabel, device, headless, copy, today = TODAY_DOW 
             <div key={b.id} style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: dayCallout(b.days, today)?.tone === 'past' ? .5 : 1 }}>
               <span style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.2, color: '#fff', wordBreak: 'break-word' }}>{b.name}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#FFD100', fontFamily: P.fontMono }}>{shortBadge(b.badge)}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 800, color: '#FFD100', fontFamily: P.fontMono }}>{shortBadge(b.badge)}</span>
                 <DayTag days={b.days} today={today} size="sm" />
               </div>
             </div> :
             <div key={b.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, opacity: dayCallout(b.days, today)?.tone === 'past' ? .5 : 1 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, flex: 1, minWidth: 0, lineHeight: 1.25, color: '#fff', wordBreak: 'break-word' }}>{b.name}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, flex: 1, minWidth: 0, lineHeight: 1.25, color: '#fff', wordBreak: 'break-word' }}>{b.name}</span>
               <DayTag days={b.days} today={today} />
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#FFD100', fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{shortBadge(b.badge)}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: '#FFD100', fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{shortBadge(b.badge)}</span>
             </div>)}
         </div>
       </div>;})}
     </div>
     <div style={{ padding: mobile ? '0 12px 14px' : '0 16px 18px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-      <span style={{ padding: '11px 18px', borderRadius: 12, background: '#FFD100', color: '#1A1400', fontWeight: 800, fontSize: 14, ...(mobile ? { flex: 1, textAlign: 'center' } : {}) }}>Shop all deals →</span>
+      <span style={{ padding: '11px 18px', borderRadius: 12, background: '#FFD100', color: '#1A1400', fontWeight: 800, fontSize: 13.5, ...(mobile ? { flex: 1, textAlign: 'center' } : {}) }}>Shop all deals →</span>
       {!mobile && <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,.5)', fontFamily: P.fontMono }}>UPCOMING · 7/27 New-drop Friday</span>}
     </div>
   </div>;
@@ -157,19 +157,19 @@ window.BrandMapView = function BrandMapView({ onNew }) {
   return <div style={{ maxWidth: 1320, margin: '0 auto' }}>
     {/* ONE week switcher governs this whole section */}
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: P.accentSoft, border: `1px solid ${P.accentBorder}`, borderRadius: P.r10, padding: 4 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: 4 }}>
         <button onClick={() => setWk((w) => Math.max(0, w - 1))} disabled={wk === 0} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: 8, cursor: wk === 0 ? 'default' : 'pointer', color: wk === 0 ? P.inkFaint : P.ink2 }}><Icon name="chevron-left" size={16} /></button>
-        <span style={{ fontSize: 13, fontWeight: 700, fontFamily: P.fontMono, color: P.mode === 'dark' ? P.accent : '#7A5A00', padding: '0 10px', whiteSpace: 'nowrap' }}>Week of {weekLabel}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono, color: P.ink, padding: '0 10px', whiteSpace: 'nowrap' }}>Week of {weekLabel}</span>
         <button onClick={() => setWk((w) => Math.min(WEEKS.length - 1, w + 1))} disabled={wk === WEEKS.length - 1} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: 8, cursor: wk === WEEKS.length - 1 ? 'default' : 'pointer', color: wk === WEEKS.length - 1 ? P.inkFaint : P.ink2 }}><Icon name="chevron-right" size={16} /></button>
       </div>
       {wk !== 1 && <PBtn variant="ghost" size="sm" onClick={() => setWk(1)}>This week</PBtn>}
       <div style={{ flex: 1 }} />
       <span style={{ fontSize: 11.5, color: P.inkMute }}>One switcher controls the whole board</span>
-      <PBtn variant="accent" icon="plus" size="sm" onClick={onNew}>New promotion</PBtn>
+      <PBtn variant="secondary" icon="plus" size="sm" onClick={onNew}>New promotion</PBtn>
     </div>
     {/* SOURCE → OUTPUT mapping: the 12 promo records that feed the board */}
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 10 }}>
-      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Source · {list.length} live promotions</div>
+      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Source · {list.length} live promotions</div>
       <div style={{ fontSize: 12.5, color: P.inkDim }}>the live promotions feeding this week's board (staged in Studio)</div>
     </div>
     <Card padding={0} style={{ marginBottom: 22 }}>
@@ -178,8 +178,8 @@ window.BrandMapView = function BrandMapView({ onNew }) {
         <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '13px 16px', fontFamily: P.fontSans, borderRight: `1px solid ${P.hairline}`, borderBottom: `1px solid ${P.hairline}` }}>
             <span style={{ width: 28, height: 28, borderRadius: 8, flex: '0 0 auto', background: brandGrad(b.hue, dark), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 800, color: '#fff', fontFamily: P.fontMono }}>{b.name[0]}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: P.ink, lineHeight: 1.25 }}>{b.name} <span style={{ fontSize: 11, fontWeight: 600, color: P.inkMute, fontFamily: P.fontMono }}>· {b.cat}</span></div>
-              <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 4, overflow: 'hidden' }}><DayDots days={b.days} /></div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, lineHeight: 1.25 }}>{b.name} <span style={{ fontSize: 11.5, fontWeight: 600, color: P.inkMute, fontFamily: P.fontMono }}>· {b.cat}</span></div>
+              <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 4, overflow: 'hidden' }}><DayDots days={b.days} /></div>
             </div>
             <span style={{ fontSize: 12.5, fontWeight: 800, flex: '0 0 auto', color: P.accentInk, background: P.accent, fontFamily: P.fontMono, whiteSpace: 'nowrap', padding: '3px 9px', borderRadius: 99 }}>{shortBadge(b.badge)}</span>
           </div>)}
@@ -194,7 +194,7 @@ window.BrandMapView = function BrandMapView({ onNew }) {
       {/* THE HERO — creative section + category/brand/discount board */}
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginBottom: 10 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Home hero · weekly deal</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Home hero · weekly deal</div>
           <div style={{ fontSize: 12.5, color: P.inkDim }}>creative section, then every category with its brands + discount</div>
         </div>
         <DealBoard list={list} weekLabel={weekLabel} today={wk === 1 ? TODAY_DOW : null} />

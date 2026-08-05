@@ -8,7 +8,8 @@
 
   const TONE_ICON = { ok: 'check-circle', warn: 'flag', blocked: 'x', quarantine: 'shield', sealing: 'shield', info: 'clock', brand: 'flag', archived: 'clock', neutral: 'clock' };
 
-  // Status pill — tone token + matching tint, mirrors ui/status-pill.tsx.
+  // Status pill. HD's tone/label API is now ALSO accepted by window.Pill, so
+  // new code can use either; this stays as the Engage-shaped entry point.
   window.HDPill = function HDPill({ tone: t = 'neutral', label, children, icon = true, size = 'md', title, style }) {
     const P = useP();
     const c = HD().tone(P, t);
@@ -31,28 +32,23 @@
         <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: c.bg, opacity: P.mode === 'dark' ? .5 : .45 }} />
         <div style={{ position: 'relative', padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: '.04em', textTransform: 'uppercase', color: P.inkMute }}>{label}</div>
+            <div style={{ fontSize: 11.5, fontWeight: 500, letterSpacing: '.04em', textTransform: 'uppercase', color: P.inkMute }}>{label}</div>
             {icon && <span style={{ display: 'inline-flex', width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: c.fg + '26', color: c.fg, flex: '0 0 auto' }}><Icon name={icon} size={14} stroke={1.9} /></span>}
           </div>
-          <div style={{ marginTop: 6, fontSize: 26, lineHeight: 1, fontWeight: 500, color: P.ink, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+          <div style={{ marginTop: 6, fontSize: 30, lineHeight: 1, fontWeight: 500, color: P.ink, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
           {typeof progress === 'number' && (
             <div style={{ marginTop: 10, height: 6, width: '100%', borderRadius: 99, background: P.hairline2, overflow: 'hidden' }}>
               <div style={{ height: '100%', borderRadius: 99, background: c.fg, width: `${Math.max(0, Math.min(1, progress)) * 100}%` }} />
             </div>)}
-          {sub && <div style={{ marginTop: 6, fontSize: 12, color: P.inkDim }}>{sub}</div>}
+          {sub && <div style={{ marginTop: 6, fontSize: 12.5, color: P.inkDim }}>{sub}</div>}
         </div>
       </div>);
   };
 
-  window.HDEmpty = function HDEmpty({ icon, title, body, action, style }) {
-    const P = useP();
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '48px 24px', gap: 12, color: P.inkDim, ...style }}>
-        {icon && <div style={{ color: P.inkMute }}><Icon name={icon} size={36} stroke={1.4} /></div>}
-        <h3 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>{title}</h3>
-        {body && <p style={{ margin: 0, fontSize: 13, maxWidth: 340, lineHeight: 1.45 }}>{body}</p>}
-        {action}
-      </div>);
+  // DEPRECATED alias — the shared EmptyState is the one implementation now.
+  // Kept so Engage screens don't have to change in one go.
+  window.HDEmpty = function HDEmpty(props) {
+    return window.EmptyState ? <window.EmptyState {...props} /> : null;
   };
 
   // UID chip — METRC blue / HUID gold, click to expand, copy when expanded.
@@ -73,7 +69,7 @@
       <button type="button" title={`${value.toUpperCase()} · ${kind === 'metrc' ? 'METRC package UID · state-issued' : 'Hyperdrive HUID · internal'}`}
         onClick={(e) => { if (onClickBehavior === 'copy') doCopy(e); else setExpanded((v) => !v); }}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: size === 'md' ? 28 : 24, padding: '0 6px', borderRadius: 7, border: `1px solid ${c}4d`, background: c + (P.mode === 'dark' ? '1f' : '14'), color: c, fontFamily: P.fontMono, fontSize: size === 'md' ? 12.5 : 11.5, fontVariantNumeric: 'tabular-nums', cursor: 'pointer', ...style }}>
-        {showPrefix && <span style={{ borderRadius: 3, padding: '1px 4px', fontSize: 9, fontWeight: 700, letterSpacing: '.08em', background: c + '26' }}>{kind === 'metrc' ? 'METRC' : 'HWID'}</span>}
+        {showPrefix && <span style={{ borderRadius: 3, padding: '1px 4px', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', background: c + '26' }}>{kind === 'metrc' ? 'METRC' : 'HWID'}</span>}
         <span>{display}</span>
         {expanded && <span onClick={doCopy} style={{ opacity: .75, display: 'inline-flex' }}><Icon name={copied ? 'check' : 'copy'} size={11} stroke={2} /></span>}
       </button>);
@@ -97,8 +93,8 @@
     return (
       <div ref={ref} style={{ position: 'relative' }}>
         <button type="button" onClick={() => setOpen((o) => !o)} aria-label={`Filter by ${label}${value.length ? `, ${value.length} selected` : ''}`}
-          style={{ height: 30, padding: '0 11px', borderRadius: 99, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap',
-            background: active ? P.accentSoft : 'transparent', color: active ? accentInk : P.inkDim, border: `1px solid ${active ? P.accentBorder : P.hairline2}` }}>
+          style={{ height: 30, padding: '0 11px', borderRadius: 99, fontSize: 12.5, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap',
+            background: active ? P.highlightSoft : 'transparent', color: active ? P.ink : P.inkDim, border: `1px solid ${active ? P.hairline3 : P.hairline2}` }}>
           <span style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{summary}</span>
           {active
             ? <span role="button" tabIndex={0} aria-label={`Clear ${label} filter`} onClick={(e) => { e.stopPropagation(); onChange([]); }} style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 99, marginRight: -3 }}><Icon name="x" size={10} stroke={2.4} /></span>
@@ -110,11 +106,11 @@
               <span>{label}</span>
               {active && <button onClick={() => onChange([])} style={{ background: 'none', border: 'none', color: P.inkDim, fontSize: 10, textTransform: 'none', letterSpacing: 0, textDecoration: 'underline', cursor: 'pointer', fontFamily: P.fontSans }}>Clear</button>}
             </div>
-            {options.length === 0 && <div style={{ padding: '8px', fontSize: 12, color: P.inkMute }}>No options.</div>}
+            {options.length === 0 && <div style={{ padding: '8px', fontSize: 12.5, color: P.inkMute }}>No options.</div>}
             {options.map((o) => {
               const checked = value.includes(o.id);
               return (
-                <button key={o.id} onClick={() => toggle(o.id)} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 7, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: P.ink, fontFamily: P.fontSans, textAlign: 'left' }}
+                <button key={o.id} onClick={() => toggle(o.id)} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 7, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12.5, color: P.ink, fontFamily: P.fontSans, textAlign: 'left' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                   <span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 4, border: `1px solid ${checked ? P.accentBorder : P.hairline3}`, background: checked ? P.accent : 'transparent', color: P.accentInk, flex: '0 0 auto' }}>
                     {checked && <Icon name="check" size={11} stroke={3} />}
@@ -164,9 +160,9 @@
           const c = HD().tone(P, t.tone || 'neutral');
           return (
             <div key={t.id} style={{ minWidth: 260, maxWidth: 380, background: P.surface, border: `1px solid ${P.hairline2}`, borderLeft: `3px solid ${c.fg}`, borderRadius: P.r10, boxShadow: P.shadowMd, padding: '10px 12px', animation: 'fade .16s ease' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: P.ink }}>{t.title}</div>
-              {t.description && <div style={{ fontSize: 12, color: P.inkDim, marginTop: 2 }}>{t.description}</div>}
-              {t.action && <button onClick={() => { t.action.onClick?.(); setItems((prev) => prev.filter((x) => x.id !== t.id)); }} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, color: P.ink, fontSize: 12, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', fontFamily: P.fontSans }}>{t.action.label}</button>}
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink }}>{t.title}</div>
+              {t.description && <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 2 }}>{t.description}</div>}
+              {t.action && <button onClick={() => { t.action.onClick?.(); setItems((prev) => prev.filter((x) => x.id !== t.id)); }} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, color: P.ink, fontSize: 12.5, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', fontFamily: P.fontSans }}>{t.action.label}</button>}
             </div>);
         })}
       </div>);
@@ -175,15 +171,15 @@
   // Table primitives — 34px compact rows, uppercase micro-label heads.
   window.HDTable = function HDTable({ children, style }) {
     const P = useP();
-    return <table style={{ width: '100%', fontSize: 13, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans, ...style }}>{children}</table>;
+    return <table style={{ width: '100%', fontSize: 13.5, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans, ...style }}>{children}</table>;
   };
   window.TH = function TH({ children, align = 'left', width, style, onClick }) {
     const P = useP();
-    return <th onClick={onClick} style={{ textAlign: align, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, padding: '8px 12px', borderBottom: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap', width, cursor: onClick ? 'pointer' : 'default', ...style }}>{children}</th>;
+    return <th onClick={onClick} style={{ textAlign: align, fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, padding: '9px 12px', borderBottom: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap', width, cursor: onClick ? 'pointer' : 'default', ...style }}>{children}</th>;
   };
   window.TD = function TD({ children, align = 'left', mono, style, colSpan }) {
     const P = useP();
-    return <td colSpan={colSpan} style={{ textAlign: align, padding: '8px 12px', borderBottom: `1px solid ${P.hairline}`, verticalAlign: 'middle', color: P.ink, fontFamily: mono ? P.fontMono : 'inherit', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', ...style }}>{children}</td>;
+    return <td colSpan={colSpan} style={{ textAlign: align, padding: '9px 12px', borderBottom: `1px solid ${P.hairline}`, verticalAlign: 'middle', color: P.ink, fontFamily: mono ? P.fontMono : 'inherit', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', ...style }}>{children}</td>;
   };
   window.TR = function TR({ children, onClick, style }) {
     const P = useP();
@@ -204,14 +200,14 @@
   // Uppercase micro-label used above value blocks.
   window.MicroLabel = function MicroLabel({ children, align, style }) {
     const P = useP();
-    return <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, textAlign: align, ...style }}>{children}</div>;
+    return <div style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, textAlign: align, ...style }}>{children}</div>;
   };
   window.MetaCell = function MetaCell({ label, value, mono }) {
     const P = useP();
     return (
       <div>
         <MicroLabel>{label}</MicroLabel>
-        <div style={{ marginTop: 2, fontSize: 13, color: P.ink, fontFamily: mono ? P.fontMono : 'inherit', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', wordBreak: 'break-word' }}>{value}</div>
+        <div style={{ marginTop: 2, fontSize: 13.5, color: P.ink, fontFamily: mono ? P.fontMono : 'inherit', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', wordBreak: 'break-word' }}>{value}</div>
       </div>);
   };
 

@@ -9,8 +9,8 @@ window.MTopBar = function MTopBar({ title, onBack, right, sub }) {
     <div style={{ flex: '0 0 auto', padding: `${SB_PAD}px 10px 10px`, display: 'flex', alignItems: 'center', gap: 6, borderBottom: `1px solid ${P.hairline}`, background: P.bg }}>
       <button onClick={onBack || (() => window.M.pop())} style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink }}><Icon name="chevron-left" size={26} stroke={2.2} /></button>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: P.ink, textAlign: right ? 'left' : 'center', lineHeight: 1.1 }}>{title}</div>
-        {sub && <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, textAlign: right ? 'left' : 'center' }}>{sub}</div>}
+        <div style={{ fontSize: 16, fontWeight: 700, color: P.ink, textAlign: right ? 'left' : 'center', lineHeight: 1.1 }}>{title}</div>
+        {sub && <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, textAlign: right ? 'left' : 'center' }}>{sub}</div>}
       </div>
       <div style={{ minWidth: 40, display: 'flex', justifyContent: 'flex-end' }}>{right}</div>
     </div>);

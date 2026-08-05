@@ -21,7 +21,7 @@ function Keypad({ onPress }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
       {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'].map((k) =>
-      <button key={k} data-pad={k} onClick={() => onPress(k)} style={{ padding: '11px 0', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, fontSize: 19, fontWeight: 600, color: k === 'del' ? P.bad : P.ink, cursor: 'pointer', fontFamily: P.fontMono, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{k === 'del' ? <Icon name="x" size={18} stroke={2.2} /> : k}</button>
+      <button key={k} data-pad={k} onClick={() => onPress(k)} style={{ padding: '11px 0', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, fontSize: 21, fontWeight: 600, color: k === 'del' ? P.bad : P.ink, cursor: 'pointer', fontFamily: P.fontMono, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{k === 'del' ? <Icon name="x" size={18} stroke={2.2} /> : k}</button>
       )}
     </div>);
 
@@ -32,9 +32,9 @@ function FeePick({ base, value, onChange }) {
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
       {M_FEE.map((o) => {const a = value === o.id,f = mFee(base, o);return (
           <button key={o.id} onClick={() => onChange(o.id)} style={{ textAlign: 'left', padding: '12px 14px', background: a ? P.accentSoft : P.surface, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 16, height: 16, borderRadius: 99, border: `2px solid ${a ? P.accent : P.hairline3}`, background: a ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{a && <Icon name="check" size={9} stroke={3.4} color={P.accentInk} />}</span><span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{o.label}</span></div>
-          <div style={{ fontSize: 12, color: P.inkDim, fontFamily: P.fontMono, marginTop: 8 }}>Fee +{_m(f)}</div>
-          <div style={{ fontSize: 12, color: P.ink2, fontFamily: P.fontMono, marginTop: 2 }}>Charge {_m(_c2(base + f))}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 16, height: 16, borderRadius: 99, border: `2px solid ${a ? P.accent : P.hairline3}`, background: a ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{a && <Icon name="check" size={9} stroke={3.4} color={P.accentInk} />}</span><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{o.label}</span></div>
+          <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 8 }}>Fee +{_m(f)}</div>
+          <div style={{ fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, marginTop: 2 }}>Charge {_m(_c2(base + f))}</div>
         </button>);})}
     </div>);
 
@@ -64,13 +64,13 @@ window.MTerminal = function MTerminal({ amount, feeLabel, onApproved, onDeclined
         <span style={{ width: 32, height: 32, borderRadius: 8, background: P.ink, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="card" size={16} stroke={1.9} /></span>
         <div style={{ minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>LeisurePay Mobile</div><div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>LP-A7F4-2291 · v2.4</div></div>
         <div style={{ flex: 1 }} />
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: 99 }}><span style={{ width: 7, height: 7, borderRadius: 99, background: online ? P.good : P.warn }} /><span style={{ fontSize: 10.5, fontWeight: 700, color: online ? P.ink2 : P.warn, fontFamily: P.fontMono }}>{slabel}</span></span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: 99 }}><span style={{ width: 7, height: 7, borderRadius: 99, background: online ? P.good : P.warn }} /><span style={{ fontSize: 11.5, fontWeight: 700, color: online ? P.ink2 : P.warn, fontFamily: P.fontMono }}>{slabel}</span></span>
       </div>
       {/* steps */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center', marginBottom: 22 }}>
         {steps.map((s, i) => {const done = i < ai || phase === 'approved',cur = i === ai && phase !== 'declined';return (
             <React.Fragment key={s[0]}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 18, height: 18, borderRadius: 99, background: done ? P.good : cur ? P.ink : P.surface3, color: done || cur ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9.5, fontWeight: 700, fontFamily: P.fontMono }}>{done ? <Icon name="check" size={10} stroke={3} color="#fff" /> : i + 1}</span><span style={{ fontSize: 10, fontWeight: cur ? 700 : 600, color: cur ? P.ink : done ? P.ink2 : P.inkMute }}>{s[1]}</span></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 18, height: 18, borderRadius: 99, background: done ? P.good : cur ? P.ink : P.surface3, color: done || cur ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, fontFamily: P.fontMono }}>{done ? <Icon name="check" size={10} stroke={3} color="#fff" /> : i + 1}</span><span style={{ fontSize: 10, fontWeight: cur ? 700 : 600, color: cur ? P.ink : done ? P.ink2 : P.inkMute }}>{s[1]}</span></div>
             {i < 3 && <span style={{ width: 12, height: 1, background: P.hairline2 }} />}
           </React.Fragment>);})}
       </div>
@@ -130,9 +130,9 @@ window.MobilePayment = function MobilePayment({ total, customer, startMethod, on
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 16px 12px' }}>
         {/* balance banner */}
         <div style={{ padding: '10px 16px', background: P.rail, borderRadius: P.r14, marginBottom: 10, display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <div style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono }}>Balance due</div>
+          <div style={{ fontSize: 11.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono }}>Balance due</div>
           <div style={{ flex: 1 }} />
-          <div style={{ fontSize: 26, fontWeight: 700, color: P.accent, fontFamily: P.fontMono }}>{_m(total)}</div>
+          <div style={{ fontSize: 30, fontWeight: 700, color: P.accent, fontFamily: P.fontMono }}>{_m(total)}</div>
         </div>
 
         {stage === 'terminal' ?
@@ -145,8 +145,8 @@ window.MobilePayment = function MobilePayment({ total, customer, startMethod, on
 
             {method === 'cash' && <>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <div style={{ flex: 1, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, padding: '8px 12px' }}><div style={{ fontSize: 9.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Tendered</div><div style={{ textAlign: 'right', fontSize: 22, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>${cash === '' ? '0.00' : cash}</div></div>
-                <div style={{ flex: 1, background: change >= 0 ? P.goodSoft : P.badSoft, borderRadius: P.r12, padding: '8px 12px' }}><div style={{ fontSize: 9.5, color: change >= 0 ? P.good : P.bad, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>{change >= 0 ? 'Change' : 'Owed'}</div><div style={{ textAlign: 'right', fontSize: 22, fontWeight: 700, color: change >= 0 ? P.good : P.bad, fontFamily: P.fontMono }}>{_m(Math.abs(change))}</div></div>
+                <div style={{ flex: 1, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, padding: '8px 12px' }}><div style={{ fontSize: 10, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>Tendered</div><div style={{ textAlign: 'right', fontSize: 21, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>${cash === '' ? '0.00' : cash}</div></div>
+                <div style={{ flex: 1, background: change >= 0 ? P.goodSoft : P.badSoft, borderRadius: P.r12, padding: '8px 12px' }}><div style={{ fontSize: 10, color: change >= 0 ? P.good : P.bad, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>{change >= 0 ? 'Change' : 'Owed'}</div><div style={{ textAlign: 'right', fontSize: 21, fontWeight: 700, color: change >= 0 ? P.good : P.bad, fontFamily: P.fontMono }}>{_m(Math.abs(change))}</div></div>
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>{[Math.ceil(total), Math.ceil(total / 5) * 5, Math.ceil(total / 10) * 10, Math.ceil(total / 20) * 20].filter((v, i, a) => a.indexOf(v) === i).map((v) => <button key={v} onClick={() => setCash(v.toFixed(2))} style={{ flex: 1, padding: '9px 4px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.info, cursor: 'pointer', fontFamily: P.fontMono }}>{_m(v)}</button>)}</div>
               <Keypad onPress={pad} />
@@ -154,16 +154,16 @@ window.MobilePayment = function MobilePayment({ total, customer, startMethod, on
             </>}
 
             {method === 'card' && <>
-              <div style={{ padding: '12px 15px', background: P.surface2, borderRadius: P.r12, marginBottom: 14, display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Card base</span><span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{_m(total)}</span></div>
+              <div style={{ padding: '12px 15px', background: P.surface2, borderRadius: P.r12, marginBottom: 14, display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Card base</span><span style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{_m(total)}</span></div>
               <Eyebrow style={{ marginBottom: 8 }}>Processing fee — choose structure</Eyebrow>
               <FeePick base={total} value={feeOpt} onChange={setFeeOpt} />
             </>}
 
             {method === 'split' && <>
               <Eyebrow style={{ marginBottom: 8 }}>Cash portion (entered first)</Eyebrow>
-              <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, padding: '12px 16px', textAlign: 'right', fontSize: 26, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 12 }}>${cash === '' ? '0.00' : cash}</div>
+              <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, padding: '12px 16px', textAlign: 'right', fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 12 }}>${cash === '' ? '0.00' : cash}</div>
               <Keypad onPress={pad} />
-              <div style={{ padding: '12px 15px', background: P.infoSoft, borderRadius: P.r12, margin: '14px 0', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 13, fontWeight: 700, color: P.info }}>Card gets the rest</span><span style={{ fontSize: 15, fontWeight: 700, color: P.info, fontFamily: P.fontMono }}>{_m(cardBase)}</span></div>
+              <div style={{ padding: '12px 15px', background: P.infoSoft, borderRadius: P.r12, margin: '14px 0', display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.info }}>Card gets the rest</span><span style={{ fontSize: 15, fontWeight: 700, color: P.info, fontFamily: P.fontMono }}>{_m(cardBase)}</span></div>
               <Eyebrow style={{ marginBottom: 8 }}>Fee on {_m(cardBase)}</Eyebrow>
               <FeePick base={cardBase} value={feeOpt} onChange={setFeeOpt} />
             </>}

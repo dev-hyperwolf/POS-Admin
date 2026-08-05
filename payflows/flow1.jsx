@@ -54,7 +54,7 @@ window.Flow1 = function Flow1() {
         const cur = i === step, past = i < step;
         return (
           <div key={s + i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: P.r10, background: cur ? P.surface : 'transparent', border: `1px solid ${cur ? P.hairline2 : 'transparent'}` }}>
-            <span style={{ width: 22, height: 22, borderRadius: 99, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, fontFamily: P.fontMono,
+            <span style={{ width: 22, height: 22, borderRadius: 99, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700, fontFamily: P.fontMono,
               background: past ? P.good : cur ? P.ink : P.surface3, color: past || cur ? '#fff' : P.inkMute, border: `1px solid ${past ? P.good : cur ? P.ink : P.hairline2}` }}>
               {past ? <Icon name="check" size={12} stroke={3} color="#fff" /> : i + 1}</span>
             <span style={{ fontSize: 12.5, fontWeight: cur ? 700 : 500, color: cur ? P.ink : past ? P.ink2 : P.inkMute }}>{s}</span>
@@ -64,8 +64,8 @@ window.Flow1 = function Flow1() {
       <div style={{ flex: 1 }} />
       <div style={{ padding: '12px 12px', background: P.ink, borderRadius: P.r12, color: '#fff' }}>
         <div style={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono }}>Balance due</div>
-        <div style={{ fontSize: 26, fontWeight: 700, fontFamily: P.fontMono, letterSpacing: '-.01em', color: P.accent }}>{money(balance)}</div>
-        {credits > 0 && <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,.55)', fontFamily: P.fontMono, marginTop: 2 }}>{money(txn.total)} − {money(credits)} credits</div>}
+        <div style={{ fontSize: 30, fontWeight: 700, fontFamily: P.fontMono, letterSpacing: '-.01em', color: P.accent }}>{money(balance)}</div>
+        {credits > 0 && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,.55)', fontFamily: P.fontMono, marginTop: 2 }}>{money(txn.total)} − {money(credits)} credits</div>}
       </div>
     </div>
   );
@@ -116,7 +116,7 @@ function StepCredits({ P, reward, setReward, wallet, setWallet, balance }) {
       <StepHead P={P} title="Loyalty & wallet" n="Apply any credits first" sub="Redeem points and store-credit before choosing how to tender. These come off the total before the card fee is calculated." />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}><Icon name="star" size={14} color={P.accent} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Redeem points</span><span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>· {cust.points.toLocaleString()} available</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}><Icon name="star" size={14} color={P.accent} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Redeem points</span><span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>· {cust.points.toLocaleString()} available</span></div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {window.PAY.rewards.map((r) => {
               const can = (r.bday || cust.points >= r.cost), a = reward === r.id;
@@ -128,7 +128,7 @@ function StepCredits({ P, reward, setReward, wallet, setWallet, balance }) {
           </div>
         </div>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}><Icon name="wallet" size={14} color={P.good} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Store-credit wallet</span><span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>· {money(cust.wallet)} available</span></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}><Icon name="wallet" size={14} color={P.good} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Store-credit wallet</span><span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>· {money(cust.wallet)} available</span></div>
           <div style={{ display: 'flex', gap: 8 }}>
             {[0, 5, 10, cust.wallet].filter((v, i, a) => a.indexOf(v) === i).map((v) => {
               const a = wallet === v;
@@ -158,7 +158,7 @@ function StepMethod({ P, method, setMethod, balance }) {
             <span style={{ width: 42, height: 42, borderRadius: 10, flex: '0 0 auto', background: a ? P.accent : P.surface3, color: a ? P.accentInk : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={21} stroke={1.8} /></span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{l}</div>
-              <div style={{ fontSize: 12, color: P.inkDim, marginTop: 2 }}>{d}</div>
+              <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 2 }}>{d}</div>
             </div>
             {a && <Icon name="check-circle" size={20} stroke={2} color={P.good} />}
           </button>;
@@ -236,10 +236,10 @@ window.Complete = function Complete({ P, onReset, lines, change }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 30 }}>
       <span style={{ width: 66, height: 66, borderRadius: 99, background: P.goodSoft, color: P.good, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={34} stroke={2.4} /></span>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: P.ink }}>Payment complete</div>
+        <div style={{ fontSize: 21, fontWeight: 700, color: P.ink }}>Payment complete</div>
         <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 4 }}>Receipt sent · drawer opened</div>
       </div>
-      {change > 0 && <div style={{ padding: '10px 18px', background: P.goodSoft, borderRadius: P.r12, fontSize: 14, fontWeight: 700, color: P.good, fontFamily: P.fontMono }}>Change due {money(change)}</div>}
+      {change > 0 && <div style={{ padding: '10px 18px', background: P.goodSoft, borderRadius: P.r12, fontSize: 13.5, fontWeight: 700, color: P.good, fontFamily: P.fontMono }}>Change due {money(change)}</div>}
       <div style={{ width: 300, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {lines.filter((l) => l[1] > 0).map((l, i) => <window.KV key={i} k={l[0]} v={money(l[1])} />)}
       </div>

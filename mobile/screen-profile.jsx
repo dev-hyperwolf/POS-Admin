@@ -6,7 +6,7 @@ function Group({ label, children }) {
   const P = useP();
   return (
     <div>
-      {label && <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, margin: '4px 4px 9px' }}>{label}</div>}
+      {label && <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '.12em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, margin: '4px 4px 9px' }}>{label}</div>}
       <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, overflow: 'hidden' }}>{children}</div>
     </div>
   );
@@ -16,7 +16,7 @@ function Row({ icon, tint, title, detail, control, onClick, last }) {
   return (
     <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', borderBottom: last ? 'none' : `1px solid ${P.hairline}`, cursor: onClick ? 'pointer' : 'default' }}>
       {icon && <span style={{ width: 32, height: 32, borderRadius: 9, background: (tint || P.ink) + (P.mode === 'dark' ? '22' : '18'), color: tint || P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={17} stroke={1.9} /></span>}
-      <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: P.ink }}>{title}</span>
+      <span style={{ flex: 1, fontSize: 16, fontWeight: 600, color: P.ink }}>{title}</span>
       {detail && <span style={{ fontSize: 12.5, color: P.inkMute, fontFamily: P.fontMono }}>{detail}</span>}
       {control}
       {onClick && !control && <Icon name="chevron-right" size={16} stroke={2} color={P.inkFaint} />}
@@ -46,7 +46,7 @@ window.ProfileScreen = function ProfileScreen() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 21, fontWeight: 800, color: P.ink }}>{d.name}</div>
           <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 2 }}>{d.id} · {d.region}</div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '3px 10px', borderRadius: 99, background: M.s.duty ? P.goodSoft : P.surface3 }}><span style={{ width: 7, height: 7, borderRadius: 99, background: M.s.duty ? P.good : P.inkMute }} /><span style={{ fontSize: 11, fontWeight: 700, color: M.s.duty ? P.good : P.inkDim }}>{M.s.duty ? 'On duty' : 'Off duty'}</span></div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '3px 10px', borderRadius: 99, background: M.s.duty ? P.goodSoft : P.surface3 }}><span style={{ width: 7, height: 7, borderRadius: 99, background: M.s.duty ? P.good : P.inkMute }} /><span style={{ fontSize: 11.5, fontWeight: 700, color: M.s.duty ? P.good : P.inkDim }}>{M.s.duty ? 'On duty' : 'Off duty'}</span></div>
         </div>
       </div>
 
@@ -55,8 +55,8 @@ window.ProfileScreen = function ProfileScreen() {
         {[['Delivered', delivered, 'package'], ['On-time', window.MD.SHIFT.onTimePct + '%', 'clock'], ['Miles', window.MD.SHIFT.miles, 'route']].map(([k, v, ic]) => (
           <div key={k} style={{ flex: 1, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, padding: '12px 10px', textAlign: 'center' }}>
             <Icon name={ic} size={16} stroke={1.9} color={P.inkMute} />
-            <div style={{ fontSize: 19, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 6 }}>{v}</div>
-            <div style={{ fontSize: 10.5, color: P.inkMute, marginTop: 1 }}>{k}</div>
+            <div style={{ fontSize: 21, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 6 }}>{v}</div>
+            <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 1 }}>{k}</div>
           </div>
         ))}
       </div>
@@ -90,7 +90,7 @@ window.ProfileScreen = function ProfileScreen() {
       </Group>
 
       <PBtn variant="secondary" size="xl" full icon="user-off" onClick={() => { window.M.setDuty(false); window.M.flash('Signed out'); }}>Sign out</PBtn>
-      <div style={{ textAlign: 'center', fontSize: 11, color: P.inkFaint, fontFamily: P.fontMono }}>Hyperwolf Driver + POS · {d.id}</div>
+      <div style={{ textAlign: 'center', fontSize: 11.5, color: P.inkFaint, fontFamily: P.fontMono }}>Hyperwolf Driver + POS · {d.id}</div>
     </div>
   );
 };
@@ -98,7 +98,7 @@ window.ProfileScreen = function ProfileScreen() {
 // Receipts are emailed to the customer automatically — no reprint/print.
 function ReceiptEmailedNote() {
   const P = useP();
-  return <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}><Icon name="check-circle" size={15} stroke={2} color={P.good} /><span style={{ fontSize: 12, fontWeight: 600, color: P.inkDim }}>Receipt emailed to customer</span></div>;
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}><Icon name="check-circle" size={15} stroke={2} color={P.good} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.inkDim }}>Receipt emailed to customer</span></div>;
 }
 
 window.OrderHistoryScreen = function OrderHistoryScreen() {
@@ -114,18 +114,18 @@ window.OrderHistoryScreen = function OrderHistoryScreen() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <window.MTopBar title="Order history" sub={`${all.length} orders`} />
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {all.length === 0 && <div style={{ textAlign: 'center', color: P.inkMute, padding: '60px 20px', fontSize: 14 }}>No orders yet this shift.</div>}
+        {all.length === 0 && <div style={{ textAlign: 'center', color: P.inkMute, padding: '60px 20px', fontSize: 13.5 }}>No orders yet this shift.</div>}
         {all.map((s, i) => { const isOpen = open === i; const failed = s.outcome === 'failure'; return (
           <div key={i} style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, overflow: 'hidden' }}>
             <div onClick={() => setOpen(isOpen ? null : i)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', cursor: 'pointer' }}>
               <span style={{ width: 40, height: 40, borderRadius: 11, background: methodTone(s.method) + '22', color: methodTone(s.method), display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={failed ? 'x' : s.method === 'cash' ? 'cash' : s.method === 'card' ? 'card' : s.method === 'split' ? 'split' : 'check'} size={19} stroke={1.9} /></span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.order} · {s.when}{failed ? ' · failed' : ''}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.order} · {s.when}{failed ? ' · failed' : ''}</div>
               </div>
               <div style={{ textAlign: 'right', flex: '0 0 auto' }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: failed ? P.inkMute : P.ink, fontFamily: P.fontMono, textDecoration: failed ? 'line-through' : 'none' }}>{money(s.total)}</div>
-                <div style={{ fontSize: 10.5, color: P.inkMute, textTransform: 'capitalize', fontFamily: P.fontMono }}>{failed ? 'unpaid' : s.method}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, textTransform: 'capitalize', fontFamily: P.fontMono }}>{failed ? 'unpaid' : s.method}</div>
               </div>
               <Icon name={isOpen ? 'chevron-up' : 'chevron-down'} size={16} stroke={2} color={P.inkFaint} />
             </div>
@@ -155,14 +155,14 @@ window.TaskHistoryScreen = function TaskHistoryScreen() {
         {window.MD.TASK_HISTORY.map((h) => (
           <div key={h.id} style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, padding: '15px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 13 }}>
-              <span style={{ fontSize: 15.5, fontWeight: 800, color: P.ink }}>{h.date}</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: P.ink }}>{h.date}</span>
               <div style={{ flex: 1 }} />
-              <span style={{ padding: '3px 10px', borderRadius: 99, background: h.onTime === 100 ? P.goodSoft : P.warnSoft, color: h.onTime === 100 ? P.good : P.warn, fontSize: 11, fontWeight: 700, fontFamily: P.fontMono }}>{h.onTime}% on-time</span>
+              <span style={{ padding: '3px 10px', borderRadius: 99, background: h.onTime === 100 ? P.goodSoft : P.warnSoft, color: h.onTime === 100 ? P.good : P.warn, fontSize: 11.5, fontWeight: 700, fontFamily: P.fontMono }}>{h.onTime}% on-time</span>
             </div>
             <div style={{ display: 'flex' }}>
               {[['Stops', h.stops], ['Avg $', money(h.collected / h.stops)], ['Collected', money(h.collected)], ['Miles', h.miles]].map(([k, v], i) => (
                 <div key={k} style={{ flex: 1, borderLeft: i ? `1px solid ${P.hairline}` : 'none', paddingLeft: i ? 12 : 0 }}>
-                  <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{k}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{k}</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{v}</div>
                 </div>
               ))}
@@ -189,7 +189,7 @@ window.EditPhoneSheet = function EditPhoneSheet() {
       <Eyebrow style={{ marginBottom: 8 }}>Mobile number</Eyebrow>
       <Field icon="phone" placeholder="(555) 555-5555" value={val} onChange={(e) => setVal(e.target.value)} />
       {prof.pendingPhone &&
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '10px 12px', background: P.warnSoft, borderRadius: P.r10 }}><Icon name="clock" size={15} stroke={2} color={P.warn} /><span style={{ fontSize: 12, fontWeight: 600, color: P.warn }}>{prof.pendingPhone} is awaiting approval.</span></div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, padding: '10px 12px', background: P.warnSoft, borderRadius: P.r10 }}><Icon name="clock" size={15} stroke={2} color={P.warn} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.warn }}>{prof.pendingPhone} is awaiting approval.</span></div>}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 12, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
         <Icon name="lock" size={15} stroke={2} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
         <span style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>Changes to your contact number must be approved by management before they go live. Your current number stays active until then.</span>
@@ -236,9 +236,9 @@ window.VehiclesSheet = function VehiclesSheet() {
           <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r14 }}>
             <button onClick={() => window.M.selectVehicle(i)} style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
               <span style={{ width: 38, height: 38, borderRadius: 10, background: a ? P.accent : P.surface3, color: a ? P.accentInk : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="truck" size={19} stroke={1.9} /></span>
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>{v.label}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{v.plate}{a ? ' · active' : ''}</div></div>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>{v.label}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{v.plate}{a ? ' · active' : ''}</div></div>
             </button>
-            <button onClick={() => window.M.openSheet('editvehicle', { idx: i })} style={{ padding: '7px 12px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
+            <button onClick={() => window.M.openSheet('editvehicle', { idx: i })} style={{ padding: '7px 12px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
           </div>); })}
       </div>
     </window.Sheet>);

@@ -36,9 +36,9 @@
           {a && <span style={{ position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, background: P.accent, borderRadius: 99 }} />}
           <span style={{ position: 'relative', display: 'flex' }}>
             <Icon name={item.icon} size={19} stroke={a ? 1.95 : 1.7} />
-            {item.badge && <span style={{ position: 'absolute', top: -5, right: -8, minWidth: 14, height: 14, padding: '0 3px', background: P.accent, color: P.accentInk, borderRadius: 99, fontSize: 8.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono }}>{item.badge}</span>}
+            {item.badge && <span style={{ position: 'absolute', top: -5, right: -8, minWidth: 14, height: 14, padding: '0 3px', background: P.accent, color: P.accentInk, borderRadius: 99, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono }}>{item.badge}</span>}
           </span>
-          <span style={{ fontSize: 9.5, fontWeight: a ? 700 : 500, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>{item.label}</span>
+          <span style={{ fontSize: 10, fontWeight: a ? 700 : 500, letterSpacing: '.01em', whiteSpace: 'nowrap' }}>{item.label}</span>
         </button>);
     };
 

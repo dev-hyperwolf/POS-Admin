@@ -21,10 +21,10 @@
     const P = useP(), HD = window.HD;
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <dt style={{ display: 'flex', alignItems: 'center', gap: 8, color: P.inkDim, fontSize: 13 }}>
+        <dt style={{ display: 'flex', alignItems: 'center', gap: 8, color: P.inkDim, fontSize: 13.5 }}>
           <span style={{ height: 6, width: 6, borderRadius: 99, background: HD.tone(P, 'ok').fg }} />{label}
         </dt>
-        <dd style={{ margin: 0, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{value}</dd>
+        <dd style={{ margin: 0, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{value}</dd>
       </div>);
   }
 
@@ -36,11 +36,11 @@
         <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: P.inkMute }}>Good afternoon, Jessica</span>
+              <span style={{ fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.08em', color: P.inkMute }}>Good afternoon, Jessica</span>
               <HDPill tone="neutral" size="sm" label="live" />
             </div>
             <h1 style={{ margin: '6px 0 0', fontSize: 34, fontWeight: 700, letterSpacing: '-.02em', textTransform: 'uppercase', color: P.ink, lineHeight: 1.05 }}>{D.TENANT.name}</h1>
-            <p style={{ margin: '6px 0 0', maxWidth: 640, fontSize: 13, color: P.inkMute }}>
+            <p style={{ margin: '6px 0 0', maxWidth: 640, fontSize: 13.5, color: P.inkMute }}>
               Segmentation, messaging, and loyalty for {HD.formatNumber(D.TENANT.customers)} customers. Your predictive traits refreshed 12 minutes ago.
             </p>
           </div>
@@ -61,8 +61,8 @@
           <Card padding={0} style={{ overflow: 'hidden' }}>
             <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Recent activity</h2>
-                <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>Live feed from the event bus · pg_notify</p>
+                <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Recent activity</h2>
+                <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>Live feed from the event bus · pg_notify</p>
               </div>
               <PBtn size="sm" variant="ghost" onClick={() => navigate('#/audit')}>View all →</PBtn>
             </header>
@@ -76,11 +76,11 @@
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {a.href
-                        ? <button onClick={() => navigate(a.href)} style={{ display: 'block', textAlign: 'left', background: 'none', border: 'none', padding: 0, fontSize: 13, fontWeight: 500, color: P.ink, cursor: 'pointer', fontFamily: P.fontSans }}>{a.title}</button>
-                        : <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: P.ink }}>{a.title}</p>}
-                      {a.detail && <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>{a.detail}</p>}
+                        ? <button onClick={() => navigate(a.href)} style={{ display: 'block', textAlign: 'left', background: 'none', border: 'none', padding: 0, fontSize: 13.5, fontWeight: 500, color: P.ink, cursor: 'pointer', fontFamily: P.fontSans }}>{a.title}</button>
+                        : <p style={{ margin: 0, fontSize: 13.5, fontWeight: 500, color: P.ink }}>{a.title}</p>}
+                      {a.detail && <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>{a.detail}</p>}
                     </div>
-                    <span style={{ flex: '0 0 auto', fontSize: 11, color: P.inkMute }}>{a.at}</span>
+                    <span style={{ flex: '0 0 auto', fontSize: 11.5, color: P.inkMute }}>{a.at}</span>
                   </li>);
               })}
             </ol>
@@ -89,7 +89,7 @@
           <aside style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Card padding={20}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Channel health</h3>
+                <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Channel health</h3>
                 <HDPill tone="ok" size="sm" label="all green" />
               </div>
               <dl style={{ margin: '12px 0 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -99,15 +99,15 @@
                 <HealthRow label="Wallet APNs" value="queue: 0" />
               </dl>
               <div style={{ height: 1, background: P.hairline2, margin: '16px 0' }} />
-              <p style={{ margin: 0, fontSize: 11, color: P.inkMute }}>Traffic rolling window is 1h.</p>
+              <p style={{ margin: 0, fontSize: 11.5, color: P.inkMute }}>Traffic rolling window is 1h.</p>
             </Card>
 
             <Card padding={20} style={{ background: P.accentSoft, border: `1px solid ${P.accentBorder}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="sparkle" size={14} stroke={2} color={accentInk} />
-                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: accentInk }}>AI suggests</h3>
+                <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: accentInk }}>AI suggests</h3>
               </div>
-              <p style={{ margin: '8px 0 0', fontSize: 13, color: P.ink }}>
+              <p style={{ margin: '8px 0 0', fontSize: 13.5, color: P.ink }}>
                 <strong>412 customers</strong> look like your top “Champions” but aren't tagged. Worth a win-back campaign?
               </p>
               <PBtn size="sm" variant="secondary" style={{ marginTop: 12 }} onClick={() => navigate('#/audiences/suggested')}>Review suggestion →</PBtn>
@@ -127,9 +127,9 @@
                   <span style={{ height: 32, width: 32, borderRadius: 9, background: P.surface3, color: accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={c.icon} size={16} stroke={2} />
                   </span>
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>{c.title}</h3>
+                  <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>{c.title}</h3>
                 </div>
-                <p style={{ margin: '10px 0 0', fontSize: 13, color: P.inkMute, lineHeight: 1.45 }}>{c.body}</p>
+                <p style={{ margin: '10px 0 0', fontSize: 13.5, color: P.inkMute, lineHeight: 1.45 }}>{c.body}</p>
               </button>))}
           </div>
         </section>

@@ -76,13 +76,13 @@ function CatGlyph({ name, size = 34 }) {
 // ── Weedmaps mapping pill(s) — read-only display of a sub's WM nodes/status ──
 function WmPill({ sub, compact }) {
   const P = useP();const st = subStatus(sub);
-  if (st === 'skipped') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: P.inkMute, background: P.surface3, borderRadius: 99, padding: '3px 9px' }}><Icon name="eye-off" size={11} stroke={1.9} />Not synced</span>;
-  if (st === 'unmapped') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: P.warn, background: P.warnSoft, borderRadius: 99, padding: '3px 9px' }}><Icon name="shield" size={11} stroke={2} />Unmapped</span>;
+  if (st === 'skipped') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: P.inkMute, background: P.surface3, borderRadius: 99, padding: '3px 9px' }}><Icon name="eye-off" size={11} stroke={1.9} />Not synced</span>;
+  if (st === 'unmapped') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: P.warn, background: P.warnSoft, borderRadius: 99, padding: '3px 9px' }}><Icon name="shield" size={11} stroke={2} />Unmapped</span>;
   const shown = compact ? sub.wm.slice(0, 1) : sub.wm.slice(0, 3);
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-    {shown.map((k) => <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: P.ink, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: 99, padding: '3px 8px' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '1px 5px', borderRadius: 99 }}>WM</span>{wmNode(k)}</span>)}
-    {sub.wm.length > shown.length && <span style={{ fontSize: 11, fontWeight: 600, color: P.inkMute }}>+{sub.wm.length - shown.length}</span>}
+    {shown.map((k) => <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 600, color: P.ink, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: 99, padding: '3px 8px' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '1px 5px', borderRadius: 99 }}>WM</span>{wmNode(k)}</span>)}
+    {sub.wm.length > shown.length && <span style={{ fontSize: 11.5, fontWeight: 600, color: P.inkMute }}>+{sub.wm.length - shown.length}</span>}
   </span>;
 }
 
@@ -95,7 +95,7 @@ function WmMultiPicker({ value = [], skip, onChange, onSkip, onClose, anchor = '
     <div style={{ position: 'absolute', top: 'calc(100% + 6px)', [anchor]: 0, width: 300, maxHeight: 400, display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, zIndex: 91, overflow: 'hidden' }}>
       <div style={{ padding: 9, borderBottom: `1px solid ${P.hairline}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 7px', borderRadius: 99 }}>WM</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 7px', borderRadius: 99 }}>WM</span>
           <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Weedmaps taxonomy</span>
           <span style={{ marginLeft: 'auto', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{value.length} selected</span>
         </div>
@@ -106,7 +106,7 @@ function WmMultiPicker({ value = [], skip, onChange, onSkip, onClose, anchor = '
           const nodes = g.nodes.filter((n) => !q || (g.group + ' ' + n).toLowerCase().includes(q.toLowerCase()));
           if (!nodes.length) return null;
           return <div key={g.group} style={{ marginBottom: 4 }}>
-            <div style={{ padding: '6px 8px 4px', fontSize: 9.5, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{g.group}</div>
+            <div style={{ padding: '6px 8px 4px', fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{g.group}</div>
             {nodes.map((n) => {const k = `${g.group}/${n}`;const on = value.includes(k);return (
                 <button key={k} onClick={() => toggle(k)} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 8px', background: on ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                 <span style={{ width: 16, height: 16, borderRadius: 5, border: `1.5px solid ${on ? P.accent : P.hairline3}`, background: on ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>{on && <Icon name="check" size={11} stroke={3} color={P.accentInk} />}</span>
@@ -116,7 +116,7 @@ function WmMultiPicker({ value = [], skip, onChange, onSkip, onClose, anchor = '
       </div>
       <button onClick={() => {onSkip(!skip);}} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderTop: `1px solid ${P.hairline}`, background: skip ? P.surface2 : 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}>
         <span style={{ width: 16, height: 16, borderRadius: 5, border: `1.5px solid ${skip ? P.ink : P.hairline3}`, background: skip ? P.ink : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>{skip && <Icon name="check" size={11} stroke={3} color={P.surface} />}</span>
-        <span style={{ textAlign: 'left', flex: 1 }}><span style={{ fontSize: 12, fontWeight: 700, color: P.ink, display: 'block' }}>Intentionally not synced</span><span style={{ fontSize: 10.5, color: P.inkMute }}>Promo/pseudo category — skip Weedmaps</span></span>
+        <span style={{ textAlign: 'left', flex: 1 }}><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, display: 'block' }}>Intentionally not synced</span><span style={{ fontSize: 11.5, color: P.inkMute }}>Promo/pseudo category — skip Weedmaps</span></span>
       </button>
     </div>
   </>;
@@ -150,7 +150,7 @@ window.CategoriesScreen = function CategoriesScreen({ onBack }) {
   return (
     <div style={{ maxWidth: 1320, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to catalog</button>
+        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to catalog</button>
       </div>
 
       <SectionHead level={1} eyebrow="Master Catalog" title="Categories"
@@ -171,14 +171,14 @@ window.CategoriesScreen = function CategoriesScreen({ onBack }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 15px', background: P.warnSoft, borderRadius: P.r12, marginBottom: 14 }}>
         <Icon name="shield" size={16} stroke={1.9} color={P.warn} />
         <span style={{ fontSize: 12.5, color: P.ink2, flex: 1 }}><b style={{ color: P.ink }}>{unmapped.length} sub-categor{unmapped.length === 1 ? 'y is' : 'ies are'} unmapped.</b> Products in them stay hidden on Weedmaps until a taxonomy node is set.</span>
-        <button onClick={() => setTab('mapping')} style={{ fontSize: 12, fontWeight: 700, color: P.warn, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}>Review →</button>
+        <button onClick={() => setTab('mapping')} style={{ fontSize: 12.5, fontWeight: 700, color: P.warn, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}>Review →</button>
       </div>}
 
       {tab === 'mapping' ? <MappingBoard cats={cats} setSub={setSub} onEditSub={(catId, name) => setEditSub({ catId, name })} /> :
       <Card padding={0} style={{ overflow: 'visible' }}>
         <div style={{ overflowX: 'auto' }}>
           {tab === 'categories' ?
-          <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse', fontSize: 13.5 }}>
             <thead><tr style={{ background: P.surface2 }}>{th('')}{th('Category')}{th('Sub-categories')}{th('Weedmaps')}{th('Products', true)}{th('Status')}{th('', true)}</tr></thead>
             <tbody>
               {fc.map((c) => {const cu = c.subs.filter((s) => subStatus(s) === 'unmapped').length;const cm = c.subs.filter((s) => subStatus(s) === 'mapped').length;return (
@@ -187,8 +187,8 @@ window.CategoriesScreen = function CategoriesScreen({ onBack }) {
                   <td style={{ padding: '12px 16px' }}><button onClick={() => setEditCat(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: P.fontSans }}><CatGlyph name={c.name} /><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{c.name}</span></button></td>
                   <td style={{ padding: '12px 16px', maxWidth: 300 }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                      {c.subs.slice(0, 3).map((s) => <span key={s.name} style={{ fontSize: 11, fontWeight: 600, color: P.ink2, background: P.surface3, borderRadius: 7, padding: '3px 8px' }}>{s.name}</span>)}
-                      {c.subs.length > 3 && <span style={{ fontSize: 11, fontWeight: 600, color: P.inkMute, padding: '3px 4px' }}>+{c.subs.length - 3}</span>}
+                      {c.subs.slice(0, 3).map((s) => <span key={s.name} style={{ fontSize: 11.5, fontWeight: 600, color: P.ink2, background: P.surface3, borderRadius: 7, padding: '3px 8px' }}>{s.name}</span>)}
+                      {c.subs.length > 3 && <span style={{ fontSize: 11.5, fontWeight: 600, color: P.inkMute, padding: '3px 4px' }}>+{c.subs.length - 3}</span>}
                     </div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>{cu > 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: P.warn }}><span style={{ width: 7, height: 7, borderRadius: 99, background: P.warn }} />{cu} unmapped</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: cm ? P.good : P.inkMute }}><span style={{ width: 7, height: 7, borderRadius: 99, background: cm ? P.good : P.inkFaint }} />{cm ? 'All mapped' : 'Skipped'}</span>}</td>
@@ -201,12 +201,12 @@ window.CategoriesScreen = function CategoriesScreen({ onBack }) {
                 </tr>);})}
             </tbody>
           </table> :
-          <table style={{ width: '100%', minWidth: 820, borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ width: '100%', minWidth: 820, borderCollapse: 'collapse', fontSize: 13.5 }}>
             <thead><tr style={{ background: P.surface2 }}>{th('Sub-category')}{th('Parent category')}{th('Weedmaps taxonomy')}{th('Status')}{th('', true)}</tr></thead>
             <tbody>
               {fs.map((r, i) =>
               <tr key={i} style={{ borderTop: `1px solid ${P.hairline}` }}>
-                  <td style={{ padding: '11px 16px', fontWeight: 700, color: P.ink }}><button onClick={() => setEditSub({ catId: r.catId, name: r.name })} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 13, fontWeight: 700, fontFamily: P.fontSans, padding: 0, textAlign: 'left' }}>{r.name}</button></td>
+                  <td style={{ padding: '11px 16px', fontWeight: 700, color: P.ink }}><button onClick={() => setEditSub({ catId: r.catId, name: r.name })} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 13.5, fontWeight: 700, fontFamily: P.fontSans, padding: 0, textAlign: 'left' }}>{r.name}</button></td>
                   <td style={{ padding: '11px 16px' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: P.ink2 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: catColor(r.parent) }} />{r.parent}</span></td>
                   <td style={{ padding: '11px 16px' }}><WmPill sub={r} /></td>
                   <td style={{ padding: '11px 16px' }}><Pill kind="good" dot>Active</Pill></td>
@@ -227,7 +227,7 @@ function MappingBoard({ cats, setSub, onEditSub }) {
   const mapped = subs.filter((s) => subStatus(s) === 'mapped').length;
   const unmapped = subs.filter((s) => subStatus(s) === 'unmapped');
   const skipped = subs.filter((s) => subStatus(s) === 'skipped').length;
-  const Stat = ({ n, label, c }) => <div style={{ flex: 1, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12, padding: '11px 14px' }}><div style={{ fontSize: 20, fontWeight: 800, color: c, fontFamily: P.fontMono }}>{n}</div><div style={{ fontSize: 11, color: P.inkDim, fontWeight: 600 }}>{label}</div></div>;
+  const Stat = ({ n, label, c }) => <div style={{ flex: 1, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12, padding: '11px 14px' }}><div style={{ fontSize: 21, fontWeight: 800, color: c, fontFamily: P.fontMono }}>{n}</div><div style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 600 }}>{label}</div></div>;
 
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
     <div style={{ display: 'flex', gap: 12 }}>
@@ -239,16 +239,16 @@ function MappingBoard({ cats, setSub, onEditSub }) {
 
     {unmapped.length > 0 &&
     <Card padding={0}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}`, background: P.warnSoft }}><Icon name="shield" size={15} stroke={2} color={P.warn} /><span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Needs mapping</span><span style={{ fontSize: 11.5, color: P.inkDim }}>{unmapped.length} sub-categories have no Weedmaps node and aren’t marked skip</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}`, background: P.warnSoft }}><Icon name="shield" size={15} stroke={2} color={P.warn} /><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Needs mapping</span><span style={{ fontSize: 11.5, color: P.inkDim }}>{unmapped.length} sub-categories have no Weedmaps node and aren’t marked skip</span></div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 14 }}>
-        {unmapped.map((s) => <button key={s.catId + s.name} onClick={() => onEditSub(s.catId, s.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 600, color: P.ink, background: P.surface, border: `1px solid ${P.warn}`, borderRadius: 99, padding: '5px 11px', cursor: 'pointer', fontFamily: P.fontSans }}><span style={{ width: 6, height: 6, borderRadius: 2, background: catColor(s.parent) }} />{s.name}<Icon name="arrow-right" size={12} stroke={2.2} color={P.inkMute} /></button>)}
+        {unmapped.map((s) => <button key={s.catId + s.name} onClick={() => onEditSub(s.catId, s.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 600, color: P.ink, background: P.surface, border: `1px solid ${P.warn}`, borderRadius: 99, padding: '5px 11px', cursor: 'pointer', fontFamily: P.fontSans }}><span style={{ width: 6, height: 6, borderRadius: 2, background: catColor(s.parent) }} />{s.name}<Icon name="arrow-right" size={12} stroke={2.2} color={P.inkMute} /></button>)}
       </div>
     </Card>}
 
     {cats.map((c) => <Card key={c.id} padding={0}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
-        <CatGlyph name={c.name} size={28} /><span style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>{c.name}</span>
-        <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{c.subs.length} sub-categories</span>
+        <CatGlyph name={c.name} size={28} /><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{c.name}</span>
+        <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{c.subs.length} sub-categories</span>
       </div>
       <div>
         {c.subs.map((s, i) => <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
@@ -256,7 +256,7 @@ function MappingBoard({ cats, setSub, onEditSub }) {
           <Icon name="arrow-right" size={14} color={P.inkFaint} style={{ flex: '0 0 auto' }} />
           <div style={{ flex: 1, minWidth: 0 }}><WmPill sub={s} /></div>
           <div style={{ position: 'relative', flex: '0 0 auto' }}>
-            <button onClick={() => setPick(pick === c.id + '::' + s.name ? null : c.id + '::' + s.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.surface, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: P.ink2, fontFamily: P.fontSans }}><Icon name="link" size={13} stroke={2} />Map<Icon name="chevron-down" size={12} stroke={2.2} color={P.inkMute} /></button>
+            <button onClick={() => setPick(pick === c.id + '::' + s.name ? null : c.id + '::' + s.name)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: P.r10, border: `1px solid ${P.hairline2}`, background: P.surface, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontSans }}><Icon name="link" size={13} stroke={2} />Map<Icon name="chevron-down" size={12} stroke={2.2} color={P.inkMute} /></button>
             {pick === c.id + '::' + s.name && <WmMultiPicker value={s.wm} skip={s.skip} onChange={(wm) => setSub(c.id, s.name, { wm, skip: wm.length ? false : s.skip })} onSkip={(skip) => setSub(c.id, s.name, { skip, wm: skip ? [] : s.wm })} onClose={() => setPick(null)} />}
           </div>
         </div>)}

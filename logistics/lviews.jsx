@@ -37,7 +37,7 @@ function makeAlertHandler(s) {
 function ViewHead({ title, sub, children }) {
   const P = useP();
   return <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-    <div><h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: '-.015em', color: P.ink }}>{title}</h1>{sub && <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 2 }}>{sub}</div>}</div>
+    <div><h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, letterSpacing: '-.015em', color: P.ink }}>{title}</h1>{sub && <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 2 }}>{sub}</div>}</div>
     <div style={{ flex: 1 }} />{children}</div>;
 }
 function Sel({ icon, value, onChange, options }) {
@@ -62,15 +62,15 @@ function AppHeader({ view, onView, mode, onToggleMode, onSettings }) {
     </button>
     <div style={{ width: 1, height: 24, background: P.hairline2 }} />
     <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Operations</span>
-      <span style={{ fontSize: 14, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Dispatch</span>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Operations</span>
+      <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Dispatch</span>
     </div>
     <div style={{ marginLeft: 6 }}>
       <Seg value={view} onChange={onView} size="sm" options={[{ value: 'board', label: 'Board', icon: 'grid' }, { value: 'map', label: 'Map', icon: 'map' }, { value: 'lanes', label: 'Lanes', icon: 'board' }]} />
     </div>
     <div style={{ flex: 1 }} />
     <Pill kind="good" dot>LIVE</Pill>
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontFamily: P.fontMono, color: P.inkDim }}><Icon name="clock" size={13} color={P.inkMute} />{L.NOW}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontFamily: P.fontMono, color: P.inkDim }}><Icon name="clock" size={13} color={P.inkMute} />{L.NOW}</span>
     <button onClick={onToggleMode} title="Toggle theme" style={{ width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: P.r10, color: P.ink2, cursor: 'pointer' }}><Icon name={mode === 'dark' ? 'sun' : 'moon'} size={18} stroke={1.9} /></button>
     <IconBtn icon="settings" size={18} title="Settings" onClick={onSettings} />
     <div style={{ width: 1, height: 26, background: P.hairline2, margin: '0 2px' }} />
@@ -78,7 +78,7 @@ function AppHeader({ view, onView, mode, onToggleMode, onSettings }) {
       <Avatar name="Manisha Saini" size={32} />
       <div style={{ lineHeight: 1.2 }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Manisha Saini</div>
-        <div style={{ fontSize: 10.5, color: P.inkDim }}>Dispatch · Ops</div>
+        <div style={{ fontSize: 11.5, color: P.inkDim }}>Dispatch · Ops</div>
       </div>
     </div>
   </header>;
@@ -95,7 +95,7 @@ function NewTaskButton({ onPick }) {
     {open && <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, width: 240, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, zIndex: 200, padding: 6 }}>
       {items.map(([k, lb, ic, sub]) => <button key={k} onClick={() => {setOpen(false);onPick(k);}} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', background: 'transparent', border: 'none', borderRadius: P.r8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         <span style={{ width: 28, height: 28, borderRadius: 7, background: P.surface3, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={ic} size={15} stroke={2} /></span>
-        <div><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{lb}</div><div style={{ fontSize: 10.5, color: P.inkMute }}>{sub}</div></div>
+        <div><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{lb}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>{sub}</div></div>
       </button>)}
     </div>}
   </div>;
@@ -112,12 +112,12 @@ function MultiCardFilter({ kind, value, onChange, drivers }) {
   return <div data-mcf={kind} style={{ position: 'relative' }}>
     <button onClick={() => setOpen((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 11px', background: value.length ? P.accentSoft : P.field, border: `1px solid ${value.length ? P.accentBorder : P.fieldBorder}`, borderRadius: P.r10, color: P.ink, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name={isRegion ? 'map' : 'truck'} size={14} color={value.length ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkMute} />{label}<Icon name="chevron-down" size={13} color={P.inkMute} /></button>
     {open && <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, width: isRegion ? 306 : 286, maxHeight: 372, display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, zIndex: 200, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderBottom: `1px solid ${P.hairline}` }}><span style={{ fontSize: 11, fontWeight: 700, color: P.ink, flex: 1 }}>Filter by {isRegion ? 'region' : 'driver'} · pick one or more</span>{value.length > 0 && <button onClick={() => onChange([])} style={{ fontSize: 10.5, fontWeight: 700, color: P.mode === 'dark' ? P.accent : '#7A5A00', background: 'transparent', border: 'none', cursor: 'pointer' }}>Clear ({value.length})</button>}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderBottom: `1px solid ${P.hairline}` }}><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink, flex: 1 }}>Filter by {isRegion ? 'region' : 'driver'} · pick one or more</span>{value.length > 0 && <button onClick={() => onChange([])} style={{ fontSize: 11.5, fontWeight: 700, color: P.mode === 'dark' ? P.accent : '#7A5A00', background: 'transparent', border: 'none', cursor: 'pointer' }}>Clear ({value.length})</button>}</div>
       <div style={{ padding: 8, overflowY: 'auto', display: 'grid', gridTemplateColumns: isRegion ? '1fr 1fr' : '1fr', gap: 6 }}>
         {list.map((x) => {const id = idOf(x);const on = value.includes(id);
           if (isRegion) return <button key={id} onClick={() => toggle(id)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 9px', background: on ? P.accentSoft : P.surface2, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><RegionTag code={id} size="sm" /><span style={{ fontSize: 11.5, color: P.ink, flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.city}</span>{on && <Icon name="check" size={13} color={P.accent} stroke={2.6} />}</button>;
           const st = x.status;const sc = st === 'idle' ? P.warn : st === 'break' || st === 'meal' ? P.info : P.good;
-          return <button key={id} onClick={() => toggle(id)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: on ? P.accentSoft : P.surface2, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><Avatar name={x.name} size={26} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.name}</div><div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}><RegionTag code={x.region} size="sm" /><span style={{ fontSize: 9.5, color: sc, fontWeight: 700 }}>{st}</span></div></div>{on && <Icon name="check" size={14} color={P.accent} stroke={2.6} />}</button>;
+          return <button key={id} onClick={() => toggle(id)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: on ? P.accentSoft : P.surface2, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><Avatar name={x.name} size={26} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.name}</div><div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}><RegionTag code={x.region} size="sm" /><span style={{ fontSize: 10, color: sc, fontWeight: 700 }}>{st}</span></div></div>{on && <Icon name="check" size={14} color={P.accent} stroke={2.6} />}</button>;
         })}
       </div>
     </div>}
@@ -160,15 +160,15 @@ function SettingsModal({ onClose, onFlash }) {
   const P = useP();
   const cats = ['Failure Reason', 'Announcements', 'Transportation', 'Checklist', 'Checkout', 'Out of Service', 'Buffer Spillover Rules', 'Routing Config'];
   const [cat, setCat] = React.useState('Routing Config');
-  const Field2 = ({ k, v, suffix }) => <div style={{ background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: '9px 12px' }}><div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute }}>{k}</div><div style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{v}{suffix && <span style={{ fontSize: 11, color: P.inkDim, fontWeight: 500 }}> {suffix}</span>}</div></div>;
+  const Field2 = ({ k, v, suffix }) => <div style={{ background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: '9px 12px' }}><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: P.inkMute }}>{k}</div><div style={{ fontSize: 15, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{v}{suffix && <span style={{ fontSize: 11.5, color: P.inkDim, fontWeight: 500 }}> {suffix}</span>}</div></div>;
   const body = () => {
     if (cat === 'Routing Config') return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 10 }}>
       <Field2 k="SLA" v={L.CFG.sla} suffix="min" /><Field2 k="SLA buffer" v={L.CFG.buffer} suffix="min" /><Field2 k="Risk OK ≥" v={L.CFG.ok} /><Field2 k="Risk BAD <" v={L.CFG.bad} /><Field2 k="Idle start" v="10" suffix="min" /><Field2 k="KM cap" v="20" /><Field2 k="Load spread cap" v="4" /><Field2 k="Buffer penalty" v="-0.35" />
     </div>;
-    if (cat === 'Transportation') return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{['Bicycle', 'Bike', 'Car'].map((v, i) => <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}><Icon name="truck" size={16} color={P.ink2} /><span style={{ flex: 1, fontSize: 13, color: P.ink }}>{v}</span><Switch on={i === 2} onChange={() => onFlash(`${v} toggled`)} /></div>)}</div>;
-    if (cat === 'Out of Service') return <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{['Route Issue/Delay', 'Family emergency', 'Paperwork pending', 'Failure', 'Accident', 'Maintenance'].map((r) => <div key={r} style={{ display: 'flex', alignItems: 'center', padding: '10px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}><span style={{ flex: 1, fontSize: 13, color: P.ink }}>{r}</span><Icon name="pencil" size={14} color={P.inkMute} /></div>)}</div>;
-    if (cat === 'Buffer Spillover Rules') return <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{L.REGIONS.map((r) => <div key={r.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}><RegionTag code={r.code} size="sm" /><span style={{ flex: 1, fontSize: 13, color: P.ink }}>{r.city}</span><span style={{ fontFamily: P.fontMono, fontSize: 12, color: P.ink2 }}>4000 m</span></div>)}</div>;
-    return <div style={{ padding: '30px', textAlign: 'center', color: P.inkMute, fontSize: 13 }}>{cat} settings · configure and save from here</div>;
+    if (cat === 'Transportation') return <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{['Bicycle', 'Bike', 'Car'].map((v, i) => <div key={v} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}><Icon name="truck" size={16} color={P.ink2} /><span style={{ flex: 1, fontSize: 13.5, color: P.ink }}>{v}</span><Switch on={i === 2} onChange={() => onFlash(`${v} toggled`)} /></div>)}</div>;
+    if (cat === 'Out of Service') return <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{['Route Issue/Delay', 'Family emergency', 'Paperwork pending', 'Failure', 'Accident', 'Maintenance'].map((r) => <div key={r} style={{ display: 'flex', alignItems: 'center', padding: '10px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}><span style={{ flex: 1, fontSize: 13.5, color: P.ink }}>{r}</span><Icon name="pencil" size={14} color={P.inkMute} /></div>)}</div>;
+    if (cat === 'Buffer Spillover Rules') return <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{L.REGIONS.map((r) => <div key={r.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 13px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}><RegionTag code={r.code} size="sm" /><span style={{ flex: 1, fontSize: 13.5, color: P.ink }}>{r.city}</span><span style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink2 }}>4000 m</span></div>)}</div>;
+    return <div style={{ padding: '30px', textAlign: 'center', color: P.inkMute, fontSize: 13.5 }}>{cat} settings · configure and save from here</div>;
   };
   return <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: P.scrim, zIndex: 90, display: 'flex', justifyContent: 'flex-end' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,94%)', height: '100%', background: P.bg, borderLeft: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column' }}>
@@ -189,7 +189,7 @@ function NewOrderSheet({ drivers, onFlash, onClose }) {
   const [draft, setDraft] = React.useState({ id: 'NEW', txn: '—', region: 'RC5', driver: null, speed: 'ASAP', recipient: 'New guest', addr: 'Set delivery address', items: [], cash: 0, placed: L.NOW, deadline: '—', eta: null, risk: 0.9, late: null });
   return <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: P.scrim, zIndex: 80, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(880px,94%)', maxHeight: '90%', margin: 12, display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden' }}>
-      <div style={{ padding: '11px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="cart" size={16} color={P.accent} /><span style={{ fontSize: 14, fontWeight: 800, color: P.ink }}>New order</span><span style={{ fontSize: 11, color: P.inkDim }}>Full POS — build the cart, take payment, assign a driver</span></div>
+      <div style={{ padding: '11px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="cart" size={16} color={P.accent} /><span style={{ fontSize: 13.5, fontWeight: 800, color: P.ink }}>New order</span><span style={{ fontSize: 11.5, color: P.inkDim }}>Full POS — build the cart, take payment, assign a driver</span></div>
       <window.LOrderDetail order={draft} drivers={drivers} onReassign={(id, name) => setDraft((d) => ({ ...d, driver: name }))} onItems={(id, items) => setDraft((d) => ({ ...d, items }))} onFlash={onFlash} onClose={onClose} wide />
     </div>
   </div>;
@@ -206,7 +206,7 @@ function TaskFlowModal({ kind, drivers, onClose, onFlash }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}><span style={{ width: 30, height: 30, borderRadius: 8, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="clock" size={16} stroke={2} /></span><span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{isBreak ? 'Break task' : 'Meal task'}</span><div style={{ flex: 1 }} /><IconBtn icon="x" size={16} onClick={onClose} /></div>
       <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>Driver</div>
-          <div style={{ display: 'inline-flex', width: '100%', alignItems: 'center', gap: 6, padding: '0 10px', height: 40, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10 }}><Icon name="truck" size={15} color={P.inkMute} /><select value={drv} onChange={(e) => setDrv(e.target.value)} style={{ flex: 1, border: 'none', background: 'transparent', color: P.ink, fontSize: 13, fontWeight: 600, fontFamily: P.fontSans, outline: 'none' }}>{drivers.filter((d) => d.status !== 'oos').map((d) => <option key={d.id} value={d.name} style={{ background: P.surface }}>{d.name}</option>)}</select></div>
+          <div style={{ display: 'inline-flex', width: '100%', alignItems: 'center', gap: 6, padding: '0 10px', height: 40, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10 }}><Icon name="truck" size={15} color={P.inkMute} /><select value={drv} onChange={(e) => setDrv(e.target.value)} style={{ flex: 1, border: 'none', background: 'transparent', color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, outline: 'none' }}>{drivers.filter((d) => d.status !== 'oos').map((d) => <option key={d.id} value={d.name} style={{ background: P.surface }}>{d.name}</option>)}</select></div>
         </div>
         <div><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>{isBreak ? 'Break' : 'Meal'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{opts.map((o) => <button key={o} onClick={() => setSel(o)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: sel === o ? P.accentSoft : P.surface2, border: `1px solid ${sel === o ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}><span style={{ width: 15, height: 15, borderRadius: 99, border: `2px solid ${sel === o ? P.accent : P.hairline3}`, background: sel === o ? P.accent : 'transparent', flex: '0 0 auto' }} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{o}</span></button>)}</div>
@@ -238,20 +238,20 @@ function BoardView({ s, F, onOpen }) {
       </ViewHead>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(236px,1fr))', gap: 12, alignContent: 'start' }}>
         {stats.map((st) => <LRegionCard key={st.code} stat={st} drivers={s.drivers} variant="orders" onReassign={doReassign} onOpen={onOpen} onAct={(k, code) => onAct({ region: code }, k)} />)}
-        {stats.length === 0 && <div style={{ color: P.inkMute, fontSize: 12, padding: 20 }}>No regions match “{q}”.</div>}
+        {stats.length === 0 && <div style={{ color: P.inkMute, fontSize: 12.5, padding: 20 }}>No regions match “{q}”.</div>}
       </div>
     </div>
     <div style={{ display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '13px 15px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 28, height: 28, borderRadius: 8, background: P.bad, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="bell" size={15} stroke={2} /></span>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: P.ink }}>Live alerts</div><div style={{ fontSize: 11, color: P.inkDim }}>Flagged the moment it happens</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Live alerts</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Flagged the moment it happens</div></div>
       </div>
       <div style={{ display: 'flex', gap: 5, padding: '9px 12px', borderBottom: `1px solid ${P.hairline}`, flexWrap: 'wrap' }}>
-        {[['all', 'All'], ['unassigned', 'Unassigned'], ['sla', 'SLA risk'], ['capacity', 'Capacity'], ['driver', 'Drivers']].map(([k, lb]) => {const on = af === k;const n = k === 'all' ? L.ALERTS.length : L.ALERTS.filter((a) => a.type === k).length;return <button key={k} onClick={() => setAf(k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : 'transparent', color: on ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkDim, fontSize: 10.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>{lb}<span style={{ fontFamily: P.fontMono, opacity: .7 }}>{n}</span></button>;})}
+        {[['all', 'All'], ['unassigned', 'Unassigned'], ['sla', 'SLA risk'], ['capacity', 'Capacity'], ['driver', 'Drivers']].map(([k, lb]) => {const on = af === k;const n = k === 'all' ? L.ALERTS.length : L.ALERTS.filter((a) => a.type === k).length;return <button key={k} onClick={() => setAf(k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : 'transparent', color: on ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkDim, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>{lb}<span style={{ fontFamily: P.fontMono, opacity: .7 }}>{n}</span></button>;})}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
         {L.ALERTS.filter((a) => af === 'all' || a.type === af).map((a) => <LAlertRow key={a.id} a={a} onAct={onAct} />)}
-        {L.ALERTS.filter((a) => af === 'all' || a.type === af).length === 0 && <div style={{ padding: 24, textAlign: 'center', color: P.inkMute, fontSize: 12 }}>No {af} alerts right now.</div>}
+        {L.ALERTS.filter((a) => af === 'all' || a.type === af).length === 0 && <div style={{ padding: 24, textAlign: 'center', color: P.inkMute, fontSize: 12.5 }}>No {af} alerts right now.</div>}
       </div>
     </div>
   </div>;
@@ -292,8 +292,8 @@ function MapView({ s, F }) {
       <div style={{ padding: '12px 14px', borderBottom: `1px solid ${P.hairline}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
           <span style={{ width: 26, height: 26, borderRadius: 7, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="list" size={15} stroke={2} /></span>
-          <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{listAll.length} orders</div><div style={{ fontSize: 11, color: P.inkDim }}>Tap a pin or row to open · edit anywhere</div></div>
-          <button onClick={() => setShowDrivers((v) => !v)} title="Toggle drivers + routes" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 99, border: `1px solid ${showDrivers ? P.accentBorder : P.hairline2}`, background: showDrivers ? P.accentSoft : 'transparent', color: showDrivers ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkDim, fontSize: 10.5, fontWeight: 700, cursor: 'pointer' }}><Icon name="route" size={12} />Routes</button>
+          <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{listAll.length} orders</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Tap a pin or row to open · edit anywhere</div></div>
+          <button onClick={() => setShowDrivers((v) => !v)} title="Toggle drivers + routes" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 99, border: `1px solid ${showDrivers ? P.accentBorder : P.hairline2}`, background: showDrivers ? P.accentSoft : 'transparent', color: showDrivers ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkDim, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}><Icon name="route" size={12} />Routes</button>
         </div>
         <Seg size="sm" full value={form} onChange={setForm} options={[{ value: 'popover', label: 'Popover', icon: 'pin' }, { value: 'sheet', label: 'Bottom sheet', icon: 'layout' }]} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 9 }}>
@@ -302,15 +302,15 @@ function MapView({ s, F }) {
         </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {rows.map((it, ix) => {if (it.h !== undefined) return <div key={'h' + ix} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 6px 4px', position: 'sticky', top: 0, background: P.surface, zIndex: 2 }}>{sort === 'region' ? <RegionTag code={it.h} size="sm" /> : <span style={{ width: 8, height: 8, borderRadius: 2, background: sort === 'county' ? L.CC[it.h] : P.inkFaint }} />}<span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.ink2 }}>{sort === 'region' ? L.REGION_BY_CODE[it.h].city : sort === 'county' ? CN[it.h] + ' County' : it.h}</span><span style={{ fontSize: 10, fontFamily: P.fontMono, fontWeight: 700, color: P.inkMute, background: P.surface2, padding: '1px 7px', borderRadius: 99 }}>{it.n}</span><span style={{ flex: 1, height: 1, background: P.hairline }} /></div>;
+        {rows.map((it, ix) => {if (it.h !== undefined) return <div key={'h' + ix} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 6px 4px', position: 'sticky', top: 0, background: P.surface, zIndex: 2 }}>{sort === 'region' ? <RegionTag code={it.h} size="sm" /> : <span style={{ width: 8, height: 8, borderRadius: 2, background: sort === 'county' ? L.CC[it.h] : P.inkFaint }} />}<span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.ink2 }}>{sort === 'region' ? L.REGION_BY_CODE[it.h].city : sort === 'county' ? CN[it.h] + ' County' : it.h}</span><span style={{ fontSize: 10, fontFamily: P.fontMono, fontWeight: 700, color: P.inkMute, background: P.surface2, padding: '1px 7px', borderRadius: 99 }}>{it.n}</span><span style={{ flex: 1, height: 1, background: P.hairline }} /></div>;
           const o = it.o;const band = L.riskBand(o.risk);const c = L.riskColor(P, band);const on = o.id === sel;const un = !o.driver && !o.sched;
           return <button key={o.id} onClick={() => setSel(o.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: on ? P.accentSoft : P.surface2, border: `1px solid ${on ? P.accentBorder : un ? P.bad : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', width: '100%', fontFamily: P.fontSans }}>
-            <span style={{ position: 'relative', width: 26, height: 26, flex: '0 0 auto' }}><svg width="26" height="26" viewBox="0 0 30 38" style={{ position: 'absolute', inset: 0 }}><path d="M15 37C15 37 28 22 28 14A13 13 0 1 0 2 14C2 22 15 37 15 37Z" fill={un ? P.bad : c} /></svg><span style={{ position: 'absolute', left: 0, right: 0, top: 3, textAlign: 'center', fontSize: 10.5, fontWeight: 800, color: un ? '#fff' : '#0b0b08', fontFamily: P.fontMono }}>{un ? '!' : o.sched ? 'S' : numById[o.id] || '•'}</span></span>
-            <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink }}>#{o.id}</span><RegionTag code={o.region} size="sm" />{o.sched ? <Pill kind="info" style={{ fontSize: 9, padding: '0 6px' }}>sched</Pill> : o.speed === 'ASAP' && <span style={{ fontSize: 9, fontWeight: 800, color: P.bad }}>ASAP</span>}</div><div style={{ fontSize: 11.5, color: P.ink2, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.recipient} · {un ? <span style={{ color: P.bad, fontWeight: 700 }}>Unassigned</span> : o.driver}</div></div>
-            <div style={{ textAlign: 'right', flex: '0 0 auto' }}><div style={{ fontSize: 12, fontWeight: 700, color: o.sched ? P.info : c, fontFamily: P.fontMono }}>{o.sched ? 'SCHED' : Math.round(o.risk * 100) + '%'}</div><div style={{ fontSize: 10, color: o.late ? P.bad : P.inkMute, fontFamily: P.fontMono }}>{o.late ? '+' + o.late + 'm' : o.deadline}</div></div>
+            <span style={{ position: 'relative', width: 26, height: 26, flex: '0 0 auto' }}><svg width="26" height="26" viewBox="0 0 30 38" style={{ position: 'absolute', inset: 0 }}><path d="M15 37C15 37 28 22 28 14A13 13 0 1 0 2 14C2 22 15 37 15 37Z" fill={un ? P.bad : c} /></svg><span style={{ position: 'absolute', left: 0, right: 0, top: 3, textAlign: 'center', fontSize: 11.5, fontWeight: 800, color: un ? '#fff' : '#0b0b08', fontFamily: P.fontMono }}>{un ? '!' : o.sched ? 'S' : numById[o.id] || '•'}</span></span>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink }}>#{o.id}</span><RegionTag code={o.region} size="sm" />{o.sched ? <Pill kind="info" style={{ fontSize: 10, padding: '0 6px' }}>sched</Pill> : o.speed === 'ASAP' && <span style={{ fontSize: 10, fontWeight: 800, color: P.bad }}>ASAP</span>}</div><div style={{ fontSize: 11.5, color: P.ink2, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.recipient} · {un ? <span style={{ color: P.bad, fontWeight: 700 }}>Unassigned</span> : o.driver}</div></div>
+            <div style={{ textAlign: 'right', flex: '0 0 auto' }}><div style={{ fontSize: 12.5, fontWeight: 700, color: o.sched ? P.info : c, fontFamily: P.fontMono }}>{o.sched ? 'SCHED' : Math.round(o.risk * 100) + '%'}</div><div style={{ fontSize: 10, color: o.late ? P.bad : P.inkMute, fontFamily: P.fontMono }}>{o.late ? '+' + o.late + 'm' : o.deadline}</div></div>
           </button>;
         })}
-        {rows.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: P.inkMute, fontSize: 12 }}>No orders match filters</div>}
+        {rows.length === 0 && <div style={{ padding: 30, textAlign: 'center', color: P.inkMute, fontSize: 12.5 }}>No orders match filters</div>}
       </div>
     </div>
     {form === 'sheet' && selOrder && <LOrderSheet order={selOrder} drivers={s.drivers} onReassign={doReassign} onItems={s.setItems} onFlash={s.setFlash} onClose={() => setSel(null)} />}
@@ -335,7 +335,7 @@ function LanesView({ s, F }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 9 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: col }} />
             <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{CN[cc]}</span>
-            <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{cd.length} driver{cd.length !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{cd.length} driver{cd.length !== 1 ? 's' : ''}</span>
             <span style={{ flex: 1, height: 1, background: P.hairline }} />
           </div>
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', height: 340, paddingBottom: 4 }}>
@@ -343,7 +343,7 @@ function LanesView({ s, F }) {
           </div>
         </div>;
       })}
-      {counties.length === 0 && <div style={{ color: P.inkMute, fontSize: 12, padding: 20 }}>No drivers match filters.</div>}
+      {counties.length === 0 && <div style={{ color: P.inkMute, fontSize: 12.5, padding: 20 }}>No drivers match filters.</div>}
     </div>
   </div>;
 }
@@ -372,14 +372,14 @@ window.LogisticsApp = function LogisticsApp() {
       {(() => {const un = s.orders.filter((o) => !o.driver && !o.sched);if (!un.length) return null;return <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', background: P.badSoft, borderBottom: `1px solid ${P.bad}`, flex: '0 0 auto', flexWrap: 'wrap' }}>
         <Icon name="user-off" size={15} color={P.bad} />
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{un.length} order{un.length > 1 ? 's' : ''} unassigned — need a driver now</span>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{un.slice(0, 5).map((o) => <button key={o.id} onClick={() => setOpenId(o.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 99, border: `1px solid ${P.bad}`, background: P.surface, color: P.ink, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontMono }}>#{o.id}<span style={{ color: P.inkMute, fontWeight: 500 }}>{o.region}</span></button>)}{un.length > 5 && <span style={{ fontSize: 11, color: P.inkDim, alignSelf: 'center' }}>+{un.length - 5}</span>}</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{un.slice(0, 5).map((o) => <button key={o.id} onClick={() => setOpenId(o.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 99, border: `1px solid ${P.bad}`, background: P.surface, color: P.ink, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontMono }}>#{o.id}<span style={{ color: P.inkMute, fontWeight: 500 }}>{o.region}</span></button>)}{un.length > 5 && <span style={{ fontSize: 11.5, color: P.inkDim, alignSelf: 'center' }}>+{un.length - 5}</span>}</div>
         <div style={{ flex: 1 }} />
         <PBtn size="xs" variant="accent" icon="user-check" onClick={() => {setView('map');setStatus('unassigned');}}>Review all</PBtn>
       </div>;})()}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14, padding: '14px 20px 18px' }}>
         <Hero h={h} status={status} setStatus={setStatus} />
         <FilterBar inline region={region} setRegion={setRegion} driver={driver} setDriver={setDriver} status={status} setStatus={setStatus} drivers={s.drivers} onNew={(k) => setTaskFlow(k)}
-          right={<span style={{ fontSize: 11, color: P.inkDim, fontFamily: P.fontMono, marginRight: 4 }}>{filterOrders(s.orders, F).length} orders shown below</span>} />
+          right={<span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginRight: 4 }}>{filterOrders(s.orders, F).length} orders shown below</span>} />
         {view === 'board' && <BoardView s={s} F={F} onOpen={setOpenId} />}
         {view === 'map' && <MapView s={s} F={F} />}
         {view === 'lanes' && <LanesView s={s} F={F} />}

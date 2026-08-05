@@ -20,7 +20,7 @@ const SH = window.HW_SHELL;
 function Lb({ children, hint, right }) {
   const P = useP();
   return <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-    <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{children}</span>
+    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{children}</span>
     {hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}
     {right && <span style={{ marginLeft: 'auto' }}>{right}</span>}
   </div>;
@@ -28,7 +28,7 @@ function Lb({ children, hint, right }) {
 function Sel2({ value, onChange, options }) {
   const P = useP();
   return <div style={{ position: 'relative' }}>
-    <select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '9px 32px 9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, fontSize: 13, fontWeight: 600, color: P.ink, fontFamily: P.fontSans, minHeight: 38, outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+    <select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '9px 32px 9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, fontSize: 13.5, fontWeight: 600, color: P.ink, fontFamily: P.fontSans, minHeight: 38, outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
     <Icon name="chevron-down" size={14} stroke={2.2} color={P.inkMute} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
   </div>;
 }
@@ -36,7 +36,7 @@ function Tag({ children, kind }) {
   const P = useP();
   const c = kind === 'good' ? P.good : kind === 'warn' ? P.warn : kind === 'ai' ? P.indica : P.info;
   const bg = kind === 'good' ? P.goodSoft : kind === 'warn' ? P.warnSoft : kind === 'ai' ? P.indica + '22' : P.infoSoft;
-  return <span style={{ display: 'inline-flex', padding: '1px 7px', borderRadius: 99, background: bg, color: c, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{children}</span>;
+  return <span style={{ display: 'inline-flex', padding: '1px 7px', borderRadius: 99, background: bg, color: c, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{children}</span>;
 }
 // A mini switch that reads as a toggle, used for sample + price override.
 function MiniSwitch({ on, onChange, color }) {
@@ -57,9 +57,9 @@ window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave })
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}`, background: P.surface }}>
         <Thumb item={shell.variations[0] ? shell.variations[0].thumb : { hue: shell.hue }} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Product shell</div>
-          <div style={{ fontSize: 15.5, fontWeight: 800, color: P.ink, letterSpacing: '-.01em' }}>{shell.name}</div>
-          <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{shell.id} · {shell.variations.length} variation{shell.variations.length === 1 ? '' : 's'} · {shell.stores} store{shell.stores > 1 ? 's' : ''}</div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Product shell</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: P.ink, letterSpacing: '-.01em' }}>{shell.name}</div>
+          <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{shell.id} · {shell.variations.length} variation{shell.variations.length === 1 ? '' : 's'} · {shell.stores} store{shell.stores > 1 ? 's' : ''}</div>
         </div>
         <IconBtn icon="x" size={16} onClick={onClose} />
       </div>
@@ -142,7 +142,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
         {i > 0 && <span style={{ width: 16, height: 1.5, background: done || on ? P.accent : P.hairline2, flex: '0 0 auto' }} />}
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
           <span style={{ width: 19, height: 19, borderRadius: 99, background: done ? P.good : on ? P.accent : P.surface3, color: done ? '#fff' : on ? P.accentInk : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, fontFamily: P.fontMono }}>{done ? <Icon name="check" size={11} stroke={3} color="#fff" /> : i + 1}</span>
-          <span style={{ fontSize: 11, fontWeight: on ? 700 : 600, color: on ? P.ink : P.inkMute, whiteSpace: 'nowrap' }}>{s.label}</span>
+          <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 600, color: on ? P.ink : P.inkMute, whiteSpace: 'nowrap' }}>{s.label}</span>
         </span>
       </React.Fragment>;})}
   </div>;
@@ -150,9 +150,9 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   const ShellRecap = () => shell ? <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
     <Thumb item={{ hue: shell.hue }} size={34} radius={8} />
     <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.good }}>Adding to shell</div>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.good }}>Adding to shell</div>
       <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{shell.name}</div>
-      <div style={{ fontSize: 10.5, color: P.inkDim, fontFamily: P.fontMono }}>{shell.id} · {SH.familyPath(shell)} · {shell.variations.length} existing variation{shell.variations.length === 1 ? '' : 's'}</div>
+      <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{shell.id} · {SH.familyPath(shell)} · {shell.variations.length} existing variation{shell.variations.length === 1 ? '' : 's'}</div>
     </div>
     {!lockShell && <PBtn variant="ghost" size="xs" onClick={() => {setShellId(null);setStep(0);}}>Change</PBtn>}
   </div> : null;
@@ -167,7 +167,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(900px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}`, background: P.surface }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="box-add" size={16} stroke={2} /></span>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>New shell first</div><div style={{ fontSize: 11, color: P.inkDim }}>Define the family, then carry straight on to its first variation</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>New shell first</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Define the family, then carry straight on to its first variation</div></div>
         <IconBtn icon="x" size={16} onClick={onClose} />
       </div>
       <div style={{ padding: 20, maxHeight: '74vh', overflowY: 'auto' }}>
@@ -180,7 +180,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
     <div onClick={(e) => e.stopPropagation()} style={{ width: cur.k === 'variation' ? 'min(940px,96vw)' : 'min(640px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden', transition: 'width .2s' }} data-tour="add-product">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={16} stroke={2} /></span>
-        <div style={{ flex: 1 }}><div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>New product</div><div style={{ fontSize: 11, color: P.inkDim }}>A product is a <b>variation</b> of a shell — pick the shell, then name the flavour</div></div>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>New product</div><div style={{ fontSize: 11.5, color: P.inkDim }}>A product is a <b>variation</b> of a shell — pick the shell, then name the flavour</div></div>
         <IconBtn icon="x" size={16} onClick={onClose} />
       </div>
       <Head />
@@ -197,11 +197,11 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
               <Thumb item={{ hue: s.hue }} size={34} radius={8} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{s.id} · {SH.familyPath(s)} · {s.variations.length} variation{s.variations.length === 1 ? '' : 's'}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{s.id} · {SH.familyPath(s)} · {s.variations.length} variation{s.variations.length === 1 ? '' : 's'}</div>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: P.info, flex: '0 0 auto' }}>Add variation</span>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: P.info, flex: '0 0 auto' }}>Add variation</span>
             </button>)}
-            {hits.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: P.inkMute }}>No shell matches “{q}”.</div>}
+            {hits.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No shell matches “{q}”.</div>}
           </div>
           <button onClick={() => setNewShell(true)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', background: P.surface2, border: `1px dashed ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, width: '100%' }}>
             <Icon name="plus" size={14} color={P.ink2} />
@@ -218,7 +218,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
             <div style={{ flex: 1, minWidth: 0 }}>
               {(() => {const inh = SH.sharedRows(shell).length + (shell.traits || []).length;const tot = inh + 5;
                 return <>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{inh} of {tot} details pre-filled</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{inh} of {tot} details pre-filled</div>
                   <div style={{ fontSize: 11.5, color: P.good, marginTop: 2 }}>Inherited from the shell — you only set what makes this product unique.</div>
                 </>;})()}
             </div>
@@ -233,12 +233,12 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
             <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r12, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
                 <Icon name="lock" size={14} stroke={1.9} color={P.inkMute} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Inherited from shell</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Inherited from shell</span>
               </div>
               <div style={{ fontSize: 11.5, color: P.inkMute, marginBottom: 13 }}>Locked to keep the family consistent.</div>
               {SH.sharedRows(shell).map((f, i) => <div key={i} style={{ marginBottom: 9 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>{f.label}</span>{f.flag && <Tag>{f.flag}</Tag>}
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>{f.label}</span>{f.flag && <Tag>{f.flag}</Tag>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 11px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: 9 }}>
                   <span style={{ flex: 1, minWidth: 0 }}>
@@ -250,11 +250,11 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
               </div>)}
               {(shell.traits || []).length > 0 && <div style={{ marginTop: 12, paddingTop: 13, borderTop: `1px solid ${P.hairline}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Product traits · carry across the line</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Product traits · carry across the line</span>
                   <span title="Pack count, servings, infusion — set on the shell, inherited by the whole line. Edit them on the shell, not per product." style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} /></span>
                 </div>
                 {shell.traits.map((t, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 11px', marginBottom: 7, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: 9 }}>
-                  <span style={{ fontSize: 12, color: P.inkDim }}>{t.label}</span>
+                  <span style={{ fontSize: 12.5, color: P.inkDim }}>{t.label}</span>
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{t.value}</span>
                 </div>)}
               </div>}
@@ -264,7 +264,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
             <div style={{ border: `1px solid ${P.accentBorder}`, borderRadius: P.r12, padding: 16, boxShadow: `0 0 0 3px ${P.accentSoft}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
                 <Icon name="pencil" size={14} stroke={1.9} color={P.mode === 'dark' ? P.accent : '#7A5A00'} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>This variation</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>This variation</span>
               </div>
               <div style={{ fontSize: 11.5, color: P.inkMute, marginBottom: 13 }}>The only details that change per product.</div>
 
@@ -279,7 +279,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                     <span style={{ fontSize: 11.5, fontWeight: 600, color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>Replace image</span></> :
                   <><span style={{ width: 42, height: 42, borderRadius: 10, background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.inkMute }}><Icon name="camera" size={20} stroke={1.7} /></span>
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Drag &amp; drop or click to upload</span>
-                    <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>PNG or JPG · 1000 × 1000 px</span></>}
+                    <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>PNG or JPG · 1000 × 1000 px</span></>}
                 </label>
               </div>
 
@@ -289,7 +289,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
               <div style={{ marginBottom: 13 }}><Lb>Type</Lb>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[['Indica', P.indica], ['Sativa', P.sativa], ['Hybrid', P.hybrid]].map(([t, c]) => {const on = v.strain === t;
-                    return <button key={t} onClick={() => setV((o) => ({ ...o, strain: t, desc: SH.aiDesc(shell, { name: o.name, strain: t }) }))} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', borderRadius: P.r999, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.ink : P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+                    return <button key={t} onClick={() => setV((o) => ({ ...o, strain: t, desc: SH.aiDesc(shell, { name: o.name, strain: t }) }))} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', borderRadius: P.r999, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
                       <span style={{ width: 6, height: 6, borderRadius: 99, background: c }} />{t}</button>;})}
                   <Sel2 value={['Indica', 'Sativa', 'Hybrid'].includes(v.strain) ? 'More' : v.strain} onChange={(x) => x !== 'More' && s1('strain', x)} options={['More', 'CBD', 'N/A']} />
                 </div>
@@ -300,8 +300,8 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Description <Tag kind="ai">AI draft</Tag></span>
                 </Lb>
                 <textarea value={v.desc} onChange={(e) => s1('desc', e.target.value)} rows={3} placeholder="Tasting notes, effects — anything specific to this product…"
-                  style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: 74, padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 13, fontFamily: P.fontSans, lineHeight: 1.45, outline: 'none' }} />
-                <div style={{ fontSize: 11, color: P.inkMute, marginTop: 5 }}>Pre-drafted by the AI product generator — edit freely or regenerate.</div>
+                  style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: 74, padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, lineHeight: 1.45, outline: 'none' }} />
+                <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 5 }}>Pre-drafted by the AI product generator — edit freely or regenerate.</div>
               </div>
 
               <div style={{ marginBottom: 13 }}>
@@ -310,23 +310,23 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                 {v.skuManual ?
                 <Field mono value={v.sku} onChange={(e) => s1('sku', e.target.value.toUpperCase())} /> :
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, minHeight: 38 }}>
-                  <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{autoSku || '—'}</span>
+                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{autoSku || '—'}</span>
                   <Icon name="refresh" size={14} stroke={1.8} color={P.inkMute} />
                 </div>}
-                <div style={{ fontSize: 11, color: P.inkMute, marginTop: 5 }}>Generated from the shell code + product name. Get it right now — it is permanent on Weedmaps.</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 5 }}>Generated from the shell code + product name. Get it right now — it is permanent on Weedmaps.</div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 13px', marginBottom: 13, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: 9 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Display sample</div>
-                  <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2, lineHeight: 1.4 }}>Hidden from the menu &amp; not for sale — still tracked as a full product profile.</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2, lineHeight: 1.4 }}>Hidden from the menu &amp; not for sale — still tracked as a full product profile.</div>
                 </div>
                 <MiniSwitch on={v.sample} onChange={(x) => s1('sample', x)} color={P.warn} />
               </div>
 
               <div>
                 <Lb right={<span onClick={() => s1('override', !v.override)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <span style={{ fontSize: 10.5, fontWeight: 600, color: v.override ? P.warn : P.inkMute }}>Override shell price</span>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: v.override ? P.warn : P.inkMute }}>Override shell price</span>
                   <MiniSwitch on={v.override} onChange={(x) => s1('override', x)} color={P.warn} /></span>}>Price</Lb>
                 {v.override ?
                 <Field mono icon="dollar" placeholder="0.00" value={v.price} onChange={(e) => s1('price', e.target.value.replace(/[^0-9.]/g, ''))} /> :
@@ -338,7 +338,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                   </span>
                   <Icon name="lock" size={12} stroke={1.9} color={P.inkFaint} />
                 </div>}
-                <div style={{ fontSize: 11, color: P.inkMute, marginTop: 5 }}>{v.override ? 'Custom price for this variation only — the rest of the family is unaffected.' : `Inherits the shell price of ${money(SH.effectivePrice(shell))}${shell.sale ? ' (promo, retail ' + money(shell.price) + ')' : ''}. Rare to override.`}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 5 }}>{v.override ? 'Custom price for this variation only — the rest of the family is unaffected.' : `Inherits the shell price of ${money(SH.effectivePrice(shell))}${shell.sale ? ' (promo, retail ' + money(shell.price) + ')' : ''}. Rare to override.`}</div>
               </div>
 
               {/* Storefront meta — per product, never shared with the family */}
@@ -349,16 +349,16 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                 </Lb>
                 {!metaOpen ?
                 <div style={{ padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
-                  <div style={{ fontSize: 10.5, color: P.good, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>hyperwolf.com › shop › {meta.slug}</div>
+                  <div style={{ fontSize: 11.5, color: P.good, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>hyperwolf.com › shop › {meta.slug}</div>
                   <div style={{ fontSize: 13.5, color: '#1a0dab', fontWeight: 600, marginTop: 3, lineHeight: 1.3 }}>{meta.title}</div>
                   <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5, marginTop: 3 }}>{meta.desc}</div>
                 </div> :
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                   <div><Lb hint="Recommended 50–60 characters.">Meta title</Lb><Field value={meta.title} onChange={(e) => s1('metaTitle', e.target.value)} />
-                    <div style={{ fontSize: 10.5, color: meta.title.length > 60 ? P.warn : P.inkMute, fontFamily: P.fontMono, marginTop: 4 }}>{meta.title.length} / 60</div></div>
+                    <div style={{ fontSize: 11.5, color: meta.title.length > 60 ? P.warn : P.inkMute, fontFamily: P.fontMono, marginTop: 4 }}>{meta.title.length} / 60</div></div>
                   <div><Lb hint="Recommended 150–160 characters.">Meta description</Lb>
-                    <textarea value={meta.desc} onChange={(e) => s1('metaDesc', e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 13, fontFamily: P.fontSans, lineHeight: 1.45, outline: 'none' }} />
-                    <div style={{ fontSize: 10.5, color: meta.desc.length > 160 ? P.warn : P.inkMute, fontFamily: P.fontMono, marginTop: 4 }}>{meta.desc.length} / 160</div></div>
+                    <textarea value={meta.desc} onChange={(e) => s1('metaDesc', e.target.value)} rows={3} style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, lineHeight: 1.45, outline: 'none' }} />
+                    <div style={{ fontSize: 11.5, color: meta.desc.length > 160 ? P.warn : P.inkMute, fontFamily: P.fontMono, marginTop: 4 }}>{meta.desc.length} / 160</div></div>
                   <div><Lb>URL slug</Lb><Field mono value={meta.slug} onChange={(e) => s1('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} /></div>
                   <div><Lb>Keywords</Lb><Field value={meta.keywords} onChange={(e) => s1('keywords', e.target.value)} /></div>
                 </div>}
@@ -390,7 +390,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9 }}>
                 <Icon name="lightning" size={13} color={P.ink2} />
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Potency</span>
-                <span style={{ fontSize: 10.5, color: P.inkMute }}>· typed from the batch label on the packaging</span>
+                <span style={{ fontSize: 11.5, color: P.inkMute }}>· typed from the batch label on the packaging</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div><Lb>THC %</Lb><Field mono placeholder="0.0" value={b.thc} onChange={(e) => b1('thc', e.target.value.replace(/[^0-9.]/g, ''))} /></div>
@@ -400,7 +400,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
             </div>
             {margin != null && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
               <span style={{ fontSize: 11.5, color: P.inkDim }}>Margin on this batch</span>
-              <span style={{ marginLeft: 'auto', fontSize: 14, fontWeight: 800, fontFamily: P.fontMono, color: margin > 40 ? P.good : P.warn }}>{margin}%</span>
+              <span style={{ marginLeft: 'auto', fontSize: 13.5, fontWeight: 800, fontFamily: P.fontMono, color: margin > 40 ? P.good : P.warn }}>{margin}%</span>
             </div>}
           </div>}
           <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
@@ -412,7 +412,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
         {cur.k === 'done' && <div style={{ textAlign: 'center', padding: '14px 0' }}>
           <span style={{ width: 46, height: 46, borderRadius: 99, background: P.good, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={24} stroke={2.6} color="#fff" /></span>
           <div style={{ fontSize: 16.5, fontWeight: 800, color: P.ink, marginTop: 11 }}>{v.name || 'Variation'} added</div>
-          <div style={{ fontSize: 12, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{sku || '—'} · {shell ? shell.name : ''}{effPrice ? ' · ' + money(effPrice) + (v.override ? ' (override)' : '') : ''}</div>
+          <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{sku || '—'} · {shell ? shell.name : ''}{effPrice ? ' · ' + money(effPrice) + (v.override ? ' (override)' : '') : ''}</div>
           <div style={{ marginTop: 16, textAlign: 'left', border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
             {[['Variation created on ' + (shell ? shell.id : 'the shell'), 'good', v.override ? 'Brand, format, size and traits inherited. Retail price overridden for this variation only.' : 'Brand, format, size, price and traits all inherited — nothing re-entered.'],
             v.sample ? ['Marked as a display sample', 'warn', 'Kept off the sellable menu, still tracked as a full product profile.'] :
@@ -424,7 +424,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
               const c = tone === 'good' ? P.good : tone === 'warn' ? P.warn : P.inkMute;
               return <div key={t} style={{ display: 'flex', gap: 10, padding: '10px 12px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
                 <Icon name={tone === 'good' ? 'check-circle' : tone === 'warn' ? 'clock' : 'package'} size={14} color={c} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                <div><div style={{ fontSize: 12, fontWeight: 700, color: P.ink }}>{t}</div><div style={{ fontSize: 11, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>{d}</div></div>
+                <div><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t}</div><div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>{d}</div></div>
               </div>;})}
           </div>
         </div>}

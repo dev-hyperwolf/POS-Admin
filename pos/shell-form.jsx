@@ -8,7 +8,7 @@
   function Lb({ children, hint, right }) {
     const P = useP();
     return <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-      <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: P.inkMute }}>{children}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: P.inkMute }}>{children}</span>
       {hint && <span title={hint} style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} stroke={1.9} /></span>}
       {right && <span style={{ marginLeft: 'auto' }}>{right}</span>}
     </div>;
@@ -16,13 +16,13 @@
   function Sel({ value, onChange, options, full }) {
     const P = useP();
     return <div style={{ position: 'relative', width: full ? '100%' : 'auto' }}>
-      <select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '9px 32px 9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, fontSize: 13, fontWeight: 600, color: P.ink, fontFamily: P.fontSans, minHeight: 38, outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '9px 32px 9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, fontSize: 13.5, fontWeight: 600, color: P.ink, fontFamily: P.fontSans, minHeight: 38, outline: 'none', cursor: 'pointer', boxSizing: 'border-box' }}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
       <Icon name="chevron-down" size={14} stroke={2.2} color={P.inkMute} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
     </div>;
   }
   function Chip({ on, onClick, children, style, title }) {
     const P = useP();
-    return <button title={title} onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r999, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.ink : P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap', transition: 'all .12s', ...style }}>{children}</button>;
+    return <button title={title} onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r999, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap', transition: 'all .12s', ...style }}>{children}</button>;
   }
   function Sec({ title, sub, right, children }) {
     const P = useP();
@@ -48,7 +48,7 @@
     const P = useP();
     const c = kind === 'good' ? P.good : kind === 'warn' ? P.warn : P.info;
     const bg = kind === 'good' ? P.goodSoft : kind === 'warn' ? P.warnSoft : P.infoSoft;
-    return <span style={{ display: 'inline-flex', padding: '1px 7px', borderRadius: 99, background: bg, color: c, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{children}</span>;
+    return <span style={{ display: 'inline-flex', padding: '1px 7px', borderRadius: 99, background: bg, color: c, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{children}</span>;
   };
 
   const TRAIT_SUGGESTIONS = ['Pieces per pack', 'Serving size', 'Infused', 'Cultivation style', 'Terpenes', 'Cannabinoids', 'Extract type', 'Hardware'];
@@ -109,7 +109,7 @@
       {!compact && <>
         <PBtn variant="ghost" size="sm" icon="chevron-left" onClick={onCancel} style={{ marginLeft: -6, marginBottom: 12, color: P.inkDim }}>All shells</PBtn>
         <Eyebrow>{editing ? 'Edit product shell' : 'New product shell'}</Eyebrow>
-        <h1 style={{ margin: '9px 0 6px', fontSize: 26, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>{editing ? 'Edit the family' : 'Define the family'}</h1>
+        <h1 style={{ margin: '9px 0 6px', fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>{editing ? 'Edit the family' : 'Define the family'}</h1>
         <div style={{ fontSize: 13.5, color: P.inkDim, marginBottom: 20, maxWidth: 580, lineHeight: 1.45 }}>
           {editing ?
           'Changes here apply to every variation in this line that hasn’t overridden the value. Traits, pricing and the delivery box update across the whole family.' :
@@ -133,12 +133,12 @@
                 <div style={{ maxHeight: 210, overflowY: 'auto', padding: 5 }}>
                   {brandHits.map((b) => <div key={b} onClick={() => {s1('brand', b);setBrandOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                     <span style={{ width: 26, height: 26, borderRadius: 7, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, fontFamily: P.fontMono }}>{S.mono2(b)}</span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>{b}</span>
-                    <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{brandCounts[b]} products</span>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>{b}</span>
+                    <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{brandCounts[b]} products</span>
                   </div>)}
-                  {brandHits.length === 0 && <div style={{ padding: '14px 10px', textAlign: 'center', fontSize: 12, color: P.inkMute }}>No brand matches that search.</div>}
+                  {brandHits.length === 0 && <div style={{ padding: '14px 10px', textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No brand matches that search.</div>}
                 </div>
-                <button onClick={() => {const n = brandQ.trim();if (!n) return;s1('brand', n);setBrandOpen(false);}} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: P.surface2, border: 'none', borderTop: `1px solid ${P.hairline}`, color: P.mode === 'dark' ? P.accent : '#7A5A00', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
+                <button onClick={() => {const n = brandQ.trim();if (!n) return;s1('brand', n);setBrandOpen(false);}} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: P.surface2, border: 'none', borderTop: `1px solid ${P.hairline}`, color: P.accentText, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
                   <Icon name="plus" size={15} stroke={2.2} />{brandQ.trim() ? `Create brand “${brandQ.trim()}”` : 'Create new brand'}</button>
               </div>}
             </div>
@@ -162,7 +162,7 @@
             <Sel value={d.sub} onChange={(x) => s1('sub', x)} options={def.subs} full />
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}>
               <Icon name="link" size={12} stroke={1.9} color={P.inkMute} />
-              <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>Live menu path · {S.menuPath({ cat: d.cat, sub: d.sub })}</span>
+              <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>Live menu path · {S.menuPath({ cat: d.cat, sub: d.sub })}</span>
             </div>
           </div>
 
@@ -171,20 +171,20 @@
               <Lb hint="Type any amount — shorthand works: 3.5g, 100 mg, 1/8, eighth, oz.">Weight / size *</Lb>
               <div style={{ display: 'flex', alignItems: 'stretch', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, overflow: 'hidden' }}>
                 <input value={d.netW} placeholder="Any amount — 3.5, 1/8, 100mg…" onChange={(e) => {const p = S.parseSize(e.target.value, d.unit, def.units);setD((o) => ({ ...o, netW: p.amount, unit: p.unit }));}}
-                  style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: P.ink, fontSize: 14, fontWeight: 600, fontFamily: P.fontMono, padding: '10px 12px' }} />
-                <select value={d.unit} onChange={(e) => s1('unit', e.target.value)} style={{ appearance: 'none', WebkitAppearance: 'none', border: 'none', borderLeft: `1px solid ${P.hairline2}`, background: P.surface2, color: P.ink, fontSize: 13, fontWeight: 700, fontFamily: P.fontMono, padding: '0 12px', cursor: 'pointer' }}>
+                  style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontMono, padding: '10px 12px' }} />
+                <select value={d.unit} onChange={(e) => s1('unit', e.target.value)} style={{ appearance: 'none', WebkitAppearance: 'none', border: 'none', borderLeft: `1px solid ${P.hairline2}`, background: P.surface2, color: P.ink, fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono, padding: '0 12px', cursor: 'pointer' }}>
                   {def.units.map((u) => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>
               <div style={{ minHeight: 18, marginTop: 7, display: 'flex', alignItems: 'center', gap: 7 }}>
                 {amtNum > 0 ?
                 <><Icon name="check" size={13} stroke={2.4} color={P.good} /><span style={{ fontSize: 11.5, fontWeight: 600, color: P.good, fontFamily: P.fontMono }}>{sizeEcho}</span></> :
-                <span style={{ fontSize: 11, color: P.inkMute }}>Enter any value — the shortcuts below are just shortcuts.</span>}
+                <span style={{ fontSize: 11.5, color: P.inkMute }}>Enter any value — the shortcuts below are just shortcuts.</span>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
-                <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute }}>Common</span>
-                {presets.map((p) => {const sp = S.splitSize(p);return <Chip key={p} on={d.netW === sp.amount && d.unit === sp.unit} onClick={() => setD((o) => ({ ...o, netW: sp.amount, unit: sp.unit }))} style={{ padding: '4px 9px', fontSize: 11, fontFamily: P.fontMono }}>{p}</Chip>;})}
-                {amtNum > 0 && !presets.includes(amtNum + d.unit) && <Chip onClick={() => setExtraPresets((o) => ({ ...o, [d.cat]: [...(o[d.cat] || []), amtNum + d.unit] }))} style={{ padding: '4px 9px', fontSize: 11, borderStyle: 'dashed', color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>+ Save {amtNum + d.unit}</Chip>}
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute }}>Common</span>
+                {presets.map((p) => {const sp = S.splitSize(p);return <Chip key={p} on={d.netW === sp.amount && d.unit === sp.unit} onClick={() => setD((o) => ({ ...o, netW: sp.amount, unit: sp.unit }))} style={{ padding: '4px 9px', fontSize: 11.5, fontFamily: P.fontMono }}>{p}</Chip>;})}
+                {amtNum > 0 && !presets.includes(amtNum + d.unit) && <Chip onClick={() => setExtraPresets((o) => ({ ...o, [d.cat]: [...(o[d.cat] || []), amtNum + d.unit] }))} style={{ padding: '4px 9px', fontSize: 11.5, borderStyle: 'dashed', color: P.accentText }}>+ Save {amtNum + d.unit}</Chip>}
               </div>
             </div>
             <div>
@@ -207,7 +207,7 @@
                           <IconBtn icon="pencil" size={13} title="Rename this box" style={{ width: 26, height: 26 }} onClick={() => {setBoxEdit(b);setBoxEditVal(b);}} /></>}
                       </div>)}
                     </div>
-                    <button onClick={() => {const n = boxQ.trim();if (!n) return;S.addBox(n);s1('kit', n);setBoxOpen(false);}} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: P.surface2, border: 'none', borderTop: `1px solid ${P.hairline}`, color: P.mode === 'dark' ? P.accent : '#7A5A00', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
+                    <button onClick={() => {const n = boxQ.trim();if (!n) return;S.addBox(n);s1('kit', n);setBoxOpen(false);}} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: P.surface2, border: 'none', borderTop: `1px solid ${P.hairline}`, color: P.accentText, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
                       <Icon name="plus" size={15} stroke={2.2} />{boxQ.trim() ? `Create box “${boxQ.trim()}”` : 'Create new box'}</button>
                   </div>}
                 </div>
@@ -216,13 +216,13 @@
               <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}>Weedmaps</span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.wmNode}</span>
-                <span style={{ fontSize: 10.5, color: P.good, fontWeight: 700 }}>Mapped</span>
+                <span style={{ fontSize: 11.5, color: P.good, fontWeight: 700 }}>Mapped</span>
               </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 16, padding: '10px 12px', background: P.surface2, borderRadius: P.r10 }}>
-            <span style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase' }}>Resulting shell name</span>
+            <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase' }}>Resulting shell name</span>
             <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{derivedName}</span>
           </div>
         </Sec>
@@ -250,19 +250,19 @@
             <div style={{ flex: 1 }}><Field placeholder="Value — e.g. 20" value={t.value} onChange={(e) => setD((o) => ({ ...o, traits: o.traits.map((x, j) => j === i ? { ...x, value: e.target.value } : x) }))} /></div>
             <IconBtn icon="trash" size={15} title="Remove this trait" style={{ width: 34, height: 34 }} onClick={() => setD((o) => ({ ...o, traits: o.traits.filter((_, j) => j !== i) }))} />
           </div>)}
-          {(d.traits || []).length === 0 && <div style={{ padding: 14, border: `1px dashed ${P.hairline3}`, borderRadius: P.r10, textAlign: 'center', fontSize: 12, color: P.inkMute, marginBottom: 10 }}>No traits yet — add the details that stay the same across every product in this family.</div>}
+          {(d.traits || []).length === 0 && <div style={{ padding: 14, border: `1px dashed ${P.hairline3}`, borderRadius: P.r10, textAlign: 'center', fontSize: 12.5, color: P.inkMute, marginBottom: 10 }}>No traits yet — add the details that stay the same across every product in this family.</div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 12 }}>
             <PBtn variant="secondary" size="sm" icon="plus" onClick={() => setD((o) => ({ ...o, traits: [...o.traits, { label: '', value: '' }] }))}>Add trait</PBtn>
-            <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, marginLeft: 4 }}>Quick add</span>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, marginLeft: 4 }}>Quick add</span>
             {TRAIT_SUGGESTIONS.filter((l) => !(d.traits || []).some((t) => t.label === l)).map((l) =>
-            <Chip key={l} onClick={() => setD((o) => ({ ...o, traits: [...o.traits, { label: l, value: '' }] }))} style={{ padding: '4px 9px', fontSize: 11 }}>+ {l}</Chip>)}
+            <Chip key={l} onClick={() => setD((o) => ({ ...o, traits: [...o.traits, { label: l, value: '' }] }))} style={{ padding: '4px 9px', fontSize: 11.5 }}>+ {l}</Chip>)}
           </div>
         </Sec>
 
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
-        <span style={{ fontSize: 12, color: P.inkMute }}>{editing ? `Applies to all ${editing.variations.length} variation${editing.variations.length === 1 ? '' : 's'} that inherit these values` : 'Next: add variations to the shell'}</span>
+        <span style={{ fontSize: 12.5, color: P.inkMute }}>{editing ? `Applies to all ${editing.variations.length} variation${editing.variations.length === 1 ? '' : 's'} that inherit these values` : 'Next: add variations to the shell'}</span>
         <div style={{ display: 'flex', gap: 10 }}>
           <PBtn variant="secondary" size="lg" onClick={onCancel}>Cancel</PBtn>
           <PBtn variant="accent" size="lg" icon="check" onClick={save} style={{ opacity: canSave ? 1 : .5 }}>{editing ? 'Save changes' : 'Create shell'}</PBtn>

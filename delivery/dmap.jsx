@@ -29,7 +29,7 @@ function RegionLabel({ sr, mode }) {
   return <g transform={`translate(${cx},${cy})`}>
     <rect x={-30} y={-15} width={60} height={30} rx={8} fill="rgba(10,10,14,.72)" stroke={c} strokeWidth={1} />
     <text x={0} y={-2} textAnchor="middle" style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 12.5, fontWeight: 800, fill: '#fff' }}>{sr.id}</text>
-    <text x={0} y={10} textAnchor="middle" style={{ fontFamily: 'Inter, sans-serif', fontSize: 8, fill: 'rgba(255,255,255,.65)' }}>{sr.city}</text>
+    <text x={0} y={10} textAnchor="middle" style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, fill: 'rgba(255,255,255,.65)' }}>{sr.city}</text>
   </g>;
 }
 
@@ -64,7 +64,7 @@ window.DeliveryMap = function DeliveryMap({ mode = 'filled', showBuffer = true, 
           const cx = cs.reduce((a, p) => a + p[0], 0) / cs.length;const cy = cs.reduce((a, p) => a + p[1], 0) / cs.length;
           const c = D.COUNTY_BY_ID[cid].color;
           return <g key={'clbl' + cid} transform={`translate(${cx},${cy})`}>
-            <text x={0} y={0} textAnchor="middle" style={{ fontFamily: 'Inter, sans-serif', fontSize: 20, fontWeight: 800, fill: '#fff' }}>{cid}</text>
+            <text x={0} y={0} textAnchor="middle" style={{ fontFamily: 'Inter, sans-serif', fontSize: 21, fontWeight: 800, fill: '#fff' }}>{cid}</text>
             <rect x={-26} y={9} width={52} height={5} rx={2.5} fill={c} />
           </g>;
         })}
@@ -80,9 +80,9 @@ window.DeliveryMap = function DeliveryMap({ mode = 'filled', showBuffer = true, 
       <div style={{ position: 'absolute', left: 12, bottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', padding: '8px 11px', background: 'rgba(12,12,16,.82)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 10, backdropFilter: 'blur(4px)' }}>
         {(focus ? counties : D.COUNTIES.map((c) => c.id)).map((cid) => {
           const c = D.COUNTY_BY_ID[cid];
-          return <span key={cid} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, fontWeight: 600, color: 'rgba(255,255,255,.8)', fontFamily: 'Inter, sans-serif' }}><span style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />{c.id}</span>;
+          return <span key={cid} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,.8)', fontFamily: 'Inter, sans-serif' }}><span style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />{c.id}</span>;
         })}
-        {showBuffer && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10.5, color: 'rgba(255,255,255,.6)', fontFamily: 'Inter, sans-serif' }}><span style={{ width: 14, borderTop: '2px dashed rgba(255,255,255,.6)' }} />buffer</span>}
+        {showBuffer && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'rgba(255,255,255,.6)', fontFamily: 'Inter, sans-serif' }}><span style={{ width: 14, borderTop: '2px dashed rgba(255,255,255,.6)' }} />buffer</span>}
       </div>
     </div>);
 };

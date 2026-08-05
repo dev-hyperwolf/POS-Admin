@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>UI audit — Hyperwolf platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+--bg:#F4F2EC;--surf:#FFFFFF;--surf2:#FAF9F5;--surf3:#F1EFE9;--canvas:#EDEFF3;--canvas2:#E1E6EC;
+--ink:#0F0F0C;--ink2:#2A2A26;--dim:rgba(15,15,12,.60);--mute:rgba(15,15,12,.42);--faint:rgba(15,15,12,.22);
+--hair:rgba(15,15,12,.08);--hair2:rgba(15,15,12,.14);--hair3:rgba(15,15,12,.24);
+--accent:#FFD100;--accentInk:#1A1400;--accentSoft:#FFF4B8;--accentBorder:#F2C200;--gold:#7A5A00;
+--good:#1F8A4F;--goodSoft:#E2F2E8;--warn:#C07A12;--warnSoft:#FBEFD6;--bad:#C0392B;--badSoft:#F8E2DF;--info:#2C5BB8;--infoSoft:#E3ECFA;--neutral:#6E6E66;--neutralSoft:#ECEAE2;
+--indica:#7E55C9;--sativa:#D98316;--hybrid:#3F9E72;
+--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--sans:"Inter",-apple-system,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:var(--info)}a:hover{color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 32px 90px}
+.mono{font-family:var(--mono)}
+/* header */
+.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+.kicker{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+h1{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.02;margin:14px 0 0}
+.lede{font-size:15.5px;line-height:1.6;color:var(--ink2);margin:16px 0 0;max-width:74ch}
+.lede b{font-weight:600}
+.meta{display:flex;gap:26px;flex-wrap:wrap;margin-top:20px;font-family:var(--mono);font-size:11px;color:var(--mute)}
+.meta b{color:var(--ink2);font-weight:600}
+/* verdict */
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:44px}
+.vcard{background:var(--surf);border:1px solid var(--hair2);border-radius:14px;padding:20px 22px}
+.vcard h3{margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-family:var(--mono)}
+.vcard.keep h3{color:var(--good)}.vcard.fix h3{color:var(--bad)}
+.vcard ol{margin:0;padding-left:20px}
+.vcard li{font-size:13.5px;line-height:1.55;color:var(--ink2);margin-bottom:9px}
+.vcard li:last-child{margin-bottom:0}
+.vcard li b{color:var(--ink)}
+/* sections */
+h2{font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-family:var(--mono);color:var(--ink);margin:0 0 4px;padding-top:14px;border-top:1px solid var(--hair2)}
+.sectionsub{font-size:14px;color:var(--dim);margin:0 0 26px;line-height:1.55}
+section{margin-bottom:52px}
+/* finding */
+.finding{background:var(--surf);border:1px solid var(--hair2);border-radius:14px;overflow:hidden;margin-bottom:18px}
+.fhead{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;border-bottom:1px solid var(--hair)}
+.num{flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--surf);font-family:var(--mono);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ftitle{flex:1;min-width:0}
+.ftitle .t{font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.ftitle .s{font-size:12.5px;color:var(--dim);margin-top:3px;line-height:1.5}
+.sev{flex:0 0 auto;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:99px;white-space:nowrap}
+.sev.high{background:var(--badSoft);color:var(--bad)}
+.sev.med{background:var(--warnSoft);color:var(--warn)}
+.sev.low{background:var(--neutralSoft);color:var(--neutral)}
+.fbody{padding:18px 20px}
+.ev{font-family:var(--mono);font-size:11.5px;line-height:1.65;background:var(--canvas);border-left:2px solid var(--hair3);padding:11px 13px;border-radius:0 8px 8px 0;color:var(--ink2);margin:0 0 16px;overflow-x:auto}
+.ev b{color:var(--bad)}
+.ev .ok{color:var(--good)}
+p.fx{font-size:13.5px;line-height:1.6;color:var(--ink2);margin:0 0 14px}
+p.fx:last-child{margin-bottom:0}
+p.fx b{color:var(--ink)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--surf3);color:var(--dim);vertical-align:1px}
+/* specimen */
+.spec{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--hair2);border-radius:12px;overflow:hidden;margin:0 0 16px}
+.spec>div{padding:18px 20px}
+.spec .before{background:var(--surf2);border-right:1px solid var(--hair2)}
+.spec .after{background:var(--surf)}
+.slabel{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.slabel.b{color:var(--bad)}.slabel.a{color:var(--good)}
+.note{font-size:11.5px;color:var(--dim);line-height:1.5;margin-top:14px}
+.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+/* buttons — current */
+.b{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:var(--sans);font-weight:600;white-space:nowrap;border:1px solid transparent;cursor:default}
+.b-xs{padding:5px 8px;font-size:11.5px;border-radius:7px}
+.b-sm{padding:7px 11px;font-size:12.5px;border-radius:8px}
+.b-md{padding:9px 15px;font-size:13px;border-radius:9px}
+.b-lg{padding:12px 20px;font-size:14px;border-radius:10px}
+.b-pri{background:var(--ink);color:var(--surf);border-color:var(--ink)}
+.b-acc{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+.b-sec{background:var(--surf);color:var(--ink);border-color:var(--hair3)}
+.b-soft{background:var(--surf3);color:var(--ink)}
+.b-ghost{background:transparent;color:var(--ink2)}
+.b-dan{background:var(--surf);color:var(--bad);border-color:var(--hair3)}
+.b-dis{opacity:.45}
+/* buttons — proposed */
+.n{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:var(--sans);font-weight:600;white-space:nowrap;border:1px solid transparent;cursor:default;border-radius:8px}
+.n-sm{min-height:32px;padding:0 12px;font-size:12.5px}
+.n-md{min-height:40px;padding:0 16px;font-size:13.5px}
+.n-lg{min-height:48px;padding:0 22px;font-size:15px;font-weight:700}
+.n-pri{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder)}
+.n-sec{background:var(--surf);color:var(--ink);border-color:var(--hair3)}
+.n-ghost{background:transparent;color:var(--ink2)}
+.n-dan{background:var(--bad);color:#fff;border-color:var(--bad)}
+.n-dis{background:var(--surf3);color:var(--mute);border-color:var(--hair2)}
+.focusring{box-shadow:0 0 0 2px var(--surf),0 0 0 4px var(--info)}
+/* cards */
+.c-old{background:var(--surf);border:1px solid var(--hair2);border-radius:14px;box-shadow:0 1px 0 rgba(15,15,12,.04),0 6px 18px rgba(15,15,12,.07);padding:16px}
+.c-new{background:var(--surf);border:1px solid var(--hair2);border-radius:12px;padding:16px}
+.c-new.raised{border-color:transparent;box-shadow:0 1px 2px rgba(15,15,12,.06),0 8px 24px rgba(15,15,12,.08)}
+.ctitle{font-size:13.5px;font-weight:700;margin:0 0 4px}
+.cmeta{font-family:var(--mono);font-size:11px;color:var(--mute)}
+/* swatches */
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.chip{display:flex;flex-direction:column;border:1px solid var(--hair2);border-radius:9px;overflow:hidden;background:var(--surf)}
+.chip .fill{display:block;height:38px;flex:0 0 auto}
+.chip .n2{display:block;padding:6px 8px;font-family:var(--mono);font-size:9.5px;line-height:1.35;color:var(--ink2)}
+.chip .n2 em{display:block;font-style:normal;color:var(--mute);font-size:9px;margin-top:2px}
+/* type scale */
+.ts{display:flex;flex-direction:column;gap:0}
+.ts .r{display:flex;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px dashed var(--hair)}
+.ts .r:last-child{border-bottom:none}
+.ts .k{flex:0 0 74px;font-family:var(--mono);font-size:10px;color:var(--mute)}
+.ts .u{flex:0 0 130px;font-size:11px;color:var(--dim)}
+/* table */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);padding:0 12px 8px 0;border-bottom:1px solid var(--hair2)}
+td{padding:9px 12px 9px 0;border-bottom:1px solid var(--hair);color:var(--ink2);line-height:1.5;vertical-align:top}
+td.m{font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td b{color:var(--ink)}
+.dup{color:var(--bad);font-weight:600}
+/* plan */
+.phase{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--hair)}
+.phase:last-child{border-bottom:none}
+.pnum{flex:0 0 auto;width:30px;height:30px;border-radius:99px;background:var(--accent);color:var(--accentInk);font-family:var(--mono);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.pbody{flex:1;min-width:0}
+.pbody .pt{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.pbody .pd{font-size:13px;color:var(--ink2);line-height:1.6;margin-top:5px}
+.pbody .pf{font-family:var(--mono);font-size:10.5px;color:var(--mute);margin-top:7px}
+.effort{flex:0 0 auto;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:var(--surf3);border-radius:99px;padding:4px 10px;height:fit-content}
+.callout{background:var(--accentSoft);border:1px solid var(--accentBorder);border-radius:12px;padding:18px 20px;margin:0 0 32px}
+.callout p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink2)}
+.callout p b{color:var(--ink)}
+.pillx{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px}
+/* option cards */
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:12px;margin:4px 0 18px}
+.opt{border:1px solid var(--hair2);border-radius:12px;overflow:hidden;background:var(--surf2);display:flex;flex-direction:column}
+.opt.rec{border-color:var(--good);box-shadow:0 0 0 2px var(--goodSoft)}
+.opt.rej{opacity:.72}
+.ohead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--hair)}
+.obadge{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:var(--surf3);color:var(--dim)}
+.obadge.rec{background:var(--goodSoft);color:var(--good)}
+.obadge.rej{background:var(--badSoft);color:var(--bad)}
+.oname{font-size:12.5px;font-weight:700}
+.odemo{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 12px;border-bottom:1px solid var(--hair)}
+.ocopy{margin:0;padding:12px;font-size:12px;line-height:1.55;color:var(--ink2);flex:1}
+.ocopy b{color:var(--ink)}
+.ometa{padding:9px 12px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:10px;color:var(--mute);background:var(--surf)}
+.ometa b{color:var(--ink2)}
+/* scheme specimens */
+.schemes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:4px 0 18px}
+.scheme{border:1px solid var(--hair2);border-radius:12px;overflow:hidden;background:var(--surf);display:flex;flex-direction:column}
+.scheme.rec{border-color:var(--good);box-shadow:0 0 0 2px var(--goodSoft)}
+.mini{display:flex;height:132px}
+.mini .rail{flex:0 0 30px}
+.mini .page{flex:1;min-width:0;padding:11px;display:flex;flex-direction:column;gap:8px}
+.mini .card{border-radius:9px;padding:9px 10px}
+.mini .t{font-size:11px;font-weight:700;line-height:1.2}
+.mini .price{display:block;font-family:var(--mono);font-size:15px;font-weight:700;margin-top:3px;line-height:1.2}
+.mini .btn{align-self:flex-start;font-size:10.5px;font-weight:700;padding:6px 11px;border-radius:7px}
+.mini .well{border-radius:8px;flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#15140f">
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg"><rect width="1200" height="800" fill="#15140f"/><rect x="380" y="300" width="180" height="180" rx="30" fill="#FFD100"/><rect x="600" y="300" width="180" height="180" rx="30" fill="#2A2A26"/><rect x="640" y="340" width="100" height="100" rx="16" fill="#EDEFF3"/><text x="600" y="600" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="700" letter-spacing="6" fill="#8a8a80" text-anchor="middle">UI AUDIT</text></svg>
+</template>
+
+<div class="wrap">
+
+<div class="masthead">
+  <div class="kicker">Design system review · 12 apps · light + dark</div>
+  <h1>The system is sound.<br/>The vocabulary is too large.</h1>
+  <p class="lede">Nothing here is broken-looking — the editorial-operator direction reads well, dark mode is fully specified, and every screen already draws from one theme file. The problem is <b>surface area</b>: 30 colour slots, 30 button permutations, 19 type sizes, 8 radii and three parallel card/table/pill kits. That much choice guarantees drift, and drift is exactly what you're seeing when Engage feels like a different product. This audit trims the vocabulary and names the rules, without redrawing anything.</p>
+  <div class="meta">
+    <span><b>Reviewed</b> POS · Orders · Members · Engage · Promotions · Pipeline · Delivery · Logistics · Driver · Terminals · @ Home · CRM</span>
+    <span><b>Findings</b> 21</span>
+    <span><b>Breaking changes</b> 0</span>
+  </div>
+</div>
+
+<div class="verdict">
+  <div class="vcard keep">
+    <h3>Keep — this is the good part</h3>
+    <ol>
+      <li><b>One token file, honoured everywhere.</b> Every app reads <span class="tag">pos/tokens.jsx</span>. That is rarer than it sounds and it's why this audit is cheap.</li>
+      <li><b>Mono for all numerics.</b> Money, counts, IDs and timestamps in JetBrains Mono is the single strongest thing about the UI — it makes an ops tool read like an instrument.</li>
+      <li><b>Status is never colour-only.</b> Pills carry a dot or an icon, so the colour-blind case already works.</li>
+      <li><b>Warm paper + near-black rail.</b> A distinctive, un-generic base that no competitor in this category has.</li>
+    </ol>
+  </div>
+  <div class="vcard fix">
+    <h3>Fix — in this order</h3>
+    <ol>
+      <li><b>Yellow is doing four jobs.</b> Brand, primary action, selected state and "warm highlight". It should do one.</li>
+      <li><b>No focus states anywhere.</b> Zero <span class="tag">:focus-visible</span> in the React apps. Keyboard operators are currently flying blind.</li>
+      <li><b>Touch targets below 44px.</b> <span class="tag">xs</span>/<span class="tag">sm</span> buttons land at 23–29px on a counter touchscreen.</li>
+      <li><b>Three of everything.</b> Two pills, two stat tiles, two tables, two toasts — POS kit vs Engage's HD kit. That IS the cohesion gap.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="callout">
+  <p><b>The one-line diagnosis:</b> the design system defines <i>values</i> (a palette, a radius list, a size list) but not <i>roles</i> (what yellow means, when a card is raised, which size is body text). Adding role tokens on top of the values you already have fixes most of this list without touching a single screen's layout.</p>
+</div>
+
+<!-- ═══ A. COLOUR ═══ -->
+<section>
+  <h2>A · Colour</h2>
+  <p class="sectionsub">30 named slots per mode, plus three parallel decorative sets. The values are fine; the assignments overlap.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">1</span>
+      <div class="ftitle">
+        <div class="t">Hyperwolf yellow carries four different meanings</div>
+        <div class="s">Brand identity, the primary CTA, the selected/active state, and a generic "notice" wash. When one hue means four things, none of them read as urgent.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">TENDER button → <b>accent</b> &nbsp;·&nbsp; selected category chip → <b>accent</b> &nbsp;·&nbsp; party total strip → <b>accentSoft</b> &nbsp;·&nbsp; "New check-in" dashed tile → <b>accentSoft</b> &nbsp;·&nbsp; VIP/tier pill → <b>accentSoft</b> &nbsp;·&nbsp; AOV goal meter → <b>accent</b> &nbsp;·&nbsp; rewards coins → <b>accent</b></div>
+      <p class="fx"><b>Fix.</b> Reserve solid <span class="tag">accent</span> for <i>the single most important action on screen</i> — one per view, no exceptions. Selected states move to ink-filled (the <span class="tag">primary</span> treatment already in the kit). Informational washes move to a new neutral <span class="tag">highlightSoft</span>. Loyalty keeps yellow, because loyalty <i>is</i> the brand.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Today — five yellows competing</div>
+          <div class="row">
+            <span class="b b-md b-acc">Tender $34.63</span>
+            <span class="b b-md b-acc">All 24</span>
+            <span class="pillx" style="background:var(--accentSoft);color:var(--gold)">★ GOLD</span>
+            <span class="pillx" style="background:var(--accentSoft);color:var(--gold)">3rd visit</span>
+            <span class="b b-sm" style="background:var(--accentSoft);color:var(--gold);border:1px dashed var(--accentBorder)">+ New check-in</span>
+          </div>
+          <div class="note">Nothing wins. The eye lands on the category chip as often as on the tender button.</div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ Proposed — one yellow that means "do this"</div>
+          <div class="row">
+            <span class="n n-md n-pri">Tender $34.63</span>
+            <span class="n n-sm" style="background:var(--ink);color:var(--surf);border-color:var(--ink)">All 24</span>
+            <span class="pillx" style="background:var(--accentSoft);color:var(--gold)">★ GOLD</span>
+            <span class="pillx" style="background:var(--neutralSoft);color:var(--ink2)">3rd visit</span>
+            <span class="n n-sm" style="background:var(--surf);color:var(--ink2);border:1px dashed var(--hair3)">+ New check-in</span>
+          </div>
+          <div class="note">Tender is the only yellow. Selection is ink. Visit count is neutral metadata. Loyalty keeps the brand colour.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">2</span>
+      <div class="ftitle">
+        <div class="t">A missing token is being hand-written in 20+ places</div>
+        <div class="s">Yellow text on white fails contrast, so every author independently reached for the same dark-gold literal.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">P.mode === 'dark' ? P.accent : <b>'#7A5A00'</b><br/>→ found in screen-register · atoms · drawer · studio · carousel · app · tdrawer · screen-complete · screen-misc · screen-tips · screen-stubs <span class="ok">(11 files)</span></div>
+      <p class="fx"><b>Fix.</b> Add <span class="tag">accentText</span> to both themes and replace every literal. Dark mode is easy — <span class="mono">#FFD100</span> on near-black passes comfortably. <b>Light mode is the real question</b>, and the answer does not have to be brown: any yellow dark enough to read as text on white <i>is</i> an olive/brown by definition, so the way out is to stop colouring the text at all.</p>
+      <div class="opts">
+        <div class="opt rec">
+          <div class="ohead"><span class="obadge rec">Recommended</span><span class="oname">1 · Ink on yellow</span></div>
+          <div class="odemo" style="background:var(--surf)">
+            <span class="pillx" style="background:var(--accentSoft);color:var(--ink)">★ GOLD MEMBER</span>
+            <span style="font-size:11.5px;font-weight:700;color:var(--ink)">$20 reward ready</span>
+            <span class="n n-sm n-pri" style="min-height:28px;font-size:12px">Redeem</span>
+          </div>
+          <p class="ocopy"><b>No coloured text anywhere.</b> Emphasis is <span class="tag">ink</span> sitting on a yellow wash — 17:1, brand still unmistakable, zero brown. This is what most high-craft systems do: colour the container, not the glyphs.</p>
+          <div class="ometa">ink on accentSoft · <b>17:1</b> · removes a token instead of adding one</div>
+        </div>
+        <div class="opt">
+          <div class="ohead"><span class="obadge">Alternative</span><span class="oname">2 · Burnt amber</span></div>
+          <div class="odemo" style="background:var(--surf)">
+            <span class="pillx" style="background:var(--accentSoft);color:#B4530E">★ GOLD MEMBER</span>
+            <span style="font-size:11.5px;font-weight:700;color:#B4530E">$20 reward ready</span>
+            <span class="n n-sm n-pri" style="min-height:28px;font-size:12px">Redeem</span>
+          </div>
+          <p class="ocopy">Leaves the yellow hue entirely for a <b>warm orange-red</b>. Reads as brand-adjacent heat rather than mud, and still gives you a coloured voice for inline links and icons.</p>
+          <div class="ometa"><span class="mono" style="color:#B4530E">#B4530E</span> on white · <b>4.7:1</b> · passes AA</div>
+        </div>
+        <div class="opt">
+          <div class="ohead"><span class="obadge">Alternative</span><span class="oname">3 · Ink + yellow rule</span></div>
+          <div class="odemo" style="background:var(--surf);border-left:3px solid var(--accent);padding-left:11px">
+            <span class="pillx" style="background:var(--neutralSoft);color:var(--ink2)">★ GOLD MEMBER</span>
+            <span style="font-size:11.5px;font-weight:700;color:var(--ink)">$20 reward ready</span>
+            <span class="n n-sm n-pri" style="min-height:28px;font-size:12px">Redeem</span>
+          </div>
+          <p class="ocopy">Yellow becomes a <b>2–3px rule or dot</b> — a shape, never a colour of ink. Quietest of the three and the most editorial; the trade-off is that loyalty stops being colour-coded at a glance.</p>
+          <div class="ometa">ink on surface · <b>19:1</b> · yellow used as geometry</div>
+        </div>
+        <div class="opt rej">
+          <div class="ohead"><span class="obadge rej">Rejected</span><span class="oname">Today · dark gold</span></div>
+          <div class="odemo" style="background:var(--surf)">
+            <span class="pillx" style="background:var(--accentSoft);color:var(--gold)">★ GOLD MEMBER</span>
+            <span style="font-size:11.5px;font-weight:700;color:var(--gold)">$20 reward ready</span>
+            <span class="n n-sm n-pri" style="min-height:28px;font-size:12px">Redeem</span>
+          </div>
+          <p class="ocopy">Passes contrast, but it is unavoidably brown — and it is also the only colour in the system nobody chose on purpose. Retire it either way.</p>
+          <div class="ometa"><span class="mono" style="color:var(--gold)">#7A5A00</span> · 4.9:1 · written by hand in 11 files</div>
+        </div>
+      </div>
+      <p class="fx"><b>My call:</b> option 1. It answers the contrast problem, the brown problem and finding 1 at once — if ink carries emphasis, solid yellow is free to mean “primary action” and nothing else. Keep option 2 in reserve for the one place ink can’t work: coloured icons on a white background.</p>
+      <div class="row" style="margin-top:4px">
+        <span class="chip" style="width:150px"><span class="fill" style="background:var(--accent)"></span><span class="n2">accent<em>actions only · never text</em></span></span>
+        <span class="chip" style="width:150px"><span class="fill" style="background:var(--gold)"></span><span class="n2">accentText <b style="color:var(--good)">NEW</b><em>4.9:1 on white — passes</em></span></span>
+        <span class="chip" style="width:150px"><span class="fill" style="background:var(--accentSoft)"></span><span class="n2">accentSoft<em>wash behind accentText</em></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">3</span>
+      <div class="ftitle">
+        <div class="t">Three decorative colour systems, overlapping</div>
+        <div class="s"><span class="tag">hue{}</span> (5), <span class="tag">cat{}</span> (10) and the strain trio all encode "category" — and <span class="tag">CAT_COLOR</span> is a fourth mapping on top.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">hue: blue violet teal green pink &nbsp;|&nbsp; cat: flower vape edibles concentrate tincture preroll wellness deals premium other &nbsp;|&nbsp; strain: indica sativa hybrid &nbsp;|&nbsp; signals: good warn bad info neutral</div>
+      <p class="fx"><b>Fix.</b> Keep <span class="tag">cat</span> (product categories are a real, fixed taxonomy) and <span class="tag">strain</span> (regulated, meaningful). Retire <span class="tag">hue</span> as a decorative set and let Engage's stat tiles pull from <span class="tag">cat</span> or go monochrome — a marketing KPI has no business having its own violet.</p>
+      <p class="fx"><b>Rule to write down:</b> signals are the only colours allowed to mean state. Everything else is wayfinding and must survive being greyscale.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">4</span>
+      <div class="ftitle">
+        <div class="t">Warm paper and cool canvas now coexist without a rule</div>
+        <div class="s"><span class="tag">canvas</span>/<span class="tag">canvas2</span> were added for dense data surfaces; they're now also on the register's member rail.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Name the rule: <b>warm surfaces hold content, cool canvas holds workspace.</b> Anything a user reads or edits sits on <span class="tag">surface</span>; the backdrop <i>behind</i> arrangements of cards (kanban lanes, wide tables, the member rail) is <span class="tag">canvas</span>. Two backgrounds per screen, maximum. <b>Alternatives to the cool ramp are in section G below</b> — including a one-temperature version.</p>
+      <div class="row">
+        <span class="chip" style="width:150px"><span class="fill" style="background:var(--bg)"></span><span class="n2">bg<em>page, warm paper</em></span></span>
+        <span class="chip" style="width:150px"><span class="fill" style="background:var(--surf)"></span><span class="n2">surface<em>content + cards</em></span></span>
+        <span class="chip" style="width:150px"><span class="fill" style="background:var(--canvas)"></span><span class="n2">canvas<em>workspace backdrop</em></span></span>
+        <span class="chip" style="width:150px"><span class="fill" style="background:var(--canvas2)"></span><span class="n2">canvas2<em>recessed wells</em></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">5</span>
+      <div class="ftitle">
+        <div class="t">Two contrast pairs fail WCAG AA</div>
+        <div class="s">Both are used for real information, not decoration.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <table>
+        <thead><tr><th>Pair</th><th style="width:80px">Ratio</th><th style="width:70px">AA</th><th>Where</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td class="m">inkMute on surface2</td><td class="m">3.1:1</td><td class="m dup">fail</td><td>micro-labels, "left" counts, wait times</td><td>Lift <span class="tag">inkMute</span> to .50 alpha, or reserve it for ≥12px only</td></tr>
+          <tr><td class="m">accent text on surface</td><td class="m">1.6:1</td><td class="m dup">fail</td><td>only where the literal gold wasn't used</td><td>Finding 2 — <span class="tag">accentText</span></td></tr>
+          <tr><td class="m">inkDim on surface</td><td class="m">5.9:1</td><td class="m" style="color:var(--good)">pass</td><td>body secondary</td><td>—</td></tr>
+          <tr><td class="m">disabled at .45 opacity</td><td class="m">~2.4:1</td><td class="m dup">fail</td><td>every disabled button</td><td>Explicit disabled tokens, not opacity</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ B. BUTTONS ═══ -->
+<section>
+  <h2>B · Buttons &amp; controls</h2>
+  <p class="sectionsub">6 variants × 5 sizes = 30 permutations, no minimum height, no focus state, no loading state.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">6</span>
+      <div class="ftitle">
+        <div class="t">Sizes are padding-based, so real buttons land at 23px</div>
+        <div class="s">On a counter touchscreen the accepted floor is 44px. <span class="tag">xs</span> and <span class="tag">sm</span> are used for destructive and confirming actions.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">xs → 5px 8px @ 11.5px = <b>~23px tall</b> &nbsp;·&nbsp; sm → 7px 11px @ 12.5px = <b>~29px</b> &nbsp;·&nbsp; md → 9px 15px = ~33px &nbsp;·&nbsp; lg → ~40px &nbsp;·&nbsp; xl → ~48px <span class="ok">✓</span></div>
+      <p class="fx"><b>Fix.</b> Switch to <span class="tag">min-height</span> and cut to three sizes: <b>32</b> (dense/inline, mouse-only surfaces), <b>40</b> (default), <b>48</b> (touch primary). Keep the small end for admin consoles; require 40+ for anything a hand touches at the counter or in the van.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Today — five sizes, padding-driven</div>
+          <div class="row" style="align-items:flex-end">
+            <span class="b b-xs b-sec">xs 23px</span>
+            <span class="b b-sm b-sec">sm 29px</span>
+            <span class="b b-md b-sec">md 33px</span>
+            <span class="b b-lg b-sec">lg 40px</span>
+          </div>
+          <div class="note">Two of the four are under the touch minimum, and the difference between them is invisible at a glance.</div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ Proposed — three, height-driven</div>
+          <div class="row" style="align-items:flex-end">
+            <span class="n n-sm n-sec">32 dense</span>
+            <span class="n n-md n-sec">40 default</span>
+            <span class="n n-lg n-sec">48 touch</span>
+          </div>
+          <div class="note">Fewer, more distinct, and every one of them is hittable.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">7</span>
+      <div class="ftitle">
+        <div class="t">Six variants, and two of them mean "primary"</div>
+        <div class="s"><span class="tag">primary</span> (ink) and <span class="tag">accent</span> (yellow) are both used as the confirming action, sometimes in the same dialog.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">primary · accent · secondary · soft · ghost · danger &nbsp;→&nbsp; soft and secondary are visually 4% apart; danger is a secondary button with red text</div>
+      <p class="fx"><b>Fix.</b> Four variants: <b>primary</b> (accent — the one action), <b>secondary</b> (outline), <b>ghost</b> (text), <b>danger</b> (solid red — destructive should look destructive, not like a link). Retire <span class="tag">soft</span>; it's secondary with a fill. Ink-filled stays available as the <i>selected</i> treatment for chips and segments, not as a button variant.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Today</div>
+          <div class="row">
+            <span class="b b-md b-pri">Primary</span><span class="b b-md b-acc">Accent</span><span class="b b-md b-sec">Secondary</span><span class="b b-md b-soft">Soft</span><span class="b b-md b-ghost">Ghost</span><span class="b b-md b-dan">Delete</span>
+          </div>
+          <div class="note">"Delete" is quieter than "Soft". Destructive weight is inverted.</div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ Proposed</div>
+          <div class="row">
+            <span class="n n-md n-pri">Primary</span><span class="n n-md n-sec">Secondary</span><span class="n n-md n-ghost">Ghost</span><span class="n n-md n-dan">Delete</span>
+          </div>
+          <div class="note">Four jobs, four looks. Danger reads as danger at a glance.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">8</span>
+      <div class="ftitle">
+        <div class="t">No focus ring, no loading state, opacity-only disabled</div>
+        <div class="s">A POS is operated by keyboard and barcode scanner as much as by touch. There is currently no way to see where focus is.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">grep <b>:focus-visible</b> across all React apps → <b>0 matches</b>. Only <span class="tag">dashboard.html</span> styles focus, and it sets <span class="tag">outline:none</span> on inputs.</div>
+      <p class="fx"><b>Fix.</b> One <span class="tag">focusRing</span> token (2px surface gap + 2px info-blue) applied on <span class="tag">:focus-visible</span> in every interactive atom; a <span class="tag">busy</span> prop that swaps the label for a spinner and blocks double-submit (tender, refund and send-SMS all need it); and explicit disabled tokens instead of <span class="tag">opacity:.45</span>.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Today</div>
+          <div class="row"><span class="b b-md b-acc">Tender</span><span class="b b-md b-sec b-dis">Tender</span></div>
+          <div class="note">Keyboard focus is invisible. Disabled is a translucent version of enabled — the label drops to ~2.4:1.</div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ Proposed</div>
+          <div class="row"><span class="n n-md n-pri focusring">Tender</span><span class="n n-md n-dis">Tender</span><span class="n n-md n-pri" style="opacity:.9">◌ Charging…</span></div>
+          <div class="note">Focus, disabled and busy are three visibly different things.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">9</span>
+      <div class="ftitle">
+        <div class="t">Hover is a hard-coded hex, and there's no active state</div>
+        <div class="s"><span class="tag">accent</span> hover is <span class="mono">'#FFDA33'</span> written inline in the atom.</div>
+      </div>
+      <span class="sev low">Low</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Derive hover/active with <span class="tag">color-mix()</span> — already used elsewhere in the codebase for category chips — so every variant gets consistent −6% / −12% steps and one fewer literal. Add a 1px <span class="tag">translateY</span> on <span class="tag">:active</span>; a tender button that doesn't visibly depress feels broken on a touchscreen.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ C. CARDS ═══ -->
+<section>
+  <h2>C · Cards, elevation &amp; radius</h2>
+  <p class="sectionsub">Eight radii, three card implementations, and border-plus-shadow double delineation.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">10</span>
+      <div class="ftitle">
+        <div class="t">Cards carry a border AND a shadow</div>
+        <div class="s">Two delineation systems doing one job makes dense screens look noisy and slightly muddy.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Pick one per elevation level: <b>flat</b> = border only (in-page cards, rows, panels), <b>raised</b> = shadow only, no border (popovers, sheets, dragged items), <b>sunken</b> = <span class="tag">canvas2</span> fill, no border (wells, empty states). A card never has both.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Today — border + shadowMd</div>
+          <div class="c-old"><div class="ctitle">Blue Dream · 3.5g</div><div class="cmeta">$28.00 · 12 left</div></div>
+          <div class="note">On a grid of 24 products the doubled edges read as visual static.</div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ Proposed — flat / raised</div>
+          <div class="c-new" style="margin-bottom:10px"><div class="ctitle">Blue Dream · 3.5g</div><div class="cmeta">$28.00 · 12 left</div></div>
+          <div class="c-new raised"><div class="ctitle">Popover — raised</div><div class="cmeta">shadow only, no border</div></div>
+          <div class="note">Elevation now carries meaning: shadow = floating above the page.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">11</span>
+      <div class="ftitle">
+        <div class="t">Eight radii used interchangeably</div>
+        <div class="s">r6 r8 r10 r12 r14 r16 r20 r24 — with r10, r12 and r14 all appearing inside a single card.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">register member rail: outer <b>r12</b>, stat cards <b>r12</b>, identity block <b>r12</b>, buttons <b>r10</b>, pills <b>999</b> — but the cart card is <b>r14</b> and its lines are <b>r10</b></div>
+      <p class="fx"><b>Fix.</b> Four steps, assigned by role: <b>8</b> controls (buttons, inputs, chips) · <b>12</b> cards and panels · <b>20</b> sheets and modals · <b>999</b> pills and avatars. Nesting rule: an inner element is always one step smaller than its container, never equal.</p>
+      <div class="row">
+        <span class="chip" style="width:110px"><span class="fill" style="background:var(--surf3);border-radius:8px;margin:8px;height:54px"></span><span class="n2">8 · controls<em>buttons · inputs · chips</em></span></span>
+        <span class="chip" style="width:110px"><span class="fill" style="background:var(--surf3);border-radius:12px;margin:8px;height:54px"></span><span class="n2">12 · cards<em>cards · panels · rows</em></span></span>
+        <span class="chip" style="width:110px"><span class="fill" style="background:var(--surf3);border-radius:20px;margin:8px;height:54px"></span><span class="n2">20 · sheets<em>modals · drawers</em></span></span>
+        <span class="chip" style="width:110px"><span class="fill" style="background:var(--surf3);border-radius:99px;margin:8px;height:54px"></span><span class="n2">999 · pills<em>pills · avatars</em></span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">12</span>
+      <div class="ftitle">
+        <div class="t">Padding is an argument, so density is per-author</div>
+        <div class="s"><span class="tag">Card padding={18}</span> is the default, but 0, 9, 11, 12, 13, 15, 16, 20 and 22 all appear in call sites.</div>
+      </div>
+      <span class="sev low">Low</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Replace the numeric prop with <span class="tag">density="compact|default|roomy"</span> → 12 / 16 / 20, and a 4px spacing scale for everything else (4 8 12 16 20 24 32). Authors stop guessing, and Engage's 20–24px rhythm and POS's 12–16px rhythm stop diverging by accident.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ D. TYPE ═══ -->
+<section>
+  <h2>D · Type &amp; density</h2>
+  <p class="sectionsub">Nineteen font sizes in use, six of them below the legibility floor for a screen at arm's length.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">13</span>
+      <div class="ftitle">
+        <div class="t">No type scale — sizes are chosen per element</div>
+        <div class="s">8.5 · 9 · 9.5 · 10 · 10.5 · 11 · 11.5 · 12 · 12.5 · 13 · 13.5 · 14 · 15 · 17 · 19 · 21 · 23 · 28 · 30</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Seven steps with names and jobs. The half-point sizes (11.5, 12.5, 13.5) are the ones actually carrying the UI, so keep them and drop the rest — this is a rounding exercise, not a redesign.</p>
+      <div class="ts">
+        <div class="r"><span class="k">micro · 10</span><span class="u">mono labels only</span><span style="font-size:10px;font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">POINTS · VISITS · WALLET</span></div>
+        <div class="r"><span class="k">meta · 11.5</span><span class="u">secondary, mono data</span><span style="font-size:11.5px;color:var(--dim)">2 items · $42.00 · waiting 6m</span></div>
+        <div class="r"><span class="k">body · 12.5</span><span class="u">default UI text</span><span style="font-size:12.5px;color:var(--ink2)">Everyone in the party is recorded as a customer.</span></div>
+        <div class="r"><span class="k">strong · 13.5</span><span class="u">row titles, buttons</span><span style="font-size:13.5px;font-weight:600">Girish Sharma</span></div>
+        <div class="r"><span class="k">title · 16</span><span class="u">card + panel headers</span><span style="font-size:16px;font-weight:700;letter-spacing:-.01em">Manage check-in party</span></div>
+        <div class="r"><span class="k">h2 · 21</span><span class="u">section heads</span><span style="font-size:21px;font-weight:700;letter-spacing:-.02em">Order Queue</span></div>
+        <div class="r"><span class="k">h1 · 30</span><span class="u">page title, one per screen</span><span style="font-size:30px;font-weight:800;letter-spacing:-.03em">Members</span></div>
+      </div>
+      <div class="note">Numerics get their own two steps — <b>15</b> for in-row money and <b>19–22</b> for totals — because mono at the same nominal size reads smaller than sans.</div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">14</span>
+      <div class="ftitle">
+        <div class="t">8.5px and 9px labels are below the floor</div>
+        <div class="s">Used for the uppercase micro-labels on stat cards, pills and KV pairs — i.e. for wayfinding, not for fine print.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Floor at <b>10px</b>, and only for uppercase mono with ≥.09em tracking (which is how they're already styled — tracking is what makes 10px survive). Where 10px doesn't fit, the layout is too tight and should lose a column, not a point size. The stat rail we just built is the test case: five cards at 10px labels fit fine at 1440px.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">15</span>
+      <div class="ftitle">
+        <div class="t">Six font weights, and 620 appears once</div>
+        <div class="s">400 500 600 620 700 800 — Inter at 620 is a variable-font value that falls back unpredictably.</div>
+      </div>
+      <span class="sev low">Low</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">shared/notes.js → <b>font-weight:620</b></div>
+      <p class="fx"><b>Fix.</b> Three weights: <b>500</b> body, <b>600</b> emphasis and labels, <b>800</b> numerics and page titles. 700 collapses into 600 or 800 depending on context — the difference isn't legible at UI sizes anyway.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ E. COHESION ═══ -->
+<section>
+  <h2>E · Cohesion — why Engage feels different</h2>
+  <p class="sectionsub">It isn't the colours. Engage draws from the same theme file. It's that Engage has its own component kit.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">16</span>
+      <div class="ftitle">
+        <div class="t">Two parallel kits, six duplicated components</div>
+        <div class="s">The POS atoms and the Hyperdrive <span class="tag">HD</span> kit solve the same problems with different APIs and slightly different metrics.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <table>
+        <thead><tr><th style="width:150px">Job</th><th style="width:190px">POS atom</th><th style="width:200px">Engage / HD</th><th>Resolution</th></tr></thead>
+        <tbody>
+          <tr><td><b>Status pill</b></td><td class="m">Pill kind=</td><td class="m dup">HDPill tone= label= size=</td><td>Keep <span class="tag">Pill</span>, adopt HD's <span class="tag">tone</span> naming and <span class="tag">size</span> prop</td></tr>
+          <tr><td><b>Metric tile</b></td><td class="m">KPI</td><td class="m dup">StatTile hue=</td><td>Keep <span class="tag">KPI</span>, add HD's icon slot; drop the <span class="tag">hue</span> prop (finding 3)</td></tr>
+          <tr><td><b>Table</b></td><td class="m">DataTable columns/rows</td><td class="m dup">TR / TD / THead</td><td>Keep both — declarative for lists, primitives for bespoke — but share one row height, hover and hairline</td></tr>
+          <tr><td><b>Toast</b></td><td class="m">local toast state</td><td class="m dup">window.hdToast()</td><td>Promote <span class="tag">hdToast</span> to <span class="tag">shared/toast.js</span> for every app</td></tr>
+          <tr><td><b>Page header</b></td><td class="m">SectionHead level=</td><td class="m dup">SubHeader crumb/blurb</td><td>One header with optional crumb + blurb</td></tr>
+          <tr><td><b>Section title</b></td><td class="m">Eyebrow</td><td class="m dup">inline h2 at 14px/600</td><td><span class="tag">Eyebrow</span> everywhere</td></tr>
+        </tbody>
+      </table>
+      <p class="fx" style="margin-top:16px"><b>Fix.</b> Fold the HD kit into <span class="tag">pos/atoms.jsx</span> as the shared kit, keep the <span class="tag">HD*</span> names as thin aliases so no Engage screen has to change on day one, then delete the aliases as screens are touched. Nothing needs rewriting in a big bang.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">17</span>
+      <div class="ftitle">
+        <div class="t">Engage runs a different page rhythm</div>
+        <div class="s">24px page padding, 28–30px h1, 20px card padding vs POS's 22px / 21px / 12–16px. Same tokens, different music.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">engage → padding: 24 · h1 28/700 · Card padding 20 · gap 12–16<br/>pos &nbsp;&nbsp;&nbsp;→ padding: 22 · h1 21/800 · Card padding 18 · gap 9–14</div>
+      <p class="fx"><b>Fix.</b> One page shell: 24px gutters, 24px between sections, 16px within a group, h1 at 30/800. Engage is closer to right than POS is — the POS is denser because it has to be, so let <b>density be a screen-level decision</b> (<span class="tag">density="compact"</span> on the register, default everywhere else) rather than an accident of who wrote it.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">18</span>
+      <div class="ftitle">
+        <div class="t">Empty, loading and error states are inconsistent or missing</div>
+        <div class="s">The register has a nicely drawn empty cart; most tables just render nothing.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Three shared components — <span class="tag">EmptyState</span> (icon + one line + one action), <span class="tag">Skeleton</span> (the shimmer keyframe already exists in every app's CSS but is barely used), <span class="tag">ErrorState</span> (what failed, what to do, retry). Every list gets all three. This is the single most visible "unfinished" tell in a demo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ F. A11Y ═══ -->
+<section>
+  <h2>F · Accessibility &amp; hardware reality</h2>
+  <p class="sectionsub">This UI runs on counter touchscreens, a phone in a van, and a manager's laptop. Only the laptop case is currently well served.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">19</span>
+      <div class="ftitle">
+        <div class="t">Interactive divs without roles or keyboard access</div>
+        <div class="s">Order cards, table rows and product tiles are clickable <span class="tag">&lt;div&gt;</span>s — no tab stop, no Enter, no announced role.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Anything with <span class="tag">onClick</span> becomes a <span class="tag">&lt;button&gt;</span> (or gets <span class="tag">role</span> + <span class="tag">tabIndex</span> + key handler). The POS is a keyboard-and-scanner instrument; a cashier who can't tab to the tender button has to take a hand off the scanner.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">20</span>
+      <div class="ftitle">
+        <div class="t">Icon-only buttons without labels</div>
+        <div class="s"><span class="tag">IconBtn</span> takes a <span class="tag">title</span> but many call sites omit it, and <span class="tag">title</span> isn't an accessible name on touch.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> Make <span class="tag">label</span> required on <span class="tag">IconBtn</span> and emit it as <span class="tag">aria-label</span>; keep <span class="tag">title</span> for the mouse tooltip. Also give it a real 40px hit box — it has one, which is good, but the visual glyph should stay 16–18px inside it.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">21</span>
+      <div class="ftitle">
+        <div class="t">No reduced-motion path, and modals don't trap focus</div>
+        <div class="s">Every overlay animates <span class="tag">fade .15s</span>; scrims close on click but don't return focus or block tab.</div>
+      </div>
+      <span class="sev low">Low</span>
+    </div>
+    <div class="fbody">
+      <p class="fx"><b>Fix.</b> One <span class="tag">@media (prefers-reduced-motion)</span> block per app that zeroes durations, and a shared <span class="tag">Sheet</span>/<span class="tag">Modal</span> primitive that owns focus trap, Escape, scroll lock and return-focus. Right now each modal re-implements the scrim and skips the rest.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ I. BASE SCHEME ═══ -->
+<section>
+  <h2>G · Base scheme — answering “I don’t love it”</h2>
+  <p class="sectionsub">Two questions came back on the surface roles: should page and card swap, and what else could the workspace canvas be? Here is the diagnosis and four directions.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">22</span>
+      <div class="ftitle">
+        <div class="t">The flat feeling isn’t the colours — it’s a 4% step</div>
+        <div class="s">Page <span class="mono">#F4F2EC</span> against card <span class="mono">#FFFFFF</span> is a 4% lightness difference. That is not enough for cards to read as objects, so a busy screen resolves into one continuous beige field.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">bg <b>#F4F2EC</b> (L 95.6) → surface <b>#FFFFFF</b> (L 100) = <b>4.4 points</b><br/>a comfortable card-on-page step is <span class="ok">7–10 points</span> · a dense grid wants the upper end</div>
+      <p class="fx"><b>So flipping is a real option, but it is not the only one</b> — and flipping alone doesn’t fix the step, it just moves the warmth. All four directions below hold the same ink, the same rail and the same yellow; only the base changes.</p>
+
+      <div class="schemes">
+        <div class="scheme">
+          <div class="ohead"><span class="obadge">Today</span><span class="oname">A · Warm page, white card</span></div>
+          <div class="mini">
+            <div class="rail" style="background:#13130F"></div>
+            <div class="page" style="background:#F4F2EC">
+              <div class="card" style="background:#FFFFFF;border:1px solid rgba(15,15,12,.14)"><div class="t" style="color:#0F0F0C">Blue Dream · 3.5g</div><div class="price" style="color:#0F0F0C">$28.00</div></div>
+              <div class="btn" style="background:#FFD100;color:#1A1400">Tender</div>
+              <div class="well" style="background:#EDEFF3;color:rgba(15,15,12,.42)">canvas well</div>
+            </div>
+          </div>
+          <p class="ocopy">Distinctive and warm, but the card barely lifts off the page and the cool well makes three temperatures fight in one frame.</p>
+          <div class="ometa">step <b>4.4</b> · two temperatures</div>
+        </div>
+
+        <div class="scheme">
+          <div class="ohead"><span class="obadge">Asked for</span><span class="oname">B · Flipped — white page, warm card</span></div>
+          <div class="mini">
+            <div class="rail" style="background:#13130F"></div>
+            <div class="page" style="background:#FFFFFF">
+              <div class="card" style="background:#F5F2EA;border:1px solid rgba(15,15,12,.10)"><div class="t" style="color:#0F0F0C">Blue Dream · 3.5g</div><div class="price" style="color:#0F0F0C">$28.00</div></div>
+              <div class="btn" style="background:#FFD100;color:#1A1400">Tender</div>
+              <div class="well" style="background:#F5F2EA;color:rgba(15,15,12,.42)">canvas well</div>
+            </div>
+          </div>
+          <p class="ocopy">Lighter and more modern, and the warmth moves onto the objects you actually touch. <b>The catch:</b> cards now sit <i>darker</i> than the page, which reads as recessed — fine for a form, wrong for a product grid where cards should feel liftable. Also loses the paper feel that makes the POS distinctive.</p>
+          <div class="ometa">step <b>4.0</b> inverted · one temperature</div>
+        </div>
+
+        <div class="scheme rec">
+          <div class="ohead"><span class="obadge rec">Recommended</span><span class="oname">C · Deeper paper, white card</span></div>
+          <div class="mini">
+            <div class="rail" style="background:#13130F"></div>
+            <div class="page" style="background:#E9E5DA">
+              <div class="card" style="background:#FFFFFF;border:1px solid rgba(15,15,12,.08)"><div class="t" style="color:#0F0F0C">Blue Dream · 3.5g</div><div class="price" style="color:#0F0F0C">$28.00</div></div>
+              <div class="btn" style="background:#FFD100;color:#1A1400">Tender</div>
+              <div class="well" style="background:#DFDACE;color:rgba(15,15,12,.46)">canvas well</div>
+            </div>
+          </div>
+          <p class="ocopy">Same direction, three shades deeper on the page only. Cards snap forward, hairlines can get <i>lighter</i> (the step is doing the work), and one temperature runs the whole screen. <b>The smallest change with the biggest effect</b> — two token values.</p>
+          <div class="ometa">step <b>9.6</b> · one temperature · 2 values change</div>
+        </div>
+
+        <div class="scheme">
+          <div class="ohead"><span class="obadge">Direction</span><span class="oname">D · Cool neutral</span></div>
+          <div class="mini">
+            <div class="rail" style="background:#101317"></div>
+            <div class="page" style="background:#E9ECF1">
+              <div class="card" style="background:#FFFFFF;border:1px solid rgba(16,19,23,.09)"><div class="t" style="color:#12141A">Blue Dream · 3.5g</div><div class="price" style="color:#12141A">$28.00</div></div>
+              <div class="btn" style="background:#FFD100;color:#1A1400">Tender</div>
+              <div class="well" style="background:#DDE2E9;color:rgba(16,19,23,.46)">canvas well</div>
+            </div>
+          </div>
+          <p class="ocopy">Reads as serious software and makes the yellow pop hardest of the four. It also throws away the one thing that makes this not look like every other dashboard — I’d only go here if the warm base is disliked on principle rather than for the flatness.</p>
+          <div class="ometa">step <b>7.9</b> · one temperature · ~14 values change</div>
+        </div>
+      </div>
+
+      <p class="fx"><b>My answer on the flip:</b> don’t. The instinct behind it is right — the scheme feels flat — but the cause is the 4% step, not which surface holds the warmth. Deepening the page (C) fixes it while keeping cards liftable and the paper character intact. If you want to see B and C live on the register before deciding, that is a one-hour job.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">23</span>
+      <div class="ftitle">
+        <div class="t">Canvas options — pick a temperature and stay there</div>
+        <div class="s">The cool slate canvas was introduced to stop dense boards reading muddy. It works, but it means a warm page and a cool workspace in the same frame — which is a large part of why the scheme feels unresolved.</div>
+      </div>
+      <span class="sev med">Medium</span>
+    </div>
+    <div class="fbody">
+      <div class="schemes">
+        <div class="scheme">
+          <div class="ohead"><span class="obadge">Today</span><span class="oname">1 · Cool slate</span></div>
+          <div class="row" style="padding:13px 12px;gap:0">
+            <span style="flex:1;height:52px;background:#EDEFF3"></span>
+            <span style="flex:1;height:52px;background:#E1E6EC"></span>
+          </div>
+          <div class="ometa" style="border-top:1px solid var(--hair)"><span class="mono">#EDEFF3 / #E1E6EC</span></div>
+          <p class="ocopy">Cleanest for data density; clearly a different material from the page. But it is the second temperature in the system.</p>
+        </div>
+        <div class="scheme rec">
+          <div class="ohead"><span class="obadge rec">Recommended</span><span class="oname">2 · Warm greige</span></div>
+          <div class="row" style="padding:13px 12px;gap:0">
+            <span style="flex:1;height:52px;background:#EDEAE2"></span>
+            <span style="flex:1;height:52px;background:#DFDACE"></span>
+          </div>
+          <div class="ometa" style="border-top:1px solid var(--hair)"><span class="mono">#EDEAE2 / #DFDACE</span></div>
+          <p class="ocopy">Same greige family as the page, two steps deeper. One temperature end to end; depth comes from lightness rather than hue. Pairs with scheme C.</p>
+        </div>
+        <div class="scheme">
+          <div class="ohead"><span class="obadge">Neutral</span><span class="oname">3 · Graphite</span></div>
+          <div class="row" style="padding:13px 12px;gap:0">
+            <span style="flex:1;height:52px;background:#EDEEEF"></span>
+            <span style="flex:1;height:52px;background:#DFE1E3"></span>
+          </div>
+          <div class="ometa" style="border-top:1px solid var(--hair)"><span class="mono">#EDEEEF / #DFE1E3</span></div>
+          <p class="ocopy">Hue-free — takes no side between warm and cool, so it never clashes with either. The safe pick if the canvas has to work under both the POS and the Hyperdrive consoles.</p>
+        </div>
+      </div>
+      <p class="fx"><b>Rule either way:</b> the canvas is <i>always</i> darker than the page and never holds text directly — it is the backdrop behind cards, nothing else. That one constraint is what keeps it from becoming a fifth surface colour.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TOKENS ═══ -->
+<section>
+  <h2>H · Token additions</h2>
+  <p class="sectionsub">Everything above resolves into 14 new tokens and three retirements. No existing value changes.</p>
+  <div class="finding">
+    <div class="fbody">
+      <table>
+        <thead><tr><th style="width:190px">Token</th><th style="width:250px">Light / dark</th><th>Replaces</th></tr></thead>
+        <tbody>
+          <tr><td class="m"><b>accentText</b></td><td class="m">see finding 2 — option 1 needs none</td><td>20+ inline <span class="mono">'#7A5A00'</span> literals</td></tr>
+          <tr><td class="m"><b>accentHover</b> · <b>accentActive</b></td><td class="m">color-mix −6% / −12%</td><td>inline <span class="mono">'#FFDA33'</span></td></tr>
+          <tr><td class="m"><b>highlightSoft</b></td><td class="m">surface3 / rgba(255,255,255,.05)</td><td>decorative uses of <span class="tag">accentSoft</span></td></tr>
+          <tr><td class="m"><b>focusRing</b></td><td class="m">0 0 0 2px surface, 0 0 0 4px info</td><td>nothing — new capability</td></tr>
+          <tr><td class="m"><b>disabledBg</b> · <b>disabledInk</b> · <b>disabledBorder</b></td><td class="m">surface3 / inkMute / hairline2</td><td><span class="mono">opacity:.45</span></td></tr>
+          <tr><td class="m"><b>ctrlH.sm/md/lg</b></td><td class="m">32 / 40 / 48</td><td>five padding-based button sizes</td></tr>
+          <tr><td class="m"><b>space</b> (4·8·12·16·20·24·32)</td><td class="m">shared</td><td>ad-hoc 9/11/13/15/18/22 gaps</td></tr>
+          <tr><td class="m"><b>type</b> (7 named steps)</td><td class="m">shared</td><td>19 ad-hoc font sizes</td></tr>
+          <tr><td class="m dup">retire <b>hue{}</b></td><td class="m">—</td><td>decorative-only; use <span class="tag">cat</span></td></tr>
+          <tr><td class="m dup">retire <b>r6 r16 r24</b></td><td class="m">—</td><td>keep 8 / 12 / 20 / 999</td></tr>
+          <tr><td class="m dup">retire <b>soft</b> button variant</td><td class="m">—</td><td>secondary</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PLAN ═══ -->
+<section>
+  <h2>I · Sequenced plan</h2>
+  <p class="sectionsub">Ordered so that each phase is shippable on its own and nothing is a big-bang rewrite.</p>
+  <div class="finding">
+    <div class="fbody" style="padding:6px 20px">
+      <div class="phase">
+        <span class="pnum">1</span>
+        <div class="pbody">
+          <div class="pt">Tokens &amp; find-and-replace</div>
+          <div class="pd">Add the 14 tokens. Replace the gold literals, the hover hex and the 620 weight. Zero visual change, so it can ship without review.</div>
+          <div class="pf">pos/tokens.jsx · 11 files touched by search-and-replace</div>
+        </div>
+        <span class="effort">½ day</span>
+      </div>
+      <div class="phase">
+        <span class="pnum">2</span>
+        <div class="pbody">
+          <div class="pt">Atoms: buttons, focus, cards</div>
+          <div class="pd">Rebuild <span class="tag">PBtn</span> on min-heights and four variants (keep the old prop names as aliases so no call site breaks), add <span class="tag">:focus-visible</span> and <span class="tag">busy</span> to every atom, split <span class="tag">Card</span> into flat/raised/sunken with density instead of a padding number.</div>
+          <div class="pf">pos/atoms.jsx only — every app inherits it the moment it reloads</div>
+        </div>
+        <span class="effort">1–2 days</span>
+      </div>
+      <div class="phase">
+        <span class="pnum">3</span>
+        <div class="pbody">
+          <div class="pt">Yellow discipline &amp; type scale</div>
+          <div class="pd">One accent action per view; selected states to ink; decorative washes to <span class="tag">highlightSoft</span>. Round the 19 font sizes onto the 7 steps. This is the phase that changes how it <i>looks</i>, so it wants a screen-by-screen pass — start with the register and orders board.</div>
+          <div class="pf">screen-by-screen · POS first, then Engage, Promotions, Pipeline</div>
+        </div>
+        <span class="effort">3–4 days</span>
+      </div>
+      <div class="phase">
+        <span class="pnum">4</span>
+        <div class="pbody">
+          <div class="pt">Merge the HD kit &amp; add the missing states</div>
+          <div class="pd">Fold <span class="tag">HDPill</span>/<span class="tag">StatTile</span>/<span class="tag">hdToast</span>/<span class="tag">SubHeader</span> into the shared kit behind aliases, then adopt one page shell. Add <span class="tag">EmptyState</span>, <span class="tag">Skeleton</span>, <span class="tag">ErrorState</span>, and the shared <span class="tag">Modal</span> with focus trap.</div>
+          <div class="pf">shared/hd-ui.jsx → pos/atoms.jsx · new shared/toast.js, shared/states.jsx</div>
+        </div>
+        <span class="effort">2–3 days</span>
+      </div>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:26px;margin-bottom:0">
+    <p><b>What I'd do first if you only want one thing:</b> phases 1 and 2. They are invisible-to-slightly-better, they touch two files, and they retire the four highest-severity findings (missing token, focus states, touch targets, disabled contrast). Phase 3 is the one that makes the product look decisively sharper — but it's also the one that needs your eye on each screen, so it shouldn't be batched blind.</p>
+  </div>
+</section>
+
+</div>
+</body>
+</html>

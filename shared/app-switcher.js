@@ -29,7 +29,7 @@
   menu.style.cssText = 'position:absolute;right:0;bottom:52px;width:222px;max-height:70vh;overflow:auto;background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .14s,transform .14s';
   var head = document.createElement('div');
   head.textContent = 'Hyperwolf apps';
-  head.style.cssText = 'font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#726d61;padding:8px 10px 7px';
+  head.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#726d61;padding:8px 10px 7px';
   menu.appendChild(head);
   APPS.forEach(function (a) {
     var cur = here === a[0].toLowerCase();

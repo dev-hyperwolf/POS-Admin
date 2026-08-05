@@ -14,8 +14,8 @@ function CompareBoard() {
   const cols = ['Flow', 'Core idea', 'Best for', 'Taps', 'Trade-off'];
   return (
     <div style={{ width: '100%', height: '100%', background: P.surface, fontFamily: P.fontSans, color: P.ink, padding: '26px 30px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 6 }}>For the dev team</div>
-      <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-.01em', marginBottom: 4 }}>Five flows, one rule set</div>
+      <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono, marginBottom: 6 }}>For the dev team</div>
+      <div style={{ fontSize: 21, fontWeight: 700, letterSpacing: '-.01em', marginBottom: 4 }}>Five flows, one rule set</div>
       <div style={{ fontSize: 12.5, color: P.inkDim, maxWidth: 720, marginBottom: 18 }}>Every flow enforces the same logic: credits (points + wallet) come off the total first, then a Split takes the <b>cash amount before card</b> so the merchant fee only lands on the card base. Both fee structures — <b>6% flat</b> and <b>5% + $0.50</b> — are always shown side-by-side to pick from.</div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
         <thead><tr>{cols.map((c, i) => <th key={c} style={{ textAlign: 'left', padding: '9px 12px', fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkDim, borderBottom: `1.5px solid ${P.hairline3}`, fontFamily: P.fontMono, width: i === 0 ? '20%' : i === 1 ? '26%' : i === 4 ? '26%' : 'auto' }}>{c}</th>)}</tr></thead>
@@ -23,7 +23,7 @@ function CompareBoard() {
       </table>
       <div style={{ marginTop: 'auto', paddingTop: 18, display: 'flex', gap: 22, flexWrap: 'wrap' }}>
         {[['Total', '$34.63', 'demo cart · 2 items'], ['If cash', '$10.00', 'entered first'], ['Card base', '$9.63', 'after credits + cash'], ['6% flat', '+$0.58', 'card charged $10.21'], ['5% + $0.50', '+$0.98', 'card charged $10.61']].map((m, i) => (
-          <div key={i} style={{ minWidth: 92 }}><div style={{ fontSize: 9.5, color: P.inkMute, letterSpacing: '.08em', textTransform: 'uppercase', fontFamily: P.fontMono }}>{m[0]}</div><div style={{ fontSize: 19, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{m[1]}</div><div style={{ fontSize: 10, color: P.inkDim, fontFamily: P.fontMono }}>{m[2]}</div></div>
+          <div key={i} style={{ minWidth: 92 }}><div style={{ fontSize: 10, color: P.inkMute, letterSpacing: '.08em', textTransform: 'uppercase', fontFamily: P.fontMono }}>{m[0]}</div><div style={{ fontSize: 21, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{m[1]}</div><div style={{ fontSize: 10, color: P.inkDim, fontFamily: P.fontMono }}>{m[2]}</div></div>
         ))}
       </div>
     </div>

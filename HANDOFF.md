@@ -4,6 +4,23 @@
 
 If you built against the previous export, these are the deltas. Everything else is unchanged.
 
+0. **Selection is ink, never accent — a rule, not a one-off.** A UI audit found the cool
+   `canvas`/`canvas2` ramp (item 3 below) had leaked into ordinary content chrome in the pipeline
+   app — table heads, icon plates, hover states, filter bars, notes panels, sticky footers, ~62
+   call sites across 15 files — and that several single-select tab/chip groups (Inbox's view
+   toggle and status filter, inventory's location filter and sort chips, buyer analytics' time
+   horizon and store/category filters, three Engage Analytics window/sort/model toggles, Engage's
+   ops actor filter, and the shared `MultiSelectFilter` dropdown used everywhere) were filling the
+   *selected* option solid accent yellow instead of ink. Both are fixed at the source now:
+   `canvas`/`canvas2` render only the true workspace backdrop (root wrapper, sidebar, kanban
+   lanes); every tab/chip/filter's active state is `background: P.ink, color: P.surface` (or the
+   outline equivalent). If you're porting a screen and see accent used for anything other than
+   the one primary action per view or the loyalty brand color, that's the bug this fixed — replace
+   it with ink, don't re-introduce it. `HDTable`'s cell padding was also tightened 1px to match
+   `DataTable`'s dense mode. One remaining structural item, not yet done: `HDTable`
+   (`shared/hd-ui.jsx`) and `DataTable` (`pos/atoms.jsx`) are still two separate table
+   implementations — ~28 call sites use HDTable's raw `<thead>/<tbody>` slot API rather than
+   DataTable's `columns`/`rows` props, so unifying them is a deliberate follow-up, not a drive-by.
 1. **One brand DB.** `shared/brands.js` (`window.HW_BRANDS`, 16 vendors) is now the only place a
    brand/vendor name is written. POS catalog rows, POS product shells, the pipeline vendor list,
    vendor scorecards and buyer analytics all read from it. **Vendors ARE brands** — do not model

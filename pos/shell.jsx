@@ -56,7 +56,7 @@ function HeaderViewMenu({ hv, setHv }) {
       {open && <>
         <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 400 }} />
         <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, width: 196, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, padding: 6, zIndex: 401 }}>
-          <div style={{ padding: '4px 9px 7px', fontSize: 9.5, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Header layout</div>
+          <div style={{ padding: '4px 9px 7px', fontSize: 10, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Header layout</div>
           {opts.map((o) => {
             const a = o.value === hv;
             return (
@@ -84,20 +84,20 @@ function PrinterStatus() {
       <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 286, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, padding: 12, zIndex: 401 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
           <Icon name="printer" size={15} stroke={1.9} color={P.ink2} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Receipt printer</span>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Receipt printer</span>
           <div style={{ flex: 1 }} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, color: ok ? P.good : P.bad }}><span style={{ width: 6, height: 6, borderRadius: 99, background: ok ? P.good : P.bad }} />{ok ? 'Ready' : 'Low paper'}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 700, color: ok ? P.good : P.bad }}><span style={{ width: 6, height: 6, borderRadius: 99, background: ok ? P.good : P.bad }} />{ok ? 'Ready' : 'Low paper'}</span>
         </div>
         <div style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden', marginBottom: 10 }}>
           {[['Model', 'Epson TM-m30'], ['Connection', 'Network · 192.168.4.21'], ['Station', 'Front Counter 1'], ['Last receipt', '2 min ago']].map(([k, v], i) =>
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 11px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
-              <span style={{ fontSize: 11, color: P.inkDim }}>{k}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{v}</span>
+              <span style={{ fontSize: 11.5, color: P.inkDim }}>{k}</span>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{v}</span>
             </div>)}
         </div>
         {!ok && <div style={{ display: 'flex', gap: 8, padding: '9px 11px', background: P.badSoft, borderRadius: P.r10, marginBottom: 10 }}>
           <Icon name="shield" size={13} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
-          <span style={{ fontSize: 11, color: P.ink2, lineHeight: 1.45 }}>Paper roll is nearly out. Replace it before the next rush — sales still complete, but receipts will not print.</span>
+          <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Paper roll is nearly out. Replace it before the next rush — sales still complete, but receipts will not print.</span>
         </div>}
         <div style={{ display: 'flex', gap: 7 }}>
           <PBtn variant="secondary" size="sm" icon="receipt" full onClick={() => setOpen(false)}>Reprint last</PBtn>
@@ -118,34 +118,34 @@ window.TopBar = function TopBar({ user, onMode, mode }) {
 
   const Fig = ({ label, value, accent }) =>
   <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 700, color: accent ? P.mode === 'light' ? '#7A5A00' : P.accent : P.ink, fontFamily: P.fontMono }}>{value}</span>
+      <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 700, color: accent ? P.accentText : P.ink, fontFamily: P.fontMono }}>{value}</span>
     </span>;
   const dot = <span style={{ color: P.inkFaint }}>·</span>;
   const StatPill = ({ label, value, accent }) =>
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, whiteSpace: 'nowrap' }}>
       <span style={{ width: 5, height: 5, borderRadius: 99, background: accent ? P.accent : P.inkFaint }} />
-      <span style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase' }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span>
+      <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span>
     </span>;
 
   const trend = a.aovDelta.day;
-  const trendEl = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10.5, fontWeight: 700, color: trend >= 0 ? P.good : P.bad, fontFamily: P.fontMono }}><Icon name={trend >= 0 ? 'trending-up' : 'trending-up'} size={11} stroke={2.2} />{trend >= 0 ? '+' : ''}{trend}%</span>;
+  const trendEl = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 11.5, fontWeight: 700, color: trend >= 0 ? P.good : P.bad, fontFamily: P.fontMono }}><Icon name={trend >= 0 ? 'trending-up' : 'trending-up'} size={11} stroke={2.2} />{trend >= 0 ? '+' : ''}{trend}%</span>;
 
   // Mini stat card: icon + label + big value + sub
   const StatCard = ({ icon, label, value, sub, accent }) =>
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px 5px 8px', background: P.surface2, border: `1px solid ${accent ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, whiteSpace: 'nowrap', flex: '0 1 auto', minWidth: 0, overflow: 'hidden' }}>
       <span style={{ width: 24, height: 24, borderRadius: 6, background: accent ? P.accent : P.surface3, color: accent ? P.accentInk : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={13} stroke={1.9} /></span>
       <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15, minWidth: 0 }}>
-        <span style={{ fontSize: 8.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}><span style={{ fontSize: 13, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span><span style={{ fontSize: 9.5, color: P.inkDim, fontFamily: P.fontMono }}>{sub}</span></span>
+        <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{value}</span><span style={{ fontSize: 10, color: P.inkDim, fontFamily: P.fontMono }}>{sub}</span></span>
       </span>
     </span>;
 
   // Grouped figures (store cluster, me cluster) for the split view
   const Group = ({ title, children, accent }) =>
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: accent ? P.mode === 'light' ? '#7A5A00' : P.accent : P.inkMute }}>{title}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: accent ? P.accentText : P.inkMute }}>{title}</span>
       {children}
     </span>;
 
@@ -186,7 +186,7 @@ window.TopBar = function TopBar({ user, onMode, mode }) {
         <Avatar name={user.name} size={32} />
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2, minWidth: 0 }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</span>
-          <span style={{ fontSize: 10.5, color: P.inkDim, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.role}</span>
+          <span style={{ fontSize: 11.5, color: P.inkDim, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.role}</span>
         </span>
         <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} style={{ flex: '0 0 auto' }} />
       </button>

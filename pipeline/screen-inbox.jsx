@@ -27,26 +27,26 @@
     return (
       <Card padding={16} style={{ gridColumn: 'span 2' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
             <span style={{ color: HD.tone(P, 'ok').fg, display: 'inline-flex' }}><Icon name="check-circle" size={16} stroke={1.9} /></span>
             <span>Auto Post Rate</span>
             <span title={TOOLTIP} aria-label="Auto Post Rate explanation" style={{ cursor: 'help', display: 'inline-flex' }}><Icon name="info" size={11} stroke={2} /></span>
           </div>
-          <div role="group" aria-label="Auto Post Rate window" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.canvas, padding: 2 }}>
+          <div role="group" aria-label="Auto Post Rate window" style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface2, padding: 2 }}>
             {['7d', '30d', '90d'].map((w) => (
               <button key={w} onClick={() => setWin(w)} aria-pressed={win === w}
-                style={{ height: 22, padding: '0 10px', borderRadius: 99, fontSize: 11, fontWeight: 600, fontFamily: P.fontMono, cursor: 'pointer', border: 'none',
+                style={{ height: 22, padding: '0 10px', borderRadius: 99, fontSize: 11.5, fontWeight: 600, fontFamily: P.fontMono, cursor: 'pointer', border: 'none',
                   background: win === w ? P.accent : 'transparent', color: win === w ? P.accentInk : P.inkDim }}>{w}</button>))}
           </div>
         </div>
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <div title={TOOLTIP} style={{ fontSize: 36, lineHeight: 1, color: P.ink, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>{headline}%</div>
-            <div style={{ marginTop: 6, fontSize: 12, color: P.inkMute }}>{SUBTITLE[win]}</div>
+            <div style={{ marginTop: 6, fontSize: 12.5, color: P.inkMute }}>{SUBTITLE[win]}</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
             <Spark data={metric.series} color={arrowTone} width={84} height={32} />
-            <div title="Change vs prior equivalent period" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 11, color: arrowTone, fontFamily: P.fontMono }}>
+            <div title="Change vs prior equivalent period" style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 11.5, color: arrowTone, fontFamily: P.fontMono }}>
               <Icon name={direction === 'up' ? 'arrow-up' : direction === 'down' ? 'arrow-down' : 'arrow-right'} size={12} stroke={2.2} />
               <span>{deltaPct > 0 ? '+' : ''}{deltaPct}% vs prior</span>
             </div>
@@ -60,11 +60,11 @@
     const valueColor = tone === 'brand' ? (P.mode === 'dark' ? P.accent : P.accentBorder) : HD.tone(P, tone === 'ok' ? 'ok' : tone === 'warn' ? 'warn' : 'blocked').fg;
     return (
       <Card padding={16}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
           <Icon name={icon} size={16} stroke={1.9} /><span>{label}</span>
         </div>
-        <div style={{ marginTop: 6, fontSize: 28, lineHeight: 1, color: valueColor, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>{value}</div>
-        {sub && <div style={{ marginTop: 6, fontSize: 12, color: P.inkMute }}>{sub}</div>}
+        <div style={{ marginTop: 6, fontSize: 30, lineHeight: 1, color: valueColor, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>{value}</div>
+        {sub && <div style={{ marginTop: 6, fontSize: 12.5, color: P.inkMute }}>{sub}</div>}
       </Card>);
   }
 
@@ -77,10 +77,10 @@
           const active = value === o.id;
           return (
             <button key={o.id} onClick={() => onChange(o.id)} aria-pressed={active}
-              style={{ height: 30, padding: '0 12px', borderRadius: 6, fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: 'none', fontFamily: P.fontSans,
-                background: active ? P.accent : 'transparent', color: active ? P.accentInk : P.inkDim }}>
+              style={{ height: 30, padding: '0 12px', borderRadius: 6, fontSize: 13.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', border: 'none', fontFamily: P.fontSans,
+                background: active ? P.surface : 'transparent', color: active ? P.ink : P.inkDim, boxShadow: active ? P.shadowSm : 'none' }}>
               <span>{o.label}</span>
-              <span style={{ fontSize: 11, fontFamily: P.fontMono, opacity: active ? .8 : 1, color: active ? P.accentInk : P.inkMute }}>({o.count})</span>
+              <span style={{ fontSize: 11.5, fontFamily: P.fontMono, opacity: active ? .8 : 1, color: active ? P.ink : P.inkMute }}>({o.count})</span>
             </button>);
         })}
       </div>);
@@ -96,11 +96,11 @@
           const meta = o.value === 'all' ? null : HD.INBOX_STATUS_META[o.value];
           return (
             <button key={o.value} onClick={() => onChange(o.value)} title={meta?.description} aria-pressed={active}
-              style={{ height: 30, padding: '0 12px', borderRadius: 99, fontSize: 13, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: P.fontSans,
-                background: active ? P.accent : 'transparent', color: active ? P.accentInk : P.inkDim, border: `1px solid ${active ? P.accent : P.hairline2}` }}>
+              style={{ height: 30, padding: '0 12px', borderRadius: 99, fontSize: 13.5, fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: P.fontSans,
+                background: active ? P.ink : 'transparent', color: active ? P.surface : P.inkDim, border: `1px solid ${active ? P.ink : P.hairline2}` }}>
               {meta && <Icon name={meta.icon} size={12} stroke={2} />}
               <span>{o.label}</span>
-              <span style={{ fontSize: 11, fontFamily: P.fontMono, color: active ? P.accentInk : P.inkMute, opacity: active ? .8 : 1 }}>{counts[o.value] ?? 0}</span>
+              <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: active ? P.surface : P.inkMute, opacity: active ? .8 : 1 }}>{counts[o.value] ?? 0}</span>
             </button>);
         })}
       </div>);
@@ -125,33 +125,33 @@
               </div>
             </div>
           </div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: P.ink, textAlign: 'center', letterSpacing: '-.01em' }}>{title}</h2>
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: P.inkDim, textAlign: 'center' }}>{body}</p>
+          <h2 style={{ margin: 0, fontSize: 21, fontWeight: 600, color: P.ink, textAlign: 'center', letterSpacing: '-.01em' }}>{title}</h2>
+          <p style={{ margin: '6px 0 0', fontSize: 13.5, color: P.inkDim, textAlign: 'center' }}>{body}</p>
           {mode === 'empty' && (
             <React.Fragment>
               <div style={{ marginTop: 20, borderRadius: P.r12, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, padding: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
                   <Icon name="sparkle" size={12} stroke={2} />Forward to your intake inbox
                 </div>
                 <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <code style={{ flex: 1, fontFamily: P.fontMono, fontSize: 14, color: P.ink, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, padding: '8px 12px' }}>{FORWARDING_ADDRESS}</code>
+                  <code style={{ flex: 1, fontFamily: P.fontMono, fontSize: 13.5, color: P.ink, background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, padding: '8px 12px' }}>{FORWARDING_ADDRESS}</code>
                   <PBtn variant="accent" icon="copy" aria-label="Copy forwarding address" onClick={() => {
                     navigator.clipboard?.writeText(FORWARDING_ADDRESS)
                       .then(() => window.hdToast?.({ title: 'Copied', description: `${FORWARDING_ADDRESS} is ready to paste.`, tone: 'ok' }))
                       .catch(() => window.hdToast?.({ title: "Couldn't copy", description: 'Clipboard blocked — copy it manually.', tone: 'warn' }));
                   }}>Copy</PBtn>
                 </div>
-                <p style={{ margin: '8px 0 0', fontSize: 12, color: P.inkMute }}>Anything sent here lands in Hyperdrive within 30 seconds — PDFs, email bodies, phone-photo attachments. We strip the duplicates and split the attachments automatically.</p>
+                <p style={{ margin: '8px 0 0', fontSize: 12.5, color: P.inkMute }}>Anything sent here lands in Hyperdrive within 30 seconds — PDFs, email bodies, phone-photo attachments. We strip the duplicates and split the attachments automatically.</p>
               </div>
               <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
                 {[{ icon: 'download', title: 'Upload a PDF', sub: 'Drop files straight onto this panel', onClick: () => window.hdToast?.({ title: 'Upload stub', description: 'Drag-and-drop upload lands in Sprint One.', tone: 'info' }) },
                   { icon: 'scan', title: 'Scan on the floor', sub: 'Mobile intake pairs a manifest with a packing slip photo', onClick: () => navigate('#/scan') }].map((a) => (
                   <button key={a.title} onClick={a.onClick} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas)} onMouseLeave={(e) => (e.currentTarget.style.background = P.surface)}>
-                    <div style={{ height: 32, width: 32, borderRadius: 8, background: P.canvas2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.ink2, flex: '0 0 auto' }}><Icon name={a.icon} size={14} stroke={1.9} /></div>
+                    onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = P.surface)}>
+                    <div style={{ height: 32, width: 32, borderRadius: 8, background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.ink2, flex: '0 0 auto' }}><Icon name={a.icon} size={14} stroke={1.9} /></div>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, color: P.ink, fontWeight: 500 }}>{a.title}</div>
-                      <div style={{ fontSize: 11, color: P.inkMute }}>{a.sub}</div>
+                      <div style={{ fontSize: 13.5, color: P.ink, fontWeight: 500 }}>{a.title}</div>
+                      <div style={{ fontSize: 11.5, color: P.inkMute }}>{a.sub}</div>
                     </div>
                   </button>))}
               </div>
@@ -174,15 +174,15 @@
     return (
       <div ref={ref} style={{ position: 'relative' }}>
         <button onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }} aria-label="More actions" title="More actions"
-          style={{ height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: open ? P.canvas2 : 'transparent', color: P.inkMute, cursor: 'pointer' }}>
+          style={{ height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: open ? P.surface3 : 'transparent', color: P.inkMute, cursor: 'pointer' }}>
           <Icon name="menu" size={15} stroke={2} />
         </button>
         {open && (
           <div role="menu" style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 30, minWidth: 176, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface, boxShadow: P.shadowLg, padding: '4px 0' }}>
             {items.map((it) => (
               <button key={it.label} role="menuitem" onClick={(e) => { e.stopPropagation(); setOpen(false); }}
-                style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 12px', fontSize: 13, color: P.ink2, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 12px', fontSize: 13.5, color: P.ink2, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                 <Icon name={it.icon} size={13} stroke={1.9} /><span>{it.label}</span>
               </button>))}
           </div>)}
@@ -194,18 +194,18 @@
     const single = !isMapped && inv.varianceSeverity === 'none' && typeof inv.confidence === 'number' && inv.confidence >= 0.92 && inv.inboxStatus !== 'autoposted';
     const ok = HD.tone(P, 'ok');
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
-    if (isMapped) return <span style={{ fontSize: 12, color: P.inkMute }}>—</span>;
+    if (isMapped) return <span style={{ fontSize: 12.5, color: P.inkMute }}>—</span>;
     if (single) {
       const pct = Math.round(inv.confidence * 100);
       return (
         <button onClick={(e) => e.stopPropagation()} title={`AI-suggested action: Approve. Confidence ${pct}%, validation passed.`}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 6, background: ok.bg, color: ok.fg, border: `1px solid ${ok.fg}66`, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 6, background: ok.bg, color: ok.fg, border: `1px solid ${ok.fg}66`, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
           <Icon name="sparkle" size={11} stroke={2} /><Icon name="check" size={12} stroke={2.4} /><span>Approve</span>
         </button>);
     }
     return (
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
-        <button title="Approve" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 6, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+        <button title="Approve" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 6, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
           <Icon name="check" size={12} stroke={2.4} /><span>Approve</span>
         </button>
         <OverflowMenu />
@@ -215,11 +215,11 @@
   function InvoiceList({ invoices, selectedId, onSelect, expandedId, onToggleExpanded }) {
     const P = useP(), HD = window.HD;
     const snap = window.HD_MAPPING.useMappingStore();
-    const th = { textAlign: 'left', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, padding: '8px 12px', borderBottom: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap' };
+    const th = { textAlign: 'left', fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, padding: '8px 12px', borderBottom: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap' };
     return (
       <div style={{ overflow: 'auto', maxHeight: '100%' }}>
-        <table style={{ width: '100%', fontSize: 13, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans }}>
-          <thead style={{ position: 'sticky', top: 0, background: P.canvas, zIndex: 5 }}>
+        <table style={{ width: '100%', fontSize: 13.5, borderCollapse: 'separate', borderSpacing: 0, fontFamily: P.fontSans }}>
+          <thead style={{ position: 'sticky', top: 0, background: P.surface2, zIndex: 5 }}>
             <tr>
               <th style={{ ...th, width: 32 }} aria-label="Expand"></th>
               <th style={th}>Status</th><th style={th}>Invoice</th><th style={th}>Vendor</th><th style={th}>Received</th>
@@ -236,7 +236,7 @@
               return (
                 <React.Fragment key={inv.id}>
                   <tr tabIndex={0} onClick={() => onSelect(inv.id)} aria-selected={isSelected} aria-expanded={isExpanded}
-                    style={{ cursor: 'pointer', background: isSelected ? P.accentSoft : idx % 2 === 1 ? P.canvas : 'transparent', outline: isSelected ? `1px solid ${P.accentBorder}` : 'none' }}>
+                    style={{ cursor: 'pointer', background: isSelected ? P.accentSoft : idx % 2 === 1 ? P.surface2 : 'transparent', outline: isSelected ? `1px solid ${P.accentBorder}` : 'none' }}>
                     <td style={{ ...td, width: 32 }}>
                       <button onClick={(e) => { e.stopPropagation(); onToggleExpanded(inv.id); }} aria-label={isExpanded ? 'Collapse AI matches' : 'Show AI matches'} title={isExpanded ? 'Collapse AI matches' : 'Show AI matches'}
                         style={{ display: 'inline-flex', height: 24, width: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', cursor: 'pointer', background: isExpanded ? P.accentSoft : 'transparent', color: isExpanded ? (P.mode === 'dark' ? P.accent : P.accentBorder) : P.inkMute }}>
@@ -245,21 +245,21 @@
                     </td>
                     <td style={td}><HDPill tone={meta.color} label={meta.label} title={meta.description} size="sm" /></td>
                     <td style={td}>
-                      <div style={{ fontFamily: P.fontMono, fontSize: 13 }}>{inv.invoiceNumber}</div>
-                      {inv.version > 1 && <div style={{ fontSize: 11, color: P.inkMute }}>v{inv.version} · amended</div>}
+                      <div style={{ fontFamily: P.fontMono, fontSize: 13.5 }}>{inv.invoiceNumber}</div>
+                      {inv.version > 1 && <div style={{ fontSize: 11.5, color: P.inkMute }}>v{inv.version} · amended</div>}
                     </td>
                     <td style={td}>{inv.vendorName}</td>
                     <td style={{ ...td, color: P.ink2 }}>{HD.relativeOrDate(inv.receivedDate)}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: P.fontMono }}>{HD.formatCurrency(inv.total)}</td>
                     <td style={{ ...td, textAlign: 'right' }}>
                       {inv.varianceSeverity === 'none'
-                        ? <span style={{ color: P.inkMute, fontSize: 12 }}>—</span>
+                        ? <span style={{ color: P.inkMute, fontSize: 12.5 }}>—</span>
                         : <HDPill tone={inv.varianceSeverity === 'critical' || inv.varianceSeverity === 'major' ? 'blocked' : 'warn'} size="sm" icon={false} label={HD.formatCurrency(inv.varianceAmount, { showCents: false })} />}
                     </td>
                     <td style={{ ...td, textAlign: 'right' }}><InvoiceRowActions inv={inv} isMapped={isMapped} /></td>
                   </tr>
                   {isExpanded && (
-                    <tr style={{ background: isSelected ? P.accentSoft : P.canvas }}>
+                    <tr style={{ background: isSelected ? P.accentSoft : P.surface2 }}>
                       <td colSpan={8} style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}` }}><MatchPreview invoice={inv} /></td>
                     </tr>)}
                 </React.Fragment>);
@@ -277,10 +277,10 @@
         <div style={{ padding: 20, borderBottom: `1px solid ${P.hairline2}` }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: P.inkMute, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.inkMute, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
                 <span>Invoice</span><span>·</span><span style={{ color: P.ink2 }}>{invoice.vendorName}</span>
               </div>
-              <div style={{ fontFamily: P.fontMono, fontSize: 20, color: P.ink, fontWeight: 600 }}>{invoice.invoiceNumber}</div>
+              <div style={{ fontFamily: P.fontMono, fontSize: 21, color: P.ink, fontWeight: 600 }}>{invoice.invoiceNumber}</div>
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <HDPill tone={HD.invoiceStatusTone(invoice.status)} label={HD.INVOICE_STATUS_LABEL[invoice.status]} />
                 {invoice.version > 1 && <HDPill tone="info" icon={false} size="sm" label={`v${invoice.version}`} />}
@@ -291,7 +291,7 @@
             <div style={{ textAlign: 'right' }}>
               <MicroLabel align="right">Total</MicroLabel>
               <DisplayNum size={28} style={{ marginTop: 4 }}>{HD.formatCurrency(invoice.total)}</DisplayNum>
-              <div style={{ fontSize: 12, color: P.inkMute, marginTop: 4 }}>Received {HD.formatDate(invoice.receivedDate)}</div>
+              <div style={{ fontSize: 12.5, color: P.inkMute, marginTop: 4 }}>Received {HD.formatDate(invoice.receivedDate)}</div>
             </div>
           </div>
         </div>
@@ -307,13 +307,13 @@
           <div>
             <MicroLabel style={{ marginBottom: 8 }}>Line items ({invoice.lineItems.length})</MicroLabel>
             <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: 10, overflow: 'hidden' }}>
-              <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-                <thead style={{ background: P.canvas }}>
+              <table style={{ width: '100%', fontSize: 13.5, borderCollapse: 'collapse' }}>
+                <thead style={{ background: P.surface2 }}>
                   <tr>
-                    <th style={{ textAlign: 'left', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12 }}>Product</th>
-                    <th style={{ textAlign: 'right', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12 }}>Qty</th>
-                    <th style={{ textAlign: 'right', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12 }}>Unit</th>
-                    <th style={{ textAlign: 'right', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12 }}>Total</th>
+                    <th style={{ textAlign: 'left', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12.5 }}>Product</th>
+                    <th style={{ textAlign: 'right', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12.5 }}>Qty</th>
+                    <th style={{ textAlign: 'right', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12.5 }}>Unit</th>
+                    <th style={{ textAlign: 'right', padding: '8px 12px', color: P.inkMute, fontWeight: 500, fontSize: 12.5 }}>Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -321,7 +321,7 @@
                     <tr key={li.id} style={{ borderTop: `1px solid ${P.hairline}` }}>
                       <td style={{ padding: '8px 12px', color: P.ink }}>
                         <div style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{li.productName}</div>
-                        <div style={{ fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>{li.sku}</div>
+                        <div style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{li.sku}</div>
                       </td>
                       <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: P.fontMono }}>{li.qty}</td>
                       <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: P.fontMono }}>{HD.formatCurrency(li.unitCost)}</td>
@@ -332,11 +332,11 @@
             </div>
           </div>
           {invoice.notes && (
-            <div style={{ marginTop: 20, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.canvas2, fontSize: 13, color: P.ink2 }}>
+            <div style={{ marginTop: 20, padding: 12, borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface3, fontSize: 13.5, color: P.ink2 }}>
               <MicroLabel style={{ marginBottom: 4 }}>Note</MicroLabel>{invoice.notes}
             </div>)}
         </div>
-        <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, background: P.canvas }}>
+        <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 8, background: P.surface2 }}>
           <PBtn variant="accent" full iconRight="arrow-right" onClick={() => navigate(`#/invoices/${invoice.id}`)}>Open detail</PBtn>
           <PBtn variant="secondary" icon="shield" onClick={() => navigate(`#/invoices/${invoice.id}`)}>3-way match</PBtn>
         </div>
@@ -406,9 +406,9 @@
         <div style={{ padding: '4px 20px 8px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', flex: '0 0 auto' }}>
           <ViewToggle value={view} onChange={setView} mineCount={needsYouCount} allCount={allCount} />
           {view === 'mine' && hiddenCount > 0 && (
-            <p style={{ margin: 0, fontSize: 12, color: P.inkMute }}>
+            <p style={{ margin: 0, fontSize: 12.5, color: P.inkMute }}>
               Hiding <span style={{ color: P.ink2, fontFamily: P.fontMono }}>{hiddenCount}</span> auto-posted invoices that need no action.{' '}
-              <button onClick={() => setView('all')} style={{ background: 'none', border: 'none', padding: 0, color: P.ink2, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontSize: 12, fontFamily: P.fontSans }}>Show all</button>
+              <button onClick={() => setView('all')} style={{ background: 'none', border: 'none', padding: 0, color: P.ink2, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontSize: 12.5, fontFamily: P.fontSans }}>Show all</button>
             </p>)}
         </div>
 
@@ -451,8 +451,8 @@
             <div onClick={() => setConfirmOpen(false)} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
             <Card padding={0} style={{ position: 'relative', width: 480, maxWidth: '92vw' }}>
               <div style={{ padding: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, color: P.ink }}>Approve {smartBatchTarget?.invoices.length ?? 0} invoices?</h2>
-                <p style={{ margin: '8px 0 0', fontSize: 13, color: P.inkDim, lineHeight: 1.5 }}>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Approve {smartBatchTarget?.invoices.length ?? 0} invoices?</h2>
+                <p style={{ margin: '8px 0 0', fontSize: 13.5, color: P.inkDim, lineHeight: 1.5 }}>
                   All from <span style={{ color: P.ink }}>{smartBatchTarget?.vendor}</span> · auto-extracted at ≥90% confidence · zero variance · all METRC manifests matched. Total <span style={{ color: P.ink, fontFamily: P.fontMono }}>{HD.formatCurrency(batchTotal, { showCents: false })}</span> will post to AP.
                 </p>
               </div>

@@ -27,8 +27,8 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Retention triangle</h2>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>Percent of the cohort ordering again in month N.</p>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Retention triangle</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Percent of the cohort ordering again in month N.</p>
           </header>
           <div style={{ overflowX: 'auto' }}>
             <HDTable>
@@ -52,7 +52,7 @@
 
         <Card padding={0}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Retention curves</h2>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Retention curves</h2>
           </header>
           <div style={{ padding: 20 }}>
             <window.ELine labels={['M0', 'M1', 'M2', 'M3', 'M4', 'M5']} height={230} valueFormat={(v) => `${Math.round(v)}%`} yMaxOverride={100}
@@ -95,8 +95,8 @@
         <Card padding={0}>
           <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Recency × frequency · 5×5</h2>
-              <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>
+              <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Recency × frequency · 5×5</h2>
+              <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>
                 Quintile buckets over <code style={{ fontFamily: P.fontMono, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : P.accentBorder, borderRadius: 3, padding: '1px 5px' }}>recency_days</code> and <code style={{ fontFamily: P.fontMono, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : P.accentBorder, borderRadius: 3, padding: '1px 5px' }}>frequency_90d</code>.
               </p>
             </div>
@@ -107,7 +107,7 @@
             {picked && (
               <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 12, borderRadius: 10, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, padding: 12 }}>
                 <Icon name="sparkle" size={14} stroke={2} color={P.mode === 'dark' ? P.accent : P.accentBorder} />
-                <span style={{ flex: 1, fontSize: 12, color: P.ink2 }}>
+                <span style={{ flex: 1, fontSize: 12.5, color: P.ink2 }}>
                   {HD.formatNumber(picked.count)} customers in R{picked.r}/F{picked.f}. {picked.r <= 2 && picked.f >= 4 ? 'High frequency but stale — prime win-back cell.' : picked.r >= 4 && picked.f >= 4 ? 'Your champions — protect with early access, not discounts.' : 'Mid-grid: test a small offer before scaling.'}
                 </span>
                 <PBtn size="xs" variant="secondary" icon="sparkle" onClick={() => navigate('#/audiences/new')}>Build audience</PBtn>
@@ -117,8 +117,8 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Canonical RFM segments</h2>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>Pre-computed labels from <code style={{ fontFamily: P.fontMono }}>segmentation.customer_trait.rfm_segment</code>.</p>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Canonical RFM segments</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Pre-computed labels from <code style={{ fontFamily: P.fontMono }}>segmentation.customer_trait.rfm_segment</code>.</p>
           </header>
           <HDTable>
             <thead><tr><TH>Segment</TH><TH align="right">Customers</TH><TH align="right">% of tenant</TH><TH align="right">Avg monetary · 90d</TH></tr></thead>
@@ -163,8 +163,8 @@
 
         <Card padding={0}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Revenue by zone</h2>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>Last 30 days · attributed to the delivery address.</p>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Revenue by zone</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Last 30 days · attributed to the delivery address.</p>
           </header>
           <div style={{ padding: 20 }}>
             <window.EBar rows={zones.map((z) => ({ label: z.name, value: z.revenueCents / 100 }))} valueFormat={(v) => HD.formatCurrency(v, { showCents: false })} />
@@ -222,8 +222,8 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Leaderboard</h2>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>Sorted by signups; consent rate flags where coaching would help.</p>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Leaderboard</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Sorted by signups; consent rate flags where coaching would help.</p>
           </header>
           <div style={{ overflowX: 'auto' }}>
             <HDTable>
@@ -239,7 +239,7 @@
                           <span style={{ fontWeight: 500, color: P.ink }}>{s.name}</span>
                         </div>
                       </TD>
-                      <TD style={{ fontSize: 12, color: P.inkDim }}>{s.role}</TD>
+                      <TD style={{ fontSize: 12.5, color: P.inkDim }}>{s.role}</TD>
                       <TD align="right" mono>{s.signups}</TD>
                       <TD align="right" mono style={{ color: P.inkDim }}>{s.optIns}</TD>
                       <TD align="right" mono style={{ color: rate > 0.85 ? HD.tone(P, 'ok').fg : rate > 0.7 ? HD.tone(P, 'warn').fg : HD.tone(P, 'blocked').fg }}>{HD.formatPercent(rate, 0)}</TD>
@@ -280,7 +280,7 @@
 
         <Card padding={0}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Daily spend · 14 days</h2>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Daily spend · 14 days</h2>
           </header>
           <div style={{ padding: 20 }}>
             <window.ELine labels={A.days} height={200} valueFormat={(v) => `$${Math.round(v)}`}
@@ -296,14 +296,14 @@
                 {lines.map((l) => (
                   <TR key={l.resource}>
                     <TD style={{ fontWeight: 500 }}>{l.resource}</TD>
-                    <TD align="right" mono>{HD.formatNumber(l.usage)} <span style={{ color: P.inkMute, fontSize: 11 }}>{l.unit}</span></TD>
+                    <TD align="right" mono>{HD.formatNumber(l.usage)} <span style={{ color: P.inkMute, fontSize: 11.5 }}>{l.unit}</span></TD>
                     <TD align="right" mono style={{ fontWeight: 600 }}>{l.costCents ? HD.formatCents(l.costCents) : '—'}</TD>
                     <TD>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 120, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${l.capPct * 100}%`, background: l.capPct > 0.8 ? HD.tone(P, 'blocked').fg : l.capPct > 0.6 ? HD.tone(P, 'warn').fg : HD.tone(P, 'ok').fg }} />
                         </div>
-                        <span style={{ fontSize: 11, fontFamily: P.fontMono, color: P.inkMute }}>{HD.formatPercent(l.capPct, 0)}</span>
+                        <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: P.inkMute }}>{HD.formatPercent(l.capPct, 0)}</span>
                       </div>
                     </TD>
                   </TR>))}
@@ -313,8 +313,8 @@
         </Card>
 
         <Card padding={16} style={{ background: P.accentSoft, border: `1px solid ${P.accentBorder}` }}>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: P.mode === 'dark' ? P.accent : P.accentBorder }}>Caps are soft by default</p>
-          <p style={{ margin: '6px 0 0', fontSize: 12, color: P.ink2, lineHeight: 1.55 }}>
+          <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: P.mode === 'dark' ? P.accent : P.accentBorder }}>Caps are soft by default</p>
+          <p style={{ margin: '6px 0 0', fontSize: 12.5, color: P.ink2, lineHeight: 1.55 }}>
             Hitting a cap raises an alert and throttles the queue rather than dropping sends. Flip <code style={{ fontFamily: P.fontMono }}>cost.hard_cap</code> in feature flags if you'd rather fail closed.
           </p>
           <PBtn size="sm" variant="secondary" style={{ marginTop: 12 }} onClick={() => navigate('#/settings/cost')}>Open cost controls →</PBtn>

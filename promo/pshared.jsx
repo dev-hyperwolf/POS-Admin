@@ -28,7 +28,7 @@ window.PTopBar = function PTopBar({ platform, setPlatform, right }) {
         <Avatar name="Manisha Saini" size={32} />
         <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>Manisha Saini</span>
-          <span style={{ fontSize: 10.5, color: P.inkDim }}>Admin</span>
+          <span style={{ fontSize: 11.5, color: P.inkDim }}>Admin</span>
         </span>
         <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute} />
       </button>
@@ -115,8 +115,8 @@ function FChip({ label, on, onClick }) {
 function MiniNum({ prefix, suffix, value, onChange, ph }) {
   const P = useP();
   return <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, flex: 1, minWidth: 0 }}>
-    {prefix && <span style={{ fontSize: 12, color: P.inkDim, fontFamily: P.fontMono }}>{prefix}</span>}
-    <input type="number" value={value} placeholder={ph} onChange={(e) => onChange(e.target.value)} style={{ flex: 1, minWidth: 0, width: '100%', border: 'none', outline: 'none', background: 'transparent', color: P.ink, fontSize: 13, fontWeight: 600, fontFamily: P.fontMono }} />
+    {prefix && <span style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono }}>{prefix}</span>}
+    <input type="number" value={value} placeholder={ph} onChange={(e) => onChange(e.target.value)} style={{ flex: 1, minWidth: 0, width: '100%', border: 'none', outline: 'none', background: 'transparent', color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontMono }} />
     {suffix && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{suffix}</span>}
   </div>;
 }
@@ -167,8 +167,8 @@ function MultiSelect({ options, value, onChange, searchable, labelKey, priceKey,
           <div><FLabel>Category</FLabel><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 78, overflowY: 'auto' }}>{cats.map((c) => <FChip key={c} label={c} on={fCat.includes(c)} onClick={() => tog(fCat, setFCat, c)} />)}</div></div>
           <div><FLabel>Brand</FLabel><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 78, overflowY: 'auto' }}>{brands.map((b) => <FChip key={b} label={b} on={fBrand.includes(b)} onClick={() => tog(fBrand, setFBrand, b)} />)}</div></div>
           <div><FLabel>Strain type</FLabel><div style={{ display: 'flex', gap: 6 }}>{PRODUCT_TYPES.map((t) => <FChip key={t} label={t} on={fType.includes(t)} onClick={() => tog(fType, setFType, t)} />)}</div></div>
-          <div><FLabel>Price range</FLabel><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MiniNum prefix="$" ph="min" value={pmin} onChange={setPmin} /><span style={{ color: P.inkMute, fontSize: 12 }}>to</span><MiniNum prefix="$" ph="max" value={pmax} onChange={setPmax} /></div></div>
-          <div><FLabel>THC %</FLabel><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MiniNum suffix="% ≥" ph="min" value={tGte} onChange={setTGte} /><span style={{ color: P.inkMute, fontSize: 12 }}>–</span><MiniNum suffix="% ≤" ph="max" value={tLte} onChange={setTLte} /></div></div>
+          <div><FLabel>Price range</FLabel><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MiniNum prefix="$" ph="min" value={pmin} onChange={setPmin} /><span style={{ color: P.inkMute, fontSize: 12.5 }}>to</span><MiniNum prefix="$" ph="max" value={pmax} onChange={setPmax} /></div></div>
+          <div><FLabel>THC %</FLabel><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><MiniNum suffix="% ≥" ph="min" value={tGte} onChange={setTGte} /><span style={{ color: P.inkMute, fontSize: 12.5 }}>–</span><MiniNum suffix="% ≤" ph="max" value={tLte} onChange={setTLte} /></div></div>
           {activeFilters > 0 && <button onClick={clearF} style={{ alignSelf: 'flex-start', fontSize: 11.5, color: P.info, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Clear all filters</button>}
         </div>}
       </div>}
@@ -176,16 +176,16 @@ function MultiSelect({ options, value, onChange, searchable, labelKey, priceKey,
         <button onClick={toggleAll} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
           <Check on={allOn} onChange={toggleAll} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{allLabel || 'Select all'} ({filtered.length})</span>
         </button>
-        {filtered.length === 0 && <div style={{ padding: '24px 10px', textAlign: 'center', color: P.inkMute, fontSize: 12 }}>No matches — adjust filters.</div>}
+        {filtered.length === 0 && <div style={{ padding: '24px 10px', textAlign: 'center', color: P.inkMute, fontSize: 12.5 }}>No matches — adjust filters.</div>}
         {filtered.map((o, i) =>
         <button key={i} onClick={() => toggle(o)} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', background: has(o) ? P.surface2 : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
             <Check on={has(o)} onChange={() => toggle(o)} />
-            <span style={{ flex: 1, minWidth: 0 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'block' }}>{o[lk]}</span>{productMode && <span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.c} · {o.b} · {o.thc}% THC</span>}</span>
+            <span style={{ flex: 1, minWidth: 0 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'block' }}>{o[lk]}</span>{productMode && <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.c} · {o.b} · {o.thc}% THC</span>}</span>
             {priceKey && o[priceKey] != null && <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{pfmt.money(o[priceKey])}</span>}
           </button>)}
       </div>
       <div style={{ padding: 10, borderTop: `1px solid ${P.hairline}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{value.length} selected</span>
+        <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{value.length} selected</span>
         <PBtn size="sm" variant="primary" onClick={onClose}>Done</PBtn>
       </div>
     </div>);
@@ -210,7 +210,7 @@ function NumberEditor({ param, value, onChange, onClose }) {
         {prefix && <span style={{ fontSize: 15, fontWeight: 700, color: P.inkDim, fontFamily: P.fontMono }}>{prefix}</span>}
         <input autoFocus type="number" value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') {onChange(v === '' ? '' : Number(v));onClose();}}}
         style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', color: P.ink, fontSize: 16, fontWeight: 600, fontFamily: P.fontMono }} />
-        {suffix && <span style={{ fontSize: 13, color: P.inkDim, fontFamily: P.fontMono }}>{suffix}</span>}
+        {suffix && <span style={{ fontSize: 13.5, color: P.inkDim, fontFamily: P.fontMono }}>{suffix}</span>}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}><PBtn size="sm" variant="primary" onClick={() => {onChange(v === '' ? '' : Number(v));onClose();}}>Set</PBtn></div>
     </div>);
@@ -252,7 +252,7 @@ window.MetricStat = function MetricStat({ label, value, hint, delta, deltaKind, 
         {hint && <span style={{ color: P.inkFaint, display: 'inline-flex', cursor: 'help' }}><Icon name="info" size={12} stroke={1.9} /></span>}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <span style={{ fontSize: 22, fontWeight: 600, color: tone ? toneColor(P, tone) : P.ink, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</span>
+        <span style={{ fontSize: 21, fontWeight: 600, color: tone ? toneColor(P, tone) : P.ink, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{value}</span>
         {delta != null && <span style={{ fontSize: 11.5, fontWeight: 600, color: dc, fontVariantNumeric: 'tabular-nums' }}>{delta > 0 ? '▲' : delta < 0 ? '▼' : '—'} {Math.abs(delta)}%</span>}
       </div>
       {hint && h && <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, right: 0, background: P.ink, color: P.surface, padding: '8px 10px', borderRadius: 8, fontSize: 11.5, lineHeight: 1.4, zIndex: 20, boxShadow: P.shadowMd }}>{hint}</div>}
@@ -280,7 +280,7 @@ window.BarRow = function BarRow({ label, value, max, color, valueLabel }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '7px 0' }}>
       <span style={{ width: 150, fontSize: 12.5, color: P.ink, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
       <div style={{ flex: 1, height: 8, background: P.surface3, borderRadius: 99, overflow: 'hidden' }}><div style={{ width: pct + '%', height: '100%', background: color || P.accent, borderRadius: 99 }} /></div>
-      <span style={{ width: 64, textAlign: 'right', fontSize: 12, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{valueLabel}</span>
+      <span style={{ width: 64, textAlign: 'right', fontSize: 12.5, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{valueLabel}</span>
     </div>);
 };
 

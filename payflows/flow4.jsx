@@ -38,8 +38,8 @@ window.Flow4 = function Flow4() {
       <div style={{ flex: 1, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column', padding: '18px 22px' }}>
         {/* balance banner */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', background: P.ink, borderRadius: P.r16, color: '#fff', marginBottom: 14 }}>
-          <div style={{ flex: 1 }}><div style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono }}>Balance due</div><div style={{ fontSize: 30, fontWeight: 700, fontFamily: P.fontMono, color: P.accent, letterSpacing: '-.01em' }}>{money(balance)}</div></div>
-          <div style={{ textAlign: 'right', fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono, lineHeight: 1.7 }}>Total {money(txn.total)}<br />{credits > 0 ? `Credits − ${money(credits)}` : 'No credits applied'}</div>
+          <div style={{ flex: 1 }}><div style={{ fontSize: 11.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono }}>Balance due</div><div style={{ fontSize: 30, fontWeight: 700, fontFamily: P.fontMono, color: P.accent, letterSpacing: '-.01em' }}>{money(balance)}</div></div>
+          <div style={{ textAlign: 'right', fontSize: 11.5, color: 'rgba(255,255,255,.6)', fontFamily: P.fontMono, lineHeight: 1.7 }}>Total {money(txn.total)}<br />{credits > 0 ? `Credits − ${money(credits)}` : 'No credits applied'}</div>
         </div>
 
         {/* credits collapsible */}
@@ -52,11 +52,11 @@ window.Flow4 = function Flow4() {
           {creditsOpen && <div style={{ padding: '0 16px 15px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <Eyebrow style={{ marginBottom: 8 }}>Redeem points</Eyebrow>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{window.PAY.rewards.map((r) => { const a = reward === r.id, can = (r.bday || cust.points >= r.cost); return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.cost}p</span></button>; })}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{window.PAY.rewards.map((r) => { const a = reward === r.id, can = (r.bday || cust.points >= r.cost); return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.cost}p</span></button>; })}</div>
             </div>
             <div>
               <Eyebrow style={{ marginBottom: 8 }}>Wallet credit</Eyebrow>
-              <div style={{ display: 'flex', gap: 8 }}>{[0, 5, 10, cust.wallet].filter((v, i, a) => a.indexOf(v) === i).map((v) => { const a = wallet === v; return <button key={v} onClick={() => setWallet(v)} style={{ flex: 1, padding: '11px 8px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13, fontWeight: 700, color: P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>{v === 0 ? 'None' : v === cust.wallet ? `Max ${money(v)}` : money(v)}</button>; })}</div>
+              <div style={{ display: 'flex', gap: 8 }}>{[0, 5, 10, cust.wallet].filter((v, i, a) => a.indexOf(v) === i).map((v) => { const a = wallet === v; return <button key={v} onClick={() => setWallet(v)} style={{ flex: 1, padding: '11px 8px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>{v === 0 ? 'None' : v === cust.wallet ? `Max ${money(v)}` : money(v)}</button>; })}</div>
             </div>
           </div>}
         </div>
@@ -68,7 +68,7 @@ window.Flow4 = function Flow4() {
             <button key={v} onClick={() => { setMethod(v); if (v !== 'split') setCash(''); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, padding: '22px 12px', background: P.surface, border: `1.5px solid ${P.hairline2}`, borderRadius: P.r16, cursor: 'pointer', fontFamily: P.fontSans }}>
               <span style={{ width: 52, height: 52, borderRadius: 14, background: P.surface3, color: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={26} stroke={1.7} /></span>
               <span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{l}</span>
-              <span style={{ fontSize: 11, color: P.inkDim, textAlign: 'center' }}>{d}</span>
+              <span style={{ fontSize: 11.5, color: P.inkDim, textAlign: 'center' }}>{d}</span>
             </button>
           ))}
         </div>
@@ -86,7 +86,7 @@ window.Flow4 = function Flow4() {
             {method === 'split' && <div style={{ display: 'flex', gap: 20 }}>
               <div style={{ flex: '0 0 250px' }}>
                 <Eyebrow style={{ marginBottom: 8 }}>Cash portion</Eyebrow>
-                <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 24, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
+                <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
                 <window.PadKeys onPress={pad} />
               </div>
               <div style={{ flex: 1 }}>
@@ -105,12 +105,12 @@ window.Flow4 = function Flow4() {
             {method === 'cash' && <div style={{ display: 'flex', gap: 20 }}>
               <div style={{ flex: '0 0 250px' }}>
                 <Eyebrow style={{ marginBottom: 8 }}>Cash tendered</Eyebrow>
-                <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 24, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
+                <div style={{ background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, padding: '12px 14px', textAlign: 'right', fontSize: 30, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginBottom: 10 }}>${cash === '' ? '0.00' : cash}</div>
                 <window.PadKeys onPress={pad} />
               </div>
               <div style={{ flex: 1 }}>
                 <Eyebrow style={{ marginBottom: 8 }}>Quick cash</Eyebrow>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>{[Math.ceil(balance), Math.ceil(balance / 5) * 5, Math.ceil(balance / 10) * 10, Math.ceil(balance / 20) * 20].filter((v, i, a) => a.indexOf(v) === i).map((v) => <button key={v} onClick={() => setCash(v.toFixed(2))} style={{ padding: '11px 16px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 14, fontWeight: 700, color: P.info, cursor: 'pointer', fontFamily: P.fontMono }}>{money(v)}</button>)}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>{[Math.ceil(balance), Math.ceil(balance / 5) * 5, Math.ceil(balance / 10) * 10, Math.ceil(balance / 20) * 20].filter((v, i, a) => a.indexOf(v) === i).map((v) => <button key={v} onClick={() => setCash(v.toFixed(2))} style={{ padding: '11px 16px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.info, cursor: 'pointer', fontFamily: P.fontMono }}>{money(v)}</button>)}</div>
                 <div style={{ padding: '14px 16px', borderRadius: P.r12, background: change >= 0 ? P.goodSoft : P.badSoft }}><window.KV k={change >= 0 ? 'Change due' : 'Still owed'} v={money(Math.abs(change))} strong color={change >= 0 ? P.good : P.bad} /></div>
               </div>
             </div>}

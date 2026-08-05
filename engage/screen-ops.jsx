@@ -10,8 +10,8 @@
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.02em', color: P.ink }}>Integrations</h1>
-            <p style={{ margin: '6px 0 0', maxWidth: 680, fontSize: 13, color: P.inkMute, lineHeight: 1.5 }}>
+            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.02em', color: P.ink }}>Integrations</h1>
+            <p style={{ margin: '6px 0 0', maxWidth: 680, fontSize: 13.5, color: P.inkMute, lineHeight: 1.5 }}>
               POS connectors and channel providers that feed the customer + order graph. Auto-discovery probes the vendor's API, infers the field mapping, and flags rows needing operator review before going live. Sync health rolls up from per-resource circuit breakers.
             </p>
           </div>
@@ -42,9 +42,9 @@
                       </TD>
                       <TD><HDPill tone={sTone} icon={false} size="sm" label={sLabel} /></TD>
                       <TD><HDPill tone={hTone} icon={false} size="sm" label={hLabel} /></TD>
-                      <TD style={{ fontSize: 12, color: P.inkDim }}>{r.direction}</TD>
+                      <TD style={{ fontSize: 12.5, color: P.inkDim }}>{r.direction}</TD>
                       <TD align="right" mono>{r.rows24h ? HD.formatNumber(r.rows24h) : '—'}</TD>
-                      <TD style={{ fontSize: 11, color: P.inkMute }}>{r.lastSyncAt ? HD.relativeTime(r.lastSyncAt) : '—'}</TD>
+                      <TD style={{ fontSize: 11.5, color: P.inkMute }}>{r.lastSyncAt ? HD.relativeTime(r.lastSyncAt) : '—'}</TD>
                       <TD align="right"><Icon name="chevron-right" size={14} stroke={2} color={P.inkMute} /></TD>
                     </TR>);
                 })}
@@ -57,8 +57,8 @@
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <Icon name="alert" size={16} stroke={2} color={HD.tone(P, 'warn').fg} />
             <div>
-              <h2 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: P.ink }}>Alpine IQ migration in progress</h2>
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: P.ink2, lineHeight: 1.5 }}>
+              <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Alpine IQ migration in progress</h2>
+              <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.ink2, lineHeight: 1.5 }}>
                 Loyalty tiers still read from Alpine IQ while the ledger backfills. Once the wallet counts reconcile, flip <code style={{ fontFamily: P.fontMono }}>loyalty.source_of_truth</code> to Engage and the AIQ connector goes read-only.
               </p>
             </div>
@@ -82,11 +82,11 @@
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24 }}>
         <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <button onClick={() => navigate('#/integrations')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <button onClick={() => navigate('#/integrations')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
               <Icon name="arrow-left" size={12} stroke={2} />Integrations
             </button>
-            <h1 style={{ margin: '6px 0 0', fontSize: 26, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>{r.name}</h1>
-            <p style={{ margin: '4px 0 0', fontFamily: P.fontMono, fontSize: 11, color: P.inkMute }}>api.{r.slug}.com · {r.kind} · {r.direction}</p>
+            <h1 style={{ margin: '6px 0 0', fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>{r.name}</h1>
+            <p style={{ margin: '4px 0 0', fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>api.{r.slug}.com · {r.kind} · {r.direction}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <HDPill tone={sTone} icon={false} size="sm" label={sLabel} />
@@ -104,25 +104,25 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Resources</h2>
-            <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute }}>Each resource has its own circuit breaker — one bad endpoint can't stall the rest.</p>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Resources</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Each resource has its own circuit breaker — one bad endpoint can't stall the rest.</p>
           </header>
           <HDTable>
             <thead><tr><TH>Resource</TH><TH>Field mapping</TH><TH align="right">Rows · 24h</TH><TH>Last run</TH><TH>Breaker</TH></tr></thead>
             <tbody>
               {resources.map((res) => (
                 <TR key={res.name}>
-                  <TD mono style={{ fontSize: 12 }}>{res.name}</TD>
+                  <TD mono style={{ fontSize: 12.5 }}>{res.name}</TD>
                   <TD>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 90, height: 5, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${(res.mapped / res.total) * 100}%`, background: res.mapped === res.total ? HD.tone(P, 'ok').fg : HD.tone(P, 'warn').fg }} />
                       </div>
-                      <span style={{ fontSize: 11, fontFamily: P.fontMono, color: P.inkMute }}>{res.mapped}/{res.total}</span>
+                      <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: P.inkMute }}>{res.mapped}/{res.total}</span>
                     </div>
                   </TD>
                   <TD align="right" mono>{HD.formatNumber(res.rows)}</TD>
-                  <TD style={{ fontSize: 11, color: P.inkMute }}>{HD.relativeTime(res.lastRun)}</TD>
+                  <TD style={{ fontSize: 11.5, color: P.inkMute }}>{HD.relativeTime(res.lastRun)}</TD>
                   <TD><HDPill tone={res.breaker === 'closed' ? 'ok' : res.breaker === 'half-open' ? 'warn' : 'blocked'} icon={false} size="sm" label={res.breaker} /></TD>
                 </TR>))}
             </tbody>
@@ -166,15 +166,15 @@
     const totalPages = Math.max(1, Math.ceil(rows.length / PAGE));
     const visible = rows.slice((page - 1) * PAGE, page * PAGE);
     const Pill = ({ label, active, onClick }) => (
-      <button onClick={onClick} style={{ borderRadius: 99, padding: '2px 9px', fontSize: 11, cursor: 'pointer', fontFamily: P.fontSans,
-        background: active ? P.accentSoft : P.surface, color: active ? accentInk : P.inkMute, border: `1px solid ${active ? P.accentBorder : P.hairline2}` }}>{label}</button>);
+      <button onClick={onClick} style={{ borderRadius: 99, padding: '2px 9px', fontSize: 11.5, cursor: 'pointer', fontFamily: P.fontSans,
+        background: active ? P.ink : P.surface, color: active ? P.surface : P.inkMute, border: `1px solid ${active ? P.ink : P.hairline2}` }}>{label}</button>);
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.02em', color: P.ink }}>Audit log</h1>
-            <p style={{ margin: '6px 0 0', maxWidth: 680, fontSize: 13, color: P.inkMute, lineHeight: 1.5 }}>
+            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.02em', color: P.ink }}>Audit log</h1>
+            <p style={{ margin: '6px 0 0', maxWidth: 680, fontSize: 13.5, color: P.inkMute, lineHeight: 1.5 }}>
               Tenant-wide firehose of every domain event. Same data the per-entity activity feeds read from, just unfiltered — useful when you want the cross-cutting “what happened today” view.
             </p>
           </div>
@@ -201,15 +201,15 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           {visible.length === 0
-            ? <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: 13, color: P.inkMute }}>No events match those filters.</div>
+            ? <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: 13.5, color: P.inkMute }}>No events match those filters.</div>
             : <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {visible.map((e) => (
-                <li key={e.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,auto) minmax(0,1fr) auto auto', alignItems: 'center', gap: 12, padding: '9px 20px', borderBottom: `1px solid ${P.hairline}`, fontSize: 12 }}>
+                <li key={e.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,auto) minmax(0,1fr) auto auto', alignItems: 'center', gap: 12, padding: '9px 20px', borderBottom: `1px solid ${P.hairline}`, fontSize: 12.5 }}>
                   <HDPill tone={auditTone(e.eventType)} icon={false} size="sm" label={e.eventType} />
-                  <button onClick={() => navigate(`#/customers/${e.customerId}`)} style={{ minWidth: 0, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12, color: P.inkDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <button onClick={() => navigate(`#/customers/${e.customerId}`)} style={{ minWidth: 0, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, color: P.inkDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     <span style={{ fontFamily: P.fontMono }}>{e.customerId.slice(0, 8)}…</span> · {e.customerName}
                   </button>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: P.inkMute, fontSize: 11 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: P.inkMute, fontSize: 11.5 }}>
                     <Icon name={e.actor.startsWith('system:') ? 'workflow' : 'user' } size={11} stroke={2} />
                     <span style={{ fontFamily: P.fontMono }}>{e.actor.startsWith('system:') ? e.actor.replace('system:', '') : e.actor.split('@')[0]}</span>
                   </span>
@@ -218,7 +218,7 @@
             </ul>}
         </Card>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: P.inkMute }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5, color: P.inkMute }}>
           <span>Page {page} of {totalPages} · {rows.length} matching</span>
           {totalPages > 1 && (
             <div style={{ display: 'flex', gap: 8 }}>
@@ -262,8 +262,8 @@
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 24 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.02em', color: P.ink }}>System health</h1>
-          <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13, color: P.inkMute, lineHeight: 1.5 }}>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.02em', color: P.ink }}>System health</h1>
+          <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13.5, color: P.inkMute, lineHeight: 1.5 }}>
             Everything Engage relies on, in one place. Run a full check before launching a high-priority campaign.
           </p>
         </div>
@@ -271,7 +271,7 @@
           {CHECKS.map((section) => (
             <Card key={section.section} padding={0} style={{ overflow: 'hidden' }}>
               <div style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-                <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>{section.section}</h2>
+                <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>{section.section}</h2>
               </div>
               <div>
                 {section.items.map((item) => (
@@ -279,16 +279,16 @@
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <HDPill tone={item.tone} size="sm" label={item.tone === 'ok' ? 'ok' : item.tone} />
-                        <span style={{ fontSize: 13, fontWeight: 500, color: P.ink }}>{item.label}</span>
+                        <span style={{ fontSize: 13.5, fontWeight: 500, color: P.ink }}>{item.label}</span>
                       </div>
-                      {item.detail && <div style={{ marginTop: 2, fontSize: 11, color: P.inkMute }}>{item.detail}</div>}
+                      {item.detail && <div style={{ marginTop: 2, fontSize: 11.5, color: P.inkMute }}>{item.detail}</div>}
                     </div>
-                    <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, textAlign: 'right', whiteSpace: 'nowrap' }}>{item.value}</span>
+                    <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, textAlign: 'right', whiteSpace: 'nowrap' }}>{item.value}</span>
                   </div>))}
               </div>
             </Card>))}
         </div>
-        <p style={{ margin: 0, fontSize: 11, color: P.inkMute }}>Uptime windows are rolling 24h.</p>
+        <p style={{ margin: 0, fontSize: 11.5, color: P.inkMute }}>Uptime windows are rolling 24h.</p>
       </div>);
   };
 
@@ -308,11 +308,11 @@
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 24 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>
             <span>Tenant</span><HDPill tone="neutral" size="sm" label="Green Leaf Collective" />
           </div>
           <h1 style={{ margin: '6px 0 0', fontSize: 30, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.02em', color: P.ink }}>Settings</h1>
-          <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13, color: P.inkMute }}>Brand, compliance, integrations, team, and feature flags. Changes are scoped to this tenant unless noted.</p>
+          <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13.5, color: P.inkMute }}>Brand, compliance, integrations, team, and feature flags. Changes are scoped to this tenant unless noted.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
           {TABS.map((t) => (
@@ -322,13 +322,13 @@
                   <Icon name={t.icon} size={16} stroke={2} />
                 </span>
                 <div style={{ minWidth: 0 }}>
-                  <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>{t.label}</h2>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: P.inkMute, lineHeight: 1.45 }}>{t.description}</p>
+                  <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>{t.label}</h2>
+                  <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute, lineHeight: 1.45 }}>{t.description}</p>
                 </div>
               </div>
               <ul style={{ listStyle: 'none', margin: '14px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {t.lines.map((line) => (
-                  <li key={line} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: P.inkDim }}>
+                  <li key={line} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: P.inkDim }}>
                     <span style={{ height: 4, width: 4, borderRadius: 99, background: P.inkMute, flex: '0 0 auto' }} />{line}
                   </li>))}
               </ul>
@@ -353,11 +353,11 @@
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24 }}>
         <div>
-          <button onClick={() => navigate('#/settings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
+          <button onClick={() => navigate('#/settings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
             <Icon name="arrow-left" size={12} stroke={2} />Settings
           </button>
-          <h1 style={{ margin: '6px 0 0', fontSize: 28, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Cost controls</h1>
-          <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13, color: P.inkMute, lineHeight: 1.5 }}>
+          <h1 style={{ margin: '6px 0 0', fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Cost controls</h1>
+          <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13.5, color: P.inkMute, lineHeight: 1.5 }}>
             Monthly caps per metered resource. Caps are soft by default — hitting one throttles the queue and raises an alert instead of dropping sends.
           </p>
         </div>
@@ -369,8 +369,8 @@
               <Card key={k} padding={20}>
                 <MicroLabel>{label}</MicroLabel>
                 <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                  <span style={{ fontSize: 24, fontWeight: 600, fontFamily: P.fontMono, color: P.ink }}>{HD.formatCurrency(spend[k])}</span>
-                  <span style={{ fontSize: 12, color: P.inkMute }}>of {HD.formatCurrency(caps[k], { showCents: false })}</span>
+                  <span style={{ fontSize: 30, fontWeight: 600, fontFamily: P.fontMono, color: P.ink }}>{HD.formatCurrency(spend[k])}</span>
+                  <span style={{ fontSize: 12.5, color: P.inkMute }}>of {HD.formatCurrency(caps[k], { showCents: false })}</span>
                 </div>
                 <div style={{ marginTop: 10, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${Math.min(100, pct * 100)}%`, background: pct > 0.8 ? HD.tone(P, 'blocked').fg : pct > 0.6 ? HD.tone(P, 'warn').fg : HD.tone(P, 'ok').fg }} />
@@ -385,7 +385,7 @@
 
         <Card padding={0}>
           <header style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
-            <h2 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: P.ink }}>Daily spend · 14 days</h2>
+            <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: P.ink }}>Daily spend · 14 days</h2>
           </header>
           <div style={{ padding: 20 }}>
             <window.ELine labels={A.days} height={200} valueFormat={(v) => `$${Math.round(v)}`}
@@ -395,11 +395,11 @@
 
         <Card padding={20}>
           <MicroLabel>Behaviour</MicroLabel>
-          <label style={{ marginTop: 12, display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: P.ink2, cursor: 'pointer' }}>
+          <label style={{ marginTop: 12, display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13.5, color: P.ink2, cursor: 'pointer' }}>
             <Check on={hardCap} onChange={setHardCap} size={18} />
             <span>
               <span style={{ display: 'block', color: P.ink }}>Hard cap — fail closed at 100%</span>
-              <span style={{ display: 'block', fontSize: 11, color: P.inkMute, marginTop: 2 }}>Off means the queue throttles and drains next month. On means sends are rejected outright once the cap is hit.</span>
+              <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>Off means the queue throttles and drains next month. On means sends are rejected outright once the cap is hit.</span>
             </span>
           </label>
           <div style={{ marginTop: 16, maxWidth: 220 }}>
@@ -441,11 +441,11 @@
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <button onClick={() => navigate('#/settings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <button onClick={() => navigate('#/settings')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans }}>
               <Icon name="arrow-left" size={12} stroke={2} />Settings
             </button>
-            <h1 style={{ margin: '6px 0 0', fontSize: 28, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Feature flags</h1>
-            <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13, color: P.inkMute, lineHeight: 1.5 }}>
+            <h1 style={{ margin: '6px 0 0', fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Feature flags</h1>
+            <p style={{ margin: '6px 0 0', maxWidth: 660, fontSize: 13.5, color: P.inkMute, lineHeight: 1.5 }}>
               Per-tenant toggles from <code style={{ fontFamily: P.fontMono }}>@engage/core/feature-flags</code>. An env override (<code style={{ fontFamily: P.fontMono }}>ENGAGE_FLAG_&lt;NAME&gt;</code>) stomps the tenant value so ops can kill anything instantly.
             </p>
           </div>
@@ -458,11 +458,11 @@
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <code style={{ fontFamily: P.fontMono, fontSize: 12, fontWeight: 600, color: P.ink }}>{f.key}</code>
+                    <code style={{ fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 600, color: P.ink }}>{f.key}</code>
                     <HDPill tone="neutral" icon={false} size="sm" label={f.category} />
                     {f.key === 'kill_switch' && <HDPill tone="blocked" icon={false} size="sm" label="danger" />}
                   </div>
-                  <p style={{ margin: '6px 0 0', fontSize: 12, color: P.inkDim, lineHeight: 1.45 }}>{f.description}</p>
+                  <p style={{ margin: '6px 0 0', fontSize: 12.5, color: P.inkDim, lineHeight: 1.45 }}>{f.description}</p>
                 </div>
                 <button onClick={() => { setFlags((cur) => cur.map((x) => (x.key === f.key ? { ...x, on: !x.on } : x))); window.hdToast?.({ title: `${f.key} ${f.on ? 'disabled' : 'enabled'}`, description: 'Change written to the tenant flag snapshot + audit log.', tone: f.on ? 'warn' : 'ok' }); }}
                   role="switch" aria-checked={f.on} aria-label={`Toggle ${f.key}`}
@@ -489,11 +489,11 @@
     return (
       <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', background: `linear-gradient(180deg, ${P.bg} 0%, ${P.accentSoft} 55%, ${P.bg} 100%)` }}>
         <div style={{ maxWidth: 560, textAlign: 'center' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, padding: '5px 12px', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: accentInk }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, padding: '5px 12px', fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.06em', color: accentInk }}>
             <Icon name="sparkle" size={11} stroke={2} />Five steps · about 10 minutes
           </span>
           <h1 style={{ margin: '18px 0 0', fontSize: 40, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '-.03em', color: P.ink, lineHeight: 1.05 }}>Let's get you sending</h1>
-          <p style={{ margin: '12px 0 0', fontSize: 14, color: P.inkMute, lineHeight: 1.6 }}>
+          <p style={{ margin: '12px 0 0', fontSize: 13.5, color: P.inkMute, lineHeight: 1.6 }}>
             We'll plug in your keys, sync your customer list, build your first audience, pick a template, and send a test — end to end — so you leave this page with a live campaign.
           </p>
           <div style={{ margin: '24px 0 0', display: 'flex', flexDirection: 'column', gap: 8, textAlign: 'left' }}>
@@ -503,8 +503,8 @@
                   <Icon name={s.icon} size={14} stroke={2} />
                 </span>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: P.ink }}>{i + 1}. {s.title}</div>
-                  <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2 }}>{s.body}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 500, color: P.ink }}>{i + 1}. {s.title}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>{s.body}</div>
                 </div>
               </div>))}
           </div>

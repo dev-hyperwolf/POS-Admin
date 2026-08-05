@@ -20,8 +20,8 @@ function Metric({ icon, tint, label, value, sub }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 15px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14 }}>
       <span style={{ width: 40, height: 40, borderRadius: 11, background: tint + (P.mode === 'dark' ? '22' : '18'), color: tint, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={20} stroke={1.9} /></span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 10.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>{label}</div>
-        <div style={{ fontSize: 15.5, fontWeight: 700, color: P.ink, marginTop: 1 }}>{value}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, letterSpacing: '.06em', textTransform: 'uppercase', fontFamily: P.fontMono }}>{label}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: P.ink, marginTop: 1 }}>{value}</div>
       </div>
       {sub && <div style={{ fontSize: 11.5, fontWeight: 700, color: tint, fontFamily: P.fontMono, textAlign: 'right', maxWidth: 96 }}>{sub}</div>}
     </div>);
@@ -81,7 +81,7 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 22 }}>
             <span style={{ width: 66, height: 66, borderRadius: 99, background: failed ? P.badSoft : P.goodSoft, color: failed ? P.bad : P.good, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={failed ? 'x' : 'check'} size={34} stroke={2.4} /></span>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: P.ink }}>{failed ? 'Marked unable to complete' : `Delivered to ${s.name.split(' ')[0]}`}</div>
+              <div style={{ fontSize: 21, fontWeight: 800, color: P.ink }}>{failed ? 'Marked unable to complete' : `Delivered to ${s.name.split(' ')[0]}`}</div>
               <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 4, fontFamily: P.fontMono }}>{s.order} · {s.name}{failed && s.reason ? ` · ${PROBLEM_REASONS.find((r) => r.id === s.reason)?.label || ''}` : ''}</div>
             </div>
             {s.change > 0 && <div style={{ padding: '9px 18px', background: P.goodSoft, borderRadius: P.r12, fontSize: 16, fontWeight: 800, color: P.good, fontFamily: P.fontMono }}>Change due {_mm(s.change)}</div>}
@@ -102,18 +102,18 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
             <Eyebrow style={{ marginBottom: 10 }}>Payment collected</Eyebrow>
             <Card style={{ marginBottom: 18 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span style={{ color: P.inkDim }}>Method</span><span style={{ color: P.ink, fontWeight: 600, textTransform: 'capitalize' }}>{s.method}{s.feeLabel ? ` · ${s.feeLabel}` : ''}</span></div>
-                {s.cash > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span style={{ color: P.inkDim }}>Cash</span><span style={{ color: P.ink2, fontFamily: P.fontMono }}>{_mm(s.cash)}</span></div>}
-                {s.cardCharged > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span style={{ color: P.inkDim }}>Card charged</span><span style={{ color: P.ink2, fontFamily: P.fontMono }}>{_mm(s.cardCharged)}</span></div>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: P.inkDim }}>Method</span><span style={{ color: P.ink, fontWeight: 600, textTransform: 'capitalize' }}>{s.method}{s.feeLabel ? ` · ${s.feeLabel}` : ''}</span></div>
+                {s.cash > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: P.inkDim }}>Cash</span><span style={{ color: P.ink2, fontFamily: P.fontMono }}>{_mm(s.cash)}</span></div>}
+                {s.cardCharged > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: P.inkDim }}>Card charged</span><span style={{ color: P.ink2, fontFamily: P.fontMono }}>{_mm(s.cardCharged)}</span></div>}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, paddingTop: 7, borderTop: `2px solid ${P.ink}` }}><span style={{ color: P.ink }}>Collected</span><span style={{ color: P.ink, fontFamily: P.fontMono }}>{_mm(s.collected)}</span></div>
-                {s.cash > 0 && <div style={{ fontSize: 11, color: P.inkMute, marginTop: 2 }}>Reminder: keep any cash tip separate — <button onClick={() => window.M.openSheet('addtip', { name: s.name, order: s.order })} style={{ background: 'none', border: 'none', color: P.info, fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 11 }}>log a tip</button></div>}
+                {s.cash > 0 && <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2 }}>Reminder: keep any cash tip separate — <button onClick={() => window.M.openSheet('addtip', { name: s.name, order: s.order })} style={{ background: 'none', border: 'none', color: P.info, fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: 11.5 }}>log a tip</button></div>}
               </div>
             </Card>
           </>}
 
           {!failed && <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 15px', background: P.goodSoft, borderRadius: P.r14 }}>
             <Icon name="check-circle" size={19} stroke={2} color={P.good} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: P.mode === 'dark' ? P.good : '#1B5E20' }}>Receipt emailed to the customer automatically</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: P.mode === 'dark' ? P.good : '#1B5E20' }}>Receipt emailed to the customer automatically</span>
           </div>}
         </div>
         <div style={{ padding: '14px 16px 34px', borderTop: `1px solid ${P.hairline}` }}>
@@ -135,8 +135,8 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
           <Avatar name={base.name} size={50} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 19, fontWeight: 800, color: P.ink }}>{base.name}</span>
-              {v && v.short && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px 2px 7px', borderRadius: 99, background: v.color + (P.mode === 'dark' ? '26' : '1f'), color: v.color, fontSize: 10.5, fontWeight: 800 }}><Icon name={v.icon} size={11} stroke={2.2} />{v.short}</span>}
+              <span style={{ fontSize: 21, fontWeight: 800, color: P.ink }}>{base.name}</span>
+              {v && v.short && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 9px 2px 7px', borderRadius: 99, background: v.color + (P.mode === 'dark' ? '26' : '1f'), color: v.color, fontSize: 11.5, fontWeight: 800 }}><Icon name={v.icon} size={11} stroke={2.2} />{v.short}</span>}
             </div>
             <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 2 }}>{base.addr}, {base.city} {base.zip || ''}</div>
           </div>
@@ -149,14 +149,14 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
         {alreadyVerified ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px', background: P.goodSoft, border: `1px solid ${P.good}`, borderRadius: P.r16, marginBottom: 16 }}>
             <span style={{ width: 38, height: 38, borderRadius: 11, background: P.good, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="check" size={20} stroke={2.2} /></span>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>ID on file · 21+ verified</div><div style={{ fontSize: 12, color: P.mode === 'dark' ? P.good : '#1B5E20', marginTop: 1, fontWeight: 600 }}>Confirmed on a previous visit</div></div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>ID on file · 21+ verified</div><div style={{ fontSize: 12.5, color: P.mode === 'dark' ? P.good : '#1B5E20', marginTop: 1, fontWeight: 600 }}>Confirmed on a previous visit</div></div>
           </div>
         ) : (
           <button onClick={() => idChecked ? null : setShowIdCam(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 16px', background: idChecked ? P.goodSoft : P.surface, border: `1.5px solid ${idChecked ? P.good : P.warn}`, borderRadius: P.r16, cursor: 'pointer', marginBottom: 16 }}>
             <span style={{ width: 40, height: 40, borderRadius: 11, background: idChecked ? P.good : P.warnSoft, color: idChecked ? '#fff' : P.warn, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={idChecked ? 'check' : 'camera'} size={21} stroke={2.1} /></span>
             <div style={{ flex: 1, textAlign: 'left' }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{idChecked ? 'ID captured · 21+ verified' : 'Scan customer ID · 21+'}</div>
-              <div style={{ fontSize: 12, color: idChecked ? (P.mode === 'dark' ? P.good : '#1B5E20') : P.warn, marginTop: 2, fontWeight: 600 }}>{idChecked ? 'Saved to their profile' : 'First-time guest — photo required'}</div>
+              <div style={{ fontSize: 12.5, color: idChecked ? (P.mode === 'dark' ? P.good : '#1B5E20') : P.warn, marginTop: 2, fontWeight: 600 }}>{idChecked ? 'Saved to their profile' : 'First-time guest — photo required'}</div>
             </div>
             {!idChecked && <Icon name="chevron-right" size={18} stroke={2} color={P.inkFaint} />}
           </button>
@@ -166,7 +166,7 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
         {cod && <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
             <Eyebrow>Collect payment</Eyebrow><div style={{ flex: 1 }} />
-            <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>marked {base.tender} at checkout</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>marked {base.tender} at checkout</span>
           </div>
           {pay ?
           <Card>
@@ -183,15 +183,15 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
                 const expected = base.tender === m;
                 return (
                   <button key={m} onClick={() => {setPayMethod(m);setShowPay(true);}} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '16px 6px', background: expected ? P.accentSoft : P.surface, border: `1.5px solid ${expected ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, cursor: 'pointer' }}>
-                    {expected && <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 8.5, fontWeight: 800, letterSpacing: '.06em', color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>EXPECTED</span>}
+                    {expected && <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', color: P.accentText }}>EXPECTED</span>}
                     <span style={{ width: 42, height: 42, borderRadius: 11, background: expected ? P.accent : P.surface3, color: expected ? P.accentInk : P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={ic} size={22} stroke={1.7} /></span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>{l}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{l}</span>
                   </button>);
               })}
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '2px 4px' }}>
               <span style={{ fontSize: 12.5, color: P.inkDim, fontWeight: 600 }}>Amount to collect</span>
-              <span style={{ fontSize: 24, fontWeight: 800, color: P.ink, fontFamily: P.fontMono }}>{_mm(totals.total)}</span>
+              <span style={{ fontSize: 30, fontWeight: 800, color: P.ink, fontFamily: P.fontMono }}>{_mm(totals.total)}</span>
             </div>
           </>}
         </div>}
@@ -199,9 +199,9 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
         {/* items + edit */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
           <Eyebrow>Order · {totals.count} items</Eyebrow><div style={{ flex: 1 }} />
-          <button onClick={() => {window.M.startCart(taskId, items);window.M.push('shop', { taskId });}} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 11px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><Icon name="plus" size={13} stroke={2.2} />Add / edit</button>
+          <button onClick={() => {window.M.startCart(taskId, items);window.M.push('shop', { taskId });}} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 11px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}><Icon name="plus" size={13} stroke={2.2} />Add / edit</button>
         </div>
-        {addedCount > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: P.accentSoft, borderRadius: P.r10, marginBottom: 16 }}><Icon name="sparkle" size={15} stroke={2} color={P.mode === 'dark' ? P.accent : '#7A5A00'} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>You added {addedCount} item{addedCount > 1 ? 's' : ''} · +{_mm(addedValue)}</span></div>}
+        {addedCount > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: P.accentSoft, borderRadius: P.r10, marginBottom: 16 }}><Icon name="sparkle" size={15} stroke={2} color={P.accentText} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.accentText }}>You added {addedCount} item{addedCount > 1 ? 's' : ''} · +{_mm(addedValue)}</span></div>}
 
         {/* talking points / reminders — dynamic to guest */}
         <Eyebrow style={{ marginBottom: 8 }}>Before you go</Eyebrow>
@@ -221,10 +221,10 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
 
         {/* problem path (de-emphasised) */}
         {!problemOpen ?
-        <button onClick={() => setProblemOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 auto', padding: '10px 14px', background: 'transparent', border: 'none', color: P.inkDim, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><Icon name="flag" size={15} stroke={2} />Can't complete this order</button> :
+        <button onClick={() => setProblemOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 auto', padding: '10px 14px', background: 'transparent', border: 'none', color: P.inkDim, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}><Icon name="flag" size={15} stroke={2} />Can't complete this order</button> :
 
         <div style={{ padding: '14px 15px', background: P.surface, border: `1px solid ${P.bad}`, borderRadius: P.r14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.bad }}>What went wrong?</span><div style={{ flex: 1 }} /><button onClick={() => {setProblemOpen(false);setReason(null);}} style={{ background: 'none', border: 'none', color: P.inkMute, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Cancel</button></div>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.bad }}>What went wrong?</span><div style={{ flex: 1 }} /><button onClick={() => {setProblemOpen(false);setReason(null);}} style={{ background: 'none', border: 'none', color: P.inkMute, cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>Cancel</button></div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
               {PROBLEM_REASONS.map((r) => {const a = reason === r.id;return <button key={r.id} onClick={() => setReason(r.id)} style={{ padding: '9px 13px', borderRadius: 99, border: `1.5px solid ${a ? P.bad : P.hairline3}`, background: a ? P.badSoft : 'transparent', color: a ? P.bad : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>{r.label}</button>;})}
             </div>

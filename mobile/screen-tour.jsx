@@ -72,19 +72,19 @@ window.TourOverlay = function TourOverlay() {
       <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r20, boxShadow: P.shadowLg, padding: '18px 18px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
           <span style={{ width: 26, height: 26, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="lightning" size={15} stroke={2.2} /></span>
-          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Tour · {step + 1} of {TOUR.length}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Tour · {step + 1} of {TOUR.length}</span>
           <div style={{ flex: 1 }} />
           <button onClick={() => window.M.endTour()} style={{ background: 'none', border: 'none', color: P.inkDim, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>Skip</button>
         </div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: P.ink, marginBottom: 5 }}>{cur.title}</div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: P.ink, marginBottom: 5 }}>{cur.title}</div>
         <div style={{ fontSize: 13.5, color: P.ink2, lineHeight: 1.5 }}>{cur.body}</div>
-        {cur.tap && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '7px 12px', borderRadius: 99, background: P.accentSoft, color: P.mode === 'dark' ? P.accent : '#7A5A00', fontSize: 12.5, fontWeight: 800 }}><span style={{ display: 'inline-flex', animation: 'hwtap 1.1s ease-in-out infinite' }}><Icon name="target" size={14} stroke={2.4} /></span>Tap the highlighted spot</div>}
+        {cur.tap && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '7px 12px', borderRadius: 99, background: P.accentSoft, color: P.accentText, fontSize: 12.5, fontWeight: 800 }}><span style={{ display: 'inline-flex', animation: 'hwtap 1.1s ease-in-out infinite' }}><Icon name="target" size={14} stroke={2.4} /></span>Tap the highlighted spot</div>}
         <div style={{ display: 'flex', gap: 4, margin: '14px 0 14px' }}>{TOUR.map((_, i) => <span key={i} style={{ height: 4, flex: 1, borderRadius: 99, background: i <= step ? P.accent : P.hairline3 }} />)}</div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {step > 0 && <PBtn variant="secondary" size="lg" icon="chevron-left" onClick={() => window.M.setTourStep(step - 1)}>Back</PBtn>}
           <div style={{ flex: 1 }} />
           {cur.tap
-            ? <button onClick={advance} style={{ background: 'none', border: 'none', color: P.inkDim, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Skip step ›</button>
+            ? <button onClick={advance} style={{ background: 'none', border: 'none', color: P.inkDim, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Skip step ›</button>
             : <PBtn variant="accent" size="lg" iconRight={last ? 'check' : 'chevron-right'} onClick={advance}>{cur.cta || (last ? 'Finish' : 'Next')}</PBtn>}
         </div>
       </div>

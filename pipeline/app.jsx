@@ -60,13 +60,13 @@
     return (
       <aside style={{ width: collapsed ? 64 : 208, flex: `0 0 ${collapsed ? 64 : 208}px`, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${P.hairline2}`, background: P.canvas, transition: 'width .18s ease' }}>
         <div style={{ height: 56, display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', borderBottom: `1px solid ${P.hairline2}` }}>
-          <div style={{ height: 28, width: 28, borderRadius: 7, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', fontWeight: 700, fontSize: 14 }}>H</div>
+          <div style={{ height: 28, width: 28, borderRadius: 7, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', fontWeight: 700, fontSize: 13.5 }}>H</div>
           {!collapsed && <span style={{ fontSize: 16, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>Hyperdrive</span>}
         </div>
         <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
           {NAV_GROUPS.map((group) => (
             <div key={group.label} style={{ marginBottom: 8 }}>
-              {!collapsed && <div style={{ padding: '8px 12px 4px', fontSize: 11, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.04em', color: P.inkMute }}>{group.label}</div>}
+              {!collapsed && <div style={{ padding: '8px 12px 4px', fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.04em', color: P.inkMute }}>{group.label}</div>}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {group.items.map((item) => {
                   const active = isActive(item);
@@ -74,7 +74,7 @@
                   if (item.inactive) {
                     return (
                       <li key={item.label}>
-                        <span title="Coming in Sprint One" aria-disabled="true" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 34, borderRadius: 8, fontSize: 13, color: P.inkFaint, cursor: 'not-allowed' }}>
+                        <span title="Coming in Sprint One" aria-disabled="true" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 34, borderRadius: 8, fontSize: 13.5, color: P.inkFaint, cursor: 'not-allowed' }}>
                           <Icon name={item.icon} size={16} stroke={1.8} color={color} />{!collapsed && <span>{item.label}</span>}
                         </span>
                       </li>);
@@ -82,10 +82,10 @@
                   return (
                     <li key={item.label}>
                       <button onClick={() => navigate(item.href)} title={item.label}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 34, borderRadius: 8, fontSize: 13, textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 34, borderRadius: 8, fontSize: 13.5, textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
                           marginLeft: item.nested && !collapsed ? 12 : 0, width: item.nested && !collapsed ? 'calc(100% - 12px)' : '100%',
-                          background: active ? P.canvas : 'transparent', color: active ? P.ink : P.inkDim, border: 'none', borderLeft: `2px solid ${active ? P.accent : 'transparent'}` }}
-                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.canvas; }}
+                          background: active ? P.surface : 'transparent', boxShadow: active ? P.shadowSm : 'none', color: active ? P.ink : P.inkDim, border: 'none', borderLeft: `2px solid ${active ? P.accent : 'transparent'}` }}
+                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.surface3; }}
                         onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
                         <Icon name={item.icon} size={16} stroke={1.8} color={color} />{!collapsed && <span>{item.label}</span>}
                       </button>
@@ -123,14 +123,14 @@
             <Field icon="search" size="sm" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask anything — jump to a screen…" />
           </div>
           <div style={{ maxHeight: 320, overflowY: 'auto', padding: 6 }}>
-            {filtered.length === 0 && <div style={{ padding: 16, fontSize: 12, color: P.inkMute, textAlign: 'center' }}>No matches.</div>}
+            {filtered.length === 0 && <div style={{ padding: 16, fontSize: 12.5, color: P.inkMute, textAlign: 'center' }}>No matches.</div>}
             {filtered.map((i) => (
               <button key={i.href} onClick={() => { navigate(i.href); onClose(); }}
-                style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 13, fontFamily: P.fontSans, textAlign: 'left' }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = P.canvas2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, textAlign: 'left' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
                 <Icon name={i.icon} size={15} stroke={1.8} color={P.inkMute} />
                 <span style={{ flex: 1 }}>{i.label}</span>
-                <span style={{ fontSize: 11, color: P.inkMute }}>{i.group}</span>
+                <span style={{ fontSize: 11.5, color: P.inkMute }}>{i.group}</span>
               </button>))}
           </div>
         </div>
@@ -144,7 +144,7 @@
     const entityMeta = HD.ENTITIES.find((e) => e.id === entity);
     return (
       <header style={{ height: 56, flex: '0 0 56px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
-        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: P.inkDim, whiteSpace: 'nowrap' }}>
+        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: P.inkDim, whiteSpace: 'nowrap' }}>
           {crumbs.map((c, i) => (
             <React.Fragment key={c + i}>
               {i > 0 && <Icon name="chevron-right" size={13} stroke={2} style={{ opacity: .5 }} />}
@@ -153,18 +153,18 @@
         </nav>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', maxWidth: 420, minWidth: 0, margin: '0 auto' }}>
           <button type="button" onClick={onSearch} aria-label="Open natural-language search (⌘K)"
-            style={{ position: 'relative', width: '100%', height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
+            style={{ position: 'relative', width: '100%', height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
             <Icon name="search" size={14} stroke={1.9} />
             <span style={{ flex: 1 }}>Ask anything</span>
             <Icon name="sparkle" size={11} stroke={2} color={HD.hueColor(P, 'violet')} />
-            <kbd style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, background: P.canvas2, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 5px' }}>⌘K</kbd>
+            <kbd style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 5px' }}>⌘K</kbd>
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface }}>
             <span style={{ width: 8, height: 8, borderRadius: 99, background: HD.hueColor(P, entityMeta?.hue) }} />
             <select aria-label="Entity" value={entity} onChange={(e) => setEntity(e.target.value)}
-              style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 13, color: P.ink, fontFamily: P.fontSans, cursor: 'pointer' }}>
+              style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 13.5, color: P.ink, fontFamily: P.fontSans, cursor: 'pointer' }}>
               {HD.ENTITIES.map((e) => <option key={e.id} value={e.id}>{e.short}</option>)}
             </select>
           </div>

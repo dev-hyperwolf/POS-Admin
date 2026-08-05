@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>UI audit — Hyperwolf platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+--bg:#F4F2EC;--surf:#FFFFFF;--surf2:#FAF9F5;--surf3:#F1EFE9;--canvas:#EDEFF3;--canvas2:#E1E6EC;
+--ink:#0F0F0C;--ink2:#2A2A26;--dim:rgba(15,15,12,.60);--mute:rgba(15,15,12,.42);--faint:rgba(15,15,12,.22);
+--hair:rgba(15,15,12,.08);--hair2:rgba(15,15,12,.14);--hair3:rgba(15,15,12,.24);
+--accent:#FFD100;--accentInk:#1A1400;--accentSoft:#FFF4B8;--accentBorder:#F2C200;--gold:#7A5A00;
+--good:#1F8A4F;--goodSoft:#E2F2E8;--warn:#C07A12;--warnSoft:#FBEFD6;--bad:#C0392B;--badSoft:#F8E2DF;--info:#2C5BB8;--infoSoft:#E3ECFA;--neutral:#6E6E66;--neutralSoft:#ECEAE2;
+--indica:#7E55C9;--sativa:#D98316;--hybrid:#3F9E72;
+--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--sans:"Inter",-apple-system,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+a{color:var(--info)}a:hover{color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:40px 32px 90px}
+.mono{font-family:var(--mono)}
+/* header */
+.masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+.kicker{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+h1{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.02;margin:14px 0 0}
+.lede{font-size:15.5px;line-height:1.6;color:var(--ink2);margin:16px 0 0;max-width:74ch}
+.lede b{font-weight:600}
+.meta{display:flex;gap:26px;flex-wrap:wrap;margin-top:20px;font-family:var(--mono);font-size:11px;color:var(--mute)}
+.meta b{color:var(--ink2);font-weight:600}
+/* verdict */
+.verdict{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:44px}
+.vcard{background:var(--surf);border:1px solid var(--hair2);border-radius:14px;padding:20px 22px}
+.vcard h3{margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-family:var(--mono)}
+.vcard.keep h3{color:var(--good)}.vcard.fix h3{color:var(--bad)}
+.vcard ol{margin:0;padding-left:20px}
+.vcard li{font-size:13.5px;line-height:1.55;color:var(--ink2);margin-bottom:9px}
+.vcard li:last-child{margin-bottom:0}
+.vcard li b{color:var(--ink)}
+/* sections */
+h2{font-size:13px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-family:var(--mono);color:var(--ink);margin:0 0 4px;padding-top:14px;border-top:1px solid var(--hair2)}
+.sectionsub{font-size:14px;color:var(--dim);margin:0 0 26px;line-height:1.55}
+section{margin-bottom:52px}
+/* finding */
+.finding{background:var(--surf);border:1px solid var(--hair2);border-radius:14px;overflow:hidden;margin-bottom:18px}
+.fhead{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;border-bottom:1px solid var(--hair)}
+.num{flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--surf);font-family:var(--mono);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ftitle{flex:1;min-width:0}
+.ftitle .t{font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.ftitle .s{font-size:12.5px;color:var(--dim);margin-top:3px;line-height:1.5}
+.sev{flex:0 0 auto;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:99px;white-space:nowrap}
+.sev.high{background:var(--badSoft);color:var(--bad)}
+.sev.med{background:var(--warnSoft);color:var(--warn)}
+.sev.low{background:var(--neutralSoft);color:var(--neutral)}
+.fbody{padding:18px 20px}
+.ev{font-family:var(--mono);font-size:11.5px;line-height:1.65;background:var(--canvas);border-left:2px solid var(--hair3);padding:11px 13px;border-radius:0 8px 8px 0;color:var(--ink2);margin:0 0 16px;overflow-x:auto}
+.ev b{color:var(--bad)}
+.ev .ok{color:var(--good)}
+p.fx{font-size:13.5px;line-height:1.6;color:var(--ink2);margin:0 0 14px}
+p.fx:last-child{margin-bottom:0}
+p.fx b{color:var(--ink)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:var(--surf3);color:var(--dim);vertical-align:1px}
+/* specimen */
+.spec{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--hair2);border-radius:12px;overflow:hidden;margin:0 0 16px}
+.spec>div{padding:18px 20px}
+.spec .before{background:var(--surf2);border-right:1px solid var(--hair2)}
+.spec .after{background:var(--surf)}
+.slabel{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.slabel.b{color:var(--bad)}.slabel.a{color:var(--good)}
+.note{font-size:11.5px;color:var(--dim);line-height:1.5;margin-top:14px}
+.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+/* buttons — current */
+.b{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:var(--sans);font-weight:600;white-space:nowrap;border:1px solid transparent;cursor:default}
+.b-xs{padding:5px 8px;font-size:11.5px;border-radius:7px}
+.b-sm{padding:7px 11px;font-size:12.5px;border-radius:8px}
+.b-md{padding:9px 15px;font-size:13px;border-radius:9px}
+.b-lg{padding:12px 20px;font-size:14px;border-radius:10px}
+.b-pri{background:var(--ink);color:var(--surf);border-color:var(--ink)}
+.b-acc{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+.b-sec{background:var(--surf);color:var(--ink);border-color:var(--hair3)}
+.b-soft{background:var(--surf3);color:var(--ink)}
+.b-ghost{background:transparent;color:var(--ink2)}
+.b-dan{background:var(--surf);color:var(--bad);border-color:var(--hair3)}
+.b-dis{opacity:.45}
+/* buttons — proposed */
+.n{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:var(--sans);font-weight:600;white-space:nowrap;border:1px solid transparent;cursor:default;border-radius:8px}
+.n-sm{min-height:32px;padding:0 12px;font-size:12.5px}
+.n-md{min-height:40px;padding:0 16px;font-size:13.5px}
+.n-lg{min-height:48px;padding:0 22px;font-size:15px;font-weight:700}
+.n-pri{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder)}
+.n-sec{background:var(--surf);color:var(--ink);border-color:var(--hair3)}
+.n-ghost{background:transparent;color:var(--ink2)}
+.n-dan{background:var(--bad);color:#fff;border-color:var(--bad)}
+.n-dis{background:var(--surf3);color:var(--mute);border-color:var(--hair2)}
+.focusring{box-shadow:0 0 0 2px var(--surf),0 0 0 4px var(--info)}
+/* cards */
+.c-old{background:var(--surf);border:1px solid var(--hair2);border-radius:14px;box-shadow:0 1px 0 rgba(15,15,12,.04),0 6px 18px rgba(15,15,12,.07);padding:16px}
+.c-new{background:var(--surf);border:1px solid var(--hair2);border-radius:12px;padding:16px}
+.c-new.raised{border-color:transparent;box-shadow:0 1px 2px rgba(15,15,12,.06),0 8px 24px rgba(15,15,12,.08)}
+.ctitle{font-size:13.5px;font-weight:700;margin:0 0 4px}
+.cmeta{font-family:var(--mono);font-size:11px;color:var(--mute)}
+/* swatches */
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.chip{display:flex;flex-direction:column;border:1px solid var(--hair2);border-radius:9px;overflow:hidden;background:var(--surf)}
+.chip .fill{display:block;height:38px;flex:0 0 auto}
+.chip .n2{display:block;padding:6px 8px;font-family:var(--mono);font-size:9.5px;line-height:1.35;color:var(--ink2)}
+.chip .n2 em{display:block;font-style:normal;color:var(--mute);font-size:9px;margin-top:2px}
+/* type scale */
+.ts{display:flex;flex-direction:column;gap:0}
+.ts .r{display:flex;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px dashed var(--hair)}
+.ts .r:last-child{border-bottom:none}
+.ts .k{flex:0 0 74px;font-family:var(--mono);font-size:10px;color:var(--mute)}
+.ts .u{flex:0 0 130px;font-size:11px;color:var(--dim)}
+/* table */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);padding:0 12px 8px 0;border-bottom:1px solid var(--hair2)}
+td{padding:9px 12px 9px 0;border-bottom:1px solid var(--hair);color:var(--ink2);line-height:1.5;vertical-align:top}
+td.m{font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+td b{color:var(--ink)}
+.dup{color:var(--bad);font-weight:600}
+/* plan */
+.phase{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--hair)}
+.phase:last-child{border-bottom:none}
+.pnum{flex:0 0 auto;width:30px;height:30px;border-radius:99px;background:var(--accent);color:var(--accentInk);font-family:var(--mono);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.pbody{flex:1;min-width:0}
+.pbody .pt{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.pbody .pd{font-size:13px;color:var(--ink2);line-height:1.6;margin-top:5px}
+.pbody .pf{font-family:var(--mono);font-size:10.5px;color:var(--mute);margin-top:7px}
+.effort{flex:0 0 auto;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:var(--surf3);border-radius:99px;padding:4px 10px;height:fit-content}
+.callout{background:var(--accentSoft);border:1px solid var(--accentBorder);border-radius:12px;padding:18px 20px;margin:0 0 32px}
+.callout p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink2)}
+.callout p b{color:var(--ink)}
+.pillx{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px}
+/* option cards */
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:12px;margin:4px 0 18px}
+.opt{border:1px solid var(--hair2);border-radius:12px;overflow:hidden;background:var(--surf2);display:flex;flex-direction:column}
+.opt.rec{border-color:var(--good);box-shadow:0 0 0 2px var(--goodSoft)}
+.opt.rej{opacity:.72}
+.ohead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--hair)}
+.obadge{font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;padding:3px 7px;border-radius:99px;background:var(--surf3);color:var(--dim)}
+.obadge.rec{background:var(--goodSoft);color:var(--good)}
+.obadge.rej{background:var(--badSoft);color:var(--bad)}
+.oname{font-size:12.5px;font-weight:700}
+.odemo{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 12px;border-bottom:1px solid var(--hair)}
+.ocopy{margin:0;padding:12px;font-size:12px;line-height:1.55;color:var(--ink2);flex:1}
+.ocopy b{color:var(--ink)}
+.ometa{padding:9px 12px;border-top:1px solid var(--hair);font-family:var(--mono);font-size:10px;color:var(--mute);background:var(--surf)}
+.ometa b{color:var(--ink2)}
+/* scheme specimens */
+.schemes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:4px 0 18px}
+.scheme{border:1px solid var(--hair2);border-radius:12px;overflow:hidden;background:var(--surf);display:flex;flex-direction:column}
+.scheme.rec{border-color:var(--good);box-shadow:0 0 0 2px var(--goodSoft)}
+.mini{display:flex;height:132px}
+.mini .rail{flex:0 0 30px}
+.mini .page{flex:1;min-width:0;padding:11px;display:flex;flex-direction:column;gap:8px}
+.mini .card{border-radius:9px;padding:9px 10px}
+.mini .t{font-size:11px;font-weight:700;line-height:1.2}
+.mini .price{display:block;font-family:var(--mono);font-size:15px;font-weight:700;margin-top:3px;line-height:1.2}
+.mini .btn{align-self:flex-start;font-size:10.5px;font-weight:700;padding:6px 11px;border-radius:7px}
+.mini .well{border-radius:8px;flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#15140f">
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg"><rect width="1200" height="800" fill="#15140f"/><rect x="380" y="300" width="180" height="180" rx="30" fill="#FFD100"/><rect x="600" y="300" width="180" height="180" rx="30" fill="#2A2A26"/><rect x="640" y="340" width="100" height="100" rx="16" fill="#EDEFF3"/><text x="600" y="600" font-family="'JetBrains Mono', monospace" font-size="30" font-weight="700" letter-spacing="6" fill="#8a8a80" text-anchor="middle">UI AUDIT</text></svg>
+</template>
+
+<div class="wrap">
+
+<div class="masthead">
+  <div class="kicker">Design system review · round 2 · 12 apps</div>
+  <h1>The vocabulary held.<br/>One app hadn't read the memo yet.</h1>
+  <p class="lede">Round 1 fixed the token layer and it stuck — no hex literals leaked back in, no button fell back under 30px, and every screen I checked still resolves through one theme file. This pass went looking for the failure mode round 1 predicted but couldn't yet see: rules written down but not yet applied everywhere. Found three, live only in the Batch Pipeline app, and fixed all three during this review. Two structural items remain open below.</p>
+  <div class="meta">
+    <span><b>Reviewed</b> all 12 apps, focused on token discipline · selection colour · component duplication</span>
+    <span><b>Findings</b> 5</span>
+    <span><b>Fixed live, this pass</b> 3</span>
+    <span><b>Open</b> 2</span>
+  </div>
+</div>
+
+<div class="verdict">
+  <div class="vcard keep">
+    <h3>Held since round 1</h3>
+    <ol>
+      <li><b>Zero colour literals crept back in.</b> Checked every app; the only hex outside <span class="tag">pos/tokens.jsx</span> is in two standalone dev-tool overlays (account switcher), not the product surface.</li>
+      <li><b>Touch targets and type floor.</b> No control under 30px, no text under 10px, across a fresh scan of Promotions, Pipeline and POS.</li>
+      <li><b>Focus rings.</b> Still covers every native interactive, everywhere.</li>
+    </ol>
+  </div>
+  <div class="vcard fix">
+    <h3>Fix — in this order</h3>
+    <ol>
+      <li><b>Pipeline's workspace tokens had leaked into content chrome.</b> Fixed live — see finding 1.</li>
+      <li><b>Pipeline's own active-nav state was invisible.</b> Fixed live — see finding 2.</li>
+      <li><b>Round 1's "selection is ink, not accent" rule hadn't reached the Inbox screen.</b> Fixed live — see finding 3.</li>
+      <li><b>Two table components still exist.</b> Open — needs the same alias treatment Pill and EmptyState got in phase 4.</li>
+    </ol>
+  </div>
+</div>
+
+<div class="callout">
+  <p><b>Pattern behind three of these:</b> all three fixed findings are in the one app (Pipeline / Hyperdrive) that was ported from a separate prototype rather than built inside this system from the start. That's not a coincidence — it's exactly where a shared rule is most likely to not have been re-derived. Worth a standing check whenever a new app is folded in.</p>
+</div>
+
+<section>
+  <h2>A · Fixed this pass</h2>
+  <p class="sectionsub">All three live in the project now. Shown here so the reasoning is on record.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">1</span>
+      <div class="ftitle">
+        <div class="t">Cool workspace tokens were the default fill for content, not just the backdrop</div>
+        <div class="s"><span class="tag">canvas</span> / <span class="tag">canvas2</span> exist for one job — the page-level backdrop behind kanban lanes and dense tables. In Pipeline they'd also become the default icon-plate, table-head, hover and notes-panel fill, in 15 files.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">background: P.canvas2 → batch icon plates, evidence tiles, stat boxes, meter tracks &nbsp;·&nbsp; background: P.canvas → table heads, filter bars, notes panels, hover states, sticky footers &nbsp;·&nbsp; <b>62 call sites, 15 files</b></div>
+      <p class="fx"><b>Fix applied.</b> Content-level chrome moved to the warm tokens that already existed for this — <span class="tag">surface3</span> for small plates/wells, <span class="tag">surface2</span> for table heads and panels. <span class="tag">canvas</span>/<span class="tag">canvas2</span> now appear only in the app's root wrapper, its sidebar, and the kanban lane backgrounds — the actual workspace backdrop.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Before — cool cast on every card</div>
+          <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--hair2);border-radius:10px;padding:8px">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--canvas2);border:1px solid var(--hair2)"></div>
+              <div><div style="font-size:12.5px;font-weight:600">Heavy Hitters…</div><div class="mono" style="font-size:10.5px;color:var(--mute)">HEAVY-5154</div></div>
+            </div>
+            <div style="font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);background:var(--canvas);padding:6px 10px;border-radius:6px 6px 0 0">Status · Invoice · Vendor</div>
+          </div>
+          <div class="note">Icon plate and table head both pull the same blue-grey the page background uses — three visual layers collapse into one flat cool wash.</div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ After — warm, matches every other app</div>
+          <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px;background:var(--surf);border:1px solid var(--hair2);border-radius:10px;padding:8px">
+              <div style="width:32px;height:32px;border-radius:8px;background:var(--surf3);border:1px solid var(--hair2)"></div>
+              <div><div style="font-size:12.5px;font-weight:600">Heavy Hitters…</div><div class="mono" style="font-size:10.5px;color:var(--mute)">HEAVY-5154</div></div>
+            </div>
+            <div style="font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);background:var(--surf2);padding:6px 10px;border-radius:6px 6px 0 0">Status · Invoice · Vendor</div>
+          </div>
+          <div class="note">Same layout, warm neutral fills. The page's own cool backdrop is now the only cool thing on screen — it reads as depth again, not a different product.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">2</span>
+      <div class="ftitle">
+        <div class="t">The active nav item and its own sidebar were the same colour</div>
+        <div class="s">Pipeline's module sidebar (Batches / Inventory / Products…) painted its active row the exact background the sidebar already sits on. Every other app's equivalent sidebar uses a lighter fill for the active row than its own backdrop — Pipeline's didn't, so "Batches" never visibly looked selected.</div>
+      </div>
+      <span class="sev high">High</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">Engage: sidebar background P.bg &nbsp;→&nbsp; active row P.surface2 <span class="ok">(visibly deeper)</span><br/>Pipeline: sidebar background P.canvas &nbsp;→&nbsp; active row <b>P.canvas</b> <span style="color:var(--bad);font-weight:600">(identical — zero contrast)</span></div>
+      <p class="fx"><b>Fix applied.</b> Active row is now <span class="tag">surface</span> (white) with a small raised shadow, popping forward off the cool sidebar the way a selected tab should — plus the existing yellow left-accent bar. Hover moved to <span class="tag">surface3</span> so it reads as a distinct, lighter step than the active state.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Before — "Batches" is active. Can you tell?</div>
+          <div style="background:var(--canvas);border:1px solid var(--hair2);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12.5px;color:var(--ink);font-weight:600;border-left:2px solid var(--accent)">Batches</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12.5px;color:var(--dim);border-left:2px solid transparent">Inventory</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12.5px;color:var(--dim);border-left:2px solid transparent">Products</div>
+          </div>
+          <div class="note">Only the 2px accent hairline and a font-weight bump separate active from inactive. Easy to miss at a glance — which is the whole point of an active state.</div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ After — unmistakable</div>
+          <div style="background:var(--canvas);border:1px solid var(--hair2);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12.5px;color:var(--ink);font-weight:600;border-left:2px solid var(--accent);background:var(--surf);box-shadow:0 1px 2px rgba(15,15,12,.08)">Batches</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12.5px;color:var(--dim);border-left:2px solid transparent">Inventory</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:12.5px;color:var(--dim);border-left:2px solid transparent">Products</div>
+          </div>
+          <div class="note">A raised white pill against the cool sidebar reads as selected without needing to parse font-weight.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">3</span>
+      <div class="ftitle">
+        <div class="t">Round 1's own rule — selection is ink, not accent — hadn't reached the Inbox</div>
+        <div class="s">The Invoice Inbox's view toggle ("Needs you" / "All") and its status filter chips (All / Auto-Posted / Mapped…) both filled the active option solid yellow. That's the exact pattern round 1 finding 1 fixed on the POS register — it just hadn't propagated to this screen.</div>
+      </div>
+      <span class="sev med">Med</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">ViewToggle active → background: P.accent, color: P.accentInk<br/>StatusChips active → background: P.accent, color: P.accentInk<br/>Same screen also has zero other accent use — so this WAS the screen's "one accent," just applied to the wrong thing (a filter, not an action).</div>
+      <p class="fx"><b>Fix applied.</b> Both now fill <span class="tag">ink</span> on the active option (white text on black), matching how every other tab/filter group in the product marks "this is selected." Yellow stays reserved for the one primary action per view.</p>
+      <div class="spec">
+        <div class="before">
+          <div class="slabel b">◤ Before</div>
+          <div class="row">
+            <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:6px;font-size:13.5px;font-weight:600;background:var(--accent);color:var(--accentInk)">Needs you <span class="mono" style="font-size:11.5px;opacity:.8">(24)</span></span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:6px;font-size:13.5px;color:var(--dim)">All <span class="mono" style="font-size:11.5px">(48)</span></span>
+          </div>
+        </div>
+        <div class="after">
+          <div class="slabel a">◢ After</div>
+          <div class="row">
+            <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:6px;font-size:13.5px;font-weight:600;background:var(--ink);color:var(--surf);box-shadow:0 1px 2px rgba(15,15,12,.08)">Needs you <span class="mono" style="font-size:11.5px;opacity:.8">(24)</span></span>
+            <span style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:6px;font-size:13.5px;color:var(--dim)">All <span class="mono" style="font-size:11.5px">(48)</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="callout">
+  <p><b>Follow-up sweep, same session:</b> finding 3's rule — ink for selection, never accent — had the same gap on eight more tabs/filter chips beyond the Inbox: Pipeline's inventory location filter, its sort chips, its Buyer Analytics time-horizon and store/category filters; Engage's window/sort/model toggles on three Analytics screens, its ops actor filter, and the shared <span class="tag">MultiSelectFilter</span> dropdown used for every Brand/Category/Vendor filter in both apps. All fixed to ink, live. Finding 5 was also just the one call site — fixed. HDTable's cell padding was tightened 1px to match DataTable's dense mode exactly, closing that small a gap; the deeper merge below is unchanged and still open.</p>
+</div>
+
+<section>
+  <h2>B · Open</h2>
+  <p class="sectionsub">Not fixed live — both are structural, worth a deliberate pass rather than a drive-by edit.</p>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">4</span>
+      <div class="ftitle">
+        <div class="t">Two table components still exist</div>
+        <div class="s">Round 1 flagged "three of everything" as the real cohesion gap; phase 4 merged Pill and EmptyState behind aliases, but <span class="tag">DataTable</span> (pos/atoms.jsx) and <span class="tag">HDTable</span> (shared/hd-ui.jsx) are still two separate implementations with different defaults.</div>
+      </div>
+      <span class="sev med">Med</span>
+    </div>
+    <div class="fbody">
+      <table style="margin-bottom:16px">
+        <thead><tr><th>Trait</th><th>DataTable (POS)</th><th>HDTable (Hyperdrive)</th></tr></thead>
+        <tbody>
+          <tr><td><b>Row height</b></td><td class="m">40px default, 32px dense</td><td class="m">34px fixed</td></tr>
+          <tr><td><b>Empty state</b></td><td>Plain "No results" text row</td><td>Caller supplies its own (usually EmptyState now)</td></tr>
+          <tr><td><b>Selection</b></td><td>Built-in <span class="mono">selectedKeys</span></td><td>None — callers hand-roll it per screen</td></tr>
+          <tr><td><b>Sticky head</b></td><td>Prop-driven</td><td>Caller sets <span class="mono">position:sticky</span> manually</td></tr>
+        </tbody>
+      </table>
+      <p class="fx"><b>Risk.</b> Every Hyperdrive table (Pipeline, Engage) hand-rolls row height, sort icons and empty/selection behaviour per screen, because there's no shared component to inherit it from. That's exactly how the Inbox screen above ended up with its own one-off selection colour — the fix in this audit doesn't prevent the next one.</p>
+      <p class="fx"><b>Fix.</b> Same move as Pill/EmptyState: make <span class="tag">HDTable</span> a thin wrapper over <span class="tag">DataTable</span> that maps Hyperdrive's plain <span class="mono">&lt;thead&gt;/&lt;tbody&gt;</span> call sites onto the shared column/row API, so density, selection and empty-state come from one place going forward.</p>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="fhead">
+      <span class="num">5</span>
+      <div class="ftitle">
+        <div class="t">A handful of buttons fight their own variant with an inline override</div>
+        <div class="s">A few call sites pick <span class="tag">variant="accent"</span> and then inline-override the colour to something else — usually red for a destructive action. The variant system already has the right name for that.</div>
+      </div>
+      <span class="sev low">Low</span>
+    </div>
+    <div class="fbody">
+      <div class="ev">logistics/lorder.jsx:267 — &lt;PBtn variant=<b>"accent"</b> icon="user-off" style={{ background: P.bad, color: '#fff' }}&gt;Cancel order&lt;/PBtn&gt;</div>
+      <p class="fx"><b>Fix.</b> Use <span class="tag">variant="danger"</span> — it already renders exactly this, from the token, with no inline style needed. Cosmetically invisible today; the risk is the inline override silently stops matching if <span class="tag">danger</span>'s styling ever changes.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+
+</body>
+</html>

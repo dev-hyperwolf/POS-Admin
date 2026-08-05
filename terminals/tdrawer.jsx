@@ -32,14 +32,14 @@ function DenomCounter({ q, set }) {
     <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 8, height: 8, borderRadius: 3, background: tint }} />
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.ink2 }}>{title}</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.ink2 }}>{title}</span>
       </div>
       <div style={{ padding: '6px 12px 10px' }}>
         {arr.map((d) => {const k = pfx + d.v;const st = line(k, d.v);const active = st > 0;return (
             <div key={k} style={{ display: 'grid', gridTemplateColumns: '1fr 64px 74px', alignItems: 'center', gap: 10, padding: '5px 0' }}>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{d.l}{d.u && <span style={{ color: P.inkMute, fontWeight: 400, fontSize: 11 }}> · {d.u}</span>}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{d.l}{d.u && <span style={{ color: P.inkMute, fontWeight: 400, fontSize: 11.5 }}> · {d.u}</span>}</span>
               <input value={q[k] || ''} onChange={(e) => set(k, e.target.value)} placeholder="0" inputMode="numeric"
-                style={{ width: '100%', padding: '7px 8px', textAlign: 'center', fontFamily: P.fontMono, fontWeight: 600, fontSize: 13, background: active ? P.accentSoft : P.field, border: `1px solid ${active ? P.accentBorder : P.fieldBorder}`, borderRadius: P.r8, color: P.ink, outline: 'none' }} />
+                style={{ width: '100%', padding: '7px 8px', textAlign: 'center', fontFamily: P.fontMono, fontWeight: 600, fontSize: 13.5, background: active ? P.accentSoft : P.field, border: `1px solid ${active ? P.accentBorder : P.fieldBorder}`, borderRadius: P.r8, color: P.ink, outline: 'none' }} />
               <span style={{ fontFamily: P.fontMono, fontSize: 12.5, fontWeight: active ? 700 : 400, color: active ? P.ink : P.inkFaint, textAlign: 'right' }}>{money(st)}</span>
             </div>);})}
       </div>
@@ -70,7 +70,7 @@ function StageBar({ steps, at }) {
         const done = i < at, on = i === at;
         return <React.Fragment key={s}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ width: 20, height: 20, borderRadius: 99, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono, fontSize: 10.5, fontWeight: 700,
+            <span style={{ width: 20, height: 20, borderRadius: 99, flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700,
               background: done ? P.good : on ? P.ink : P.surface3, color: done || on ? '#fff' : P.inkMute, border: done || on ? 'none' : `1px solid ${P.hairline2}` }}>
               {done ? <Icon name="check" size={12} stroke={3} color="#fff" /> : i + 1}</span>
             <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 600, color: on ? P.ink : done ? P.ink2 : P.inkMute, whiteSpace: 'nowrap' }}>{s}</span>
@@ -125,7 +125,7 @@ window.OpenDrawerModal = function OpenDrawerModal({ t, onClose, onOpened }) {
         {stage === 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '11px 13px', background: P.infoSoft, borderRadius: P.r10 }}>
             <Icon name="info" size={15} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
-            <span style={{ fontSize: 12, color: P.ink2, lineHeight: 1.5 }}>
+            <span style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.5 }}>
               {isDriver ? <>Normally the driver does this themselves — they tap <b>Start shift</b> in the Driver App at clock-on and the bag is issued against their region. Use this when you are handing them the bag over the counter.</> :
               <>Normally the cashier opens their own drawer when they sign in to the station. Use this to open one on their behalf.</>}
             </span>
@@ -143,14 +143,14 @@ window.OpenDrawerModal = function OpenDrawerModal({ t, onClose, onOpened }) {
           </div>
           {isDriver && <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
             <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#fff', background: regionColor(t.region), padding: '4px 9px', borderRadius: P.r8 }}>{regionName(t.region)}</span>
-            <span style={{ fontSize: 12, color: P.ink2 }}>The bag is issued against this region — the reader stays with the region either way.</span>
+            <span style={{ fontSize: 12.5, color: P.ink2 }}>The bag is issued against this region — the reader stays with the region either way.</span>
           </div>}
         </div>}
 
         {stage === 1 && <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
             <Check on={verify} onChange={setVerify} size={18} />
-            <span style={{ fontSize: 13, color: P.ink2 }}>Count the starting cash balance by denomination before handing it over</span>
+            <span style={{ fontSize: 13.5, color: P.ink2 }}>Count the starting cash balance by denomination before handing it over</span>
           </label>
           {verify ? <>
             <DenomCounter q={q} set={(k, v) => setQ((m) => ({ ...m, [k]: v.replace(/[^0-9]/g, '') }))} />
@@ -173,8 +173,8 @@ window.OpenDrawerModal = function OpenDrawerModal({ t, onClose, onOpened }) {
         {stage === 2 && res && <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '16px 18px', background: P.goodSoft, border: `1px solid ${P.good}44`, borderRadius: P.r12 }}>
             <span style={{ width: 40, height: 40, borderRadius: 99, background: P.good, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="check" size={22} stroke={3} color="#fff" /></span>
-            <div><div style={{ fontSize: 15.5, fontWeight: 800, color: P.ink }}>{isDriver ? 'Bag issued to ' + who.split(' ')[0] : 'Drawer open for ' + who.split(' ')[0]}</div>
-              <div style={{ fontSize: 12, color: P.ink2, marginTop: 2 }}>{money(res.float)} starting cash · session <span style={{ fontFamily: P.fontMono, fontWeight: 700 }}>{res.id}</span> · {res.at}</div></div>
+            <div><div style={{ fontSize: 16, fontWeight: 800, color: P.ink }}>{isDriver ? 'Bag issued to ' + who.split(' ')[0] : 'Drawer open for ' + who.split(' ')[0]}</div>
+              <div style={{ fontSize: 12.5, color: P.ink2, marginTop: 2 }}>{money(res.float)} starting cash · session <span style={{ fontFamily: P.fontMono, fontWeight: 700 }}>{res.id}</span> · {res.at}</div></div>
           </div>
           <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: '4px 14px 10px' }}>
             <KVRow k="Session id" v={res.id} mono />
@@ -183,7 +183,7 @@ window.OpenDrawerModal = function OpenDrawerModal({ t, onClose, onOpened }) {
             <KVRow k="Starting cash balance" v={money(res.float)} mono />
             <KVRow k="Verified by count" v={verify ? 'Yes' : 'No — issued on trust'} />
           </div>
-          <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.55 }}>
             {isDriver ? <>From here every cash sale adds to the bag. At end of shift the driver returns and you run <b>Deposit bag</b> from this terminal — count, seal, drop.</> :
             <>From here every cash sale adds to the drawer. At handoff or end of day you run <b>Close drawer</b> — count, reconcile the variance, deposit the rest.</>}
           </div>
@@ -266,8 +266,8 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
 
   const Txn = ({ label, n, tint, last }) =>
     <div style={{ flex: 1, textAlign: 'center', padding: '11px 6px', borderRight: last ? 'none' : `1px solid ${P.hairline}` }}>
-      <div style={{ fontSize: 20, fontWeight: 800, fontFamily: P.fontMono, color: n ? tint || P.ink : P.inkFaint }}>{n}</div>
-      <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', color: P.inkMute, marginTop: 3, lineHeight: 1.2 }}>{label}</div>
+      <div style={{ fontSize: 21, fontWeight: 800, fontFamily: P.fontMono, color: n ? tint || P.ink : P.inkFaint }}>{n}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.03em', textTransform: 'uppercase', color: P.inkMute, marginTop: 3, lineHeight: 1.2 }}>{label}</div>
     </div>;
 
   const destObj = DESTS.find((d) => d.v === dest);
@@ -285,7 +285,7 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
             <Avatar name={employee || t.name} size={42} />
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 16.5, fontWeight: 800, color: P.ink, letterSpacing: '-.01em' }}>{employee || '—'}</div>
-              <div style={{ fontSize: 12, color: P.inkDim, fontWeight: 500 }}>{isDriver ? t.device.model : (t.drawer.since ? 'Opened ' + t.drawer.since : 'Session') + ' · ' + t.name}</div>
+              <div style={{ fontSize: 12.5, color: P.inkDim, fontWeight: 500 }}>{isDriver ? t.device.model : (t.drawer.since ? 'Opened ' + t.drawer.since : 'Session') + ' · ' + t.name}</div>
             </div>
             {isDriver ?
               <span style={{ fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 700, color: '#fff', background: regionColor(t.region), padding: '5px 11px', borderRadius: P.r8 }}>{regionName(t.region)}</span> :
@@ -330,15 +330,15 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
             {plan ? <>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 11 }}>
                 {plan.leave.length ? plan.leave.map((x, i) =>
-                  <span key={i} style={{ fontFamily: P.fontMono, fontSize: 12, fontWeight: 700, color: P.ink, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, padding: '5px 11px' }}>{x.take} × {x.l}</span>) :
-                  <span style={{ fontSize: 12, color: P.inkDim }}>Not enough small denominations counted yet.</span>}
+                  <span key={i} style={{ fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 700, color: P.ink, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, padding: '5px 11px' }}>{x.take} × {x.l}</span>) :
+                  <span style={{ fontSize: 12.5, color: P.inkDim }}>Not enough small denominations counted yet.</span>}
               </div>
-              {plan.short > 0.005 && <div style={{ fontSize: 11, color: P.warn, marginBottom: 10, fontWeight: 500 }}>Still {money(plan.short)} short on small bills — break a larger bill or pull change from the safe.</div>}
+              {plan.short > 0.005 && <div style={{ fontSize: 11.5, color: P.warn, marginBottom: 10, fontWeight: 500 }}>Still {money(plan.short)} short on small bills — break a larger bill or pull change from the safe.</div>}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 11, borderTop: `1px solid ${P.good}33` }}>
                 <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink2 }}>Deposit the rest</span>
-                <span style={{ fontSize: 22, fontWeight: 800, fontFamily: P.fontMono, color: P.ink }}>{money(Math.max(0, deposit))}</span>
+                <span style={{ fontSize: 21, fontWeight: 800, fontFamily: P.fontMono, color: P.ink }}>{money(Math.max(0, deposit))}</span>
               </div>
-            </> : <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.45 }}>Count the drawer above and we’ll suggest exactly which bills &amp; coins to leave for the next shift — the rest is your deposit.</div>}
+            </> : <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.45 }}>Count the drawer above and we’ll suggest exactly which bills &amp; coins to leave for the next shift — the rest is your deposit.</div>}
           </div>
         </>}
 
@@ -356,8 +356,8 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
                 <button key={d.v} onClick={() => setDest(d.v)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
                   background: on ? P.accentSoft : P.surface, border: `1.5px solid ${on ? P.accentBorder : P.hairline2}`, borderRadius: P.r10 }}>
                   <span style={{ width: 15, height: 15, borderRadius: 99, flex: '0 0 auto', border: `2px solid ${on ? P.accent : P.hairline3}`, background: on ? P.accent : 'transparent' }} />
-                  <Icon name={d.icon} size={17} color={on ? (P.mode === 'dark' ? P.accent : '#7A5A00') : P.inkMute} />
-                  <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: P.ink }}>{d.label}</span>
+                  <Icon name={d.icon} size={17} color={on ? (P.accentText) : P.inkMute} />
+                  <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{d.label}</span>
                     <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, marginTop: 1 }}>{d.sub}</span></span>
                 </button>);})}
             </div>
@@ -373,11 +373,11 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
           {offBalance && <div style={{ padding: '13px 15px', background: variance < 0 ? P.badSoft : P.warnSoft, border: `1px solid ${(variance < 0 ? P.bad : P.warn)}`, borderRadius: P.r12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
               <Icon name="flag" size={14} color={variance < 0 ? P.bad : P.warn} />
-              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: variance < 0 ? P.bad : P.warn }}>Variance needs an explanation</span>
+              <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: variance < 0 ? P.bad : P.warn }}>Variance needs an explanation</span>
             </div>
             <div style={{ display: 'flex', gap: 5, marginBottom: 8, flexWrap: 'wrap' }}>
               {['Miscount at close', 'Change given in error', 'Unlogged payout', 'Till short at open', 'Under investigation'].map((r) =>
-                <button key={r} onClick={() => setReason(r)} style={{ padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: reason === r ? P.ink : P.surface, color: reason === r ? '#fff' : P.ink2, fontSize: 10.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{r}</button>)}
+                <button key={r} onClick={() => setReason(r)} style={{ padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: reason === r ? P.ink : P.surface, color: reason === r ? '#fff' : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{r}</button>)}
             </div>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder="What happened?"
               style={{ width: '100%', resize: 'vertical', padding: '9px 11px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink, fontSize: 12.5, fontFamily: P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
@@ -394,8 +394,8 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '16px 18px', background: P.goodSoft, border: `1px solid ${P.good}44`, borderRadius: P.r12 }}>
             <span style={{ width: 40, height: 40, borderRadius: 99, background: P.good, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="check" size={22} stroke={3} color="#fff" /></span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, color: P.ink }}>{money(res.amount)} sealed &amp; recorded</div>
-              <div style={{ fontSize: 12, color: P.ink2, marginTop: 2 }}>Deposit <span style={{ fontFamily: P.fontMono, fontWeight: 700 }}>{res.id}</span> · bag <span style={{ fontFamily: P.fontMono, fontWeight: 700 }}>{res.bag}</span> · {res.at}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: P.ink }}>{money(res.amount)} sealed &amp; recorded</div>
+              <div style={{ fontSize: 12.5, color: P.ink2, marginTop: 2 }}>Deposit <span style={{ fontFamily: P.fontMono, fontWeight: 700 }}>{res.id}</span> · bag <span style={{ fontFamily: P.fontMono, fontWeight: 700 }}>{res.bag}</span> · {res.at}</div>
             </div>
           </div>
 
@@ -431,7 +431,7 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
             {res.reason && <KVRow k="Variance reason" v={res.reason} />}
             <KVRow k="Amount deposited" v={money(res.amount)} mono strong />
           </div>
-          <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.55 }}>
             {isDriver ? <>The bag session is now closed. {money(startCash)} change stays issued to {regionName(t.region)} for the next shift — the driver does not re-count it at clock-on.</> :
             <>The drawer session is closed and {money(startCash)} starting cash carries to the next associate. The next person opening this station starts a fresh session.</>}
           </div>

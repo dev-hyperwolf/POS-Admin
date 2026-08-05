@@ -31,8 +31,8 @@ window.BuilderWizard = function BuilderWizard({ draft, set, step, setStep }){
         <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
           {WIZ_STEPS.map((s,i)=>{ const a=i===step; const cpl=done[i]&&i<step; const reach=i<=step||done[i-1]; return (
             <button key={s.id} onClick={()=>reach&&setStep(i)} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 12px', background:a?P.surface:'transparent', border:`1px solid ${a?P.hairline2:'transparent'}`, borderRadius:P.r10, cursor:reach?'pointer':'default', textAlign:'left', opacity:reach?1:.45, transition:'all .12s' }}>
-              <span style={{ width:26, height:26, borderRadius:99, flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', background:a?P.ink:cpl?P.good:P.surface3, color:a||cpl?'#fff':P.inkDim, fontSize:12, fontWeight:700, fontFamily:P.fontMono }}>{cpl?<Icon name="check" size={14} stroke={3}/>:i+1}</span>
-              <span style={{ flex:1 }}><span style={{ fontSize:13, fontWeight:600, color:a?P.ink:P.ink2, display:'block' }}>{s.label}</span></span>
+              <span style={{ width:26, height:26, borderRadius:99, flex:'0 0 auto', display:'flex', alignItems:'center', justifyContent:'center', background:a?P.ink:cpl?P.good:P.surface3, color:a||cpl?'#fff':P.inkDim, fontSize: 12.5, fontWeight:700, fontFamily:P.fontMono }}>{cpl?<Icon name="check" size={14} stroke={3}/>:i+1}</span>
+              <span style={{ flex:1 }}><span style={{ fontSize: 13.5, fontWeight:600, color:a?P.ink:P.ink2, display:'block' }}>{s.label}</span></span>
             </button>); })}
         </div>
         <div style={{ marginTop:26 }}><LivePreview draft={draft} compact/></div>
@@ -43,10 +43,10 @@ window.BuilderWizard = function BuilderWizard({ draft, set, step, setStep }){
         <div style={{ flex:1, padding:'34px 40px', maxWidth:780, overflowY:'auto' }}>
           {/* step explainer — the "know what it does in advance" fix */}
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-            <span style={{ fontSize:11, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, fontFamily:P.fontMono }}>Step {step+1} of {WIZ_STEPS.length}</span>
+            <span style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, fontFamily:P.fontMono }}>Step {step+1} of {WIZ_STEPS.length}</span>
           </div>
-          <h1 style={{ margin:'0 0 10px', fontSize:26, fontWeight:700, color:P.ink, letterSpacing:'-.01em' }}>{S.title}</h1>
-          <p style={{ margin:'0 0 26px', fontSize:14, lineHeight:1.6, color:P.inkDim, maxWidth:620 }}>{S.explain}</p>
+          <h1 style={{ margin:'0 0 10px', fontSize: 30, fontWeight:700, color:P.ink, letterSpacing:'-.01em' }}>{S.title}</h1>
+          <p style={{ margin:'0 0 26px', fontSize: 13.5, lineHeight:1.6, color:P.inkDim, maxWidth:620 }}>{S.explain}</p>
 
           {step===0 && <EntityCards value={rule.entity} onPick={pickEntity} columns={2}/>}
 
@@ -54,7 +54,7 @@ window.BuilderWizard = function BuilderWizard({ draft, set, step, setStep }){
             {rule.conditions.length>0 && <Card padding={0} style={{ overflow:'hidden' }}>
               {rule.conditions.map((c,i)=>(
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 18px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
-                  {i>0 ? <button onClick={()=>setRule({ combiner:rule.combiner==='AND'?'OR':'AND' })} style={{ width:44, fontSize:11, fontWeight:700, color:P.mode==='dark'?P.accent:'#8A6200', background:P.accentSoft, border:'none', borderRadius:6, padding:'3px 0', cursor:'pointer', fontFamily:P.fontMono, flex:'0 0 auto' }}>{rule.combiner}</button> : <span style={{ width:44, fontSize:11, fontWeight:700, color:P.inkMute, fontFamily:P.fontMono, flex:'0 0 auto', textAlign:'center' }}>IF</span>}
+                  {i>0 ? <button onClick={()=>setRule({ combiner:rule.combiner==='AND'?'OR':'AND' })} style={{ width:44, fontSize: 11.5, fontWeight:700, color:P.mode==='dark'?P.accent:'#8A6200', background:P.accentSoft, border:'none', borderRadius:6, padding:'3px 0', cursor:'pointer', fontFamily:P.fontMono, flex:'0 0 auto' }}>{rule.combiner}</button> : <span style={{ width:44, fontSize: 11.5, fontWeight:700, color:P.inkMute, fontFamily:P.fontMono, flex:'0 0 auto', textAlign:'center' }}>IF</span>}
                   <span style={{ flex:1, fontSize:15 }}><b style={{ color:P.ink }}>{ {user:'the customer',product:'the product',cart:'the cart',bogo:'the customer'}[rule.entity] } </b><ClauseInline entityId={rule.entity} groupId={rule.group} cond={c} onChange={v=>updateCond(i,v)}/></span>
                   <IconBtn icon="trash" size={15} onClick={()=>removeCond(i)}/>
                 </div>))}
@@ -79,7 +79,7 @@ window.BuilderWizard = function BuilderWizard({ draft, set, step, setStep }){
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 40px', borderTop:`1px solid ${P.hairline2}`, background:P.surface }}>
           <PBtn variant="secondary" icon="chevron-left" onClick={()=>setStep(Math.max(0,step-1))} disabled={step===0}>Back</PBtn>
           <div style={{ flex:1 }}/>
-          {!canNext && step<3 && <span style={{ fontSize:12, color:P.inkMute }}>{step===0?'Pick a trigger to continue':step===1?'Add at least one condition':'Choose a reward'}</span>}
+          {!canNext && step<3 && <span style={{ fontSize: 12.5, color:P.inkMute }}>{step===0?'Pick a trigger to continue':step===1?'Add at least one condition':'Choose a reward'}</span>}
           {step<WIZ_STEPS.length-1
             ? <PBtn variant="primary" iconRight="chevron-right" onClick={()=>setStep(step+1)} disabled={!canNext}>Next: {WIZ_STEPS[step+1].label}</PBtn>
             : <PBtn variant="accent" icon="check" onClick={()=>set({})}>Publish promotion</PBtn>}
@@ -88,7 +88,7 @@ window.BuilderWizard = function BuilderWizard({ draft, set, step, setStep }){
     </div>);
 };
 
-function EmptyHint({ text }){ const P=useP(); return <div style={{ padding:'40px', textAlign:'center', color:P.inkMute, fontSize:13, border:`1px dashed ${P.hairline3}`, borderRadius:P.r12 }}>{text}</div>; }
+function EmptyHint({ text }){ const P=useP(); return <div style={{ padding:'40px', textAlign:'center', color:P.inkMute, fontSize: 13.5, border:`1px dashed ${P.hairline3}`, borderRadius:P.r12 }}>{text}</div>; }
 
 function ReviewStep({ draft, setStep }){
   const P = useP(); const rule = draft.rule;
@@ -104,7 +104,7 @@ function ReviewStep({ draft, setStep }){
     <LivePreview draft={draft}/>
     <Card padding={0} style={{ overflow:'hidden' }}>
       {rows.map((r,i)=>(<div key={i} style={{ display:'flex', alignItems:'center', gap:12, padding:'13px 18px', borderTop:i?`1px solid ${P.hairline}`:'none' }}>
-        <span style={{ width:120, fontSize:11, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkMute }}>{r.label}</span>
+        <span style={{ width:120, fontSize: 11.5, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkMute }}>{r.label}</span>
         <span style={{ flex:1, fontSize:13.5, color:P.ink, fontWeight:500 }}>{r.value}</span>
         <button onClick={()=>setStep(r.step)} style={{ fontSize:11.5, color:P.info, background:'none', border:'none', cursor:'pointer', fontWeight:600 }}>Edit</button>
       </div>))}

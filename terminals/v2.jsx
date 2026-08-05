@@ -12,11 +12,11 @@ window.TPageHeader = function TPageHeader({ onAdd, onSchedule }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 20 }}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, fontSize: 11, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.04em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, fontSize: 11.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.04em' }}>
           <Icon name="settings" size={13} stroke={1.8} /> Settings <Icon name="chevron-right" size={12} /> <span style={{ color: P.ink2, fontWeight: 600 }}>POS Terminals</span>
         </div>
-        <h1 style={{ margin: 0, fontSize: 29, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Terminals</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, fontSize: 13, color: P.inkDim }}>
+        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Terminals</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, fontSize: 13.5, color: P.inkDim }}>
           <span style={{ width: 7, height: 7, borderRadius: 99, background: P.good }} />{S.name}<span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkMute }}>{S.code}</span>
         </div>
       </div>
@@ -71,7 +71,7 @@ function PersonCell({ value, onChange }) {
     </div>);
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }} onClick={(e) => e.stopPropagation()}>
-      {value ? <><Avatar name={value} size={22} /><span style={{ fontSize: 12, color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value.split(' ')[0]}</span></> : <span style={{ fontStyle: 'italic', color: P.inkMute, fontSize: 12 }}>No sign-in</span>}
+      {value ? <><Avatar name={value} size={22} /><span style={{ fontSize: 12.5, color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value.split(' ')[0]}</span></> : <span style={{ fontStyle: 'italic', color: P.inkMute, fontSize: 12.5 }}>No sign-in</span>}
       <PBtn variant="ghost" size="xs" icon="refresh" onClick={() => setSwapping(true)} style={{ marginLeft: 'auto', flex: '0 0 auto' }}>Swap</PBtn>
     </div>);
 }
@@ -81,7 +81,7 @@ function DriverSwap({ value, onChange, vehicle }) {
   const P = useP();const [sw, setSw] = React.useState(false);
   const eligible = ROSTER.filter((p) => p.role === 'driver').map((p) => ({ value: p.name, label: p.name, sub: 'Driver' }));
   if (sw) return <div style={{ flex: 1, minWidth: 0, maxWidth: 190 }} onClick={(e) => e.stopPropagation()}><TSelect size="sm" icon="user" placeholder="Assign driver…" value={value} options={eligible} onChange={(v) => {onChange(v);setSw(false);}} /></div>;
-  return <><span style={{ minWidth: 0, flex: 1 }}><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span><span style={{ fontSize: 10.5, color: P.inkMute }}>Mobile terminal · {vehicle}</span></span><PBtn variant="ghost" size="xs" icon="refresh" onClick={() => setSw(true)} style={{ flex: '0 0 auto' }}>Swap</PBtn></>;
+  return <><span style={{ minWidth: 0, flex: 1 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</span><span style={{ fontSize: 11.5, color: P.inkMute }}>Mobile terminal · {vehicle}</span></span><PBtn variant="ghost" size="xs" icon="refresh" onClick={() => setSw(true)} style={{ flex: '0 0 auto' }}>Swap</PBtn></>;
 }
 
 // ── Station row ─────────────────────────────────────────────────────────────
@@ -94,10 +94,10 @@ function StationRow({ t, reader, onAssign, onOpen }) {
   return (
     <div onClick={onOpen} style={{ display: 'grid', gridTemplateColumns: STATION_COLS, gap: 14, alignItems: 'center', padding: pad, borderTop: `1px solid ${P.hairline}`, cursor: 'pointer', background: attn.some((a) => a.level === 'critical') ? P.badSoft : 'transparent' }}
     onMouseEnter={(e) => {if (!attn.some((a) => a.level === 'critical')) e.currentTarget.style.background = P.surface2;}} onMouseLeave={(e) => {if (!attn.some((a) => a.level === 'critical')) e.currentTarget.style.background = 'transparent';}}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}><TypeGlyph kind="station" size={30} /><span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{t.name}</span><span style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono }}><Icon name="lock" size={10} style={{ verticalAlign: '-1px' }} /> {t.device.model} · {t.device.tag}</span></span></span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}><TypeGlyph kind="station" size={30} /><span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{t.name}</span><span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}><Icon name="lock" size={10} style={{ verticalAlign: '-1px' }} /> {t.device.model} · {t.device.tag}</span></span></span>
       <PersonCell value={emp} onChange={setEmp} />
       <ReaderCell id={t.id} reader={reader} onAssign={onAssign} />
-      <span style={{ fontSize: 12.5, color: dl.tone === 'bad' ? P.bad : P.ink2, fontFamily: P.fontMono, fontWeight: 600 }}>{dl.value} <span style={{ fontSize: 10.5, color: P.inkMute }}>{dl.label.toLowerCase()}</span></span>
+      <span style={{ fontSize: 12.5, color: dl.tone === 'bad' ? P.bad : P.ink2, fontFamily: P.fontMono, fontWeight: 600 }}>{dl.value} <span style={{ fontSize: 11.5, color: P.inkMute }}>{dl.label.toLowerCase()}</span></span>
       <span style={{ display: 'flex', justifyContent: 'flex-end' }}>{attn.length ? <AttnPills t={{ ...t, reader }} wrap={false} /> : <Pill kind="good" dot>Ready</Pill>}</span>
     </div>);
 }
@@ -116,10 +116,10 @@ function MobileRow({ t, reader, onAssign, onOpen }) {
     onMouseEnter={(e) => {if (!attn.some((a) => a.level === 'critical')) e.currentTarget.style.background = P.surface2;}} onMouseLeave={(e) => {if (!attn.some((a) => a.level === 'critical')) e.currentTarget.style.background = 'transparent';}}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
         <span style={{ width: 34, height: 26, borderRadius: P.r8, background: regionColor(t.region), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono, fontWeight: 700, fontSize: 11.5, flex: '0 0 auto' }}>{t.region}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.regionCity}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.regionCity}</span>
       </span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }} onClick={(e) => e.stopPropagation()}><TypeGlyph kind="mobile" size={30} /><DriverSwap value={drv} onChange={setDrv} vehicle={t.vehicle} /></span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: P.inkDim }}><StatusDot online={t.online} size={7} /><span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}><span>{t.device.model}</span><span style={{ fontSize: 9.5, color: P.inkMute, fontFamily: P.fontMono }}>{t.device.tag}</span></span></span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: P.inkDim }}><StatusDot online={t.online} size={7} /><span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}><span>{t.device.model}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{t.device.tag}</span></span></span>
       <ReaderCell id={t.id} reader={reader} onAssign={onAssign} />
       <span style={{ fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, fontWeight: 600 }}>{t.status === 'on-shift' ? money(t.bag.collected) : '—'}</span>
       <span style={{ display: 'flex', justifyContent: 'flex-end' }}>{attn.length ? <AttnPills t={{ ...t, reader }} wrap={false} /> : <Pill kind={sm.k} dot>{sm.l}</Pill>}</span>
@@ -145,7 +145,7 @@ function SectionBlock({ icon, tone = 'ink', eyebrow, count, cols, headers, child
           {sub && <span style={{ fontSize: 12.5, color: P.inkDim, fontWeight: 500, whiteSpace: 'nowrap' }}>{sub}</span>}
         </div>
         <span style={{ flex: 1, height: 1, background: P.hairline }} />
-        <span style={{ fontSize: 11, color: P.ink2, fontFamily: P.fontMono, fontWeight: 600, padding: '4px 10px', background: P.surface3, borderRadius: P.r999, whiteSpace: 'nowrap' }}>{count}</span>
+        <span style={{ fontSize: 11.5, color: P.ink2, fontFamily: P.fontMono, fontWeight: 600, padding: '4px 10px', background: P.surface3, borderRadius: P.r999, whiteSpace: 'nowrap' }}>{count}</span>
       </div>
       <Card padding={0} style={{ overflow: 'visible' }}>
         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 14, padding: '11px 16px', background: P.surface2, borderRadius: `${P.r14}px ${P.r14}px 0 0`, fontSize: 10, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: P.ink2, borderBottom: `2px solid ${chipBg}` }}>
@@ -170,7 +170,7 @@ function FilterChips({ flags, toggle }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       {FLAG_OPTS.map((o) => {const on = flags.has(o.id);return (
-          <button key={o.id} onClick={() => toggle(o.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: P.r999, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12, fontWeight: 600, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, transition: 'all .12s' }}>
+          <button key={o.id} onClick={() => toggle(o.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: P.r999, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 600, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, transition: 'all .12s' }}>
           <Icon name={o.icon} size={13} stroke={2} color={on ? P.surface : P.inkMute} />{o.label}
         </button>);})}
     </div>);
@@ -262,7 +262,7 @@ window.VersionByLocation = function VersionByLocation() {
         </div>}
 
         {nothing && <div style={{ padding: '60px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 14, color: P.inkMute, marginBottom: 12 }}>No terminals match your filters.</div>
+          <div style={{ fontSize: 13.5, color: P.inkMute, marginBottom: 12 }}>No terminals match your filters.</div>
           <PBtn variant="secondary" size="sm" icon="x" onClick={clearFilters}>Clear filters</PBtn>
         </div>}
       </div>

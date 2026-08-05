@@ -209,6 +209,8 @@ const WM_NEW = [
   O_('00233','Dana Whitfield', 58.50,'Weedmaps','Store','Prepaid','Weedmaps','0h 21m',2,'pack',   330),
   O_('00234','Sam Reyes',      31.00,'Weedmaps','Delivery','Prepaid','Weedmaps','0h 15m',1,'verify',18),
   O_('00235','Nina Alvarez',   46.00,'Weedmaps','Store','Prepaid','Weedmaps','1h 12m',2,'ready',  36),
+  O_('00236','m.tran.94',     22.00,'Weedmaps','Store','Prepaid','Weedmaps','0h 5m', 1,'verify', 150),
+  O_('00237','greenthumb_951',88.40,'Weedmaps','Store','Prepaid','Weedmaps','0h 9m', 4,'verify', 96),
 ];
 ORDERS.unshift(...WM_NEW);
 
@@ -221,6 +223,8 @@ const WM_ORDER = {
     checks:{ id:'pass', name:'match', phone:'verified', email:'valid', address:'n/a' }, flags:[] },
   'ORD-00232': { wmId:'WM-88240', contact:{ name:'xXblaze420Xx', phone:'(000) 000-0000', email:'blaze420@mailinator.co', address:null }, matchOn:[], wmStatus:'PENDING', risk:81, level:'high',
     match:'new',
+    // Nothing sent — the number on the order is junk, so the link would bounce.
+    remoteId:{ status:'idle', link:'hyprwlf.co/id/B4x9', attempts:[] },
     checks:{ id:'missing', name:'suspicious', phone:'unverified', email:'invalid', address:'n/a' },
     flags:['Display name fails name heuristics','Email hard-bounced on send','No ID uploaded / age unverified','4th order in 1h from the same device fingerprint'] },
   'ORD-00233': { wmId:'WM-88301', contact:{ name:'Dana Whitfield', phone:'(951) 555-0177', email:'dana.w@yahoo.com', address:null }, matchOn:['name','phone'], wmStatus:'IN_PROGRESS', risk:38, level:'medium',
@@ -229,24 +233,69 @@ const WM_ORDER = {
     flags:['Name + phone match two different customers'] },
   'ORD-00234': { wmId:'WM-88355', contact:{ name:'Sam Reyes', phone:'(714) 555-0148', email:'sreyes@outlook.com', address:'1442 W 5th St, Santa Ana, CA 92703' }, matchOn:[], wmStatus:'PENDING', risk:67, level:'high', delivery:true,
     match:'new',
+    // Auto-sent the moment the order landed — waiting on them to finish.
+    remoteId:{ status:'sent', sentAt:'4 min ago', by:'System', link:'hyprwlf.co/id/K3p8',
+      attempts:[{ at:'4 min ago', by:'System · auto', status:'delivered', receipt:'carrier ack 1.1s' }] },
     checks:{ id:'pending', name:'match', phone:'unverified', email:'valid', address:'unverified' },
     flags:['Delivery to an address we can’t verify','Phone not SMS-verified — delivery orders require it'] },
   'ORD-00235': { wmId:'WM-88190', contact:{ name:'Nina Alvarez', phone:'(951) 555-0163', email:'nina.alvarez@gmail.com', address:null }, matchOn:['phone','email','id'], wmStatus:'READY_FOR_ATTAINMENT', risk:8, level:'low',
     match:'existing', matchId:'m3', matchConf:0.99, merged:true,
     checks:{ id:'pass', name:'match', phone:'verified', email:'valid', address:'n/a' }, flags:[] },
+  'ORD-00236': { wmId:'WM-88402', contact:{ name:'m.tran.94', phone:'(951) 555-0121', email:'m.tran94@gmail.com', address:null }, matchOn:['name'], wmStatus:'PENDING', risk:24, level:'low',
+    match:'existing', matchId:'m3', matchConf:0.71,
+    checks:{ id:'pending', name:'partial', phone:'unverified', email:'valid', address:'n/a' },
+    flags:['Name matches a guest in a party already checked in'] },
+  'ORD-00237': { wmId:'WM-88418', contact:{ name:'greenthumb_951', phone:null, email:'greenthumb951@proton.me', address:null }, matchOn:[], wmStatus:'PENDING', risk:58, level:'medium',
+    match:'new',
+    remoteId:{ status:'opened', sentAt:'8 min ago', by:'Manisha Saini', link:'hyprwlf.co/id/T9w1',
+      attempts:[{ at:'8 min ago', by:'Manisha Saini · manual', status:'delivered', receipt:'carrier ack 0.9s' }] },
+    checks:{ id:'missing', name:'suspicious', phone:'missing', email:'valid', address:'n/a' },
+    flags:['No phone on the order payload','Handle has never been bound to a customer'] },
 };
+
+// ── Order ↔ check-in binding ────────────────────────────────────────────────
+// The rule the whole floor runs on: EVERY order is owned by exactly one
+// check-in. Orders from an outside channel (Weedmaps, web) arrive as a handle,
+// not a person, so we score them against the people in the room:
+//   auto  ≥90 → bound silently, one tap to change
+//   confirm 60-89 → bound but flagged, associate nods it through
+//   none  <60 → no owner, sits in the Needs-match lane, CANNOT be packed
+// Every manual bind writes the handle onto the customer, so the same handle
+// matches at 100 next time — the lane shrinks as the store uses it.
+const MATCH_WEIGHT = { handle:100, code:99, phone:92, email:88, name:64, cart:40, time:15 };
+const SIGNAL_LABEL = { handle:'handle already merged', code:'pickup code read at door', phone:'phone exact',
+  email:'e-mail exact', name:'name matches ID', cart:'cart matches a held order', time:'arrived within 30 min' };
+const ORDER_BIND = {
+  'ORD-00231': { state:'auto', conf:96, checkinId:'c2', signals:['phone','handle'] },
+  'ORD-00235': { state:'auto', conf:99, checkinId:'c3', signals:['phone','email','handle'] },
+  'ORD-00233': { state:'confirm', conf:62, checkinId:'c2', signals:['name','phone'],
+    why:'Name and phone match two different customers — confirm which one before packing' },
+  'ORD-00236': { state:'confirm', conf:71, checkinId:'c3', guest:'Mia Tran', signals:['name','time'],
+    why:'Matches a guest in this party, not the primary — confirm so the limit and points are hers' },
+  'ORD-00232': { state:'none', conf:18, signals:[], why:'Fake phone, handle never seen, e-mail hard-bounced',
+    candidates:[{ checkinId:'c4', conf:52, signals:['time'] }, { checkinId:'c2', conf:14, signals:['time'] }] },
+  'ORD-00237': { state:'none', conf:12, signals:[], why:'No phone on the payload and the handle is new to us',
+    candidates:[{ checkinId:'c4', conf:38, signals:['time'] }] },
+  'ORD-00234': { state:'none', conf:22, signals:[], why:'Delivery order — nobody in the room to match it to', candidates:[] },
+};
+// Orders on our own channels are already signed in as themselves.
+function bindFor(o){ return ORDER_BIND[o.id] || { state:'auto', conf:100, self:true, signals:[] }; }
 
 // ── Identity assurance records (see pos/verification.jsx for the model) ─────
 // Events, not flags. Tier is derived: doc-on-file → +phone-confirmed → delivery.
 const IDV = {
   m1: { doc: { type: 'CA DL', num: '••••4821', expires: '2029-04-11', scannedAt: 'Today 2:02 PM', by: 'Priya Nair', where: 'Front Counter 1', photo: true },
-        phone: { value: '(951) 555-0142', smsVerified: false, sentAt: 'Today 2:03 PM' }, persona: null },
+        phone: { value: '(951) 555-0142', smsVerified: false, sentAt: 'Today 2:03 PM' }, remoteId: null },
   m2: { doc: { type: 'CA DL', num: '••••9134', expires: '2028-08-02', scannedAt: 'Mar 14 · 4:41 PM', by: 'Marcus Hill', where: 'Front Counter 2', photo: true },
-        phone: { value: '(951) 555-0199', smsVerified: false, sentAt: '2 min ago' }, persona: null },
+        phone: { value: '(951) 555-0199', smsVerified: false, sentAt: '2 min ago' }, remoteId: null },
   m3: { doc: { type: 'CA DL', num: '••••2207', expires: '2030-01-19', scannedAt: 'Jun 2 · 7:12 PM', by: 'Theo Reyes', where: 'door', photo: true },
-        phone: { value: '(951) 555-0163', smsVerified: true, verifiedAt: 'Jun 2' }, persona: null },
+        phone: { value: '(951) 555-0163', smsVerified: true, verifiedAt: 'Jun 2' }, remoteId: null },
   m4: { doc: null, phone: { value: '(951) 555-0177', smsVerified: true, verifiedAt: 'May 30' },
-        persona: { status: 'passed', at: 'May 30' } },
+        remoteId: { status: 'passed', at: 'May 30' } },
+  // Never walked in, no document anyone has held — the remote-check case.
+  m5: { doc: null, phone: { value: '(951) 555-0188', smsVerified: false },
+        remoteId: { status: 'sent', sentAt: 'Today 1:47 PM', by: 'Manisha Saini', link: 'hyprwlf.co/id/Q7m2',
+          attempts: [{ at: 'Today 1:47 PM', by: 'Manisha Saini · manual', status: 'delivered', receipt: 'carrier ack 1.2s' }] } },
 };
 
 // ── Tax ── CA cannabis tax always presented in this order: local, state
@@ -272,6 +321,8 @@ const fmt = {
 
 window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, fmt, visitLabel, visitOrdinal,
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
+  ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
+  checkinById:(id)=> CHECKINS.find(c=>c.id===id) || null,
   memberById:(id)=> MEMBERS.find(m=>m.id===id) || null,
   catCount:(c)=> c==='Deals'? PRODUCTS.filter(p=>p.was).length : PRODUCTS.filter(p=>p.cat===c).length,
 };

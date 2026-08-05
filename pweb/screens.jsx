@@ -21,7 +21,7 @@ function Rail(){
     const a=item.id==='promotions'; const [h,setH]=useState(false);
     return (<button onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} style={{ position:'relative', width:'100%', display:'flex', flexDirection:'column', alignItems:'center', gap:5, padding:'12px 4px', background:a?P.railActive:h?P.railHover:'transparent', color:a?P.railBright:P.railInk, border:'none', borderRadius:P.r12, cursor:'pointer', transition:'background .12s,color .12s', fontFamily:P.fontSans }}>
       {a && <span style={{ position:'absolute', left:-9, top:'50%', transform:'translateY(-50%)', width:3, height:22, background:P.accent, borderRadius:99 }}/>}
-      <span style={{ position:'relative' }}><Icon name={item.icon} size={21} stroke={a?1.9:1.7}/>{item.badge && <span style={{ position:'absolute', top:-6, right:-9, minWidth:15, height:15, padding:'0 3px', background:P.accent, color:P.accentInk, borderRadius:99, fontSize:9, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:P.fontMono }}>{item.badge}</span>}</span>
+      <span style={{ position:'relative' }}><Icon name={item.icon} size={21} stroke={a?1.9:1.7}/>{item.badge && <span style={{ position:'absolute', top:-6, right:-9, minWidth:15, height:15, padding:'0 3px', background:P.accent, color:P.accentInk, borderRadius:99, fontSize: 10, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:P.fontMono }}>{item.badge}</span>}</span>
       <span style={{ fontSize:10, fontWeight:a?600:500 }}>{item.label}</span>
     </button>);
   };
@@ -44,7 +44,7 @@ function TopBar(){
     </button>
     <div style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'6px 11px', borderRadius:P.r999, background:P.accentSoft, border:`1px solid ${P.accentBorder}` }}>
       <Icon name="link" size={13} color={P.mode==='dark'?P.accent:'#7A5A00'}/>
-      <span style={{ fontSize:11, fontWeight:700, color:P.mode==='dark'?P.accent:'#7A5A00' }}>Banners · Points · Catalog connected</span>
+      <span style={{ fontSize: 11.5, fontWeight:700, color:P.mode==='dark'?P.accent:'#7A5A00' }}>Banners · Points · Catalog connected</span>
     </div>
     <div style={{ flex:1 }}/>
     <IconBtn icon="search" title="Search (⌘K)"/>
@@ -53,7 +53,7 @@ function TopBar(){
     <div style={{ width:1, height:26, background:P.hairline2, margin:'0 2px' }}/>
     <button style={{ display:'flex', alignItems:'center', gap:9, padding:'4px 8px 4px 4px', background:'transparent', border:'none', borderRadius:P.r10, cursor:'pointer' }}>
       <Avatar name="Manisha Saini" size={32}/>
-      <span style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', lineHeight:1.2 }}><span style={{ fontSize:12.5, fontWeight:600, color:P.ink }}>Manisha Saini</span><span style={{ fontSize:10.5, color:P.inkDim }}>Marketing</span></span>
+      <span style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', lineHeight:1.2 }}><span style={{ fontSize:12.5, fontWeight:600, color:P.ink }}>Manisha Saini</span><span style={{ fontSize: 11.5, color:P.inkDim }}>Marketing</span></span>
       <Icon name="chevron-down" size={13} stroke={2} color={P.inkMute}/>
     </button>
   </header>);
@@ -64,7 +64,7 @@ function SurfaceDots({ ids }){
   const P=useP();
   return (<div style={{ display:'flex', alignItems:'center', gap:4 }}>
     {(ids||[]).slice(0,4).map(id=>{ const s=surfaceMeta(id); return (<span key={id} title={s.label} style={{ width:24, height:24, borderRadius:7, background:P.surface3, border:`1px solid ${P.hairline2}`, display:'flex', alignItems:'center', justifyContent:'center', color:P.ink2 }}><Icon name={s.icon} size={13} stroke={1.8}/></span>); })}
-    {(ids||[]).length>4 && <span style={{ fontSize:11, color:P.inkMute, fontFamily:P.fontMono }}>+{ids.length-4}</span>}
+    {(ids||[]).length>4 && <span style={{ fontSize: 11.5, color:P.inkMute, fontFamily:P.fontMono }}>+{ids.length-4}</span>}
   </div>);
 }
 
@@ -91,15 +91,15 @@ function Dashboard({ promos, onOpen, onNew, onAnalytics, onDuplicate }){
   const cols=[
     { label:'Promotion', render:p=>(<div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
         <span style={{ width:34, height:34, borderRadius:9, background:p.creative.color, display:'flex', alignItems:'center', justifyContent:'center', flex:'0 0 auto' }}><Icon name={(CAMPAIGNS.find(c=>c.id===p.campaign)||{}).icon} size={16} color={p.creative.color==='#FFD100'?'#1A1400':'#fff'}/></span>
-        <div style={{ minWidth:0 }}><div style={{ fontSize:13, fontWeight:600, color:P.ink, whiteSpace:'nowrap' }}>{p.name}</div><div style={{ fontSize:10.5, color:P.inkMute, fontFamily:P.fontMono }}>{(CAMPAIGNS.find(c=>c.id===p.campaign)||{}).label}{p.code?` · ${p.code}`:''}</div></div>
+        <div style={{ minWidth:0 }}><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink, whiteSpace:'nowrap' }}>{p.name}</div><div style={{ fontSize: 11.5, color:P.inkMute, fontFamily:P.fontMono }}>{(CAMPAIGNS.find(c=>c.id===p.campaign)||{}).label}{p.code?` · ${p.code}`:''}</div></div>
       </div>) },
     { label:'Offer', render:p=><span style={{ fontSize:12.5, color:P.ink2 }}>{offerLabel(p)}</span> },
     { label:'Audience', render:p=><Pill kind="neutral">{audienceLabel(p.audience)}</Pill> },
     { label:'Surfaces', render:p=><SurfaceDots ids={p.surfaces}/> },
-    { label:'Schedule', render:p=><span style={{ fontSize:12, color:P.ink2, fontFamily:P.fontMono, whiteSpace:'nowrap' }}>{scheduleLabel(p)}</span> },
+    { label:'Schedule', render:p=><span style={{ fontSize: 12.5, color:P.ink2, fontFamily:P.fontMono, whiteSpace:'nowrap' }}>{scheduleLabel(p)}</span> },
     { label:'Status', render:p=>{ const m=statusMeta(p.status); return <Pill kind={m.kind} dot>{m.label}</Pill>; } },
     { label:'Weedmaps', render:p=> window.wmSyncPill(p.status==='live'?'synced':(p.status==='scheduled'||p.status==='draft')?'not_pushed':p.status==='paused'?'paused':'ended') },
-    { label:'30-day rev', align:'right', render:p=> p.perf ? (<div style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'flex-end' }}><Spark data={p.perf.spark} width={54} height={18} color={p.perf.aovLift>=0?P.good:P.bad}/><span style={{ fontFamily:P.fontMono, fontWeight:600, fontSize:12.5 }}>{kd(p.perf.revenue)}</span></div>) : <span style={{ color:P.inkFaint, fontSize:12 }}>—</span> },
+    { label:'30-day rev', align:'right', render:p=> p.perf ? (<div style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'flex-end' }}><Spark data={p.perf.spark} width={54} height={18} color={p.perf.aovLift>=0?P.good:P.bad}/><span style={{ fontFamily:P.fontMono, fontWeight:600, fontSize:12.5 }}>{kd(p.perf.revenue)}</span></div>) : <span style={{ color:P.inkFaint, fontSize: 12.5 }}>—</span> },
     { label:'', align:'right', width:'88px', render:p=>(<div style={{ display:'flex', gap:2, justifyContent:'flex-end' }}>
         {p.perf && <IconBtn icon="chart-line" size={15} title="Analytics" style={{ width:32, height:32 }} onClick={(e)=>{ e.stopPropagation(); onAnalytics(p.id); }}/>}
         <IconBtn icon="copy" size={15} title="Duplicate" style={{ width:32, height:32 }} onClick={(e)=>{ e.stopPropagation(); onDuplicate(p.id); }}/>
@@ -130,7 +130,7 @@ function Dashboard({ promos, onOpen, onNew, onAnalytics, onDuplicate }){
             : (p=> p.schedule?.recurring==='weekly' ? 'Recurring weekly' : p.schedule?.start ? pd(p.schedule.start).toLocaleString('en-US',{month:'long', year:'numeric'}) : 'Always-on');
           const gvals=[...new Set(rows.map(getG))];
           return (<div style={{ display:'flex', flexDirection:'column', gap:20 }}>{gvals.map(g=>{ const gr=rows.filter(p=>getG(p)===g); return (
-            <div key={g}><div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:9 }}><Eyebrow>{g}</Eyebrow><span style={{ fontFamily:P.fontMono, fontSize:11, color:P.inkMute }}>{gr.length}</span></div>
+            <div key={g}><div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:9 }}><Eyebrow>{g}</Eyebrow><span style={{ fontFamily:P.fontMono, fontSize: 11.5, color:P.inkMute }}>{gr.length}</span></div>
               <DataTable columns={cols} rows={gr} rowKey={p=>p.id} onRowClick={p=>onOpen(p.id)}/></div>); })}</div>);
         })()}
   </div>);
@@ -169,7 +169,7 @@ function Builder({ promo, onSave, onCancel, onDelete }){
   const Section=({icon,title,sub,children})=>(<Card padding={18} style={{ marginBottom:14 }}>
     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
       <span style={{ width:30, height:30, borderRadius:8, background:P.surface3, color:P.ink2, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={icon} size={16} stroke={1.9}/></span>
-      <div><div style={{ fontSize:14, fontWeight:700, color:P.ink }}>{title}</div>{sub && <div style={{ fontSize:11.5, color:P.inkDim, marginTop:1 }}>{sub}</div>}</div>
+      <div><div style={{ fontSize: 13.5, fontWeight:700, color:P.ink }}>{title}</div>{sub && <div style={{ fontSize:11.5, color:P.inkDim, marginTop:1 }}>{sub}</div>}</div>
     </div>
     {children}
   </Card>);
@@ -180,9 +180,9 @@ function Builder({ promo, onSave, onCancel, onDelete }){
     <div style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 26px', borderBottom:`1px solid ${P.hairline2}`, background:P.surface, flex:'0 0 auto' }}>
       <IconBtn icon="chevron-left" onClick={onCancel} title="Back" tone="solid"/>
       <div style={{ minWidth:0 }}>
-        <div style={{ fontSize:10.5, fontWeight:600, letterSpacing:'.12em', textTransform:'uppercase', color:P.inkMute, fontFamily:P.fontMono }}>{promo.__new?'New promotion':'Editing'}</div>
+        <div style={{ fontSize: 11.5, fontWeight:600, letterSpacing:'.12em', textTransform:'uppercase', color:P.inkMute, fontFamily:P.fontMono }}>{promo.__new?'New promotion':'Editing'}</div>
         <div style={{ display:'flex', alignItems:'center', gap:9 }}>
-          <span style={{ fontSize:17, fontWeight:700, color:P.ink, whiteSpace:'nowrap' }}>{d.name||'Untitled promotion'}</span>
+          <span style={{ fontSize: 16, fontWeight:700, color:P.ink, whiteSpace:'nowrap' }}>{d.name||'Untitled promotion'}</span>
           <Pill kind={statusMeta(d.status).kind} dot>{statusMeta(d.status).label}</Pill>
         </div>
       </div>
@@ -202,7 +202,7 @@ function Builder({ promo, onSave, onCancel, onDelete }){
 
           <div style={{ display:'flex', alignItems:'center', gap:10, padding:'11px 14px', borderRadius:P.r10, background:P.surface2, border:`1px solid ${P.hairline2}`, marginBottom:16 }}>
             <Icon name="eye" size={16} color={P.inkDim}/>
-            <span style={{ fontSize:12, color:P.inkDim }}>You&rsquo;re editing one promotion&rsquo;s data. See how it composes with every other live promo in the <b style={{ color:P.ink }}>Live</b> tab.</span>
+            <span style={{ fontSize: 12.5, color:P.inkDim }}>You&rsquo;re editing one promotion&rsquo;s data. See how it composes with every other live promo in the <b style={{ color:P.ink }}>Live</b> tab.</span>
           </div>
 
           <Section icon="note" title="Campaign basics">
@@ -223,7 +223,7 @@ function Builder({ promo, onSave, onCancel, onDelete }){
               {(d.discount.kind==='percent'||d.discount.kind==='dollar'||d.discount.kind==='bogo'||d.discount.kind==='points') &&
                 <Fld label={d.discount.kind==='points'?'Multiplier':'Value'} style={{ marginTop:12 }}>
                   <Field mono value={d.discount.value||''} onChange={e=>upDisc({value:Number(e.target.value)||0})}
-                    suffix={<span style={{ fontSize:12, color:P.inkMute, fontFamily:P.fontMono }}>{d.discount.kind==='dollar'?'$':d.discount.kind==='points'?'×':'%'}</span>}/>
+                    suffix={<span style={{ fontSize: 12.5, color:P.inkMute, fontFamily:P.fontMono }}>{d.discount.kind==='dollar'?'$':d.discount.kind==='points'?'×':'%'}</span>}/>
                 </Fld>}
               {(d.discount.kind==='dollar'||d.discount.kind==='gift'||d.discount.kind==='tiered') &&
                 <Fld label="Minimum spend" hint="optional" style={{ marginTop:12 }}><Field mono placeholder="0" value={d.discount.min||''} onChange={e=>upDisc({min:Number(e.target.value)||0})}/></Fld>}
@@ -260,19 +260,19 @@ function Builder({ promo, onSave, onCancel, onDelete }){
               <Fld label="End date" hint="blank = ongoing"><DateInput value={d.schedule.end} onChange={e=>upSched({end:e.target.value})}/></Fld>
             </Row>
             <Row style={{ marginTop:12 }}>
-              <Fld label="Start time" hint="store local"><input type="time" value={d.schedule.startTime||''} onChange={e=>upSched({startTime:e.target.value})} style={{ width:'100%', padding:'10px 12px', background:P.field, border:`1px solid ${P.fieldBorder}`, borderRadius:P.r10, color:P.ink, fontSize:13, fontFamily:P.fontMono, outline:'none', colorScheme:P.mode }}/></Fld>
-              <Fld label="End time" hint="blank = end of day"><input type="time" value={d.schedule.endTime||''} onChange={e=>upSched({endTime:e.target.value})} style={{ width:'100%', padding:'10px 12px', background:P.field, border:`1px solid ${P.fieldBorder}`, borderRadius:P.r10, color:P.ink, fontSize:13, fontFamily:P.fontMono, outline:'none', colorScheme:P.mode }}/></Fld>
+              <Fld label="Start time" hint="store local"><input type="time" value={d.schedule.startTime||''} onChange={e=>upSched({startTime:e.target.value})} style={{ width:'100%', padding:'10px 12px', background:P.field, border:`1px solid ${P.fieldBorder}`, borderRadius:P.r10, color:P.ink, fontSize: 13.5, fontFamily:P.fontMono, outline:'none', colorScheme:P.mode }}/></Fld>
+              <Fld label="End time" hint="blank = end of day"><input type="time" value={d.schedule.endTime||''} onChange={e=>upSched({endTime:e.target.value})} style={{ width:'100%', padding:'10px 12px', background:P.field, border:`1px solid ${P.fieldBorder}`, borderRadius:P.r10, color:P.ink, fontSize: 13.5, fontFamily:P.fontMono, outline:'none', colorScheme:P.mode }}/></Fld>
             </Row>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:14 }}>
               <Switch on={d.schedule.recurring==='weekly'} onChange={v=>upSched({recurring:v?'weekly':null, days:v?(d.schedule.days||[]):[]})}/>
-              <span style={{ fontSize:13, fontWeight:600, color:P.ink }}>Repeat weekly</span>
+              <span style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>Repeat weekly</span>
             </div>
             {d.schedule.recurring==='weekly' && <div style={{ display:'flex', gap:6, marginTop:12 }}>{DOW.map((dn,i)=><Chip key={i} on={(d.schedule.days||[]).includes(i)} onClick={()=>toggleDay(i)}>{dn}</Chip>)}</div>}
             <Fld label="Holiday preset" hint="themes the auto tiles · add your own" style={{ marginTop:14 }}>
               <div style={{ display:'flex', flexWrap:'wrap', gap:8, alignItems:'center' }}>
                 {holidays.map(h=><Chip key={h} on={(d.schedule.holiday||'None')===h} onClick={()=>upSched({holiday:h==='None'?null:h})}>{h}</Chip>)}
                 <span style={{ display:'inline-flex', gap:6, alignItems:'center' }}>
-                  <input value={newHol} onChange={e=>setNewHol(e.target.value)} placeholder="New holiday…" onKeyDown={e=>{ if(e.key==='Enter'&&newHol.trim()){ const v=newHol.trim(); setHolidays(hs=>hs.includes(v)?hs:[...hs,v]); upSched({holiday:v}); setNewHol(''); } }} style={{ padding:'6px 11px', borderRadius:99, border:`1px solid ${P.hairline2}`, background:P.field, color:P.ink, fontSize:12, fontFamily:P.fontSans, outline:'none', width:118 }}/>
+                  <input value={newHol} onChange={e=>setNewHol(e.target.value)} placeholder="New holiday…" onKeyDown={e=>{ if(e.key==='Enter'&&newHol.trim()){ const v=newHol.trim(); setHolidays(hs=>hs.includes(v)?hs:[...hs,v]); upSched({holiday:v}); setNewHol(''); } }} style={{ padding:'6px 11px', borderRadius:99, border:`1px solid ${P.hairline2}`, background:P.field, color:P.ink, fontSize: 12.5, fontFamily:P.fontSans, outline:'none', width:118 }}/>
                   <PBtn size="xs" variant="secondary" icon="plus" onClick={()=>{ if(newHol.trim()){ const v=newHol.trim(); setHolidays(hs=>hs.includes(v)?hs:[...hs,v]); upSched({holiday:v}); setNewHol(''); } }}>Add</PBtn>
                 </span>
               </div>
@@ -281,7 +281,7 @@ function Builder({ promo, onSave, onCancel, onDelete }){
 
           <Section icon="sliders" title="Rules">
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}><div><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>Stackable</div><div style={{ fontSize:11.5, color:P.inkDim }}>Can combine with other active promos</div></div><Switch on={d.stackable} onChange={v=>up({stackable:v})}/></div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}><div><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>Stackable</div><div style={{ fontSize:11.5, color:P.inkDim }}>Can combine with other active promos</div></div><Switch on={d.stackable} onChange={v=>up({stackable:v})}/></div>
               <Row>
                 <Fld label="Priority" hint="1 = highest"><Field mono value={d.priority} onChange={e=>up({priority:Number(e.target.value)||1})}/></Fld>
                 <Fld label="Redemption cap" hint="blank = unlimited"><Field mono placeholder="∞" value={d.cap||''} onChange={e=>up({cap:Number(e.target.value)||null})}/></Fld>
@@ -291,11 +291,11 @@ function Builder({ promo, onSave, onCancel, onDelete }){
 
           <Section icon="star" title="Rewards & points" sub="How this promo talks to the loyalty ledger.">
             <Row cols={3}>
-              <Fld label="Points multiplier"><Field mono value={d.rewards.pointsMult} onChange={e=>upRew({pointsMult:Number(e.target.value)||1})} suffix={<span style={{ fontSize:12, color:P.inkMute }}>×</span>}/></Fld>
-              <Fld label="Wallet credit"><Field mono placeholder="0" value={d.rewards.wallet||''} onChange={e=>upRew({wallet:Number(e.target.value)||0})} suffix={<span style={{ fontSize:12, color:P.inkMute }}>$</span>}/></Fld>
+              <Fld label="Points multiplier"><Field mono value={d.rewards.pointsMult} onChange={e=>upRew({pointsMult:Number(e.target.value)||1})} suffix={<span style={{ fontSize: 12.5, color:P.inkMute }}>×</span>}/></Fld>
+              <Fld label="Wallet credit"><Field mono placeholder="0" value={d.rewards.wallet||''} onChange={e=>upRew({wallet:Number(e.target.value)||0})} suffix={<span style={{ fontSize: 12.5, color:P.inkMute }}>$</span>}/></Fld>
               <div/>
             </Row>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:14 }}><div><div style={{ fontSize:13, fontWeight:600, color:P.ink }}>Redeemable with points</div><div style={{ fontSize:11.5, color:P.inkDim }}>Customers can spend points against this offer</div></div><Switch on={d.rewards.redeemable} onChange={v=>upRew({redeemable:v})}/></div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:14 }}><div><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>Redeemable with points</div><div style={{ fontSize:11.5, color:P.inkDim }}>Customers can spend points against this offer</div></div><Switch on={d.rewards.redeemable} onChange={v=>upRew({redeemable:v})}/></div>
           </Section>
 
           <Section icon="layout" title="Surfaces" sub="Author once — pick where it publishes. Preview updates live.">
@@ -303,7 +303,7 @@ function Builder({ promo, onSave, onCancel, onDelete }){
               {SURFACES.map(s=>{ const on=d.surfaces.includes(s.id); return (
                 <button key={s.id} onClick={()=>toggleSurface(s.id)} style={{ display:'flex', alignItems:'center', gap:11, padding:'11px 12px', textAlign:'left', borderRadius:P.r10, cursor:'pointer', background:on?P.accentSoft:P.surface2, border:`1px solid ${on?P.accentBorder:P.hairline2}`, transition:'all .12s' }}>
                   <span style={{ width:32, height:32, borderRadius:8, background:on?P.accent:P.surface3, color:on?P.accentInk:P.ink2, display:'flex', alignItems:'center', justifyContent:'center', flex:'0 0 auto' }}><Icon name={s.icon} size={16} stroke={1.9}/></span>
-                  <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>{s.label}</div><div style={{ fontSize:10.5, color:P.inkDim, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{s.note}</div></div>
+                  <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>{s.label}</div><div style={{ fontSize: 11.5, color:P.inkDim, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{s.note}</div></div>
                   {on && <Icon name="check-circle" size={17} color={P.mode==='dark'?P.accent:'#7A5A00'}/>}
                 </button>); })}
             </div>
@@ -337,7 +337,7 @@ function Calendar({ promos, onOpen }){
     <Card padding={0} style={{ overflow:'hidden' }}>
       {/* month header */}
       <div style={{ position:'relative', height:34, borderBottom:`1px solid ${P.hairline2}`, background:P.surface2 }}>
-        {months.map(m=><span key={m.n} style={{ position:'absolute', left:`calc(${m.x}% + 8px)`, top:9, fontSize:11, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, fontFamily:P.fontMono }}>{m.n}</span>)}
+        {months.map(m=><span key={m.n} style={{ position:'absolute', left:`calc(${m.x}% + 8px)`, top:9, fontSize: 11.5, fontWeight:700, letterSpacing:'.08em', textTransform:'uppercase', color:P.inkMute, fontFamily:P.fontMono }}>{m.n}</span>)}
         <div style={{ position:'absolute', left:`${todayX}%`, top:0, bottom:0, width:2, background:P.accent, zIndex:3 }}/>
       </div>
       <div style={{ position:'relative' }}>
@@ -346,11 +346,11 @@ function Calendar({ promos, onOpen }){
           const s=p.schedule;
           return (<div key={p.id} onClick={()=>onOpen(p.id)} style={{ position:'relative', height:46, borderBottom:i<rows.length-1?`1px solid ${P.hairline}`:'none', cursor:'pointer', display:'flex', alignItems:'center' }}
             onMouseEnter={e=>e.currentTarget.style.background=P.surface2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-            <div style={{ position:'absolute', left:8, width:150, fontSize:12, fontWeight:600, color:P.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', zIndex:2 }}>{p.name}</div>
+            <div style={{ position:'absolute', left:8, width:150, fontSize: 12.5, fontWeight:600, color:P.ink, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', zIndex:2 }}>{p.name}</div>
             <div style={{ position:'absolute', left:166, right:12, top:0, bottom:0 }}>
               {s.recurring==='weekly'
                 ? Array.from({length:9}).map((_,w)=>{ const wx=(w/9)*100; return (s.days||[]).map(dy=>(<span key={w+'-'+dy} title={`Every ${DOW[dy]}`} style={{ position:'absolute', left:`${wx+dy*1.4}%`, top:16, width:9, height:14, borderRadius:3, background:p.creative.color, opacity:.9 }}/>)); })
-                : (s.start ? <div style={{ position:'absolute', left:`${pct(pd(s.start))}%`, width:`${Math.max(2,pct(s.end?pd(s.end):end)-pct(pd(s.start)))}%`, top:13, height:20, borderRadius:6, background:p.creative.color, display:'flex', alignItems:'center', padding:'0 8px', overflow:'hidden' }}><span style={{ fontSize:10.5, fontWeight:700, color:p.creative.color==='#FFD100'?'#1A1400':'#fff', whiteSpace:'nowrap', fontFamily:P.fontMono }}>{offerBadge(p)}</span></div>
+                : (s.start ? <div style={{ position:'absolute', left:`${pct(pd(s.start))}%`, width:`${Math.max(2,pct(s.end?pd(s.end):end)-pct(pd(s.start)))}%`, top:13, height:20, borderRadius:6, background:p.creative.color, display:'flex', alignItems:'center', padding:'0 8px', overflow:'hidden' }}><span style={{ fontSize: 11.5, fontWeight:700, color:p.creative.color==='#FFD100'?'#1A1400':'#fff', whiteSpace:'nowrap', fontFamily:P.fontMono }}>{offerBadge(p)}</span></div>
                   : <div style={{ position:'absolute', left:0, right:0, top:19, height:2, background:P.hairline2 }}/>)}
             </div>
           </div>); })}
@@ -382,7 +382,7 @@ function Analytics({ promos, initialId, onOpen }){
     <Card padding={18} style={{ marginBottom:16, display:'flex', alignItems:'center', gap:14 }}>
       <span style={{ width:46, height:46, borderRadius:12, background:p.creative.color, display:'flex', alignItems:'center', justifyContent:'center', flex:'0 0 auto' }}><Icon name={(CAMPAIGNS.find(c=>c.id===p.campaign)||{}).icon} size={22} color={p.creative.color==='#FFD100'?'#1A1400':'#fff'}/></span>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}><span style={{ fontSize:17, fontWeight:700, color:P.ink }}>{p.name}</span><Pill kind={statusMeta(p.status).kind} dot>{statusMeta(p.status).label}</Pill></div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}><span style={{ fontSize: 16, fontWeight:700, color:P.ink }}>{p.name}</span><Pill kind={statusMeta(p.status).kind} dot>{statusMeta(p.status).label}</Pill></div>
         <div style={{ fontSize:12.5, color:P.inkDim, marginTop:2 }}>{offerLabel(p)} · {audienceLabel(p.audience)} · {scheduleLabel(p)}</div>
       </div>
       <PBtn variant="secondary" icon="pencil" onClick={()=>onOpen(p.id)}>Edit promo</PBtn>
@@ -410,7 +410,7 @@ function Analytics({ promos, initialId, onOpen }){
         <SectionHead level={3} eyebrow="Attribution" title="By surface" style={{ marginBottom:16 }}/>
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           {Object.entries(bs).map(([sid,val])=>{ const s=surfaceMeta(sid); return (<div key={sid}>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><Icon name={s.icon} size={14} color={P.ink2}/><span style={{ fontSize:12.5, fontWeight:600, color:P.ink, flex:1 }}>{s.label}</span><span style={{ fontSize:12, fontWeight:700, fontFamily:P.fontMono, color:P.ink }}>{val}%</span></div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}><Icon name={s.icon} size={14} color={P.ink2}/><span style={{ fontSize:12.5, fontWeight:600, color:P.ink, flex:1 }}>{s.label}</span><span style={{ fontSize: 12.5, fontWeight:700, fontFamily:P.fontMono, color:P.ink }}>{val}%</span></div>
             <BarMeter value={val} max={bsMax} color={p.creative.color}/>
           </div>); })}
         </div>

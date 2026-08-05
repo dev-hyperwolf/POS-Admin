@@ -24,9 +24,9 @@ function MultiField({ label, options, value, onChange, placeholder }){
     <div style={{ fontSize:12.5, fontWeight:700, color:P.ink, marginBottom:7 }}>{label}</div>
     <div style={{ position:'relative' }}>
       <div onClick={()=>setOpen(o=>!o)} style={{ minHeight:44, borderRadius:P.r10, border:`1px solid ${open?P.accentBorder:P.fieldBorder}`, background:P.field, padding:'7px 10px', display:'flex', flexWrap:'wrap', gap:6, alignItems:'center', cursor:'pointer', boxShadow:open?`0 0 0 3px ${P.accentSoft}`:'none' }}>
-        {value.length ? value.slice(0,6).map(v=><span key={v} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:7, background:P.surface3, fontSize:12, fontWeight:600 }}>{v}<span onClick={e=>{e.stopPropagation();toggle(v);}} style={{ cursor:'pointer', color:P.inkMute }}>×</span></span>)
-          : <span style={{ color:P.inkMute, fontSize:13 }}>{placeholder||'Select\u2026'}</span>}
-        {value.length>6 && <span style={{ fontSize:12, color:P.inkMute, fontFamily:P.fontMono }}>+{value.length-6} more</span>}
+        {value.length ? value.slice(0,6).map(v=><span key={v} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:7, background:P.surface3, fontSize: 12.5, fontWeight:600 }}>{v}<span onClick={e=>{e.stopPropagation();toggle(v);}} style={{ cursor:'pointer', color:P.inkMute }}>×</span></span>)
+          : <span style={{ color:P.inkMute, fontSize: 13.5 }}>{placeholder||'Select\u2026'}</span>}
+        {value.length>6 && <span style={{ fontSize: 12.5, color:P.inkMute, fontFamily:P.fontMono }}>+{value.length-6} more</span>}
         <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
           {value.length>0 && <span onClick={e=>{e.stopPropagation();onChange([]);}} title="Clear" style={{ color:P.inkMute, cursor:'pointer' }}>×</span>}
           <Icon name="chevron-down" size={16} color={P.inkMute} style={{ transform:open?'rotate(180deg)':'none' }}/>
@@ -59,16 +59,16 @@ window.CarouselModal = function CarouselModal({ config, onClose, onSave }){
   const allStrains = d.strains.length===3;
   const pick=(id)=> setPicked(prev=>{ const n=new Set(prev); n.has(id)?n.delete(id):n.add(id); return n; });
   const inRange = picked.size>=d.min && picked.size<=d.max;
-  const inp={ width:'100%', padding:'11px 13px', borderRadius:P.r10, border:`1px solid ${P.fieldBorder}`, background:P.field, color:P.ink, fontSize:14, fontFamily:P.fontSans, outline:'none' };
-  const Ap=({title,children})=>(<div style={{ marginBottom:16 }}><div style={{ fontSize:13, fontWeight:800, marginBottom:8 }}>{title}</div><div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>{children}</div></div>);
-  const apChip=(t)=><span key={t} style={{ padding:'5px 10px', borderRadius:99, background:P.surface3, fontSize:12, fontWeight:600 }}>{t}</span>;
+  const inp={ width:'100%', padding:'11px 13px', borderRadius:P.r10, border:`1px solid ${P.fieldBorder}`, background:P.field, color:P.ink, fontSize: 13.5, fontFamily:P.fontSans, outline:'none' };
+  const Ap=({title,children})=>(<div style={{ marginBottom:16 }}><div style={{ fontSize: 13.5, fontWeight:800, marginBottom:8 }}>{title}</div><div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>{children}</div></div>);
+  const apChip=(t)=><span key={t} style={{ padding:'5px 10px', borderRadius:99, background:P.surface3, fontSize: 12.5, fontWeight:600 }}>{t}</span>;
   const clear=()=> up({ brands:[], cats:[], strains:[], traits:[], pages:[] });
 
   return (<div style={{ position:'fixed', inset:0, zIndex:200, background:P.scrim, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'28px 20px', overflowY:'auto' }}>
     <div style={{ width:'100%', maxWidth:1120, display:'flex', flexDirection:'column', gap:16 }}>
       {/* header */}
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ flex:1 }}><div style={{ fontSize:10.5, fontWeight:700, letterSpacing:'.12em', textTransform:'uppercase', color:'rgba(255,255,255,.7)', fontFamily:P.fontMono }}>Product carousel</div><div style={{ fontSize:20, fontWeight:800, color:'#fff', letterSpacing:'-.02em' }}>Build a carousel</div></div>
+        <div style={{ flex:1 }}><div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.12em', textTransform:'uppercase', color:'rgba(255,255,255,.7)', fontFamily:P.fontMono }}>Product carousel</div><div style={{ fontSize: 21, fontWeight:800, color:'#fff', letterSpacing:'-.02em' }}>Build a carousel</div></div>
         <IconBtn icon="x" tone="solid" onClick={onClose} style={{ background:'rgba(255,255,255,.14)', color:'#fff' }}/>
       </div>
 
@@ -83,7 +83,7 @@ window.CarouselModal = function CarouselModal({ config, onClose, onSave }){
           <div style={{ marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:8 }}>
               <span style={{ fontSize:12.5, fontWeight:700 }}>Select Strain Type</span>
-              <button onClick={()=>up({strains: allStrains?[]:STRAINS.slice()})} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:P.mode==='dark'?P.accent:'#7A5A00', fontSize:12.5, fontWeight:700, fontFamily:P.fontSans }}>
+              <button onClick={()=>up({strains: allStrains?[]:STRAINS.slice()})} style={{ display:'inline-flex', alignItems:'center', gap:6, background:'transparent', border:'none', cursor:'pointer', color:P.accentText, fontSize:12.5, fontWeight:700, fontFamily:P.fontSans }}>
                 <span style={{ width:16, height:16, borderRadius:5, border:`1.5px solid ${allStrains?P.ink:P.hairline3}`, background:allStrains?P.ink:'transparent', display:'flex', alignItems:'center', justifyContent:'center' }}>{allStrains && <Icon name="check" size={10} stroke={3} color={P.surface}/>}</span>Select All
               </button>
             </div>
@@ -106,7 +106,7 @@ window.CarouselModal = function CarouselModal({ config, onClose, onSave }){
             <PBtn variant="accent" size="lg" onClick={()=>onSave&&onSave({...d, picked:[...picked]})}>Update</PBtn>
             <PBtn variant="secondary" size="lg" onClick={onClose}>Cancel</PBtn>
             <div style={{ flex:1 }}/>
-            <button onClick={clear} style={{ background:'transparent', border:'none', color:P.inkMute, fontSize:13, fontWeight:600, textDecoration:'underline', cursor:'pointer', fontFamily:P.fontSans }}>Clear Filters</button>
+            <button onClick={clear} style={{ background:'transparent', border:'none', color:P.inkMute, fontSize: 13.5, fontWeight:600, textDecoration:'underline', cursor:'pointer', fontFamily:P.fontSans }}>Clear Filters</button>
           </div>
         </Card>
 
@@ -114,14 +114,14 @@ window.CarouselModal = function CarouselModal({ config, onClose, onSave }){
         <Card padding={18}>
           <div style={{ fontSize:15, fontWeight:800, marginBottom:14 }}>Applied Filters</div>
           <Ap title="Carousel Name">{apChip(d.name)}</Ap>
-          <Ap title={`Brands (${d.brands.length})`}>{d.brands.length? d.brands.map(apChip) : <span style={{ color:P.inkMute, fontSize:12 }}>All brands</span>}</Ap>
-          <Ap title={`Categories (${d.cats.length})`}>{d.cats.length? d.cats.map(apChip) : <span style={{ color:P.inkMute, fontSize:12 }}>All categories</span>}</Ap>
-          <Ap title={`Strain Types (${d.strains.length})`}>{d.strains.length? d.strains.map(apChip) : <span style={{ color:P.inkMute, fontSize:12 }}>—</span>}</Ap>
-          <Ap title={`Product Traits (${d.traits.length})`}>{d.traits.length? d.traits.map(apChip) : <span style={{ color:P.inkMute, fontSize:12 }}>—</span>}</Ap>
-          <Ap title="Page Name">{d.pages.length? d.pages.map(apChip) : <span style={{ color:P.inkMute, fontSize:12 }}>—</span>}</Ap>
+          <Ap title={`Brands (${d.brands.length})`}>{d.brands.length? d.brands.map(apChip) : <span style={{ color:P.inkMute, fontSize: 12.5 }}>All brands</span>}</Ap>
+          <Ap title={`Categories (${d.cats.length})`}>{d.cats.length? d.cats.map(apChip) : <span style={{ color:P.inkMute, fontSize: 12.5 }}>All categories</span>}</Ap>
+          <Ap title={`Strain Types (${d.strains.length})`}>{d.strains.length? d.strains.map(apChip) : <span style={{ color:P.inkMute, fontSize: 12.5 }}>—</span>}</Ap>
+          <Ap title={`Product Traits (${d.traits.length})`}>{d.traits.length? d.traits.map(apChip) : <span style={{ color:P.inkMute, fontSize: 12.5 }}>—</span>}</Ap>
+          <Ap title="Page Name">{d.pages.length? d.pages.map(apChip) : <span style={{ color:P.inkMute, fontSize: 12.5 }}>—</span>}</Ap>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-            <div><div style={{ fontSize:12.5, fontWeight:800, marginBottom:4 }}>Minimum Product Qty</div><div style={{ fontFamily:P.fontMono, fontSize:14 }}>{d.min}</div></div>
-            <div><div style={{ fontSize:12.5, fontWeight:800, marginBottom:4 }}>Maximum Product Qty</div><div style={{ fontFamily:P.fontMono, fontSize:14 }}>{d.max}</div></div>
+            <div><div style={{ fontSize:12.5, fontWeight:800, marginBottom:4 }}>Minimum Product Qty</div><div style={{ fontFamily:P.fontMono, fontSize: 13.5 }}>{d.min}</div></div>
+            <div><div style={{ fontSize:12.5, fontWeight:800, marginBottom:4 }}>Maximum Product Qty</div><div style={{ fontFamily:P.fontMono, fontSize: 13.5 }}>{d.max}</div></div>
           </div>
         </Card>
       </div>
@@ -131,13 +131,13 @@ window.CarouselModal = function CarouselModal({ config, onClose, onSave }){
         <div style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 18px', borderBottom:`1px solid ${P.hairline2}` }}>
           <div style={{ flex:'1 1 300px', maxWidth:420 }}><Field icon="search" placeholder="Search" value={q} onChange={e=>setQ(e.target.value)}/></div>
           <div style={{ flex:1 }}/>
-          <span style={{ fontSize:13, color:P.inkDim }}><b style={{ color:P.ink }}>{picked.size} products selected</b> <span style={{ fontFamily:P.fontMono, color:P.inkMute }}>(Min: {d.min} | Max: {d.max})</span></span>
+          <span style={{ fontSize: 13.5, color:P.inkDim }}><b style={{ color:P.ink }}>{picked.size} products selected</b> <span style={{ fontFamily:P.fontMono, color:P.inkMute }}>(Min: {d.min} | Max: {d.max})</span></span>
           <PBtn variant="accent" size="lg" disabled={!inRange} onClick={()=>onSave&&onSave({...d, picked:[...picked]})}>Assign</PBtn>
         </div>
         <div style={{ maxHeight:360, overflowY:'auto' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize: 13.5 }}>
             <thead><tr style={{ background:P.surface2 }}>
-              {['','Product Name','Strain Type','Product Brand','Inventory','Price','Traits'].map((h,i)=><th key={i} style={{ textAlign:i>3&&i<6?'right':'left', padding:'10px 16px', fontSize:10.5, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkDim, borderBottom:`1px solid ${P.hairline2}`, position:'sticky', top:0, background:P.surface2, whiteSpace:'nowrap' }}>{h}</th>)}
+              {['','Product Name','Strain Type','Product Brand','Inventory','Price','Traits'].map((h,i)=><th key={i} style={{ textAlign:i>3&&i<6?'right':'left', padding:'10px 16px', fontSize: 11.5, fontWeight:600, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkDim, borderBottom:`1px solid ${P.hairline2}`, position:'sticky', top:0, background:P.surface2, whiteSpace:'nowrap' }}>{h}</th>)}
             </tr></thead>
             <tbody>
               {rows.map(p=>{ const on=picked.has(p.id); return (<tr key={p.id} onClick={()=>pick(p.id)} style={{ cursor:'pointer', background:on?P.accentSoft:'transparent' }}>

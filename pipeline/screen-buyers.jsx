@@ -16,10 +16,10 @@
     return (
       <span title={`${finite ? `${Math.round(daysOfSupply)}d of supply` : 'No movement'} · reorder every ${reorderFrequencyDays}d`}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: w, height: 6, borderRadius: 99, background: P.canvas2, overflow: 'hidden', display: 'inline-block', flex: '0 0 auto' }}>
+        <span style={{ width: w, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden', display: 'inline-block', flex: '0 0 auto' }}>
           <span style={{ display: 'block', height: '100%', width: `${pct * 100}%`, background: c.fg, borderRadius: 99 }} />
         </span>
-        <span style={{ fontSize: 11, color: c.fg, whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ fontSize: 11.5, color: c.fg, whiteSpace: 'nowrap' }}>{label}</span>
       </span>);
   }
 
@@ -29,8 +29,8 @@
       <div role="group" aria-label="Time horizon" style={{ display: 'inline-flex', borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface, padding: 2, alignSelf: 'flex-start' }}>
         {HORIZONS.map((h) => (
           <button key={h} onClick={() => onChange(h)}
-            style={{ height: 28, padding: '0 12px', borderRadius: 6, fontSize: 12, fontWeight: 500, fontFamily: P.fontMono, cursor: 'pointer', border: 'none',
-              background: value === h ? P.accent : 'transparent', color: value === h ? P.accentInk : P.inkDim }}>{h}</button>))}
+            style={{ height: 28, padding: '0 12px', borderRadius: 6, fontSize: 12.5, fontWeight: 500, fontFamily: P.fontMono, cursor: 'pointer', border: 'none',
+              background: value === h ? P.ink : 'transparent', color: value === h ? P.surface : P.inkDim }}>{h}</button>))}
       </div>);
   }
 
@@ -39,12 +39,12 @@
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, width: 64, flex: '0 0 64px' }}>{label}</span>
+        <span style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, width: 64, flex: '0 0 64px' }}>{label}</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {options.map((o) => (
             <button key={o.id} onClick={() => onChange(o.id)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12, cursor: 'pointer', fontFamily: P.fontSans,
-                background: value === o.id ? P.accentSoft : P.surface, color: value === o.id ? accentInk : P.inkDim, border: `1px solid ${value === o.id ? P.accentBorder : P.hairline2}` }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans,
+                background: value === o.id ? P.ink : P.surface, color: value === o.id ? P.surface : P.inkDim, border: `1px solid ${value === o.id ? P.ink : P.hairline2}` }}>
               {renderDot?.(o.id)}{o.label}
             </button>))}
         </div>
@@ -58,14 +58,14 @@
     return (
       <div style={{ padding: 16 }}>
         <MicroLabel>{label}</MicroLabel>
-        <div style={{ marginTop: 4, fontSize: 22, lineHeight: 1, fontWeight: 600, color: valueColor, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+        <div style={{ marginTop: 4, fontSize: 21, lineHeight: 1, fontWeight: 600, color: valueColor, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
         {delta !== undefined
-          ? <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: deltaColor, fontFamily: P.fontMono }}>
+          ? <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: deltaColor, fontFamily: P.fontMono }}>
             {delta !== 0 && <Icon name={delta > 0 ? 'trending-up' : 'arrow-down'} size={12} stroke={2} />}
             {HD.formatPercent(Math.abs(delta), 1)}
             {horizon && <span style={{ color: P.inkMute, marginLeft: 4 }}>vs prior {horizon}</span>}
           </div>
-          : sub ? <div style={{ marginTop: 8, fontSize: 12, color: P.inkMute }}>{sub}</div> : null}
+          : sub ? <div style={{ marginTop: 8, fontSize: 12.5, color: P.inkMute }}>{sub}</div> : null}
       </div>);
   }
 
@@ -93,17 +93,17 @@
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="flag" size={14} stroke={2} color={HD.tone(P, 'blocked').fg} />
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Stockout Watch</h2>
-          <span style={{ marginLeft: 'auto', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Top 5 worst · {horizon}</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Top 5 worst · {horizon}</span>
         </div>
-        <p style={{ margin: '4px 0 0', fontSize: 12, color: P.inkMute }}>SKUs selling faster than they can be replenished.</p>
+        <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.inkMute }}>SKUs selling faster than they can be replenished.</p>
         {items.length === 0
-          ? <div style={{ marginTop: 16, fontSize: 13, color: P.inkMute }}>Nothing critical — every SKU has runway.</div>
+          ? <div style={{ marginTop: 16, fontSize: 13.5, color: P.inkMute }}>Nothing critical — every SKU has runway.</div>
           : <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {items.map(({ sku, dos }) => (
               <div key={sku.id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sku.productName}</div>
-                  <div style={{ fontSize: 11, color: P.inkMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sku.brand} · {sku.qtyOnHand} on hand · reorder every {sku.reorderFrequencyDays}d</div>
+                  <div style={{ fontSize: 13.5, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sku.productName}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sku.brand} · {sku.qtyOnHand} on hand · reorder every {sku.reorderFrequencyDays}d</div>
                 </div>
                 <Thermometer daysOfSupply={dos} reorderFrequencyDays={sku.reorderFrequencyDays} health={B.stockHealth(sku, horizon)} />
               </div>))}
@@ -118,10 +118,10 @@
       <Card padding={20}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Brand mix</h2>
-          <span style={{ marginLeft: 'auto', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Revenue share · click to filter</span>
+          <span style={{ marginLeft: 'auto', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Revenue share · click to filter</span>
         </div>
-        <p style={{ margin: '4px 0 0', fontSize: 12, color: P.inkMute }}>Each brand's contribution to total revenue.</p>
-        <div style={{ marginTop: 16, height: 12, width: '100%', borderRadius: 99, overflow: 'hidden', display: 'flex', border: `1px solid ${P.hairline2}`, background: P.canvas2 }}>
+        <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.inkMute }}>Each brand's contribution to total revenue.</p>
+        <div style={{ marginTop: 16, height: 12, width: '100%', borderRadius: 99, overflow: 'hidden', display: 'flex', border: `1px solid ${P.hairline2}`, background: P.surface3 }}>
           {rollup.map((b, i) => {
             const pct = total === 0 ? 0 : (b.revenueCents / total) * 100;
             const isActive = activeBrand === b.brand;
@@ -137,7 +137,7 @@
             const isActive = activeBrand === b.brand;
             return (
               <button key={b.brand} onClick={() => onBrandClick(b.brand)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', fontSize: 12, padding: '4px 6px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: P.fontSans,
+                style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', fontSize: 12.5, padding: '4px 6px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: P.fontSans,
                   background: isActive ? P.accentSoft : 'transparent', color: isActive ? P.ink : P.ink2 }}>
                 <span style={{ height: 8, width: 8, borderRadius: 99, background: ring[i % ring.length], flex: '0 0 auto' }} />
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.brand}</span>
@@ -245,8 +245,8 @@
       <div style={{ display: 'flex', flexDirection: 'column', padding: 20, gap: 20 }}>
         <header style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 260 }}>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Buyer Analytics</h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: P.inkMute, maxWidth: 620 }}>Sell-through, margin, and stockout signal across stores and brands. Click a brand bar to filter everything.</p>
+            <h1 style={{ margin: 0, fontSize: 21, fontWeight: 600, letterSpacing: '-.02em', color: P.ink }}>Buyer Analytics</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13.5, color: P.inkMute, maxWidth: 620 }}>Sell-through, margin, and stockout signal across stores and brands. Click a brand bar to filter everything.</p>
           </div>
           <HorizonToggle value={horizon} onChange={setHorizon} />
         </header>
@@ -258,9 +258,9 @@
           {activeFilterChips.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
               <Icon name="filter" size={13} stroke={2} color={P.inkMute} />
-              <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Active</span>
+              <span style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Active</span>
               {activeFilterChips.map((c) => (
-                <button key={c.label} onClick={c.clear} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 99, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 12, cursor: 'pointer', fontFamily: P.fontSans }}>
+                <button key={c.label} onClick={c.clear} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 99, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans }}>
                   {c.label}<Icon name="x" size={11} stroke={2.4} />
                 </button>))}
             </div>)}
@@ -284,10 +284,10 @@
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: `1px solid ${P.hairline2}`, flexWrap: 'wrap' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Product performance</h2>
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: P.inkMute }}>Sorted by {labelForSortKey(sort.key)} · {sortedSkus.length} of {baseSkus.length} SKUs</p>
+              <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.inkMute }}>Sorted by {labelForSortKey(sort.key)} · {sortedSkus.length} of {baseSkus.length} SKUs</p>
             </div>
             <button onClick={() => setSlowOnly((v) => !v)} aria-pressed={slowOnly}
-              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 12px', borderRadius: 99, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: P.fontSans,
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: 32, padding: '0 12px', borderRadius: 99, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: P.fontSans,
                 background: slowOnly ? warn.bg : P.surface, color: slowOnly ? warn.fg : P.inkDim, border: `1px solid ${slowOnly ? warn.fg + '66' : P.hairline2}` }}>
               <span style={{ height: 6, width: 6, borderRadius: 99, background: slowOnly ? warn.fg : P.inkMute }} />Show slow-movers only
             </button>
@@ -322,15 +322,15 @@
                     return (
                       <TR key={s.id}>
                         <TD>
-                          <div style={{ fontFamily: P.fontMono, fontSize: 12, color: P.ink }}>{s.sku}</div>
-                          <div style={{ fontSize: 12, color: P.inkMute, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.productName}</div>
+                          <div style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink }}>{s.sku}</div>
+                          <div style={{ fontSize: 12.5, color: P.inkMute, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.productName}</div>
                         </TD>
                         <TD>
-                          <button onClick={() => setBrandFilter((cur) => (cur === s.brand ? null : s.brand))} style={{ fontSize: 13, color: P.ink, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: P.fontSans }}>{s.brand}</button>
+                          <button onClick={() => setBrandFilter((cur) => (cur === s.brand ? null : s.brand))} style={{ fontSize: 13.5, color: P.ink, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: P.fontSans }}>{s.brand}</button>
                         </TD>
-                        <TD style={{ fontSize: 12, color: P.ink2 }}>{s.category}</TD>
+                        <TD style={{ fontSize: 12.5, color: P.ink2 }}>{s.category}</TD>
                         <TD>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: P.ink2 }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: P.ink2 }}>
                             <span style={{ height: 8, width: 8, borderRadius: 99, background: HD.hueColor(P, ent?.hue) }} />{ent?.short}
                           </span>
                         </TD>
@@ -343,7 +343,7 @@
                         <TD align="right" mono>{HD.formatPercent(B.marginPct(s), 0)}</TD>
                         <TD align="right" mono>{Number.isFinite(dos) ? `${Math.round(dos)}d` : '—'}</TD>
                         <TD><Thermometer daysOfSupply={dos} reorderFrequencyDays={s.reorderFrequencyDays} health={B.stockHealth(s, horizon)} /></TD>
-                        <TD style={{ fontSize: 12, color: P.inkMute, whiteSpace: 'nowrap' }}>{HD.relativeTime(s.lastSaleAt, B.BUYER_NOW)}</TD>
+                        <TD style={{ fontSize: 12.5, color: P.inkMute, whiteSpace: 'nowrap' }}>{HD.relativeTime(s.lastSaleAt, B.BUYER_NOW)}</TD>
                       </TR>);
                   })}
               </tbody>
@@ -354,7 +354,7 @@
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink }}>Brand profitability</h2>
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: P.inkMute }}>Cost vs sell vs contribution to total profit for the selected window.</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12.5, color: P.inkMute }}>Cost vs sell vs contribution to total profit for the selected window.</p>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <HDTable>
@@ -376,7 +376,7 @@
                       <TD align="right" mono>{HD.formatCurrency(b.profitCents / 100, { showCents: false })}</TD>
                       <TD align="right" mono>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                          <div style={{ width: 64, height: 6, borderRadius: 99, background: P.canvas2, overflow: 'hidden' }}>
+                          <div style={{ width: 64, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}>
                             <div style={{ height: '100%', background: P.accent, width: `${Math.max(2, contribution * 100)}%` }} />
                           </div>
                           <span>{HD.formatPercent(contribution, 0)}</span>

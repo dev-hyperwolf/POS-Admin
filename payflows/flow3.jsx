@@ -44,7 +44,7 @@ window.Flow3 = function Flow3() {
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 9 }}>
         {/* 1 total */}
         <div style={rowStyle(false)}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}><span style={{ fontSize: 13, fontWeight: 700 }}>Order total</span><span style={{ fontSize: 17, fontWeight: 700, fontFamily: P.fontMono }}>{money(txn.total)}</span></div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}><span style={{ fontSize: 13.5, fontWeight: 700 }}>Order total</span><span style={{ fontSize: 16, fontWeight: 700, fontFamily: P.fontMono }}>{money(txn.total)}</span></div>
           <Bar frac={1} color={P.inkFaint} />
         </div>
         {/* 2 rewards */}
@@ -53,7 +53,7 @@ window.Flow3 = function Flow3() {
             <Icon name="star" size={15} color={P.accent} />
             <span style={{ fontSize: 12.5, fontWeight: 700, flex: '0 0 auto' }}>Redeem points</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>{window.PAY.rewards.map((r) => chip(reward === r.id, r.label, () => setReward(reward === r.id ? null : r.id), cust.points < r.cost && !r.bday, r.id))}</div>
-            <span style={{ fontSize: 14, fontWeight: 700, fontFamily: P.fontMono, color: rewardVal ? P.good : P.inkMute }}>{rewardVal ? '− ' + money(rewardVal) : '—'}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono, color: rewardVal ? P.good : P.inkMute }}>{rewardVal ? '− ' + money(rewardVal) : '—'}</span>
           </div>
           <Bar frac={afterReward / txn.total} color={P.accent} />
         </div>
@@ -63,13 +63,13 @@ window.Flow3 = function Flow3() {
             <Icon name="wallet" size={15} color={P.good} />
             <span style={{ fontSize: 12.5, fontWeight: 700, flex: '0 0 auto' }}>Wallet credit</span>
             <div style={{ display: 'flex', gap: 6, flex: 1 }}>{[0, 5, 10, cust.wallet].filter((v, i, a) => a.indexOf(v) === i).map((v) => chip(wallet === v, v === 0 ? 'Off' : v === cust.wallet ? `Max ${money(v)}` : money(v), () => setWallet(v), false, 'w' + v))}</div>
-            <span style={{ fontSize: 14, fontWeight: 700, fontFamily: P.fontMono, color: wallet ? P.good : P.inkMute }}>{wallet ? '− ' + money(wallet) : '—'}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono, color: wallet ? P.good : P.inkMute }}>{wallet ? '− ' + money(wallet) : '—'}</span>
           </div>
           <Bar frac={afterWallet / txn.total} color={P.good} />
         </div>
         {/* 4 balance due (hero) */}
         <div style={rowStyle(true)}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}><span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,.7)', fontFamily: P.fontMono }}>Balance due → split below</span><span style={{ fontSize: 24, fontWeight: 700, fontFamily: P.fontMono, color: P.accent }}>{money(balance)}</span></div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}><span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'rgba(255,255,255,.7)', fontFamily: P.fontMono }}>Balance due → split below</span><span style={{ fontSize: 30, fontWeight: 700, fontFamily: P.fontMono, color: P.accent }}>{money(balance)}</span></div>
         </div>
         {/* 5 cash first */}
         <div style={{ ...rowStyle(false), borderColor: P.hairline3 }}>
@@ -80,7 +80,7 @@ window.Flow3 = function Flow3() {
               {[0, c2(balance / 2), balance].filter((v, i, a) => a.indexOf(v) === i).map((v) => chip(cashNum === v, v === 0 ? 'None' : v === balance ? 'All cash' : 'Half', () => setCash(String(v)), false, 'c' + v))}
               <div style={{ width: 96 }}><Field value={cash} onChange={(e) => setCash(e.target.value.replace(/[^0-9.]/g, ''))} size="sm" mono icon="dollar" placeholder="0.00" /></div>
             </div>
-            <span style={{ fontSize: 14, fontWeight: 700, fontFamily: P.fontMono }}>{money(cashNum)}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono }}>{money(cashNum)}</span>
           </div>
         </div>
         {/* 6 card base + fee */}
@@ -89,7 +89,7 @@ window.Flow3 = function Flow3() {
             <Icon name="card" size={15} color={P.ink2} />
             <span style={{ fontSize: 12.5, fontWeight: 700 }}>Card {money(cardBase)} <span style={{ color: P.warn }}>+ fee {money(feeAmt)}</span></span>
             <div style={{ flex: 1 }} />
-            <span style={{ fontSize: 17, fontWeight: 700, fontFamily: P.fontMono, color: P.ink }}>{money(cardCharged)}</span>
+            <span style={{ fontSize: 16, fontWeight: 700, fontFamily: P.fontMono, color: P.ink }}>{money(cardCharged)}</span>
           </div>
           {cardBase > 0 && <window.FeeCompare base={cardBase} value={feeOpt} onChange={setFeeOpt} layout="strip" />}
         </div>
