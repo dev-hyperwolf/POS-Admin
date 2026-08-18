@@ -2791,74 +2791,31 @@ function renderLanes(c, totals){
 
     for (const line of lines) {
       const p = prod(line.productId);
+      // ONE control per line, exactly as drawn in the comps:
+      //   scheduled row -> "⚡ Swap to Express"   (purple pill)
+      //   express row   -> "🗓 Move to Scheduled" (blue pill)
+      // Nothing else. Everything I added around this — action sheets, row
+      // hints, outcome-labelled CTAs — was my invention, not the design.
+      const isSched = line.lane === 'scheduled';
+      const act = isSched
+        ? { cls: 'express', label: '⚡ Swap to Express', attr: `data-swap-line="${line.id}"` }
+        : { cls: 'scheduled', label: '🗓 Move to Scheduled', attr: `data-move="${line.id}" data-lane="scheduled"` };
 
-      // ONE swap control. The sheet draws from BOTH lanes and badges each row
-      // with how fast it arrives, so speed is something the customer compares
-      // on the options themselves rather than an entry point they pick blind.
-      const swap = E.canSwap(c, line.id, undefined, { config, rules, lanes: BOTH });
-      // The only genuine lane action: keep this exact product, change when.
-      const lm = E.planLaneMove(c, line.id, other, { config });
-      const canMoveSameProduct = lm && lm.possible;
-
-      // NO BUTTONS ON THE ROW.
-      //
-      // Most of these carts are opened on a phone, where two or three controls
-      // per line at the same size compete with each other and with the price.
-      // The row itself is the tap target; its actions live in a sheet with room
-      // to label them properly — and that scales when Remove or Change quantity
-      // arrive, which more buttons would not.
-      //
-      // The one control that stays visible is the LANE-level move, because
-      // "I meant to order for today" is a whole-cart mistake and the commonest
-      // one there is.
-      const acts = [];
-      if (line.lane === 'scheduled') {
-        if (canMoveSameProduct) acts.push({ id: 'move', label: '⚡ Switch to Express', hint: 'Same item, about 90 minutes', primary: true });
-        else if (E.canSwap(c, line.id, 'express', { config, rules }).offerable)
-          acts.push({ id: 'expressalt', label: '⚡ Get something today instead', hint: 'This one is scheduled-only — see what drivers have now', primary: true });
-      } else if (canMoveSameProduct) {
-        acts.push({ id: 'toscheduled', label: '🗓 Move to Scheduled', hint: 'Pick a day and time' });
-      }
-      // Swap is offered on EVERY line now, including Express — it costs no
-      // screen space in a sheet, and there is no reason an Express customer
-      // should be unable to change their mind about a product.
-      if (swap.offerable) acts.push({ id: 'swap', label: '⇄ Swap for something else', hint: 'Similar, cheaper or stronger' });
-      lineActions[line.id] = acts;
-
-      // When moving one line would leave EITHER lane under its minimum, do not
-      // block it and do not just warn — show the choice. Moving the whole lane
-      // is usually what an impatient customer actually wanted.
-      const choosing = moveChoice && moveChoice.lineId === line.id;
-      const chooser = choosing && lm && lm.options.some(o => o.kind === 'move_whole_lane')
-        ? `<div class="chooser">
-             <div class="chooserq">Moving just this one leaves ${
-               lm.sourceAfter.meetsMinimum ? config.lanes[other].label : config.lanes[line.lane].label
-             } ${money(Math.max(lm.sourceAfter.shortfallCents, lm.targetAfter.shortfallCents))} under its minimum.</div>
-             ${lm.options.filter(o => o.kind !== 'keep').map((o,i) => `
-               <button class="btn ${o.kind==='move_whole_lane'?other:'ghost'}" data-choose="${line.id}:${i}">
-                 ${o.kind==='move_whole_lane'
-                   ? `Move my whole ${config.lanes[line.lane].label} order (${o.lineIds.length} items)`
-                   : 'Move just this one'}
-               </button>`).join('')}
-             <button class="btn ghost" data-choose-cancel="1">Cancel</button>
-           </div>`
-        : '';
-
-
-      html += `<div class="line ${acts.length?'tappable':''}" ${acts.length?`data-line="${line.id}" role="button" tabindex="0"`:''}>
+      html += `<div class="line">
         ${swatch(p.id)}
-        <div style="flex:1;min-width:0">
+        <div class="lbody">
           <div class="brand">${p.brand}</div>
           <div class="nm">${p.name}</div>
-          <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC · ':''}${p.sizeGrams!=null?p.sizeGrams+'g':p.category}</div>
-          ${chooser}
+          <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC':''}${p.sizeGrams!=null?' · '+p.sizeGrams+'g':''}</div>
+          <button class="pill ${act.cls}" ${act.attr}>${act.label}</button>
         </div>
-        <div style="text-align:right">
+        <div class="lright">
           <div class="price">${money(p.price * line.quantity)}</div>
-          ${acts.length?`<div class="rowhint">${
-            acts.some(a=>a.id==='move') ? '⚡ Can arrive today'
-            : acts.some(a=>a.id==='expressalt') ? '⚡ Options for today'
-            : 'Tap to change'} ›</div>`:''}
+          <div class="stepper">
+            <button class="stepbtn" data-qty="${line.id}:-1" aria-label="Decrease quantity">−</button>
+            <span class="stepval">${line.quantity}</span>
+            <button class="stepbtn primary" data-qty="${line.id}:1" aria-label="Increase quantity">+</button>
+          </div>
         </div>
       </div>`;
     }
@@ -2884,19 +2841,17 @@ function renderLanes(c, totals){
     moveChoice = null; sheet = null; render();
   });
   host.querySelectorAll('[data-choose-cancel]').forEach(b => b.onclick = () => { moveChoice = null; render(); });
-  const openRow = (id) => { rowSheet = id; sheet = null; moveChoice = null; render(); };
-  host.querySelectorAll('[data-line]').forEach(el => {
-    el.onclick = (e) => { if (!e.target.closest('button')) openRow(el.dataset.line); };
-    el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRow(el.dataset.line); } };
+  host.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => {
+    const [id, d] = b.dataset.qty.split(':');
+    cart = { ...cart, lines: cart.lines
+      .map(l => l.id === id ? { ...l, quantity: Math.max(0, l.quantity + Number(d)) } : l)
+      .filter(l => l.quantity > 0) };
+    sheet = null; render();
   });
   host.querySelectorAll('[data-swap-line]').forEach(b => b.onclick = () => {
-    sheet = { lineId: b.dataset.swapLine, mode: 'similar' };
-    render();
-  });
-  host.querySelectorAll('[data-express-alt]').forEach(b => b.onclick = () => {
-    // No driver has this exact product, so Express means a different one.
-    // Framed as what they CAN have today, never as what went wrong.
-    sheet = { lineId: b.dataset.expressAlt, mode: 'similar', expressOnly: true };
+    // The comps have ONE entry point and it is lane-constrained: "Swap to
+    // Express" opens the "Faster alternative" sheet. Nothing else.
+    sheet = { lineId: b.dataset.swapLine, mode: 'similar', expressOnly: true };
     render();
   });
   host.querySelectorAll('[data-migrate]').forEach(b => b.onclick = () => {
