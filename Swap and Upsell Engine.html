@@ -95,6 +95,17 @@
     .cols>div:last-child{display:flex;flex-direction:column}
     #sheetCard,#offerCard,#commitCard{order:-1}
   }
+  .line.tappable{cursor:pointer}
+  .line.tappable:hover{background:rgba(255,255,255,.03)}
+  .line.tappable:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .rowhint{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--mute);margin-top:5px;white-space:nowrap}
+  .rowact{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;
+    padding:13px 16px;background:transparent;border:0;border-bottom:1px solid var(--line);cursor:pointer;
+    font-family:var(--sans)}
+  .rowact:hover{background:var(--panel2)}
+  .rowact .ral{font-size:14px;font-weight:700;color:var(--ink)}
+  .rowact .rah{font-size:12px;color:var(--dim)}
+  .rowact.primary .ral{color:#C4B5FD}
   .lanebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px 2px}
   .lanenote{font-size:12px;color:var(--dim);line-height:1.45}
   .chooser{margin-top:9px;padding:11px 12px;border-radius:10px;background:var(--panel2);
@@ -203,6 +214,10 @@
 
     <!-- ── right: swap sheet + inspector ──────────────────────────────── -->
     <div>
+      <div class="card" id="rowCard" style="display:none">
+          <h2 id="rowTitle">Item</h2>
+          <div id="rowBody"></div>
+        </div>
       <div class="card" id="sheetCard" style="display:none">
         <h2 id="sheetTitle">Faster alternative</h2>
         <div id="sheetBlocked"></div>
@@ -2704,7 +2719,9 @@ let cart     = JSON.parse(JSON.stringify(E.DEMO_CART));
 let customer = { ...E.DEMO_CUSTOMER };
 let snapshot = E.DEMO_SNAPSHOT;
 let rules    = E.BUILTIN_RULES;
-let sheet    = null;   // { lineId, toLane, mode }
+let sheet    = null;   // { lineId, mode, expressOnly }
+let rowSheet = null;   // lineId whose action sheet is open
+const lineActions = {};
 const NOW    = new Date('2026-08-18T14:30:00Z');
 
 const ctx = () => ({ snapshot, cart, customer, lanes: config.lanes, now: NOW });
@@ -2729,6 +2746,7 @@ function render(){
   renderLanes(c, totals);
   renderOffers(c);
   renderTotals(totals);
+  renderRowSheet(c);
   renderSheet(c);
   renderDiag(c, totals);
 }
@@ -2782,23 +2800,30 @@ function renderLanes(c, totals){
       const lm = E.planLaneMove(c, line.id, other, { config });
       const canMoveSameProduct = lm && lm.possible;
 
-      const btns = [];
+      // NO BUTTONS ON THE ROW.
+      //
+      // Most of these carts are opened on a phone, where two or three controls
+      // per line at the same size compete with each other and with the price.
+      // The row itself is the tap target; its actions live in a sheet with room
+      // to label them properly — and that scales when Remove or Change quantity
+      // arrive, which more buttons would not.
+      //
+      // The one control that stays visible is the LANE-level move, because
+      // "I meant to order for today" is a whole-cart mistake and the commonest
+      // one there is.
+      const acts = [];
       if (line.lane === 'scheduled') {
-        // PRIMARY. Most orders are Express; this is the action people came for.
-        // It keeps their product when a driver has it, and only falls back to
-        // showing alternatives when none does — so it is a different action
-        // from Swap, not a second door onto the same one.
-        const expressAlts = E.canSwap(c, line.id, 'express', { config, rules });
-        if (canMoveSameProduct)
-          btns.push(`<button class="btn express" data-move="${line.id}" data-lane="express">⚡ Switch to Express</button>`);
-        else if (expressAlts.offerable)
-          btns.push(`<button class="btn express" data-express-alt="${line.id}">⚡ Switch to Express</button>`);
-        // SECONDARY, quieter: change the product itself.
-        if (swap.offerable)
-          btns.push(`<button class="btn swapmain" data-swap-line="${line.id}">⇄ Swap</button>`);
+        if (canMoveSameProduct) acts.push({ id: 'move', label: '⚡ Switch to Express', hint: 'Same item, about 90 minutes', primary: true });
+        else if (E.canSwap(c, line.id, 'express', { config, rules }).offerable)
+          acts.push({ id: 'expressalt', label: '⚡ Switch to Express', hint: 'No driver has this one — see what they do have', primary: true });
       } else if (canMoveSameProduct) {
-        btns.push(`<button class="btn scheduled" data-move="${line.id}" data-lane="scheduled">🗓 Move to Scheduled</button>`);
+        acts.push({ id: 'toscheduled', label: '🗓 Move to Scheduled', hint: 'Pick a day and time' });
       }
+      // Swap is offered on EVERY line now, including Express — it costs no
+      // screen space in a sheet, and there is no reason an Express customer
+      // should be unable to change their mind about a product.
+      if (swap.offerable) acts.push({ id: 'swap', label: '⇄ Swap for something else', hint: 'Similar, cheaper or stronger' });
+      lineActions[line.id] = acts;
 
       // When moving one line would leave EITHER lane under its minimum, do not
       // block it and do not just warn — show the choice. Moving the whole lane
@@ -2820,16 +2845,18 @@ function renderLanes(c, totals){
         : '';
 
 
-      html += `<div class="line">
+      html += `<div class="line ${acts.length?'tappable':''}" ${acts.length?`data-line="${line.id}" role="button" tabindex="0"`:''}>
         ${swatch(p.id)}
         <div style="flex:1;min-width:0">
           <div class="brand">${p.brand}</div>
           <div class="nm">${p.name}</div>
           <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC · ':''}${p.sizeGrams!=null?p.sizeGrams+'g':p.category}</div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap">${btns.join('')}</div>
           ${chooser}
         </div>
-        <div class="price">${money(p.price * line.quantity)}</div>
+        <div style="text-align:right">
+          <div class="price">${money(p.price * line.quantity)}</div>
+          ${acts.length?`<div class="rowhint">${acts.some(a=>a.primary)?'⚡ Express available':'Tap to change'} ›</div>`:''}
+        </div>
       </div>`;
     }
     html += `<div class="subtotal"><span>Subtotal</span><span>${money(lt.subtotalCents)}</span></div>`;
@@ -2854,6 +2881,11 @@ function renderLanes(c, totals){
     moveChoice = null; sheet = null; render();
   });
   host.querySelectorAll('[data-choose-cancel]').forEach(b => b.onclick = () => { moveChoice = null; render(); });
+  const openRow = (id) => { rowSheet = id; sheet = null; moveChoice = null; render(); };
+  host.querySelectorAll('[data-line]').forEach(el => {
+    el.onclick = (e) => { if (!e.target.closest('button')) openRow(el.dataset.line); };
+    el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRow(el.dataset.line); } };
+  });
   host.querySelectorAll('[data-swap-line]').forEach(b => b.onclick = () => {
     sheet = { lineId: b.dataset.swapLine, mode: 'similar' };
     render();
@@ -2924,6 +2956,47 @@ function reveal(el){
   setTimeout(() => el.classList.remove('justOpened'), 900);
 }
 function unreveal(el){ if (el) el.dataset.revealed = ''; }
+
+function renderRowSheet(c){
+  const card = document.getElementById('rowCard');
+  if (!rowSheet) { card.style.display = 'none'; unreveal(card); return; }
+  const line = cart.lines.find(l => l.id === rowSheet);
+  const acts = lineActions[rowSheet] || [];
+  if (!line || !acts.length) { card.style.display = 'none'; return; }
+  const p = prod(line.productId);
+  const wasHidden = card.style.display === 'none';
+  card.style.display = '';
+  if (wasHidden) reveal(card);
+
+  document.getElementById('rowTitle').textContent = `${p.brand} ${p.name}`;
+  document.getElementById('rowBody').innerHTML = `
+    <div class="pad" style="display:flex;gap:11px;align-items:center;border-bottom:1px solid var(--line)">
+      ${swatch(p.id)}
+      <div style="flex:1">
+        <div class="nm">${p.name}</div>
+        <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC · ':''}${p.sizeGrams!=null?p.sizeGrams+'g · ':''}${config.lanes[line.lane].label}</div>
+      </div>
+      <div class="price">${money(p.price * line.quantity)}</div>
+    </div>
+    ${acts.map(a => `<button class="rowact ${a.primary?'primary':''}" data-act="${a.id}">
+        <span class="ral">${a.label}</span><span class="rah">${a.hint}</span></button>`).join('')}
+    <div class="rowbtns"><button class="btn ghost" id="closeRow">Close</button></div>`;
+
+  document.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
+    const id = b.dataset.act;
+    if (id === 'swap') { rowSheet = null; sheet = { lineId: line.id, mode: 'similar' }; }
+    else if (id === 'expressalt') { rowSheet = null; sheet = { lineId: line.id, mode: 'similar', expressOnly: true }; }
+    else {
+      const lane = id === 'toscheduled' ? 'scheduled' : 'express';
+      const pl = E.planLaneMove(ctx(), line.id, lane, { config });
+      const single = pl && pl.options.find(o => o.kind === 'move_line');
+      if (single && !single.strands) { cart = E.applyLaneMove(cart, single, lane); rowSheet = null; }
+      else { rowSheet = null; moveChoice = { lineId: line.id, toLane: lane }; }
+    }
+    render();
+  });
+  document.getElementById('closeRow').onclick = () => { rowSheet = null; render(); };
+}
 
 function renderSheet(c){
   const card = document.getElementById('sheetCard');
