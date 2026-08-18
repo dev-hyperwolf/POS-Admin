@@ -102,6 +102,21 @@
   .speed{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10px;font-weight:800;
          letter-spacing:.06em;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
   .speed.fast{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.55);color:#C4B5FD}
+  /* App switcher. Only appears when the page is served alongside the other
+     Hyperwolf prototypes — see loadAppNav(). Elsewhere it is simply absent. */
+  #appnav{position:relative}
+  #appnav .trigger{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:10px;
+    border:1px solid var(--line);background:var(--panel);color:var(--dim);font-size:12.5px;font-weight:700;
+    cursor:pointer;font-family:var(--sans)}
+  #appnav .trigger:hover{color:var(--ink);border-color:var(--accent)}
+  #appnav .menu{position:absolute;top:calc(100% + 6px);left:0;z-index:50;min-width:210px;padding:6px;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    box-shadow:0 18px 44px rgba(0,0,0,.55);display:none;max-height:70vh;overflow:auto}
+  #appnav .menu.open{display:block}
+  #appnav .menu a{display:block;padding:8px 11px;border-radius:8px;font-size:13px;color:var(--dim);
+    text-decoration:none}
+  #appnav .menu a:hover{background:var(--panel2);color:var(--ink)}
+  #appnav .menu a.here{color:var(--accent);font-weight:700}
   .flowtabs{display:flex;gap:6px}
   .flowtab{padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;
            color:var(--dim);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
@@ -141,6 +156,7 @@
 <body>
 <div class="wrap">
   <header>
+    <div id="appnav"></div>
     <h1>Hyperwolf Swap &amp; Upsell Engine</h1>
     <span class="pill" id="verdict">live</span>
     <div style="flex:1"></div>
@@ -2999,6 +3015,65 @@ document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => {
   SCENARIOS[+b.dataset.s][1](); renderKnobs(); render();
 });
 
+/**
+ * App switcher — the way BACK.
+ *
+ * This page is published to three places, and only one of them (the POS-Admin
+ * prototype set) has the shared nav definition next to it. So the script is
+ * loaded optionally: where it resolves we render a switcher, and where it does
+ * not — the standalone mirror, the artifact — nothing appears and nothing
+ * breaks. One file, three homes, no build variants.
+ *
+ * Without this the page was a dead end: reachable from every other prototype's
+ * rail, and with no way out of it.
+ */
+function loadAppNav(){
+  if (window.HW_NAV) return renderAppNav();
+  const s = document.createElement('script');
+  s.src = 'shared/app-nav.js';
+  s.onload = renderAppNav;
+  s.onerror = () => {};            // not hosted alongside the others; fine
+  document.head.appendChild(s);
+}
+
+function renderAppNav(){
+  const nav = window.HW_NAV;
+  if (!nav || !nav.all) return;
+  const host = document.getElementById('appnav');
+  const here = 'Swap and Upsell Engine.html';
+  const link = (it) => {
+    const href = it.href || ('Hyperwolf POS.html');
+    const isHere = it.id === 'swapupsell';
+    return `<a href="${href}" class="${isHere?'here':''}" data-pos="${it.pos||''}">${it.label}</a>`;
+  };
+  host.innerHTML = `
+    <button class="trigger" id="navTrigger" aria-haspopup="true" aria-expanded="false">☰ Hyperwolf apps</button>
+    <div class="menu" id="navMenu">${nav.all.map(link).join('')}</div>`;
+
+  const menu = document.getElementById('navMenu');
+  const trigger = document.getElementById('navTrigger');
+  trigger.onclick = (e) => {
+    e.stopPropagation();
+    const open = menu.classList.toggle('open');
+    trigger.setAttribute('aria-expanded', String(open));
+  };
+  document.addEventListener('click', () => { menu.classList.remove('open'); trigger.setAttribute('aria-expanded','false'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') menu.classList.remove('open'); });
+
+  // POS screens live in one file behind a persisted route key, so jumping to
+  // one means setting that key first — the same contract app-nav.js documents.
+  menu.querySelectorAll('a[data-pos]').forEach(a => {
+    const pos = a.getAttribute('data-pos');
+    if (!pos) return;
+    a.onclick = (e) => {
+      e.preventDefault();
+      try { localStorage.setItem('hw-pos-route', pos); } catch (err) {}
+      location.href = 'Hyperwolf POS.html';
+    };
+  });
+}
+
+loadAppNav();
 renderKnobs();
 render();
 
