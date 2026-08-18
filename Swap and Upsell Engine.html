@@ -1,0 +1,3079 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Hyperwolf Swap &amp; Upsell Engine</title>
+<style>
+  :root{
+    --bg:#13130F; --panel:#1C1C17; --panel2:#26261F; --line:rgba(255,255,255,.10);
+    --ink:#F5F5F0; --dim:rgba(245,245,240,.62); --mute:rgba(245,245,240,.40);
+    --accent:#FFD100; --express:#7C3AED; --sched:#2C5BB8; --good:#34D399; --bad:#F87171;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:Inter,-apple-system,system-ui,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .wrap{max-width:1400px;margin:0 auto;padding:24px 20px 80px}
+  header{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:6px}
+  h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.01em}
+  .tagline{color:var(--dim);font-size:13.5px;margin:0 0 22px;max-width:76ch;line-height:1.55}
+  .pill{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+        padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+  .cols{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:22px;align-items:start}
+  @media (max-width:960px){.cols{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .card+.card{margin-top:16px}
+  .card h2{font-size:11px;font-family:var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--mute);
+           margin:0;padding:13px 16px;border-bottom:1px solid var(--line);font-weight:700}
+  .pad{padding:14px 16px}
+
+  .laneHead{display:flex;align-items:center;gap:9px;padding:11px 14px;font-family:var(--mono);font-size:11.5px;
+            font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+  .laneHead.express{background:var(--express);color:#fff}
+  .laneHead.scheduled{background:var(--sched);color:#fff}
+  .laneHead .spacer{flex:1}
+  .minbar{display:flex;align-items:center;gap:9px;padding:10px 14px 4px}
+  .track{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}
+  .fill{height:100%;background:var(--good);border-radius:99px;transition:width .25s}
+  .minlabel{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.05em}
+  .met{color:var(--good)} .unmet{color:var(--bad)}
+
+  .line{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .sw{width:46px;height:46px;border-radius:10px;flex:0 0 auto;background:var(--panel2)}
+  .brand{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-weight:700}
+  .nm{font-size:13.5px;font-weight:700;margin:2px 0 3px}
+  .meta{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .price{font-family:var(--mono);font-size:14px;font-weight:800;margin-left:auto;padding-left:8px}
+  .btn{appearance:none;border:0;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12px;
+       padding:8px 12px;border-radius:99px;margin-top:8px}
+  .btn.express{background:var(--express);color:#fff}
+  .btn.scheduled{background:var(--sched);color:#fff}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--dim)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .subtotal{display:flex;justify-content:space-between;padding:12px 14px;background:var(--panel2);
+            font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+
+  .checkout{display:flex;align-items:center;gap:12px;background:#000;border-radius:16px;padding:14px 18px;margin-top:16px}
+  .checkout .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);font-weight:700}
+  .checkout .orders{font-size:16px;font-weight:800}
+  .checkout .tot{margin-left:auto;font-family:var(--mono);font-size:20px;font-weight:800}
+
+  .offer{display:flex;gap:11px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .offer .body{flex:1;min-width:0}
+  .offer .hl{font-size:13.5px;font-weight:800}
+  .offer .sl{font-size:12px;color:var(--dim);margin-top:2px}
+  .tag{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.08em;
+       text-transform:uppercase;padding:2.5px 7px;border-radius:99px;margin-bottom:5px}
+  .tag.unlock{background:var(--accent);color:#13130F}
+  .tag.rec{background:var(--panel2);color:var(--dim);border:1px solid var(--line)}
+
+  .tabs{display:flex;gap:7px;padding:12px 14px 4px}
+  .tab{flex:1;padding:8px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--dim);
+       font-weight:700;font-size:12px;cursor:pointer;font-family:var(--sans)}
+  .tab.on{background:var(--ink);color:#13130F;border-color:var(--ink)}
+  .cand{display:flex;gap:11px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .cand .body{flex:1;min-width:0}
+  .delta{font-family:var(--mono);font-size:11.5px;font-weight:800}
+  .delta.save{color:var(--good)} .delta.up{color:var(--dim)}
+  .swapbtn{background:var(--accent);color:#13130F;border:0;border-radius:99px;padding:8px 15px;font-weight:800;
+           font-size:12px;cursor:pointer;font-family:var(--sans)}
+  .empty{padding:16px 14px;color:var(--mute);font-size:12.5px;line-height:1.5}
+  .warn{margin:10px 14px 14px;padding:10px 12px;border-radius:10px;background:rgba(248,113,113,.10);
+        border:1px solid rgba(248,113,113,.35);color:#FCA5A5;font-size:12px;line-height:1.5}
+  .note{margin:10px 14px 14px;padding:10px 12px;border-radius:10px;background:rgba(255,209,0,.07);
+        border:1px solid rgba(255,209,0,.28);color:#F2D98B;font-size:12px;line-height:1.5}
+
+  .justOpened{animation:flash .9s ease-out}
+  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(255,209,0,.55)}100%{box-shadow:0 0 0 14px rgba(255,209,0,0)}}
+  @media (prefers-reduced-motion:reduce){.justOpened{animation:none;border-color:var(--accent)}}
+  /* Once the grid collapses, the right-hand column lands under everything in
+     the left one. Pin an OPEN panel to the top of the page instead of leaving
+     it several screens down, where opening it reads as nothing happening. */
+  @media (max-width:960px){
+    .cols>div:last-child{display:flex;flex-direction:column}
+    #sheetCard,#offerCard,#commitCard{order:-1}
+  }
+  .flowtabs{display:flex;gap:6px}
+  .flowtab{padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;
+           color:var(--dim);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
+  .flowtab.on{background:var(--accent);color:#13130F;border-color:var(--accent)}
+  .ordhead{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .ordid{font-family:var(--mono);font-size:15px;font-weight:800}
+  .chip{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+        padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+  .chip.live{background:rgba(124,58,237,.18);border-color:rgba(124,58,237,.5);color:#C4B5FD}
+  .actorbar{display:flex;gap:7px;padding:12px 16px;border-bottom:1px solid var(--line);align-items:center}
+  .gate{margin:10px 14px;padding:12px 13px;border-radius:10px;background:rgba(248,113,113,.10);
+        border:1px solid rgba(248,113,113,.4)}
+  .gate h4{margin:0 0 6px;font-size:13px;color:#FCA5A5}
+  .gate p{margin:0 0 10px;font-size:12.5px;color:var(--dim);line-height:1.5}
+  .ck{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;margin:8px 0;cursor:pointer;color:var(--ink)}
+  .ck input{margin-top:2px;accent-color:var(--accent);width:15px;height:15px}
+  .money{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;padding:3px 0;color:var(--dim)}
+  .money b{color:var(--ink);font-weight:800}
+  .up{color:#FCA5A5} .down{color:var(--good)}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+  td{padding:5px 16px;border-bottom:1px solid var(--line);color:var(--dim)}
+  td:last-child{text-align:right;color:var(--ink);font-weight:700;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+  tr.grand td{font-size:14px;font-weight:800;color:var(--ink);padding-top:10px}
+
+  .knob{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line)}
+  .knob label{flex:1;font-size:12.5px}
+  .knob code{font-family:var(--mono);font-size:10.5px;color:var(--mute);display:block;margin-top:2px}
+  .knob input[type=range]{width:120px;accent-color:var(--accent)}
+  .knob input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+  .knob .val{font-family:var(--mono);font-size:11.5px;font-weight:800;min-width:46px;text-align:right}
+  pre{margin:0;padding:14px 16px;font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--dim);
+      white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto}
+  .rowbtns{display:flex;gap:7px;flex-wrap:wrap;padding:12px 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hyperwolf Swap &amp; Upsell Engine</h1>
+    <span class="pill" id="verdict">live</span>
+    <div style="flex:1"></div>
+    <div class="flowtabs">
+      <button class="flowtab on" data-flow="cart">Cart &amp; checkout</button>
+      <button class="flowtab" data-flow="fulfil">Driver app &amp; support</button>
+    </div>
+  </header>
+  <p class="tagline">
+    Every number and every card below is produced by <code>@hyperwolf/commerce-logic</code> — the same
+    functions your Next.js app will import. Nothing here is mocked up. Move the knobs on the right and
+    watch the cart change: that is the engine reacting, not a prototype pretending.
+  </p>
+
+  <div class="cols">
+    <!-- ── left: the cart ─────────────────────────────────────────────── -->
+    <div>
+      <div class="card">
+        <h2>Your cart · <span id="hdrCount"></span></h2>
+        <div id="lanes"></div>
+      </div>
+      <div class="checkout">
+        <div>
+          <div class="lbl">Checkout</div>
+          <div class="orders" id="orderCount"></div>
+        </div>
+        <div class="tot" id="grandTotal"></div>
+      </div>
+      <div class="card">
+        <h2>Add to your order <span style="color:var(--mute)">· surface: cart_add_to_order</span></h2>
+        <div id="offers"></div>
+      </div>
+    </div>
+
+    <!-- ── right: swap sheet + inspector ──────────────────────────────── -->
+    <div>
+      <div class="card" id="sheetCard" style="display:none">
+        <h2 id="sheetTitle">Faster alternative</h2>
+        <div id="sheetBlocked"></div>
+        <div class="tabs" id="sheetTabs"></div>
+        <div id="sheetList"></div>
+        <div class="rowbtns"><button class="btn ghost" id="closeSheet">Close</button></div>
+      </div>
+
+      <div class="card">
+        <h2>Order total — every step</h2>
+        <table id="totals"></table>
+      </div>
+
+      <div class="card">
+        <h2>⚙️ Live knobs — these are the real config values</h2>
+        <div id="knobs"></div>
+      </div>
+
+      <div class="card">
+        <h2>Why the engine did that</h2>
+        <pre id="diag"></pre>
+      </div>
+
+      <div class="card">
+        <h2>Scenarios</h2>
+        <div class="rowbtns" id="scenarios"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="fulfilView" style="display:none">
+    <div class="howto">
+      <strong>This is the upsell flow.</strong> The order is out with a driver. The pool is one van, not the region —
+      compare what is offered here with the cart view.
+      <ol>
+        <li><em>Offer upgrade</em> on Blue Dream — a clean upsell. Smallest step up is offered first.</li>
+        <li><em>Offer upgrade</em> on the pre-roll 2pk — that line earned the $5 promotion, so swapping it hits the
+            acknowledgement gate. Try to confirm without ticking it.</li>
+        <li>Switch the actor to a driver on another kit and watch the whole thing refuse.</li>
+      </ol>
+    </div>
+    <div class="cols">
+      <div>
+        <div class="card">
+          <h2>Live order</h2>
+          <div id="ordBody"></div>
+        </div>
+        <div class="card">
+          <h2>Acting as</h2>
+          <div class="actorbar" id="actorBar"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card" id="offerCard" style="display:none">
+          <h2 id="offerTitle">Alternatives</h2>
+          <div id="offerBlocked"></div>
+          <div class="tabs" id="offerTabs"></div>
+          <div id="offerList"></div>
+          <div class="rowbtns"><button class="btn ghost" id="closeOffer">Close</button></div>
+        </div>
+        <div class="card" id="commitCard" style="display:none">
+          <h2>Confirm substitution</h2>
+          <div id="commitBody"></div>
+        </div>
+        <div class="card">
+          <h2>What the engine emitted</h2>
+          <pre id="fulfilOut">Nothing committed yet.</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>"use strict";
+var HWCommerce = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+  // src/demo-entry.ts
+  var demo_entry_exports = {};
+  __export(demo_entry_exports, {
+    BUILTIN_RULES: () => BUILTIN_RULES,
+    DEMO_AVAILABILITY: () => DEMO_AVAILABILITY,
+    DEMO_CART: () => DEMO_CART,
+    DEMO_CUSTOMER: () => DEMO_CUSTOMER,
+    DEMO_DRIVER: () => DEMO_DRIVER,
+    DEMO_KIT: () => DEMO_KIT,
+    DEMO_ORDER: () => DEMO_ORDER,
+    DEMO_ORDER_RULES: () => DEMO_ORDER_RULES,
+    DEMO_PRODUCTS: () => DEMO_PRODUCTS,
+    DEMO_SNAPSHOT: () => DEMO_SNAPSHOT,
+    DEMO_SUPPORT: () => DEMO_SUPPORT,
+    REASONS_BY_INTENT: () => REASONS_BY_INTENT,
+    RedemptionRequestError: () => RedemptionRequestError,
+    SUBSTITUTION_REASONS: () => SUBSTITUTION_REASONS,
+    SWAP_MODES: () => SWAP_MODES,
+    UPSELL_MODES: () => UPSELL_MODES,
+    applyOrderSubstitution: () => applyOrderSubstitution,
+    applySwap: () => applySwap,
+    asIndex: () => asIndex,
+    availabilityFromPlan: () => availabilityFromPlan,
+    availabilityFromSources: () => availabilityFromSources,
+    buildCandidates: () => buildCandidates,
+    buildIndex: () => buildIndex,
+    buildRedemptionRequest: () => buildRedemptionRequest,
+    canFulfil: () => canFulfil,
+    canSwap: () => canSwap,
+    candidateReason: () => candidateReason,
+    checkActor: () => checkActor,
+    checkOrderState: () => checkOrderState,
+    computeCartTotals: () => computeCartTotals,
+    createRuleStore: () => createRuleStore,
+    dedupeCandidates: () => dedupeCandidates,
+    defaultConfig: () => defaultConfig,
+    defaultFulfillmentPolicy: () => defaultFulfillmentPolicy,
+    defaultLanes: () => defaultLanes,
+    defaultPricingConfig: () => defaultPricingConfig,
+    defaultSwapConfig: () => defaultSwapConfig,
+    defaultUpsellConfig: () => defaultUpsellConfig,
+    describeFilter: () => describeFilter,
+    describeReward: () => describeReward,
+    describeRule: () => describeRule,
+    estimateRewardValue: () => estimateRewardValue,
+    evaluateRule: () => evaluateRule,
+    formatDelta: () => formatDelta,
+    getUpsells: () => getUpsells,
+    interpretRedemption: () => interpretRedemption,
+    isIndex: () => isIndex,
+    isRuleActive: () => isRuleActive,
+    isRuleAvailableToCustomer: () => isRuleAvailableToCustomer,
+    isRuleOnChannel: () => isRuleOnChannel,
+    isStepUp: () => isStepUp,
+    itemCount: () => itemCount,
+    judgeCandidate: () => judgeCandidate,
+    laneEligibility: () => laneEligibility,
+    lanesOf: () => lanesOf,
+    lanesThatCanFulfil: () => lanesThatCanFulfil,
+    linesWithExistingEffect: () => linesWithExistingEffect,
+    makeConfig: () => makeConfig,
+    makeFulfillmentPolicy: () => makeFulfillmentPolicy,
+    matchesFilter: () => matchesFilter,
+    money: () => money,
+    moveLane: () => moveLane,
+    offerFromRule: () => offerFromRule,
+    pickupLane: () => pickupLane,
+    planOrderSubstitution: () => planOrderSubstitution,
+    planSwap: () => planSwap,
+    previewSwap: () => previewSwap,
+    priceDelta: () => priceDelta,
+    priceSubstitution: () => priceSubstitution,
+    promotionProgress: () => promotionProgress,
+    redemptionCoverageGaps: () => redemptionCoverageGaps,
+    redemptionIdempotencyKey: () => redemptionIdempotencyKey,
+    requiredConsent: () => requiredConsent,
+    revalidateCart: () => revalidateCart,
+    setLineLane: () => setLineLane,
+    settlementFor: () => settlementFor,
+    shouldFailClosed: () => shouldFailClosed,
+    similarityDistance: () => similarityDistance,
+    similarityScore: () => similarityScore,
+    staleness: () => staleness,
+    standingRedemptions: () => standingRedemptions,
+    subtotalCents: () => subtotalCents,
+    toRegistryRow: () => toRegistryRow,
+    toRegistryRows: () => toRegistryRows,
+    unitsAvailable: () => unitsAvailable,
+    validateRuleSet: () => validateRuleSet
+  });
+
+  // src/core/types.ts
+  function lanesOf(ctx) {
+    return Object.keys(ctx.lanes).filter((l) => !!ctx.lanes[l]);
+  }
+
+  // src/core/config.ts
+  var defaultLanes = {
+    express: {
+      id: "express",
+      label: "Express",
+      feeCents: 200,
+      // +$2 fee
+      minimumCents: 4e3,
+      // $40 minimum
+      etaMinutes: 90,
+      // "ARRIVES ~90 MIN"
+      // What is in an on-shift driver's van right now.
+      stockPool: "driver_kit"
+    },
+    scheduled: {
+      id: "scheduled",
+      label: "Scheduled",
+      feeCents: 0,
+      // free
+      minimumCents: 4e3,
+      // $40 minimum
+      // NOT store stock. Scheduled is also fulfilled from a driver's kit — it
+      // just has the lead time to load one from Safe/Staging before the window
+      // opens, which is why it is the larger pool. Verified live: the storefront
+      // reports 731 items for ASAP against 1,564 for Scheduled in the same zone.
+      stockPool: "kit_loadable"
+    }
+  };
+  var pickupLane = {
+    id: "pickup",
+    label: "Pick-up",
+    feeCents: 0,
+    minimumCents: 0,
+    stockPool: "store_on_hand"
+  };
+  var defaultSwapConfig = {
+    maxCandidates: 5,
+    similarPriceBand: 0.4,
+    similarityWeights: {
+      price: 1,
+      thc: 0.6,
+      size: 0.8,
+      brand: 0.3,
+      strainType: 0.4,
+      subcategory: 0.5
+    },
+    restrictToSameCategory: true,
+    excludeItemsAlreadyInCart: true,
+    onInsufficientQuantity: "exclude",
+    strongerMinThcDelta: 2,
+    cheaperSort: "similarity",
+    maxAvailabilityAgeMs: 10 * 6e4,
+    maxUpgradeMultiple: 2
+  };
+  var defaultUpsellConfig = {
+    slotsBySurface: {
+      home_hero: 1,
+      home_banner: 1,
+      shop_grid_tile: 3,
+      brand_takeover: 1,
+      pdp_pairs_with: 4,
+      cart_add_to_order: 6,
+      cart_savings_line: 1,
+      checkout_callout: 2,
+      loyalty_card: 1,
+      post_add_sheet: 3
+    },
+    weights: {
+      favoriteCategory: 6,
+      categoryAffinity: 4,
+      onSale: 3,
+      knownBrand: 2,
+      potency: 1,
+      inventoryDepth: 0.5,
+      margin: 1.5,
+      unlocksPromotion: 12
+    },
+    categoryAffinity: {
+      "Flower": ["Pre-Rolls", "Accessories"],
+      "Pre-Rolls": ["Flower", "Accessories"],
+      "Vapes": ["Batteries", "Concentrates"],
+      "Concentrates": ["Vapes", "Accessories"],
+      "Batteries": ["Vapes"],
+      "Edibles": ["Drinks", "Tinctures"],
+      "Drinks": ["Edibles"],
+      "Tinctures": ["Topicals"],
+      "Topicals": ["Tinctures"]
+    },
+    maxSpendToRewardRatio: 6,
+    respectLaneAvailability: true,
+    maxImpressionsPerOffer: 3
+  };
+  var defaultPricingConfig = {
+    taxRate: 0.1025,
+    // matches the Figma. See the warning above — excise is missing.
+    taxDeliveryFee: false,
+    discountStrategy: "best-single",
+    maxDiscountFraction: 1,
+    neverDiscountSaleItems: true,
+    respectExistingLineEffects: true
+  };
+  var defaultConfig = {
+    lanes: defaultLanes,
+    swap: defaultSwapConfig,
+    upsell: defaultUpsellConfig,
+    pricing: defaultPricingConfig
+  };
+  function mergeLanes(overrides) {
+    const out = { ...defaultLanes };
+    for (const [id, patch] of Object.entries(overrides ?? {})) {
+      const base = out[id] ?? (id === "pickup" ? pickupLane : void 0);
+      if (!base) continue;
+      out[id] = { ...base, ...patch };
+    }
+    return out;
+  }
+  function makeConfig(overrides = {}) {
+    return {
+      lanes: mergeLanes(overrides.lanes),
+      swap: { ...defaultSwapConfig, ...overrides.swap ?? {} },
+      upsell: { ...defaultUpsellConfig, ...overrides.upsell ?? {} },
+      pricing: { ...defaultPricingConfig, ...overrides.pricing ?? {} }
+    };
+  }
+  function money(cents) {
+    const sign = cents < 0 ? "-" : "";
+    const abs = Math.abs(Math.round(cents));
+    return `${sign}$${(abs / 100).toFixed(2)}`;
+  }
+
+  // src/core/availability.ts
+  function buildIndex(snapshot) {
+    const byId = /* @__PURE__ */ new Map();
+    const byCategory = /* @__PURE__ */ new Map();
+    const byBrand = /* @__PURE__ */ new Map();
+    for (const p2 of snapshot.products) {
+      byId.set(p2.id, p2);
+      let cat = byCategory.get(p2.category);
+      if (!cat) {
+        cat = [];
+        byCategory.set(p2.category, cat);
+      }
+      cat.push(p2);
+      let br = byBrand.get(p2.brand);
+      if (!br) {
+        br = [];
+        byBrand.set(p2.brand, br);
+      }
+      br.push(p2);
+    }
+    return { snapshot, byId, byCategory, byBrand };
+  }
+  function isIndex(x) {
+    return "byId" in x;
+  }
+  function asIndex(x) {
+    return isIndex(x) ? x : buildIndex(x);
+  }
+  function unitsAvailable(snapshot, productId, lane) {
+    return snapshot.availability[productId]?.[lane] ?? 0;
+  }
+  function canFulfil(snapshot, productId, lane, quantity) {
+    return unitsAvailable(snapshot, productId, lane) >= quantity;
+  }
+  function laneEligibility(snapshot, productId, lane, quantity) {
+    const units = unitsAvailable(snapshot, productId, lane);
+    if (units >= quantity) return { ok: true, units };
+    return {
+      ok: false,
+      reason: units === 0 ? "out_of_stock" : "insufficient_quantity",
+      units,
+      needed: quantity
+    };
+  }
+  function lanesThatCanFulfil(snapshot, productId, quantity, lanes) {
+    return lanes.filter((l) => canFulfil(snapshot, productId, l, quantity));
+  }
+  function availabilityFromSources(rows) {
+    const perSource = /* @__PURE__ */ new Map();
+    for (const r of rows) {
+      const key = `${r.productId}|${r.lane}|${r.sourceId}`;
+      perSource.set(key, (perSource.get(key) ?? 0) + r.units);
+    }
+    const out = {};
+    for (const [key, units] of perSource) {
+      const [productId, lane] = key.split("|");
+      const entry = out[productId] ??= {};
+      entry[lane] = Math.max(entry[lane] ?? 0, units);
+    }
+    return out;
+  }
+  function staleness(snapshot, now) {
+    if (!snapshot.asOf) return null;
+    const t = Date.parse(snapshot.asOf);
+    return Number.isNaN(t) ? null : now.getTime() - t;
+  }
+  function revalidateCart(snapshot, cart, customerZoneId) {
+    const problems = [];
+    if (snapshot.zoneId && customerZoneId && snapshot.zoneId !== customerZoneId) {
+      problems.push({ kind: "zone_mismatch", snapshotZone: snapshot.zoneId, customerZone: customerZoneId });
+    }
+    const known = new Set(snapshot.products.map((p2) => p2.id));
+    for (const line of cart.lines) {
+      if (!known.has(line.productId)) {
+        problems.push({ kind: "unknown_product", lineId: line.id, productId: line.productId });
+        continue;
+      }
+      const have = unitsAvailable(snapshot, line.productId, line.lane);
+      if (have === 0) {
+        problems.push({ kind: "out_of_stock", lineId: line.id, productId: line.productId, lane: line.lane });
+      } else if (have < line.quantity) {
+        problems.push({
+          kind: "insufficient_quantity",
+          lineId: line.id,
+          productId: line.productId,
+          lane: line.lane,
+          have,
+          need: line.quantity
+        });
+      }
+    }
+    return problems;
+  }
+
+  // src/core/rules/evaluate.ts
+  function matchesFilter(p2, f) {
+    if (!f) return true;
+    if (f.productIds?.length && !f.productIds.includes(p2.id)) return false;
+    if (f.categories?.length && !f.categories.includes(p2.category)) return false;
+    if (f.brands?.length && !f.brands.includes(p2.brand)) return false;
+    if (f.strainTypes?.length && (!p2.strainType || !f.strainTypes.includes(p2.strainType))) return false;
+    if (f.tags?.length && !f.tags.some((t) => p2.tags?.includes(t))) return false;
+    if (f.minThcPercent != null && (p2.thcPercent ?? 0) < f.minThcPercent) return false;
+    if (f.maxThcPercent != null && (p2.thcPercent ?? 0) > f.maxThcPercent) return false;
+    if (f.excludeOnSale && p2.compareAtPrice != null) return false;
+    return true;
+  }
+  function describeFilter(f) {
+    if (!f) return "anything";
+    const parts = [];
+    if (f.productIds?.length) parts.push(f.productIds.length === 1 ? "that product" : `${f.productIds.length} products`);
+    if (f.brands?.length) parts.push(f.brands.join(" or "));
+    if (f.categories?.length) parts.push(f.categories.join(" or "));
+    if (f.strainTypes?.length) parts.push(f.strainTypes.join("/"));
+    if (f.minThcPercent != null) parts.push(`${f.minThcPercent}%+ THC`);
+    if (f.tags?.length) parts.push(f.tags.join(" or "));
+    return parts.length ? parts.join(" ") : "anything";
+  }
+  function linesOf(ctx, lane) {
+    return lane ? ctx.cart.lines.filter((l) => l.lane === lane) : ctx.cart.lines;
+  }
+  function subtotalCents(ctx, index, lane) {
+    let total = 0;
+    for (const line of linesOf(ctx, lane)) {
+      const p2 = index.byId.get(line.productId);
+      if (p2) total += p2.price * line.quantity;
+    }
+    return total;
+  }
+  function itemCount(ctx, lane) {
+    return linesOf(ctx, lane).reduce((n, l) => n + l.quantity, 0);
+  }
+  function matchingQuantity(ctx, index, f, lane) {
+    let n = 0;
+    for (const line of linesOf(ctx, lane)) {
+      const p2 = index.byId.get(line.productId);
+      if (p2 && matchesFilter(p2, f)) n += line.quantity;
+    }
+    return n;
+  }
+  function minutesOfDay(d) {
+    return d.getHours() * 60 + d.getMinutes();
+  }
+  var DEFS = {
+    // ── cart ──────────────────────────────────────────────────────────────────
+    cart_subtotal_gte: {
+      entity: "cart",
+      describe: (c) => `the ${c.lane ?? ""} cart subtotal is ${money(c.amountCents)} or more`.replace("  ", " "),
+      evaluate: (c, ctx, index) => {
+        const sub = subtotalCents(ctx, index, c.lane);
+        if (sub >= c.amountCents) return { satisfied: true };
+        return { satisfied: false, gap: { kind: "spend", amountCents: c.amountCents - sub, lane: c.lane } };
+      }
+    },
+    cart_item_count_gte: {
+      entity: "cart",
+      describe: (c) => `the cart holds ${c.count} or more items`,
+      evaluate: (c, ctx) => {
+        const n = itemCount(ctx, c.lane);
+        if (n >= c.count) return { satisfied: true };
+        return { satisfied: false, gap: { kind: "items", count: c.count - n, lane: c.lane } };
+      }
+    },
+    cart_contains: {
+      entity: "cart",
+      describe: (c) => `the cart holds ${c.minQuantity}+ of ${describeFilter(c.filter)}`,
+      evaluate: (c, ctx, index) => {
+        const n = matchingQuantity(ctx, index, c.filter, c.lane);
+        if (n >= c.minQuantity) return { satisfied: true };
+        return {
+          satisfied: false,
+          gap: { kind: "items", count: c.minQuantity - n, filter: c.filter, lane: c.lane }
+        };
+      }
+    },
+    cart_distinct_categories_gte: {
+      entity: "cart",
+      describe: (c) => `the cart spans ${c.count} or more categories`,
+      evaluate: (c, ctx, index) => {
+        const cats = /* @__PURE__ */ new Set();
+        for (const l of ctx.cart.lines) {
+          const p2 = index.byId.get(l.productId);
+          if (p2) cats.add(p2.category);
+        }
+        if (cats.size >= c.count) return { satisfied: true };
+        return { satisfied: false, gap: { kind: "distinct_categories", count: c.count - cats.size } };
+      }
+    },
+    // ── product ───────────────────────────────────────────────────────────────
+    product_matches: {
+      entity: "product",
+      describe: (c) => `the product is ${describeFilter(c.filter)}`,
+      evaluate: (c, _ctx, _index, scope) => {
+        if (!scope.product) {
+          return { satisfied: false, gap: { kind: "unreachable", why: "no product in scope" } };
+        }
+        return { satisfied: matchesFilter(scope.product, c.filter) };
+      }
+    },
+    // ── user ──────────────────────────────────────────────────────────────────
+    user_loyalty_tier: {
+      entity: "user",
+      describe: (c) => `the member is ${c.tiers.join(" or ")}`,
+      evaluate: (c, ctx) => {
+        const tier = ctx.customer?.loyaltyTier;
+        const ok = !!tier && c.tiers.includes(tier);
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "loyalty tier" } };
+      }
+    },
+    user_order_count_gte: {
+      entity: "user",
+      describe: (c) => `the member has placed ${c.count}+ orders`,
+      evaluate: (c, ctx) => {
+        const ok = (ctx.customer?.orderCount ?? 0) >= c.count;
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "order history" } };
+      }
+    },
+    user_order_count_lte: {
+      entity: "user",
+      describe: (c) => `the member has placed ${c.count} or fewer orders`,
+      evaluate: (c, ctx) => {
+        const ok = (ctx.customer?.orderCount ?? 0) <= c.count;
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "order history" } };
+      }
+    },
+    user_days_since_last_order_gte: {
+      entity: "user",
+      describe: (c) => `it has been ${c.days}+ days since the last order`,
+      evaluate: (c, ctx) => {
+        const d = ctx.customer?.daysSinceLastOrder;
+        const ok = d != null && d >= c.days;
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "recency" } };
+      }
+    },
+    user_lifetime_spend_gte: {
+      entity: "user",
+      describe: (c) => `lifetime spend is ${money(c.amountCents)} or more`,
+      evaluate: (c, ctx) => {
+        const ok = (ctx.customer?.lifetimeSpend ?? 0) >= c.amountCents;
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "lifetime spend" } };
+      }
+    },
+    user_purchased_brand: {
+      entity: "user",
+      describe: (c) => `the member has bought ${c.brands.join(" or ")} before`,
+      evaluate: (c, ctx) => {
+        const bought = ctx.customer?.purchasedBrands ?? [];
+        const ok = c.brands.some((b) => bought.includes(b));
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "brand history" } };
+      }
+    },
+    user_birthday_within_days: {
+      entity: "user",
+      describe: (c) => `their birthday is within ${c.days} days`,
+      evaluate: (c, ctx) => {
+        const bd = ctx.customer?.birthday;
+        if (!bd) return { satisfied: false, gap: { kind: "unreachable", why: "no birthday on file" } };
+        const parts = bd.split("-").map(Number);
+        const mm = parts.length === 3 ? parts[1] : parts[0];
+        const dd = parts.length === 3 ? parts[2] : parts[1];
+        if (mm == null || dd == null) return { satisfied: false, gap: { kind: "unreachable", why: "bad birthday" } };
+        const now = ctx.now;
+        let next = new Date(now.getFullYear(), mm - 1, dd);
+        if (next.getTime() < now.getTime()) next = new Date(now.getFullYear() + 1, mm - 1, dd);
+        const days = (next.getTime() - now.getTime()) / 864e5;
+        return days <= c.days ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "birthday window" } };
+      }
+    },
+    // ── time ──────────────────────────────────────────────────────────────────
+    time_day_of_week: {
+      entity: "time",
+      describe: (c) => `it is a ${c.days.map((d) => DAY_NAMES[d] ?? d).join(" or ")}`,
+      evaluate: (c, ctx) => c.days.includes(ctx.now.getDay()) ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "day of week" } }
+    },
+    time_of_day_between: {
+      entity: "time",
+      describe: (c) => `the time is between ${hhmm(c.startMinutes)} and ${hhmm(c.endMinutes)}`,
+      evaluate: (c, ctx) => {
+        const m = minutesOfDay(ctx.now);
+        const ok = c.startMinutes <= c.endMinutes ? m >= c.startMinutes && m <= c.endMinutes : m >= c.startMinutes || m <= c.endMinutes;
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "time of day" } };
+      }
+    },
+    time_date_between: {
+      entity: "time",
+      describe: (c) => `the date is between ${c.startIso.slice(0, 10)} and ${c.endIso.slice(0, 10)}`,
+      evaluate: (c, ctx) => {
+        const t = ctx.now.getTime();
+        const ok = t >= Date.parse(c.startIso) && t <= Date.parse(c.endIso);
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "date window" } };
+      }
+    },
+    // ── location ──────────────────────────────────────────────────────────────
+    location_zone_in: {
+      entity: "location",
+      describe: (c) => `delivering to ${c.zoneIds.join(" or ")}`,
+      evaluate: (c, ctx) => {
+        const z = ctx.customer?.zoneId;
+        const ok = !!z && c.zoneIds.includes(z);
+        return ok ? { satisfied: true } : { satisfied: false, gap: { kind: "unreachable", why: "delivery zone" } };
+      }
+    }
+  };
+  var DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  function hhmm(mins) {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+  function evaluateCondition(c, ctx, index, scope) {
+    const def = DEFS[c.id];
+    return def.evaluate(c, ctx, index, scope);
+  }
+  function isRuleActive(rule, now) {
+    if (rule.status !== "live" && rule.status !== "scheduled") return false;
+    const t = now.getTime();
+    if (rule.startsAt && t < Date.parse(rule.startsAt)) return false;
+    if (rule.endsAt && t > Date.parse(rule.endsAt)) return false;
+    return rule.status === "live" || !!rule.startsAt;
+  }
+  function isRuleOnChannel(rule, ctx) {
+    if (!ctx.channel) return true;
+    if (!rule.channels || rule.channels.length === 0) return true;
+    return rule.channels.includes(ctx.channel);
+  }
+  function linesWithExistingEffect(ctx) {
+    return new Set(Object.keys(ctx.cart.lineEffects ?? {}));
+  }
+  function redemptionCoverageGaps(rules, ctx) {
+    const channel = ctx.channel;
+    const covered = ctx.customer?.redemptionLedgerChannels;
+    if (!channel || !covered) return [];
+    if (covered.includes(channel)) return [];
+    return rules.filter((r) => r.usageLimitPerUser != null).map((r) => ({
+      ruleId: r.id,
+      channel,
+      message: `"${r.name}" limits redemptions per customer, but the redemption ledger has no data for ${channel} (covers: ${covered.join(", ") || "nothing"}). The limit cannot be enforced here.`
+    }));
+  }
+  function isRuleAvailableToCustomer(rule, ctx) {
+    const limit = rule.usageLimitPerUser;
+    if (limit == null) return true;
+    const redeemed = ctx.customer?.redeemedPromotionIds ?? [];
+    return redeemed.filter((id) => id === rule.id).length < limit;
+  }
+  function evaluateRule(rule, ctx, scope = {}, indexIn) {
+    const index = indexIn ?? asIndex(ctx.snapshot);
+    const results = rule.conditions.map((c) => evaluateCondition(c, ctx, index, scope));
+    const satisfied = rule.combiner === "OR" ? results.some((r) => r.satisfied) : results.every((r) => r.satisfied);
+    const unmet = results.filter((r) => !r.satisfied);
+    const closableGaps = unmet.map((r) => r.gap).filter((g) => !!g && g.kind !== "unreachable");
+    const blockedByUnreachable = unmet.some((r) => r.gap?.kind === "unreachable");
+    return { rule, satisfied, conditions: results, closableGaps, blockedByUnreachable };
+  }
+  function describeRule(rule) {
+    const joiner = rule.combiner === "OR" ? " or " : " and ";
+    const ifPart = rule.conditions.map((c) => DEFS[c.id].describe(c)).join(joiner);
+    return `If ${ifPart || "always"}, then ${describeReward(rule.reward)}.`;
+  }
+  function describeReward(r) {
+    switch (r.kind) {
+      case "percent_off_cart":
+        return `take ${r.percent}% off the cart${r.capCents ? ` (up to ${money(r.capCents)})` : ""}`;
+      case "dollar_off_cart":
+        return `take ${money(r.amountCents)} off the cart`;
+      case "percent_off_items":
+        return `take ${r.percent}% off ${describeFilter(r.filter)}`;
+      case "dollar_off_items":
+        return `take ${money(r.amountCents)} off ${describeFilter(r.filter)}`;
+      case "free_gift":
+        return `add a free gift`;
+      case "free_delivery":
+        return `make delivery free${r.lane ? ` on ${r.lane}` : ""}`;
+      case "bogo":
+        return `buy ${r.buyQuantity} of ${describeFilter(r.filter)}, get ${r.getQuantity} at ${r.getPercentOff}% off`;
+      case "bundle_price":
+        return `get ${r.quantity} of ${describeFilter(r.filter)} for ${money(r.priceCents)}`;
+      case "points_multiplier":
+        return `earn ${r.multiplier}x points`;
+    }
+  }
+  function estimateRewardValue(reward, ctx, indexIn, options = {}) {
+    const index = indexIn ?? asIndex(ctx.snapshot);
+    const cap = (v, c) => c != null ? Math.min(v, c) : v;
+    const skipSale = options.neverDiscountSaleItems ?? false;
+    const spokenFor = options.respectExistingLineEffects === false ? /* @__PURE__ */ new Set() : linesWithExistingEffect(ctx);
+    const matchingLines = (f) => ctx.cart.lines.map((l) => ({ line: l, p: index.byId.get(l.productId) })).filter((x) => !!x.p && matchesFilter(x.p, f) && !(skipSale && x.p.compareAtPrice != null) && !spokenFor.has(x.line.id));
+    switch (reward.kind) {
+      case "percent_off_cart": {
+        const sub = subtotalCents(ctx, index);
+        return Math.round(cap(sub * (reward.percent / 100), reward.capCents));
+      }
+      case "dollar_off_cart": {
+        return Math.min(reward.amountCents, subtotalCents(ctx, index));
+      }
+      case "percent_off_items": {
+        const total = matchingLines(reward.filter).reduce((s, x) => s + x.p.price * x.line.quantity, 0);
+        return Math.round(cap(total * (reward.percent / 100), reward.capCents));
+      }
+      case "dollar_off_items": {
+        const total = matchingLines(reward.filter).reduce((s, x) => s + x.p.price * x.line.quantity, 0);
+        return Math.min(reward.amountCents, total);
+      }
+      case "free_gift": {
+        return index.byId.get(reward.productId)?.price ?? 0;
+      }
+      case "free_delivery": {
+        const lanes = reward.lane ? [reward.lane] : Object.keys(ctx.lanes);
+        return lanes.filter((l) => ctx.cart.lines.some((line) => line.lane === l)).reduce((s, l) => s + (ctx.lanes[l]?.feeCents ?? 0), 0);
+      }
+      case "bogo": {
+        const units = [];
+        for (const { line, p: p2 } of matchingLines(reward.filter)) {
+          for (let i = 0; i < line.quantity; i++) units.push(p2.price);
+        }
+        units.sort((a, b) => a - b);
+        const groupSize = reward.buyQuantity + reward.getQuantity;
+        const groups = Math.floor(units.length / groupSize);
+        let value = 0;
+        for (let g = 0; g < groups; g++) {
+          for (let i = 0; i < reward.getQuantity; i++) {
+            value += (units[g * reward.getQuantity + i] ?? 0) * (reward.getPercentOff / 100);
+          }
+        }
+        return Math.round(value);
+      }
+      case "bundle_price": {
+        const units = [];
+        for (const { line, p: p2 } of matchingLines(reward.filter)) {
+          for (let i = 0; i < line.quantity; i++) units.push(p2.price);
+        }
+        units.sort((a, b) => b - a);
+        const bundles = Math.floor(units.length / reward.quantity);
+        let value = 0;
+        for (let b = 0; b < bundles; b++) {
+          const slice = units.slice(b * reward.quantity, (b + 1) * reward.quantity);
+          const normal = slice.reduce((s, v) => s + v, 0);
+          value += Math.max(0, normal - reward.priceCents);
+        }
+        return Math.round(value);
+      }
+      case "points_multiplier":
+        return 0;
+    }
+  }
+
+  // src/core/rules/defaults.ts
+  var BUILTIN_RULES = [
+    {
+      id: "preroll-2pk-5off",
+      name: "Add a pre-roll 2pk, save $5",
+      status: "live",
+      combiner: "AND",
+      conditions: [
+        { id: "cart_contains", filter: { categories: ["Pre-Rolls"], tags: ["2pk"] }, minQuantity: 1 }
+      ],
+      reward: { kind: "dollar_off_cart", amountCents: 500 },
+      priority: 10,
+      upsell: {
+        enabled: true,
+        surfaces: ["cart_add_to_order", "checkout_callout", "post_add_sheet"],
+        headline: "Unlock $5 off",
+        subline: "Add any pre-roll 2pk to save"
+      }
+    },
+    {
+      id: "free-express-over-100",
+      name: "Free Express delivery over $100",
+      status: "live",
+      combiner: "AND",
+      conditions: [
+        { id: "cart_subtotal_gte", amountCents: 1e4, lane: "express" }
+      ],
+      reward: { kind: "free_delivery", lane: "express" },
+      priority: 5,
+      upsell: {
+        enabled: true,
+        surfaces: ["cart_add_to_order", "cart_savings_line", "checkout_callout"]
+      }
+    },
+    {
+      id: "wolfpack-10",
+      name: "Wolfpack Leader \u2014 10% off",
+      status: "live",
+      combiner: "AND",
+      conditions: [
+        { id: "user_loyalty_tier", tiers: ["Wolfpack Leader"] }
+      ],
+      reward: { kind: "percent_off_cart", percent: 10, capCents: 5e3 },
+      priority: 20
+      // No upsell: a tier gate cannot be closed by adding to the cart, and the
+      // engine would correctly refuse to generate a card for it anyway.
+    },
+    {
+      id: "welcome-20",
+      name: "Welcome \u2014 $20 off your first order",
+      status: "live",
+      code: "WELCOME20",
+      combiner: "AND",
+      conditions: [
+        { id: "user_order_count_lte", count: 0 },
+        { id: "cart_subtotal_gte", amountCents: 6e3 }
+      ],
+      reward: { kind: "dollar_off_cart", amountCents: 2e3 },
+      priority: 30,
+      individualUseOnly: true
+    }
+  ];
+
+  // src/core/rules/source.ts
+  var KNOWN_REWARDS = /* @__PURE__ */ new Set([
+    "percent_off_cart",
+    "dollar_off_cart",
+    "percent_off_items",
+    "dollar_off_items",
+    "free_gift",
+    "free_delivery",
+    "bogo",
+    "bundle_price",
+    "points_multiplier"
+  ]);
+  var KNOWN_CONDITIONS = /* @__PURE__ */ new Set([
+    "cart_subtotal_gte",
+    "cart_item_count_gte",
+    "cart_contains",
+    "cart_distinct_categories_gte",
+    "product_matches",
+    "user_loyalty_tier",
+    "user_order_count_gte",
+    "user_order_count_lte",
+    "user_days_since_last_order_gte",
+    "user_lifetime_spend_gte",
+    "user_purchased_brand",
+    "user_birthday_within_days",
+    "time_day_of_week",
+    "time_of_day_between",
+    "time_date_between",
+    "location_zone_in"
+  ]);
+  function validateRuleSet(input) {
+    const issues = [];
+    const out = [];
+    const raw = Array.isArray(input) ? input : input && typeof input === "object" && Array.isArray(input.rules) ? input.rules : null;
+    if (!raw) {
+      issues.push({ ruleId: "(payload)", message: "expected an array of rules or { rules: [...] }" });
+      return { rules: [], issues };
+    }
+    for (const [i, item] of raw.entries()) {
+      const r = item;
+      const id = typeof r?.id === "string" ? r.id : `(index ${i})`;
+      const bad = (message) => issues.push({ ruleId: id, message });
+      if (typeof r?.id !== "string" || !r.id) {
+        bad("missing id");
+        continue;
+      }
+      if (/^\d+$/.test(r.id)) {
+        bad(`id "${r.id}" looks like a sequence value \u2014 the shared key must be a stable slug (e.g. "wolfpack-preroll-2for1"), not an autoincrement`);
+        continue;
+      }
+      if (typeof r.name !== "string" || !r.name) {
+        bad("missing name");
+        continue;
+      }
+      if (!Array.isArray(r.conditions)) {
+        bad("conditions must be an array");
+        continue;
+      }
+      if (!r.reward || typeof r.reward !== "object") {
+        bad("missing reward");
+        continue;
+      }
+      if (!KNOWN_REWARDS.has(r.reward.kind ?? "")) {
+        bad(`unknown reward kind "${r.reward.kind}"`);
+        continue;
+      }
+      const unknownCond = r.conditions.find(
+        (c) => !KNOWN_CONDITIONS.has(c?.id ?? "")
+      );
+      if (unknownCond) {
+        bad(`unknown condition "${unknownCond.id}" \u2014 is this package older than the admin UI?`);
+        continue;
+      }
+      if (r.combiner !== "AND" && r.combiner !== "OR") {
+        bad("combiner must be AND or OR");
+        continue;
+      }
+      out.push(r);
+    }
+    return { rules: out, issues };
+  }
+  function createRuleStore(options = {}) {
+    const report = (origin, issue) => options.onIssue?.({ ...issue, origin });
+    const builtin = {
+      rules: options.builtin ?? BUILTIN_RULES,
+      origin: "builtin"
+    };
+    let base = builtin;
+    if (options.static !== void 0) {
+      const { rules, issues } = validateRuleSet(options.static);
+      issues.forEach((i) => report("static", i));
+      if (rules.length > 0) {
+        base = { rules, origin: "static" };
+      } else if (issues.length > 0) {
+        report("static", { ruleId: "(payload)", message: "no valid rules \u2014 falling back to builtin" });
+      }
+    }
+    let currentSet = base;
+    let lastFetchMs = 0;
+    let inFlight = null;
+    const ttl = options.remote?.ttlMs ?? 5 * 6e4;
+    const nowMs = options.nowMs ?? (() => Date.now());
+    function isStale() {
+      if (!options.remote) return false;
+      return nowMs() - lastFetchMs > ttl;
+    }
+    async function refresh() {
+      const remote = options.remote;
+      if (!remote) return currentSet;
+      if (inFlight) return inFlight;
+      inFlight = (async () => {
+        const doFetch = remote.fetchImpl ?? globalThis.fetch;
+        if (!doFetch) {
+          report("remote", { ruleId: "(fetch)", message: "no fetch implementation available" });
+          return currentSet;
+        }
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), remote.timeoutMs ?? 4e3);
+        try {
+          const res = await doFetch(remote.url, {
+            headers: remote.headers,
+            signal: controller.signal
+          });
+          if (!res.ok) {
+            report("remote", { ruleId: "(fetch)", message: `HTTP ${res.status} \u2014 keeping ${currentSet.origin} rules` });
+            return currentSet;
+          }
+          const body = await res.json();
+          const { rules, issues } = validateRuleSet(body);
+          issues.forEach((i) => report("remote", i));
+          if (rules.length === 0) {
+            report("remote", { ruleId: "(payload)", message: `no valid rules \u2014 keeping ${currentSet.origin} rules` });
+            return currentSet;
+          }
+          lastFetchMs = nowMs();
+          currentSet = { rules, origin: "remote", fetchedAt: new Date(lastFetchMs).toISOString() };
+          return currentSet;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          report("remote", { ruleId: "(fetch)", message: `${msg} \u2014 keeping ${currentSet.origin} rules` });
+          return currentSet;
+        } finally {
+          clearTimeout(timer);
+          inFlight = null;
+        }
+      })();
+      return inFlight;
+    }
+    return { current: () => currentSet, isStale, refresh };
+  }
+
+  // src/core/rules/registry.ts
+  function rewardShape(reward) {
+    switch (reward.kind) {
+      case "percent_off_cart":
+      case "percent_off_items":
+        return { kind: "percent", amount: reward.percent, unit: "percent" };
+      case "dollar_off_cart":
+      case "dollar_off_items":
+        return { kind: "dollar", amount: reward.amountCents, unit: "cents" };
+      case "bogo":
+        return { kind: "bogo", amount: reward.getPercentOff, unit: "percent" };
+      case "bundle_price":
+        return { kind: "bundle", amount: reward.priceCents, unit: "cents" };
+      case "free_gift":
+        return { kind: "gift", amount: 0, unit: "none" };
+      case "free_delivery":
+        return { kind: "free_delivery", amount: 0, unit: "none" };
+      case "points_multiplier":
+        return { kind: "points", amount: reward.multiplier, unit: "multiplier" };
+    }
+  }
+  function rewardTarget(reward, skuFor) {
+    const sku = (id) => skuFor?.(id) ?? id;
+    if (reward.kind === "free_gift") return `sku:${sku(reward.productId)}`;
+    if ("filter" in reward && reward.filter) {
+      const f = reward.filter;
+      if (f.productIds?.length === 1 && f.productIds[0]) return `sku:${sku(f.productIds[0])}`;
+      if (f.productIds?.length) return `sku:${f.productIds.map(sku).join("|")}`;
+      if (f.brands?.length) return `brand:${f.brands.join("|")}`;
+      if (f.categories?.length) return `category:${f.categories.join("|")}`;
+    }
+    return "cart";
+  }
+  var FLATTENABLE = /* @__PURE__ */ new Set(["cart_subtotal_gte", "cart_item_count_gte", "product_matches"]);
+  function toRegistryRow(rule, options = {}) {
+    const opts = typeof options === "function" ? { describe: options } : options;
+    const { kind, amount, unit } = rewardShape(rule.reward);
+    const flattened = rule.conditions.length > 1 || rule.combiner === "OR" || rule.conditions.some((c) => !FLATTENABLE.has(c.id));
+    return {
+      id: rule.id,
+      name: rule.name,
+      code: rule.code && rule.code.length > 0 ? rule.code : null,
+      kind,
+      amount,
+      amount_unit: unit,
+      starts_at: rule.startsAt ?? null,
+      ends_at: rule.endsAt ?? null,
+      channels: rule.channels ?? null,
+      target: rewardTarget(rule.reward, opts.skuFor),
+      active: rule.status === "live",
+      projected_from_rule: true,
+      fidelity: flattened ? "flattened" : "exact",
+      summary: opts.describe ? opts.describe(rule) : rule.name
+    };
+  }
+  function toRegistryRows(rules, options = {}) {
+    return rules.map((r) => toRegistryRow(r, options));
+  }
+
+  // src/core/rules/redemption.ts
+  var RedemptionRequestError = class extends Error {
+  };
+  function buildRedemptionRequest(input) {
+    const { identity } = input;
+    if (identity.identityId == null && !identity.phone) {
+      throw new RedemptionRequestError(
+        "A redemption needs an identityId or an E.164 phone. Email is accepted but never matched, so it cannot identify anyone on its own."
+      );
+    }
+    if (identity.phone && !/^\+[1-9]\d{6,14}$/.test(identity.phone)) {
+      throw new RedemptionRequestError(
+        `Phone "${identity.phone}" is not E.164. It will not match the ledger, and the failure is silent.`
+      );
+    }
+    return {
+      promotion_key: input.promotionKey,
+      source: input.source,
+      order_id: input.orderId,
+      identity: {
+        ...identity.identityId != null ? { identity_id: identity.identityId } : {},
+        ...identity.phone ? { phone: identity.phone } : {},
+        ...identity.email !== void 0 ? { email: identity.email } : {}
+      },
+      amount_cents: input.amountCents,
+      is_first_timer: input.isFirstTimer
+    };
+  }
+  function redemptionIdempotencyKey(promotionKey, orderId) {
+    return `${promotionKey}::${orderId}`;
+  }
+  function shouldFailClosed(subject) {
+    return subject.usageLimitPerUser != null || subject.isFirstTimer;
+  }
+  function interpretRedemption(outcome, subject) {
+    switch (outcome.status) {
+      case "accepted": {
+        const replay = outcome.body.replay || outcome.body.already_redeemed === true;
+        return {
+          mayApply: true,
+          markRedeemed: true,
+          reason: replay ? "Idempotent replay of this same order's redemption \u2014 already recorded, still valid." : "Redemption recorded."
+        };
+      }
+      case "conflict": {
+        if (outcome.body.standing === false) {
+          return {
+            mayApply: true,
+            markRedeemed: false,
+            reason: `A redemption on ${outcome.body.source} was reversed (cancelled order), so it no longer counts against this customer.`
+          };
+        }
+        return {
+          mayApply: false,
+          markRedeemed: true,
+          reason: `Already redeemed on ${outcome.body.source} at ${outcome.body.redeemed_at}.`
+        };
+      }
+      case "unavailable": {
+        if (shouldFailClosed(subject)) {
+          return {
+            mayApply: false,
+            markRedeemed: false,
+            reason: `Redemption ledger unavailable (${outcome.reason}) and this is a single-use or first-timer promotion, so it was declined rather than honoured. Honouring it blind risks a post-checkout cancellation by the fraud gate, which is worse for the customer than declining up front.`
+          };
+        }
+        return {
+          mayApply: true,
+          markRedeemed: false,
+          reason: `Redemption ledger unavailable (${outcome.reason}) \u2014 the promotion was honoured without a cross-channel check. Safe here because it carries no per-customer usage limit.`
+        };
+      }
+    }
+  }
+  function standingRedemptions(rows) {
+    return [...new Set(rows.filter((r) => r.state === "standing").map((r) => r.promotionKey))];
+  }
+
+  // src/core/swap/rank.ts
+  var SWAP_MODES = ["similar", "cheaper", "stronger"];
+  var UPSELL_MODES = ["upgrade", "stronger", "similar"];
+  function similarityDistance(a, b, w) {
+    let sum = 0;
+    let used = 0;
+    const add = (weight, dist) => {
+      sum += weight * Math.min(1, Math.max(0, dist));
+      used += weight;
+    };
+    const basis = Math.max(a.price, 1);
+    add(w.price, Math.abs(b.price - a.price) / basis);
+    if (a.thcPercent != null && b.thcPercent != null) {
+      add(w.thc, Math.abs(b.thcPercent - a.thcPercent) / 30);
+    }
+    if (a.sizeGrams != null && b.sizeGrams != null) {
+      add(w.size, Math.abs(b.sizeGrams - a.sizeGrams) / Math.max(a.sizeGrams, 0.1));
+    }
+    add(w.brand, a.brand === b.brand ? 0 : 1);
+    if (a.strainType && b.strainType) {
+      add(w.strainType, a.strainType === b.strainType ? 0 : 1);
+    }
+    if (a.subcategory && b.subcategory) {
+      add(w.subcategory, a.subcategory === b.subcategory ? 0 : 1);
+    }
+    return used === 0 ? 1 : sum / used;
+  }
+  function similarityScore(a, b, w) {
+    return 1 - similarityDistance(a, b, w);
+  }
+  function priceDelta(current, candidate) {
+    return candidate.price - current.price;
+  }
+  function formatDelta(deltaCents) {
+    if (deltaCents === 0) return null;
+    return deltaCents < 0 ? `Save ${money(-deltaCents)}` : `+${money(deltaCents)}`;
+  }
+  function candidateReason(current, candidate, mode) {
+    const bits = [];
+    if (mode === "cheaper") {
+      bits.push(`Save ${money(current.price - candidate.price)}`);
+    } else if (mode === "stronger" && current.thcPercent != null && candidate.thcPercent != null) {
+      bits.push(`+${(candidate.thcPercent - current.thcPercent).toFixed(1)}% THC`);
+    } else if (mode === "upgrade") {
+      if (candidate.sizeGrams != null && current.sizeGrams != null && candidate.sizeGrams > current.sizeGrams) {
+        const packs = candidate.unitCount != null && current.unitCount != null && candidate.unitCount !== current.unitCount ? ` (${candidate.unitCount}-pack)` : "";
+        bits.push(`${candidate.sizeGrams}g vs ${current.sizeGrams}g${packs}`);
+      } else if (candidate.unitCount != null && current.unitCount != null && candidate.unitCount > current.unitCount && (candidate.sizeGrams == null || current.sizeGrams == null)) {
+        bits.push(`${candidate.unitCount}-pack vs ${current.unitCount}`);
+      } else if (current.thcPercent != null && candidate.thcPercent != null && candidate.thcPercent > current.thcPercent) {
+        bits.push(`+${(candidate.thcPercent - current.thcPercent).toFixed(1)}% THC`);
+      } else {
+        bits.push("Step up");
+      }
+    }
+    if (candidate.brand === current.brand) bits.push("Same brand");
+    if (candidate.sizeGrams != null && current.sizeGrams != null && candidate.sizeGrams === current.sizeGrams) bits.push("Same size");
+    if (bits.length === 0 && candidate.strainType && candidate.strainType === current.strainType) {
+      bits.push(`Also ${candidate.strainType}`);
+    }
+    if (bits.length === 0 && candidate.compareAtPrice != null) bits.push("On sale");
+    return bits.slice(0, 2).join(" \xB7 ") || "Similar pick";
+  }
+  function dedupeCandidates(items) {
+    const seenIds = /* @__PURE__ */ new Set();
+    const seenVisible = /* @__PURE__ */ new Set();
+    const out = [];
+    for (const it of items) {
+      const p2 = it.product;
+      const visibleKey = `${p2.brand}|${p2.name}|${p2.sizeGrams ?? ""}|${p2.price}`.toLowerCase();
+      if (seenIds.has(p2.id) || seenVisible.has(visibleKey)) continue;
+      seenIds.add(p2.id);
+      seenVisible.add(visibleKey);
+      out.push(it);
+    }
+    return out;
+  }
+
+  // src/core/substitution/candidates.ts
+  function isStepUp(current, candidate) {
+    const cw = current.sizeGrams;
+    const kw = candidate.sizeGrams;
+    const bothWeighed = cw != null && kw != null;
+    if (bothWeighed) {
+      if (kw > cw) return true;
+      if (kw < cw) return false;
+    }
+    if (current.thcPercent != null && candidate.thcPercent != null && candidate.thcPercent > current.thcPercent) {
+      return true;
+    }
+    if (!bothWeighed && current.unitCount != null && candidate.unitCount != null) {
+      return candidate.unitCount > current.unitCount;
+    }
+    return false;
+  }
+  function buildCandidates(input) {
+    const { current, pool, quantity, unitsFor, config: sc } = input;
+    const exclude = input.exclude ?? /* @__PURE__ */ new Set();
+    const poolLabel = input.poolLabel ?? "this lane";
+    const modes = input.modes ?? SWAP_MODES;
+    const poolSize = pool.length;
+    const needed = sc.onInsufficientQuantity === "offer-partial" ? 1 : quantity;
+    const hasStock = pool.filter((p2) => p2.id !== current.id && unitsFor(p2) >= needed);
+    const afterQuantityFilter = hasStock.length;
+    const usable = sc.excludeItemsAlreadyInCart ? hasStock.filter((p2) => !exclude.has(p2.id)) : hasStock;
+    const afterExclusionFilter = usable.length;
+    const toCandidate = (p2, mode) => {
+      const delta = priceDelta(current, p2);
+      return {
+        product: p2,
+        priceDeltaCents: delta,
+        priceDeltaLabel: formatDelta(delta),
+        thcDelta: current.thcPercent != null && p2.thcPercent != null ? +(p2.thcPercent - current.thcPercent).toFixed(1) : null,
+        unitsAvailable: unitsFor(p2),
+        similarity: +similarityScore(current, p2, sc.similarityWeights).toFixed(4),
+        reason: candidateReason(current, p2, mode)
+      };
+    };
+    const byMode = {};
+    const perMode = {};
+    for (const mode of modes) {
+      let excludedByPriceBand = 0;
+      let excludedByThreshold = 0;
+      let subset;
+      if (mode === "similar") {
+        const lo = current.price * (1 - sc.similarPriceBand);
+        const hi = current.price * (1 + sc.similarPriceBand);
+        subset = usable.filter((p2) => {
+          const inBand = p2.price >= lo && p2.price <= hi;
+          if (!inBand) excludedByPriceBand++;
+          return inBand;
+        });
+      } else if (mode === "cheaper") {
+        subset = usable.filter((p2) => {
+          const ok = p2.price < current.price;
+          if (!ok) excludedByThreshold++;
+          return ok;
+        });
+      } else if (mode === "stronger") {
+        const curThc = current.thcPercent ?? 0;
+        subset = usable.filter((p2) => {
+          const ok = (p2.thcPercent ?? 0) >= curThc + sc.strongerMinThcDelta;
+          if (!ok) excludedByThreshold++;
+          return ok;
+        });
+      } else {
+        const ceiling = current.price * sc.maxUpgradeMultiple;
+        subset = usable.filter((p2) => {
+          const ok = p2.price > current.price && p2.price <= ceiling && isStepUp(current, p2);
+          if (!ok) excludedByThreshold++;
+          return ok;
+        });
+      }
+      let ranked = subset.map((p2) => toCandidate(p2, mode));
+      if (mode === "stronger") {
+        ranked.sort((a, b) => (b.product.thcPercent ?? 0) - (a.product.thcPercent ?? 0) || b.similarity - a.similarity);
+      } else if (mode === "upgrade") {
+        ranked.sort((a, b) => a.priceDeltaCents - b.priceDeltaCents || b.similarity - a.similarity);
+      } else if (mode === "cheaper" && sc.cheaperSort === "price-asc") {
+        ranked.sort((a, b) => a.product.price - b.product.price);
+      } else if (mode === "cheaper" && sc.cheaperSort === "savings-desc") {
+        ranked.sort((a, b) => a.priceDeltaCents - b.priceDeltaCents);
+      } else {
+        ranked.sort((a, b) => b.similarity - a.similarity || a.product.price - b.product.price);
+      }
+      ranked = dedupeCandidates(ranked).slice(0, sc.maxCandidates);
+      byMode[mode] = ranked;
+      let note;
+      if (ranked.length === 0) {
+        if (afterQuantityFilter === 0) note = `No ${current.category} is available in ${poolLabel}.`;
+        else if (mode === "similar" && excludedByPriceBand > 0) note = `All ${excludedByPriceBand} alternatives fell outside the \xB1${Math.round(sc.similarPriceBand * 100)}% price band \u2014 widen swap.similarPriceBand.`;
+        else if (mode === "stronger") note = `Nothing is at least ${sc.strongerMinThcDelta} THC points stronger.`;
+        else if (mode === "upgrade") note = `No genuine step up available in ${poolLabel} within ${sc.maxUpgradeMultiple}x the price.`;
+        else if (mode === "cheaper") note = `Nothing cheaper in ${current.category} is available in ${poolLabel}.`;
+      }
+      perMode[mode] = { returned: ranked.length, excludedByPriceBand, excludedByThreshold, ...note ? { note } : {} };
+    }
+    const total = modes.reduce((n, m) => n + (byMode[m]?.length ?? 0), 0);
+    return { byMode, total, diagnostics: { poolSize, afterQuantityFilter, afterExclusionFilter, perMode } };
+  }
+
+  // src/core/swap/index.ts
+  function planSwap(ctx, request, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const index = options.index ?? asIndex(ctx.snapshot);
+    const line = ctx.cart.lines.find((l) => l.id === request.lineId);
+    if (!line) return null;
+    const current = index.byId.get(line.productId);
+    if (!current) return null;
+    const lane = request.lane ?? line.lane;
+    const intent = request.intent ?? (lane === line.lane ? "browse" : "faster");
+    const eligibility = laneEligibility(ctx.snapshot, line.productId, lane, line.quantity);
+    const pool = index.snapshot.pools?.swap ?? (cfg.swap.restrictToSameCategory ? index.byCategory.get(current.category) ?? [] : index.snapshot.products);
+    const built = buildCandidates({
+      current,
+      pool,
+      quantity: line.quantity,
+      unitsFor: (p2) => unitsAvailable(index.snapshot, p2.id, lane),
+      exclude: new Set(ctx.cart.lines.map((l) => l.productId)),
+      config: cfg.swap,
+      poolLabel: `${ctx.lanes[lane]?.label ?? lane}`
+    });
+    const byMode = {
+      similar: built.byMode.similar ?? [],
+      cheaper: built.byMode.cheaper ?? [],
+      stronger: built.byMode.stronger ?? []
+    };
+    const emptyMode = { returned: 0, excludedByPriceBand: 0, excludedByThreshold: 0 };
+    const perMode = {
+      similar: built.diagnostics.perMode.similar ?? emptyMode,
+      cheaper: built.diagnostics.perMode.cheaper ?? emptyMode,
+      stronger: built.diagnostics.perMode.stronger ?? emptyMode
+    };
+    const ageMs = staleness(index.snapshot, ctx.now);
+    const diagnostics = {
+      ...built.diagnostics,
+      perMode,
+      afterLaneFilter: built.diagnostics.afterQuantityFilter,
+      afterCartFilter: built.diagnostics.afterExclusionFilter,
+      availabilityAgeMs: ageMs,
+      // ⚙️ TUNE — cfg.swap.maxAvailabilityAgeMs
+      stale: ageMs != null && ageMs > cfg.swap.maxAvailabilityAgeMs,
+      ...ageMs == null ? { undatedSnapshot: true } : {}
+    };
+    const candidateCount = built.total;
+    return {
+      lineId: request.lineId,
+      intent,
+      fromLane: line.lane,
+      lane,
+      changesLane: lane !== line.lane,
+      currentProduct: current,
+      quantity: line.quantity,
+      sameProductAvailable: eligibility.ok,
+      ...eligibility.ok ? {} : { currentProductBlockedBy: eligibility },
+      candidatesByMode: byMode,
+      candidateCount,
+      diagnostics
+    };
+  }
+  function availabilityFromPlan(plan, lanes = defaultConfig.lanes) {
+    if (plan.candidateCount === 0 && !plan.sameProductAvailable) {
+      const laneLabel = lanes[plan.lane]?.label ?? plan.lane;
+      return {
+        offerable: false,
+        candidateCount: 0,
+        sameProductAvailable: false,
+        reason: `Nothing in ${plan.currentProduct.category} is available for ${laneLabel}`
+      };
+    }
+    return {
+      offerable: plan.candidateCount > 0 || plan.sameProductAvailable,
+      candidateCount: plan.candidateCount,
+      sameProductAvailable: plan.sameProductAvailable
+    };
+  }
+  function canSwap(ctx, lineId, lane, options = {}) {
+    const plan = planSwap(ctx, { lineId, ...lane ? { lane } : {} }, options);
+    if (!plan) {
+      return { offerable: false, candidateCount: 0, sameProductAvailable: false, reason: "Line not found" };
+    }
+    return availabilityFromPlan(plan, ctx.lanes);
+  }
+  function moveLane(ctx, lineId, toLane) {
+    const line = ctx.cart.lines.find((l) => l.id === lineId);
+    if (!line) return null;
+    const eligibility = laneEligibility(ctx.snapshot, line.productId, toLane, line.quantity);
+    if (!eligibility.ok) return { kind: "not_available", blockedBy: eligibility };
+    return { kind: "moved", cart: setLineLane(ctx.cart, lineId, toLane) };
+  }
+  function setLineLane(cart, lineId, lane) {
+    return { ...cart, lines: cart.lines.map((l) => l.id === lineId ? { ...l, lane } : l) };
+  }
+  function applySwap(cart, lineId, candidate, lane) {
+    return {
+      ...cart,
+      lines: cart.lines.map((l) => l.id === lineId ? {
+        ...l,
+        productId: candidate.product.id,
+        ...lane ? { lane } : {},
+        swappedFromProductId: l.productId
+      } : l)
+    };
+  }
+  function previewSwap(ctx, plan, candidate, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const rules = options.rules ?? [];
+    const index = options.index ?? asIndex(ctx.snapshot);
+    const after = applySwap(
+      ctx.cart,
+      plan.lineId,
+      candidate,
+      plan.changesLane ? plan.lane : void 0
+    );
+    const ctxAfter = { ...ctx, cart: after };
+    const valueOf = (r, c) => evaluateRule(r, c, {}, index).satisfied ? estimateRewardValue(r.reward, c, index) : null;
+    const promotionsLost = [];
+    const promotionsGained = [];
+    for (const r of rules) {
+      const before = valueOf(r, ctx);
+      const now = valueOf(r, ctxAfter);
+      if (before != null && now == null) promotionsLost.push({ ruleId: r.id, name: r.name, valueCents: before });
+      if (before == null && now != null) promotionsGained.push({ ruleId: r.id, name: r.name, valueCents: now });
+    }
+    const laneMinimumsBroken = [];
+    for (const lane of lanesOf(ctx)) {
+      const laneCfg = ctx.lanes[lane];
+      if (!laneCfg) continue;
+      const hadItems = ctx.cart.lines.some((l) => l.lane === lane);
+      const hasItems = after.lines.some((l) => l.lane === lane);
+      if (!hasItems) continue;
+      const beforeSub = subtotalCents(ctx, index, lane);
+      const afterSub = subtotalCents(ctxAfter, index, lane);
+      const wasMet = !hadItems || beforeSub >= laneCfg.minimumCents;
+      if (wasMet && afterSub < laneCfg.minimumCents) {
+        laneMinimumsBroken.push({ lane, shortfallCents: laneCfg.minimumCents - afterSub });
+      }
+    }
+    return {
+      promotionsLost,
+      promotionsGained,
+      laneMinimumsBroken,
+      subtotalDeltaCents: subtotalCents(ctxAfter, index) - subtotalCents(ctx, index)
+    };
+  }
+
+  // src/core/upsell/index.ts
+  function laneFor(ctx, options) {
+    if (options.lane) return options.lane;
+    const counts = {};
+    for (const l of ctx.cart.lines) counts[l.lane] = (counts[l.lane] ?? 0) + l.quantity;
+    const entries = Object.entries(counts);
+    if (entries.length === 0) return void 0;
+    entries.sort((a, b) => b[1] - a[1]);
+    return entries[0]?.[0];
+  }
+  function availableFor(index, productId, lane, qty, lanes) {
+    if (lane) return unitsAvailable(index.snapshot, productId, lane) >= qty;
+    return lanes.some((l) => unitsAvailable(index.snapshot, productId, l) >= qty);
+  }
+  function gapPool(index) {
+    return index.snapshot.pools?.gapClosers ?? index.snapshot.products;
+  }
+  function recPool(index) {
+    return index.snapshot.pools?.recommendations ?? index.snapshot.products;
+  }
+  function productClosingGap(gap, ctx, index, lane, cfg) {
+    const respectLane = cfg.upsell.respectLaneAvailability;
+    const inCart = new Set(ctx.cart.lines.map((l) => l.productId));
+    const offered = lanesOf(ctx);
+    const usable = (p2, qty) => !inCart.has(p2.id) && (!respectLane || availableFor(index, p2.id, gap.kind === "items" ? gap.lane ?? lane : lane, qty, offered));
+    switch (gap.kind) {
+      case "spend": {
+        const eligible = gapPool(index).filter((p2) => p2.price >= gap.amountCents && usable(p2, 1)).sort((a, b) => a.price - b.price);
+        const pick = eligible[0];
+        return pick ? { product: pick, quantity: 1 } : null;
+      }
+      case "items": {
+        const qty = Math.max(1, gap.count);
+        const eligible = gapPool(index).filter((p2) => matchesFilter(p2, gap.filter) && usable(p2, qty)).sort((a, b) => a.price - b.price);
+        const pick = eligible[0];
+        return pick ? { product: pick, quantity: qty } : null;
+      }
+      case "distinct_categories": {
+        const have = /* @__PURE__ */ new Set();
+        for (const l of ctx.cart.lines) {
+          const p2 = index.byId.get(l.productId);
+          if (p2) have.add(p2.category);
+        }
+        const eligible = gapPool(index).filter((p2) => !have.has(p2.category) && usable(p2, 1)).sort((a, b) => a.price - b.price);
+        const pick = eligible[0];
+        return pick ? { product: pick, quantity: 1 } : null;
+      }
+      case "unreachable":
+        return null;
+    }
+  }
+  function withAdded(cart, product, quantity, lane) {
+    return {
+      ...cart,
+      lines: [...cart.lines, { id: `__projected__${product.id}`, productId: product.id, quantity, lane }]
+    };
+  }
+  function offerFromRule(rule, ctx, surface, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const index = options.index ?? asIndex(ctx.snapshot);
+    if (!rule.upsell?.enabled) return null;
+    if (rule.upsell.surfaces && !rule.upsell.surfaces.includes(surface)) return null;
+    if (!isRuleOnChannel(rule, ctx)) return null;
+    if (!isRuleAvailableToCustomer(rule, ctx)) return null;
+    const result = evaluateRule(rule, ctx, {}, index);
+    if (result.satisfied) return null;
+    if (result.blockedByUnreachable && rule.combiner === "AND") return null;
+    if (result.closableGaps.length === 0) return null;
+    const candidateGaps = rule.combiner === "AND" ? result.closableGaps.length === 1 ? result.closableGaps : [] : result.closableGaps;
+    if (candidateGaps.length === 0) return null;
+    const lane = laneFor(ctx, options);
+    let best = null;
+    for (const gap of candidateGaps) {
+      const pick = productClosingGap(gap, ctx, index, lane, cfg);
+      if (!pick) continue;
+      const addCostCents = pick.product.price * pick.quantity;
+      const projectedLane = gap.kind !== "unreachable" && "lane" in gap && gap.lane || lane || "scheduled";
+      const projected = { ...ctx, cart: withAdded(ctx.cart, pick.product, pick.quantity, projectedLane) };
+      if (!evaluateRule(rule, projected, {}, index).satisfied) continue;
+      const rewardValueCents = estimateRewardValue(rule.reward, projected, index, { neverDiscountSaleItems: cfg.pricing.neverDiscountSaleItems });
+      if (rewardValueCents <= 0) continue;
+      if (addCostCents > rewardValueCents * cfg.upsell.maxSpendToRewardRatio) continue;
+      const headline = rule.upsell.headline ?? `Unlock ${money(rewardValueCents)} off`;
+      const subline = rule.upsell.subline ?? defaultSubline(gap, pick.product, pick.quantity);
+      const offer = {
+        id: `unlock:${rule.id}:${pick.product.id}`,
+        kind: "unlock_promotion",
+        surface,
+        product: pick.product,
+        quantity: pick.quantity,
+        headline,
+        subline,
+        reason: rule.name,
+        score: cfg.upsell.weights.unlocksPromotion + rewardValueCents / 1e3,
+        ...lane ? { lane } : {},
+        unlock: {
+          ruleId: rule.id,
+          ruleName: rule.name,
+          rewardValueCents,
+          addCostCents,
+          netCents: rewardValueCents - addCostCents,
+          gap
+        }
+      };
+      if (!best || offer.score > best.offer.score) best = { offer };
+    }
+    return best?.offer ?? null;
+  }
+  function defaultSubline(gap, product, quantity) {
+    switch (gap.kind) {
+      case "spend":
+        return `Add ${money(gap.amountCents)} more to save`;
+      case "items":
+        return quantity === 1 ? `Add ${product.name} to save` : `Add ${quantity} to save`;
+      case "distinct_categories":
+        return "Add one more category to save";
+      case "unreachable":
+        return "";
+    }
+  }
+  function scoreRecommendations(ctx, index, lane, cfg, exclude) {
+    const offeredLanes = lanesOf(ctx);
+    const w = cfg.upsell.weights;
+    const cust = ctx.customer;
+    const cartProducts = ctx.cart.lines.map((l) => index.byId.get(l.productId)).filter((p2) => !!p2);
+    const cartCategories = [...new Set(cartProducts.map((p2) => p2.category))];
+    const wantedCategories = /* @__PURE__ */ new Set();
+    for (const c of cartCategories) {
+      for (const target of cfg.upsell.categoryAffinity[c] ?? []) wantedCategories.add(target);
+    }
+    const inCart = new Set(ctx.cart.lines.map((l) => l.productId));
+    const out = [];
+    for (const p2 of recPool(index)) {
+      if (inCart.has(p2.id) || exclude.has(p2.id)) continue;
+      if (cfg.upsell.respectLaneAvailability && !availableFor(index, p2.id, lane, 1, offeredLanes)) continue;
+      let score = 0;
+      let kind = "popular";
+      let reason = "Popular right now";
+      if (cust?.favoriteCategories?.includes(p2.category)) {
+        score += w.favoriteCategory;
+        kind = "favorite_category";
+        reason = `Usually buys ${p2.category}`;
+      }
+      if (wantedCategories.has(p2.category)) {
+        score += w.categoryAffinity;
+        if (kind === "popular") {
+          kind = "pairs_with";
+          reason = `Pairs with your ${cartProducts[0]?.name ?? cartCategories[0] ?? "order"}`;
+        }
+      }
+      if (p2.compareAtPrice != null) {
+        score += w.onSale;
+        if (kind === "popular") {
+          kind = "on_sale";
+          reason = "On sale now";
+        }
+      }
+      if (cust?.purchasedBrands?.includes(p2.brand)) {
+        score += w.knownBrand;
+        if (kind === "popular") {
+          kind = "known_brand";
+          reason = `You've bought ${p2.brand} before`;
+        }
+      }
+      if ((p2.thcPercent ?? 0) >= 25) score += w.potency;
+      if ((p2.velocityPerDay ?? 0) > 0) score += Math.min(2, (p2.velocityPerDay ?? 0) / 10) * w.inventoryDepth;
+      if (p2.marginPct != null) score += p2.marginPct / 100 * w.margin;
+      if (score > 0) out.push({ product: p2, score, kind, reason });
+    }
+    return out.sort((a, b) => b.score - a.score || b.product.price - a.product.price);
+  }
+  function getUpsells(ctx, surface, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const index = options.index ?? asIndex(ctx.snapshot);
+    const lane = laneFor(ctx, options);
+    const slots = cfg.upsell.slotsBySurface[surface] ?? 0;
+    if (slots <= 0) return [];
+    const dismissed = new Set(options.dismissed ?? []);
+    const impressions = options.impressions ?? {};
+    const excluded = new Set(options.excludeProductIds ?? []);
+    const suppressed = (id) => dismissed.has(id) || (impressions[id] ?? 0) >= cfg.upsell.maxImpressionsPerOffer;
+    const offers = [];
+    for (const rule of options.rules ?? []) {
+      const offer = offerFromRule(rule, ctx, surface, { ...options, config: cfg, index });
+      if (!offer) continue;
+      if (excluded.has(offer.product.id) || suppressed(offer.id)) continue;
+      offers.push(offer);
+    }
+    if (offers.length < slots) {
+      const usedProducts = new Set(offers.map((o) => o.product.id));
+      const recs = scoreRecommendations(ctx, index, lane, cfg, /* @__PURE__ */ new Set([...excluded, ...usedProducts]));
+      for (const r of recs) {
+        if (offers.length >= slots) break;
+        const id = `rec:${r.kind}:${r.product.id}`;
+        if (suppressed(id)) continue;
+        offers.push({
+          id,
+          kind: r.kind,
+          surface,
+          product: r.product,
+          quantity: 1,
+          headline: r.product.name,
+          subline: `${r.product.brand} \xB7 ${money(r.product.price)}`,
+          reason: r.reason,
+          score: r.score,
+          ...lane ? { lane } : {}
+        });
+      }
+    }
+    return offers.sort((a, b) => b.score - a.score).slice(0, slots);
+  }
+  function promotionProgress(ctx, rules, options = {}) {
+    const index = options.index ?? asIndex(ctx.snapshot);
+    return rules.map((rule) => {
+      const r = evaluateRule(rule, ctx, {}, index);
+      return {
+        rule,
+        satisfied: r.satisfied,
+        gaps: r.closableGaps,
+        valueCents: r.satisfied ? estimateRewardValue(rule.reward, ctx, index) : 0
+      };
+    });
+  }
+
+  // src/core/pricing.ts
+  function computeCartTotals(ctx, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const index = options.index ?? asIndex(ctx.snapshot);
+    const rules = options.rules ?? [];
+    const activeLanes = lanesOf(ctx).filter((l) => ctx.cart.lines.some((line) => line.lane === l));
+    const codes = new Set(ctx.cart.appliedCodes ?? []);
+    const qualifying = rules.filter((r) => {
+      if (!isRuleActive(r, ctx.now)) return false;
+      if (!isRuleOnChannel(r, ctx)) return false;
+      if (r.code && !codes.has(r.code)) return false;
+      if (!isRuleAvailableToCustomer(r, ctx)) return false;
+      return evaluateRule(r, ctx, {}, index).satisfied;
+    });
+    const monetary = qualifying.filter((r) => r.reward.kind !== "free_delivery" && r.reward.kind !== "points_multiplier").map((r) => ({
+      rule: r,
+      value: estimateRewardValue(r.reward, ctx, index, {
+        neverDiscountSaleItems: cfg.pricing.neverDiscountSaleItems,
+        respectExistingLineEffects: cfg.pricing.respectExistingLineEffects
+      })
+    })).filter((x) => x.value > 0).sort((a, b) => b.value - a.value || (b.rule.priority ?? 0) - (a.rule.priority ?? 0));
+    const spokenFor = linesWithExistingEffect(ctx);
+    const lineEffectConflicts = [];
+    if (spokenFor.size > 0) {
+      for (const { rule } of monetary) {
+        const cartScoped = rule.reward.kind === "percent_off_cart" || rule.reward.kind === "dollar_off_cart";
+        if (!cartScoped) continue;
+        for (const lineId of spokenFor) {
+          const existing = ctx.cart.lineEffects?.[lineId];
+          if (!existing) continue;
+          lineEffectConflicts.push({
+            lineId,
+            existingPromotionId: existing.promotionKey,
+            existingChannel: existing.sourceChannel,
+            wouldAlsoApplyRuleId: rule.id,
+            suppressed: cfg.pricing.respectExistingLineEffects
+          });
+        }
+      }
+    }
+    const conflictingRuleIds = new Set(
+      cfg.pricing.respectExistingLineEffects ? lineEffectConflicts.map((c) => c.wouldAlsoApplyRuleId) : []
+    );
+    const eligible = monetary.filter((x) => !conflictingRuleIds.has(x.rule.id));
+    let chosen = [];
+    if (eligible.length > 0) {
+      const bestSingle = eligible[0] ? [eligible[0]] : [];
+      if (cfg.pricing.discountStrategy === "stack") {
+        const stackable = eligible.filter((x) => !x.rule.individualUseOnly);
+        const stackValue = stackable.reduce((s, x) => s + x.value, 0);
+        const singleValue = bestSingle.reduce((s, x) => s + x.value, 0);
+        chosen = stackValue > singleValue ? stackable : bestSingle;
+      } else {
+        chosen = bestSingle;
+      }
+    }
+    const grossSubtotal = subtotalCents(ctx, index);
+    let discountCents = chosen.reduce((s, x) => s + x.value, 0);
+    discountCents = Math.min(discountCents, Math.round(grossSubtotal * cfg.pricing.maxDiscountFraction));
+    const discounts = chosen.map((x) => ({
+      ruleId: x.rule.id,
+      name: x.rule.name,
+      amountCents: x.value,
+      kind: "discount"
+    }));
+    const waivedLanes = /* @__PURE__ */ new Set();
+    for (const r of qualifying) {
+      if (r.reward.kind !== "free_delivery") continue;
+      const targets = r.reward.lane ? [r.reward.lane] : activeLanes;
+      for (const l of targets) {
+        if (!activeLanes.includes(l)) continue;
+        const fee = ctx.lanes[l]?.feeCents ?? 0;
+        if (fee <= 0 || waivedLanes.has(l)) continue;
+        waivedLanes.add(l);
+        discounts.push({ ruleId: r.id, name: r.name, amountCents: fee, kind: "fee_waiver" });
+      }
+    }
+    const laneTotals = activeLanes.map((lane) => {
+      const laneCfg = ctx.lanes[lane];
+      const sub = subtotalCents(ctx, index, lane);
+      const count = ctx.cart.lines.filter((l) => l.lane === lane).reduce((n, l) => n + l.quantity, 0);
+      const met = sub >= laneCfg.minimumCents;
+      const waived = waivedLanes.has(lane);
+      return {
+        lane,
+        itemCount: count,
+        subtotalCents: sub,
+        minimumCents: laneCfg.minimumCents,
+        minimumMet: met,
+        shortfallCents: met ? 0 : laneCfg.minimumCents - sub,
+        progress: laneCfg.minimumCents > 0 ? Math.min(1, sub / laneCfg.minimumCents) : 1,
+        feeCents: waived ? 0 : laneCfg.feeCents,
+        feeWaived: waived
+      };
+    });
+    const feesCents = laneTotals.reduce((s, l) => s + l.feeCents, 0);
+    const discountedSubtotal = Math.max(0, grossSubtotal - discountCents);
+    const taxableBaseCents = discountedSubtotal + (cfg.pricing.taxDeliveryFee ? feesCents : 0);
+    const taxCents = options.computeTax ? options.computeTax(taxableBaseCents, ctx) : Math.round(taxableBaseCents * cfg.pricing.taxRate);
+    const totalCents = discountedSubtotal + feesCents + taxCents;
+    const blockers = laneTotals.filter((l) => !l.minimumMet).map((l) => `${ctx.lanes[l.lane]?.label ?? l.lane} is ${fmtShort(l.shortfallCents)} under its minimum`);
+    return {
+      lanes: laneTotals,
+      orderCount: laneTotals.length,
+      itemCount: laneTotals.reduce((s, l) => s + l.itemCount, 0),
+      subtotalCents: grossSubtotal,
+      discounts,
+      discountCents,
+      feesCents,
+      taxableBaseCents,
+      taxCents,
+      totalCents,
+      lineEffectConflicts,
+      integrityWarnings: redemptionCoverageGaps(rules, ctx).map((g) => g.message),
+      canCheckout: blockers.length === 0 && laneTotals.length > 0,
+      blockers
+    };
+  }
+  function fmtShort(cents) {
+    return `$${(cents / 100).toFixed(2)}`;
+  }
+
+  // src/core/fulfillment/types.ts
+  var SUBSTITUTION_REASONS = {
+    customer_upgraded: "Customer took an upgrade",
+    customer_request: "Customer asked",
+    out_of_stock_in_kit: "Not in the kit",
+    damaged: "Damaged",
+    wrong_item_picked: "Wrong item picked",
+    expired: "Expired / past date",
+    compliance_hold: "Compliance hold",
+    other: "Other"
+  };
+  var REASONS_BY_INTENT = {
+    upsell: ["customer_upgraded", "customer_request"],
+    replacement: ["out_of_stock_in_kit", "damaged", "wrong_item_picked", "expired", "compliance_hold", "other"]
+  };
+
+  // src/core/fulfillment/policy.ts
+  var defaultFulfillmentPolicy = {
+    priceDelta: "any_reconcile_at_closeout",
+    authority: "driver_or_support_anytime",
+    driverApprovalThresholdCents: 0,
+    consent: "verbal_ok",
+    // Level 1 — driver attests. One tap.
+    cutoff: "delivered",
+    allowCrossKitSubstitution: false,
+    blockIfPromotionBroken: false,
+    maxKitAgeMs: 10 * 6e4
+  };
+  function makeFulfillmentPolicy(overrides = {}) {
+    return { ...defaultFulfillmentPolicy, ...overrides };
+  }
+  var STATUS_ORDER = ["submitted", "assigned", "picked", "en_route", "delivered", "cancelled"];
+  function checkOrderState(order, policy) {
+    if (order.status === "cancelled") {
+      return { code: "order_cancelled", message: "This order was cancelled." };
+    }
+    const at = STATUS_ORDER.indexOf(order.status);
+    const cut = STATUS_ORDER.indexOf(policy.cutoff);
+    if (at >= cut) {
+      return {
+        code: "order_past_cutoff",
+        message: `Order is ${order.status}. Past ${policy.cutoff}, a change is a return/exchange, not a substitution.`
+      };
+    }
+    return null;
+  }
+  function checkActor(order, actor, policy) {
+    if (actor.kind === "system") {
+      return { code: "actor_not_permitted", message: "Automated processes may not substitute on a live order." };
+    }
+    if (actor.kind === "driver") {
+      if (policy.authority === "support_only") {
+        return { code: "actor_not_permitted", message: "Substitutions are handled by the support desk." };
+      }
+      if (!policy.allowCrossKitSubstitution && order.assignedKitId && actor.kitId !== order.assignedKitId) {
+        return {
+          code: "wrong_kit",
+          message: `This order is on kit ${order.assignedKitId}; you are carrying ${actor.kitId}. You cannot hand over stock you do not have.`
+        };
+      }
+      if (!order.assignedKitId) {
+        return { code: "order_unassigned", message: "This order has no kit assigned yet." };
+      }
+    }
+    return null;
+  }
+  function judgeCandidate(input) {
+    const { actor, policy, paymentMethod, lineDeltaCents, promotionsBroken, kitAgeMs } = input;
+    const warnings = [];
+    const increases = lineDeltaCents > 0;
+    if (increases) {
+      if (policy.priceDelta === "never_increase") {
+        return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: "This costs more than the item it replaces." };
+      }
+      if (policy.priceDelta === "increase_needs_cash" && paymentMethod !== "cash") {
+        return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: "Upcharges are cash-only and this order is not cash." };
+      }
+      if (policy.priceDelta === "increase_needs_card_reauth" && paymentMethod !== "card") {
+        return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: "Upcharges need a card to re-authorize." };
+      }
+    }
+    let requiresPromotionAcknowledgement = false;
+    if (promotionsBroken > 0) {
+      if (policy.blockIfPromotionBroken) {
+        return {
+          allowed: false,
+          requiresApproval: false,
+          requiresPromotionAcknowledgement: false,
+          warnings,
+          blockedReason: `This removes ${promotionsBroken} promotion(s) the customer already received.`
+        };
+      }
+      requiresPromotionAcknowledgement = true;
+      warnings.push(
+        `Removes ${promotionsBroken} promotion(s) the customer already earned. Their total will be recalculated without it.`
+      );
+    }
+    let requiresApproval = false;
+    if (actor.kind === "driver") {
+      if (policy.authority === "support_approves_all") requiresApproval = true;
+      if (policy.authority === "driver_free_below_threshold" && lineDeltaCents > policy.driverApprovalThresholdCents) {
+        requiresApproval = true;
+      }
+    }
+    if (kitAgeMs != null && kitAgeMs > policy.maxKitAgeMs) {
+      warnings.push(`Kit data is ${Math.round(kitAgeMs / 6e4)} min old \u2014 confirm the item is physically there.`);
+    }
+    if (kitAgeMs == null) {
+      warnings.push("Kit data is undated \u2014 freshness cannot be checked.");
+    }
+    if (increases && policy.priceDelta === "any_reconcile_at_closeout") {
+      warnings.push("Price increase will be squared up at end of shift, not at the door.");
+    }
+    return { allowed: true, requiresApproval, requiresPromotionAcknowledgement, warnings };
+  }
+  function settlementFor(policy, paymentMethod, deltaCents) {
+    if (deltaCents === 0) return "none";
+    switch (policy.priceDelta) {
+      case "any_reconcile_at_closeout":
+        return "closeout_reconciliation";
+      case "never_increase":
+        return paymentMethod === "cash" ? "driver_refunds_cash" : "card_adjustment";
+      case "increase_needs_cash":
+        return deltaCents > 0 ? "driver_collects_cash" : "driver_refunds_cash";
+      case "increase_needs_card_reauth":
+        return "card_adjustment";
+    }
+  }
+  function requiredConsent(policy) {
+    switch (policy.consent) {
+      case "notify_only":
+        return null;
+      case "verbal_ok":
+        return "driver_verbal";
+      case "customer_must_confirm":
+        return "customer_confirmed";
+    }
+  }
+
+  // src/core/fulfillment/substitute.ts
+  function planOrderSubstitution(input) {
+    const {
+      order,
+      kit,
+      lineId,
+      actor,
+      products,
+      now,
+      intent = "upsell",
+      rules = [],
+      policy = defaultFulfillmentPolicy,
+      config = defaultConfig,
+      modes = UPSELL_MODES
+    } = input;
+    const line = order.lines.find((l) => l.id === lineId);
+    if (!line) return null;
+    const byId = new Map(products.map((p2) => [p2.id, p2]));
+    const current = byId.get(line.productId);
+    if (!current) return null;
+    const kitAgeMs = kit.asOf ? now.getTime() - Date.parse(kit.asOf) : null;
+    const empty = (blocked) => ({
+      orderId: order.id,
+      lineId,
+      intent,
+      actor,
+      currentProduct: current,
+      quantity: line.quantity,
+      kitId: kit.kitId,
+      blocked,
+      candidatesByMode: {},
+      candidateCount: 0,
+      diagnostics: { poolSize: 0, afterQuantityFilter: 0, afterExclusionFilter: 0, perMode: {}, kitAgeMs }
+    });
+    const stateBlock = checkOrderState(order, policy);
+    if (stateBlock) return empty(stateBlock);
+    const actorBlock = checkActor(order, actor, policy);
+    if (actorBlock) return empty(actorBlock);
+    const inKit = products.filter((p2) => (kit.units[p2.id] ?? 0) > 0);
+    const pool = config.swap.restrictToSameCategory ? inKit.filter((p2) => p2.category === current.category) : inKit;
+    const built = buildCandidates({
+      current,
+      pool,
+      quantity: line.quantity,
+      unitsFor: (p2) => kit.units[p2.id] ?? 0,
+      exclude: new Set(order.lines.map((l) => l.productId)),
+      config: config.swap,
+      poolLabel: "this kit",
+      modes
+    });
+    const byMode = {};
+    let candidateCount = 0;
+    for (const mode of modes) {
+      const judged = [];
+      for (const c of built.byMode[mode] ?? []) {
+        const money2 = priceSubstitution({ order, line, replacement: c.product, products, rules, policy, now });
+        const verdict = judgeCandidate({
+          actor,
+          policy,
+          paymentMethod: order.paymentMethod,
+          lineDeltaCents: money2.lineDeltaCents,
+          promotionsBroken: money2.promotionsBroken.length,
+          kitAgeMs
+        });
+        if (!verdict.allowed) continue;
+        judged.push({ ...c, money: money2, verdict });
+      }
+      byMode[mode] = judged;
+      candidateCount += judged.length;
+    }
+    return {
+      orderId: order.id,
+      lineId,
+      intent,
+      actor,
+      currentProduct: current,
+      quantity: line.quantity,
+      kitId: kit.kitId,
+      candidatesByMode: byMode,
+      candidateCount,
+      diagnostics: { ...built.diagnostics, kitAgeMs }
+    };
+  }
+  function priceSubstitution(input) {
+    const { order, line, replacement, products, rules, policy, now } = input;
+    const lineDeltaCents = (replacement.price - line.unitPriceCents) * line.quantity;
+    const promotionsBroken = findBrokenPromotions({ order, line, replacement, products, rules, now });
+    const promotionLossCents = promotionsBroken.reduce((s, p2) => s + p2.valueCents, 0);
+    const newSubtotal = order.agreed.subtotalCents + lineDeltaCents;
+    const newDiscount = Math.max(0, order.agreed.discountCents - promotionLossCents);
+    const oldTaxable = Math.max(1, order.agreed.subtotalCents - order.agreed.discountCents);
+    const effectiveTaxRate = order.agreed.taxCents / oldTaxable;
+    const newTax = Math.round(Math.max(0, newSubtotal - newDiscount) * effectiveTaxRate);
+    const newTotalCents = Math.max(0, newSubtotal - newDiscount) + order.agreed.feesCents + newTax;
+    const customerOwesDeltaCents = newTotalCents - order.agreed.totalCents;
+    return {
+      lineDeltaCents,
+      newTotalCents,
+      customerOwesDeltaCents,
+      settlement: settlementFor(policy, order.paymentMethod, customerOwesDeltaCents),
+      promotionsBroken,
+      promotionLossCents
+    };
+  }
+  function findBrokenPromotions(input) {
+    const { order, line, replacement, products, rules, now } = input;
+    const applied = new Set(order.appliedPromotionIds ?? []);
+    if (applied.size === 0 || rules.length === 0) return [];
+    const snapshot = { products: [...products], availability: {} };
+    const index = buildIndex(snapshot);
+    const toCart = (lines) => ({
+      lines: lines.map((l) => ({ id: l.id, productId: l.productId, quantity: l.quantity, lane: order.lane }))
+    });
+    const base = { snapshot, lanes: {}, now };
+    const before = { ...base, cart: toCart(order.lines) };
+    const after = {
+      ...base,
+      cart: toCart(order.lines.map((l) => l.id === line.id ? { ...l, productId: replacement.id } : l))
+    };
+    const lost = [];
+    for (const rule of rules) {
+      if (!applied.has(rule.id)) continue;
+      const heldBefore = evaluateRule(rule, before, {}, index).satisfied;
+      const heldAfter = evaluateRule(rule, after, {}, index).satisfied;
+      if (heldBefore && !heldAfter) {
+        lost.push({ ruleId: rule.id, name: rule.name, valueCents: estimateRewardValue(rule.reward, before, index) });
+      }
+    }
+    return lost;
+  }
+  function applyOrderSubstitution(input) {
+    const {
+      order,
+      plan,
+      candidate,
+      actor,
+      reason,
+      consent,
+      now,
+      recordId,
+      policy = defaultFulfillmentPolicy,
+      acknowledgePromotionLoss = false
+    } = input;
+    const refuse = (code, message) => ({ ok: false, refusal: { code, message } });
+    const stateBlock = checkOrderState(order, policy);
+    if (stateBlock) return refuse(stateBlock.code, stateBlock.message);
+    const actorBlock = checkActor(order, actor, policy);
+    if (actorBlock) return refuse(actorBlock.code, actorBlock.message);
+    if (!candidate.verdict.allowed) {
+      return refuse("candidate_not_allowed", candidate.verdict.blockedReason ?? "This option is not permitted.");
+    }
+    if (candidate.money.promotionsBroken.length > 0 && !acknowledgePromotionLoss) {
+      const names = candidate.money.promotionsBroken.map((p2) => p2.name).join(", ");
+      return refuse(
+        "promotion_loss_unacknowledged",
+        `This removes ${names}, worth ${(candidate.money.promotionLossCents / 100).toFixed(2)} to the customer. Confirm the customer knows their total changes, then retry with acknowledgePromotionLoss.`
+      );
+    }
+    if (policy.consent === "verbal_ok" && consent.channel === "not_required") {
+      return refuse("consent_required", "Confirm the customer agreed to this swap.");
+    }
+    if (policy.consent === "customer_must_confirm" && consent.channel !== "customer_confirmed") {
+      return refuse("consent_required", "The customer must confirm this swap themselves.");
+    }
+    if (consent.channel === "declined") {
+      return refuse("consent_declined", "The customer declined this swap.");
+    }
+    const line = order.lines.find((l) => l.id === plan.lineId);
+    if (!line) return refuse("line_not_found", "That line is no longer on this order.");
+    const updated = {
+      ...order,
+      lines: order.lines.map((l) => l.id === plan.lineId ? {
+        ...l,
+        productId: candidate.product.id,
+        unitPriceCents: candidate.product.price,
+        substitutedFromProductId: l.productId
+      } : l),
+      agreed: {
+        ...order.agreed,
+        subtotalCents: order.agreed.subtotalCents + candidate.money.lineDeltaCents,
+        discountCents: Math.max(0, order.agreed.discountCents - candidate.money.promotionLossCents),
+        taxCents: candidate.money.newTotalCents - Math.max(0, order.agreed.subtotalCents + candidate.money.lineDeltaCents - Math.max(0, order.agreed.discountCents - candidate.money.promotionLossCents)) - order.agreed.feesCents,
+        totalCents: candidate.money.newTotalCents
+      },
+      appliedPromotionIds: (order.appliedPromotionIds ?? []).filter((id) => !candidate.money.promotionsBroken.some((p2) => p2.ruleId === id))
+    };
+    const record = {
+      id: recordId,
+      orderId: order.id,
+      lineId: plan.lineId,
+      fromProductId: plan.currentProduct.id,
+      fromProductName: `${plan.currentProduct.brand} ${plan.currentProduct.name}`,
+      toProductId: candidate.product.id,
+      toProductName: `${candidate.product.brand} ${candidate.product.name}`,
+      quantity: plan.quantity,
+      reason,
+      actor,
+      consent,
+      money: candidate.money,
+      orderStatusAtChange: order.status,
+      kitId: plan.kitId,
+      occurredAt: now.toISOString(),
+      warnings: candidate.verdict.warnings
+    };
+    const inventory = [
+      {
+        kind: "release",
+        kitId: plan.kitId,
+        productId: plan.currentProduct.id,
+        quantity: plan.quantity,
+        note: `Released from order ${order.id} after substitution ${recordId}`
+      },
+      {
+        kind: "allocate",
+        kitId: plan.kitId,
+        productId: candidate.product.id,
+        quantity: plan.quantity,
+        note: `Allocated to order ${order.id} by substitution ${recordId}`
+      }
+    ];
+    const reconciliation = candidate.money.customerOwesDeltaCents !== 0 ? {
+      orderId: order.id,
+      ...order.assignedDriverId ? { driverId: order.assignedDriverId } : {},
+      kitId: plan.kitId,
+      amountCents: candidate.money.customerOwesDeltaCents,
+      paymentMethod: order.paymentMethod,
+      settlement: candidate.money.settlement,
+      reason: `Substitution ${recordId}: ${record.fromProductName} to ${record.toProductName}`,
+      occurredAt: now.toISOString()
+    } : void 0;
+    const owes = candidate.money.customerOwesDeltaCents;
+    const notification = {
+      ...order.customerId ? { customerId: order.customerId } : {},
+      orderId: order.id,
+      purpose: "notify",
+      headline: plan.intent === "upsell" ? "Your order was upgraded" : "An item on your order changed",
+      body: [
+        `${record.fromProductName} is now ${record.toProductName}.`,
+        owes > 0 ? `Your total is $${(owes / 100).toFixed(2)} higher.` : owes < 0 ? `Your total is $${(-owes / 100).toFixed(2)} lower.` : "Your total is unchanged.",
+        candidate.money.promotionsBroken.length ? `${candidate.money.promotionsBroken.map((p2) => p2.name).join(", ")} no longer applies.` : ""
+      ].filter(Boolean).join(" ")
+    };
+    return {
+      ok: true,
+      order: updated,
+      record,
+      intents: { inventory, ...reconciliation ? { reconciliation } : {}, notification }
+    };
+  }
+
+  // src/fixtures/index.ts
+  var p = (id, name, brand, category, priceDollars, extra = {}) => ({
+    id,
+    sku: id.toUpperCase().replace(/-/g, ""),
+    name,
+    brand,
+    category,
+    price: Math.round(priceDollars * 100),
+    ...extra
+  });
+  var DEMO_PRODUCTS = [
+    // ── in the Figma cart ─────────────────────────────────────────────────────
+    p("blue-dream", "Blue Dream", "Pacific Stone", "Flower", 35, { thcPercent: 24, sizeGrams: 3.5, strainType: "hybrid", marginPct: 48, velocityPerDay: 22 }),
+    p("og-kush-pod", "OG Kush 1g Pod", "Coast Cart", "Vapes", 35, { thcPercent: 24, sizeGrams: 1, strainType: "indica", marginPct: 52, velocityPerDay: 18 }),
+    p("sunset-sherbet", "Sunset Sherbet", "Pacific Stone", "Flower", 35, { thcPercent: 24, sizeGrams: 3.5, strainType: "hybrid", marginPct: 47, velocityPerDay: 15 }),
+    p("live-resin-sugar", "Live Resin Sugar 1g", "Pacific Stone", "Concentrates", 35, { thcPercent: 24, sizeGrams: 1, strainType: "hybrid", marginPct: 55, velocityPerDay: 9 }),
+    // ── swap-sheet alternatives (Flower, 3.5g) ────────────────────────────────
+    p("do-si-dos", "Do-Si-Dos", "Pacific Stone", "Flower", 45, { thcPercent: 29, sizeGrams: 3.5, strainType: "indica", marginPct: 46, velocityPerDay: 12 }),
+    p("wedding-cake", "Wedding Cake", "Alien Labs", "Flower", 70, { thcPercent: 31, sizeGrams: 3.5, strainType: "hybrid", marginPct: 40, velocityPerDay: 8 }),
+    p("northern-lights", "Northern Lights", "Almora Farm", "Flower", 40, { thcPercent: 27, sizeGrams: 3.5, strainType: "indica", marginPct: 50, velocityPerDay: 11 }),
+    p("zkittlez", "Zkittlez", "Backpack Boyz", "Flower", 12, { thcPercent: 18, sizeGrams: 1, strainType: "hybrid", marginPct: 61, velocityPerDay: 30 }),
+    p("gelato-41", "Gelato 41", "Connected", "Flower", 38, { thcPercent: 26, sizeGrams: 3.5, strainType: "hybrid", marginPct: 44, velocityPerDay: 14 }),
+    p("gg4", "GG#4", "Claybourne", "Flower", 30, { thcPercent: 23, sizeGrams: 3.5, strainType: "hybrid", marginPct: 53, velocityPerDay: 19 }),
+    // ── swap-sheet alternatives (Vapes / Concentrates) ────────────────────────
+    p("blue-razz-pod", "Blue Razz 1g Pod", "Stiiizy", "Vapes", 30, { thcPercent: 22, sizeGrams: 1, strainType: "hybrid", marginPct: 54, velocityPerDay: 20 }),
+    p("sativa-pod-1g", "Sour Diesel 1g Pod", "Raw Garden", "Vapes", 42, { thcPercent: 28, sizeGrams: 1, strainType: "sativa", marginPct: 45, velocityPerDay: 13 }),
+    p("badder-1g", "Live Badder 1g", "Raw Garden", "Concentrates", 42, { thcPercent: 30, sizeGrams: 1, strainType: "indica", marginPct: 48, velocityPerDay: 7 }),
+    p("shatter-1g", "Shatter 1g", "Claybourne", "Concentrates", 28, { thcPercent: 21, sizeGrams: 1, strainType: "hybrid", marginPct: 60, velocityPerDay: 10 }),
+    // ── a category NO driver carries — proves "Swap to Express" must sometimes
+    //    not be offered at all, rather than opening an empty sheet ─────────────
+    p("cbd-tincture", "CBD Tincture 30ml", "Papa & Barkley", "Tinctures", 48, { cbdPercent: 30, marginPct: 52, velocityPerDay: 4 }),
+    p("sleep-tincture", "Sleep Tincture 30ml", "Dr. Norm's", "Tinctures", 54, { cbdPercent: 25, marginPct: 50, velocityPerDay: 3 }),
+    // ── upsell inventory ──────────────────────────────────────────────────────
+    p("indica-blunts-2pk", "Indica Blunts 2pk", "Claybourne", "Pre-Rolls", 23, { compareAtPrice: 2800, thcPercent: 26, sizeGrams: 2, tags: ["2pk"], unitCount: 2, strainType: "indica", marginPct: 58, velocityPerDay: 26 }),
+    p("mini-j-5pk", "Mini-J 5pk", "Jeeter", "Pre-Rolls", 32, { thcPercent: 25, sizeGrams: 2.5, tags: ["5pk"], unitCount: 5, strainType: "hybrid", marginPct: 49, velocityPerDay: 21 }),
+    p("hybrid-preroll-2pk", "Hybrid Pre-Roll 2pk", "Almora Farm", "Pre-Rolls", 26, { thcPercent: 24, sizeGrams: 2, tags: ["2pk"], unitCount: 2, strainType: "hybrid", marginPct: 55, velocityPerDay: 17 }),
+    p("510-battery", "510 Battery", "Stiiizy", "Batteries", 15, { marginPct: 70, velocityPerDay: 12 }),
+    p("gummies-100mg", "Mixed Berry Gummies 100mg", "Wyld", "Edibles", 22, { marginPct: 57, velocityPerDay: 24 })
+  ];
+  var DEMO_AVAILABILITY = {
+    "blue-dream": { express: 6, scheduled: 40 },
+    "og-kush-pod": { express: 4, scheduled: 35 },
+    "sunset-sherbet": { express: 0, scheduled: 28 },
+    // <- no driver carries it
+    "live-resin-sugar": { express: 0, scheduled: 22 },
+    // <- ditto
+    "do-si-dos": { express: 5, scheduled: 18 },
+    "wedding-cake": { express: 2, scheduled: 9 },
+    "northern-lights": { express: 7, scheduled: 24 },
+    "zkittlez": { express: 11, scheduled: 50 },
+    "gelato-41": { express: 3, scheduled: 16 },
+    "gg4": { express: 8, scheduled: 30 },
+    "blue-razz-pod": { express: 5, scheduled: 20 },
+    "sativa-pod-1g": { express: 3, scheduled: 18 },
+    "badder-1g": { express: 4, scheduled: 14 },
+    "shatter-1g": { express: 6, scheduled: 20 },
+    "cbd-tincture": { express: 0, scheduled: 12 },
+    // <- store only
+    "sleep-tincture": { express: 0, scheduled: 8 },
+    // <- store only
+    "indica-blunts-2pk": { express: 12, scheduled: 44 },
+    "mini-j-5pk": { express: 9, scheduled: 38 },
+    "hybrid-preroll-2pk": { express: 6, scheduled: 33 },
+    "510-battery": { express: 20, scheduled: 60 },
+    "gummies-100mg": { express: 14, scheduled: 41 }
+  };
+  var DEMO_SNAPSHOT = {
+    products: DEMO_PRODUCTS,
+    availability: DEMO_AVAILABILITY
+  };
+  var DEMO_CART = {
+    lines: [
+      { id: "l1", productId: "blue-dream", quantity: 1, lane: "express" },
+      { id: "l2", productId: "og-kush-pod", quantity: 1, lane: "express" },
+      { id: "l3", productId: "sunset-sherbet", quantity: 1, lane: "scheduled" },
+      { id: "l4", productId: "live-resin-sugar", quantity: 1, lane: "scheduled" }
+    ]
+  };
+  var DEMO_CUSTOMER = {
+    id: "cust-1",
+    loyaltyTier: "Standard",
+    pointsBalance: 1200,
+    orderCount: 7,
+    lifetimeSpend: 84e3,
+    daysSinceLastOrder: 11,
+    favoriteCategories: ["Flower"],
+    purchasedBrands: ["Pacific Stone", "Claybourne"],
+    zoneId: "weho"
+  };
+  var DEMO_ORDER = {
+    id: "HW-40182",
+    status: "en_route",
+    lane: "express",
+    paymentMethod: "cash",
+    assignedDriverId: "drv-7",
+    assignedKitId: "RC3",
+    customerId: "cust-1",
+    placedAt: "2026-08-18T17:30:00Z",
+    lines: [
+      { id: "ol1", productId: "blue-dream", quantity: 1, unitPriceCents: 3500 },
+      { id: "ol2", productId: "indica-blunts-2pk", quantity: 1, unitPriceCents: 2300 }
+    ],
+    appliedPromotionIds: ["preroll-2pk-5off"],
+    agreed: { subtotalCents: 5800, discountCents: 500, feesCents: 200, taxCents: 543, totalCents: 6043 }
+  };
+  var DEMO_KIT = {
+    kitId: "RC3",
+    driverId: "drv-7",
+    asOf: "2026-08-18T17:55:00Z",
+    units: {
+      "blue-dream": 4,
+      "do-si-dos": 3,
+      "wedding-cake": 2,
+      "northern-lights": 5,
+      "gelato-41": 2,
+      "gg4": 6,
+      "zkittlez": 8,
+      "indica-blunts-2pk": 5,
+      "mini-j-5pk": 4,
+      "hybrid-preroll-2pk": 3,
+      "510-battery": 10
+    }
+  };
+  var DEMO_ORDER_RULES = [
+    {
+      id: "preroll-2pk-5off",
+      name: "Add a pre-roll 2pk, save $5",
+      status: "live",
+      combiner: "AND",
+      conditions: [{ id: "cart_contains", filter: { categories: ["Pre-Rolls"], tags: ["2pk"] }, minQuantity: 1 }],
+      reward: { kind: "dollar_off_cart", amountCents: 500 }
+    }
+  ];
+  var DEMO_DRIVER = { kind: "driver", id: "drv-7", name: "J. Rivera", kitId: "RC3" };
+  var DEMO_SUPPORT = { kind: "support", id: "sup-2", name: "A. Chen" };
+  return __toCommonJS(demo_entry_exports);
+})();
+</script>
+<script>
+const E = window.HWCommerce;
+const money = E.money;
+
+// ── mutable demo state ──────────────────────────────────────────────────────
+let config   = E.defaultConfig;
+let cart     = JSON.parse(JSON.stringify(E.DEMO_CART));
+let customer = { ...E.DEMO_CUSTOMER };
+let snapshot = E.DEMO_SNAPSHOT;
+let rules    = E.BUILTIN_RULES;
+let sheet    = null;   // { lineId, toLane, mode }
+const NOW    = new Date('2026-08-18T14:30:00Z');
+
+const ctx = () => ({ snapshot, cart, customer, lanes: config.lanes, now: NOW });
+const prod = (id) => snapshot.products.find(p => p.id === id);
+const hue  = (id) => (id.split('').reduce((a,c)=>a+c.charCodeAt(0),0) * 37) % 360;
+const swatch = (id) => `<div class="sw" style="background:linear-gradient(135deg,hsl(${hue(id)} 55% 30%),hsl(${(hue(id)+40)%360} 55% 22%))"></div>`;
+
+// ── render ──────────────────────────────────────────────────────────────────
+function render(){
+  const c = ctx();
+  const totals = E.computeCartTotals(c, { rules, config });
+
+  document.getElementById('hdrCount').textContent =
+    `${totals.itemCount} items · ${totals.orderCount} orders`;
+  document.getElementById('orderCount').textContent = `${totals.orderCount} orders`;
+  document.getElementById('grandTotal').textContent = money(totals.totalCents);
+  document.getElementById('verdict').textContent = totals.canCheckout ? 'ready to check out' : 'blocked';
+  document.getElementById('verdict').style.color = totals.canCheckout ? 'var(--good)' : 'var(--bad)';
+
+  renderLanes(c, totals);
+  renderOffers(c);
+  renderTotals(totals);
+  renderSheet(c);
+  renderDiag(c, totals);
+}
+
+function renderLanes(c, totals){
+  const host = document.getElementById('lanes');
+  host.innerHTML = '';
+  for (const laneId of ['express','scheduled']) {
+    const lines = cart.lines.filter(l => l.lane === laneId);
+    if (!lines.length) continue;
+    const lt  = totals.lanes.find(l => l.lane === laneId);
+    const cfg = config.lanes[laneId];
+    const other = laneId === 'express' ? 'scheduled' : 'express';
+
+    const feeTxt = lt.feeWaived ? 'FEE WAIVED'
+                 : cfg.feeCents ? `+${money(cfg.feeCents)} FEE` : 'FREE';
+    const eta = cfg.etaMinutes ? `· ARRIVES ~${cfg.etaMinutes} MIN` : '· SELECT DATE AND TIME';
+
+    let html = `<div class="laneHead ${laneId}">${laneId==='express'?'⚡':'🗓'} ${cfg.label} ${eta}<div class="spacer"></div>${feeTxt}</div>`;
+    html += `<div class="minbar">
+      <div class="track"><div class="fill" style="width:${Math.round(lt.progress*100)}%;background:${lt.minimumMet?'var(--good)':'var(--bad)'}"></div></div>
+      <span class="minlabel ${lt.minimumMet?'met':'unmet'}">${lt.minimumMet?'✓ MIN MET':`${money(lt.shortfallCents)} TO GO`}</span>
+    </div>`;
+
+    for (const line of lines) {
+      const p = prod(line.productId);
+
+      // 1. The primary action: swap this product for another, in the SAME lane.
+      const here  = E.canSwap(c, line.id, undefined, { config, rules });
+      // 2. The lane-constrained entry point, only where it makes sense.
+      const cross = E.canSwap(c, line.id, other, { config, rules });
+      // 3. The same-product move — genuinely rare toward Express.
+      const move  = E.moveLane(c, line.id, other);
+      const canMoveSameProduct = move && move.kind === 'moved';
+
+      const btns = [];
+      if (here.offerable)
+        btns.push(`<button class="btn ghost" data-swap-line="${line.id}">⇄ Swap this item</button>`);
+      if (canMoveSameProduct)
+        btns.push(`<button class="btn ${other}" data-move="${line.id}" data-lane="${other}">
+          ${other==='express'?'⚡ Get it in 90 min':'🗓 Move to Scheduled'}</button>`);
+      else if (cross.offerable)
+        btns.push(`<button class="btn ${other}" data-swap-line="${line.id}" data-swap-lane="${other}">
+          ${other==='express'?'⚡ Swap to Express':'🗓 Swap to Scheduled'}</button>`);
+
+      const noCross = !canMoveSameProduct && !cross.offerable;
+
+      html += `<div class="line">
+        ${swatch(p.id)}
+        <div style="flex:1;min-width:0">
+          <div class="brand">${p.brand}</div>
+          <div class="nm">${p.name}</div>
+          <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC · ':''}${p.sizeGrams!=null?p.sizeGrams+'g':p.category}</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">${btns.join('')}</div>
+          ${noCross?`<div class="meta" style="color:var(--mute);margin-top:6px">No ${config.lanes[other].label} option — ${cross.reason||'nothing available'}</div>`:''}
+        </div>
+        <div class="price">${money(p.price * line.quantity)}</div>
+      </div>`;
+    }
+    html += `<div class="subtotal"><span>Subtotal</span><span>${money(lt.subtotalCents)}</span></div>`;
+    host.insertAdjacentHTML('beforeend', html);
+  }
+
+  host.querySelectorAll('[data-move]').forEach(b => b.onclick = () => {
+    const out = E.moveLane(ctx(), b.dataset.move, b.dataset.lane);
+    if (out && out.kind === 'moved') { cart = out.cart; sheet = null; }
+    render();
+  });
+  host.querySelectorAll('[data-swap-line]').forEach(b => b.onclick = () => {
+    sheet = { lineId: b.dataset.swapLine, lane: b.dataset.swapLane || null, mode: 'similar' };
+    render();
+  });
+}
+
+function renderOffers(c){
+  const host = document.getElementById('offers');
+  const offers = E.getUpsells(c, 'cart_add_to_order', { rules, config });
+  if (!offers.length) { host.innerHTML = '<div class="empty">No offers for this cart on this surface.</div>'; return; }
+  host.innerHTML = offers.map(o => {
+    const unlock = o.kind === 'unlock_promotion';
+    return `<div class="offer">
+      ${swatch(o.product.id)}
+      <div class="body">
+        <span class="tag ${unlock?'unlock':'rec'}">${unlock?'Promo':o.kind.replace(/_/g,' ')}</span>
+        <div class="hl">${o.headline}</div>
+        <div class="sl">${o.subline}</div>
+        <div class="sl" style="color:var(--mute);font-size:11px;margin-top:3px">
+          ${o.product.brand} · ${o.reason}${unlock?` · costs ${money(o.unlock.addCostCents)}, saves ${money(o.unlock.rewardValueCents)}`:''}
+        </div>
+      </div>
+      <button class="swapbtn" data-add="${o.product.id}" data-qty="${o.quantity}">Add</button>
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-add]').forEach(b => b.onclick = () => {
+    const lane = cart.lines.length ? cart.lines[cart.lines.length-1].lane : 'scheduled';
+    cart = { ...cart, lines: [...cart.lines, {
+      id: 'add-'+Math.random().toString(36).slice(2,8),
+      productId: b.dataset.add, quantity: +b.dataset.qty, lane,
+    }]};
+    render();
+  });
+}
+
+function renderTotals(t){
+  const rows = [];
+  rows.push(['Merchandise subtotal', money(t.subtotalCents)]);
+  for (const d of t.discounts) rows.push([`${d.kind==='fee_waiver'?'Fee waived':'Discount'} · ${d.name}`, '−'+money(d.amountCents)]);
+  rows.push(['Delivery fees', money(t.feesCents)]);
+  rows.push([`Taxable base`, money(t.taxableBaseCents)]);
+  rows.push([`Tax @ ${(config.pricing.taxRate*100).toFixed(2)}%`, money(t.taxCents)]);
+  let html = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  html += `<tr class="grand"><td>Total</td><td>${money(t.totalCents)}</td></tr>`;
+  if (t.blockers.length) html += `<tr><td colspan="2" style="color:var(--bad);text-align:left">⚠ ${t.blockers.join(' · ')}</td></tr>`;
+  document.getElementById('totals').innerHTML = html;
+}
+
+// A panel that opens in the right-hand column is BELOW THE FOLD once the
+// layout collapses to one column — which it does in any narrow embed. The
+// click works and looks like it did nothing. Scroll it into view and flash it.
+function reveal(el){
+  if (!el || el.dataset.revealed === '1') return;
+  el.dataset.revealed = '1';
+  if (el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.add('justOpened');
+  setTimeout(() => el.classList.remove('justOpened'), 900);
+}
+function unreveal(el){ if (el) el.dataset.revealed = ''; }
+
+function renderSheet(c){
+  const card = document.getElementById('sheetCard');
+  if (!sheet) { card.style.display = 'none'; unreveal(card); return; }
+  const wasHidden = card.style.display === 'none';
+  card.style.display = '';
+  if (wasHidden) reveal(card);
+
+  const req = { lineId: sheet.lineId };
+  if (sheet.lane) { req.lane = sheet.lane; req.intent = 'faster'; }
+  const plan = E.planSwap(c, req, { config, rules });
+  if (!plan) { card.style.display = 'none'; return; }
+
+  const cur = plan.currentProduct;
+  document.getElementById('sheetTitle').textContent = plan.changesLane
+    ? `Swap to ${config.lanes[plan.lane].label} — ${cur.brand} ${cur.name}`
+    : `Alternatives for ${cur.brand} ${cur.name}`;
+
+  document.getElementById('sheetBlocked').innerHTML =
+    !plan.changesLane
+      ? `<div class="note">Same-lane swap. Whatever you pick stays in <strong>${config.lanes[plan.fromLane].label}</strong> — replacing a product never silently moves it into the other order.</div>`
+    : plan.sameProductAvailable
+      ? `<div class="note">A driver <em>does</em> have ${cur.name} — the plain move is the better offer, so the real UI would show that instead of this sheet.</div>`
+      : `<div class="warn"><strong>${cur.name}</strong> can't go ${plan.lane}: ${
+          plan.currentProductBlockedBy?.reason === 'out_of_stock'
+            ? 'no on-shift driver is carrying it.'
+            : `only ${plan.currentProductBlockedBy?.units} in a driver kit, you need ${plan.currentProductBlockedBy?.needed}.`
+        } These are different products a driver <em>does</em> have.</div>`;
+
+  document.getElementById('sheetTabs').innerHTML = ['similar','cheaper','stronger'].map(m =>
+    `<button class="tab ${sheet.mode===m?'on':''}" data-mode="${m}">${m[0].toUpperCase()+m.slice(1)}
+     <span style="opacity:.6;font-family:var(--mono);font-size:10px"> ${plan.candidatesByMode[m].length}</span></button>`
+  ).join('');
+
+  const list = plan.candidatesByMode[sheet.mode];
+  const dg = plan.diagnostics.perMode[sheet.mode];
+  document.getElementById('sheetList').innerHTML = list.length
+    ? list.map(cd => {
+        const impact = E.previewSwap(c, plan, cd, { rules, config });
+        const warn = [
+          ...impact.laneMinimumsBroken.map(b => `drops ${b.lane} ${money(b.shortfallCents)} under its minimum`),
+          ...impact.promotionsLost.map(p => `loses "${p.name}" (${money(p.valueCents)})`),
+          ...impact.promotionsGained.map(p => `unlocks "${p.name}" (${money(p.valueCents)})`),
+        ];
+        return `<div class="cand">
+          ${swatch(cd.product.id)}
+          <div class="body">
+            <div class="brand">${cd.product.brand}</div>
+            <div class="nm">${cd.product.name}</div>
+            <div class="meta">${cd.product.thcPercent!=null?cd.product.thcPercent+'% THC':''}${cd.product.sizeGrams!=null?' · '+cd.product.sizeGrams+'g':''} · ${cd.reason}</div>
+            ${warn.length?`<div class="meta" style="color:#FCA5A5;margin-top:4px">⚠ ${warn.join(' · ')}</div>`:''}
+          </div>
+          <div style="text-align:right">
+            <div class="delta ${cd.priceDeltaCents<0?'save':'up'}">${money(cd.product.price)}</div>
+            ${cd.priceDeltaLabel?`<div class="delta ${cd.priceDeltaCents<0?'save':'up'}" style="font-size:10.5px">${cd.priceDeltaLabel}</div>`:''}
+            <button class="swapbtn" style="margin-top:6px" data-swap="${cd.product.id}">Swap</button>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="empty">Nothing here.<br><span style="color:var(--mute)">${dg.note || ''}</span></div>`;
+
+  document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { sheet.mode = b.dataset.mode; render(); });
+  document.querySelectorAll('[data-swap]').forEach(b => b.onclick = () => {
+    const cd = list.find(x => x.product.id === b.dataset.swap);
+    cart = E.applySwap(cart, plan.lineId, cd, plan.changesLane ? plan.lane : undefined);
+    sheet = null; render();
+  });
+  document.getElementById('closeSheet').onclick = () => { sheet = null; render(); };
+}
+
+function renderDiag(c, totals){
+  const out = [];
+  out.push('LANE AVAILABILITY (units in each pool)');
+  for (const l of cart.lines) {
+    const a = snapshot.availability[l.productId] || {};
+    out.push(`  ${prod(l.productId).name.padEnd(22)} express ${String(a.express??0).padStart(3)}   store ${String(a.scheduled??0).padStart(3)}   [in ${l.lane}]`);
+  }
+  out.push('');
+  out.push('PROMOTION PROGRESS');
+  for (const row of E.promotionProgress(c, rules)) {
+    const g = row.gaps.map(x => x.kind==='spend' ? `${money(x.amountCents)} more${x.lane?' in '+x.lane:''}`
+                              : x.kind==='items' ? `${x.count} more item(s)` : x.kind).join(', ');
+    out.push(`  ${row.satisfied?'✓':'·'} ${row.rule.name}`);
+    out.push(`      ${row.satisfied ? 'applied, worth '+money(row.valueCents) : (g ? 'needs '+g : 'not reachable by adding to cart')}`);
+  }
+  out.push('');
+  if (sheet) {
+    const req = { lineId: sheet.lineId };
+    if (sheet.lane) req.lane = sheet.lane;
+    const plan = E.planSwap(c, req, { config, rules });
+    if (plan) {
+      out.push('SWAP FUNNEL — ' + plan.currentProduct.name + ' → ' + plan.lane
+               + (plan.changesLane ? ' (changes lane)' : ' (same lane)'));
+      out.push(`  same-category pool          ${plan.diagnostics.poolSize}`);
+      out.push(`  ...fulfillable in ${plan.lane.padEnd(10)} ${plan.diagnostics.afterLaneFilter}`);
+      out.push(`  ...not already in cart      ${plan.diagnostics.afterCartFilter}`);
+      for (const m of ['similar','cheaper','stronger']) {
+        const d = plan.diagnostics.perMode[m];
+        out.push(`  ${m.padEnd(10)} → ${d.returned} shown, ${d.excludedByPriceBand} cut by price band, ${d.excludedByThreshold} cut by threshold`);
+        if (d.note) out.push(`      note: ${d.note}`);
+      }
+    }
+  } else {
+    out.push('SWAP FUNNEL — press a lane button on a cart line to inspect.');
+  }
+  document.getElementById('diag').textContent = out.join('\n');
+}
+
+// ── knobs ───────────────────────────────────────────────────────────────────
+const KNOBS = [
+  { path:'swap.similarPriceBand', label:'Similar price band', code:'swap.similarPriceBand',
+    min:0, max:3, step:.05, fmt:v => '±'+Math.round(v*100)+'%' },
+  { path:'swap.maxCandidates', label:'Rows per tab', code:'swap.maxCandidates',
+    min:1, max:12, step:1, fmt:v => v },
+  { path:'swap.strongerMinThcDelta', label:'"Stronger" needs +N THC', code:'swap.strongerMinThcDelta',
+    min:0, max:10, step:.5, fmt:v => '+'+v },
+  { path:'swap.excludeItemsAlreadyInCart', label:'Hide items already in cart', code:'swap.excludeItemsAlreadyInCart', bool:true },
+  { path:'swap.restrictToSameCategory', label:'Same category only', code:'swap.restrictToSameCategory', bool:true },
+  { path:'upsell.maxSpendToRewardRatio', label:'Max spend : reward ratio', code:'upsell.maxSpendToRewardRatio',
+    min:1, max:20, step:.5, fmt:v => v+':1' },
+  { path:'upsell.respectLaneAvailability', label:'Only upsell what the lane can carry', code:'upsell.respectLaneAvailability', bool:true },
+  { path:'pricing.taxRate', label:'Tax rate', code:'pricing.taxRate',
+    min:0, max:.45, step:.0025, fmt:v => (v*100).toFixed(2)+'%' },
+];
+
+function getPath(o,p){ return p.split('.').reduce((a,k)=>a[k],o); }
+function setPath(o,p,v){
+  const ks = p.split('.'), last = ks.pop();
+  const clone = JSON.parse(JSON.stringify(o));
+  ks.reduce((a,k)=>a[k],clone)[last] = v;
+  return clone;
+}
+
+function renderKnobs(){
+  const host = document.getElementById('knobs');
+  host.innerHTML = KNOBS.map((k,i) => {
+    const v = getPath(config, k.path);
+    return `<div class="knob">
+      <label>${k.label}<code>${k.code}</code></label>
+      ${k.bool
+        ? `<input type="checkbox" data-k="${i}" ${v?'checked':''}/>`
+        : `<input type="range" data-k="${i}" min="${k.min}" max="${k.max}" step="${k.step}" value="${v}"/>
+           <span class="val" id="kv${i}">${k.fmt(v)}</span>`}
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-k]').forEach(el => {
+    const k = KNOBS[+el.dataset.k];
+    el.oninput = () => {
+      const v = k.bool ? el.checked : +el.value;
+      config = setPath(config, k.path, v);
+      if (!k.bool) document.getElementById('kv'+el.dataset.k).textContent = k.fmt(v);
+      render();
+    };
+  });
+}
+
+// ── scenarios ───────────────────────────────────────────────────────────────
+const SCENARIOS = [
+  ['Reset to the Figma cart', () => {
+    cart = JSON.parse(JSON.stringify(E.DEMO_CART));
+    customer = { ...E.DEMO_CUSTOMER }; snapshot = E.DEMO_SNAPSHOT;
+    config = E.defaultConfig; sheet = null;
+  }],
+  ['Give drivers the Sherbet', () => {
+    snapshot = { ...snapshot, availability: { ...snapshot.availability, 'sunset-sherbet': { express: 4, scheduled: 28 } } };
+  }],
+  ['Take it away again', () => {
+    snapshot = { ...snapshot, availability: { ...snapshot.availability, 'sunset-sherbet': { express: 0, scheduled: 28 } } };
+  }],
+  ['Add a Tincture (no driver carries any)', () => {
+    cart = { ...cart, lines: [...cart.lines, { id: 'tinc', productId: 'cbd-tincture', quantity: 1, lane: 'scheduled' }] };
+  }],
+  ['Make them a Wolfpack Leader', () => { customer = { ...customer, loyaltyTier: 'Wolfpack Leader' }; }],
+  ['First-time buyer + WELCOME20', () => {
+    customer = { ...customer, orderCount: 0, loyaltyTier: 'Standard' };
+    cart = { ...cart, appliedCodes: ['WELCOME20'] };
+  }],
+  ['Empty the Express lane', () => { cart = { ...cart, lines: cart.lines.filter(l => l.lane !== 'express') }; }],
+  ['Drop Scheduled under its minimum', () => {
+    const first = cart.lines.find(l => l.lane === 'scheduled');
+    cart = { ...cart, lines: cart.lines.filter(l => l !== first) };
+  }],
+  ['Apply the real CA tax shape', () => {
+    config = setPath(config, 'pricing.taxRate', 0.15 + 1.15 * 0.1025 - 0.15 * 0 );
+  }],
+];
+
+document.getElementById('scenarios').innerHTML =
+  SCENARIOS.map((s,i)=>`<button class="btn ghost" data-s="${i}">${s[0]}</button>`).join('');
+document.querySelectorAll('[data-s]').forEach(b => b.onclick = () => {
+  SCENARIOS[+b.dataset.s][1](); renderKnobs(); render();
+});
+
+renderKnobs();
+render();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLOW 2 — post-submission (driver app + support console)
+// ═══════════════════════════════════════════════════════════════════════════
+let order   = JSON.parse(JSON.stringify(E.DEMO_ORDER));
+let kitInv  = JSON.parse(JSON.stringify(E.DEMO_KIT));
+let actor   = E.DEMO_DRIVER;
+let offer   = null;              // { lineId }
+let pending = null;              // { plan, candidate }
+let ack     = false, attested = false;
+let emitted = [];
+const F_NOW = new Date('2026-08-18T18:00:00Z');
+const policy = E.defaultFulfillmentPolicy;
+
+const ACTORS = [
+  ['Driver · J. Rivera (kit RC3)', E.DEMO_DRIVER],
+  ['Driver · other kit (SB2)', { kind:'driver', id:'drv-9', name:'M. Ortiz', kitId:'SB2' }],
+  ['Support · A. Chen', E.DEMO_SUPPORT],
+];
+
+const oplan = (lineId) => E.planOrderSubstitution({
+  order, kit: kitInv, lineId, actor,
+  products: E.DEMO_PRODUCTS, rules: E.DEMO_ORDER_RULES,
+  policy, config, now: F_NOW,
+});
+
+function renderFulfil(){
+  const host = document.getElementById('ordBody');
+  const t = order.agreed;
+  let html = `<div class="ordhead">
+    <span class="ordid">#${order.id}</span>
+    <span class="chip live">${order.status.replace('_',' ')}</span>
+    <span class="chip">kit ${order.assignedKitId}</span>
+    <span class="chip">${order.paymentMethod}</span>
+  </div>`;
+
+  for (const line of order.lines) {
+    const p = prod(line.productId);
+    const av = E.canSwapOrder ? null : null;
+    const pl = oplan(line.id);
+    const can = pl && !pl.blocked && pl.candidateCount > 0;
+    html += `<div class="line">
+      ${swatch(p.id)}
+      <div style="flex:1;min-width:0">
+        <div class="brand">${p.brand}</div>
+        <div class="nm">${p.name}${line.substitutedFromProductId?' <span class="chip">swapped</span>':''}</div>
+        <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC · ':''}x${line.quantity} · charged ${money(line.unitPriceCents)}</div>
+        ${can
+          ? `<button class="btn express" data-offer="${line.id}">Offer upgrade (${pl.candidateCount})</button>`
+          : `<div class="meta" style="color:var(--mute);margin-top:6px">${pl && pl.blocked ? pl.blocked.message : 'Nothing suitable in this kit'}</div>`}
+      </div>
+      <div class="price">${money(line.unitPriceCents * line.quantity)}</div>
+    </div>`;
+  }
+  html += `<div style="padding:12px 16px">
+    <div class="money"><span>Subtotal</span><b>${money(t.subtotalCents)}</b></div>
+    <div class="money"><span>Discount</span><b>${t.discountCents?'-'+money(t.discountCents):'—'}</b></div>
+    <div class="money"><span>Fees</span><b>${money(t.feesCents)}</b></div>
+    <div class="money"><span>Tax</span><b>${money(t.taxCents)}</b></div>
+    <div class="money" style="font-size:14px;padding-top:8px;border-top:1px solid var(--line);margin-top:6px">
+      <span style="color:var(--ink);font-weight:800">Agreed total</span><b>${money(t.totalCents)}</b></div>
+  </div>`;
+  host.innerHTML = html;
+  host.querySelectorAll('[data-offer]').forEach(b => b.onclick = () => {
+    offer = { lineId: b.dataset.offer, mode: 'upgrade' }; pending = null; ack = false; attested = false; renderFulfil();
+  });
+
+  document.getElementById('actorBar').innerHTML = ACTORS.map((a,i) =>
+    `<button class="btn ${actor.id===a[1].id?'express':'ghost'}" data-actor="${i}">${a[0]}</button>`).join('');
+  document.querySelectorAll('[data-actor]').forEach(b => b.onclick = () => {
+    actor = ACTORS[+b.dataset.actor][1]; offer = null; pending = null; renderFulfil();
+  });
+
+  renderOffer();
+  renderCommit();
+}
+
+function renderOffer(){
+  const card = document.getElementById('offerCard');
+  if (!offer) { card.style.display='none'; unreveal(card); return; }
+  const pl = oplan(offer.lineId);
+  if (!pl) { card.style.display='none'; return; }
+  const wasHidden = card.style.display === 'none';
+  card.style.display='';
+  if (wasHidden) reveal(card);
+  document.getElementById('offerTitle').textContent =
+    `Upgrade ${pl.currentProduct.brand} ${pl.currentProduct.name} — from kit ${pl.kitId}`;
+  document.getElementById('offerBlocked').innerHTML = pl.blocked
+    ? `<div class="warn"><strong>Refused.</strong> ${pl.blocked.message}</div>`
+    : `<div class="note">Only options this van can actually hand over, already checked against policy. An empty tab means do not offer a swap.</div>`;
+
+  const modes = ['upgrade','stronger','similar'];
+  document.getElementById('offerTabs').innerHTML = modes.map(m =>
+    `<button class="tab ${offer.mode===m?'on':''}" data-omode="${m}">${m[0].toUpperCase()+m.slice(1)}
+     <span style="opacity:.6;font-family:var(--mono);font-size:10px"> ${(pl.candidatesByMode[m]||[]).length}</span></button>`).join('');
+
+  const list = pl.candidatesByMode[offer.mode] || [];
+  const dg = (pl.diagnostics.perMode||{})[offer.mode];
+  document.getElementById('offerList').innerHTML = list.length ? list.map((c,i) => {
+    const owes = c.money.customerOwesDeltaCents;
+    return `<div class="cand">
+      ${swatch(c.product.id)}
+      <div class="body">
+        <div class="brand">${c.product.brand}</div>
+        <div class="nm">${c.product.name}</div>
+        <div class="meta">${c.product.thcPercent!=null?c.product.thcPercent+'% THC':''}${c.product.sizeGrams!=null?' · '+c.product.sizeGrams+'g':''} · ${c.reason} · ${c.unitsAvailable} in kit</div>
+        <div class="meta ${owes>0?'up':'down'}" style="margin-top:4px">
+          Customer ${owes>0?'pays':'is owed'} ${money(Math.abs(owes))} · new total ${money(c.money.newTotalCents)}
+        </div>
+        ${c.verdict.requiresPromotionAcknowledgement
+          ? `<div class="meta up" style="margin-top:4px">⚠ Removes ${c.money.promotionsBroken.map(x=>x.name).join(', ')} (${money(c.money.promotionLossCents)})</div>` : ''}
+        ${c.verdict.warnings.filter(w=>!/already earned/.test(w)).map(w=>`<div class="meta" style="color:var(--mute);margin-top:3px">${w}</div>`).join('')}
+      </div>
+      <div style="text-align:right">
+        <div class="delta ${c.priceDeltaCents<0?'save':'up'}">${money(c.product.price)}</div>
+        ${c.priceDeltaLabel?`<div class="delta ${c.priceDeltaCents<0?'save':'up'}" style="font-size:10.5px">${c.priceDeltaLabel}</div>`:''}
+        <button class="swapbtn" style="margin-top:6px" data-pick="${i}">Offer</button>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty">Nothing here.<br><span style="color:var(--mute)">${dg && dg.note ? dg.note : 'No suitable option in this kit.'}</span></div>`;
+
+  document.querySelectorAll('[data-omode]').forEach(b => b.onclick = () => { offer.mode=b.dataset.omode; renderOffer(); });
+  document.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+    pending = { plan: pl, candidate: list[+b.dataset.pick] }; ack=false; attested=false; renderCommit();
+  });
+  document.getElementById('closeOffer').onclick = () => { offer=null; pending=null; renderFulfil(); };
+}
+
+function renderCommit(){
+  const card = document.getElementById('commitCard');
+  if (!pending) { card.style.display='none'; unreveal(card); return; }
+  const wasHidden = card.style.display === 'none';
+  card.style.display='';
+  if (wasHidden) reveal(card);
+  const { plan: pl, candidate: c } = pending;
+  const owes = c.money.customerOwesDeltaCents;
+  const needsAck = c.verdict.requiresPromotionAcknowledgement;
+
+  document.getElementById('commitBody').innerHTML = `
+    <div class="pad">
+      <div class="nm" style="margin-bottom:8px">${pl.currentProduct.name} → ${c.product.name}</div>
+      <div class="money"><span>Line change</span><b>${money(c.money.lineDeltaCents)}</b></div>
+      ${needsAck?`<div class="money"><span>Promotion lost</span><b class="up">-${money(c.money.promotionLossCents)}</b></div>`:''}
+      <div class="money"><span>New total</span><b>${money(c.money.newTotalCents)}</b></div>
+      <div class="money"><span>Customer ${owes>=0?'pays':'is owed'}</span><b class="${owes>0?'up':'down'}">${money(Math.abs(owes))}</b></div>
+      <div class="money"><span>Settlement</span><b>${c.money.settlement.replace(/_/g,' ')}</b></div>
+    </div>
+    ${needsAck?`<div class="gate">
+      <h4>This removes a discount the customer already earned</h4>
+      <p>${c.money.promotionsBroken.map(x=>x.name).join(', ')} — worth ${money(c.money.promotionLossCents)}.
+         The engine refuses to commit until this is acknowledged.</p>
+      <label class="ck"><input type="checkbox" id="ackBox" ${ack?'checked':''}/>
+        <span>I have told the customer their total changes</span></label>
+    </div>`:''}
+    <div class="pad" style="border-top:1px solid var(--line)">
+      <label class="ck"><input type="checkbox" id="attBox" ${attested?'checked':''}/>
+        <span>Customer agreed to this swap</span></label>
+      <div class="meta" style="color:var(--mute);margin-bottom:10px">Level 1 consent · recorded as ${actor.name}, ${F_NOW.toISOString().slice(11,16)}</div>
+      <div class="rowbtns" style="padding:0">
+        <button class="swapbtn" id="commitBtn">Commit substitution</button>
+        <button class="btn ghost" id="cancelCommit">Cancel</button>
+      </div>
+      <div id="commitErr"></div>
+    </div>`;
+
+  const ab = document.getElementById('ackBox'); if (ab) ab.onchange = e => { ack = e.target.checked; };
+  document.getElementById('attBox').onchange = e => { attested = e.target.checked; };
+  document.getElementById('cancelCommit').onclick = () => { pending=null; renderFulfil(); };
+  document.getElementById('commitBtn').onclick = () => {
+    const res = E.applyOrderSubstitution({
+      order, plan: pl, candidate: c, actor, policy,
+      reason: 'customer_upgraded',
+      consent: attested
+        ? { channel:'driver_verbal', recordedByActorId: actor.id, recordedAt: F_NOW.toISOString() }
+        : { channel:'not_required', recordedAt: F_NOW.toISOString() },
+      acknowledgePromotionLoss: ack,
+      now: F_NOW,
+      recordId: 'sub-' + (emitted.length + 1),
+    });
+    if (!res.ok) {
+      document.getElementById('commitErr').innerHTML =
+        `<div class="warn" style="margin:12px 0 0"><strong>Refused (${res.refusal.code}).</strong> ${res.refusal.message}</div>`;
+      return;
+    }
+    order = res.order;
+    kitInv = { ...kitInv, units: { ...kitInv.units,
+      [c.product.id]: Math.max(0, (kitInv.units[c.product.id]||0) - pl.quantity) } };
+    emitted.push(res);
+    offer = null; pending = null;
+    renderFulfil();
+  };
+}
+
+function renderFulfilOut(){
+  const out = document.getElementById('fulfilOut');
+  if (!emitted.length) { out.textContent = 'Nothing committed yet.'; return; }
+  const L = [];
+  for (const r of emitted) {
+    L.push('SUBSTITUTION RECORD  ' + r.record.id);
+    L.push(`  ${r.record.fromProductName}`);
+    L.push(`    -> ${r.record.toProductName}  x${r.record.quantity}`);
+    L.push(`  reason      ${r.record.reason}`);
+    L.push(`  actor       ${r.record.actor.kind} ${r.record.actor.name || r.record.actor.id}`);
+    L.push(`  consent     ${r.record.consent.channel}${r.record.consent.recordedByActorId?' by '+r.record.consent.recordedByActorId:''}`);
+    L.push(`  order was   ${r.record.orderStatusAtChange}   kit ${r.record.kitId}`);
+    L.push(`  money       line ${money(r.record.money.lineDeltaCents)}  ->  new total ${money(r.record.money.newTotalCents)}`);
+    if (r.record.money.promotionsBroken.length)
+      L.push(`  lost        ${r.record.money.promotionsBroken.map(p=>p.name+' ('+money(p.valueCents)+')').join(', ')}`);
+    r.record.warnings.forEach(w => L.push(`  warning     ${w}`));
+    L.push('');
+    L.push('  INTENTS FOR THE APP TO CARRY OUT');
+    r.intents.inventory.forEach(i => L.push(`    inventory   ${i.kind.padEnd(8)} ${i.productId} x${i.quantity} in ${i.kitId}`));
+    if (r.intents.reconciliation)
+      L.push(`    close-out   ${money(r.intents.reconciliation.amountCents)} ${r.intents.reconciliation.settlement} (driver ${r.intents.reconciliation.driverId})`);
+    L.push(`    notify      "${r.intents.notification.headline}" — ${r.intents.notification.body}`);
+    L.push('');
+  }
+  out.textContent = L.join('\n');
+}
+
+const _rf = renderFulfil;
+renderFulfil = function(){ _rf(); renderFulfilOut(); };
+
+document.querySelectorAll('.flowtab').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.flowtab').forEach(x => x.classList.toggle('on', x === b));
+  const cart = b.dataset.flow === 'cart';
+  document.querySelector('.cols').style.display = cart ? '' : 'none';
+  document.querySelector('.howto').style.display = cart ? '' : 'none';
+  document.querySelector('.checkout').style.display = cart ? '' : 'none';
+  document.getElementById('fulfilView').style.display = cart ? 'none' : '';
+  if (!cart) renderFulfil();
+});
+
+renderFulfil();
+
+</script>
+</body>
+</html>
