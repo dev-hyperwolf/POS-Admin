@@ -95,6 +95,8 @@
     .cols>div:last-child{display:flex;flex-direction:column}
     #sheetCard,#offerCard,#commitCard{order:-1}
   }
+  .lanebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px 2px}
+  .lanenote{font-size:12px;color:var(--dim);line-height:1.45}
   .chooser{margin-top:9px;padding:11px 12px;border-radius:10px;background:var(--panel2);
            border:1px solid var(--line);display:flex;flex-direction:column;gap:7px;align-items:flex-start}
   .chooserq{font-size:12.5px;color:var(--dim);line-height:1.5}
@@ -313,6 +315,7 @@ var HWCommerce = (() => {
     SUBSTITUTION_REASONS: () => SUBSTITUTION_REASONS,
     SWAP_MODES: () => SWAP_MODES,
     UPSELL_MODES: () => UPSELL_MODES,
+    applyLaneMigration: () => applyLaneMigration,
     applyLaneMove: () => applyLaneMove,
     applyOrderSubstitution: () => applyOrderSubstitution,
     applySwap: () => applySwap,
@@ -362,6 +365,7 @@ var HWCommerce = (() => {
     moveLane: () => moveLane,
     offerFromRule: () => offerFromRule,
     pickupLane: () => pickupLane,
+    planLaneMigration: () => planLaneMigration,
     planLaneMove: () => planLaneMove,
     planOrderSubstitution: () => planOrderSubstitution,
     planSwap: () => planSwap,
@@ -1757,6 +1761,65 @@ var HWCommerce = (() => {
     const moving = new Set(option.lineIds);
     return { ...cart, lines: cart.lines.map((l) => moving.has(l.id) ? { ...l, lane: toLane } : l) };
   }
+  function planLaneMigration(ctx, fromLane, toLane, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const index = options.index ?? asIndex(ctx.snapshot);
+    const fromCfg = ctx.lanes[fromLane];
+    const toCfg = ctx.lanes[toLane];
+    if (!fromCfg || !toCfg) return null;
+    const lines = ctx.cart.lines.filter((l) => l.lane === fromLane);
+    if (lines.length === 0) return null;
+    const value = (l) => {
+      const p2 = index.byId.get(l.productId);
+      return p2 ? p2.price * l.quantity : 0;
+    };
+    const movable = [];
+    const blocked = [];
+    for (const l of lines) {
+      const el = laneEligibility(ctx.snapshot, l.productId, toLane, l.quantity);
+      if (el.ok) {
+        movable.push(l.id);
+        continue;
+      }
+      const p2 = index.byId.get(l.productId);
+      const inCart = new Set(ctx.cart.lines.map((x) => x.productId));
+      const hasAlternatives = (index.byCategory.get(p2?.category ?? "") ?? []).some(
+        (alt) => alt.id !== l.productId && !inCart.has(alt.id) && unitsAvailable(ctx.snapshot, alt.id, toLane) >= l.quantity
+      );
+      blocked.push({
+        lineId: l.id,
+        productId: l.productId,
+        productName: p2 ? `${p2.brand} ${p2.name}` : l.productId,
+        reason: el.reason,
+        unitsAvailable: el.units,
+        needed: el.needed,
+        hasAlternatives
+      });
+    }
+    const movingValue = lines.filter((l) => movable.includes(l.id)).reduce((s, l) => s + value(l), 0);
+    const stayingValue = lines.filter((l) => !movable.includes(l.id)).reduce((s, l) => s + value(l), 0);
+    const targetExisting = ctx.cart.lines.filter((l) => l.lane === toLane).reduce((s, l) => s + value(l), 0);
+    const targetSubtotalAfterCents = targetExisting + movingValue;
+    const sourceSubtotalAfterCents = stayingValue;
+    const anythingLeft = blocked.length > 0;
+    return {
+      fromLane,
+      toLane,
+      movable,
+      blocked,
+      allMovable: blocked.length === 0,
+      noneMovable: movable.length === 0,
+      targetSubtotalAfterCents,
+      sourceSubtotalAfterCents,
+      sourceStranded: anythingLeft && sourceSubtotalAfterCents < fromCfg.minimumCents,
+      targetStranded: movable.length > 0 && targetSubtotalAfterCents < toCfg.minimumCents,
+      addedFeeCents: ctx.cart.lines.some((l) => l.lane === toLane) ? 0 : toCfg.feeCents
+    };
+  }
+  function applyLaneMigration(cart, plan) {
+    const moving = new Set(plan.movable);
+    return { ...cart, lines: cart.lines.map((l) => moving.has(l.id) ? { ...l, lane: plan.toLane } : l) };
+  }
 
   // src/core/upsell/index.ts
   function laneFor(ctx, options) {
@@ -2685,6 +2748,24 @@ function renderLanes(c, totals){
     const eta = cfg.etaMinutes ? `· ARRIVES ~${cfg.etaMinutes} MIN` : '· SELECT DATE AND TIME';
 
     let html = `<div class="laneHead ${laneId}">${laneId==='express'?'⚡':'🗓'} ${cfg.label} ${eta}<div class="spacer"></div>${feeTxt}</div>`;
+    // "I put these in the wrong cart." Express is most of the daily volume, so
+    // fixing that mistake belongs on the LANE, not one line at a time.
+    if (laneId === 'scheduled') {
+      const mig = E.planLaneMigration(c, 'scheduled', 'express', { config });
+      if (mig && !mig.noneMovable) {
+        const n = mig.movable.length;
+        html += `<div class="lanebar">
+          <button class="btn express" data-migrate="1">⚡ ${mig.allMovable
+            ? 'Move everything to Express'
+            : `Move ${n} of ${n + mig.blocked.length} to Express`}</button>
+          ${mig.allMovable ? '' : `<span class="lanenote">${mig.blocked.length} can only come Scheduled — swap ${mig.blocked.length === 1 ? 'it' : 'them'} below to bring ${mig.blocked.length === 1 ? 'it' : 'them'} too</span>`}
+        </div>`;
+      } else if (mig && mig.noneMovable && mig.blocked.some(b => b.hasAlternatives)) {
+        html += `<div class="lanebar">
+          <span class="lanenote">Want these today? Swap any item below for something a driver is carrying.</span>
+        </div>`;
+      }
+    }
     html += `<div class="minbar">
       <div class="track"><div class="fill" style="width:${Math.round(lt.progress*100)}%;background:${lt.minimumMet?'var(--good)':'var(--bad)'}"></div></div>
       <span class="minlabel ${lt.minimumMet?'met':'unmet'}">${lt.minimumMet?'✓ MIN MET':`${money(lt.shortfallCents)} TO GO`}</span>
@@ -2702,12 +2783,22 @@ function renderLanes(c, totals){
       const canMoveSameProduct = lm && lm.possible;
 
       const btns = [];
-      // Express lines get no swap — they already have what they wanted, fast.
-      if (line.lane !== 'express' && swap.offerable)
-        btns.push(`<button class="btn swapmain" data-swap-line="${line.id}">⇄ Swap</button>`);
-      if (canMoveSameProduct)
-        btns.push(`<button class="btn ${other}" data-move="${line.id}" data-lane="${other}">
-          ${other === 'express' ? '⚡ Get it in 90 min' : '🗓 Move to Scheduled'}</button>`);
+      if (line.lane === 'scheduled') {
+        // PRIMARY. Most orders are Express; this is the action people came for.
+        // It keeps their product when a driver has it, and only falls back to
+        // showing alternatives when none does — so it is a different action
+        // from Swap, not a second door onto the same one.
+        const expressAlts = E.canSwap(c, line.id, 'express', { config, rules });
+        if (canMoveSameProduct)
+          btns.push(`<button class="btn express" data-move="${line.id}" data-lane="express">⚡ Switch to Express</button>`);
+        else if (expressAlts.offerable)
+          btns.push(`<button class="btn express" data-express-alt="${line.id}">⚡ Switch to Express</button>`);
+        // SECONDARY, quieter: change the product itself.
+        if (swap.offerable)
+          btns.push(`<button class="btn swapmain" data-swap-line="${line.id}">⇄ Swap</button>`);
+      } else if (canMoveSameProduct) {
+        btns.push(`<button class="btn scheduled" data-move="${line.id}" data-lane="scheduled">🗓 Move to Scheduled</button>`);
+      }
 
       // When moving one line would leave EITHER lane under its minimum, do not
       // block it and do not just warn — show the choice. Moving the whole lane
@@ -2765,6 +2856,17 @@ function renderLanes(c, totals){
   host.querySelectorAll('[data-choose-cancel]').forEach(b => b.onclick = () => { moveChoice = null; render(); });
   host.querySelectorAll('[data-swap-line]').forEach(b => b.onclick = () => {
     sheet = { lineId: b.dataset.swapLine, mode: 'similar' };
+    render();
+  });
+  host.querySelectorAll('[data-express-alt]').forEach(b => b.onclick = () => {
+    // No driver has this exact product, so Express means a different one.
+    // Framed as what they CAN have today, never as what went wrong.
+    sheet = { lineId: b.dataset.expressAlt, mode: 'similar', expressOnly: true };
+    render();
+  });
+  host.querySelectorAll('[data-migrate]').forEach(b => b.onclick = () => {
+    const mig = E.planLaneMigration(ctx(), 'scheduled', 'express', { config });
+    if (mig) { cart = E.applyLaneMigration(cart, mig); sheet = null; moveChoice = null; }
     render();
   });
 }
@@ -2830,20 +2932,26 @@ function renderSheet(c){
   card.style.display = '';
   if (wasHidden) reveal(card);
 
-  const plan = E.planSwap(c, { lineId: sheet.lineId, lanes: BOTH }, { config, rules });
+  const plan = sheet.expressOnly
+    ? E.planSwap(c, { lineId: sheet.lineId, lane: 'express', intent: 'faster' }, { config, rules })
+    : E.planSwap(c, { lineId: sheet.lineId, lanes: BOTH }, { config, rules });
   if (!plan) { card.style.display = 'none'; return; }
 
   const cur = plan.currentProduct;
-  document.getElementById('sheetTitle').textContent = `Swap ${cur.brand} ${cur.name}`;
+  document.getElementById('sheetTitle').textContent = sheet.expressOnly
+    ? `Get ${cur.name} today — here's what drivers have`
+    : `Swap ${cur.brand} ${cur.name}`;
 
   // NO FAILURE FRAMING. The customer never needs to be told why something they
   // did not choose is unavailable — they only need to see what they can have.
   // Anything unsuitable was filtered out before it reached this list.
   const anyFast = ['similar','cheaper','stronger']
     .some(m => (plan.candidatesByMode[m]||[]).some(x => x.fulfillment && x.fulfillment.arrivesIn === 'express'));
-  document.getElementById('sheetBlocked').innerHTML = anyFast
-    ? `<div class="note">Anything marked <strong>⚡ 90 min</strong> is only carried by drivers, so picking it moves that item to Express. Everything else stays in ${config.lanes[plan.fromLane].label}.</div>`
-    : '';
+  document.getElementById('sheetBlocked').innerHTML = sheet.expressOnly
+    ? `<div class="note">Every option here is on a driver right now and arrives in about 90 minutes. Picking one moves it to Express.</div>`
+    : anyFast
+      ? `<div class="note">Anything marked <strong>⚡ 90 min</strong> is only carried by drivers, so picking it moves that item to Express. Everything else stays in ${config.lanes[plan.fromLane].label}.</div>`
+      : '';
 
   document.getElementById('sheetTabs').innerHTML = ['similar','cheaper','stronger'].map(m =>
     `<button class="tab ${sheet.mode===m?'on':''}" data-mode="${m}">${m[0].toUpperCase()+m.slice(1)}
@@ -2855,7 +2963,7 @@ function renderSheet(c){
   document.getElementById('sheetList').innerHTML = list.length
     ? list.map(cd => {
         // Badge where it will ACTUALLY arrive, not the fastest lane that has it.
-        const arrives = cd.fulfillment ? cd.fulfillment.arrivesIn : plan.fromLane;
+        const arrives = sheet.expressOnly ? 'express' : (cd.fulfillment ? cd.fulfillment.arrivesIn : plan.fromLane);
         const fast = arrives === 'express';
         const impact = E.previewSwap(c, plan, cd, { rules, config });
         // Only consequences the customer would actually want to know. Lane
@@ -2884,8 +2992,9 @@ function renderSheet(c){
     const cd = list.find(x => x.product.id === b.dataset.swap);
     // The CANDIDATE decides the lane: pick something only Express carries and
     // the line moves; pick something the current lane has and it stays put.
-    const target = cd.fulfillment && cd.fulfillment.arrivesIn !== plan.fromLane
-      ? cd.fulfillment.arrivesIn : undefined;
+    const target = sheet.expressOnly
+      ? 'express'
+      : (cd.fulfillment && cd.fulfillment.arrivesIn !== plan.fromLane ? cd.fulfillment.arrivesIn : undefined);
     cart = E.applySwap(cart, plan.lineId, cd, target);
     sheet = null; render();
   });
@@ -2984,6 +3093,11 @@ const SCENARIOS = [
     cart = JSON.parse(JSON.stringify(E.DEMO_CART));
     customer = { ...E.DEMO_CUSTOMER }; snapshot = E.DEMO_SNAPSHOT;
     config = E.defaultConfig; sheet = null;
+  }],
+  ['Drivers stock the whole Scheduled cart', () => {
+    snapshot = { ...snapshot, availability: { ...snapshot.availability,
+      'sunset-sherbet': { express: 4, scheduled: 28 },
+      'live-resin-sugar': { express: 3, scheduled: 22 } } };
   }],
   ['Give drivers the Sherbet', () => {
     snapshot = { ...snapshot, availability: { ...snapshot.availability, 'sunset-sherbet': { express: 4, scheduled: 28 } } };
