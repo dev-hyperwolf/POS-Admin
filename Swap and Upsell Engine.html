@@ -2776,11 +2776,11 @@ function renderLanes(c, totals){
           <button class="btn express" data-migrate="1">⚡ ${mig.allMovable
             ? 'Move everything to Express'
             : `Move ${n} of ${n + mig.blocked.length} to Express`}</button>
-          ${mig.allMovable ? '' : `<span class="lanenote">${mig.blocked.length} can only come Scheduled — swap ${mig.blocked.length === 1 ? 'it' : 'them'} below to bring ${mig.blocked.length === 1 ? 'it' : 'them'} too</span>`}
+          ${mig.allMovable ? '' : `<span class="lanenote">${mig.blocked.length === 1 ? '1 item is' : mig.blocked.length + ' items are'} scheduled-only — tap ${mig.blocked.length === 1 ? 'it' : 'them'} to see today's alternatives</span>`}
         </div>`;
       } else if (mig && mig.noneMovable && mig.blocked.some(b => b.hasAlternatives)) {
         html += `<div class="lanebar">
-          <span class="lanenote">Want these today? Swap any item below for something a driver is carrying.</span>
+          <span class="lanenote">Tap any item to see what we can get you today instead.</span>
         </div>`;
       }
     }
@@ -2815,7 +2815,7 @@ function renderLanes(c, totals){
       if (line.lane === 'scheduled') {
         if (canMoveSameProduct) acts.push({ id: 'move', label: '⚡ Switch to Express', hint: 'Same item, about 90 minutes', primary: true });
         else if (E.canSwap(c, line.id, 'express', { config, rules }).offerable)
-          acts.push({ id: 'expressalt', label: '⚡ Switch to Express', hint: 'No driver has this one — see what they do have', primary: true });
+          acts.push({ id: 'expressalt', label: '⚡ Get something today instead', hint: 'This one is scheduled-only — see what drivers have now', primary: true });
       } else if (canMoveSameProduct) {
         acts.push({ id: 'toscheduled', label: '🗓 Move to Scheduled', hint: 'Pick a day and time' });
       }
@@ -2855,7 +2855,10 @@ function renderLanes(c, totals){
         </div>
         <div style="text-align:right">
           <div class="price">${money(p.price * line.quantity)}</div>
-          ${acts.length?`<div class="rowhint">${acts.some(a=>a.primary)?'⚡ Express available':'Tap to change'} ›</div>`:''}
+          ${acts.length?`<div class="rowhint">${
+            acts.some(a=>a.id==='move') ? '⚡ Can arrive today'
+            : acts.some(a=>a.id==='expressalt') ? '⚡ Options for today'
+            : 'Tap to change'} ›</div>`:''}
         </div>
       </div>`;
     }
@@ -3012,7 +3015,7 @@ function renderSheet(c){
 
   const cur = plan.currentProduct;
   document.getElementById('sheetTitle').textContent = sheet.expressOnly
-    ? `Get ${cur.name} today — here's what drivers have`
+    ? `What we can get you today`
     : `Swap ${cur.brand} ${cur.name}`;
 
   // NO FAILURE FRAMING. The customer never needs to be told why something they
