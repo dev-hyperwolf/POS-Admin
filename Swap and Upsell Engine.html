@@ -130,6 +130,20 @@
     text-decoration:none}
   #appnav .menu a:hover{background:var(--panel2);color:var(--ink)}
   #appnav .menu a.here{color:var(--accent);font-weight:700}
+  /* Cart line, per the comps: one coloured pill + a quantity stepper.
+     These were lost when an edit script crashed before writing its CSS, so the
+     pills rendered grey and unstyled. */
+  .lbody{flex:1;min-width:0}
+  .lright{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+  .pill{margin-top:9px;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;
+        border-radius:99px;border:0;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13px}
+  .pill.express{background:var(--express);color:#fff}
+  .pill.scheduled{background:var(--sched);color:#fff}
+  .stepper{display:inline-flex;align-items:center;gap:2px;background:var(--panel2);border-radius:99px;padding:3px}
+  .stepbtn{width:30px;height:30px;border-radius:99px;border:0;background:transparent;color:var(--dim);
+           font-size:16px;cursor:pointer;font-family:var(--sans)}
+  .stepbtn.primary{background:#000;color:#fff}
+  .stepval{min-width:20px;text-align:center;font-family:var(--mono);font-size:13px;font-weight:700}
   .flowtabs{display:flex;gap:6px}
   .flowtab{padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;
            color:var(--dim);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
