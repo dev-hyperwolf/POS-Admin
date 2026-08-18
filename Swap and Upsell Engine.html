@@ -95,6 +95,13 @@
     .cols>div:last-child{display:flex;flex-direction:column}
     #sheetCard,#offerCard,#commitCard{order:-1}
   }
+  .chooser{margin-top:9px;padding:11px 12px;border-radius:10px;background:var(--panel2);
+           border:1px solid var(--line);display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+  .chooserq{font-size:12.5px;color:var(--dim);line-height:1.5}
+  .btn.swapmain{background:var(--panel2);border:1px solid var(--line);color:var(--ink)}
+  .speed{display:inline-block;margin-top:5px;font-family:var(--mono);font-size:10px;font-weight:800;
+         letter-spacing:.06em;padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+  .speed.fast{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.55);color:#C4B5FD}
   .flowtabs{display:flex;gap:6px}
   .flowtab{padding:7px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;
            color:var(--dim);font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
@@ -290,6 +297,7 @@ var HWCommerce = (() => {
     SUBSTITUTION_REASONS: () => SUBSTITUTION_REASONS,
     SWAP_MODES: () => SWAP_MODES,
     UPSELL_MODES: () => UPSELL_MODES,
+    applyLaneMove: () => applyLaneMove,
     applyOrderSubstitution: () => applyOrderSubstitution,
     applySwap: () => applySwap,
     asIndex: () => asIndex,
@@ -338,6 +346,7 @@ var HWCommerce = (() => {
     moveLane: () => moveLane,
     offerFromRule: () => offerFromRule,
     pickupLane: () => pickupLane,
+    planLaneMove: () => planLaneMove,
     planOrderSubstitution: () => planOrderSubstitution,
     planSwap: () => planSwap,
     previewSwap: () => previewSwap,
@@ -419,7 +428,8 @@ var HWCommerce = (() => {
     strongerMinThcDelta: 2,
     cheaperSort: "similarity",
     maxAvailabilityAgeMs: 10 * 6e4,
-    maxUpgradeMultiple: 2
+    maxUpgradeMultiple: 2,
+    laneMinimumPolicy: "advise"
   };
   var defaultUpsellConfig = {
     slotsBySurface: {
@@ -1482,30 +1492,68 @@ var HWCommerce = (() => {
     if (!line) return null;
     const current = index.byId.get(line.productId);
     if (!current) return null;
-    const lane = request.lane ?? line.lane;
+    const requested = request.lanes?.length ? request.lanes.filter((l) => !!ctx.lanes[l]) : [request.lane ?? line.lane];
+    const lane = requested.includes(line.lane) ? line.lane : requested[0] ?? line.lane;
+    const multi = requested.length > 1;
     const intent = request.intent ?? (lane === line.lane ? "browse" : "faster");
+    const unitsAcross = (productId) => Math.max(0, ...requested.map((l) => unitsAvailable(index.snapshot, productId, l)));
+    const lanesFor = (productId) => {
+      const lanes = requested.filter((l) => unitsAvailable(index.snapshot, productId, l) >= line.quantity);
+      const fastest = [...lanes].sort(
+        (a, b) => (ctx.lanes[a]?.etaMinutes ?? Infinity) - (ctx.lanes[b]?.etaMinutes ?? Infinity)
+      )[0];
+      const arrivesIn = lanes.includes(line.lane) ? line.lane : fastest ?? line.lane;
+      return { lanes, ...fastest ? { fastest } : {}, arrivesIn };
+    };
     const eligibility = laneEligibility(ctx.snapshot, line.productId, lane, line.quantity);
     const pool = index.snapshot.pools?.swap ?? (cfg.swap.restrictToSameCategory ? index.byCategory.get(current.category) ?? [] : index.snapshot.products);
     const built = buildCandidates({
       current,
       pool,
       quantity: line.quantity,
-      unitsFor: (p2) => unitsAvailable(index.snapshot, p2.id, lane),
+      unitsFor: (p2) => multi ? unitsAcross(p2.id) : unitsAvailable(index.snapshot, p2.id, lane),
       exclude: new Set(ctx.cart.lines.map((l) => l.productId)),
       config: cfg.swap,
-      poolLabel: `${ctx.lanes[lane]?.label ?? lane}`
+      poolLabel: multi ? requested.map((l) => ctx.lanes[l]?.label ?? l).join(" or ") : `${ctx.lanes[lane]?.label ?? lane}`
     });
+    const annotate = (list = []) => multi ? list.map((c) => ({ ...c, fulfillment: lanesFor(c.product.id) })) : list;
     const byMode = {
-      similar: built.byMode.similar ?? [],
-      cheaper: built.byMode.cheaper ?? [],
-      stronger: built.byMode.stronger ?? []
+      similar: annotate(built.byMode.similar),
+      cheaper: annotate(built.byMode.cheaper),
+      stronger: annotate(built.byMode.stronger)
     };
-    const emptyMode = { returned: 0, excludedByPriceBand: 0, excludedByThreshold: 0 };
+    const emptyMode = () => ({ returned: 0, excludedByPriceBand: 0, excludedByThreshold: 0 });
     const perMode = {
-      similar: built.diagnostics.perMode.similar ?? emptyMode,
-      cheaper: built.diagnostics.perMode.cheaper ?? emptyMode,
-      stronger: built.diagnostics.perMode.stronger ?? emptyMode
+      similar: built.diagnostics.perMode.similar ?? emptyMode(),
+      cheaper: built.diagnostics.perMode.cheaper ?? emptyMode(),
+      stronger: built.diagnostics.perMode.stronger ?? emptyMode()
     };
+    if (cfg.swap.laneMinimumPolicy === "block") {
+      const fromCfg = ctx.lanes[line.lane];
+      if (fromCfg) {
+        const fromLaneWithoutThisLine = ctx.cart.lines.filter((l) => l.lane === line.lane && l.id !== line.id).reduce((sum, l) => {
+          const p2 = index.byId.get(l.productId);
+          return sum + (p2 ? p2.price * l.quantity : 0);
+        }, 0);
+        const otherLinesRemain = ctx.cart.lines.some((l) => l.lane === line.lane && l.id !== line.id);
+        const survives = (c) => {
+          const staysPut = c.fulfillment ? c.fulfillment.arrivesIn === line.lane : lane === line.lane;
+          if (staysPut) {
+            return fromLaneWithoutThisLine + c.product.price * line.quantity >= fromCfg.minimumCents;
+          }
+          return !otherLinesRemain || fromLaneWithoutThisLine >= fromCfg.minimumCents;
+        };
+        for (const mode of SWAP_MODES) {
+          const before = byMode[mode] ?? [];
+          const after = before.filter(survives);
+          byMode[mode] = after;
+          if (before.length > 0 && after.length === 0) {
+            const d = perMode[mode];
+            if (d) d.note = `Every option would leave ${fromCfg.label} under its minimum.`;
+          }
+        }
+      }
+    }
     const ageMs = staleness(index.snapshot, ctx.now);
     const diagnostics = {
       ...built.diagnostics,
@@ -1517,13 +1565,16 @@ var HWCommerce = (() => {
       stale: ageMs != null && ageMs > cfg.swap.maxAvailabilityAgeMs,
       ...ageMs == null ? { undatedSnapshot: true } : {}
     };
-    const candidateCount = built.total;
+    const candidateCount = SWAP_MODES.reduce((n, m) => n + (byMode[m]?.length ?? 0), 0);
     return {
       lineId: request.lineId,
       intent,
       fromLane: line.lane,
       lane,
-      changesLane: lane !== line.lane,
+      // With several lanes in play the plan itself does not move anything — the
+      // CANDIDATE decides, via `fulfillment.fastest`. Only a single-lane request
+      // commits the line to a different lane up front.
+      changesLane: !multi && lane !== line.lane,
       currentProduct: current,
       quantity: line.quantity,
       sameProductAvailable: eligibility.ok,
@@ -1536,11 +1587,12 @@ var HWCommerce = (() => {
   function availabilityFromPlan(plan, lanes = defaultConfig.lanes) {
     if (plan.candidateCount === 0 && !plan.sameProductAvailable) {
       const laneLabel = lanes[plan.lane]?.label ?? plan.lane;
+      const specific = plan.diagnostics.perMode.similar?.note;
       return {
         offerable: false,
         candidateCount: 0,
         sameProductAvailable: false,
-        reason: `Nothing in ${plan.currentProduct.category} is available for ${laneLabel}`
+        reason: specific ?? `Nothing in ${plan.currentProduct.category} is available for ${laneLabel}`
       };
     }
     return {
@@ -1617,6 +1669,77 @@ var HWCommerce = (() => {
       laneMinimumsBroken,
       subtotalDeltaCents: subtotalCents(ctxAfter, index) - subtotalCents(ctx, index)
     };
+  }
+  function planLaneMove(ctx, lineId, toLane, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const index = options.index ?? asIndex(ctx.snapshot);
+    const line = ctx.cart.lines.find((l) => l.id === lineId);
+    if (!line) return null;
+    const fromCfg = ctx.lanes[line.lane];
+    const toCfg = ctx.lanes[toLane];
+    if (!fromCfg || !toCfg) return null;
+    const value = (l) => {
+      const p2 = index.byId.get(l.productId);
+      return p2 ? p2.price * l.quantity : 0;
+    };
+    const sourceLines = ctx.cart.lines.filter((l) => l.lane === line.lane);
+    const others = sourceLines.filter((l) => l.id !== lineId);
+    const remaining = others.reduce((sum, l) => sum + value(l), 0);
+    const sourceAfter = {
+      lane: line.lane,
+      linesRemaining: others.length,
+      subtotalCents: remaining,
+      minimumCents: fromCfg.minimumCents,
+      // An emptied lane places no order, so it cannot be under anything.
+      meetsMinimum: others.length === 0 || remaining >= fromCfg.minimumCents,
+      shortfallCents: others.length === 0 ? 0 : Math.max(0, fromCfg.minimumCents - remaining)
+    };
+    const targetLines = ctx.cart.lines.filter((l) => l.lane === toLane);
+    const targetWithLine = targetLines.reduce((sum, l) => sum + value(l), 0) + value(line);
+    const targetAfter = {
+      lane: toLane,
+      linesRemaining: targetLines.length + 1,
+      subtotalCents: targetWithLine,
+      minimumCents: toCfg.minimumCents,
+      meetsMinimum: targetWithLine >= toCfg.minimumCents,
+      shortfallCents: Math.max(0, toCfg.minimumCents - targetWithLine)
+    };
+    const possible = canFulfil(ctx.snapshot, line.productId, toLane, line.quantity);
+    const toAlreadyOpen = ctx.cart.lines.some((l) => l.lane === toLane);
+    const feeIfOpened = toAlreadyOpen ? 0 : toCfg.feeCents;
+    const opts = [];
+    if (possible) {
+      opts.push({
+        kind: "move_line",
+        lineIds: [lineId],
+        // Either end can be left short, and both block checkout equally.
+        strands: !sourceAfter.meetsMinimum || !targetAfter.meetsMinimum,
+        shortfallCents: Math.max(sourceAfter.shortfallCents, targetAfter.shortfallCents),
+        addedFeeCents: feeIfOpened
+      });
+    }
+    const oneLineStrands = !sourceAfter.meetsMinimum || !targetAfter.meetsMinimum;
+    if (oneLineStrands && others.length > 0) {
+      const allMovable = sourceLines.every((l) => canFulfil(ctx.snapshot, l.productId, toLane, l.quantity));
+      const allValue = sourceLines.reduce((sum, l) => sum + value(l), 0);
+      const resolves = targetLines.reduce((sum, l) => sum + value(l), 0) + allValue >= toCfg.minimumCents;
+      if (allMovable && resolves) {
+        opts.push({
+          kind: "move_whole_lane",
+          lineIds: sourceLines.map((l) => l.id),
+          strands: false,
+          shortfallCents: 0,
+          addedFeeCents: feeIfOpened
+        });
+      }
+    }
+    opts.push({ kind: "keep", lineIds: [], strands: false, shortfallCents: 0, addedFeeCents: 0 });
+    return { lineId, fromLane: line.lane, toLane, possible, sourceAfter, targetAfter, options: opts };
+  }
+  function applyLaneMove(cart, option, toLane) {
+    if (option.lineIds.length === 0) return cart;
+    const moving = new Set(option.lineIds);
+    return { ...cart, lines: cart.lines.map((l) => moving.has(l.id) ? { ...l, lane: toLane } : l) };
   }
 
   // src/core/upsell/index.ts
@@ -2506,6 +2629,8 @@ let sheet    = null;   // { lineId, toLane, mode }
 const NOW    = new Date('2026-08-18T14:30:00Z');
 
 const ctx = () => ({ snapshot, cart, customer, lanes: config.lanes, now: NOW });
+const BOTH = ['scheduled','express'];
+let moveChoice = null;   // { lineId, toLane } while the customer decides
 const prod = (id) => snapshot.products.find(p => p.id === id);
 const hue  = (id) => (id.split('').reduce((a,c)=>a+c.charCodeAt(0),0) * 37) % 360;
 const swatch = (id) => `<div class="sw" style="background:linear-gradient(135deg,hsl(${hue(id)} 55% 30%),hsl(${(hue(id)+40)%360} 55% 22%))"></div>`;
@@ -2552,25 +2677,41 @@ function renderLanes(c, totals){
     for (const line of lines) {
       const p = prod(line.productId);
 
-      // 1. The primary action: swap this product for another, in the SAME lane.
-      const here  = E.canSwap(c, line.id, undefined, { config, rules });
-      // 2. The lane-constrained entry point, only where it makes sense.
-      const cross = E.canSwap(c, line.id, other, { config, rules });
-      // 3. The same-product move — genuinely rare toward Express.
-      const move  = E.moveLane(c, line.id, other);
-      const canMoveSameProduct = move && move.kind === 'moved';
+      // ONE swap control. The sheet draws from BOTH lanes and badges each row
+      // with how fast it arrives, so speed is something the customer compares
+      // on the options themselves rather than an entry point they pick blind.
+      const swap = E.canSwap(c, line.id, undefined, { config, rules, lanes: BOTH });
+      // The only genuine lane action: keep this exact product, change when.
+      const lm = E.planLaneMove(c, line.id, other, { config });
+      const canMoveSameProduct = lm && lm.possible;
 
       const btns = [];
-      if (here.offerable)
-        btns.push(`<button class="btn ghost" data-swap-line="${line.id}">⇄ Swap this item</button>`);
+      // Express lines get no swap — they already have what they wanted, fast.
+      if (line.lane !== 'express' && swap.offerable)
+        btns.push(`<button class="btn swapmain" data-swap-line="${line.id}">⇄ Swap</button>`);
       if (canMoveSameProduct)
         btns.push(`<button class="btn ${other}" data-move="${line.id}" data-lane="${other}">
-          ${other==='express'?'⚡ Get it in 90 min':'🗓 Move to Scheduled'}</button>`);
-      else if (cross.offerable)
-        btns.push(`<button class="btn ${other}" data-swap-line="${line.id}" data-swap-lane="${other}">
-          ${other==='express'?'⚡ Swap to Express':'🗓 Swap to Scheduled'}</button>`);
+          ${other === 'express' ? '⚡ Get it in 90 min' : '🗓 Move to Scheduled'}</button>`);
 
-      const noCross = !canMoveSameProduct && !cross.offerable;
+      // When moving one line would leave EITHER lane under its minimum, do not
+      // block it and do not just warn — show the choice. Moving the whole lane
+      // is usually what an impatient customer actually wanted.
+      const choosing = moveChoice && moveChoice.lineId === line.id;
+      const chooser = choosing && lm && lm.options.some(o => o.kind === 'move_whole_lane')
+        ? `<div class="chooser">
+             <div class="chooserq">Moving just this one leaves ${
+               lm.sourceAfter.meetsMinimum ? config.lanes[other].label : config.lanes[line.lane].label
+             } ${money(Math.max(lm.sourceAfter.shortfallCents, lm.targetAfter.shortfallCents))} under its minimum.</div>
+             ${lm.options.filter(o => o.kind !== 'keep').map((o,i) => `
+               <button class="btn ${o.kind==='move_whole_lane'?other:'ghost'}" data-choose="${line.id}:${i}">
+                 ${o.kind==='move_whole_lane'
+                   ? `Move my whole ${config.lanes[line.lane].label} order (${o.lineIds.length} items)`
+                   : 'Move just this one'}
+               </button>`).join('')}
+             <button class="btn ghost" data-choose-cancel="1">Cancel</button>
+           </div>`
+        : '';
+
 
       html += `<div class="line">
         ${swatch(p.id)}
@@ -2579,7 +2720,7 @@ function renderLanes(c, totals){
           <div class="nm">${p.name}</div>
           <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC · ':''}${p.sizeGrams!=null?p.sizeGrams+'g':p.category}</div>
           <div style="display:flex;gap:7px;flex-wrap:wrap">${btns.join('')}</div>
-          ${noCross?`<div class="meta" style="color:var(--mute);margin-top:6px">No ${config.lanes[other].label} option — ${cross.reason||'nothing available'}</div>`:''}
+          ${chooser}
         </div>
         <div class="price">${money(p.price * line.quantity)}</div>
       </div>`;
@@ -2589,12 +2730,25 @@ function renderLanes(c, totals){
   }
 
   host.querySelectorAll('[data-move]').forEach(b => b.onclick = () => {
-    const out = E.moveLane(ctx(), b.dataset.move, b.dataset.lane);
-    if (out && out.kind === 'moved') { cart = out.cart; sheet = null; }
+    const lineId = b.dataset.move, lane = b.dataset.lane;
+    const p = E.planLaneMove(ctx(), lineId, lane, { config });
+    if (!p || !p.possible) return;
+    const single = p.options.find(o => o.kind === 'move_line');
+    // Clean move: just do it. Only ask when there is a real decision.
+    if (single && !single.strands) { cart = E.applyLaneMove(cart, single, lane); moveChoice = null; sheet = null; }
+    else { moveChoice = { lineId, toLane: lane }; }
     render();
   });
+  host.querySelectorAll('[data-choose]').forEach(b => b.onclick = () => {
+    const [lineId, idx] = b.dataset.choose.split(':');
+    const p = E.planLaneMove(ctx(), lineId, moveChoice.toLane, { config });
+    const chosen = p.options.filter(o => o.kind !== 'keep')[+idx];
+    if (chosen) cart = E.applyLaneMove(cart, chosen, moveChoice.toLane);
+    moveChoice = null; sheet = null; render();
+  });
+  host.querySelectorAll('[data-choose-cancel]').forEach(b => b.onclick = () => { moveChoice = null; render(); });
   host.querySelectorAll('[data-swap-line]').forEach(b => b.onclick = () => {
-    sheet = { lineId: b.dataset.swapLine, lane: b.dataset.swapLane || null, mode: 'similar' };
+    sheet = { lineId: b.dataset.swapLine, mode: 'similar' };
     render();
   });
 }
@@ -2660,26 +2814,20 @@ function renderSheet(c){
   card.style.display = '';
   if (wasHidden) reveal(card);
 
-  const req = { lineId: sheet.lineId };
-  if (sheet.lane) { req.lane = sheet.lane; req.intent = 'faster'; }
-  const plan = E.planSwap(c, req, { config, rules });
+  const plan = E.planSwap(c, { lineId: sheet.lineId, lanes: BOTH }, { config, rules });
   if (!plan) { card.style.display = 'none'; return; }
 
   const cur = plan.currentProduct;
-  document.getElementById('sheetTitle').textContent = plan.changesLane
-    ? `Swap to ${config.lanes[plan.lane].label} — ${cur.brand} ${cur.name}`
-    : `Alternatives for ${cur.brand} ${cur.name}`;
+  document.getElementById('sheetTitle').textContent = `Swap ${cur.brand} ${cur.name}`;
 
-  document.getElementById('sheetBlocked').innerHTML =
-    !plan.changesLane
-      ? `<div class="note">Same-lane swap. Whatever you pick stays in <strong>${config.lanes[plan.fromLane].label}</strong> — replacing a product never silently moves it into the other order.</div>`
-    : plan.sameProductAvailable
-      ? `<div class="note">A driver <em>does</em> have ${cur.name} — the plain move is the better offer, so the real UI would show that instead of this sheet.</div>`
-      : `<div class="warn"><strong>${cur.name}</strong> can't go ${plan.lane}: ${
-          plan.currentProductBlockedBy?.reason === 'out_of_stock'
-            ? 'no on-shift driver is carrying it.'
-            : `only ${plan.currentProductBlockedBy?.units} in a driver kit, you need ${plan.currentProductBlockedBy?.needed}.`
-        } These are different products a driver <em>does</em> have.</div>`;
+  // NO FAILURE FRAMING. The customer never needs to be told why something they
+  // did not choose is unavailable — they only need to see what they can have.
+  // Anything unsuitable was filtered out before it reached this list.
+  const anyFast = ['similar','cheaper','stronger']
+    .some(m => (plan.candidatesByMode[m]||[]).some(x => x.fulfillment && x.fulfillment.arrivesIn === 'express'));
+  document.getElementById('sheetBlocked').innerHTML = anyFast
+    ? `<div class="note">Anything marked <strong>⚡ 90 min</strong> is only carried by drivers, so picking it moves that item to Express. Everything else stays in ${config.lanes[plan.fromLane].label}.</div>`
+    : '';
 
   document.getElementById('sheetTabs').innerHTML = ['similar','cheaper','stronger'].map(m =>
     `<button class="tab ${sheet.mode===m?'on':''}" data-mode="${m}">${m[0].toUpperCase()+m.slice(1)}
@@ -2690,19 +2838,21 @@ function renderSheet(c){
   const dg = plan.diagnostics.perMode[sheet.mode];
   document.getElementById('sheetList').innerHTML = list.length
     ? list.map(cd => {
+        // Badge where it will ACTUALLY arrive, not the fastest lane that has it.
+        const arrives = cd.fulfillment ? cd.fulfillment.arrivesIn : plan.fromLane;
+        const fast = arrives === 'express';
         const impact = E.previewSwap(c, plan, cd, { rules, config });
-        const warn = [
-          ...impact.laneMinimumsBroken.map(b => `drops ${b.lane} ${money(b.shortfallCents)} under its minimum`),
-          ...impact.promotionsLost.map(p => `loses "${p.name}" (${money(p.valueCents)})`),
-          ...impact.promotionsGained.map(p => `unlocks "${p.name}" (${money(p.valueCents)})`),
-        ];
+        // Only consequences the customer would actually want to know. Lane
+        // minimums are gone because a swap that breaks one is no longer offered.
+        const warn = impact.promotionsLost.map(p => `you'd lose ${p.name}`);
         return `<div class="cand">
           ${swatch(cd.product.id)}
           <div class="body">
             <div class="brand">${cd.product.brand}</div>
             <div class="nm">${cd.product.name}</div>
             <div class="meta">${cd.product.thcPercent!=null?cd.product.thcPercent+'% THC':''}${cd.product.sizeGrams!=null?' · '+cd.product.sizeGrams+'g':''} · ${cd.reason}</div>
-            ${warn.length?`<div class="meta" style="color:#FCA5A5;margin-top:4px">⚠ ${warn.join(' · ')}</div>`:''}
+            <div class="speed ${fast?'fast':''}">${fast?'⚡ 90 min':'🗓 Scheduled'}</div>
+            ${warn.length?`<div class="meta" style="color:#F2D98B;margin-top:4px">${warn.join(' · ')}</div>`:''}
           </div>
           <div style="text-align:right">
             <div class="delta ${cd.priceDeltaCents<0?'save':'up'}">${money(cd.product.price)}</div>
@@ -2716,7 +2866,11 @@ function renderSheet(c){
   document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { sheet.mode = b.dataset.mode; render(); });
   document.querySelectorAll('[data-swap]').forEach(b => b.onclick = () => {
     const cd = list.find(x => x.product.id === b.dataset.swap);
-    cart = E.applySwap(cart, plan.lineId, cd, plan.changesLane ? plan.lane : undefined);
+    // The CANDIDATE decides the lane: pick something only Express carries and
+    // the line moves; pick something the current lane has and it stays put.
+    const target = cd.fulfillment && cd.fulfillment.arrivesIn !== plan.fromLane
+      ? cd.fulfillment.arrivesIn : undefined;
+    cart = E.applySwap(cart, plan.lineId, cd, target);
     sheet = null; render();
   });
   document.getElementById('closeSheet').onclick = () => { sheet = null; render(); };
