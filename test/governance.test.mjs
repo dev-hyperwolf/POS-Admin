@@ -754,3 +754,86 @@ test('D4 — and the ENGINE actually refuses when they differ', () => {
   assert.ok(refusal, 'expected a refusal');
   assert.equal(refusal.code, 'wrong_kit');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// D5 — one tax function, so the two sides agree BY CONSTRUCTION
+//
+// "the total needs to fully update when an adjustment is made - no exceptions.
+//  This needs to be bulletproof" + give the engine our tax function.
+//
+// The engine's fallback reverse-engineers ONE blended rate from the receipt.
+// California is three components rounded separately, so a single rate cannot
+// reproduce it — measured on the live estate, an exact-to-the-cent check
+// rejected 18.7% of candidates on rounding alone.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('D5 — the bridge reports it is supplying the estate tax function', () => {
+  const { G } = loadGovern();
+  assert.equal(G.capabilities.estateTax, true);
+});
+
+test('D5 — a governed plan reconciles with HW.taxBreakdown to the CENT', () => {
+  const { G, HW, DDATA } = loadGovern();
+  const kit = G.buildKit('RC-01', { now: NOW });
+  assert.ok(kit, 'need a kit');
+
+  // A category with SIBLINGS in this kit, or there is nothing to swap into and
+  // the test proves nothing. RC-01 carries 6 Flower skus.
+  const prod = HW.PRODUCTS.find((p) => p.cat === 'Flower' && kit.units[p.sku] > 0);
+  assert.ok(prod, 'need a Flower line with kit siblings');
+  const sub = prod.price * 2;
+  const tax = HW.taxBreakdown(sub).total;
+
+  const order = {
+    id: 'T-1', status: 'en_route', lane: 'express', paymentMethod: 'cash',
+    assignedKitId: 'RC-01', placedAt: NOW.toISOString(),
+    lines: [{ id: 'l1', productId: prod.id, quantity: 2, unitPriceCents: Math.round(prod.price * 100) }],
+    agreed: {
+      subtotalCents: Math.round(sub * 100), discountCents: 0, feesCents: 0,
+      taxCents: Math.round(tax * 100), totalCents: Math.round((sub + tax) * 100),
+    },
+  };
+
+  const res = G.planGoverned({
+    actor: { kind: 'support', id: 'sup-1', name: 'A. Chen' },
+    order, kit, lineId: 'l1', now: NOW,
+  });
+  assert.ok(res.plan && res.plan.candidateCount > 0, 'need candidates to compare');
+
+  for (const c of Object.values(res.plan.candidatesByMode).flat()) {
+    const newSubCents = order.agreed.subtotalCents + c.money.lineDeltaCents;
+    const expected = newSubCents + Math.round(HW.taxBreakdown(newSubCents / 100).total * 100);
+    assert.equal(c.money.newTotalCents, expected,
+      `${c.product.name}: engine ${c.money.newTotalCents} vs estate ${expected}`);
+  }
+});
+
+test('D5 — ...and WITHOUT the injection they diverge, which is the whole point', () => {
+  const { G, HW } = loadGovern();
+  const kit = G.buildKit('RC-01', { now: NOW });
+  // A category with SIBLINGS in this kit, or there is nothing to swap into and
+  // the test proves nothing. RC-01 carries 6 Flower skus.
+  const prod = HW.PRODUCTS.find((p) => p.cat === 'Flower' && kit.units[p.sku] > 0);
+  assert.ok(prod, 'need a Flower line with kit siblings');
+  const sub = prod.price * 2;
+  const tax = HW.taxBreakdown(sub).total;
+  const order = {
+    id: 'T-2', status: 'en_route', lane: 'express', paymentMethod: 'cash',
+    assignedKitId: 'RC-01', placedAt: NOW.toISOString(),
+    lines: [{ id: 'l1', productId: prod.id, quantity: 2, unitPriceCents: Math.round(prod.price * 100) }],
+    agreed: {
+      subtotalCents: Math.round(sub * 100), discountCents: 0, feesCents: 0,
+      taxCents: Math.round(tax * 100), totalCents: Math.round((sub + tax) * 100),
+    },
+  };
+  const base = { actor: { kind: 'support', id: 's', name: 'A' }, order, kit, lineId: 'l1', now: NOW };
+
+  const withFn = G.planGoverned(base);
+  const without = G.planGoverned({ ...base, computeTax: null });   // explicit opt-out
+
+  const pick = (r) => Object.values(r.plan.candidatesByMode).flat()
+    .map((c) => c.product.id + ':' + c.money.newTotalCents).sort().join('|');
+
+  assert.notEqual(pick(withFn), pick(without),
+    'if these agree the injection is doing nothing and the reconciliation test above proves nothing');
+});

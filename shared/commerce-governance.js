@@ -618,6 +618,31 @@
    *   view carrying the figures and copy a confirm screen needs, so a surface
    *   never has to re-derive money or re-decide what is allowed.
    */
+  /**
+   * ── D5 · THE ESTATE'S TAX FUNCTION, HANDED TO THE ENGINE ───────────────────
+   *
+   * "the total needs to fully update when an adjustment is made - no exceptions.
+   *  This needs to be bulletproof" — the owner, 2026-08-19.
+   *
+   * Without this the engine reverse-engineers ONE blended rate from the receipt.
+   * That cannot reproduce California's three separately-rounded components
+   * (2.22% local + 15% excise + 6% sales), and the gap is not theoretical: an
+   * exact-to-the-cent reconciliation over the live estate rejected 18.7% of
+   * candidates on rounding alone.
+   *
+   * `window.HW.taxBreakdown` is the estate's single tax helper — the same one
+   * every screen already itemises from. Handing it to the engine is what makes
+   * the two sides agree by construction rather than by luck.
+   */
+  function estateTax() {
+    const hw = window.HW;
+    if (!hw || typeof hw.taxBreakdown !== 'function') return null;
+    return function (taxableBaseCents) {
+      // taxBreakdown works in DOLLARS; the engine works in integer cents.
+      return Math.round(hw.taxBreakdown(taxableBaseCents / 100).total * 100);
+    };
+  }
+
   function planGoverned(input) {
     const i = input || {};
     if (!i.actor) return refuse('actor_not_permitted');
@@ -639,6 +664,8 @@
       policy: POLICY,
       now: asDate(i.now),
       modes: i.modes || E.UPSELL_MODES,
+      // D5. An explicit null disables it and takes the engine's derived rate.
+      ...(i.computeTax === null ? {} : { computeTax: i.computeTax || estateTax() || undefined }),
     });
 
     // The engine returns null for a line or product it cannot find at all.
@@ -753,6 +780,8 @@
       settleAtDoorFromEngine: ENGINE_SETTLES_AT_DOOR,
       /** False = delivery/ddata.jsx is not loaded on this page; buildKit returns null. */
       get regionStock() { return !!regionStock(); },
+      /** False = HW.taxBreakdown is absent, so the engine falls back to a derived rate. */
+      get estateTax() { return !!estateTax(); },
     },
     // builders
     buildActor,
