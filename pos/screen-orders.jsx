@@ -1255,10 +1255,33 @@ function WmOrderBlock({ o, wm, onLog }) {
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px', background: P.accentSoft, borderRadius: P.r10 }}><Pill kind="accent" dot>Now</Pill><span style={{ fontSize: 11.5, color: P.ink2 }}>Weedmaps status <b style={{ color: P.ink }}>{cur.wm.replace(/_/g, ' ')}</b> — customer sees “{cur.cust}”</span></div>
       </div>
     </div></Fold>
-    <Fold id="wm-fraud" icon="shield" title="Identity & fraud check" tone={wm.level === 'high' ? 'bad' : wm.level === 'medium' ? 'warn' : 'good'}
+    <Fold id="wm-fraud" icon="shield" title="Identity & fraud check" tone={(o && o._live) ? 'warn' : wm.level === 'high' ? 'bad' : wm.level === 'medium' ? 'warn' : 'good'}
     status={verify === 'pending' ? wm.flags && wm.flags.length ? wm.flags.length + ' signal' + (wm.flags.length > 1 ? 's' : '') + ' · needs a decision' : 'needs a decision' : verify === 'approved' ? 'cleared' : verify === 'hold' ? 'on hold' : 'rejected'}
     defOpen={verify === 'pending'}>
     <div>
+      {/* NO RISK MODEL EXISTS. engine.evaluate_fraud returns (action, reason) —
+          there is no score, and no per-field check model at all. On a LIVE
+          order the bar below would fill to a number nobody computed and, worse,
+          the no-flags branch renders a green tick reading "Identity checks
+          passed", which is how an operator releases an order believing it was
+          screened. A bar and a badge ARE the claim that a check ran, so no
+          value can make them honest — the block has to say it did not run.
+          Gated on o._live, which the live seam sets, so mock orders keep the
+          design's original behaviour untouched. */}
+      {o && o._live ? <div style={{ border: `1px dashed ${P.hairline2}`, borderRadius: P.r12, padding: '11px 12px', marginBottom: 10, background: P.surface2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+          <Icon name="shield" size={14} stroke={1.9} color={P.inkMute} />
+          <span style={{ fontSize: 12, fontWeight: 800, color: P.ink, letterSpacing: '.02em' }}>NOT COMPUTED</span>
+        </div>
+        <div style={{ fontSize: 11.5, lineHeight: 1.5, color: P.ink2 }}>
+          There is no risk score and no per-field identity check in this system.
+          The anti-abuse gate returns an action and a reason, not a score, and
+          nothing here has screened this customer. Weedmaps sends a name, a
+          phone and sometimes an address — no document, no date of birth — so a
+          Weedmaps contact starts unverified and that is the correct answer, not
+          a failure. Use the identity panel for what is actually known.
+        </div>
+      </div> : <React.Fragment>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
         <Icon name="shield" size={15} stroke={1.9} color={riskC} />
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Risk score</span>
@@ -1274,6 +1297,7 @@ function WmOrderBlock({ o, wm, onLog }) {
         <WmCheckRow label="Phone" state={wm.checks.phone} />
         {wm.checks.address !== 'n/a' && <WmCheckRow label="Delivery address" state={wm.checks.address} />}
       </div>}
+      </React.Fragment>}
       {wm.flags && wm.flags.length > 0 &&
         <div style={{ marginTop: 9, padding: '10px 12px', background: P.badSoft, borderRadius: P.r10 }}>
         <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: P.bad, marginBottom: 6 }}>{wm.flags.length} fraud signal{wm.flags.length > 1 ? 's' : ''}</div>

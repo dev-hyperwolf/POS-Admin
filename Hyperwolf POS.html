@@ -48,6 +48,15 @@
 <!-- The sub-category -> Weedmaps node mapping board, live from /api/taxonomy.
      Same loopback gate as hw-live.js, so the GitHub Pages demo never fetches. -->
 <script src="shared/hw-live-taxonomy.js"></script>
+<!-- The identity ledger: which Weedmaps customer ids map to which of our people,
+     the per-order match with its tier and evidence, and verification in four
+     states that must never render the same. Same arming rule as its siblings —
+     inert wherever /api does not answer, so GitHub Pages is untouched. -->
+<script src="shared/hw-live-identity.js"></script>
+<!-- The counter check-in strip and the arrival matcher, including the LOSING
+     candidates and their scores: an associate who cannot see why the runner-up
+     lost cannot disagree with the machine. -->
+<script src="shared/hw-live-checkin.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from
