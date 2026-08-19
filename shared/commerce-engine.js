@@ -2369,6 +2369,7 @@ var HWCommerce = (() => {
           rules,
           policy,
           now,
+          units: c.fillable,
           ...input.computeTax ? { computeTax: input.computeTax } : {}
         });
         const verdict = judgeCandidate({
@@ -2402,8 +2403,12 @@ var HWCommerce = (() => {
   }
   function priceSubstitution(input) {
     const { order, line, replacement, products, rules, policy, now } = input;
-    const lineDeltaCents = (replacement.price - line.unitPriceCents) * line.quantity;
-    const promotionsBroken = findBrokenPromotions({ order, line, replacement, products, rules, now });
+    const moved = Math.max(0, Math.min(
+      Math.floor(input.units ?? line.quantity),
+      line.quantity
+    ));
+    const lineDeltaCents = (replacement.price - line.unitPriceCents) * moved;
+    const promotionsBroken = findBrokenPromotions({ order, line, replacement, products, rules, now, units: moved });
     const promotionLossCents = promotionsBroken.reduce((s, p2) => s + p2.valueCents, 0);
     const newSubtotal = order.agreed.subtotalCents + lineDeltaCents;
     const newDiscount = Math.max(0, order.agreed.discountCents - promotionLossCents);
@@ -2422,6 +2427,7 @@ var HWCommerce = (() => {
   }
   function findBrokenPromotions(input) {
     const { order, line, replacement, products, rules, now } = input;
+    const moved = Math.max(0, Math.min(Math.floor(input.units ?? line.quantity), line.quantity));
     const applied = new Set(order.appliedPromotionIds ?? []);
     if (applied.size === 0 || rules.length === 0) return [];
     const snapshot = { products: [...products], availability: {} };
@@ -2431,9 +2437,15 @@ var HWCommerce = (() => {
     });
     const base = { snapshot, lanes: {}, now };
     const before = { ...base, cart: toCart(order.lines) };
+    const remaining = line.quantity - moved;
+    const afterLines = order.lines.flatMap((l) => {
+      if (l.id !== line.id) return [l];
+      const swapped = { ...l, id: l.id + "+" + replacement.id, productId: replacement.id, quantity: moved };
+      return remaining > 0 ? [{ ...l, quantity: remaining }, swapped] : [swapped];
+    });
     const after = {
       ...base,
-      cart: toCart(order.lines.map((l) => l.id === line.id ? { ...l, productId: replacement.id } : l))
+      cart: toCart(afterLines)
     };
     const lost = [];
     for (const rule of rules) {
