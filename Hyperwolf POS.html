@@ -39,6 +39,12 @@
 </template>
 <div id="root"></div>
 
+<!-- The live-data seam. FIRST on purpose: it kicks off GET /api/state before the
+     ~5MB of React + Babel below start downloading, so on the live path the payload
+     has landed long before pos/data.jsx runs and no re-render is ever needed.
+     Inert unless the page is served from a loopback origin — the GitHub Pages
+     demo never fetches anything. See shared/hw-live.README.md. -->
+<script src="shared/hw-live.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from
