@@ -2870,14 +2870,31 @@ var HWCommerce = (() => {
     }
     const line = order.lines.find((l) => l.id === plan.lineId);
     if (!line) return refuse("line_not_found", "That line is no longer on this order.");
+    const moved = Math.max(0, Math.min(candidate.fillable ?? line.quantity, line.quantity));
+    if (moved === 0) {
+      return refuse("nothing_to_move", "This candidate cannot supply any units of that line.");
+    }
+    const remaining = line.quantity - moved;
+    const splitId = () => {
+      const taken = new Set(order.lines.map((l) => l.id));
+      const base = `${plan.lineId}+${candidate.product.id}`;
+      if (!taken.has(base)) return base;
+      for (let n = 2; ; n++) if (!taken.has(`${base}#${n}`)) return `${base}#${n}`;
+    };
     const updated = {
       ...order,
-      lines: order.lines.map((l) => l.id === plan.lineId ? {
-        ...l,
-        productId: candidate.product.id,
-        unitPriceCents: candidate.product.price,
-        substitutedFromProductId: l.productId
-      } : l),
+      lines: order.lines.flatMap((l) => {
+        if (l.id !== plan.lineId) return [l];
+        const swapped = {
+          ...l,
+          ...remaining > 0 ? { id: splitId() } : {},
+          productId: candidate.product.id,
+          unitPriceCents: candidate.product.price,
+          quantity: moved,
+          substitutedFromProductId: l.productId
+        };
+        return remaining > 0 ? [{ ...l, quantity: remaining }, swapped] : [swapped];
+      }),
       agreed: {
         ...order.agreed,
         subtotalCents: order.agreed.subtotalCents + candidate.money.lineDeltaCents,
@@ -2895,7 +2912,9 @@ var HWCommerce = (() => {
       fromProductName: `${plan.currentProduct.brand} ${plan.currentProduct.name}`,
       toProductId: candidate.product.id,
       toProductName: `${candidate.product.brand} ${candidate.product.name}`,
-      quantity: plan.quantity,
+      // What actually moved, not what the line held. On a partial the rest is
+      // still on the order as its own line.
+      quantity: moved,
       reason,
       actor,
       consent,
@@ -2911,14 +2930,14 @@ var HWCommerce = (() => {
         kind: "release",
         kitId: plan.kitId,
         productId: plan.currentProduct.id,
-        quantity: plan.quantity,
+        quantity: moved,
         note: `Released from order ${order.id} after substitution ${recordId}`
       },
       {
         kind: "allocate",
         kitId: plan.kitId,
         productId: candidate.product.id,
-        quantity: plan.quantity,
+        quantity: moved,
         note: `Allocated to order ${order.id} by substitution ${recordId}`
       }
     ];
