@@ -55,6 +55,15 @@
   // API share an origin and CORS never enters the picture.
   var LOOPBACK = /^(localhost|127\.0\.0\.1|\[::1\]|::1)$/i;
 
+  // ff(P.fontMono) is '"JetBrains Mono","SF Mono",ui-monospace,monospace' -- it
+  // CONTAINS DOUBLE QUOTES. Interpolated raw into style="..." the first quote
+  // TERMINATES THE ATTRIBUTE and every declaration after it is silently
+  // discarded. That is not cosmetic here: it dropped the colour off the line
+  // naming which Weedmaps node had died, which then computed black-on-near-black
+  // and was INVISIBLE in dark mode. Single quotes are equally valid in CSS and
+  // survive the attribute.
+  function ff(v) { return String(v).replace(/"/g, "'"); }
+
   function qs(name) {
     var m = new RegExp('[?&]' + name + '=([^&]*)').exec(W.location.search);
     return m ? decodeURIComponent(m[1]) : null;
@@ -878,7 +887,7 @@
   function line(P, k, v, tone) {
     return '<div style="display:flex;gap:10px;justify-content:space-between;padding:3px 0">' +
       '<span style="color:' + P.inkMute + '">' + esc(k) + '</span>' +
-      '<span style="color:' + (tone || P.ink) + ';font-family:' + P.fontMono + ';text-align:right">' + esc(v) + '</span></div>';
+      '<span style="color:' + (tone || P.ink) + ';font-family:' + ff(P.fontMono) + ';text-align:right">' + esc(v) + '</span></div>';
   }
 
   function esc(s) {
@@ -901,7 +910,7 @@
       return h;
     }
     h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;margin-bottom:10px">' +
-      'Catalogue, regions, fleet and the Weedmaps listing ids come from <span style="font-family:' + P.fontMono + '">' + esc(base) + '/api/state</span>.</div>';
+      'Catalogue, regions, fleet and the Weedmaps listing ids come from <span style="font-family:' + ff(P.fontMono) + '">' + esc(base) + '/api/state</span>.</div>';
     h += line(P, 'Products', r.products, P.ink);
     h += line(P, 'On sale', r.onSale, r.onSale ? P.ink : P.inkMute);
     h += line(P, 'Regions', r.regions.join(', '), P.ink);
@@ -1038,7 +1047,7 @@
       'It POSTs /api/order/stage, shows the validator&#39;s reason when a move is illegal, and re-reads the board.</div>';
     h += '<div style="display:flex;gap:6px;align-items:center">' +
       '<input data-hwl-id value="' + esc(_advId) + '" placeholder="order id" ' +
-        'style="' + ctl + 'flex:1;min-width:0;font-family:' + P.fontMono + '">' +
+        'style="' + ctl + 'flex:1;min-width:0;font-family:' + ff(P.fontMono) + '">' +
       '<select data-hwl-stage style="' + ctl + 'font-family:' + P.fontSans + '">' +
         stages.map(function (s) {
           return '<option value="' + esc(s) + '"' + (s === _advStage ? ' selected' : '') + '>' + esc(s) + '</option>';
@@ -1048,7 +1057,7 @@
         ';font-weight:600;cursor:pointer;color:' + P.ink2 + '">Advance</button></div>';
     if (_advMsg) {
       h += '<div style="margin-top:7px;font-size:' + P.type.meta + 'px;line-height:1.45;font-family:' +
-        P.fontMono + ';color:' + (_advOk ? P.ink2 : P.bad) + '">' + esc(_advMsg) + '</div>';
+        ff(P.fontMono) + ';color:' + (_advOk ? P.ink2 : P.bad) + '">' + esc(_advMsg) + '</div>';
     }
     h += '</div>';
     return h;
@@ -1134,7 +1143,7 @@
       'box-shadow:' + P.shadowSm + ';cursor:pointer;user-select:none;pointer-events:auto">' +
       '<span style="width:7px;height:7px;border-radius:' + P.r999 + 'px;background:' + dot + ';flex:0 0 auto"></span>' +
       '<span style="font-size:' + P.type.meta + 'px;font-weight:700;color:' + P.ink + '">' + esc(label) + '</span>' +
-      '<span style="font-size:' + P.type.meta + 'px;color:' + P.inkMute + ';font-family:' + P.fontMono + '">' + esc(sub) + '</span></div>';
+      '<span style="font-size:' + P.type.meta + 'px;color:' + P.inkMute + ';font-family:' + ff(P.fontMono) + '">' + esc(sub) + '</span></div>';
     _badge.innerHTML = html;
   }
 
