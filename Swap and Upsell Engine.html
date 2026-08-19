@@ -1413,8 +1413,8 @@ var HWCommerce = (() => {
       is_first_timer: input.isFirstTimer
     };
   }
-  function redemptionIdempotencyKey(promotionKey, orderId) {
-    return `${promotionKey}::${orderId}`;
+  function redemptionIdempotencyKey(request) {
+    return `${request.promotion_key}::${request.source}::${request.order_id}`;
   }
   function shouldFailClosed(subject) {
     return subject.usageLimitPerUser != null || subject.isFirstTimer;
@@ -3039,15 +3039,36 @@ function renderLanes(c, totals){
 
     for (const line of lines) {
       const p = prod(line.productId);
-      // ONE control per line, exactly as drawn in the comps:
-      //   scheduled row -> "⚡ Swap to Express"   (purple pill)
-      //   express row   -> "🗓 Move to Scheduled" (blue pill)
-      // Nothing else. Everything I added around this — action sheets, row
-      // hints, outcome-labelled CTAs — was my invention, not the design.
-      const isSched = line.lane === 'scheduled';
-      const act = isSched
-        ? { cls: 'express', label: '⚡ Swap to Express', attr: `data-swap-line="${line.id}"` }
-        : { cls: 'scheduled', label: '🗓 Move to Scheduled', attr: `data-move="${line.id}" data-lane="scheduled"` };
+      // ONE control per line, exactly as drawn in the comps — but the LABEL is
+      // not chosen by the lane. Read from the Figma 2026-08-18 (see
+      // docs/FIGMA-MOBILE-SPEC.md §1): the Scheduled lane shows BOTH
+      // "⚡ Move to Express" and "⚡ Swap to Express" on adjacent lines.
+      //
+      //   MOVE — this exact product is available in the other lane. A plain
+      //          lane change: no sheet, no alternatives.
+      //   SWAP — it is not. The other lane can only offer something ELSE, so
+      //          the alternatives sheet has to open.
+      //
+      // That is `sameProductAvailable`, and it is why `moveLane()` and
+      // `planSwap()` are separate functions. The design arrived at the same
+      // distinction independently; this demo used to hide it behind one label
+      // per lane, which made a Move look like a Swap.
+      const other = line.lane === 'scheduled' ? 'express' : 'scheduled';
+      const avail = E.canSwap(c, line.id, other, { config });
+      const toExpress = other === 'express';
+      const dest = config.lanes[other].label;
+
+      // Nothing the other lane can do with this line — neither the product nor
+      // an alternative. The comps simply omit the control; an empty state for
+      // this is not drawn (FIGMA-MOBILE-SPEC §4).
+      const act = (!avail.offerable && !avail.sameProductAvailable) ? null
+        : avail.sameProductAvailable
+          ? { cls: toExpress ? 'express' : 'scheduled',
+              label: `${toExpress ? '⚡' : '🗓'} Move to ${dest}`,
+              attr: `data-move="${line.id}" data-lane="${other}"` }
+          : { cls: toExpress ? 'express' : 'scheduled',
+              label: `${toExpress ? '⚡' : '🗓'} Swap to ${dest}`,
+              attr: `data-swap-line="${line.id}" data-lane="${other}"` };
 
       html += `<div class="line">
         ${swatch(p.id)}
@@ -3055,7 +3076,7 @@ function renderLanes(c, totals){
           <div class="brand">${p.brand}</div>
           <div class="nm">${p.name}</div>
           <div class="meta">${p.thcPercent!=null?p.thcPercent+'% THC':''}${p.sizeGrams!=null?' · '+p.sizeGrams+'g':''}</div>
-          <button class="pill ${act.cls}" ${act.attr}>${act.label}</button>
+          ${act ? `<button class="pill ${act.cls}" ${act.attr}>${act.label}</button>` : ''}
         </div>
         <div class="lright">
           <div class="price">${money(p.price * line.quantity)}</div>
@@ -3099,7 +3120,7 @@ function renderLanes(c, totals){
   host.querySelectorAll('[data-swap-line]').forEach(b => b.onclick = () => {
     // The comps have ONE entry point and it is lane-constrained: "Swap to
     // Express" opens the "Faster alternative" sheet. Nothing else.
-    sheet = { lineId: b.dataset.swapLine, mode: 'similar', expressOnly: true };
+    sheet = { lineId: b.dataset.swapLine, mode: 'similar', expressOnly: (b.dataset.lane ?? 'express') === 'express' };
     render();
   });
 }
