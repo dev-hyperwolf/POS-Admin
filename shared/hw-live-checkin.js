@@ -101,7 +101,12 @@
   var TIMEOUT_MS = 6000;
   var OFF_KEY = 'hw-checkin-off';
   var RAIL_W = 74;               // shared/app-rail.jsx:46 — clear the rail
-  var BOTTOM = 90;               // above hw-live.js (14) and hw-live-taxonomy (52)
+  var BOTTOM = 162   // STACKED, NOT STACKED ON.
+  // Every seam picked its own "clear the siblings" offset without knowing the
+  // others existed, so three pills landed on the same 90px line at the same
+  // z-index. The last one in the DOM won elementFromPoint() everywhere and the
+  // panels behind it were openable only from the console -- a feature nobody
+  // can click is a feature nobody has. Taxonomy 90, identity 126, check-in 162.;               // above hw-live.js (14) and hw-live-taxonomy (52)
   var CAND_CAP = 30;             // orders we pull a full candidate list for
 
   // ── gate ─────────────────────────────────────────────────────────────────
@@ -279,6 +284,8 @@
       // beats rendering an empty room and calling it live.
       if (!b || !Array.isArray(b.orders) || !Array.isArray(b.people)) {
         _status = 'unreachable';
+        restoreMock();
+        rerenderIfMounted();
         paint();
         return _status;
       }
@@ -295,6 +302,8 @@
       clearTimeout(timer);
       _settled = true;
       _status = 'unreachable';
+      restoreMock();
+      rerenderIfMounted();
       paint();
       return _status;
     });
@@ -661,12 +670,40 @@
     if (typeof _hw.bindFor === 'function' && !_origBindFor) {
       _origBindFor = _hw.bindFor;
       _hw.bindFor = function (o) {
-        var live = _liveBinds[String(o && o.id)];
-        return live || _origBindFor(o);
+        // KEYED BOTH WAYS. This looked up by o.id while _liveBinds was
+        // populated by o.wm_order_id. Those agree on a live page (hw-live.js
+        // sets id = wm_order_id) and DIVERGE on every mock row ('ORD-00231'),
+        // so the lookup missed, fell through to pos/data.jsx, and MatchSheet
+        // drew four invented people each carrying a bar meter and the score 5.
+        // Nobody scored them. toBind() above is careful never to truncate the
+        // candidate list for exactly that reason -- and this miss defeated
+        // that guard one level up.
+        var live = _liveBinds[String(o && o.wm_order_id)]
+                || _liveBinds[String(o && o.id)];
+        if (live) { return live; }
+        // The board is live and did not classify this order. Say so. Falling
+        // through here would hand the sheet fabricated scores for real people
+        // standing in a real room, which is the one thing this file exists to
+        // stop.
+        if (_status === 'live') {
+          return {
+            state: 'none', conf: 0, checkinId: null, signals: [],
+            why: '', boardWhy: 'The live check-in board did not classify this '
+                 + 'order, so nobody has been scored against it. Any ranking '
+                 + 'shown here would be invented.',
+            candidates: [], live: true, ownerState: 'unknown'
+          };
+        }
+        return _origBindFor(o);
       };
     }
     _liveBinds = {};
     orders().forEach(function (o) { _liveBinds[String(o.wm_order_id)] = toBind(o); });
+    // Also key by the id the SCREEN uses, so a page whose orders were replaced
+    // by hw-live.js and one still on mock rows both resolve.
+    orders().forEach(function (o) {
+      if (o && o.id != null) { _liveBinds[String(o.id)] = _liveBinds[String(o.wm_order_id)]; }
+    });
 
     // 5. "1st visit" for somebody we have never seen — falsehood #4.
     if (typeof _hw.visitLabel === 'function' && !_origVisitLabel) {
@@ -685,6 +722,25 @@
       source: base + '/api/checkin',
       counter: counter || null
     };
+  }
+
+  // When the API stops answering we have to put back what we replaced. The
+  // panel says, in words, "the strip is rendering pos/data.jsx's four invented
+  // people" -- and it said that while the LIVE people were still on screen,
+  // because nothing restored them. A disclosure that is itself false is worse
+  // than no disclosure: it tells an operator to distrust exactly the rows that
+  // were real.
+  function restoreMock() {
+    try {
+      if (_hw && _mockCheckins && Array.isArray(_hw.CHECKINS)) {
+        _hw.CHECKINS.length = 0;
+        _mockCheckins.forEach(function (c) { _hw.CHECKINS.push(c); });
+      }
+      _liveBinds = {};
+      if (_hw) { _hw.CHECKIN_LIVE = { status: _status, board: null,
+                                      contract: null, candidates: {},
+                                      restored_mock: true }; }
+    } catch (e) {}
   }
 
   function replaceMap(target, src) {
@@ -728,6 +784,14 @@
   }
 
   function rerenderIfMounted() {
+    // hw-live.js wrapped ReactDOM.createRoot BEFORE us, so our own wrapper
+    // never saw the call and _root is null. Re-rendering through the root
+    // that was actually captured is the difference between 'the payload
+    // landed' and 'the payload landed and anyone can see it'.
+    if ((!_root || !_rootEl) && W.HW_LIVE && typeof W.HW_LIVE.rerender === 'function') {
+      try { W.HW_LIVE.rerender(); } catch (e) {}
+      return;
+    }
     if (!_root || !_rootEl) { return; }
     try {
       var el = (W.React && W.React.cloneElement) ? W.React.cloneElement(_rootEl) : _rootEl;

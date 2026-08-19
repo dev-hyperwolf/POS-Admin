@@ -1353,6 +1353,17 @@
     get status() { return _status; },
     get report() { return _report; },
     get base() { return base; },
+    // ONLY THIS FILE HOLDS A REACT ROOT. It wraps ReactDOM.createRoot first, so
+
+    // every sibling seam's identical wrapper never sees the call, its _root stays
+
+    // null and its rerender is a SILENT NO-OP. That is how the check-in strip
+
+    // ended up holding live people in window.HW.CHECKINS while the screen kept
+
+    // painting the four invented ones. Siblings re-render through here.
+
+    rerender: rerenderIfMounted,
     refresh: function () {
       if (!armed) { return Promise.resolve('off'); }
       _settled = false; _status = 'pending'; paintBadge();

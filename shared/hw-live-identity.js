@@ -55,7 +55,12 @@
   var TIMEOUT_MS = 6000;
   var OFF_KEY = 'hw-identity-off';
   var RAIL_W = 74;               // shared/app-rail.jsx:46 — clear the rail
-  var BOTTOM = 90;               // clears hw-live.js (bottom 14) and taxonomy (52)
+  var BOTTOM = 126   // STACKED, NOT STACKED ON.
+  // Every seam picked its own "clear the siblings" offset without knowing the
+  // others existed, so three pills landed on the same 90px line at the same
+  // z-index. The last one in the DOM won elementFromPoint() everywhere and the
+  // panels behind it were openable only from the console -- a feature nobody
+  // can click is a feature nobody has. Taxonomy 90, identity 126, check-in 162.;               // clears hw-live.js (bottom 14) and taxonomy (52)
   var PAGE = 25;
 
   // ff(P.fontMono) is '"JetBrains Mono","SF Mono",ui-monospace,monospace' -- it
