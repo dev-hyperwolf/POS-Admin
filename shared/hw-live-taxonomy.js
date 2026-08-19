@@ -270,6 +270,8 @@
   // hw-live.js also owns an accessor on `window.HW`, so this file polls for the
   // object instead of installing a second one — two accessors on one property
   // is one of them winning and the other never running.
+  var _blockedMarked = 0;
+
   function publishToHW() {
     if (!_hw || !_board) { return; }
     _hw.WM_TAXONOMY = {
@@ -281,6 +283,14 @@
       generatedAt: _board.generated_at,
       source: base + '/api/taxonomy'
     };
+    // Downgrade any catalog row this board knows is blocked, then re-render
+    // through the ONE captured root (ours is null -- hw-live.js wraps
+    // createRoot first, so a local rerender here would be a silent no-op).
+    var n = markBlockedSkus();
+    if (n && W.HW_LIVE && typeof W.HW_LIVE.rerender === 'function') {
+      try { W.HW_LIVE.rerender(); } catch (e) {}
+    }
+    _blockedMarked = n;
   }
 
   var _tries = 0;
@@ -560,6 +570,50 @@
       if (tries++ > 300) { _waitingForTokens = false; return; }   // ~45s, then stop
       setTimeout(tick, 150);
     })();
+  }
+
+  // THE CATALOG AND THIS BOARD DISAGREED ON THE SAME SCREEN.
+  // hw-live.js derives a SKU's Weedmaps pill purely from our own record of a
+  // past push (wm_menu_items.published / wm_item_id). It has no idea about the
+  // sub-category gate, so 10 of the 11 rows it green-ticked "Synced · Pickup ·
+  // Delivery" were SKUs this board calls blocked -- rejected by Weedmaps and
+  // absent from the menu. An operator saw Blue Dream ticked, concluded it was
+  // buyable, and did not chase it. The board 40px below said the opposite.
+  //
+  // A past push is not present publication. This downgrades those rows once we
+  // know which SKUs the gate blocks, and says WHY on the row rather than just
+  // changing a colour. It only ever downgrades -- it never invents a tick.
+  function markBlockedSkus() {
+    if (!_hw || !_coverage) { return 0; }
+    // blocked_skus is a list of OBJECTS {sku, status, category} -- not strings.
+    // An indexOf(p.sku) against it silently matches nothing, which would have
+    // made this whole fix inert while looking correct: the exact shape this
+    // project keeps repeating. Checked against the live payload, not assumed.
+    var list = _coverage.blocked_skus || [];
+    var byS = {};
+    list.forEach(function (b) {
+      if (b && b.sku) { byS[String(b.sku)] = b; }
+      else if (typeof b === 'string') { byS[b] = { sku: b, status: 'blocked' }; }
+    });
+    var WHY = {
+      no_sub_category: 'has no sub-category, so it carries no Weedmaps category id',
+      unmapped: 'sits under a sub-category with NO Weedmaps node',
+      stale: 'sits under a sub-category whose Weedmaps node was RETIRED',
+      skipped: 'sits under a sub-category deliberately marked skipped'
+    };
+    var n = 0;
+    (_hw.PRODUCTS || []).forEach(function (p) {
+      var b = byS[String(p.sku)];
+      if (!b || !p.wm) { return; }
+      // ONLY EVER A DOWNGRADE. This never invents a tick.
+      p.wm.state = 'error';
+      p.wm.issue = 'Blocked by the Weedmaps taxonomy board: this SKU '
+        + (WHY[b.status] || ('is blocked (' + String(b.status) + ')'))
+        + '. Weedmaps REJECTS it — it is not on the menu, and re-syncing does '
+        + 'not fix it. A past push is not present publication.';
+      n++;
+    });
+    return n;
   }
 
   function paint() {

@@ -299,7 +299,7 @@ function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
               </> :
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '9px 0 0', padding: '8px 9px', background: P.infoSoft, borderRadius: P.r10 }}>
                 <Icon name="info" size={12} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Nobody in the room is a plausible match — search the customer book or check them in from the order.</span>
+                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>{bind.boardWhy || 'Nobody in the room is a plausible match — search the customer book or check them in from the order.'}</span>
               </div>}
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                 <PBtn variant="secondary" size="xs" icon="search" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Search</PBtn>
@@ -337,8 +337,14 @@ function MatchSheet({ o, bind, onBind, onClose }) {
   const [tabv, setTabv] = React.useState('room');
   const wm = window.HW.WM_ORDER[o.id] || {};
   const checkins = window.HW.CHECKINS;
-  const scored = (ci) => {const c = (bind.candidates || []).find((x) => x.checkinId === ci.id);return c ? c.conf : 5;};
-  const inRoom = checkins.slice().sort((a, b) => scored(b) - scored(a));
+  // `5` IS NOT A SCORE. This defaulted every unscored person to the constant 5
+  // and then drew it under "ranked by match" with a bar meter. On live data
+  // that is four real people standing in a real room, each shown a confidence
+  // nobody computed, sorted by a value that is the same for all of them. Null
+  // means unscored and renders as "not scored", never as a number or a bar.
+  const scored = (ci) => {const c = (bind.candidates || []).find((x) => x.checkinId === ci.id);return c ? c.conf : null;};
+  const anyScored = (bind.candidates || []).length > 0;
+  const inRoom = checkins.slice().sort((a, b) => (scored(b) == null ? -1 : scored(b)) - (scored(a) == null ? -1 : scored(a)));
   const ql = q.trim().toLowerCase();
   const book = ql ? window.HW.MEMBERS.filter((m) => (m.name + m.email + m.phone).toLowerCase().includes(ql)) : window.HW.MEMBERS.slice(0, 5);
   // Guests already on record inside a party are bindable people too.
@@ -372,7 +378,7 @@ function MatchSheet({ o, bind, onBind, onClose }) {
             </div>}
 
           {tabv === 'room' ? <>
-            <Eyebrow>People in the store · ranked by match</Eyebrow>
+            <Eyebrow>{anyScored ? 'People in the store \u00b7 ranked by match' : 'People in the store \u00b7 NOT ranked \u2014 nobody has been scored against this order'}</Eyebrow>
             {inRoom.map((ci) => {const s = scored(ci);const top = s >= 40;
               return (
                 <div key={ci.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: P.surface, border: `1px solid ${top ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, boxShadow: top ? `0 0 0 2px ${P.accentSoft}` : 'none' }}>
@@ -381,8 +387,10 @@ function MatchSheet({ o, bind, onBind, onClose }) {
                     <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{ci.name}</span>
                     <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>in store {ci.wait.replace(/^0h /, '')} · {ci.type}{(ci.guests || []).length ? ` · party of ${1 + ci.guests.length}` : ''}</span>
                   </span>
-                  <span style={{ width: 64 }}><BarMeter value={s / 100} color={s >= 50 ? P.warn : P.neutral} height={4} /></span>
-                  <span style={{ fontSize: 11.5, fontWeight: 800, color: s >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono, width: 22, textAlign: 'right' }}>{s}</span>
+                  {/* A bar IS the claim that a confidence was computed. Drawing
+                      one for an unscored person is the same lie as the number. */}
+                  <span style={{ width: 64 }}>{s == null ? null : <BarMeter value={s / 100} color={s >= 50 ? P.warn : P.neutral} height={4} />}</span>
+                  <span style={{ fontSize: s == null ? 9.5 : 11.5, fontWeight: 800, color: s == null ? P.inkMute : s >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono, width: s == null ? 62 : 22, textAlign: 'right' }}>{s == null ? 'not scored' : s}</span>
                   <PBtn variant={top ? 'accent' : 'secondary'} size="xs" onClick={() => onBind(ci.id)}>Bind</PBtn>
                 </div>);
             })}
