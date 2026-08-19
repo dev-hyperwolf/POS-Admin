@@ -681,3 +681,76 @@ test('the two directions are not the same sentence', () => {
   assert.notEqual(G.settlementView('card', 500).label, G.settlementView('card', -500).label,
     'identical copy for both signs is the defect this pins');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// D4 — which van did this order go out on
+//
+// "the address falls [in a] weedmaps listing[,] with that listing we could have
+//  a region or multiple regions, our logic has 1 driver assigned to each region.
+//  The system decides which driver is best to fulfill the order based on its
+//  routing algorithm." — the owner, 2026-08-19
+//
+// The property that matters is INDEPENDENCE. checkActor compares the actor's kit
+// against the order's kit; derive both from the acting driver and it compares a
+// value to itself, which is how an earlier attempt produced a guarantee that
+// looked present and enforced nothing.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('D4 — dispatch abbreviations and full names both resolve to a region', () => {
+  const { G } = loadGovern();
+  assert.equal(G.driverToRegion('Theo R.'), 'RC-01', "dispatch writes 'Theo R.'");
+  assert.equal(G.driverToRegion('Theo Reyes'), 'RC-01', 'the van register holds the full name');
+  assert.equal(G.driverToRegion('Kofi M.'), 'LA-01');
+});
+
+test('D4 — Unassigned is a real dispatch state, not a lookup failure', () => {
+  const { G } = loadGovern();
+  assert.equal(G.driverToRegion('Unassigned'), null);
+  assert.equal(G.driverToRegion(''), null);
+  assert.equal(G.driverToRegion('Nobody X.'), null);
+});
+
+test('D4 — an AMBIGUOUS name refuses rather than picking one', () => {
+  // Two region drivers sharing a first name. Guessing would attribute an order
+  // to the wrong van, which is worse than attributing it to none.
+  const { w, G } = loadGovern();
+  w.DDATA.REGION_STOCK = {
+    'AA-01': { regionId: 'AA-01', driver: 'Theo Reyes', ageMin: 3, units: {} },
+    'AA-02': { regionId: 'AA-02', driver: 'Theo Rivera', ageMin: 3, units: {} },
+  };
+  assert.equal(G.driverToRegion('Theo R.'), null, 'both match — refuse');
+  assert.equal(G.driverToRegion('Theo Reyes'), 'AA-01', 'the full name still disambiguates');
+});
+
+test('D4 — orderKitId reads the DISPATCH record, never the session', () => {
+  const { w, G } = loadGovern();
+  assert.equal(G.orderKitId('ORD-00223'), 'RC-01');
+  assert.equal(G.orderKitId('ORD-00218'), null, 'Unassigned');
+  assert.equal(G.orderKitId('NOPE'), null);
+
+  // Change who is logged in; the order's van must not move.
+  const before = G.orderKitId('ORD-00223');
+  if (w.MD && w.MD.DRIVER) w.MD.DRIVER.name = 'Dev Anand';
+  assert.equal(G.orderKitId('ORD-00223'), before,
+    'if this moved, the order kit is being derived from the actor — the tautology');
+});
+
+test('D4 — the two sources CAN differ, which is what makes wrong_kit reachable', () => {
+  const { G } = loadGovern();
+  const orderKit = G.orderKitId('ORD-00223');   // RC-01, from dispatch
+  const actorKit = G.actorKitId('Dev Anand');   // RC-03, from who is acting
+  assert.ok(orderKit && actorKit);
+  assert.notEqual(orderKit, actorKit,
+    'a check whose two inputs can never differ is decorative');
+});
+
+test('D4 — and the ENGINE actually refuses when they differ', () => {
+  const { G, E } = loadGovern();
+  const actor = { kind: 'driver', id: 'drv-x', name: 'Dev Anand', kitId: G.actorKitId('Dev Anand') };
+  // signature is (order, actor, policy)
+  const refusal = E.checkActor({
+    id: 'ORD-00223', status: 'en_route', assignedKitId: G.orderKitId('ORD-00223'),
+  }, actor, E.defaultFulfillmentPolicy);
+  assert.ok(refusal, 'expected a refusal');
+  assert.equal(refusal.code, 'wrong_kit');
+});

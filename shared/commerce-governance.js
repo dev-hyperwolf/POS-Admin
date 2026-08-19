@@ -339,6 +339,93 @@
   }
 
   /**
+   * ── D4 · WHICH VAN DID THIS ORDER GO OUT ON ────────────────────────────────
+   *
+   * The owner's model, in his words: "the address falls [in a] weedmaps
+   * listing[,] with that listing we could have a region or multiple regions, our
+   * logic has 1 driver assigned to each region. The system decides which driver
+   * is best to fulfill the order based on its routing algorithm."
+   *
+   * So: address → listing → region(s) → routing picks the driver → that
+   * driver's region IS the kit. One driver per region, so choosing the driver
+   * determines the van.
+   *
+   * ⚠️ THE WHOLE POINT IS THAT THIS IS INDEPENDENT OF WHO IS ACTING.
+   * `checkActor` refuses when a driver acts on an order routed to a different
+   * van. It compares the ACTOR's kit against the ORDER's kit. Derive both from
+   * the acting driver — as an earlier attempt did — and the comparison is against
+   * itself: it can never fail, and the guarantee is decorative while looking
+   * present in the code. `orderKitId` therefore reads the ROUTED driver off the
+   * dispatch record and never touches the session.
+   */
+
+  /** Region drivers, from the van register: [regionId, fullName]. */
+  function regionDrivers() {
+    const table = regionStock();
+    if (!table) return [];
+    return Object.keys(table).map((id) => [id, String(table[id].driver || '')]);
+  }
+
+  /**
+   * Dispatch writes an abbreviated name ('Theo R.'); the van register holds the
+   * full one ('Theo Reyes'). Match on first name, confirming the surname initial
+   * when the abbreviated form carries one.
+   *
+   * REFUSES ON AMBIGUITY rather than guessing. Two region drivers sharing a
+   * first name would otherwise silently resolve to whichever sorted first, and
+   * an order attributed to the wrong van is worse than one attributed to none.
+   * The nine current names are distinct, so this returns null only in principle
+   * today — which is exactly when a guard should be written, not after.
+   */
+  function driverToRegion(name) {
+    const raw = String(name || '').trim();
+    if (!raw || /^unassigned$/i.test(raw)) return null;   // a real dispatch state
+    const parts = raw.split(/\s+/);
+    const first = parts[0].toLowerCase();
+    // 'Theo R.' is an ABBREVIATION — only the initial is available to compare.
+    // 'Theo Reyes' is a full surname, so compare all of it: otherwise 'Reyes'
+    // and 'Rivera' both match on 'R' and a name that SHOULD disambiguate does
+    // not. Found by the ambiguity test, which expected the full name to resolve.
+    const rest = parts.length > 1 ? parts.slice(1).join(' ') : null;
+    const abbreviated = rest != null && /^[a-z]\.?$/i.test(rest);
+    const initial = rest ? rest[0].toLowerCase() : null;
+
+    const hits = regionDrivers().filter(function (pair) {
+      const full = pair[1].split(/\s+/);
+      if (!full[0] || full[0].toLowerCase() !== first) return false;
+      if (rest == null) return true;                       // first name only
+      const surname = full.slice(1).join(' ');
+      return abbreviated
+        ? (!surname || surname[0].toLowerCase() === initial)
+        : surname.toLowerCase() === rest.toLowerCase();
+    });
+    return hits.length === 1 ? hits[0][0] : null;
+  }
+
+  /**
+   * The van an ORDER was routed to, or null.
+   *
+   * Reads `HW.DELIVERY[orderId].driver` — the estate's per-order dispatch
+   * record, which is written when routing assigns, not when someone opens a
+   * screen. `'Unassigned'` is a legitimate value and yields null.
+   *
+   * ⚠️ POS ORDERS ONLY, TODAY. The driver app's tasks are a different id space
+   * (`ORD-0000x`) with no dispatch record at all (`ORD-002xx`), so this returns
+   * null there. That is the D4 data gap: routing's choice is not recorded on a
+   * driver task. See docs/GOVERNED-SWAP-BLOCKERS.md.
+   */
+  function orderKitId(orderId) {
+    const d = window.HW && window.HW.DELIVERY && window.HW.DELIVERY[orderId];
+    if (!d) return null;
+    return driverToRegion(d.driver);
+  }
+
+  /** The van the ACTING person is carrying, or null for an unscoped actor. */
+  function actorKitId(driverName) {
+    return driverToRegion(driverName);
+  }
+
+  /**
    * regionId ('SB-01', 'RC-01', 'OC-01', 'LA-01' …) → the engine's KitInventory.
    *
    * @param {string} regionId
@@ -671,6 +758,11 @@
     buildActor,
     buildOrder,
     buildKit,
+    // D4 — kit resolution. orderKitId and actorKitId read INDEPENDENT sources;
+    // that independence is what makes the engine's wrong_kit check real.
+    driverToRegion,
+    orderKitId,
+    actorKitId,
     // the governed flow
     planGoverned,
     commitGoverned,
