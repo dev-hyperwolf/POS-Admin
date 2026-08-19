@@ -2514,10 +2514,11 @@ var HWCommerce = (() => {
   function judgeCandidate(input) {
     const { actor, policy, paymentMethod, lineDeltaCents, promotionsBroken, kitAgeMs } = input;
     const warnings = [];
-    const increases = lineDeltaCents > 0;
+    const owed = input.customerOwesDeltaCents ?? lineDeltaCents;
+    const increases = lineDeltaCents > 0 || owed > 0;
     if (increases) {
       if (policy.priceDelta === "never_increase") {
-        return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: "This costs more than the item it replaces." };
+        return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: lineDeltaCents <= 0 && owed > 0 ? `This is cheaper per item but costs the customer ${money(owed)} more, because it breaks a promotion they already earned.` : "This costs more than the item it replaces." };
       }
       if (policy.priceDelta === "increase_needs_cash" && paymentMethod !== "cash") {
         return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: "Upcharges are cash-only and this order is not cash." };
@@ -2562,15 +2563,18 @@ var HWCommerce = (() => {
   }
   function settlementFor(policy, paymentMethod, deltaCents) {
     if (deltaCents === 0) return "none";
+    const byMethod = () => paymentMethod === "cash" ? deltaCents > 0 ? "driver_collects_cash" : "driver_refunds_cash" : "card_adjustment";
     switch (policy.priceDelta) {
       case "any_reconcile_at_closeout":
         return "closeout_reconciliation";
       case "never_increase":
-        return paymentMethod === "cash" ? "driver_refunds_cash" : "card_adjustment";
+        return byMethod();
       case "increase_needs_cash":
         return deltaCents > 0 ? "driver_collects_cash" : "driver_refunds_cash";
       case "increase_needs_card_reauth":
         return "card_adjustment";
+      case "settle_at_door":
+        return byMethod();
     }
   }
   function requiredConsent(policy) {
@@ -2645,6 +2649,8 @@ var HWCommerce = (() => {
           policy,
           paymentMethod: order.paymentMethod,
           lineDeltaCents: money2.lineDeltaCents,
+          // The gate prices the ORDER, not the line — see judgeCandidate.
+          customerOwesDeltaCents: money2.customerOwesDeltaCents,
           promotionsBroken: money2.promotionsBroken.length,
           kitAgeMs
         });
