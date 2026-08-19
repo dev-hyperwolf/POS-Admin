@@ -29,10 +29,25 @@
   if (W.HW_LIVE && W.HW_LIVE.__armed) { return; }   // idempotent: two tags, one seam
 
   // ── configuration ────────────────────────────────────────────────────────
-  var FETCH_TIMEOUT_MS = 2500;   // past this we stop waiting and mount on mock
+  // Past this we stop WAITING and mount on mock -- we do not stop the request.
+  // 2500 was too tight and, worse, the timeout used to abort() the fetch, so a
+  // payload that arrived at 2.6s could never land and the demo was pinned to
+  // mock data for the rest of the session. /api/state is ~1.9MB and Babel is
+  // compiling thirty JSX files on the same thread during a cold load, so
+  // blowing a 2.5s budget is normal rather than exceptional. The request now
+  // runs to completion and applies late, exactly as the board fetch already
+  // does -- the badge simply shows mock until it lands.
+  var FETCH_TIMEOUT_MS = 4000;
   var OFF_KEY = 'hw-live-off';
   var RAIL_W = 74;               // shared/app-rail.jsx:46 — badge clears the rail
   var SKU_PREFIX = 'hyperwolf:sku:';  // wmdemo/catalog.py:17 — the real anchor
+  // The board is a SECOND, slower call (it walks every order row), so it gets
+  // its own controller and its own budget. It must never be able to abort the
+  // catalogue fetch: a slow board should cost the order queue, not the whole
+  // live path.
+  var BOARD_TIMEOUT_MS = 8000;
+  var BOARD_LIMIT = 200;         // per stage; the board's COUNTS are exact regardless
+  var DELIVERY_CAP = 250;        // delivery rows kept. Pickup is never capped — see below.
 
   // ── gate ─────────────────────────────────────────────────────────────────
   // Loopback only. The API serves this repo itself when WM_DEMO_STATIC_DIR is
@@ -78,12 +93,35 @@
   var _catHue = {};           // snapshotted from the mock rows, see hueFor()
   var _t0 = 0;
 
+  // orders
+  var _board = null;          // parsed /api/fulfillment/board, or null
+  var _statusMap = null;      // parsed /api/fulfillment/status-map, or null
+  var _ordersLive = false;
+  var _stageOverride = {};    // order_id -> the order_view a POST /api/order/stage returned
+  var _advId = '', _advStage = 'packing', _advMsg = null, _advOk = false;
+
+  var _deliveryCap = DELIVERY_CAP;
+  var capQ = qs('hworders');
+  if (capQ != null) {
+    if (/^all$/i.test(capQ)) { _deliveryCap = Infinity; }
+    else { var capN = parseInt(capQ, 10); if (isFinite(capN) && capN >= 0) { _deliveryCap = capN; } }
+  }
+
   // ── small helpers ────────────────────────────────────────────────────────
   function replaceContents(arr, next) {
     // The whole point of the file: same array identity, new contents.
     arr.length = 0;
     for (var i = 0; i < next.length; i++) { arr.push(next[i]); }
     return arr;
+  }
+
+  // Same rule for the two order LOOKUPS (WM_ORDER, DELIVERY): same object
+  // identity, new keys. Anything holding a reference keeps working.
+  function replaceObject(obj, next) {
+    if (!obj) { return obj; }
+    Object.keys(obj).forEach(function (k) { delete obj[k]; });
+    Object.keys(next).forEach(function (k) { obj[k] = next[k]; });
+    return obj;
   }
 
   // Python's round() is banker's rounding, and wmdemo/pricing.py:53-60 derives
@@ -117,6 +155,17 @@
     if (s < 3600) { return Math.floor(s / 60) + 'm ago'; }
     if (s < 86400) { return Math.floor(s / 3600) + 'h ago'; }
     return Math.floor(s / 86400) + 'd ago';
+  }
+
+  // The order card prints `o.age` verbatim and reads staleness off it with
+  // parseInt (screen-orders.jsx:426), so the design's own 'Xh Ym' shape is the
+  // only safe one. Past two days it would read '751h 4m', so it rolls to days —
+  // parseInt still sees a number >= 2 and the card still marks it aging.
+  function ageLabel(epochSeconds) {
+    if (!epochSeconds) { return '—'; }
+    var s = Math.max(0, Math.floor(Date.now() / 1000 - epochSeconds));
+    if (s < 172800) { return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm'; }
+    return Math.floor(s / 86400) + 'd ' + Math.floor((s % 86400) / 3600) + 'h';
   }
 
   // ── MISMATCH 6 · categories ──────────────────────────────────────────────
@@ -414,6 +463,327 @@
     return { labels: labels, drivers: drivers };
   }
 
+  // ── ORDERS · the fulfilment board ────────────────────────────────────────
+  // The kanban reads window.HW.ORDERS[].stage; the Weedmaps block on an order
+  // reads window.HW.WM_ORDER[id]; the dispatch table reads window.HW.DELIVERY
+  // [id]. All three were invented. They are replaced from
+  // /api/fulfillment/board (stage, push state, exact counts) joined to
+  // /api/state.orders (the fields the board does not carry: fulfilment type,
+  // driver, region).
+  //
+  // THREE THINGS THIS MUST NOT LIE ABOUT.
+  //
+  // 1. THE WEEDMAPS COLUMN. A stage maps to a WM status, but that map is a
+  //    CONTRACT — what we WOULD tell Weedmaps — not evidence that we did. The
+  //    Orders API 403s (wmdemo/fulfillment.py:20), so a push can sit queued or
+  //    fail while our stage moves on. The board reports both halves per order:
+  //    wm_status_mirrored (what WM was last told) and push.state. The block's
+  //    top line therefore always says what Weedmaps ACTUALLY has and whether
+  //    anything reached it. Painting a stage change as delivered is exactly the
+  //    failure that let 1,064 failed pushes look like success.
+  //
+  // 2. GUESSED STAGES. An order with no persisted stage row is not stageless:
+  //    its stage is reverse-mapped from the WM status on the spot, and
+  //    IN_PROGRESS reverses to BOTH `pack` and `packing`. Almost every order
+  //    here is in that state (the backfill has never been run), so the board
+  //    reports stage_is_guess and those cards carry 'stage guessed' next to
+  //    the clock. An order someone has actually advanced is exact and carries
+  //    no mark.
+  //
+  // 3. COUNTS. The board's per-stage LISTS are capped; its COUNTS are exact.
+  //    The design's kanban is the pickup board, so pickup orders are never
+  //    capped — every one is loaded and every column count is the estate's own
+  //    number. Delivery is a flat table and IS capped; the badge panel says by
+  //    how much, because the tab counter then reads the page size.
+  var DESIGN_STAGES = ['verify', 'pack', 'packing', 'ready', 'done'];
+
+  // Reverse map DERIVED from the served contract rather than typed out a second
+  // time. fulfillment.py's own warning: "two copies that agree today are a
+  // scheduled outage, not a source of truth." First stage wins, and a WM status
+  // claimed by two stages is flagged ambiguous — which reproduces the server's
+  // is_guess rule (fulfillment.py stage_for_wm_status) without restating it.
+  function reverseStageMap(sm) {
+    var map = sm.map || {}, rev = {};
+    (sm.stages || []).forEach(function (st) {
+      var wm = (map[st] || {}).wm;
+      if (!wm) { return; }
+      if (rev[wm]) { rev[wm].ambiguous = true; } else { rev[wm] = { stage: st, ambiguous: false }; }
+    });
+    return rev;
+  }
+
+  // What has, or has not, reached Weedmaps for THIS order. `queueEmpty` is the
+  // one case where an order outside the board's slice can still be answered
+  // exactly: if the whole queue is empty, nothing was pushed for anything.
+  function pushPhrase(v, queueEmpty) {
+    if (queueEmpty) { return 'never sent to Weedmaps'; }
+    if (!v) { return 'not loaded for this order (outside the board slice)'; }
+    var p = v.push || {};
+    if (!p.state || p.state === 'none') { return 'never sent to Weedmaps'; }
+    if (p.state === 'pending') { return 'QUEUED, not sent yet'; }
+    if (p.state === 'claimed') { return 'in flight'; }
+    if (p.state === 'sent') { return 'sent ' + ago(p.updated_at); }
+    if (p.state === 'failed') {
+      return 'FAILED after ' + (p.attempts || 0) + ' — ' + (p.last_error || 'no reason recorded');
+    }
+    return p.state;
+  }
+
+  function adaptOrders(state, rep) {
+    var smap = _statusMap.map || {};
+    var rev = reverseStageMap(_statusMap);
+    var wmids = state.wmids || {};
+    var q = _board.queue || {};
+    var queueEmpty = !((q.pending || 0) + (q.claimed || 0) + (q.sent || 0) + (q.failed || 0));
+
+    var bview = {};
+    (_board.stages || []).forEach(function (g) {
+      (g.orders || []).forEach(function (v) { bview[String(v.order_id)] = v; });
+    });
+
+    var reviews = {};
+    (((state.identity || {}).reviews) || []).forEach(function (r) {
+      if (r.state === 'open') { reviews[String(r.wm_order_id)] = r; }
+    });
+
+    // Region chips on the dispatch view are built from state.regions. An order
+    // whose region_id is not one of those is real, but no chip will ever find
+    // it — the same shape as the unmapped catalogue categories above.
+    var knownRegions = state.regions || {};
+    var offRegion = {};
+
+    var counts = {}, unplaceable = {}, canceledHidden = 0;
+    var guessed = 0, chGuessed = 0, outOfSync = 0, deliveryKept = 0, reviewOpen = 0, pushFailed = 0;
+    DESIGN_STAGES.forEach(function (s) { counts[s] = { Store: 0, Delivery: 0 }; });
+
+    var rows = (state.orders || []).slice().sort(function (a, b) {
+      return (b.updated_at || 0) - (a.updated_at || 0);
+    });
+
+    var orders = [], wmOrder = {}, delivery = {};
+
+    rows.forEach(function (o) {
+      var id = String(o.wm_order_id);
+      // Precedence: what a stage POST just told us > what the board listed >
+      // the reverse map. Only the last of those three is a derivation.
+      var v = _stageOverride[id] || bview[id] || null;
+      var status = String(o.status == null ? '' : o.status).trim().toUpperCase();
+      var r = rev[status];
+      if (!v && !r) {
+        // A status the served contract does not place. Counting it beats
+        // parking it in `verify` and calling that a stage.
+        var key = status || '(blank)';
+        unplaceable[key] = (unplaceable[key] || 0) + 1;
+        return;
+      }
+      var stage = v ? v.stage : r.stage;
+      var guess = v ? !!v.stage_is_guess : r.ambiguous;
+      // The design's board has five columns and no Canceled one. Mapping a
+      // canceled order onto a live column would be the worst of both; it is
+      // dropped, and the count is reported.
+      if (DESIGN_STAGES.indexOf(stage) < 0) { canceledHidden++; return; }
+
+      var ch, chGuess = false;
+      if (o.fulfillment_type === 'pickup' || (wmids.menu != null && o.wm_menu_id === wmids.menu)) {
+        ch = 'Store';
+      } else if (o.fulfillment_type === 'delivery' ||
+                 (wmids.delivery != null && o.wm_menu_id === wmids.delivery)) {
+        ch = 'Delivery';
+      } else {
+        // Neither a fulfilment type nor a listing id. It has to land on one of
+        // the two tabs or vanish; it lands on the one this estate actually
+        // runs, and says on the card that that was a guess.
+        ch = 'Delivery'; chGuess = true;
+      }
+
+      var mapped = (smap[stage] || {}).wm || null;
+      var sync = mapped != null && mapped === status;
+
+      counts[stage][ch]++;
+      if (guess) { guessed++; }
+      if (chGuess) { chGuessed++; }
+      if (!sync) { outOfSync++; }
+      if (reviews[id]) { reviewOpen++; }
+
+      // Counted above, kept below: the cap must not bend the numbers.
+      if (ch === 'Delivery') {
+        if (deliveryKept >= _deliveryCap) { return; }
+        deliveryKept++;
+      }
+
+      var marks = [];
+      if (guess) { marks.push('stage guessed'); }
+      if (chGuess) { marks.push('channel guessed'); }
+
+      var name = o.customer_name && String(o.customer_name).trim() ?
+        String(o.customer_name).trim() : 'No name on the order';
+
+      orders.push({
+        id: id,
+        num: id,
+        name: name,
+        total: Number(o.grand_total) || 0,
+        source: 'Weedmaps',      // gates the WM block on the card and the sheet
+        channel: ch,
+        // No payment record exists on an order row. The design prints this
+        // verbatim after the word "Pay".
+        pay: 'Not in the API',
+        badge: null,
+        // The only per-card slot the design leaves free for provenance.
+        age: ageLabel(v ? v.stage_updated_at : o.updated_at) +
+             (marks.length ? ' · ' + marks.join(' · ') : ''),
+        // /api/state carries no line items, and inventing a basket size would
+        // put a fake number on every card. 0 reads as "we were not told".
+        items: 0,
+        stage: stage,
+        hue: 200,
+        _live: true,
+        _guess: guess,
+        _mirrored: status,
+        _mapped: mapped,
+        _inSync: sync,
+        _push: v ? v.push : null
+      });
+
+      var pstate = v && v.push ? (v.push.state || 'none') : (queueEmpty ? 'none' : null);
+      if (pstate === 'failed') { pushFailed++; }
+
+      var rvw = reviews[id];
+      var flags = ['The API carries no identity or fraud scoring for this order — ' +
+                   'nothing on this panel has been checked.'];
+      if (rvw) {
+        flags.push('Identity review OPEN in the API — decision "' + rvw.decision +
+                   '" (' + rvw.reason + ')');
+      }
+
+      // The one line always visible at the top of the Weedmaps block, and the
+      // only honest answer to "has Weedmaps been told?".
+      //
+      // ORDER MATTERS HERE. The push state comes FIRST because it is the only
+      // evidence. orders.status is a LOCAL MIRROR, and engine.push_status_tracked
+      // (wmdemo/engine.py) calls upsert_order(status=...) BEFORE it looks at the
+      // HTTP code — so the mirror is rewritten even when Weedmaps rejected the
+      // call. Verified 2026-08-19: two orders advanced to `ready`, both pushes
+      // came back HTTP 400, and both mirrors nonetheless read
+      // READY_FOR_ATTAINMENT. Leading with the mirror would have rendered a
+      // rejected push as an accepted one — the exact failure the fulfilment
+      // module was written to end.
+      var head = 'WM ' + id + ' · push: ' + pushPhrase(v, queueEmpty) +
+                 ' · local mirror: ' + (status || 'unknown');
+      if (mapped && mapped !== status) { head += ' (our stage maps to ' + mapped + ')'; }
+      if (pstate === 'failed') {
+        // engine.push_status_tracked writes this column EITHER WAY -- that
+        // call also creates the order row, and gating it on the response left
+        // rejected orders with no row at all. So it records what we TRIED, not
+        // what Weedmaps accepted, and the queue row above is the only evidence.
+        // Verified rather than assumed: this order's push failed and the
+        // mirror still reads the pushed status.
+        head += ' — what we TRIED to send. It is written even on a rejected'
+              + ' push, so it is NOT proof Weedmaps agrees; the push state'
+              + ' above is';
+      }
+
+      wmOrder[id] = {
+        wmId: head,
+        contact: { name: name, phone: null, email: null, address: null },
+        matchOn: [],
+        wmStatus: status,
+        // No risk model exists on this side. A number here would be read as a
+        // verdict, so the panel reads "unknown risk · score 0/100" instead.
+        risk: 0,
+        level: 'unknown',
+        match: 'new',
+        checks: {
+          id: 'missing', name: 'unverified', phone: 'missing',
+          address: ch === 'Delivery' ? 'missing' : 'n/a'
+        },
+        flags: flags,
+        delivery: ch === 'Delivery',
+        remoteId: null
+      };
+
+      // Region and driver are real. Address, distance, ETA window and map
+      // coordinates do not exist anywhere in the API, so they are left absent
+      // and the table renders '—' rather than a plausible street.
+      if (o.region_id && !Object.prototype.hasOwnProperty.call(knownRegions, o.region_id)) {
+        offRegion[o.region_id] = (offRegion[o.region_id] || 0) + 1;
+      }
+
+      delivery[id] = {
+        zone: o.region_id ? regionLabel(o.region_id) : null,
+        driver: o.driver_id ? driverLabel(o.driver_id) : 'Unassigned'
+      };
+    });
+
+    var pickupTotal = 0, deliveryTotal = 0;
+    DESIGN_STAGES.forEach(function (s) {
+      pickupTotal += counts[s].Store; deliveryTotal += counts[s].Delivery;
+    });
+
+    rep.orders = {
+      shown: orders.length,
+      pickup: { shown: pickupTotal, total: pickupTotal },   // never capped
+      delivery: { shown: deliveryKept, total: deliveryTotal },
+      byStage: counts,
+      guessed: guessed,
+      channelGuessed: chGuessed,
+      outOfSync: outOfSync,
+      pushFailed: pushFailed,
+      reviewOpen: reviewOpen,
+      canceledHidden: canceledHidden,
+      unplaceable: unplaceable,
+      offRegion: offRegion,
+      queue: q,
+      boardTotal: _board.total,
+      boardGuessed: _board.guessed_stages,
+      cap: _deliveryCap
+    };
+    return { orders: orders, wmOrder: wmOrder, delivery: delivery };
+  }
+
+  function applyOrders(rep) {
+    var HW = _hw;
+    if (!HW || !_payload || !_board || !_statusMap || !HW.ORDERS) { return false; }
+    rep = rep || _report;
+    if (!rep) { return false; }
+
+    var out = adaptOrders(_payload, rep);
+    replaceContents(HW.ORDERS, out.orders);
+    replaceObject(HW.WM_ORDER, out.wmOrder);
+    replaceObject(HW.DELIVERY, out.delivery);
+
+    // The stage -> WM status -> customer sentence map is a CONTRACT, and the
+    // API serves the only copy that matters. Overwriting the JSX literal's copy
+    // in place is what stops the screen narrating one sentence while
+    // weedmaps.com shows another — the drift fulfillment.py:30 warns about.
+    var sm = _statusMap.map || {};
+    if (HW.WM_STATUS_MAP) {
+      Object.keys(sm).forEach(function (k) {
+        var dst = HW.WM_STATUS_MAP[k];
+        if (!dst) { dst = HW.WM_STATUS_MAP[k] = {}; }
+        dst.wm = sm[k].wm; dst.label = sm[k].label; dst.cust = sm[k].cust; dst.tone = sm[k].tone;
+      });
+    }
+    if (HW.WM_STATUS_ORDER && _statusMap.wm_status_order) {
+      replaceContents(HW.WM_STATUS_ORDER, _statusMap.wm_status_order);
+    }
+
+    if (!_advId && out.orders.length) { _advId = out.orders[0].id; }
+    _ordersLive = true;
+    return true;
+  }
+
+  function stillMock() {
+    var m = ['MEMBERS', 'CHECKINS', 'IDV', 'STATS', 'REWARDS', 'ORDER_BIND', 'cost / margin'];
+    if (_ordersLive) {
+      m.push('order line items', 'order activity log',
+             'delivery addresses / distances / ETA windows / map pins');
+    } else {
+      m.unshift('ORDERS', 'WM_ORDER', 'DELIVERY');
+    }
+    return m;
+  }
+
   function apply(state) {
     var HW = _hw;
     if (!HW) { return false; }
@@ -444,8 +814,10 @@
       HW.STORE.count = state.pickup_locations.length;
     }
 
-    rep.stillMock = ['MEMBERS', 'CHECKINS', 'ORDERS', 'DELIVERY', 'IDV', 'STATS',
-                     'WM_ORDER', 'ORDER_BIND', 'REWARDS', 'cost / margin'];
+    // The board may still be in flight; if it is, applyOrders runs when it
+    // lands (see load()) and rewrites stillMock then.
+    applyOrders(rep);
+    rep.stillMock = stillMock();
     rep.unreconciled = Object.keys(state.unreconciled_menus || {});
     _report = rep;
     _applied = true;
@@ -473,7 +845,19 @@
   }
 
   function rerenderIfMounted() {
-    if (_root && _rootEl) { try { _root.render(_rootEl); } catch (e) {} }
+    if (!_root || !_rootEl) { return; }
+    try {
+      // Re-rendering the SAME element object does NOTHING: React bails out when
+      // the root child is reference-identical with identical props, so the
+      // screens keep rendering the data they mounted with. Verified in the
+      // browser 2026-08-19 — window.HW.ORDERS held 255 live orders, the badge
+      // said 'live', and the tabs still counted the design's 11 mock ones.
+      // cloneElement gives it a fresh props object, which is the difference
+      // between "the payload landed" and "the payload landed and anyone can
+      // see it".
+      var el = (W.React && W.React.cloneElement) ? W.React.cloneElement(_rootEl) : _rootEl;
+      _root.render(el);
+    } catch (e) {}
   }
 
   // ── theme-aware badge ────────────────────────────────────────────────────
@@ -526,7 +910,92 @@
     h += line(P, 'Delivery listing', r.wmids.delivery, P.ink);
     h += line(P, 'external_id', SKU_PREFIX + '<sku>', P.ink);
 
+    var ro = r.orders;
+    if (ro) {
+      var q = ro.queue || {};
+      h += '<div style="margin-top:10px;padding-top:9px;border-top:1px solid ' + P.hairline + '">' +
+        '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:6px">Order queue</div></div>';
+      h += line(P, 'Pickup board', ro.pickup.total + ' orders · complete', P.ink);
+      h += line(P, 'Delivery tab', ro.delivery.shown + ' of ' + ro.delivery.total +
+        (ro.delivery.shown < ro.delivery.total ? ' · capped' : ''),
+        ro.delivery.shown < ro.delivery.total ? P.warn : P.ink);
+      h += line(P, 'Stages guessed', ro.guessed + ' of ' + (ro.pickup.total + ro.delivery.total),
+        ro.guessed ? P.warn : P.ink);
+      h += line(P, 'Pushes failed', ro.pushFailed, ro.pushFailed ? P.bad : P.ink);
+      h += line(P, 'Stage ahead of mirror', ro.outOfSync, ro.outOfSync ? P.warn : P.ink);
+      h += line(P, 'Push queue', 'pending ' + (q.pending || 0) + ' · sent ' + (q.sent || 0) +
+        ' · failed ' + (q.failed || 0), (q.failed ? P.bad : P.ink));
+      h += line(P, 'Hidden (canceled)', ro.canceledHidden, P.inkMute);
+    }
+
     var notes = [];
+    if (ro) {
+      notes.push('Order stages, push state and counts come from /api/fulfillment/board; ' +
+        'fulfilment type, driver and region are joined from /api/state.');
+      notes.push('The pickup board is COMPLETE — every pickup order is loaded, so each column ' +
+        'count is the estate\'s own number, not a page size.');
+      if (ro.delivery.shown < ro.delivery.total) {
+        notes.push('The delivery tab is capped at ' + ro.delivery.shown + ' of ' +
+          ro.delivery.total + ' open delivery orders, so ITS tab counter reads the cap. ' +
+          'Append ?hworders=all for every row, or ?hworders=N for a different cap.');
+      }
+      if (ro.canceledHidden) {
+        notes.push(ro.canceledHidden + ' canceled orders are not shown at all — the design\'s ' +
+          'board has five columns and no Canceled one, and putting them in a live column ' +
+          'would be worse than leaving them out.');
+      }
+      if (ro.guessed) {
+        notes.push(ro.guessed + ' of ' + (ro.pickup.total + ro.delivery.total) + ' stages are ' +
+          'GUESSED: an order nobody has advanced has no stage of its own, so it is reverse-mapped ' +
+          'from the Weedmaps status — and IN_PROGRESS cannot tell "need to pack" from "packing". ' +
+          'Those cards read "stage guessed" next to the clock; an advanced one is exact and unmarked.');
+      }
+      if (ro.channelGuessed) {
+        notes.push(ro.channelGuessed + ' orders carry neither a fulfilment type nor a listing id. ' +
+          'They are shown on the Delivery tab and say "channel guessed" on the card.');
+      }
+      notes.push('The "Weedmaps status" column is the CONTRACT — what our stage WOULD be pushed as — ' +
+        'not evidence that it was. Each order\'s block leads with the real push state. Queue today: ' +
+        'pending ' + ((ro.queue || {}).pending || 0) + ', sent ' + ((ro.queue || {}).sent || 0) +
+        ', failed ' + ((ro.queue || {}).failed || 0) + '.');
+      notes.push('READ THIS BEFORE TRUSTING A STATUS: the local mirror (orders.status) is rewritten ' +
+        'by engine.push_status_tracked BEFORE it checks the HTTP code, so a REJECTED push still ' +
+        'leaves a green-looking status behind. Only the push line is evidence. ' +
+        (ro.pushFailed ? ro.pushFailed + ' loaded order(s) are in exactly that state.'
+                       : 'No loaded order is in that state right now.'));
+      if (ro.outOfSync) {
+        notes.push(ro.outOfSync + ' order(s) have a stage whose mapped status the mirror has not ' +
+          'caught up with — their block says so in brackets.');
+      }
+      if (ro.reviewOpen) {
+        notes.push(ro.reviewOpen + ' of the loaded orders have an OPEN identity review in the API — ' +
+          'it is listed in that order\'s signals.');
+      }
+      var oreg = Object.keys(ro.offRegion || {});
+      if (oreg.length) {
+        notes.push('Orders sit in ' + oreg.length + ' region(s) that are not in the live region ' +
+          'list (' + oreg.join(', ') + '), so no Region chip on the dispatch view will ever ' +
+          'select them. Their row still shows the real region.');
+      }
+      var up = Object.keys(ro.unplaceable || {});
+      if (up.length) {
+        notes.push('Weedmaps statuses the served contract cannot place, so those orders are ' +
+          'excluded rather than parked: ' + up.join(', ') + '.');
+      }
+      notes.push('No risk model exists on this side: every Weedmaps block reads "unknown risk · ' +
+        'score 0/100" rather than a made-up number, and every identity check reads missing.');
+      notes.push('Order rows carry no line items or payment record: cards read "0 item" and ' +
+        '"Pay Not in the API", and the detail sheet\'s line items, activity log, ' +
+        '"Payment collected on handover" and ID-check link are the design\'s placeholders.');
+      notes.push('Order <-> check-in binding stays mock — there is no live check-in list to match ' +
+        'against, so every card shows the design\'s default "own account · signed in".');
+      notes.push('Delivery addresses, distances, ETA windows and map coordinates exist nowhere in ' +
+        'the API: the dispatch table shows "—", route distance reads 0.0 mi and every map pin ' +
+        'stacks in the centre. Region and driver ARE live.');
+    } else {
+      notes.push('The fulfilment board did not answer — ORDERS, WM_ORDER and DELIVERY are still ' +
+        'the built-in mock queue.');
+    }
     var uc = Object.keys(r.unmappedCats || {});
     notes.push('Wellness and Deals have no live analogue — those chips read 0 on purpose.');
     if (uc.length) { notes.push('Unmapped live categories: ' + uc.join(', ') + ' — shown under All only.'); }
@@ -544,7 +1013,53 @@
         '<span style="color:' + P.inkFaint + '">·</span><span>' + esc(n) + '</span></div>';
     });
     h += '</div>';
+    h += advanceHTML(P);
     return h;
+  }
+
+  // ── stage control ────────────────────────────────────────────────────────
+  // The Orders screen has NO stage-advance control — no button, no drag, no
+  // menu item moves a card between columns (screen-orders.jsx renders the
+  // board read-only; the only stage reference outside rendering is the
+  // stageOrder lookup at :1558). Rather than invent one inside a screen this
+  // seam is forbidden to edit, the control lives here, in the seam's own
+  // panel, clearly labelled as not part of the design. Wiring a real button is
+  // then a one-liner for the POS devs: HW_LIVE.orders.advance(id, stage).
+  function advanceHTML(P) {
+    if (!_ordersLive) { return ''; }
+    var stages = (_statusMap && _statusMap.stages) || [];
+    var ctl = 'height:' + P.ctrlH.sm + 'px;border-radius:' + P.r8 + 'px;border:1px solid ' +
+      P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink + ';font-size:' +
+      P.type.meta + 'px;padding:0 8px;';
+    var h = '<div style="margin-top:11px;padding-top:9px;border-top:1px solid ' + P.hairline + '">';
+    h += '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:5px">Stage control</div>';
+    h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.45;margin-bottom:7px">' +
+      'The Orders screen has no stage button to drive, so this one belongs to the seam, not to the design. ' +
+      'It POSTs /api/order/stage, shows the validator&#39;s reason when a move is illegal, and re-reads the board.</div>';
+    h += '<div style="display:flex;gap:6px;align-items:center">' +
+      '<input data-hwl-id value="' + esc(_advId) + '" placeholder="order id" ' +
+        'style="' + ctl + 'flex:1;min-width:0;font-family:' + P.fontMono + '">' +
+      '<select data-hwl-stage style="' + ctl + 'font-family:' + P.fontSans + '">' +
+        stages.map(function (s) {
+          return '<option value="' + esc(s) + '"' + (s === _advStage ? ' selected' : '') + '>' + esc(s) + '</option>';
+        }).join('') +
+      '</select>' +
+      '<button data-hwl="advance" style="' + ctl + 'font-family:' + P.fontSans +
+        ';font-weight:600;cursor:pointer;color:' + P.ink2 + '">Advance</button></div>';
+    if (_advMsg) {
+      h += '<div style="margin-top:7px;font-size:' + P.type.meta + 'px;line-height:1.45;font-family:' +
+        P.fontMono + ';color:' + (_advOk ? P.ink2 : P.bad) + '">' + esc(_advMsg) + '</div>';
+    }
+    h += '</div>';
+    return h;
+  }
+
+  function advanceFromPanel() {
+    if (!_badge) { return; }
+    var i = _badge.querySelector('[data-hwl-id]'), s = _badge.querySelector('[data-hwl-stage]');
+    if (i) { _advId = i.value; }
+    if (s) { _advStage = s.value; }
+    advance(_advId, _advStage, 'pos-demo');
   }
 
   function paintBadge() {
@@ -556,9 +1071,17 @@
       _badge = document.createElement('div');
       _badge.id = 'hw-live-badge';
       document.body.appendChild(_badge);
+      // A form control inside the panel must not close the panel it lives in,
+      // so the toggle stops at anything interactive.
+      var formish = function (el) {
+        var t = el && el.tagName;
+        return t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'OPTION';
+      };
       _badge.addEventListener('click', function (e) {
         var act = e.target && e.target.getAttribute && e.target.getAttribute('data-hwl');
         if (act === 'refresh') { e.stopPropagation(); W.HW_LIVE.refresh(); return; }
+        if (act === 'advance') { e.stopPropagation(); advanceFromPanel(); return; }
+        if (formish(e.target)) { return; }
         _panelOpen = !_panelOpen;
         paintBadge();
       });
@@ -566,10 +1089,19 @@
       // tokens.jsx injects for [data-hw-i]). A control that takes focus and then
       // ignores Enter is worse than one that never took focus at all.
       _badge.addEventListener('keydown', function (e) {
+        // Space is a character in the order-id box, not a toggle. Enter there
+        // submits, which is what a one-field form is expected to do.
+        if (formish(e.target)) {
+          if (e.key === 'Enter' && e.target.hasAttribute('data-hwl-id')) {
+            e.preventDefault(); advanceFromPanel();
+          }
+          return;
+        }
         if (e.key !== 'Enter' && e.key !== ' ') { return; }
         e.preventDefault();
         var act = e.target && e.target.getAttribute && e.target.getAttribute('data-hwl');
         if (act === 'refresh') { W.HW_LIVE.refresh(); return; }
+        if (act === 'advance') { advanceFromPanel(); return; }
         _panelOpen = !_panelOpen;
         paintBadge();
       });
@@ -578,7 +1110,8 @@
     var live = _status === 'live';
     var dot = live ? P.good : _status === 'pending' ? P.warn : P.inkFaint;
     var label = live ? 'Live data' : _status === 'pending' ? 'Checking API…' : 'Mock data';
-    var sub = live ? _report.products + ' SKUs · ' + _report.regions.length + ' regions' :
+    var sub = live ? _report.products + ' SKUs · ' + _report.regions.length + ' regions' +
+        (_report.orders ? ' · ' + _report.orders.shown + ' orders' : '') :
       _status === 'pending' ? base.replace(/^https?:\/\//, '') : 'API unavailable';
 
     // pointer-events:none on the wrapper so the empty gutter to the right of a
@@ -615,15 +1148,112 @@
   }
 
   // ── fetch ────────────────────────────────────────────────────────────────
+  function okJson(res) {
+    if (!res.ok) { throw new Error('HTTP ' + res.status); }
+    return res.json();
+  }
+
+  // Its own controller and its own budget: a slow board must cost the order
+  // queue and nothing else. Failure is silent and leaves ORDERS on mock, which
+  // stillMock() then reports.
+  function loadBoard() {
+    var ctl = W.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) { ctl.abort(); } }, BOARD_TIMEOUT_MS);
+    var opt = { signal: ctl ? ctl.signal : undefined, credentials: 'omit', cache: 'no-store' };
+    return Promise.all([
+      fetch(base + '/api/fulfillment/board?limit=' + BOARD_LIMIT, opt).then(okJson),
+      fetch(base + '/api/fulfillment/status-map', opt).then(okJson)
+    ]).then(function (r) {
+      clearTimeout(timer);
+      if (!r[0] || !Array.isArray(r[0].stages) || !r[1] || !r[1].map) { return false; }
+      _board = r[0];
+      _statusMap = r[1];
+      return true;
+    }).catch(function () { clearTimeout(timer); return false; });
+  }
+
+  // POST /api/order/stage. A rejected transition comes back 400 carrying the
+  // validator's own reason, and that reason is shown rather than swallowed — a
+  // control that silently does nothing gets clicked four more times and then
+  // reported as a data bug (wmdemo/server.py:346).
+  function advance(orderId, stage, actor) {
+    if (!armed) { return Promise.resolve({ ok: false, error: 'live seam is off' }); }
+    var id = String(orderId || '').trim();
+    if (!id) { _advMsg = 'Enter an order id.'; _advOk = false; paintBadge(); return Promise.resolve({ ok: false, error: 'no order id' }); }
+    _advMsg = 'Advancing ' + id + ' → ' + stage + '…'; _advOk = true; paintBadge();
+    return fetch(base + '/api/order/stage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'omit',
+      cache: 'no-store',
+      body: JSON.stringify({ wm_order_id: id, stage: String(stage), actor: actor || 'pos-demo' })
+    }).then(function (res) {
+      return res.json().then(function (j) { return { ok: res.ok, code: res.status, body: j }; },
+                             function () { return { ok: false, code: res.status, body: {} }; });
+    }).then(function (r) {
+      if (!r.ok) {
+        _advOk = false;
+        _advMsg = 'Rejected ' + r.code + ': ' + ((r.body && r.body.error) || 'no reason given');
+        paintBadge();
+        return { ok: false, error: (r.body && r.body.error) || ('HTTP ' + r.code) };
+      }
+      var view = r.body.order || null;
+      if (view) { _stageOverride[String(view.order_id)] = view; }
+      // The drain runs inline server-side, so its result is the honest answer
+      // to "did Weedmaps hear about this?" — and today it is an HTTP 400 from
+      // the Orders API. NOTE the shape: drain is an OBJECT with a `results`
+      // list, not a list (wmdemo/fulfillment.py drain). Treating it as a list
+      // threw, and the throw was caught and reported as "request failed" while
+      // the transition had in fact been committed — a stage change that looked
+      // like a network error is exactly the bug that gets clicked twice.
+      var results = (r.body.drain && r.body.drain.results) || [];
+      var pushed = null;
+      for (var i = 0; i < results.length; i++) {
+        if (String(results[i].order_id) === id) { pushed = results[i]; break; }
+      }
+      _advOk = true;
+      _advMsg = id + ' → ' + (view ? view.stage : stage) +
+        ' · queued ' + ((r.body.stage && r.body.stage.wm_status) || '?') +
+        ' · ' + (pushed ? ('push ' + pushed.state + (pushed.error ? ': ' + pushed.error : ''))
+                        : 'not drained in this call');
+      _advId = id;
+      return loadBoard().then(function () {
+        if (_hw && _report) { applyOrders(); _report.stillMock = stillMock(); rerenderIfMounted(); }
+        paintBadge();
+        return { ok: true, order: view, push: pushed };
+      });
+    }).catch(function (e) {
+      _advOk = false;
+      _advMsg = 'Request failed: ' + (e && e.message ? e.message : 'unknown');
+      paintBadge();
+      return { ok: false, error: 'request failed' };
+    });
+  }
+
   function load() {
     _t0 = performance.now();
     var ctl = W.AbortController ? new AbortController() : null;
+    // NOTE: deliberately does NOT abort. Aborting is what made a slow-but-fine
+    // response indistinguishable from a dead server. settle() is safe to call
+    // again with the real payload afterwards; it applies and re-renders.
     var timer = setTimeout(function () {
-      if (ctl) { ctl.abort(); }
       if (!_settled) { settle(null, 'timeout'); }
     }, FETCH_TIMEOUT_MS);
 
-    return fetch(base + '/api/state', {
+    // Kicked in parallel, awaited alongside. If it lands after apply() has
+    // already run, it re-applies just the orders and re-renders.
+    var boardP = loadBoard().then(function (ok) {
+      if (ok && _hw && _applied) {
+        if (applyOrders()) {
+          if (_report) { _report.stillMock = stillMock(); }
+          rerenderIfMounted();
+        }
+      }
+      if (_hw) { paintBadge(); }
+      return ok;
+    });
+
+    var stateP = fetch(base + '/api/state', {
       signal: ctl ? ctl.signal : undefined,
       credentials: 'omit',
       cache: 'no-store'
@@ -644,6 +1274,8 @@
       clearTimeout(timer);
       if (!_settled) { settle(null, 'unreachable'); }
     });
+
+    return Promise.all([stateP, boardP]);
   }
 
   function settle(json, status) {
@@ -674,7 +1306,14 @@
         get: function () { return _hw; },
         set: function (v) {
           _hw = v;
-          if (!_settled) { armRenderCapture(); }   // payload may still be in flight
+          // ALWAYS arm, even when /api/state has already settled. The BOARD is
+          // a second, slower payload (it walks every order row), so a late
+          // arrival is the normal case here, not the edge case: on a warm cache
+          // the catalogue lands before the mount and the order queue lands
+          // after it. Gating this on `!_settled` left the queue on the mock
+          // orders while the badge cheerfully reported 255 live ones — the tab
+          // counters read the design's 11/5 and nothing threw.
+          armRenderCapture();
           if (_payload) { _status = apply(_payload) ? 'live' : _status; }
           watchTheme();
           paintBadge();
@@ -695,6 +1334,15 @@
       if (!armed) { return Promise.resolve('off'); }
       _settled = false; _status = 'pending'; paintBadge();
       return load().then(function () { rerenderIfMounted(); return _status; });
+    },
+    // The order queue's own surface. `advance` is the whole stage control: a
+    // POS dev wires a real button to it with one line and deletes nothing.
+    orders: {
+      advance: advance,
+      get board() { return _board; },
+      get statusMap() { return _statusMap; },
+      get live() { return _ordersLive; },
+      get cap() { return _deliveryCap; }
     },
     disable: function () {
       try { W.localStorage.setItem(OFF_KEY, '1'); } catch (e) {}

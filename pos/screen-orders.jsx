@@ -1093,6 +1093,35 @@ function WmOrderBlock({ o, wm, onLog }) {
   const P = useP();
   const map = window.HW.WM_STATUS_MAP;
   const cur = map[o.stage] || map.verify;
+  // WHAT WEEDMAPS ACTUALLY HAS, which is not the same as what our stage implies.
+  // This block used to derive the whole progress rail from `cur` -- our stage run
+  // through the contract map -- with tone hardcoded to "good". So advancing an
+  // order to `ready` painted a green, check-marked rail through
+  // READY_FOR_ATTAINMENT and the sentence "customer sees: Ready for pickup",
+  // whether or not the push to Weedmaps succeeded. It currently returns HTTP 400,
+  // so that rail was reliably a lie, and an operator reading it stops chasing an
+  // order the customer was never told about.
+  // `_push` is supplied by shared/hw-live.js from the live outbound queue and is
+  // ABSENT on mock data, so the mock demo is untouched and renders exactly as before.
+  // On the ORDER, not on `wm` -- shared/hw-live.js attaches the queue evidence
+  // to the order row. Reading it off `wm` silently yielded null, so every
+  // honest branch below was inert and the panel kept asserting delivery. The
+  // `wm` fallback is there only so a future seam change cannot re-break this
+  // without saying so.
+  const push = (o && o._push) || wm._push || null;
+  const pushState = push ? (push.state || 'none') : null;
+  const acked = pushState === 'sent';
+  // The rail advances to what WM acknowledged. Un-acknowledged is not "done".
+  const railTo = push == null ? cur.wm : (acked ? ((o && o._mirrored) || wm._mirrored || cur.wm) : null);
+  const wmTone = push == null ? 'good'
+    : acked ? 'good' : pushState === 'failed' ? 'bad' : 'warn';
+  const pushLine = push == null ? null
+    : acked ? 'Weedmaps acknowledged this status.'
+    : pushState === 'failed'
+      ? ('NOT sent to Weedmaps — push failed' + (push.attempts ? ' after ' + push.attempts + ' attempt(s)' : '') + (push.last_error ? ': ' + push.last_error : '') + '. The customer has not been told.')
+      : pushState === 'none'
+        ? 'Never pushed to Weedmaps. The customer has not been told.'
+        : ('Queued for Weedmaps, not yet acknowledged' + (push.attempts ? ' (' + push.attempts + ' attempt(s))' : '') + '. The customer has not been told.');
   const [verify, setVerify] = React.useState(wm.level === 'low' ? 'approved' : 'pending');
   const [merge, setMerge] = React.useState(wm.merged ? 'merged' : 'idle');
   const riskC = wm.level === 'high' ? P.bad : wm.level === 'medium' ? P.warn : P.good;
@@ -1188,7 +1217,15 @@ function WmOrderBlock({ o, wm, onLog }) {
       </div>
     </div></Fold>}
     <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
-      {[['Our stage', stageMeta(o.stage).label, P.ink], ['Weedmaps status', cur.wm, '#1F5FC0'], ['Customer sees', cur.cust, cur.tone === 'good' ? P.good : cur.tone === 'bad' ? P.bad : P.ink2]].map(([k, v, c], i) =>
+      {/* The middle and right cells used to assert what Weedmaps holds and what
+          the customer reads, both derived from OUR stage. On a rejected push
+          that is simply false, and this strip is the most prominent thing on
+          the panel -- an operator reads it and stops chasing the order. When
+          the live seam supplies push evidence (absent on mock data, so the
+          mock demo is unchanged) an unacknowledged status says so here. */}
+      {[['Our stage', stageMeta(o.stage).label, P.ink],
+        ['Weedmaps status', push && !acked ? 'NOT SENT — ' + cur.wm : cur.wm, push && !acked ? P.bad : '#1F5FC0'],
+        ['Customer sees', push && !acked ? 'nothing yet — never delivered' : cur.cust, push && !acked ? P.bad : (cur.tone === 'good' ? P.good : cur.tone === 'bad' ? P.bad : P.ink2)]].map(([k, v, c], i) =>
       <React.Fragment key={k}>
         {i > 0 && <div style={{ display: 'flex', alignItems: 'center', padding: '0 2px', color: P.inkFaint }}><Icon name="chevron-right" size={15} stroke={2.2} /></div>}
         <div style={{ flex: 1, minWidth: 0, padding: '10px 12px' }}>
@@ -1198,12 +1235,16 @@ function WmOrderBlock({ o, wm, onLog }) {
       </React.Fragment>)}
     </div>
     {/* WM status progression — reference, not a decision. Folded by default. */}
-    <Fold id="wm-status" icon="link" title="Weedmaps order status" status={cur.wm.replace(/_/g, ' ')} tone="good">
+    <Fold id="wm-status" icon="link" title="Weedmaps order status" status={cur.wm.replace(/_/g, ' ')} tone={wmTone}>
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="link" size={12} color="#1F5FC0" /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>What the customer sees</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>on weedmaps.com</span></div>
+      {pushLine && <div style={{ padding: '9px 12px', background: acked ? P.surface : P.surface3, borderBottom: `1px solid ${P.hairline}`, display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+        <Icon name={acked ? 'check' : 'alert'} size={12} color={acked ? P.good : pushState === 'failed' ? P.bad : P.warn || P.inkDim} />
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: acked ? P.ink : P.bad, lineHeight: 1.35 }}>{pushLine}</span>
+      </div>}
       <div style={{ padding: '14px 14px 12px', background: P.surface }}>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-          {window.HW.WM_STATUS_ORDER.map((ws, i) => {const ci = window.HW.WM_STATUS_ORDER.indexOf(cur.wm);const active = i === ci;const done = i < ci;return <React.Fragment key={ws}>
+          {window.HW.WM_STATUS_ORDER.map((ws, i) => {const ci = railTo == null ? -1 : window.HW.WM_STATUS_ORDER.indexOf(railTo);const active = i === ci;const done = i < ci;return <React.Fragment key={ws}>
             {i > 0 && <div style={{ flex: 1, height: 2, background: i <= ci ? P.good : P.hairline2, marginTop: 9 }} />}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: 76 }}>
               <span style={{ width: 20, height: 20, borderRadius: 99, background: active ? '#1F5FC0' : done ? P.good : P.surface3, color: active || done ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', border: active || done ? 'none' : `1px solid ${P.hairline2}`, boxShadow: active ? '0 0 0 3px rgba(31,95,192,.18)' : 'none' }}>{done ? <Icon name="check" size={12} stroke={2.6} /> : <span style={{ fontSize: 10, fontWeight: 800, fontFamily: P.fontMono }}>{i + 1}</span>}</span>
