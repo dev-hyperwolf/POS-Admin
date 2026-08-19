@@ -419,6 +419,7 @@ var HWCommerce = (() => {
     similarityScore: () => similarityScore,
     snapshotCacheTags: () => snapshotCacheTags,
     splitLineId: () => splitLineId,
+    staleLineEffects: () => staleLineEffects,
     staleness: () => staleness,
     standingRedemptions: () => standingRedemptions,
     subtotalCents: () => subtotalCents,
@@ -1555,6 +1556,153 @@ var HWCommerce = (() => {
     return out;
   }
 
+  // src/core/pricing.ts
+  function computeCartTotals(ctx, options = {}) {
+    const cfg = options.config ?? defaultConfig;
+    const index = options.index ?? asIndex(ctx.snapshot);
+    const rules = options.rules ?? [];
+    const activeLanes = lanesOf(ctx).filter((l) => ctx.cart.lines.some((line) => line.lane === l));
+    const codes = new Set(ctx.cart.appliedCodes ?? []);
+    const qualifying = rules.filter((r) => {
+      if (!isRuleActive(r, ctx.now)) return false;
+      if (!isRuleOnChannel(r, ctx)) return false;
+      if (r.code && !codes.has(r.code)) return false;
+      if (!isRuleAvailableToCustomer(r, ctx)) return false;
+      return evaluateRule(r, ctx, {}, index).satisfied;
+    });
+    const monetary = qualifying.filter((r) => r.reward.kind !== "free_delivery" && r.reward.kind !== "points_multiplier").map((r) => ({
+      rule: r,
+      value: estimateRewardValue(r.reward, ctx, index, {
+        neverDiscountSaleItems: cfg.pricing.neverDiscountSaleItems,
+        respectExistingLineEffects: cfg.pricing.respectExistingLineEffects
+      })
+    })).filter((x) => x.value > 0).sort((a, b) => b.value - a.value || (b.rule.priority ?? 0) - (a.rule.priority ?? 0));
+    const spokenFor = linesWithExistingEffect(ctx);
+    const lineEffectConflicts = [];
+    if (spokenFor.size > 0) {
+      for (const { rule } of monetary) {
+        const cartScoped = rule.reward.kind === "percent_off_cart" || rule.reward.kind === "dollar_off_cart";
+        if (!cartScoped) continue;
+        for (const lineId of spokenFor) {
+          const existing = ctx.cart.lineEffects?.[lineId];
+          if (!existing) continue;
+          lineEffectConflicts.push({
+            lineId,
+            existingPromotionId: existing.promotionKey,
+            existingChannel: existing.sourceChannel,
+            wouldAlsoApplyRuleId: rule.id,
+            suppressed: cfg.pricing.respectExistingLineEffects
+          });
+        }
+      }
+    }
+    const conflictingRuleIds = new Set(
+      cfg.pricing.respectExistingLineEffects ? lineEffectConflicts.map((c) => c.wouldAlsoApplyRuleId) : []
+    );
+    const eligible = monetary.filter((x) => !conflictingRuleIds.has(x.rule.id));
+    let chosen = [];
+    if (eligible.length > 0) {
+      const bestSingle = eligible[0] ? [eligible[0]] : [];
+      if (cfg.pricing.discountStrategy === "stack") {
+        const stackable = eligible.filter((x) => !x.rule.individualUseOnly);
+        const stackValue = stackable.reduce((s, x) => s + x.value, 0);
+        const singleValue = bestSingle.reduce((s, x) => s + x.value, 0);
+        chosen = stackValue > singleValue ? stackable : bestSingle;
+      } else {
+        chosen = bestSingle;
+      }
+    }
+    const grossSubtotal = subtotalCents(ctx, index);
+    let discountCents = chosen.reduce((s, x) => s + x.value, 0);
+    discountCents = Math.min(discountCents, Math.round(grossSubtotal * cfg.pricing.maxDiscountFraction));
+    const discounts = chosen.map((x) => ({
+      ruleId: x.rule.id,
+      name: x.rule.name,
+      amountCents: x.value,
+      kind: "discount"
+    }));
+    const waivedLanes = /* @__PURE__ */ new Set();
+    for (const r of qualifying) {
+      if (r.reward.kind !== "free_delivery") continue;
+      const targets = r.reward.lane ? [r.reward.lane] : activeLanes;
+      for (const l of targets) {
+        if (!activeLanes.includes(l)) continue;
+        const fee = ctx.lanes[l]?.feeCents ?? 0;
+        if (fee <= 0 || waivedLanes.has(l)) continue;
+        waivedLanes.add(l);
+        discounts.push({ ruleId: r.id, name: r.name, amountCents: fee, kind: "fee_waiver" });
+      }
+    }
+    const laneTotals = activeLanes.map((lane) => {
+      const laneCfg = ctx.lanes[lane];
+      const sub = subtotalCents(ctx, index, lane);
+      const count = ctx.cart.lines.filter((l) => l.lane === lane).reduce((n, l) => n + l.quantity, 0);
+      const met = sub >= laneCfg.minimumCents;
+      const waived = waivedLanes.has(lane);
+      return {
+        lane,
+        itemCount: count,
+        subtotalCents: sub,
+        minimumCents: laneCfg.minimumCents,
+        minimumMet: met,
+        shortfallCents: met ? 0 : laneCfg.minimumCents - sub,
+        progress: laneCfg.minimumCents > 0 ? Math.min(1, sub / laneCfg.minimumCents) : 1,
+        feeCents: waived ? 0 : laneCfg.feeCents,
+        feeWaived: waived
+      };
+    });
+    const feesCents = laneTotals.reduce((s, l) => s + l.feeCents, 0);
+    const discountedSubtotal = Math.max(0, grossSubtotal - discountCents);
+    const taxableBaseCents = discountedSubtotal + (cfg.pricing.taxDeliveryFee ? feesCents : 0);
+    const taxCents = options.computeTax ? options.computeTax(taxableBaseCents, ctx) : Math.round(taxableBaseCents * cfg.pricing.taxRate);
+    const totalCents = discountedSubtotal + feesCents + taxCents;
+    const blockers = laneTotals.filter((l) => !l.minimumMet).map((l) => `${ctx.lanes[l.lane]?.label ?? l.lane} is ${fmtShort(l.shortfallCents)} under its minimum`);
+    return {
+      lanes: laneTotals,
+      orderCount: laneTotals.length,
+      itemCount: laneTotals.reduce((s, l) => s + l.itemCount, 0),
+      subtotalCents: grossSubtotal,
+      discounts,
+      discountCents,
+      feesCents,
+      taxableBaseCents,
+      taxCents,
+      totalCents,
+      lineEffectConflicts,
+      integrityWarnings: redemptionCoverageGaps(rules, ctx).map((g) => g.message),
+      canCheckout: blockers.length === 0 && laneTotals.length > 0,
+      blockers
+    };
+  }
+  function fmtShort(cents) {
+    return `$${(cents / 100).toFixed(2)}`;
+  }
+  function staleLineEffects(before, after) {
+    const effects = before.lineEffects;
+    if (!effects) return [];
+    const afterById = new Map(after.lines.map((l) => [l.id, l]));
+    const beforeById = new Map(before.lines.map((l) => [l.id, l]));
+    const out = [];
+    for (const [lineId, effect] of Object.entries(effects)) {
+      const was = beforeById.get(lineId);
+      if (!was) continue;
+      const now = afterById.get(lineId);
+      let reason = null;
+      if (!now) reason = "line_removed";
+      else if (now.productId !== was.productId) reason = "product_changed";
+      else if (now.quantity !== was.quantity) reason = "quantity_changed";
+      if (reason) {
+        out.push({
+          lineId,
+          promotionKey: effect.promotionKey,
+          sourceChannel: effect.sourceChannel,
+          reason
+        });
+      }
+    }
+    return out;
+  }
+
   // src/core/substitution/candidates.ts
   function isStepUp(current, candidate) {
     const cw = current.sizeGrams;
@@ -1862,7 +2010,9 @@ var HWCommerce = (() => {
     if (swapUnits === 0) return null;
     const remainderUnits = line.quantity - swapUnits;
     const swapLane = options.lane ?? line.lane;
-    const lines = applyPartialSwap(ctx.cart, lineId, candidate, swapUnits, options.lane).lines;
+    const afterCart = applyPartialSwap(ctx.cart, lineId, candidate, swapUnits, options.lane);
+    const lines = afterCart.lines;
+    const invalidated = staleLineEffects(ctx.cart, afterCart);
     const swapSubtotalCents = candidate.product.price * swapUnits;
     const remainderSubtotalCents = current.price * remainderUnits;
     const deltaCents = swapSubtotalCents + remainderSubtotalCents - current.price * line.quantity;
@@ -1908,7 +2058,9 @@ var HWCommerce = (() => {
       remainderSubtotalCents,
       deltaCents,
       remainderAlternatives,
-      ...remainderNote ? { remainderNote } : {}
+      ...remainderNote ? { remainderNote } : {},
+      invalidatedLineEffects: invalidated,
+      requiresRequote: invalidated.length > 0
     };
   }
   function previewSwap(ctx, plan, candidate, options = {}) {
@@ -1949,6 +2101,7 @@ var HWCommerce = (() => {
       promotionsLost,
       promotionsGained,
       laneMinimumsBroken,
+      invalidatedLineEffects: staleLineEffects(ctx.cart, after),
       subtotalDeltaCents: subtotalCents(ctxAfter, index) - subtotalCents(ctx, index)
     };
   }
@@ -2305,128 +2458,6 @@ var HWCommerce = (() => {
         valueCents: r.satisfied ? estimateRewardValue(rule.reward, ctx, index) : 0
       };
     });
-  }
-
-  // src/core/pricing.ts
-  function computeCartTotals(ctx, options = {}) {
-    const cfg = options.config ?? defaultConfig;
-    const index = options.index ?? asIndex(ctx.snapshot);
-    const rules = options.rules ?? [];
-    const activeLanes = lanesOf(ctx).filter((l) => ctx.cart.lines.some((line) => line.lane === l));
-    const codes = new Set(ctx.cart.appliedCodes ?? []);
-    const qualifying = rules.filter((r) => {
-      if (!isRuleActive(r, ctx.now)) return false;
-      if (!isRuleOnChannel(r, ctx)) return false;
-      if (r.code && !codes.has(r.code)) return false;
-      if (!isRuleAvailableToCustomer(r, ctx)) return false;
-      return evaluateRule(r, ctx, {}, index).satisfied;
-    });
-    const monetary = qualifying.filter((r) => r.reward.kind !== "free_delivery" && r.reward.kind !== "points_multiplier").map((r) => ({
-      rule: r,
-      value: estimateRewardValue(r.reward, ctx, index, {
-        neverDiscountSaleItems: cfg.pricing.neverDiscountSaleItems,
-        respectExistingLineEffects: cfg.pricing.respectExistingLineEffects
-      })
-    })).filter((x) => x.value > 0).sort((a, b) => b.value - a.value || (b.rule.priority ?? 0) - (a.rule.priority ?? 0));
-    const spokenFor = linesWithExistingEffect(ctx);
-    const lineEffectConflicts = [];
-    if (spokenFor.size > 0) {
-      for (const { rule } of monetary) {
-        const cartScoped = rule.reward.kind === "percent_off_cart" || rule.reward.kind === "dollar_off_cart";
-        if (!cartScoped) continue;
-        for (const lineId of spokenFor) {
-          const existing = ctx.cart.lineEffects?.[lineId];
-          if (!existing) continue;
-          lineEffectConflicts.push({
-            lineId,
-            existingPromotionId: existing.promotionKey,
-            existingChannel: existing.sourceChannel,
-            wouldAlsoApplyRuleId: rule.id,
-            suppressed: cfg.pricing.respectExistingLineEffects
-          });
-        }
-      }
-    }
-    const conflictingRuleIds = new Set(
-      cfg.pricing.respectExistingLineEffects ? lineEffectConflicts.map((c) => c.wouldAlsoApplyRuleId) : []
-    );
-    const eligible = monetary.filter((x) => !conflictingRuleIds.has(x.rule.id));
-    let chosen = [];
-    if (eligible.length > 0) {
-      const bestSingle = eligible[0] ? [eligible[0]] : [];
-      if (cfg.pricing.discountStrategy === "stack") {
-        const stackable = eligible.filter((x) => !x.rule.individualUseOnly);
-        const stackValue = stackable.reduce((s, x) => s + x.value, 0);
-        const singleValue = bestSingle.reduce((s, x) => s + x.value, 0);
-        chosen = stackValue > singleValue ? stackable : bestSingle;
-      } else {
-        chosen = bestSingle;
-      }
-    }
-    const grossSubtotal = subtotalCents(ctx, index);
-    let discountCents = chosen.reduce((s, x) => s + x.value, 0);
-    discountCents = Math.min(discountCents, Math.round(grossSubtotal * cfg.pricing.maxDiscountFraction));
-    const discounts = chosen.map((x) => ({
-      ruleId: x.rule.id,
-      name: x.rule.name,
-      amountCents: x.value,
-      kind: "discount"
-    }));
-    const waivedLanes = /* @__PURE__ */ new Set();
-    for (const r of qualifying) {
-      if (r.reward.kind !== "free_delivery") continue;
-      const targets = r.reward.lane ? [r.reward.lane] : activeLanes;
-      for (const l of targets) {
-        if (!activeLanes.includes(l)) continue;
-        const fee = ctx.lanes[l]?.feeCents ?? 0;
-        if (fee <= 0 || waivedLanes.has(l)) continue;
-        waivedLanes.add(l);
-        discounts.push({ ruleId: r.id, name: r.name, amountCents: fee, kind: "fee_waiver" });
-      }
-    }
-    const laneTotals = activeLanes.map((lane) => {
-      const laneCfg = ctx.lanes[lane];
-      const sub = subtotalCents(ctx, index, lane);
-      const count = ctx.cart.lines.filter((l) => l.lane === lane).reduce((n, l) => n + l.quantity, 0);
-      const met = sub >= laneCfg.minimumCents;
-      const waived = waivedLanes.has(lane);
-      return {
-        lane,
-        itemCount: count,
-        subtotalCents: sub,
-        minimumCents: laneCfg.minimumCents,
-        minimumMet: met,
-        shortfallCents: met ? 0 : laneCfg.minimumCents - sub,
-        progress: laneCfg.minimumCents > 0 ? Math.min(1, sub / laneCfg.minimumCents) : 1,
-        feeCents: waived ? 0 : laneCfg.feeCents,
-        feeWaived: waived
-      };
-    });
-    const feesCents = laneTotals.reduce((s, l) => s + l.feeCents, 0);
-    const discountedSubtotal = Math.max(0, grossSubtotal - discountCents);
-    const taxableBaseCents = discountedSubtotal + (cfg.pricing.taxDeliveryFee ? feesCents : 0);
-    const taxCents = options.computeTax ? options.computeTax(taxableBaseCents, ctx) : Math.round(taxableBaseCents * cfg.pricing.taxRate);
-    const totalCents = discountedSubtotal + feesCents + taxCents;
-    const blockers = laneTotals.filter((l) => !l.minimumMet).map((l) => `${ctx.lanes[l.lane]?.label ?? l.lane} is ${fmtShort(l.shortfallCents)} under its minimum`);
-    return {
-      lanes: laneTotals,
-      orderCount: laneTotals.length,
-      itemCount: laneTotals.reduce((s, l) => s + l.itemCount, 0),
-      subtotalCents: grossSubtotal,
-      discounts,
-      discountCents,
-      feesCents,
-      taxableBaseCents,
-      taxCents,
-      totalCents,
-      lineEffectConflicts,
-      integrityWarnings: redemptionCoverageGaps(rules, ctx).map((g) => g.message),
-      canCheckout: blockers.length === 0 && laneTotals.length > 0,
-      blockers
-    };
-  }
-  function fmtShort(cents) {
-    return `$${(cents / 100).toFixed(2)}`;
   }
 
   // src/core/fulfillment/types.ts
