@@ -36,10 +36,28 @@ If you add, rename or retire a file, update the hub in the same turn.
   `<window.HWRail active="<its id>" />`. No app defines its own rail markup.
 - `shared/states.jsx` — **EmptyState · Skeleton / SkeletonRows · ErrorState**. Every list uses these;
   never render nothing when there is nothing. `HDEmpty` is an alias of `EmptyState`.
+- `shared/commerce-engine.js` — **BUILT ARTEFACT. Never hand-edit.** The swap + upsell decision
+  engine (`@hyperwolf/commerce-logic`, from dev-hyperwolf/hyperwolf-commerce-logic), exposed as
+  `window.HWCommerce`. Pure and synchronous — no I/O, no clock it was not given. Regenerated and
+  republished by that repo's `npm run ship`, which refuses to publish anything that has not just
+  passed its tests. If you need it changed, change it THERE.
+- `shared/commerce-adapter.js` — **hand-written, owned by this repo**, and the ONLY place this
+  estate's product shape is mapped to the engine's. Dollars become integer cents here and nowhere
+  else; `'10mg'` is an edibles DOSE and deliberately does not become a weight. Exposes
+  `window.HWSwap`: `candidates()` for swap ladders, `recommendations()` for upsell ranking,
+  `buildContext()` for the engine's EvalContext. Returns `null` when the engine has not loaded, so
+  callers fall back rather than render a broken control.
+  ⚠️ `candidates()` must filter the pool BY CATEGORY itself: `buildCandidates` is the engine's
+  shared core and ranks whatever pool it is given — `planSwap` is what slices by category. Without
+  that slice the POS offers a Pre-Roll to replace Flower.
 - `shared/app-switcher.js` — floating cross-app launcher. Keep its list in sync with the hub.
 - `shared/tour-steps.js` + `shared/tour.js` — the guided walkthroughs, keyed by filename.
 - `shared/notes.js` — shared on-screen annotation layer (pins, threads, replies, resolve), synced
   to the team notes API. Plain JS; loads **last** on every entry HTML, after `tour.js`.
+
+The POS (`Hyperwolf POS.html`) and the Driver App (`Hyperwolf Driver App.html`) additionally load
+`shared/commerce-engine.js` then `shared/commerce-adapter.js` as plain JS, before React. Add both to
+any surface that needs to swap a line or rank an upsell — and never a second copy of the ranking.
 
 Every app HTML loads, in order: react → babel → `pos/tokens` → `pos/icons` → `pos/atoms` → its own
 folder → `shared/app-switcher.js`, `shared/tour-steps.js`, `shared/tour.js`.
