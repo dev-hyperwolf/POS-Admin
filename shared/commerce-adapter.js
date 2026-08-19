@@ -129,5 +129,109 @@
     return `Nothing else in ${currentCat || 'this category'} is available.`;
   }
 
-  window.HWSwap = { toEngineProduct, candidates, emptyNote, MODES: E.SWAP_MODES, engine: E };
+  // ── Upsell ────────────────────────────────────────────────────────────────
+
+  /**
+   * Assemble the engine's EvalContext from this estate's data.
+   *
+   * The engine is PURE: it does no I/O and reads no clock it was not given, so
+   * everything it needs arrives here. `now` is passed in rather than read so a
+   * caller can make time-of-day promotion rules deterministic in a test.
+   */
+  function buildContext(opts) {
+    const catalogue = (opts.catalogue || []).filter(Boolean);
+    const products = [];
+    const availability = {};
+    for (const raw of catalogue) {
+      const ep = toEngineProduct(raw);
+      if (!ep) continue;
+      products.push(ep);
+      // One stock figure per product in this estate. Express is a DRIVER'S KIT
+      // and scheduled is the loadable pool; without per-lane data we report the
+      // same number for both rather than inventing a split.
+      const units = raw.qty != null ? raw.qty : 0;
+      availability[ep.id] = { express: units, scheduled: units };
+    }
+
+    const byId = new Map(products.map((p) => [p.id, p]));
+    const lines = (opts.orderItems || []).map((it, i) => {
+      const raw = catalogue.find((p) => p.sku === it.sku || p.id === it.sku);
+      const ep = raw && toEngineProduct(raw);
+      return ep && byId.has(ep.id) ?
+        { id: 'l' + i, productId: ep.id, quantity: it.qty || 1, lane: opts.lane || 'express' } : null;
+    }).filter(Boolean);
+
+    // What the customer already bought is the only affinity signal this estate
+    // has. The engine turns it into "Usually buys Flower" / a known brand.
+    const favouriteCategories = [], purchasedBrands = [];
+    for (const l of lines) {
+      const p = byId.get(l.productId);
+      if (!p) continue;
+      if (favouriteCategories.indexOf(p.category) < 0) favouriteCategories.push(p.category);
+      if (purchasedBrands.indexOf(p.brand) < 0) purchasedBrands.push(p.brand);
+    }
+
+    return {
+      snapshot: { products, availability, asOf: opts.asOf },
+      cart: { lines },
+      customer: Object.assign({
+        favoriteCategories: favouriteCategories,
+        purchasedBrands: purchasedBrands,
+      }, opts.customer || {}),
+      lanes: E.defaultLanes,
+      now: opts.now || new Date(),
+    };
+  }
+
+  /**
+   * Ranked recommendations for a surface, as the ENGINE ranks them.
+   *
+   * Replaces hand-rolled "same brand or same category" filters. The engine
+   * weighs favourite category, category affinity, sale, known brand, potency,
+   * stock depth, margin — and, dominating all of them, whether the item unlocks
+   * a promotion the order is close to.
+   *
+   * Returns entries carrying the ORIGINAL estate product plus the engine's own
+   * `reason` / `headline` copy, so a card can say WHY it is being shown.
+   */
+  function recommendations(opts) {
+    const catalogue = (opts.catalogue || []).filter(Boolean);
+    const ctx = buildContext({
+      catalogue,
+      orderItems: opts.orderItems,
+      customer: opts.customer,
+      lane: opts.lane,
+      now: opts.now,
+    });
+    const surface = opts.surface || 'cart_add_to_order';
+    const limit = opts.limit || 24;
+
+    // Slot counts are tuned for the web cart's rails; a full driver grid wants
+    // more. Override the slot rather than the ranking.
+    const config = Object.assign({}, E.defaultConfig, {
+      upsell: Object.assign({}, E.defaultConfig.upsell, {
+        slotsBySurface: Object.assign({}, E.defaultConfig.upsell.slotsBySurface, { [surface]: limit }),
+      }),
+    });
+
+    let offers = [];
+    try {
+      offers = E.getUpsells(ctx, surface, { config, rules: opts.rules || [] }) || [];
+    } catch (err) {
+      return null; // caller falls back to its own list rather than rendering nothing
+    }
+
+    const bySku = new Map(catalogue.map((p) => [p.id || p.sku, p]));
+    return offers.map((o) => ({
+      product: bySku.get(o.product.id) || o.product,
+      reason: o.reason,
+      headline: o.headline,
+      subline: o.subline,
+      kind: o.kind,
+      score: o.score,
+    })).filter((x) => x.product);
+  }
+
+  window.HWSwap = { toEngineProduct, candidates, emptyNote, buildContext, recommendations,
+    MODES: E.SWAP_MODES, engine: E };
 })();

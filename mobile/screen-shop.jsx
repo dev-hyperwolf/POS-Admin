@@ -178,7 +178,40 @@ window.ShopScreen = function ShopScreen({ taskId }) {
   if (brand) list = list.filter((p) => p.brand === brand);
   if (box) list = list.filter((p) => window.MD.boxOf(p) === box);
   if (saleOnly) list = list.filter((p) => p.was);
-  if (forCust) list = list.filter((p) => affinity.brands.has(p.brand) || affinity.cats.has(p.cat));
+  // "For {customer}" — ranked by @hyperwolf/commerce-logic, not by a hand-rolled
+  // brand/category match. The engine weighs favourite category, category
+  // affinity (Flower → Pre-Rolls), sale, known brand, potency, stock depth and
+  // margin — and, dominating all of them, whether an item UNLOCKS A PROMOTION
+  // the order is close to, which is the only signal that saves the customer
+  // money rather than just spending more of it.
+  //
+  // `recs` keeps the engine's ORDER and its per-item reason copy. The old
+  // brand/category filter survives as the fallback for when the engine has not
+  // loaded, so the chip degrades to its previous behaviour rather than to
+  // nothing.
+  const recs = React.useMemo(() => {
+    if (!forCust || !window.HWSwap || !task) return null;
+    return window.HWSwap.recommendations({
+      catalogue: window.HW.PRODUCTS.filter((p) => p.qty > 0),
+      orderItems: task.items,
+      surface: 'cart_add_to_order',
+      limit: 40,
+    });
+  }, [forCust, taskId]);
+  const recReason = React.useMemo(() => {
+    const m = new Map();
+    (recs || []).forEach((r) => m.set(r.product.sku, r.reason));
+    return m;
+  }, [recs]);
+
+  if (forCust) {
+    if (recs && recs.length) {
+      const order = new Map(recs.map((r, i) => [r.product.sku, i]));
+      list = list.filter((p) => order.has(p.sku)).sort((a, b) => order.get(a.sku) - order.get(b.sku));
+    } else {
+      list = list.filter((p) => affinity.brands.has(p.brand) || affinity.cats.has(p.cat));
+    }
+  }
   if (q.trim()) {const s = q.toLowerCase();list = list.filter((p) => p.name.toLowerCase().includes(s) || p.brand.toLowerCase().includes(s));}
 
   const brands = window.MD.brandsFor(inStock);
@@ -216,7 +249,7 @@ window.ShopScreen = function ShopScreen({ taskId }) {
       </div>
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '2px 16px 110px' }}>
-        {forCust && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: '#E5A24E1a', borderRadius: P.r10, marginBottom: 12 }}><Icon name="sparkle" size={15} stroke={2} color="#E5A24E" /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>Picked for {cust} from past orders & patterns</span></div>}
+        {forCust && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 13px', background: '#E5A24E1a', borderRadius: P.r10, marginBottom: 12 }}><Icon name="sparkle" size={15} stroke={2} color="#E5A24E" /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{recs && recs.length ? `Ranked for ${cust} — best match first` : `Picked for ${cust} from past orders & patterns`}</span></div>}
         {variant === 'photo' ?
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>{list.map((p) => <ProductCardPhoto key={p.sku} p={p} />)}</div> :
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{list.map((p) => <Card3 key={p.sku} p={p} />)}</div>}
