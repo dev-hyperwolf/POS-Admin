@@ -946,6 +946,9 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
   const allBrands = React.useMemo(() => [...new Set(all.map((p) => p.brand))].sort(), [all]);
   const SMART = {
     none: () => true,
+    // "For this order" RANKS, it does not filter — every row survives the
+    // predicate and only the ORDER changes. See `recs` / `rank` below.
+    fororder: () => true,
     under10: (p) => p.price <= 10,
     sale: (p) => !!p.was,
     highthc: (p) => p.thc != null && p.thc >= 70,
@@ -953,14 +956,101 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
     highmgn: (p) => p.margin >= 0.5
   };
   const cats = ['All', ...window.HW.CATS.filter((c) => c !== 'Deals')];
-  const rows = all.filter((p) =>
+  let rows = all.filter((p) =>
   (!q || (p.name + p.sku + p.brand).toLowerCase().includes(q.toLowerCase())) && (
   cat === 'All' || p.cat === cat) && (
   brands.size === 0 || brands.has(p.brand)) &&
   (SMART[smart] || SMART.none)(p));
+
+  /**
+   * "FOR THIS ORDER" — ranked by @hyperwolf/commerce-logic via `window.HWSwap`,
+   * the same engine the web cart, the driver app and SwapPanel above rank with.
+   * Nothing here re-implements "what would this customer want".
+   *
+   * The ORDER is the context, and the order is `draft`. Draft lines carry no
+   * sku — `draftAdd` builds them from name/brand/cat/price — so they are
+   * resolved back to catalogue products BY NAME, exactly as SwapPanel resolves
+   * its current line one function up.
+   */
+  const forOrder = smart === 'fororder';
+
+  /**
+   * ⚠️ THE RANKING IS FROZEN WHILE THE CHIP IS ON. Do not re-derive it from
+   * `draft`.
+   *
+   * It used to memoise on `[forOrder, draft]`, and `draftAdd` mutates `draft`.
+   * So every "Add" re-ran the engine, the product just added was excluded as
+   * now-on-order, and the whole list re-sorted UNDER THE CASHIER'S FINGER — the
+   * row they had just tapped jumped out of the viewport, and the next tap
+   * landed on something else. Two independent reviewers caught it; it is the
+   * kind of bug that is invisible in code and obvious the first time a real
+   * person adds two items in a row.
+   *
+   * `basis` is the order as it stood WHEN THE CHIP WAS SWITCHED ON. Turning the
+   * chip off and on again is the deliberate way to re-rank against what is now
+   * in the order.
+   */
+  const [basis, setBasis] = React.useState(null);
+  React.useEffect(() => {
+    if (!forOrder) { setBasis(null); return; }
+    if (basis) return;                       // already frozen for this activation
+    setBasis(draft.filter((l) => l.qty > 0).
+      map((l) => {const p = all.find((x) => x.name === l.name);return p ? { sku: p.sku, qty: l.qty } : null;}).
+      filter(Boolean));
+  }, [forOrder]);
+
+  const recs = React.useMemo(() => {
+    if (!forOrder || !basis || !window.HWSwap) return null;
+    return window.HWSwap.recommendations({
+      catalogue: all,
+      orderItems: basis,
+      surface: 'cart_add_to_order',
+      /**
+       * The engine's own slot count for this surface, NOT the whole catalogue.
+       *
+       * Ranking everything put a gold reason line on 21 of 24 visible rows,
+       * which is wallpaper rather than a signal and breaks the estate's
+       * one-accent-per-view rule. A handful of genuinely-best rows rise with a
+       * reason; everything else keeps catalogue order beneath them.
+       */
+      limit: 6
+    });
+  }, [forOrder, basis]);
+  // sku → the engine's own reason copy, so a row can say WHY it is up here.
+  const recReason = React.useMemo(() => {
+    const m = new Map();
+    (recs || []).forEach((r) => m.set(r.product.sku, r.reason));
+    return m;
+  }, [recs]);
+  // ORDER, never filter. The engine drops anything it scores at zero and skips
+  // what is already on the order, so filtering the picker down to its output
+  // would quietly empty a control the cashier is mid-search in. Ranked items
+  // rise; everything else keeps catalogue order beneath them (sort is stable,
+  // and equal keys — not Infinity − Infinity — keep the comparator sane).
+  if (forOrder && recs && recs.length) {
+    const rank = new Map(recs.map((r, i) => [r.product.sku, i]));
+    const rk = (p) => rank.has(p.sku) ? rank.get(p.sku) : Number.MAX_SAFE_INTEGER;
+    rows = rows.slice().sort((a, b) => rk(a) - rk(b));
+  }
+  // Is anything the cashier can actually SEE ranked? Search and the category
+  // chips still apply, so a ranking can be live and yet have nothing left in
+  // view — and "Best match first" over a list where no row is ranked is a
+  // claim about nothing. `recReason` is already the set of ranked skus.
+  const rankedHere = forOrder && rows.some((p) => recReason.has(p.sku));
+
   const toggleBrand = (b) => setBrands((p) => {const n = new Set(p);n.has(b) ? n.delete(b) : n.add(b);return n;});
   const inDraft = (name) => draft.find((l) => l.name === name && l.qty > 0);
-  const smartChips = [['under10', 'Under $10'], ['sale', 'On sale'], ['highthc', 'High THC'], ['instock', 'In stock'], ['highmgn', 'High margin']];
+  // The "For this order" chip is DROPPED when the engine is absent, rather than
+  // shown doing nothing. Its filter predicate is `() => true`, so without
+  // window.HWSwap pressing it would change no rows, sort nothing and render no
+  // reasons — a control that is always there and sometimes inert is worse than
+  // one that is honestly missing. Same rule the engine applies to its own swap
+  // control. The other five chips are pure predicates and always work.
+  const smartChips = [
+    ...(window.HWSwap ? [['fororder', 'For this order']] : []),
+    ['under10', 'Under $10'], ['sale', 'On sale'], ['highthc', 'High THC'],
+    ['instock', 'In stock'], ['highmgn', 'High margin'],
+  ];
 
   return (
     <div style={{ marginTop: 6, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, overflow: 'hidden' }}>
@@ -1000,13 +1090,19 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
       <div style={{ maxHeight: 250, overflowY: 'auto', padding: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 6px 6px' }}>
           <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{rows.length} product{rows.length === 1 ? '' : 's'}</span>
+          {/* Say which list this is. A ranking that silently failed and a ranking
+              that found nothing must not look like a ranking that worked. */}
+          {forOrder && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: P.type.micro, fontWeight: 700, color: P.accentText, whiteSpace: 'nowrap' }}><Icon name="sparkle" size={11} stroke={2} />{rankedHere ? 'Best match first' : 'No ranking — catalogue order'}</span>}
         </div>
-        {rows.map((p) => {const added = inDraft(p.name);return (
+        {rows.map((p) => {const added = inDraft(p.name);const why = forOrder ? recReason.get(p.sku) : null;return (
             <div key={p.sku} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '7px 8px', borderRadius: 8 }}>
             <Thumb item={p} size={30} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
               <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 6, height: 6, borderRadius: 99, background: window.HW.CAT_COLOR[p.cat] || P.neutral, flex: '0 0 auto' }} />{p.brand} · {p.qty} left</div>
+              {/* The engine's own reason copy — same conditional third line
+                  SwapPanel uses for a partial cover, not a new row shape. */}
+              {why && <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, fontSize: P.type.micro, fontWeight: 700, color: P.accentText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><Icon name="sparkle" size={10} stroke={2} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{why}</span></div>}
             </div>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: p.was ? P.bad : P.ink, fontFamily: P.fontMono }}>{fmt.money0(p.price)}</span>
             <button onClick={() => onAdd(p)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 10px', background: added ? P.goodSoft : P.accent, color: added ? P.good : P.accentInk, border: 'none', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name={added ? 'check' : 'plus'} size={12} stroke={2.4} />{added ? `In order (${added.qty})` : 'Add'}</button>
@@ -1418,10 +1514,16 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const [showAdd, setShowAdd] = React.useState(false);
   const [swapIdx, setSwapIdx] = React.useState(null); // draft row whose swap panel is open
 
+  // Line NAME is the join back to the catalogue — SwapPanel resolves the line
+  // it is replacing by name, and AddItemPanel builds the order context the same
+  // way. 'Doubleshot Edible' was not a product: the catalogue calls it
+  // 'Doubleshot' (DBL78MG), so that line resolved to nothing, dropped out of
+  // the upsell context, and the picker then recommended a product that was
+  // already on the order. Every name here must exist in window.HW.PRODUCTS.
   const baseItems = [
   { name: 'Cake Crasher', brand: window.HW_BRANDS.name.jeeter, cat: 'Flower', qty: 4, price: 15 },
   { name: 'Blueberry Pancakes', brand: window.HW_BRANDS.name.lowell, cat: 'Pre-Rolls', qty: 1, price: 17 },
-  { name: 'Doubleshot Edible', brand: window.HW_BRANDS.name.wyld, cat: 'Edibles', qty: 2, price: 20 }].
+  { name: 'Doubleshot', brand: window.HW_BRANDS.name.wyld, cat: 'Edibles', qty: 2, price: 20 }].
   slice(0, Math.max(1, Math.min(3, o.items || 1)));
 
   // ── Order metadata ──

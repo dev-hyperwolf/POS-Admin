@@ -1,0 +1,10 @@
+{
+  "name": "hyperwolf-pos-admin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hyperwolf POS-Admin. The apps are browser-transformed JSX with no build step; this package.json exists only so the hand-written plain-JS in shared/ can be tested under node.",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\""
+  }
+}

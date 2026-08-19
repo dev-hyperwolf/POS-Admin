@@ -95,6 +95,22 @@ IS the handoff.
 7. **Focus is automatic** — `pos/tokens.jsx` injects the `:focus-visible` ring for every native
    interactive. Add `data-hw-i` only to non-button interactives (table rows, custom chips).
 
+## Tests
+
+`npm test` (node --test, zero dependencies). Covers `shared/commerce-adapter.js` —
+the hand-written money/shape boundary — by evaluating it under `vm` in a context
+whose global IS `window`, exactly as the browser loads it. No jsdom, no babel:
+that file is plain JS on purpose.
+
+`test/checks.mjs` holds the mutation-proven assertions; `test/mutation.test.mjs`
+re-runs those same functions against a deliberately broken adapter and requires
+each to fail, with a coverage guard that fails if a check has no mutation aimed
+at it. Tests written inline in `test/adapter.test.mjs` are supplementary and are
+NOT mutation-proven — the file says so.
+
+The .jsx screens are not covered: they are transformed by babel in the browser
+and there is no build step. Verify those by loading the page.
+
 ## Rules
 
 1. No orphan source files. If a `.jsx` isn't loaded by an HTML, either wire it up or delete it.
