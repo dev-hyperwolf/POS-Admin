@@ -36,8 +36,15 @@ const MUTATIONS = [
     name: "grams: treat 'mg' as a weight, so a 10mg gummy reads as 10 GRAMS",
     check: "'10mg' is a dose and never becomes sizeGrams",
     patch: (src) => replaceOnce(src,
-      "return m[2].toLowerCase() === 'g' ? +m[1] : undefined;",
-      'return +m[1];'),
+      "return one[2].toLowerCase() === 'g' ? +one[1] : undefined;",
+      'return +one[1];'),
+  },
+  {
+    name: "grams: drop the multi-pack branch, so '5x.5g' stops being a weight",
+    check: "'5x.5g' is 2.5g total, and a 2.5g pack IS a step up from a 1g joint",
+    patch: (src) => replaceOnce(src,
+      'if (multi) return +(+multi[1] * +multi[2]).toFixed(3);',
+      'if (multi) return undefined;'),
   },
   {
     // THE BUG THAT SHIPPED. `buildCandidates` is the engine's shared core and

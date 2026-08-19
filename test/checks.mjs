@@ -46,6 +46,30 @@ export const CHECKS = {
     }
   },
 
+  /* A MULTI-PACK IS ITS TOTAL WEIGHT. '5x.5g' is 2.5g of cannabis, and 2.5g IS a
+   * step up from a 1g joint.
+   *
+   * This was a real miss. With '5x.5g' unparsed, sizeGrams was undefined,
+   * isStepUp had no weight to compare, fell through to THC (null on that
+   * product) and returned false — so the Archest Pre-Roll Pack was silently
+   * absent from the Upgrade ladder while the diagnostics reported "no genuine
+   * step up available". A PARSE FAILURE WEARING THE COSTUME OF A MERCHANDISING
+   * RESULT is the worst kind, because the empty state looks considered. */
+  "'5x.5g' is 2.5g total, and a 2.5g pack IS a step up from a 1g joint"(load = loadWindow) {
+    const { toEngineProduct } = swapFrom(load);
+    const ep = (wt) => toEngineProduct({ id: 'x', name: 'n', brand: 'b', cat: 'Pre-Rolls', price: 30, wt });
+
+    for (const [wt, g, n] of [['5x.5g', 2.5, 5], ['5 x .5g', 2.5, 5], ['2x1g', 2, 2]]) {
+      assert.equal(ep(wt).sizeGrams, g, `${wt} must multiply out to ${g}g`);
+      assert.equal(ep(wt).unitCount, n, `${wt} is ${n} pieces`);
+    }
+    // A single unit must NOT acquire a piece count it does not have.
+    assert.equal(ep('1g').sizeGrams, 1);
+    assert.equal(ep('1g').unitCount, undefined);
+    // And mg still refuses, multi-pack branch or not.
+    assert.equal(ep('10mg').sizeGrams, undefined);
+  },
+
   /* '10mg' is an EDIBLES DOSE. If it became sizeGrams the engine would read a
    * 10mg gummy as 10 GRAMS and rank it a step up over every eighth. */
   "'10mg' is a dose and never becomes sizeGrams"(load = loadWindow) {

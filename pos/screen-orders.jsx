@@ -872,29 +872,70 @@ function DriversView({ items, onStartSale }) {
  * Renders nothing when the engine has not loaded — a control that sometimes
  * does nothing is worse than no control.
  */
-function SwapPanel({ P, fmt, line, draft, onSwap, onClose }) {
-  const [mode, setMode] = React.useState('similar');
-  const S = window.HWSwap;
+/**
+ * SWAP ONE LINE FOR ANOTHER PRODUCT — GOVERNED.
+ *
+ * This runs the engine's post-submission flow (`planOrderSubstitution`), not the
+ * raw ranker. The difference is everything that happens around the list: who may
+ * act, whether the order's state allows it, whether the replacement is actually
+ * in the fulfilment source, what the customer now owes, and an audit row saying
+ * who changed what.
+ *
+ * THREE THINGS THIS DELIBERATELY DOES NOT DO, each one a defect from an earlier
+ * attempt that was reviewed and reverted:
+ *
+ *  · It prices against the order's AGREED totals — what the customer actually
+ *    committed to at checkout — never against the unsaved draft. Pricing a
+ *    settlement off a draft answers "what would they owe if they'd ordered this
+ *    instead", which is not the question at the counter.
+ *  · Consent is a real tap. `attested` starts false and only the operator sets
+ *    it; the ENGINE refuses the commit until then. Hardcoding it made the gate
+ *    unfirable while looking present.
+ *  · It keeps `result.record` and `result.intents`. Discarding them leaves a
+ *    governed flow with nothing to show for the governance.
+ */
+function SwapPanel({ P, fmt, line, draft, orderCtx, onSwap, onClose }) {
+  const [mode, setMode] = React.useState('upgrade');
+  const [picked, setPicked] = React.useState(null);
+  const [attested, setAttested] = React.useState(false);
+  const G = window.HWGovern;
 
-  const result = React.useMemo(() => {
-    if (!S) return null;
-    const current = window.HW.PRODUCTS.find((p) => p.name === line.name) ||
-      { id: line.name, sku: line.name, name: line.name, brand: line.brand, cat: line.cat, price: line.price };
-    return S.candidates({
-      current,
-      pool: window.HW.PRODUCTS.filter((p) => p.active),
-      quantity: Math.max(1, line.qty || 1),
-      // Already on the order — swapping into a duplicate line confuses the
-      // stepper and reads as a bug.
-      exclude: draft.filter((l) => l.qty > 0 && l.name !== line.name)
-        .map((l) => (window.HW.PRODUCTS.find((p) => p.name === l.name) || {}).id).filter(Boolean),
-      poolLabel: 'this store',
+  const planned = React.useMemo(() => {
+    if (!G || !orderCtx) return null;
+    return G.planGoverned({
+      actor: orderCtx.actor,
+      order: orderCtx.order,
+      kit: orderCtx.kit,
+      lineId: orderCtx.lineIdFor(line),
+      now: orderCtx.now,
     });
-  }, [line.name, line.qty, draft]);
+  }, [G, orderCtx, line.name, line.qty]);
 
-  if (!S) return null;
-  const rows = (result && result[mode]) || [];
-  const TABS = [['similar', 'Similar'], ['cheaper', 'Cheaper'], ['stronger', 'Stronger']];
+  // The panel must not silently become a plain product picker if the governance
+  // is missing — that is the state an earlier attempt shipped in.
+  if (!G) return (
+    <div style={{ marginTop: 6, padding: '12px 14px', border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface2, fontSize: 12.5, color: P.inkMute }}>
+      Swap is unavailable: <code>shared/commerce-governance.js</code> is not loaded on this page.
+    </div>);
+
+  const refusal = planned && !planned.ok ? planned.refusal : null;
+  const plan = planned && planned.plan;
+  const byMode = (plan && plan.candidatesByMode) || {};
+  const MODES = [['upgrade', 'Upgrade'], ['similar', 'Similar'], ['cheaper', 'Cheaper']];
+  const rows = byMode[mode] || [];
+
+  const sel = picked && rows.find((c) => c.product.id === picked);
+  const settle = sel && G.settlementView(orderCtx.order.paymentMethod, sel.money.customerOwesDeltaCents);
+  const breaks = sel && sel.money.promotionsBroken && sel.money.promotionsBroken.length > 0;
+  const needsAck = sel && sel.verdict && sel.verdict.requiresPromotionAcknowledgement;
+
+  const commit = () => {
+    const res = G.commitGoverned({
+      plan, candidate: sel, actor: orderCtx.actor, order: orderCtx.order,
+      attested, acknowledgePromotionLoss: attested && !!needsAck, now: orderCtx.now,
+    });
+    onSwap(sel, res);
+  };
 
   return (
     <div style={{ marginTop: 6, border: `1px solid ${P.accentBorder}`, borderRadius: P.r12, background: P.surface, overflow: 'hidden' }}>
@@ -902,37 +943,90 @@ function SwapPanel({ P, fmt, line, draft, onSwap, onClose }) {
         <Icon name="swap" size={14} stroke={2} color={P.inkDim} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Replace {line.name}</div>
-          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{line.brand} · {fmt.money(line.price)} ea · ×{line.qty}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>
+            {line.brand} · {fmt.money(line.price)} ea · ×{line.qty} · from {orderCtx.kitLabel}
+          </div>
         </div>
         <IconBtn icon="x" size={14} style={{ width: 28, height: 28 }} onClick={onClose} />
       </div>
 
-      <div style={{ display: 'flex', gap: 6, padding: '9px 11px' }}>
-        {TABS.map(([id, label]) =>
-          <button key={id} onClick={() => setMode(id)} style={{ flex: 1, minHeight: P.ctrlH ? P.ctrlH[0] : 30, padding: '6px 10px', borderRadius: P.r8, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700,
+      {refusal ?
+      <div style={{ padding: '14px 12px', fontSize: 12.5, color: P.ink2, display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+          <Icon name="ban" size={15} stroke={2} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <span>{refusal.message || refusal.code}</span>
+        </div> :
+      <React.Fragment>
+        <div style={{ display: 'flex', gap: 6, padding: '9px 11px' }}>
+            {MODES.map(([id, label]) =>
+          <button key={id} onClick={() => {setMode(id);setPicked(null);setAttested(false);}} style={{ flex: 1, minHeight: 40, padding: '6px 10px', borderRadius: P.r8, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700,
             background: mode === id ? P.ink : 'transparent', color: mode === id ? P.surface : P.ink2,
             border: `1px solid ${mode === id ? P.ink : P.hairline2}` }}>{label}</button>)}
-      </div>
+          </div>
 
-      <div style={{ maxHeight: 260, overflowY: 'auto', borderTop: `1px solid ${P.hairline}` }}>
-        {rows.length === 0 ?
-          <div style={{ padding: '14px 12px', fontSize: 12.5, color: P.inkMute }}>{S.emptyNote(result, mode, line.cat)}</div> :
-          rows.map((c, i) =>
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderBottom: i < rows.length - 1 ? `1px solid ${P.hairline}` : 'none' }}>
-              <Thumb item={{ name: c.product.name, cat: c.product.cat }} size={30} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>{c.product.brand}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{c.product.name}</div>
-                <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>
-                  {c.product.thc != null ? `${c.product.thc}% THC · ` : ''}{fmt.money(c.product.price)}
-                  {c.priceDeltaLabel ? <span style={{ color: c.priceDeltaCents < 0 ? P.good : P.inkMute, fontWeight: 700 }}>{` ${c.priceDeltaLabel}`}</span> : null}
-                </div>
-                {/* Partial cover is a DIFFERENT promise from a full swap and must say so. */}
-                {c.partial && <div style={{ fontSize: 11, color: P.warn, fontWeight: 700, marginTop: 2 }}>{`Covers ${c.fillable} of ${line.qty} — ${c.shortfall} would stay on ${line.name}`}</div>}
+        <div style={{ maxHeight: 300, overflowY: 'auto', borderTop: `1px solid ${P.hairline}` }}>
+            {rows.length === 0 ?
+          <div style={{ padding: '14px 12px', fontSize: 12.5, color: P.inkMute }}>
+                {/* The PLAN's current product, not the draft row: the draft row's
+                    `cat` is stale and told a Pre-Roll it was Flower. */}
+                {(plan.diagnostics && plan.diagnostics.perMode && plan.diagnostics.perMode[mode] && plan.diagnostics.perMode[mode].note)
+                  || `Nothing in ${plan.currentProduct.category} is available from ${orderCtx.kitLabel} for this ladder.`}
+              </div> :
+          rows.map((c, i) => {
+            const on = picked === c.product.id;
+            const money = G.settlementView(orderCtx.order.paymentMethod, c.money.customerOwesDeltaCents);
+            return (
+              <div key={i} onClick={() => {setPicked(on ? null : c.product.id);setAttested(false);}}
+                data-hw-i style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', cursor: 'pointer',
+                  background: on ? P.accentSoft : 'transparent',
+                  borderBottom: i < rows.length - 1 ? `1px solid ${P.hairline}` : 'none' }}>
+                    <Thumb item={{ name: c.product.name, cat: c.product.cat || line.cat }} size={30} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>{c.product.brand}</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{c.product.name}</div>
+                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{money.label}</div>
+                      {c.partial && <div style={{ fontSize: 11, color: P.warn, fontWeight: 700, marginTop: 2 }}>
+                        {`Only ${c.fillable} of ${line.qty} available — ${c.shortfall} stays on ${line.name}`}
+                      </div>}
+                      {c.money.promotionsBroken && c.money.promotionsBroken.length > 0 &&
+                        <div style={{ fontSize: 11, color: P.bad, fontWeight: 700, marginTop: 2 }}>
+                          Removes a promotion the customer earned
+                        </div>}
+                    </div>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{fmt.money(c.product.price)}</span>
+                  </div>);
+          })}
+          </div>
+
+        {sel &&
+        <div style={{ borderTop: `1px solid ${P.hairline}`, padding: '11px 12px', background: P.surface2, display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {breaks &&
+          <div style={{ border: `1.5px solid ${P.bad}`, background: P.badSoft, borderRadius: P.r10, padding: '10px 11px' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <Icon name="alert" size={15} stroke={2} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                    <div style={{ fontSize: 12.5, color: P.ink, fontWeight: 600, lineHeight: 1.45 }}>
+                      {G.promotionView(sel).headline}
+                    </div>
+                  </div>
+                </div>}
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: P.ink, fontWeight: 700 }}>
+                <Icon name={settle.direction === 'refund' ? 'cash' : 'card'} size={15} stroke={2} color={P.inkDim} />
+                <span>{settle.label}</span>
               </div>
-              <PBtn variant="accent" size="sm" onClick={() => onSwap(c)}>Swap</PBtn>
-            </div>)}
-      </div>
+
+              <label className="ck" style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 12.5, cursor: 'pointer', color: P.ink2, minHeight: 40 }}>
+                <input type="checkbox" checked={attested} onChange={(e) => setAttested(e.target.checked)}
+                  style={{ marginTop: 2, width: 16, height: 16, accentColor: P.accent }} />
+                <span>{breaks
+                  ? 'The customer agreed to this swap and to losing the promotion above.'
+                  : 'The customer agreed to this swap.'}</span>
+              </label>
+
+              <PBtn variant="accent" size="md" full disabled={!attested} onClick={commit}>
+                {`Swap for ${sel.product.name}`}
+              </PBtn>
+            </div>}
+      </React.Fragment>}
     </div>);
 }
 
@@ -1513,6 +1607,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const [savedEdit, setSavedEdit] = React.useState(false);
   const [showAdd, setShowAdd] = React.useState(false);
   const [swapIdx, setSwapIdx] = React.useState(null); // draft row whose swap panel is open
+  const [subRecords, setSubRecords] = React.useState([]); // engine SubstitutionRecords filed this session
 
   // Line NAME is the join back to the catalogue — SwapPanel resolves the line
   // it is replacing by name, and AddItemPanel builds the order context the same
@@ -1563,6 +1658,71 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const totalTax = +(stateExcise + stateSales + localTax).toFixed(2);
   const taxRate = taxBase > 0 ? totalTax / taxBase : 0;
   const grand = +(taxBase + totalTax).toFixed(2);
+
+  // ── The governed-substitution context ───────────────────────────────────────
+  //
+  // ⚠️ BUILT FROM THE AGREED TOTALS, NOT THE DRAFT. `grand` above is what the
+  // customer committed to. Pricing a settlement against the unsaved draft
+  // answers a different question — "what would they owe if they had ordered this
+  // instead" — and an earlier attempt shipped exactly that, so the door figure
+  // and the order total disagreed by real money.
+  //
+  // There are no fees on a POS order (grand === taxBase + totalTax), so `agreed`
+  // reconciles exactly, with no residual to absorb.
+  const swapCtx = React.useMemo(() => {
+    const G = window.HWGovern;
+    if (!G) return null;
+    const cents = (d) => Math.round((+d || 0) * 100);
+    const now = new Date();
+
+    const lines = items.map((l, i) => ({
+      id: 'ol' + i,
+      productId: (window.HW.PRODUCTS.find((p) => p.name === l.name) || {}).id || l.name,
+      quantity: l.qty,
+      unitPriceCents: cents(l.price),
+    }));
+
+    // A DELIVERY order already dispatched to a van draws from THAT van; anything
+    // else is fulfilled off the shop floor. A driver cannot hand over stock that
+    // is still in the store.
+    const regionId = G.orderKitId(o.id);
+    const kit = regionId ? G.buildKit(regionId, { now }) : G.buildStoreKit({ now });
+
+    return {
+      now,
+      kitLabel: regionId ? ('van ' + regionId) : 'the store',
+      // A POS operator is unscoped by permission (D1) — not carrying a kit, so a
+      // 'support'-kind actor to the engine.
+      actor: { kind: 'support', id: 'pos-user', name: 'POS' },
+      kit,
+      order: {
+        id: o.id,
+        status: 'submitted',
+        lane: regionId ? 'express' : 'pickup',
+        paymentMethod: /cash/i.test(o.pay || '') ? 'cash' : 'card',
+        placedAt: now.toISOString(),
+        ...(regionId ? { assignedKitId: regionId } : {}),
+        lines,
+        agreed: {
+          subtotalCents: cents(itemsSub),
+          discountCents: cents(cartDisc),
+          feesCents: 0,
+          taxCents: cents(totalTax),
+          totalCents: cents(grand),
+        },
+      },
+      /**
+       * A draft row back to the AGREED line it came from, by name. Null for a row
+       * ADDED during this edit: there is no agreed line to substitute, so it is
+       * not a post-submission substitution at all.
+       */
+      lineIdFor(dl) {
+        const i = items.findIndex((l) => l.name === dl.name);
+        return i >= 0 ? 'ol' + i : null;
+      },
+    };
+  }, [o.id, o.pay, items, itemsSub, cartDisc, totalTax, grand]);
+
 
   // ── Payment detail — Leisure Pay style breakdown (comment 1) ──────────────
   // Deterministic per-order: cash / card / split, last-4, change, processor refs.
@@ -1813,9 +1973,10 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                     <IconBtn icon="swap" size={14} style={{ width: 28, height: 28 }} title="Swap for another product" onClick={() => {setSwapIdx((x) => x === i ? null : i);setShowAdd(false);}} />
                     <IconBtn icon="trash" size={14} style={{ width: 28, height: 28 }} onClick={() => draftRemove(i)} />
                   </div>
-                {swapIdx === i && <SwapPanel P={P} fmt={fmt} line={l} draft={draft}
+                {swapIdx === i && <SwapPanel P={P} fmt={fmt} line={l} draft={draft} orderCtx={swapCtx}
                   onClose={() => setSwapIdx(null)}
-                  onSwap={(c) => {draftSwap(i, c);setSwapIdx(null);}} />}
+                  onSwap={(c, res) => {draftSwap(i, c);setSwapIdx(null);
+                    if (res && res.ok && res.record) setSubRecords((r) => [...r, res.record]);}} />}
                 </React.Fragment>
               )}
                 <div style={{ position: 'relative' }}>

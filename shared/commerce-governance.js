@@ -339,6 +339,35 @@
   }
 
   /**
+   * The STORE's own stock as a KitInventory.
+   *
+   * `KitInventory` is not really "a van" — it is "the units this fulfilment
+   * source can physically supply". For an order being edited at the counter that
+   * source is the shop floor, so the store's on-hand quantities ARE the kit.
+   * Using it keeps one governed code path instead of a second ungoverned one for
+   * in-store orders, which is the whole point of D6.
+   *
+   * A delivery order already dispatched to a van uses THAT van's kit instead —
+   * see `orderKitId`. The driver cannot hand over shop-floor stock.
+   */
+  function buildStoreKit(opts) {
+    const o = opts || {};
+    const catalogue = o.catalogue || (window.HW && window.HW.PRODUCTS) || [];
+    const units = {};
+    for (const p of catalogue) {
+      const n = p && p.active !== false ? +p.qty || 0 : 0;
+      if (n > 0) units[p.id || p.sku] = n;
+    }
+    return {
+      kitId: o.kitId || 'STORE',
+      units,
+      // Always dated, for the same reason buildKit is: an undated kit makes the
+      // engine warn on every candidate, which trains people to ignore warnings.
+      asOf: asDate(o.now).toISOString(),
+    };
+  }
+
+  /**
    * ── D4 · WHICH VAN DID THIS ORDER GO OUT ON ────────────────────────────────
    *
    * The owner's model, in his words: "the address falls [in a] weedmaps
@@ -787,6 +816,7 @@
     buildActor,
     buildOrder,
     buildKit,
+    buildStoreKit,
     // D4 — kit resolution. orderKitId and actorKitId read INDEPENDENT sources;
     // that independence is what makes the engine's wrong_kit check real.
     driverToRegion,
