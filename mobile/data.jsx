@@ -1,5 +1,16 @@
 // ── Mobile demo data — delivery stops, breaks, notifications ────────────────
 // Reuses window.HW.PRODUCTS for catalog + line items. Money via HW.fmt.
+// ⚠️ 0.0822 was local (2.22%) + sales (6%) and SILENTLY DROPPED THE 15% STATE
+// EXCISE. The task screen itemises tax from window.HW.taxBreakdown — which is
+// correct and DOES include excise — and then collected a total computed from
+// this flat rate instead. On a $117 order it showed "State excise tax (15%)
+// $17.55" and collected $126.62 rather than $144.17: the driver took $17.55
+// less than the screen said, on every order.
+//
+// Kept only as the fallback rate for the case where pos/data.jsx has not loaded.
+// pos/data.jsx IS loaded before this file on every entry HTML, so the fallback
+// should never fire; it exists so a load-order change degrades visibly rather
+// than silently reintroducing the bug.
 const TAX_RATE = 0.0822;
 
 // Delivery stops for "Today". A stop is a shop-at-home order the driver
@@ -166,7 +177,13 @@ const prod = (sku) => window.HW.PRODUCTS.find((p) => p.sku === sku);
 function cartTotals(items) {
   const line = (items || []).map((i) => { const p = prod(i.sku); return { ...i, p, ext: (p ? p.price : 0) * i.qty }; });
   const sub = line.reduce((a, l) => a + l.ext, 0);
-  const tax = Math.round(sub * TAX_RATE * 100) / 100;
+  // ONE tax helper, per pos/data.jsx: "One helper so every screen agrees."
+  // This screen was already using it for the itemised lines; it now uses it for
+  // the money as well, so the lines and the total cannot disagree again.
+  const hw = typeof window !== 'undefined' && window.HW;
+  const tax = hw && hw.taxBreakdown ?
+    hw.taxBreakdown(sub).total :
+    Math.round(sub * TAX_RATE * 100) / 100;
   const total = Math.round((sub + tax) * 100) / 100;
   const count = (items || []).reduce((a, i) => a + i.qty, 0);
   return { line, sub, tax, total, count };

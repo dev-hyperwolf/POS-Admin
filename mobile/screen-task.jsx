@@ -98,7 +98,7 @@ function ZoomView({ kind, base, onClose }) {
 }
 
 // ── Item row with batch + scan verification ─────────────────────────────────
-function ScanRow({ l, count, onScan, mode }) {
+function ScanRow({ l, count, onScan, onSwap, mode }) {
   const P = useP();
   const done = count >= l.qty;
   const batch = l.p ? window.MD.batchOf(l.p) : '—';
@@ -112,9 +112,82 @@ function ScanRow({ l, count, onScan, mode }) {
       </div>
       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: done ? P.good : P.ink2, fontFamily: P.fontMono }}>{count}/{l.qty}</div>
+        {mode === 'peritem' && !done && onSwap &&
+        <button onClick={onSwap} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 9px', background: 'transparent', color: P.ink2, border: `1px solid ${P.hairline2}`, borderRadius: 99, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}><Icon name="swap" size={12} stroke={2} />Swap</button>}
         {mode === 'peritem' && (done ?
         <span style={{ fontSize: 11.5, fontWeight: 700, color: P.good }}>Verified</span> :
         <button data-tour="scan" onClick={onScan} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', background: P.ink, color: P.surface, border: 'none', borderRadius: 99, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}><Icon name="barcode" size={13} stroke={2} />Scan {l.qty > 1 ? `(${count + 1}/${l.qty})` : ''}</button>)}
+      </div>
+    </div>);
+}
+
+/**
+ * SWAP A LINE ON A LIVE ORDER — the driver's version.
+ *
+ * ⚠️ THIS IS POST-SUBMISSION AND IT IS NOT THE SAME AS THE CART.
+ * The order is already out. Two consequences the UI has to respect:
+ *
+ *  1. THE POOL IS ONE VAN'S KIT, not the store. A driver can only hand over
+ *     what is physically with them. This demo has no per-kit stock table, so it
+ *     ranks against the catalogue and says so — wiring the real kit is the
+ *     integration point, and `planOrderSubstitution()` in the engine already
+ *     takes one.
+ *  2. SWAPPING INVALIDATES VERIFICATION. Units are scanned per item; replacing
+ *     the product means the scans no longer describe what is in the bag, so the
+ *     count for that line is reset and the driver re-scans.
+ *
+ * Ranking is @hyperwolf/commerce-logic via window.HWSwap — the same code the
+ * web cart and the POS use.
+ */
+function MSwapSheet({ line, onPick, onClose }) {
+  const P = useP();
+  const [mode, setMode] = React.useState('similar');
+  const S = window.HWSwap;
+  const result = React.useMemo(() => {
+    if (!S || !line.p) return null;
+    return S.candidates({
+      current: line.p,
+      pool: window.HW.PRODUCTS.filter((p) => p.active),
+      quantity: Math.max(1, line.qty || 1),
+      poolLabel: "this van's kit",
+    });
+  }, [line.sku, line.qty]);
+  if (!S || !line.p) return null;
+  const rows = (result && result[mode]) || [];
+  const TABS = [['similar', 'Similar'], ['cheaper', 'Cheaper'], ['stronger', 'Stronger']];
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'flex-end' }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxHeight: '82%', overflowY: 'auto', background: P.surface, borderTopLeftRadius: P.r20 || 20, borderTopRightRadius: P.r20 || 20, padding: '14px 16px 22px' }}>
+        <div style={{ width: 38, height: 4, borderRadius: 99, background: P.hairline3, margin: '0 auto 12px' }} />
+        <div style={{ fontSize: 11, fontFamily: P.fontMono, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, fontWeight: 700 }}>Swap on a live order</div>
+        <div style={{ fontSize: 21, fontWeight: 800, color: P.ink, marginBottom: 4 }}>Another option</div>
+        <div style={{ fontSize: 12.5, color: P.inkDim, marginBottom: 12 }}>{`Replacing ${line.p.name} · ×${line.qty}. The customer is re-charged at the new price and you must re-scan.`}</div>
+
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+          {TABS.map(([id, label]) =>
+            <button key={id} onClick={() => setMode(id)} style={{ flex: 1, minHeight: 40, borderRadius: P.r8, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700,
+              background: mode === id ? P.ink : 'transparent', color: mode === id ? P.surface : P.ink2, border: `1px solid ${mode === id ? P.ink : P.hairline2}` }}>{label}</button>)}
+        </div>
+
+        {rows.length === 0 ?
+          <div style={{ padding: '16px 0', fontSize: 12.5, color: P.inkMute }}>{S.emptyNote(result, mode, line.p.cat)}</div> :
+          rows.map((c, i) =>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: `1px solid ${P.hairline}` }}>
+              <Thumb item={c.product} size={40} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>{c.product.brand}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{c.product.name}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>
+                  {c.product.thc != null ? `${c.product.thc}% THC · ` : ''}{window.HW.fmt.money(c.product.price)}
+                  {c.priceDeltaLabel ? <span style={{ color: c.priceDeltaCents < 0 ? P.good : P.inkMute, fontWeight: 700 }}>{` ${c.priceDeltaLabel}`}</span> : null}
+                </div>
+                {c.partial && <div style={{ fontSize: 11, color: P.warn, fontWeight: 700, marginTop: 2 }}>{`Only ${c.fillable} of ${line.qty} available`}</div>}
+              </div>
+              <PBtn variant="accent" size="sm" onClick={() => onPick(c)}>Swap</PBtn>
+            </div>)}
+
+        <PBtn variant="soft" size="lg" full style={{ marginTop: 14 }} onClick={onClose}>Cancel</PBtn>
       </div>
     </div>);
 }
@@ -152,6 +225,7 @@ window.TaskScreen = function TaskScreen({ taskId }) {
   const base = findTask(taskId);
   const [scanned, setScanned] = React.useState(() => ({}));
   const [scanning, setScanning] = React.useState(false);
+  const [swapSku, setSwapSku] = React.useState(null);
   const [zoom, setZoom] = React.useState(null);
   if (!base) return <div style={{ height: '100%' }}><window.MTopBar title="Order" /></div>;
   const items = M.s.cartTaskId === taskId && M.s.cart.length ? M.s.cart : base.items;
@@ -164,6 +238,14 @@ window.TaskScreen = function TaskScreen({ taskId }) {
   const lines = totals.line;
   const allScanned = lines.every((l) => (scanned[l.sku] || 0) >= l.qty);
   const scanOne = (sku) => setScanned((s) => ({ ...s, [sku]: (s[sku] || 0) + 1 }));
+  // Replace one line's product on the live order. The scan count for the OLD
+  // sku is dropped: those scans verified a product that is no longer in the bag.
+  const swapLine = (sku, c) => {
+    const next = items.map((it) => it.sku === sku ? { ...it, sku: c.product.sku } : it);
+    window.M.startCart(taskId, next);
+    setScanned((s) => { const n = { ...s }; delete n[sku]; delete n[c.product.sku]; return n; });
+    setSwapSku(null);
+  };
   const totalUnits = lines.reduce((a, l) => a + l.qty, 0);
   const doneUnits = lines.reduce((a, l) => a + Math.min(l.qty, scanned[l.sku] || 0), 0);
 
@@ -215,7 +297,7 @@ window.TaskScreen = function TaskScreen({ taskId }) {
         </div>}
 
         <Card padding={0} style={{ padding: '4px 16px', marginBottom: 16 }}>
-          {lines.map((l, i) => <ScanRow key={i} l={l} count={done ? l.qty : (scanned[l.sku] || 0)} onScan={() => scanOne(l.sku)} mode={done ? 'view' : 'peritem'} />)}
+          {lines.map((l, i) => <ScanRow key={i} l={l} count={done ? l.qty : (scanned[l.sku] || 0)} onScan={() => scanOne(l.sku)} onSwap={() => setSwapSku(l.sku)} mode={done ? 'view' : 'peritem'} />)}
           <div style={{ borderTop: `1px solid ${P.hairline2}`, padding: '12px 0 6px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[['Subtotal', totals.sub], ...window.HW.taxBreakdown(totals.sub).lines.map((x) => [x.k, x.v])].map(([k, val]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}><span style={{ color: P.inkDim }}>{k}</span><span style={{ color: P.ink2, fontFamily: P.fontMono }}>{window.HW.fmt.money(val)}</span></div>)}
           </div>
@@ -245,6 +327,8 @@ window.TaskScreen = function TaskScreen({ taskId }) {
         </div>}
 
       {zoom && <ZoomView kind={zoom} base={base} onClose={() => setZoom(null)} />}
+      {swapSku && (() => { const l = lines.find((x) => x.sku === swapSku); return l ?
+        <MSwapSheet line={l} onClose={() => setSwapSku(null)} onPick={(c) => swapLine(swapSku, c)} /> : null; })()}
       {scanning && <Scanner items={lines} scanned={scanned} onScanOne={scanOne} onDone={() => { const full = {}; lines.forEach((l) => full[l.sku] = l.qty); setScanned(full); setScanning(false); window.M.flash('All units verified'); }} onClose={() => setScanning(false)} />}
     </div>);
 };

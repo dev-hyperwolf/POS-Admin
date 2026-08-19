@@ -860,6 +860,82 @@ function DriversView({ items, onStartSale }) {
 }
 
 // Add-item picker — search, brand multi-select, smart filters, categories
+/**
+ * SWAP ONE LINE FOR ANOTHER PRODUCT.
+ *
+ * Adding an item and REPLACING one are different jobs and this is the second.
+ * The three ladders — Similar / Cheaper / Stronger — and their ordering come
+ * from @hyperwolf/commerce-logic via `window.HWSwap`, which is the same code
+ * the web cart ranks with. Nothing here re-implements "similar"; if this list
+ * ever disagrees with the website, the bug is in one engine, not two.
+ *
+ * Renders nothing when the engine has not loaded — a control that sometimes
+ * does nothing is worse than no control.
+ */
+function SwapPanel({ P, fmt, line, draft, onSwap, onClose }) {
+  const [mode, setMode] = React.useState('similar');
+  const S = window.HWSwap;
+
+  const result = React.useMemo(() => {
+    if (!S) return null;
+    const current = window.HW.PRODUCTS.find((p) => p.name === line.name) ||
+      { id: line.name, sku: line.name, name: line.name, brand: line.brand, cat: line.cat, price: line.price };
+    return S.candidates({
+      current,
+      pool: window.HW.PRODUCTS.filter((p) => p.active),
+      quantity: Math.max(1, line.qty || 1),
+      // Already on the order — swapping into a duplicate line confuses the
+      // stepper and reads as a bug.
+      exclude: draft.filter((l) => l.qty > 0 && l.name !== line.name)
+        .map((l) => (window.HW.PRODUCTS.find((p) => p.name === l.name) || {}).id).filter(Boolean),
+      poolLabel: 'this store',
+    });
+  }, [line.name, line.qty, draft]);
+
+  if (!S) return null;
+  const rows = (result && result[mode]) || [];
+  const TABS = [['similar', 'Similar'], ['cheaper', 'Cheaper'], ['stronger', 'Stronger']];
+
+  return (
+    <div style={{ marginTop: 6, border: `1px solid ${P.accentBorder}`, borderRadius: P.r12, background: P.surface, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 11px', borderBottom: `1px solid ${P.hairline}`, background: P.surface2 }}>
+        <Icon name="swap" size={14} stroke={2} color={P.inkDim} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Replace {line.name}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{line.brand} · {fmt.money(line.price)} ea · ×{line.qty}</div>
+        </div>
+        <IconBtn icon="x" size={14} style={{ width: 28, height: 28 }} onClick={onClose} />
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, padding: '9px 11px' }}>
+        {TABS.map(([id, label]) =>
+          <button key={id} onClick={() => setMode(id)} style={{ flex: 1, minHeight: P.ctrlH ? P.ctrlH[0] : 30, padding: '6px 10px', borderRadius: P.r8, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700,
+            background: mode === id ? P.ink : 'transparent', color: mode === id ? P.surface : P.ink2,
+            border: `1px solid ${mode === id ? P.ink : P.hairline2}` }}>{label}</button>)}
+      </div>
+
+      <div style={{ maxHeight: 260, overflowY: 'auto', borderTop: `1px solid ${P.hairline}` }}>
+        {rows.length === 0 ?
+          <div style={{ padding: '14px 12px', fontSize: 12.5, color: P.inkMute }}>{S.emptyNote(result, mode, line.cat)}</div> :
+          rows.map((c, i) =>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderBottom: i < rows.length - 1 ? `1px solid ${P.hairline}` : 'none' }}>
+              <Thumb item={{ name: c.product.name, cat: c.product.cat }} size={30} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700 }}>{c.product.brand}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{c.product.name}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>
+                  {c.product.thc != null ? `${c.product.thc}% THC · ` : ''}{fmt.money(c.product.price)}
+                  {c.priceDeltaLabel ? <span style={{ color: c.priceDeltaCents < 0 ? P.good : P.inkMute, fontWeight: 700 }}>{` ${c.priceDeltaLabel}`}</span> : null}
+                </div>
+                {/* Partial cover is a DIFFERENT promise from a full swap and must say so. */}
+                {c.partial && <div style={{ fontSize: 11, color: P.warn, fontWeight: 700, marginTop: 2 }}>{`Covers ${c.fillable} of ${line.qty} — ${c.shortfall} would stay on ${line.name}`}</div>}
+              </div>
+              <PBtn variant="accent" size="sm" onClick={() => onSwap(c)}>Swap</PBtn>
+            </div>)}
+      </div>
+    </div>);
+}
+
 function AddItemPanel({ P, fmt, draft, onAdd }) {
   const all = window.HW.PRODUCTS.filter((p) => p.active);
   const [q, setQ] = React.useState('');
@@ -1340,6 +1416,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const [extraLog, setExtraLog] = React.useState([]); // entries appended this session
   const [savedEdit, setSavedEdit] = React.useState(false);
   const [showAdd, setShowAdd] = React.useState(false);
+  const [swapIdx, setSwapIdx] = React.useState(null); // draft row whose swap panel is open
 
   const baseItems = [
   { name: 'Cake Crasher', brand: window.HW_BRANDS.name.jeeter, cat: 'Flower', qty: 4, price: 15 },
@@ -1443,6 +1520,23 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const startEdit = () => {setDraft(baseItems.map((l) => ({ ...l })));setEditOpen(true);setApproval(false);setEditNote('');};
   const draftSetQty = (i, q) => setDraft((d) => d.map((l, idx) => idx === i ? { ...l, qty: Math.max(0, q) } : l));
   const draftRemove = (i) => setDraft((d) => d.filter((_, idx) => idx !== i));
+  // Replace the product on a line, keeping its quantity. A PARTIAL candidate
+  // cannot cover the whole line, so it SPLITS: the covered units become the new
+  // product and the rest stay on the original. Replacing outright there would
+  // promise units the store does not have.
+  const draftSwap = (i, c) => setDraft((d) => d.map((l, idx) => {
+    if (idx !== i) return l;
+    return { name: c.product.name, brand: c.product.brand, cat: c.product.cat,
+      qty: c.partial ? c.fillable : l.qty, price: c.product.price };
+  }).reduce((acc, l, idx) => {
+    acc.push(l);
+    if (idx === i && c.partial && c.shortfall > 0) {
+      const orig = d[i];
+      acc.push({ name: orig.name, brand: orig.brand, cat: orig.cat, qty: c.shortfall, price: orig.price });
+    }
+    return acc;
+  }, []));
+
   const draftAdd = (p) => setDraft((d) => {const ex = d.find((l) => l.name === p.name);return ex ? d.map((l) => l.name === p.name ? { ...l, qty: l.qty + 1 } : l) : [...d, { name: p.name, brand: p.brand, cat: p.cat, qty: 1, price: p.price }];});
   const draftSub = draft.reduce((s, l) => s + l.price * l.qty, 0);
   const draftDisc = Math.min(cartDisc, draftSub);
@@ -1605,7 +1699,8 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
             {editOpen ?
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {draft.map((l, i) =>
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: l.qty === 0 ? P.badSoft : P.surface2, border: `1.5px solid ${l.qty === 0 ? P.bad : P.hairline}`, borderRadius: P.r10 }}>
+              <React.Fragment key={i}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: l.qty === 0 ? P.badSoft : P.surface2, border: `1.5px solid ${l.qty === 0 ? P.bad : P.hairline}`, borderRadius: P.r10 }}>
                     <Thumb item={{ name: l.name, cat: l.cat }} size={34} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, textDecoration: l.qty === 0 ? 'line-through' : 'none' }}>{l.name}</div>
@@ -1613,8 +1708,13 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                     </div>
                     <Stepper value={l.qty} min={0} max={99} onChange={(q) => draftSetQty(i, q)} size="sm" />
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, width: 56, textAlign: 'right' }}>{fmt.money(l.price * l.qty)}</span>
+                    <IconBtn icon="swap" size={14} style={{ width: 28, height: 28 }} title="Swap for another product" onClick={() => {setSwapIdx((x) => x === i ? null : i);setShowAdd(false);}} />
                     <IconBtn icon="trash" size={14} style={{ width: 28, height: 28 }} onClick={() => draftRemove(i)} />
                   </div>
+                {swapIdx === i && <SwapPanel P={P} fmt={fmt} line={l} draft={draft}
+                  onClose={() => setSwapIdx(null)}
+                  onSwap={(c) => {draftSwap(i, c);setSwapIdx(null);}} />}
+                </React.Fragment>
               )}
                 <div style={{ position: 'relative' }}>
                   <button onClick={() => setShowAdd((s) => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '9px', background: showAdd ? P.surface3 : 'transparent', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name={showAdd ? 'x' : 'plus'} size={14} stroke={2.2} />{showAdd ? 'Close product picker' : 'Add item'}</button>
