@@ -89,7 +89,21 @@
     base = isLoopbackOrigin(override) ? override.replace(/\/+$/, '') : base;
   }
 
-  var armed = !disabled && isLoopbackOrigin(W.location.origin);
+  // ARMED ON ANY ORIGIN, and the SAME-ORIGIN FETCH decides.
+  //
+  // This used to require a loopback origin, which meant the seam was inert
+  // anywhere the demo was actually hosted -- a tunnel or a deployed instance
+  // served the design and then rendered MOCK data, which is the worst of both
+  // outcomes. "Is this localhost?" was never the real question; "does this
+  // origin serve our API?" is, and it answers itself: on GitHub Pages
+  // /api/state 404s, the fetch fails, and we fall back to the mock exactly as
+  // before. No regression to the public demo, and a hosted one comes alive.
+  //
+  // The OVERRIDE stays loopback-only. That check exists for a different reason
+  // and is still needed: a crafted ?hwlive=<host> link could otherwise point a
+  // viewer's page at an arbitrary server and render whatever it returns as if
+  // it were the operator's own catalog.
+  var armed = !disabled;
 
   // ── state ────────────────────────────────────────────────────────────────
   var _hw = undefined;        // the object pos/data.jsx assigns to window.HW
