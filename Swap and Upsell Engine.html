@@ -2600,9 +2600,12 @@ var HWCommerce = (() => {
       intent = "upsell",
       rules = [],
       policy = defaultFulfillmentPolicy,
-      config = defaultConfig,
       modes = UPSELL_MODES
     } = input;
+    const config = input.config ?? {
+      ...defaultConfig,
+      swap: { ...defaultConfig.swap, onInsufficientQuantity: "offer-partial" }
+    };
     const line = order.lines.find((l) => l.id === lineId);
     if (!line) return null;
     const byId = new Map(products.map((p2) => [p2.id, p2]));
@@ -2643,7 +2646,16 @@ var HWCommerce = (() => {
     for (const mode of modes) {
       const judged = [];
       for (const c of built.byMode[mode] ?? []) {
-        const money2 = priceSubstitution({ order, line, replacement: c.product, products, rules, policy, now });
+        const money2 = priceSubstitution({
+          order,
+          line,
+          replacement: c.product,
+          products,
+          rules,
+          policy,
+          now,
+          ...input.computeTax ? { computeTax: input.computeTax } : {}
+        });
         const verdict = judgeCandidate({
           actor,
           policy,
@@ -2680,10 +2692,9 @@ var HWCommerce = (() => {
     const promotionLossCents = promotionsBroken.reduce((s, p2) => s + p2.valueCents, 0);
     const newSubtotal = order.agreed.subtotalCents + lineDeltaCents;
     const newDiscount = Math.max(0, order.agreed.discountCents - promotionLossCents);
-    const oldTaxable = Math.max(1, order.agreed.subtotalCents - order.agreed.discountCents);
-    const effectiveTaxRate = order.agreed.taxCents / oldTaxable;
-    const newTax = Math.round(Math.max(0, newSubtotal - newDiscount) * effectiveTaxRate);
-    const newTotalCents = Math.max(0, newSubtotal - newDiscount) + order.agreed.feesCents + newTax;
+    const newTaxable = Math.max(0, newSubtotal - newDiscount);
+    const newTax = input.computeTax ? Math.max(0, Math.round(input.computeTax(newTaxable, order))) : Math.round(newTaxable * (order.agreed.taxCents / Math.max(1, order.agreed.subtotalCents - order.agreed.discountCents)));
+    const newTotalCents = newTaxable + order.agreed.feesCents + newTax;
     const customerOwesDeltaCents = newTotalCents - order.agreed.totalCents;
     return {
       lineDeltaCents,
