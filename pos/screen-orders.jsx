@@ -316,7 +316,14 @@ function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
 function UnownedBanner({ items, onResolve }) {
   const P = useP();
   const sum = items.reduce((s, o) => s + o.total, 0);
-  const oldest = items.reduce((a, o) => o.age > a ? o.age : a, '0h 0m');
+  // COMPARE MINUTES, NOT STRINGS. This reduced with `o.age > a` over display
+  // strings, so '22h 34m' < '4h 11m' lexicographically and the banner reported
+  // the oldest order as 4h when a 22h one was three cards down. An operator
+  // triaging by this banner never escalates the order that has actually been
+  // waiting a day. Zero-padding is inconsistent too ('5h 02m' vs '0h 3m'), so
+  // the string ordering was arbitrary regardless of magnitude.
+  const ageMins = (a) => {const m = /(\d+)\s*h\s*(\d+)/.exec(String(a || '')); return m ? (+m[1]) * 60 + (+m[2]) : -1;};
+  const oldest = items.reduce((a, o) => ageMins(o.age) > ageMins(a) ? o.age : a, '0h 0m');
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 14, padding: '11px 15px', background: P.surface, border: `1px solid ${P.warn}`, borderLeft: `4px solid ${P.warn}`, borderRadius: P.r12 }}>
       <span style={{ width: 30, height: 30, borderRadius: 9, background: P.warnSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="shield" size={16} stroke={2} color={P.warn} /></span>
@@ -1218,7 +1225,7 @@ function WmOrderBlock({ o, wm, onLog }) {
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="user" size={13} stroke={1.9} color={P.ink2} /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Contact on file</span><button onClick={() => setPeek(true)} title="Open the customer profile" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="user-check" size={11} stroke={2.2} />View profile</button></div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px', padding: '11px 12px', background: P.surface }}>
-        {[['Name', wm.contact.name, wm.checks.name, false], ['Phone', wm.contact.phone, wm.checks.phone, true], ['Email', 'Not provided by Weedmaps', 'na', false], ...(wm.contact.address ? [['Delivery address', wm.contact.address, wm.checks.address, true]] : [])].map(([lb, val, st, mono]) => {const bad = badState(st);return <div key={lb} style={{ minWidth: 0, gridColumn: lb === 'Delivery address' ? '1/-1' : 'auto' }}>
+        {[['Name', wm.contact.name, wm.checks.name, false], ['Phone', wm.contact.phone, wm.checks.phone, true], ['Email', (wm.contact && wm.contact.email) || 'Not provided by Weedmaps', (wm.contact && wm.contact.email) ? (wm.checks && wm.checks.email) || 'na' : 'na', false], ...(wm.contact.address ? [['Delivery address', wm.contact.address, wm.checks.address, true]] : [])].map(([lb, val, st, mono]) => {const bad = badState(st);return <div key={lb} style={{ minWidth: 0, gridColumn: lb === 'Delivery address' ? '1/-1' : 'auto' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{lb}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: bad ? P.bad : P.ink, fontFamily: mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</span>{bad && <Icon name="shield" size={11} stroke={2} color={P.bad} style={{ flex: '0 0 auto' }} />}</div>
         </div>;})}
@@ -1491,7 +1498,33 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const [showAdd, setShowAdd] = React.useState(false);
   const [swapIdx, setSwapIdx] = React.useState(null); // draft row whose swap panel is open
 
-  const baseItems = [
+  // REAL LINES WHEN WE HAVE THEM. This cart was three fixed products sliced by
+  // a count, so the sheet's TOTAL contradicted the queue card on the same
+  // screen ($85.02 vs $58.50 on one order) and the "can't be packed" banner
+  // summed a figure every sheet disagreed with. window.HW_LINES serves what
+  // Weedmaps actually sent, read back from the raw payload we already retain.
+  // Falls back to the design's cart when there is no live answer, so the mock
+  // demo is untouched.
+  // The accessor returns {state, lines, data, reason} — `found` lives on
+  // .data, not the top level, and the first call returns state:'loading' while
+  // it fetches. Checking `.found` here made this whole branch INERT: it always
+  // fell through to the invented cart and looked correct. It re-renders itself
+  // through HW_LIVE when the payload lands.
+  const _liveLines = (window.HW_LINES && typeof window.HW_LINES.get === 'function')
+    ? window.HW_LINES.get(o.id) : null;
+  const _ll = _liveLines && _liveLines.state === 'live' && (_liveLines.lines || []).length
+    ? _liveLines.lines : null;
+  const baseItems = _ll ? _ll.map((l) => ({
+    name: (l.pos_name || (l.wm && l.wm.name) || l.sku || 'Unresolved line'),
+    brand: (l.wm && l.wm.brand) || '',
+    cat: l.category || '',
+    qty: Number((l.wm && l.wm.quantity) || 1),
+    price: Number((l.wm && (l.wm.adjusted_price || l.wm.original_price)) || 0),
+    // An unresolved line is not dropped: a line we could not match to a SKU is
+    // exactly what an operator needs to see.
+    unresolved: !l.resolved,
+    unresolvedWhy: l.unresolved_reason || null
+  })) : [
   { name: 'Cake Crasher', brand: window.HW_BRANDS.name.jeeter, cat: 'Flower', qty: 4, price: 15 },
   { name: 'Blueberry Pancakes', brand: window.HW_BRANDS.name.lowell, cat: 'Pre-Rolls', qty: 1, price: 17 },
   { name: 'Doubleshot Edible', brand: window.HW_BRANDS.name.wyld, cat: 'Edibles', qty: 2, price: 20 }].
@@ -1533,7 +1566,17 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const localTax = +(taxBase * 0.0222).toFixed(2); // local cannabis tax 2.22%
   const totalTax = +(stateExcise + stateSales + localTax).toFixed(2);
   const taxRate = taxBase > 0 ? totalTax / taxBase : 0;
-  const grand = +(taxBase + totalTax).toFixed(2);
+  // WHEN THE LINES ARE REAL, SO IS THE TOTAL. The sheet's own pipeline applies
+  // synthetic discounts and taxes on top of the lines, which turned a real $28
+  // Blue Dream order into a $9.86 sheet against a $34 queue card — the same
+  // contradiction, just with the right products in it now. The API serves the
+  // authoritative grand_total and says explicitly that it covers fees, taxes
+  // and cart-level discounts carried on no line, so the difference is not an
+  // error to be recomputed away.
+  const _liveGrand = _ll && _liveLines && _liveLines.data
+    && typeof _liveLines.data.grand_total === 'number'
+    ? _liveLines.data.grand_total : null;
+  const grand = _liveGrand != null ? _liveGrand : +(taxBase + totalTax).toFixed(2);
 
   // ── Payment detail — Leisure Pay style breakdown (comment 1) ──────────────
   // Deterministic per-order: cash / card / split, last-4, change, processor refs.

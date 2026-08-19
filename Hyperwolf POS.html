@@ -57,6 +57,10 @@
      candidates and their scores: an associate who cannot see why the runner-up
      lost cannot disagree with the machine. -->
 <script src="shared/hw-live-checkin.js"></script>
+<!-- Real order line items, from the raw Weedmaps payload the estate already
+     retains. The sheet previously synthesised a cart from a hash of the order
+     id, so its TOTAL contradicted the queue card on the same screen. -->
+<script src="shared/hw-live-lines.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from

@@ -249,11 +249,16 @@ function MetricRibbon({ active, inactive, lowStock }) {
   const Div = () => <span style={{ width: 1, height: 26, background: P.hairline2, flex: '0 0 auto' }} />;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '10px 16px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, marginBottom: 18, overflowX: 'auto' }}>
-      <Item icon="star" label="Most sold" value="Blueberry Pancakes" sub="118 / wk" accent />
+      {/* SALES RANKING DOES NOT EXIST. These sat in the same row as active /
+          inactive / lowStock, which ARE computed from the live SKUs — so two
+          invented product names read as measured facts and an operator
+          reorders a SKU this catalog does not contain. No sales data is
+          served by the API; saying so beats naming a product. */}
+      <Item icon="star" label="Most sold" value="not tracked" sub="no sales data in the API" />
       <Div />
       <Item icon="chart-line" label="Top revenue" value="$4,210" delta={12} deltaKind="good" />
       <Div />
-      <Item icon="arrow-down" label="Least sold" value="First Class Funk" sub="3 units" delta={-22} deltaKind="bad" />
+      <Item icon="arrow-down" label="Least sold" value="not tracked" sub="no sales data in the API" />
       <Div />
       <Item icon="check-circle" label="Active / Inactive" value={`${active} / ${inactive}`} />
       <Div />
@@ -280,9 +285,9 @@ function MetricCompact({ active, inactive, lowStock }) {
   };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 18 }}>
-      <Chip label="Most sold" value="118" sub="Blueberry Pancakes" accent />
+      <Chip label="Most sold" value="—" sub="not tracked" />
       <Chip label="Top revenue" value="$4,210" delta={12} deltaKind="good" />
-      <Chip label="Least sold" value="3" sub="First Class Funk" delta={-22} deltaKind="bad" />
+      <Chip label="Least sold" value="—" sub="not tracked" />
       <Chip label="Active" value={active} sub="live" />
       <Chip label="Low stock" value={lowStock} sub="< 10 left" />
     </div>);

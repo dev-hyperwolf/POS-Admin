@@ -32,7 +32,7 @@
 // ⚠️ THE ROUTE IS NOT WIRED YET — AND THIS FILE SAYS SO ON SCREEN
 // ---------------------------------------------------------------
 // As of 2026-08-19 `grep -n order_lines wmdemo/server.py` returns NOTHING. The
-// module exists and works; no route serves it. GET /api/order-lines therefore
+// module exists and works; no route serves it. GET /api/order/lines therefore
 // 404s today, and this seam renders that 404 as a NAMED REASON — "the module
 // exists, no route serves it" — never as an empty table and never as a fallback
 // to the mock rows dressed up as live. server.py is another unit's file; the
@@ -105,7 +105,12 @@
   var W = window;
   if (W.HW_LINES && W.HW_LINES.__armed) { return; }      // idempotent
 
-  var ROUTE = '/api/order-lines';
+  // '/api/order/lines' is the wired path. This file was written against
+  // '/api/order/lines' while the API module specified the other -- two agents,
+  // two names for one route, and the seam sat silently 'unreachable' against a
+  // server that was answering perfectly. Serving both would just move the
+  // ambiguity into the server; one canonical name is the fix.
+  var ROUTE = '/api/order/lines';
   var OFF_KEY = 'hw-lines-off';
   var RAIL_W = 74;               // shared/app-rail.jsx:46 — clear the rail
   var BOTTOM = 198;              // above taxonomy 90, identity 126, check-in 162
@@ -145,7 +150,7 @@
     base = isLoopbackOrigin(override) ? override.replace(/\/+$/, '') : base;
   }
   // Armed on any origin; the same-origin fetch is what decides. On GitHub Pages
-  // /api/order-lines 404s, the fetch fails, and the sheet stays exactly as it
+  // /api/order/lines 404s, the fetch fails, and the sheet stays exactly as it
   // is today — with this panel saying which of the two 404s it got.
   var armed = !disabled;
 
