@@ -21,7 +21,13 @@
 // THE FOUR STATES, AND WHY THEY ARE DRAWN AS DIFFERENTLY AS THEY ARE.
 //   mapped   — one or more LIVE WM nodes. Publishes.
 //   unmapped — AN OUTAGE, not a gap on a to-do list. Every product under it is
-//              rejected by Weedmaps and no amount of re-syncing fixes it.
+//              published to Weedmaps WITHOUT A CATEGORY, and no amount of
+//              re-syncing fixes it. (This said "rejected" until 2026-08-20. It
+//              is not rejected -- verified by executing build_item_payload on an
+//              unmapped category: the payload is built, published stays true,
+//              and category_ids is simply absent. A rejection would at least be
+//              visible; publishing uncategorised is silent, which is why the
+//              wrong word mattered.)
 //   skipped  — a recorded DECISION that this never syncs, with its reason and
 //              its author. "Skipped and unmapped look similar and mean opposite
 //              things", so here they share no colour, no icon and no wording.
@@ -490,7 +496,8 @@
              (r.category_ids || []).join(' + ') + '.';
     } else if (r.state === 'unmapped') {
       says = 'NO Weedmaps node. All ' + skus + ' under this ' + vb +
-             ' REJECTED by Weedmaps right now. Re-syncing does not fix it — only a mapping does.';
+             ' publishing to Weedmaps RIGHT NOW WITH NO CATEGORY. Re-syncing does not fix' +
+             ' it — only a mapping does.';
     } else if (r.state === 'stale') {
       says = 'Weedmaps RETIRED the node underneath this mapping. All ' + skus +
              ' stopped appearing, the row still looks mapped, and nothing raised an error.';
@@ -614,7 +621,9 @@
       ';line-height:1.45;margin-top:2px">' + esc(blocked) + ' are BLOCKED by this board: ' +
       esc(Object.keys(cov.by_status || {}).filter(function (k) { return k !== 'ok'; })
         .map(function (k) { return (cov.by_status[k]) + ' ' + k; }).join(' · ')) +
-      '. A blocked product is rejected by Weedmaps and does not appear on the menu.</div></div>';
+      '. A blocked product is NOT rejected: engine.py:192 looks the category up, misses,' +
+      ' and engine.py:219 simply omits category_ids — so it publishes UNCATEGORISED. That is' +
+      ' worse than a rejection, because a rejection is visible and this is not.</div></div>';
 
     h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
       chip(P, tone(P, 'mapped'), c.mapped + ' mapped') +
@@ -719,7 +728,7 @@
   // hw-live.js derives a SKU's Weedmaps pill purely from our own record of a
   // past push (wm_menu_items.published / wm_item_id). It has no idea about the
   // sub-category gate, so 10 of the 11 rows it green-ticked "Synced · Pickup ·
-  // Delivery" were SKUs this board calls blocked -- rejected by Weedmaps and
+  // Delivery" were SKUs this board calls blocked -- published uncategorised and
   // absent from the menu. An operator saw Blue Dream ticked, concluded it was
   // buyable, and did not chase it. The board 40px below said the opposite.
   //
