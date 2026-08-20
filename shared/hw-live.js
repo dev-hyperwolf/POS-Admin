@@ -294,6 +294,32 @@
     return arr;
   }
 
+  // Same identity rule, but only over the rows WE own.
+  //
+  // replaceContents() empties the array. That was correct while this seam was
+  // the only writer -- an array nobody else appends to can be rebuilt wholesale.
+  // It stopped being correct the moment pos/data.jsx gained an order WRITE path:
+  // addOrder() does ORDERS.unshift(rec) on every register sale and every
+  // storefront checkout, into THIS SAME ARRAY. A wholesale rebuild then deletes
+  // every locally created order on the next poll. No error, no console line --
+  // the board just gets shorter, which is the worst way for it to be wrong.
+  //
+  // So partition on provenance instead. Everything this seam adapts is stamped
+  // `_live: true` at the point of construction; anything without that stamp was
+  // put there by somebody else and is not ours to remove. Local rows keep their
+  // position at the FRONT, matching addOrder()'s unshift -- newest first is the
+  // order a counter associate expects to read.
+  function replaceLiveContents(arr, next) {
+    var keep = [];
+    for (var i = 0; i < arr.length; i++) {
+      if (!arr[i] || !arr[i]._live) { keep.push(arr[i]); }
+    }
+    arr.length = 0;
+    for (var k = 0; k < keep.length; k++) { arr.push(keep[k]); }
+    for (var j = 0; j < next.length; j++) { arr.push(next[j]); }
+    return arr;
+  }
+
   // Same rule for the two order LOOKUPS (WM_ORDER, DELIVERY): same object
   // identity, new keys. Anything holding a reference keeps working.
   function replaceObject(obj, next) {
@@ -927,7 +953,7 @@
     if (!rep) { return false; }
 
     var out = adaptOrders(_payload, rep);
-    replaceContents(HW.ORDERS, out.orders);
+    replaceLiveContents(HW.ORDERS, out.orders);
     replaceObject(HW.WM_ORDER, out.wmOrder);
     replaceObject(HW.DELIVERY, out.delivery);
 
