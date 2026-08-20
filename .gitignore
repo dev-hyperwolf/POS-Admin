@@ -1,3 +1,29 @@
+# ── Secrets. This repo is PUBLIC and mirrors 1:1 to GitHub Pages. ──────────
+# The Weedmaps client_secret is ALSO the inbound webhook HMAC key, so leaking
+# it lets anyone forge a signed order webhook at us. Nothing below is ever
+# committed, even from a sandbox account.
+.env
+.env.*
+!.env.example
+.token
+.token_cache.json
+*.pem
+*.key
+
+# ── Backing service artefacts ─────────────────────────────────────────────
+# The integration service (dev-hyperwolf/wm-integration) runs beside this repo
+# during a live demo. Its database is tens of megabytes and its logs carry
+# request payloads; neither belongs in a static site.
+*.sqlite3
+*.sqlite3-*
+*.log
+__pycache__/
+*.pyc
+.venv/
+
+# ── OS noise ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
 node_modules/
 probe/
 
