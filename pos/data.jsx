@@ -387,6 +387,75 @@ function addCheckIn(p) {
 // Hand-off for "check in & start sale": the register reads this once on mount,
 // so the sale opens on the person who just checked in rather than on whatever
 // ticket the register happens to seed itself with.
+// ── Order writes ───────────────────────────────────────────────────────────
+//
+// Same gap as MEMBERS, same symptom. Nothing could write to ORDERS either, so
+// "Save changes" toasted "Order updated" and committed nothing, a completed sale
+// printed a receipt naming an order id that was never created, and no control
+// anywhere moved an order between fulfilment stages — a grep for `.stage =`
+// found only the seed literals.
+//
+// The stages are the ones the queue and WM_STATUS_MAP already agree on. Keeping
+// the order fixed here means a caller cannot skip 'pack' by passing a typo.
+const STAGES = ['verify', 'pack', 'packing', 'ready', 'done'];
+
+function orderById(id) { return ORDERS.find((o) => o.id === id) || null; }
+
+/**
+ * Create an order. Used by a completed sale, and by anything that needs a real
+ * record rather than a receipt line that refers to nothing.
+ */
+function addOrder(o) {
+  const num = String(Math.max(0, ...ORDERS.map((x) => parseInt(String(x.num || '').replace(/\D/g, ''), 10) || 0)) + 1).padStart(5, '0');
+  const items = (o && o.items) || 0;
+  const rec = {
+    id: (o && o.id) || 'ORD-' + num,
+    num: (o && o.num) || num,
+    name: (o && o.name || '').trim() || 'Walk-in',
+    total: +(+(o && o.total || 0)).toFixed(2),
+    source: (o && o.source) || 'Stilo',
+    channel: (o && o.channel) || 'Store',
+    pay: (o && o.pay) || 'Cash',
+    badge: (o && o.badge) || null,
+    age: (o && o.age) || '0h 0m',
+    items: typeof items === 'number' ? items : (items.length || 0),
+    stage: STAGES.includes(o && o.stage) ? o.stage : 'verify',
+    hue: (o && o.hue) != null ? o.hue : 200,
+  };
+  if (o && o.lines) rec.lines = o.lines.slice();
+  ORDERS.unshift(rec);
+  _hwNotify();
+  return rec;
+}
+
+/** Patch an order in place. Returns the updated record, or null if unknown. */
+function updateOrder(id, patch) {
+  const o = orderById(id);
+  if (!o) return null;
+  Object.assign(o, patch || {});
+  if (o.total != null) o.total = +(+o.total).toFixed(2);
+  _hwNotify();
+  return o;
+}
+
+/**
+ * Move an order through fulfilment.
+ *
+ * Refuses an unknown stage rather than writing it: a typo'd stage silently
+ * removes the order from every queue that filters on the known set, which looks
+ * exactly like the order having been deleted.
+ */
+function setStage(id, stage) {
+  if (!STAGES.includes(stage)) return null;
+  return updateOrder(id, { stage });
+}
+
+/** The next stage in the pipeline, or null at the end. */
+function nextStage(stage) {
+  const i = STAGES.indexOf(stage);
+  return i < 0 || i === STAGES.length - 1 ? null : STAGES[i + 1];
+}
+
 let _pendingSale = null;
 function startSaleFor(customer, guests) { _pendingSale = customer ? { customer, guests: (guests || []).slice() } : null; }
 function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
@@ -395,6 +464,7 @@ window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, 
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
   addMember, updateMember, creditWallet, addCheckIn, startSaleFor, takePendingSale,
+  STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
   subscribe:(fn)=>{ _hwSubs.add(fn); return ()=> _hwSubs.delete(fn); },
   checkinById:(id)=> CHECKINS.find(c=>c.id===id) || null,
   memberById:(id)=> MEMBERS.find(m=>m.id===id) || null,
