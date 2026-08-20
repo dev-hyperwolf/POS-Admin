@@ -116,9 +116,14 @@ test('a waived fee stays waived whatever the operator sets — the rule outranks
   await withApp('shop', async (app) => {
     const W = app.window, HW = W.HW, SHOP = W.SHOP, D = W.SHOPDATA;
     HW.resetLaneSettings();
-    const ex = D.allProducts().find((p) => D.isExpress(p.sku));
+    // ⚠️ The priciest van-carried item, at the van's OWN depth. `add(ex.sku, 12)`
+    // used to clear the threshold by putting twelve units of a five-unit kit
+    // into express — the cart now caps that lane at what the driver has, so a
+    // fixture that ignores the kit builds a lane far under the threshold.
+    const ex = D.allProducts().filter((p) => D.isExpress(p.sku))
+      .sort((a, b) => b.price - a.price)[0];
     SHOP.clear();
-    SHOP.add(ex.sku, 12, 'express');          // over the free-delivery threshold
+    SHOP.add(ex.sku, D.expressUnits(ex.sku), 'express');   // over the free-delivery threshold
     HW.setLaneSettings({ expressMinimum: 1, expressFee: 25 });
 
     const lane = SHOP.totals().lanes.find((l) => l.lane === 'express');

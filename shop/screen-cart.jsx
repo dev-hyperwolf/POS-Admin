@@ -73,6 +73,35 @@ function scartLaneLines(lane) {
 /** `n ITEMS` / `n ORDERS`, pluralised. The COUNTS are the engine's. */
 function scartCount(n, one) { return `${n} ${n === 1 ? one : one + 'S'}`; }
 
+/**
+ * 🔴 WHY "MOVE TO EXPRESS" IS NOT ALWAYS ON OFFER.
+ *
+ * Express is the driver's kit, and a kit has a depth. The control used to render
+ * on every scheduled line unconditionally, so a customer could move a sku the
+ * van is carrying NONE of into express — and was then quoted ~90 minutes and
+ * charged the express fee for something no driver had. `shopSetLane` refuses
+ * that move, which without this would just be a button that does nothing.
+ *
+ * Returns null when the move is available; otherwise the sentence to show in its
+ * place.
+ *
+ * ⚠️ TONE IS PART OF THE FIX, not decoration on it. The lane minimum next to
+ * this is drawn as PROGRESS and never as a refusal, and this has to match: the
+ * item is not unavailable, not out of stock, and nothing is blocked — it simply
+ * ARRIVES TOMORROW, which is what the scheduled lane is. The words "unavailable"
+ * and "out of stock" are wrong here and are the reason this returns prose rather
+ * than a boolean.
+ */
+function scartExpressNote(sku, qty) {
+  const D = window.SHOPDATA;
+  if (!D || typeof D.expressHeadroom !== 'function') return null;
+  if (D.expressHeadroom(sku) >= qty) return null;        // the move can be honoured
+  const units = D.expressUnits(sku);
+  return units === 0
+    ? 'Arrives tomorrow — today’s van isn’t carrying this one.'
+    : `Arrives tomorrow — today’s van is carrying ${units}.`;
+}
+
 // ── Pieces shared with the checkout ────────────────────────────────────────
 
 /**
@@ -134,6 +163,9 @@ window.ShopCartLine = function ShopCartLine({ entry, lane }) {
   const p = entry.product, l = entry.line;
   const other = lane === 'express' ? 'scheduled' : 'express';
   const otherMeta = scartMeta(other);
+  // Only the move INTO express can be un-keepable — the scheduled lane is served
+  // from the warehouse and takes anything.
+  const note = other === 'express' ? scartExpressNote(p.sku, l.qty) : null;
   return <div data-hw="cart-line" style={{ display: 'flex', gap: 12, padding: 14, borderBottom: `1px solid ${P.hairline}` }}>
     <Thumb item={p} size={56} radius={P.r10} />
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -155,10 +187,16 @@ window.ShopCartLine = function ShopCartLine({ entry, lane }) {
         <Stepper value={l.qty} min={0} size="lg" onChange={(n) => SHOP.setQty(l.id, n)} />
       </div>
       <div style={{ marginTop: 8 }}>
-        {/* 🔴 Per-line lane assignment, driven by the customer. */}
-        <PBtn size="md" variant="ghost" icon={otherMeta.icon} onClick={() => SHOP.setLane(l.id, other)}>
-          Move to {otherMeta.label}
-        </PBtn>
+        {/* 🔴 Per-line lane assignment, driven by the customer — but only offered
+            where the van can honour it. See scartExpressNote. */}
+        {note
+          ? <div data-hw="lane-note" style={{ display: 'flex', alignItems: 'center', gap: 7, minHeight: P.ctrlH.md, fontSize: P.type.meta, color: P.inkDim }}>
+            <Icon name="calendar" size={14} stroke={1.9} color={P.inkMute} />
+            <span>{note}</span>
+          </div>
+          : <PBtn size="md" variant="ghost" icon={otherMeta.icon} onClick={() => SHOP.setLane(l.id, other)}>
+            Move to {otherMeta.label}
+          </PBtn>}
       </div>
     </div>
   </div>;
@@ -266,7 +304,7 @@ window.ShopOrderSummary = function ShopOrderSummary({ totals }) {
 
 // Shared with shop/screen-checkout.jsx, which must not grow its own copies.
 window.SHOPCART_UI = { meta: scartMeta, arrival: scartArrival, tomorrow: scartTomorrow,
-  laneLines: scartLaneLines, count: scartCount };
+  laneLines: scartLaneLines, count: scartCount, expressNote: scartExpressNote };
 
 // ── The screen ─────────────────────────────────────────────────────────────
 

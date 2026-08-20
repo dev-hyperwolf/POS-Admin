@@ -30,7 +30,18 @@ const SHOP_CUSTOMER = {
   zone: { city: 'Long Beach', zip: '90804', regionId: 'LA-01' },
   // What the ENGINE is told about him. `orderCount` > 0 is a fact of the past
   // orders below, so WELCOME20 (first-order-only) correctly does not apply.
-  engine: { id: 'c-marcus', loyaltyTier: 'Wolfpack', orderCount: 2 },
+  //
+  // 🔴 `loyaltyTier` READ 'Wolfpack', WHICH IS NOT A TIER ANYTHING RECOGNISES.
+  // The one tier gate in the estate is `user_loyalty_tier: ["Wolfpack Leader"]`
+  // (the `wolfpack-10` rule, shared/commerce-engine.js). A tier string is matched
+  // by EXACT equality, so 'Wolfpack' silently qualified this customer for
+  // nothing — no error, no unapplied-rule notice, just a discount that never
+  // appeared and a fixture that looked like it exercised the tier path.
+  //
+  // A near-miss string is worse than an obviously absent one, because it reads
+  // as intentional. `test/shop-van-promise.test.mjs` now pins this against the
+  // engine's own rule set, so the next near-miss fails instead of going quiet.
+  engine: { id: 'c-marcus', loyaltyTier: 'Wolfpack Leader', orderCount: 2 },
 };
 
 // ── Store hours ───────────────────────────────────────────────────────────
@@ -80,8 +91,56 @@ function expressUnits(sku) {
 }
 function isExpress(sku) { return expressUnits(sku) > 0; }
 
-/** The lane an "add to cart" lands in: express when the van has it, else scheduled. */
-function defaultLaneFor(sku) { return isExpress(sku) ? 'express' : 'scheduled'; }
+/**
+ * 🔴 EXPRESS IS A PROMISE ABOUT ONE VAN, AND A VAN HAS A DEPTH.
+ *
+ * `isExpress` answers "is the driver carrying this at all" — a per-PRODUCT fact,
+ * and the right one for the ⚡ badge on a grid card. It is the WRONG question for
+ * a cart, because it collapses `units` to a boolean: a van carrying 5 of a sku
+ * answered "yes" to a cart holding 99 of it, and the storefront then promised
+ * ~90 minutes for 94 units no driver had.
+ *
+ * This is how many MORE units of `sku` the express lane could still take: the
+ * van's depth, less whatever the express lane is already holding. It is the one
+ * number every express decision on this storefront is made from — `shopAdd`,
+ * `shopSetQty` and `shopSetLane` all ask it, and so does the cart screen when it
+ * decides whether "Move to Express" is a promise it can keep.
+ *
+ * ⚠️ TONE. A shortfall here is never a refusal. The overflow ARRIVES TOMORROW —
+ * it is a lane change, not an out-of-stock, and every surface that reads this
+ * must say so in those terms. `qty` (warehouse on-hand) is untouched by any of
+ * this; the scheduled lane is served from the warehouse and can take the rest.
+ */
+function expressHeadroom(sku) {
+  const held = _findLine(sku, 'express');
+  return Math.max(0, expressUnits(sku) - (held ? held.qty : 0));
+}
+
+/**
+ * What `shopAdd(sku, qty)` would ACTUALLY do, before it does it. Pure.
+ *
+ * Exposed so a screen can tell the customer the truth in the same breath as the
+ * add — a toast that names the lane it BELIEVES the item went to, computed
+ * independently, is the second authority this file exists to prevent.
+ */
+function shopAddPlan(sku, qty, lane) {
+  const n = Math.max(1, qty || 1);
+  const ln = lane || (isExpress(sku) ? 'express' : 'scheduled');
+  if (ln !== 'express') return { express: 0, scheduled: n, lane: ln, capped: false };
+  const express = Math.min(n, expressHeadroom(sku));
+  return { express, scheduled: n - express, lane: express > 0 ? 'express' : 'scheduled',
+    capped: express < n };
+}
+
+/**
+ * The lane an "add to cart" lands in.
+ *
+ * ⚠️ CART-DEPENDENT, deliberately. It was `isExpress(sku)`, which is a fact
+ * about the van and not about this add: once the express lane already holds the
+ * van's whole depth, the NEXT unit lands scheduled, and a card that still
+ * announced "Express" would be describing something that did not happen.
+ */
+function defaultLaneFor(sku) { return expressHeadroom(sku) > 0 ? 'express' : 'scheduled'; }
 
 // ── Catalogue helpers ─────────────────────────────────────────────────────
 function allProducts() {
@@ -292,17 +351,34 @@ const _SHOP = {
 
 function _findLine(sku, lane) { return _SHOP.lines.find((l) => l.sku === sku && l.lane === lane) || null; }
 
+/** Put units into one lane, merging with that lane's existing line. NO emit. */
+function _shopPut(sku, qty, lane) {
+  if (qty <= 0) return null;
+  const existing = _findLine(sku, lane);
+  if (existing) { existing.qty += qty; return existing; }
+  _SHOP.lines = _SHOP.lines.concat([{ id: 'sl' + (++_shopSeq), sku, qty, lane }]);
+  return _findLine(sku, lane);
+}
+
+/**
+ * Add to the cart, within what the van can actually carry.
+ *
+ * 🔴 The storefront is the ONLY system that can falsify the express promise
+ * before it is made, and it used to make it unconditionally: 99 units went into
+ * express against a van depth of 5. The overflow is not refused and it is not
+ * lost — it goes scheduled, which is exactly what "arrives tomorrow instead"
+ * means, and `shopAddPlan` is what a screen reads to say so.
+ */
 function shopAdd(sku, qty, lane) {
   const p = productBySku(sku);
   if (!p) return null;                       // never hold a line for a sku the store does not sell
-  const n = Math.max(1, qty || 1);
-  const ln = lane || defaultLaneFor(sku);
-  const existing = _findLine(sku, ln);
-  if (existing) { existing.qty += n; } else {
-    _SHOP.lines = _SHOP.lines.concat([{ id: 'sl' + (++_shopSeq), sku, qty: n, lane: ln }]);
-  }
+  const plan = shopAddPlan(sku, qty, lane);
+  const ex = _shopPut(sku, plan.express, 'express');
+  // `plan.lane` when nothing went express, so an explicitly-named lane is still
+  // honoured; 'scheduled' when this is the overflow off a capped express add.
+  const sc = _shopPut(sku, plan.scheduled, plan.express > 0 ? 'scheduled' : plan.lane);
   _shopEmit();
-  return _findLine(sku, ln);
+  return ex || sc;
 }
 
 /** Add every line of a past order. Returns how many lines actually landed. */
@@ -313,10 +389,22 @@ function shopAddAll(order) {
   return added;
 }
 
+/**
+ * A stepper is just another way to ask for more than the driver is carrying, so
+ * the van caps this too. Without it, "+" held down on an express line rebuilt
+ * the exact promise `shopAdd` now refuses to make.
+ */
 function shopSetQty(lineId, qty) {
   const l = _SHOP.lines.find((x) => x.id === lineId);
   if (!l) return false;
   if (qty <= 0) return shopRemove(lineId);
+  if (l.lane === 'express') {
+    const keep = Math.min(qty, expressUnits(l.sku));
+    if (keep <= 0) _SHOP.lines = _SHOP.lines.filter((x) => x.id !== l.id);
+    else l.qty = keep;
+    _shopPut(l.sku, qty - keep, 'scheduled');   // the overflow arrives tomorrow
+    _shopEmit(); return true;
+  }
   l.qty = qty; _shopEmit(); return true;
 }
 function shopRemove(lineId) {
@@ -325,10 +413,19 @@ function shopRemove(lineId) {
   if (_SHOP.lines.length === before) return false;
   _shopEmit(); return true;
 }
-/** Move ONE line to the other lane, merging if that lane already holds the sku. */
+/**
+ * Move ONE line to the other lane, merging if that lane already holds the sku.
+ *
+ * 🔴 Returns false — the move does not happen — when the van cannot carry the
+ * whole line. The cart screen hides the control in that case, so this is the
+ * second line of defence rather than the only one; it is here because a store
+ * that only guards in the view is a store that is guarded until someone adds a
+ * second view.
+ */
 function shopSetLane(lineId, lane) {
   const l = _SHOP.lines.find((x) => x.id === lineId);
   if (!l || l.lane === lane) return false;
+  if (lane === 'express' && expressHeadroom(l.sku) < l.qty) return false;
   const target = _findLine(l.sku, lane);
   if (target) { target.qty += l.qty; _SHOP.lines = _SHOP.lines.filter((x) => x.id !== l.id); }
   else { l.lane = lane; }
@@ -469,7 +566,7 @@ window.SHOPDATA = {
   SCREENS: SHOP_SCREENS,
   SCREEN_GLOBAL: SHOP_SCREEN_GLOBAL,
   openState: shopOpenState,
-  expressUnits, isExpress, defaultLaneFor,
+  expressUnits, isExpress, expressHeadroom, addPlan: shopAddPlan, defaultLaneFor,
   allProducts, productBySku, categories: shopCategories, productsInCategory,
   railProducts, brandSpotlight, expressEtaMinutes, pastOrders,
   screenFor: shopScreenFor,

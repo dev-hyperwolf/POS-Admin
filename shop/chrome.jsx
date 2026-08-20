@@ -8,6 +8,31 @@
 // surface in this repo — does not render it either, for the same reason.
 const useP = window.useP;
 
+/**
+ * 🔴 THE HEADER SEARCH IS GLOBAL, AND IT WAS A DEAD END EVERYWHERE BUT ONE TAB.
+ *
+ * `ShopHeader` renders this field on every tab, but only `ShopShopScreen` reads
+ * `S.s.query` — so on Home, Cart and Checkout a customer could type a strain
+ * name, press enter, and have literally nothing happen. No result, no
+ * navigation, no message. Typing into a box that does nothing is worse than not
+ * offering the box.
+ *
+ * Enter routes to the results. It also clears the category and rail, because a
+ * search that reaches every tab is a search of the WHOLE catalogue: a "Connected"
+ * typed on Home while the shop screen still happened to be narrowed to Edibles
+ * would land on "Nothing here yet" and read as "we don't sell it".
+ * (`setCategory` clears the rail as part of its own contract.)
+ *
+ * An empty field does nothing on purpose — enter on a blank box should not yank
+ * anyone off the page they are on.
+ */
+function shopRunSearch(S) {
+  if (!String(S.s.query || '').trim()) return false;
+  S.setCategory('All');
+  S.go('shop');
+  return true;
+}
+
 // ● OPEN — the status pill above the greeting.
 window.ShopOpenPill = function ShopOpenPill({ now }) {
   const P = useP();
@@ -74,7 +99,8 @@ window.ShopHeader = function ShopHeader() {
         <window.ShopDeliverTo onClick={() => S.go('checkout')} />
         <div style={{ flex: 1, minWidth: 220 }}>
           <Field icon="search" placeholder="Search strains, brands, effects..." value={S.s.query}
-            onChange={(e) => S.setQuery(e.target.value)} />
+            onChange={(e) => S.setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') shopRunSearch(S); }} />
         </div>
         <CartButton />
       </div>

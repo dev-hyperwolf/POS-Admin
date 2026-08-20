@@ -190,7 +190,16 @@ test('the lane minimum is progress, and the progress bar cannot lie', async () =
     assert.equal(lane.minimumMet, false, 'this cart is meant to be under the minimum');
 
     // Fill it past the minimum: the bar clamps at 1 and the tick turns on.
-    W.SHOP.add(cheap.sku, 999);
+    //
+    // ⚠️ This used to be `add(cheap.sku, 999)`, which could only ever have
+    // filled the lane because the cart would put 999 units into express against
+    // a van carrying six. The lane is now filled the only way it can honestly be
+    // filled — with more of what the driver is actually carrying.
+    for (const p of D.allProducts()) {
+      if (W.SHOP.totals().lanes.find((l) => l.lane === 'express').minimumMet) break;
+      const room = D.expressHeadroom(p.sku);
+      if (room > 0) W.SHOP.add(p.sku, room, 'express');
+    }
     lane = W.SHOP.totals().lanes.find((l) => l.lane === 'express');
     assert.equal(lane.minimumMet, true);
     assert.equal(lane.progress, 1, 'progress must clamp at 1 once the minimum is met');

@@ -71,9 +71,22 @@ function loadTwoLanes(W, expQty = 3, schQty = 3) {
   W.SCO_STATE.address = '123 Test St, Long Beach';
   const pool = W.SHOPDATA.allProducts().filter((p) => p.qty > 0 && p.price >= 20);
   assert.ok(pool.length >= 2, 'the catalogue must offer two items to build a two-lane cart');
-  W.SHOP.add(pool[0].sku, expQty, 'express');
-  W.SHOP.add(pool[1].sku, schQty, 'scheduled');
-  return { express: pool[0], scheduled: pool[1] };
+  // ⚠️ THE EXPRESS SKU MUST BE ONE TODAY'S VAN CARRIES `expQty` OF.
+  // Express is the driver's kit and the cart now caps that lane at the kit's
+  // depth, so an arbitrary `pool[0]` — which the van may carry none of — puts
+  // the whole "express" add into scheduled and leaves this fixture with ONE
+  // lane and an undefined `laneOf(W, 'express')`.
+  const exp = pool.find((p) => W.SHOPDATA.expressUnits(p.sku) >= expQty);
+  assert.ok(exp, `nothing in the catalogue is on today's van ${expQty} deep — no express lane is buildable`);
+  // The scheduled sku has to be van-carried too, or "Move to Express" on it is
+  // a promise the driver cannot keep and the cart correctly refuses to offer it.
+  const sch = pool.find((p) => p.sku !== exp.sku
+    && W.SHOPDATA.expressUnits(p.sku) >= schQty);
+  assert.ok(sch, 'the fixture needs a second van-carried sku deep enough to take both lanes');
+  W.SHOP.add(exp.sku, expQty, 'express');
+  W.SHOP.add(sch.sku, schQty, 'scheduled');
+  assert.equal(W.SHOP.lines().length, 2, 'the fixture must build exactly two lines, one per lane');
+  return { express: exp, scheduled: sch };
 }
 
 /** The lane record the engine currently reports. */
@@ -247,6 +260,14 @@ test('the cart button, the checkout bar and the orders that get written are ONE 
 
 test('each written order carries a money record — so the panel cannot invent a discount for it', async () => {
   await withShop(async (app, W, open) => {
+    // ⚠️ THIS FIXTURE NEEDS A PROMOTION-FREE CART, and the signed-in customer is
+    // no longer promotion-free: `loyaltyTier` used to read 'Wolfpack', which
+    // matched no rule in the estate, so every cart came out at discountCents 0
+    // by accident. It now reads the real tier ('Wolfpack Leader') and the
+    // `wolfpack-10` rule fires on every cart. Stand the tier down HERE so the
+    // no-promotion case this test is about still exists — the case where the
+    // customer DOES qualify is covered in test/shop-van-promise.test.mjs.
+    W.SHOPDATA.CUSTOMER.engine.loyaltyTier = 'no-such-tier';
     loadTwoLanes(W, 3, 3);
     const t = W.SHOP.totals();
     assert.equal(t.discountCents, 0, 'this fixture has no promotion, which is what makes the next line meaningful');
@@ -409,8 +430,12 @@ test('the order summary adds up to its own Total — including when a promotion 
     // but never enters `discountCents`, so printing it as a price row put a
     // figure in the column that was never subtracted from the Total.
     const pool = W.SHOPDATA.allProducts().filter((p) => p.qty > 0 && p.price >= 20);
-    W.SHOP.add(pool[0].sku, 6, 'express');
-    W.SHOP.add(pool[1].sku, 3, 'scheduled');
+    // Same van-depth constraint as `loadTwoLanes`: six units only stay in the
+    // express lane if the driver is carrying six.
+    const exp = pool.find((p) => W.SHOPDATA.expressUnits(p.sku) >= 6);
+    assert.ok(exp, 'nothing on today’s van is six deep — no express lane is buildable');
+    W.SHOP.add(exp.sku, 6, 'express');
+    W.SHOP.add(pool.find((p) => p.sku !== exp.sku).sku, 3, 'scheduled');
     const t = W.SHOP.totals();
     const waivers = t.discounts.filter((d) => d.kind === 'fee_waiver');
     assert.ok(waivers.length > 0, 'this fixture must actually trigger a fee waiver');
