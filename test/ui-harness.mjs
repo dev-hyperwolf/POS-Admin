@@ -121,6 +121,68 @@ export async function boot(which = 'pos', opts = {}) {
   });
   const { window } = dom;
 
+  /* 🔴 THE HARNESS IS OFFLINE, AND SAYS SO RATHER THAN CRASHING.
+   *
+   * jsdom provides no `fetch`. The live seams (shared/hw-live*.js — lines,
+   * identity, mapping, taxonomy, checkin, regions) call it AT LOAD, so on a
+   * tree where those files are present every single app boot died with
+   * `ReferenceError: fetch is not defined` and took 90 of 290 tests with it.
+   *
+   * ⚠️ NEITHER BRANCH COULD HAVE FOUND THIS ALONE. In a real browser `fetch`
+   * exists, so their side is fine; on main those files are absent, so ours is
+   * fine. It only exists at the join — which is the entire argument for testing
+   * the MERGED tree rather than two green halves.
+   *
+   * A REJECTING stub would be wrong: an unhandled rejection at load is just a
+   * different crash. This RESOLVES with a non-ok response, so each seam takes
+   * its own "no live answer" path — which is the state we actually want under
+   * test, because the harness must never reach the network.
+   *
+   * Set `opts.fetch` to drive a seam deliberately.
+   */
+  /* Once close() has run, a fetch that RESOLVES restarts a seam's poll against a
+   * torn-down document — `Cannot read properties of undefined (reading 'body')`,
+   * raised as an unhandledRejection AFTER the test ended, which node --test
+   * scores as a failed FILE even though every assertion passed. Six files failed
+   * that way on the merged tree.
+   *
+   * A promise that never settles is the honest answer: the harness is gone,
+   * so the request genuinely has no reply coming. */
+  let harnessClosed = false;
+
+  /* EVERY TIMER THIS PAGE SCHEDULES, so close() can cancel them.
+   *
+   * The live seams poll on setTimeout/setInterval. jsdom's window.close() does
+   * not reliably stop a timer that has already been scheduled, so the callback
+   * fires against a torn-down document and throws
+   * `Cannot read properties of undefined (reading 'body')` — as an
+   * unhandledRejection AFTER the test ended, which node --test scores as a
+   * failed FILE even though every assertion in it passed. Six files failed that
+   * way on the merged tree, and guarding fetch alone did not fix it because the
+   * retry is scheduled, not fetched. */
+  const harnessTimers = new Set();
+  for (const kind of ['setTimeout', 'setInterval']) {
+    const orig = window[kind].bind(window);
+    window[kind] = (fn, ms, ...rest) => {
+      if (harnessClosed) return 0;
+      const id = orig(fn, ms, ...rest);
+      harnessTimers.add([kind === 'setTimeout' ? 'clearTimeout' : 'clearInterval', id]);
+      return id;
+    };
+  }
+  window.fetch = opts.fetch || function harnessFetch(url) {
+    if (harnessClosed) return new Promise(() => {});
+    return Promise.resolve({
+      ok: false, status: 503, statusText: 'offline in the test harness',
+      url: String(url),
+      // Guarded too, not just the call: a response created BEFORE close() still
+      // resolves afterwards, and it is the CONTINUATION that touches the dead
+      // document. Checking only at call time left all six files failing.
+      json: () => (harnessClosed ? new Promise(() => {}) : Promise.resolve(null)),
+      text: () => (harnessClosed ? new Promise(() => {}) : Promise.resolve('')),
+    });
+  };
+
   const errors = [];
   window.addEventListener('error', (e) => errors.push(String(e.message || e)));
   window.onerror = (m) => { errors.push(String(m)); };
@@ -142,7 +204,20 @@ export async function boot(which = 'pos', opts = {}) {
   const React = (await import('react')).default;
   const ReactDOM = (await import('react-dom/client'));
   window.React = React;
-  window.ReactDOM = ReactDOM;
+  /* 🔴 A MUTABLE COPY, NOT THE MODULE NAMESPACE.
+   *
+   * In the browser ReactDOM arrives from a UMD <script> and is a plain, writable
+   * object. Here it is an ES Module namespace, which is SEALED — so any code
+   * that patches it throws `Cannot assign to property 'createRoot' of
+   * [object Module]`.
+   *
+   * shared/hw-live.js:1049 and shared/hw-live-checkin.js:913 both do exactly
+   * that, wrapping createRoot to capture renders. On a merged tree that killed
+   * 230 boots. Handing out the namespace object was the harness being
+   * unfaithful to the browser it claims to imitate — the same category as the
+   * IIFE wrapper that hid the STAGES collision.
+   */
+  window.ReactDOM = { ...ReactDOM };
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
   window.scrollTo = () => {};
   window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
@@ -223,9 +298,29 @@ export async function boot(which = 'pos', opts = {}) {
    * the document still exists runs those cleanups the way a browser would.
    */
   api.close = () => {
+    harnessClosed = true;   // stop the live seams before the document goes
+    for (const [clear, id] of harnessTimers) { try { window[clear](id); } catch { /* gone */ } }
+    harnessTimers.clear();
     for (const r of roots) { try { r.unmount(); } catch { /* already gone */ } }
     roots.length = 0;
-    try { window.close(); } catch { /* already gone */ }
+    /* WINDOW.CLOSE IS DEFERRED, NOT IMMEDIATE.
+     *
+     * A live seam can have a promise continuation already queued as a
+     * microtask. Tearing the document down synchronously means that
+     * continuation runs against a dead window and throws
+     * `Cannot read properties of undefined (reading 'body')` — raised as an
+     * unhandledRejection AFTER the test ended, which node --test scores as a
+     * failed FILE even though every assertion passed. Six files failed exactly
+     * that way on the merged tree, and neither clearing timers nor guarding
+     * fetch fixed it, because the work was already queued.
+     *
+     * setImmediate runs after the microtask queue drains, so those
+     * continuations find the document still standing and complete harmlessly.
+     * The document is unreferenced by then, so nothing can newly schedule. */
+    try {
+      const later = () => { try { window.close(); } catch { /* already gone */ } };
+      if (typeof setImmediate === 'function') setImmediate(later); else later();
+    } catch { /* already gone */ }
   };
 
   return api;
