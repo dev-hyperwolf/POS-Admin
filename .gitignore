@@ -1,2 +1,9 @@
 node_modules/
 probe/
+
+# Residue of a truncated `sed -n '<a>,+Np' file > ...` — the shell takes the
+# tail of the range as a FILENAME and silently writes a 35KB file named after a
+# line of source. Two of these were committed tonight; one reached a repo that
+# mirrors 1:1 to GitHub Pages. Ignore the shape so a third does not.
+indow.*
+*,+[0-9]*p
