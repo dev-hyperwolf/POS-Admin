@@ -160,14 +160,44 @@ function railProducts(railId) {
 // So the SHAPE is the frame's and the CONTENT is real: the spotlight goes to the
 // brand carrying the deepest genuine markdown in the catalogue, the offer line
 // is that markdown, and "READY ~90M" is the engine's own express ETA.
+/**
+ * ⚙️ TUNE — the deepest markdown the storefront will ADVERTISE, as a percentage.
+ *
+ * 🔴 WHY THIS EXISTS. The spotlight picks the brand with the deepest markdown in
+ * the catalogue and prints it. A reviewer read the rendered DOM and found the
+ * shop advertising "Connected / Up to 97% off" TO CUSTOMERS. Nothing was wrong
+ * with the arithmetic — one item really was marked down 97% — but a single
+ * clearance or mispriced SKU was speaking for an entire brand, and a 97%
+ * headline reads as a pricing error to anyone who sees it, because usually it
+ * is one.
+ *
+ * The design draws "Pacific Stone - 15% off", so a plausible brand promotion is
+ * what this card is for. Anything past this threshold is treated as a DATA
+ * ARTEFACT and that brand is skipped rather than advertised.
+ *
+ * This is a merchandising decision, not an engineering one — the same call as
+ * `similarPriceBand` in the engine. The default is deliberately conservative
+ * and should be confirmed by whoever owns pricing. See docs/OPEN-QUESTIONS.md.
+ */
+const SPOTLIGHT_MAX_PCT = 60;
+let _spotlightSkipped = [];
+
 function brandSpotlight() {
   const best = new Map();
+  const skipped = [];
   for (const p of allProducts()) {
     if (p.was == null || !(p.was > p.price)) continue;
     const pct = Math.round(((p.was - p.price) / p.was) * 100);
+    // An implausible markdown is a data-quality signal, not a promotion. Skip
+    // the ITEM, not the brand — a brand with one bad row and ten sane ones can
+    // still be spotlighted on the sane ones.
+    if (pct > SPOTLIGHT_MAX_PCT) { skipped.push({ sku: p.sku, brand: p.brand, pct }); continue; }
     const cur = best.get(p.brand);
     if (!cur || pct > cur.pct) best.set(p.brand, { pct, product: p });
   }
+  // Kept rather than swallowed: a storefront quietly hiding catalogue rows is
+  // how a mispriced SKU survives for weeks. Readable at SHOPDATA.spotlightSkipped().
+  _spotlightSkipped = skipped;
   let top = null;
   for (const [brand, v] of best) {
     // Ties break on brand name so the card does not move between renders.
@@ -329,6 +359,22 @@ function shopContext(now) {
   ctx.cart.lines = _SHOP.lines.map((l) => ({
     id: l.id, productId: l.sku, quantity: l.qty, lane: l.lane,
   }));
+  // The operator's lane economics, set in POS settings, override the engine's
+  // shipped defaults. buildContext assembles lanes from `defaultLanes`, so this
+  // has to be applied AFTER it — and it is applied to the context rather than
+  // to any screen, so every figure downstream (the minimum bar, the fee rows,
+  // the tax base, the total) moves together from one source.
+  const LS = window.HW && window.HW.laneSettings ? window.HW.laneSettings() : null;
+  if (LS && ctx.lanes) {
+    if (ctx.lanes.express) {
+      ctx.lanes.express.minimumCents = Math.round(LS.expressMinimum * 100);
+      ctx.lanes.express.feeCents = Math.round(LS.expressFee * 100);
+    }
+    if (ctx.lanes.scheduled) {
+      ctx.lanes.scheduled.minimumCents = Math.round(LS.scheduledMinimum * 100);
+      ctx.lanes.scheduled.feeCents = Math.round(LS.scheduledFee * 100);
+    }
+  }
   return ctx;
 }
 
@@ -444,6 +490,7 @@ window.SHOP = {
   lines: () => _SHOP.lines,
   itemCount: shopItemCount,
   context: shopContext, totals: shopTotals, money: shopMoney, engineOptions: shopEngineOptions,
+  spotlightSkipped: () => _spotlightSkipped.slice(), SPOTLIGHT_MAX_PCT,
 };
 
 // Re-render on any write, the same contract as `window.useHW`.

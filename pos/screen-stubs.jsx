@@ -562,6 +562,93 @@ function CashDrawerSettings({ onClose }) {
   </div>;
 }
 
+
+/* ── Delivery lane economics ─────────────────────────────────────────────────
+ *
+ * The owner: "Fees vary by distance, zone and time. Express minimum varies by
+ * zone — most of the time it is $50", then: make it adjustable here.
+ *
+ * 🔴 THE NUMBERS ARE PROVISIONAL AND THIS PANEL SAYS SO ON SCREEN. The real
+ * per-zone table exists in NO system — checked this repo and the Weedmaps
+ * publisher, which has flat fee constants defaulting to zero and regions
+ * carrying zips and drivers but nothing economic. A wrong minimum silently
+ * blocks real orders or silently free-ships them, and neither shows up as an
+ * error, so the operator is told plainly what these are rather than being left
+ * to assume they are policy.
+ */
+function LaneEconomicsSettings({ onClose }) {
+  const P = useP();
+  const money = window.HW.fmt.money;
+  window.useHW();
+  const cur = window.HW.laneSettings();
+  const [f, setF] = React.useState(() => ({
+    expressMinimum: String(cur.expressMinimum), expressFee: String(cur.expressFee),
+    scheduledMinimum: String(cur.scheduledMinimum), scheduledFee: String(cur.scheduledFee),
+  }));
+  const num = (k) => parseFloat(f[k]);
+  const bad = Object.keys(f).find((k) => !Number.isFinite(num(k)) || num(k) < 0);
+  const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 };
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value.replace(/[^0-9.]/g, '') }));
+  const Row = ({ k, label, hint }) =>
+    <div>
+      <div style={lbl}>{label}</div>
+      <div style={{ maxWidth: 180 }}><Field mono value={f[k]} onChange={set(k)} placeholder="0.00" /></div>
+      <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 6, lineHeight: 1.5 }}>{hint}</div>
+    </div>;
+
+  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px,96vw)', maxHeight: '92vh', overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
+        <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="truck" size={16} stroke={2} /></span>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Delivery lanes</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Minimums and fees for Express and Scheduled</div></div>
+        <IconBtn icon="x" size={16} onClick={onClose} />
+      </div>
+
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {window.HW.laneSettingsAreDefault() &&
+          <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.warnSoft, borderRadius: P.r10 }}>
+            <Icon name="info" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+            <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+              <b>These are provisional.</b> $50 is the owner&rsquo;s &ldquo;most of the time&rdquo; figure, adopted so the
+              storefront is testable end to end. No confirmed per-zone table exists in any system yet.
+            </div>
+          </div>}
+
+        <Row k="expressMinimum" label="Express minimum"
+          hint={<span>Below <b style={{ color: P.ink }}>{money(num('expressMinimum') || 0)}</b> of express merchandise the customer is shown how much more is needed. It is a <b>progress bar</b>, not a refusal &mdash; the cart never blocks, it just cannot be checked out until the lane is met.</span>} />
+        <Row k="expressFee" label="Express delivery fee"
+          hint={<span>Added to the express order only, and taxed with it.</span>} />
+        <Row k="scheduledMinimum" label="Scheduled minimum"
+          hint={<span>Usually zero &mdash; scheduled has lead time to load, so there is no van-capacity reason to hold a floor.</span>} />
+        <Row k="scheduledFee" label="Scheduled delivery fee"
+          hint={<span>Free today. Each lane is priced on its own row in the customer&rsquo;s order summary; there is no blended delivery fee anywhere.</span>} />
+
+        <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+          <Icon name="info" size={14} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+            <b>One figure per lane, for every zone.</b> Zone, distance and time-of-day are not modelled here yet.
+            The engine already resolves per-zone rules &mdash; it is the <b>data</b> that is missing, and one honest
+            flat number is easier to notice as wrong than a table somebody invented.
+          </div>
+        </div>
+
+        {bad && <div style={{ fontSize: 11.5, color: P.bad, fontWeight: 600 }}>Every figure must be a number and cannot be negative &mdash; a negative minimum would silently switch the gate off.</div>}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+        <PBtn variant="ghost" size="md" onClick={() => { const d = window.HW.resetLaneSettings(); setF({ expressMinimum: String(d.expressMinimum), expressFee: String(d.expressFee), scheduledMinimum: String(d.scheduledMinimum), scheduledFee: String(d.scheduledFee) }); }}>Reset</PBtn>
+        <span style={{ display: 'flex', gap: 9 }}>
+          <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
+          <PBtn variant="accent" size="md" icon="check" disabled={!!bad}
+            onClick={() => { window.HW.setLaneSettings({ expressMinimum: num('expressMinimum'), expressFee: num('expressFee'), scheduledMinimum: num('scheduledMinimum'), scheduledFee: num('scheduledFee') }); onClose(); }}>
+            Save &middot; min {money(num('expressMinimum') || 0)}
+          </PBtn>
+        </span>
+      </div>
+    </div>
+  </div>;
+}
+
 window.SettingsScreen = function SettingsScreen() {
   const P = useP();
   const POS = window.usePOS();
@@ -574,11 +661,12 @@ window.SettingsScreen = function SettingsScreen() {
           <Eyebrow style={{ marginBottom: 11 }}>{sec.group}</Eyebrow>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(248px,1fr))', gap: 11 }}>
             {sec.items.map(([label, icon]) =>
-          <Card key={label} padding={15} hover onClick={() => label === 'Cash Drawer' && setOpen('drawer')} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+          <Card key={label} padding={15} hover onClick={() => { if (label === 'Cash Drawer') setOpen('drawer'); if (label === 'Delivery Management') setOpen('lanes'); }} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
                 <span style={{ width: 38, height: 38, borderRadius: P.r10, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={18} stroke={1.8} /></span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: P.ink }}>{label}</span>
                   {label === 'Cash Drawer' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Starts at {window.HW.fmt.money(POS.getRequiredFloat())}</span>}
+                  {label === 'Delivery Management' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Express min {window.HW.fmt.money(window.HW.laneSettings().expressMinimum)}{window.HW.laneSettingsAreDefault() ? ' · provisional' : ''}</span>}
                 </span>
                 <Icon name="chevron-right" size={16} stroke={2} color={P.inkMute} />
               </Card>
@@ -587,6 +675,7 @@ window.SettingsScreen = function SettingsScreen() {
         </div>
       )}
       {open === 'drawer' && <CashDrawerSettings onClose={() => setOpen(null)} />}
+      {open === 'lanes' && <LaneEconomicsSettings onClose={() => setOpen(null)} />}
     </div>);
 
 };

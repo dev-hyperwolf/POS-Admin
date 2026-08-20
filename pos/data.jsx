@@ -528,6 +528,60 @@ function addSubRecord(rec) {
 function subRecords(orderId) { return SUBRECS.filter((r) => r.orderId === orderId); }
 function allSubRecords() { return SUBRECS.slice(); }
 
+/* ── Delivery lane economics — OPERATOR-CONTROLLED ───────────────────────────
+ *
+ * The owner: "Fees vary by distance, zone and time. Express minimum varies by
+ * zone — most of the time it is $50", and then: make it adjustable from POS
+ * settings.
+ *
+ * 🔴 THESE NUMBERS ARE PROVISIONAL AND EVERY SURFACE SAYS SO. The real per-zone
+ * table exists in NO repo — checked both this one and the Weedmaps publisher
+ * (see hyperwolf-commerce-logic/docs/OPEN-QUESTIONS.md §B0a). $50 is the owner's
+ * "most of the time" figure, adopted so the demo is testable end to end, NOT a
+ * confirmed rule. A wrong minimum silently blocks real orders or silently
+ * free-ships them and neither shows up as an error, which is exactly why it is
+ * editable here rather than buried in a constant.
+ *
+ * ZONE IS NOT MODELLED YET, deliberately. The ENGINE already resolves per-zone
+ * lane rules (src/core/lanes.ts, 24 tests) — it is the DATA that is missing. One
+ * flat pair of numbers is honest about that; a fabricated zone table would not
+ * be, and would be much harder to notice was wrong.
+ */
+const LANE_DEFAULTS = { expressMinimum: 50, expressFee: 2, scheduledMinimum: 0, scheduledFee: 0 };
+let _laneSettings = null;
+
+function laneSettings() {
+  if (_laneSettings) return { ..._laneSettings };
+  try {
+    const raw = JSON.parse(localStorage.getItem('hw-lane-settings') || 'null');
+    _laneSettings = raw ? { ...LANE_DEFAULTS, ...raw } : { ...LANE_DEFAULTS };
+  } catch { _laneSettings = { ...LANE_DEFAULTS }; }
+  return { ..._laneSettings };
+}
+
+/** Money only, never negative. A negative minimum would silently disable the
+ *  gate; a negative fee would pay the customer to order. */
+function setLaneSettings(patch) {
+  const cur = laneSettings();
+  const next = { ...cur };
+  for (const k of Object.keys(LANE_DEFAULTS)) {
+    if (!(k in (patch || {}))) continue;
+    const v = Number(patch[k]);
+    if (!Number.isFinite(v) || v < 0) return null;      // refuse, do not coerce
+    next[k] = Math.round(v * 100) / 100;
+  }
+  _laneSettings = next;
+  try { localStorage.setItem('hw-lane-settings', JSON.stringify(next)); } catch {}
+  _hwNotify();
+  return { ...next };
+}
+function resetLaneSettings() { _laneSettings = { ...LANE_DEFAULTS }; try { localStorage.removeItem('hw-lane-settings'); } catch {} _hwNotify(); return laneSettings(); }
+/** True while nobody has moved them — surfaces use this to say "provisional". */
+function laneSettingsAreDefault() {
+  const c = laneSettings();
+  return Object.keys(LANE_DEFAULTS).every((k) => c[k] === LANE_DEFAULTS[k]);
+}
+
 let _pendingSale = null;
 function startSaleFor(customer, guests) { _pendingSale = customer ? { customer, guests: (guests || []).slice() } : null; }
 function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
@@ -538,6 +592,7 @@ window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, 
   addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
   STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
   addSubRecord, subRecords, allSubRecords,
+  LANE_DEFAULTS, laneSettings, setLaneSettings, resetLaneSettings, laneSettingsAreDefault,
   subscribe:(fn)=>{ _hwSubs.add(fn); return ()=> _hwSubs.delete(fn); },
   checkinById:(id)=> CHECKINS.find(c=>c.id===id) || null,
   memberById:(id)=> MEMBERS.find(m=>m.id===id) || null,
