@@ -497,6 +497,37 @@ function nextStage(stage) {
   return i < 0 || i === STAGES.length - 1 ? null : STAGES[i + 1];
 }
 
+/* ── Substitution audit records ───────────────────────────────────────────────
+ *
+ * The engine's applyOrderSubstitution returns a SubstitutionRecord — who
+ * changed what, on which order, in which van, what it did to the money, and
+ * whether consent was given. THE RECORD IS THE POINT of a governed flow.
+ *
+ * Three attempts at the driver swap kept it in React component state, which
+ * meant it existed until the driver left the stop. Reviewers found all three:
+ * the panel showed "1 record", you navigated away and back, and it showed none.
+ * A record that does not outlive the screen is not an audit trail.
+ *
+ * The id comes from the ENGINE. Attempt 3 minted ids from a component ref that
+ * reset to 0 on unmount, so the same order+line produced the SAME id on a later
+ * visit — duplicate audit rows for different events. Filing by the engine's own
+ * id also makes this idempotent: committing the same substitution twice files
+ * one record, not two.
+ */
+const SUBRECS = [];
+
+/** File a record from the engine. Returns it, or null if it was already filed. */
+function addSubRecord(rec) {
+  if (!rec || !rec.id) return null;
+  if (SUBRECS.some((r) => r.id === rec.id)) return null;   // idempotent by design
+  SUBRECS.unshift(rec);
+  _hwNotify();
+  return rec;
+}
+/** Every record for one order, newest first. */
+function subRecords(orderId) { return SUBRECS.filter((r) => r.orderId === orderId); }
+function allSubRecords() { return SUBRECS.slice(); }
+
 let _pendingSale = null;
 function startSaleFor(customer, guests) { _pendingSale = customer ? { customer, guests: (guests || []).slice() } : null; }
 function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
@@ -506,6 +537,7 @@ window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, 
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
   addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
   STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
+  addSubRecord, subRecords, allSubRecords,
   subscribe:(fn)=>{ _hwSubs.add(fn); return ()=> _hwSubs.delete(fn); },
   checkinById:(id)=> CHECKINS.find(c=>c.id===id) || null,
   memberById:(id)=> MEMBERS.find(m=>m.id===id) || null,
