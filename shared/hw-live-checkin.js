@@ -100,13 +100,13 @@
 
   var TIMEOUT_MS = 6000;
   var OFF_KEY = 'hw-checkin-off';
-  var RAIL_W = 74;               // shared/app-rail.jsx:46 — clear the rail
-  var BOTTOM = 162   // STACKED, NOT STACKED ON.
-  // Every seam picked its own "clear the siblings" offset without knowing the
-  // others existed, so three pills landed on the same 90px line at the same
-  // z-index. The last one in the DOM won elementFromPoint() everywhere and the
-  // panels behind it were openable only from the console -- a feature nobody
-  // can click is a feature nobody has. Taxonomy 90, identity 126, check-in 162.;               // above hw-live.js (14) and hw-live-taxonomy (52)
+  var SEAM_ID = 'checkin';
+  // POSITION IS NO LONGER THIS FILE'S BUSINESS. Every seam used to pick its own
+  // "clear the siblings" bottom offset without knowing the others existed --
+  // first three collided on one line, then they were spread up the left edge as
+  // four stacked pills, and each opened a 70vh card ON TOP of the Order Queue.
+  // dock() below owns the geometry for all four, so there is one tray and one
+  // open panel instead of four modules guessing about each other.
   var CAND_CAP = 30;             // orders we pull a full candidate list for
 
   // ── gate ─────────────────────────────────────────────────────────────────
@@ -117,6 +117,149 @@
   // silently dropped — which is how a warning line once computed black-on-black
   // in dark mode. hw-live-taxonomy.js:62 paid for this; single quotes survive.
   function ff(v) { return String(v).replace(/"/g, "'"); }
+
+  // ── the seam dock ────────────────────────────────────────────────────────
+  // WHY THIS EXISTS. Four sibling seams each pinned their own fixed pill up the
+  // left edge and each opened a 66vh card ON TOP of the Order Queue -- its tabs,
+  // its kanban, and the pills of the other three. The owner could not drive the
+  // demo. What these panels SAY is not negotiable; how much of the screen they
+  // take is. So: ONE tray of small pills, ONE open panel at a time, docked
+  // bottom-left, height-capped, scrolling inside itself, dismissed by Escape or
+  // by a visible close control. Every seam file defines this block identically
+  // -- whichever loads first wins and the others reuse it, so there is exactly
+  // one tray and exactly one open-panel rule however many seams ship.
+  function dock() {
+    if (W.HW_SEAM_DOCK) { return W.HW_SEAM_DOCK; }
+    if (!document.body) { return null; }
+    var D = {
+      LEFT: 86,            // shared/app-rail.jsx:46 — 74px rail + 12px gutter
+      BOTTOM: 52,          // clears hw-live.js's own pill (bottom 14 + ~30 tall)
+      _root: null,
+      _slot: null,
+      _tray: null,
+      _closers: {},
+      // ONE bottom-anchored column: the open panel on top, the pill tray
+      // underneath. The column is what makes this self-correcting -- when the
+      // tray wraps to a second row on a narrow window the panel is pushed up by
+      // the layout, not by arithmetic somebody has to keep in sync. Measured in
+      // the browser: an earlier build pinned the panel at a fixed bottom:92 and
+      // a wrapped second tray row grew 26px straight through it.
+      root: function () {
+        if (D._root && D._root.parentNode) { return D._root; }
+        var r = document.createElement('div');
+        r.id = 'hw-seam-dock';
+        // pointer-events:none here and auto on each pill and panel: the empty
+        // gutter beside a short pill must not swallow a click meant for the app.
+        r.style.cssText = 'position:fixed;left:' + D.LEFT + 'px;bottom:' + D.BOTTOM +
+          'px;z-index:2147482003;display:flex;flex-direction:column;align-items:flex-start;' +
+          'gap:8px;max-width:calc(100vw - ' + (D.LEFT + 16) + 'px);pointer-events:none';
+        document.body.appendChild(r);
+        D._root = r;
+        return r;
+      },
+      // Where every seam's panel lives. Above the tray, always.
+      slot: function () {
+        if (D._slot && D._slot.parentNode) { return D._slot; }
+        var s = document.createElement('div');
+        s.id = 'hw-seam-panels';
+        s.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start;gap:8px;' +
+          'max-width:100%;pointer-events:none';
+        var r = D.root();
+        r.insertBefore(s, r.firstChild);
+        D._slot = s;
+        return s;
+      },
+      tray: function () {
+        if (D._tray && D._tray.parentNode) { return D._tray; }
+        var t = document.createElement('div');
+        t.id = 'hw-seam-tray';
+        t.style.cssText = 'display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px;' +
+          'max-width:100%;pointer-events:none';
+        D.root().appendChild(t);
+        D._tray = t;
+        return t;
+      },
+      register: function (id, close) { D._closers[id] = close; },
+      // Opening one closes its siblings. Four overlapping cards at the same
+      // z-index is how the identity panel became unreachable earlier this week.
+      opened: function (id) {
+        Object.keys(D._closers).forEach(function (k) {
+          if (k !== id) { try { D._closers[k](); } catch (e) {} }
+        });
+      },
+      closeAll: function () {
+        Object.keys(D._closers).forEach(function (k) { try { D._closers[k](); } catch (e) {} });
+      }
+    };
+    // The only globally bound key, and it only ever CLOSES. A panel you cannot
+    // get out of without hunting for its pill again is the bug being fixed.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' || e.key === 'Esc') { D.closeAll(); }
+    });
+    W.HW_SEAM_DOCK = D;
+    return D;
+  }
+
+  // The docked panel box. It sits in the dock's own column, so the tray below
+  // it can never be overlapped, and it is capped in BOTH dimensions so it can
+  // never grow over the working area again -- the body scrolls INSIDE it, which
+  // is what keeps the cap honest.
+  function panelCSS(P, D, open) {
+    return 'width:min(400px,calc(100vw - ' + (D.LEFT + 16) + 'px));max-height:min(46vh,380px);' +
+      'flex-direction:column;overflow:hidden;background:' + P.surface + ';border:1px solid ' +
+      P.hairline2 + ';border-radius:' + P.r12 + 'px;box-shadow:' + P.shadowLg + ';font-family:' +
+      P.fontSans + ';pointer-events:auto;display:' + (open ? 'flex' : 'none');
+  }
+
+  // Header (title + a real close control) · body that scrolls inside itself ·
+  // footer that stays reachable however long the body gets.
+  function panelShell(P, attr, title, bodyHTML, footerHTML) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 11px;flex:0 0 auto;' +
+      'border-bottom:1px solid ' + P.hairline + '"><span style="flex:1 1 auto;min-width:0;font-size:' +
+      P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' +
+      P.inkMute + '">' + esc(title) + '</span>' +
+      '<button ' + attr + '="close" aria-label="Close this panel" title="Close (Esc)" ' +
+      'style="flex:0 0 auto;width:24px;height:24px;padding:0;line-height:1;border-radius:' + P.r8 +
+      'px;border:1px solid ' + P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink2 +
+      ';font-family:' + P.fontSans + ';font-size:' + P.type.body +
+      'px;font-weight:700;cursor:pointer">×</button></div>' +
+      '<div ' + attr + '-scroll style="flex:1 1 auto;min-height:0;overflow:auto;padding:11px">' +
+      bodyHTML + '</div>' +
+      (footerHTML ? '<div style="flex:0 0 auto;padding:9px 11px;border-top:1px solid ' +
+        P.hairline + '">' + footerHTML + '</div>' : '');
+  }
+
+  // The small pill. Sub-text is carried only when it is TELLING you something
+  // -- a count of what is broken, or where the API that did not answer lives.
+  // A clean seam is a dot and a name, because four fully-spelled pills is what
+  // pushed this tray into three rows and over the app's own controls.
+  function pillHTML(P, attr, dot, label, sub, tip) {
+    return '<div role="button" tabindex="0" data-hw-i ' + attr + '="toggle" title="' + esc(tip) +
+      '" style="display:inline-flex;align-items:center;gap:7px;min-height:' + P.ctrlH.xs +
+      'px;padding:0 11px;border-radius:' + P.r999 + 'px;background:' + P.surface + ';border:1px solid ' +
+      P.hairline2 + ';box-shadow:' + P.shadowSm + ';cursor:pointer;user-select:none;' +
+      'pointer-events:auto;white-space:nowrap">' +
+      '<span style="width:7px;height:7px;border-radius:' + P.r999 + 'px;background:' + dot +
+      ';flex:0 0 auto"></span>' +
+      '<span style="font-size:' + P.type.meta + 'px;font-weight:700;color:' + P.ink + '">' +
+      esc(label) + '</span>' +
+      (sub ? '<span style="font-size:' + P.type.meta + 'px;color:' + P.inkMute + ';font-family:' +
+        ff(P.fontMono) + '">' + esc(sub) + '</span>' : '') + '</div>';
+  }
+
+  // EVERY WORD OF THE DISCLOSURE IS STILL HERE — it is one click away instead of
+  // 900px of prose opening over the board it is describing. Shortened
+  // presentation, never shortened content.
+  function whyBlock(P, attr, open, notesHTML, n) {
+    return '<div style="margin-top:10px;padding-top:9px;border-top:1px solid ' + P.hairline + '">' +
+      '<button ' + attr + '="why" aria-expanded="' + (open ? 'true' : 'false') +
+      '" style="width:100%;text-align:left;min-height:' + P.ctrlH.xs + 'px;padding:0 9px;' +
+      'border-radius:' + P.r8 + 'px;border:1px solid ' + P.hairline2 + ';background:' + P.surface2 +
+      ';color:' + P.ink2 + ';font-family:' + P.fontSans + ';font-size:' + P.type.micro +
+      'px;font-weight:700;letter-spacing:.06em;cursor:pointer">' + (open ? '▾' : '▸') +
+      '  WHY · SOURCE, AND WHAT IS STILL NOT TRUE (' + n + ')</button>' +
+      (open ? '<div style="margin-top:8px">' + notesHTML + '</div>' : '') + '</div>';
+  }
 
   function qs(name) {
     var m = new RegExp('[?&]' + name + '=([^&]*)').exec(W.location.search);
@@ -158,7 +301,7 @@
   var _hw = null, _mockCheckins = null, _origCheckinById = null;
   var _origBindFor = null, _origVisitLabel = null;
   var _open = false, _busy = false, _msg = null, _msgOk = false;
-  var _el = null, _scroll = 0, _tab = 'room';
+  var _el = null, _panel = null, _scroll = 0, _tab = 'room';
   var _root = null, _rootEl = null;
   var _liveBinds = {};        // wm_order_id -> the design's bind shape, live only
   var _newRow = { first_name: '', last_name: '', phone: '', dob: '' };
@@ -248,17 +391,12 @@
       });
   }
 
-  function postJSON(path, body) {
-    return fetch(base + path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'omit', cache: 'no-store',
-      body: JSON.stringify(body || {})
-    }).then(function (res) {
-      return res.json().then(function (j) { return { code: res.status, body: j }; },
-                             function () { return { code: res.status, body: null }; });
-    });
-  }
+  // Through the shared helper so writes carry x-hw-write-token on a gated
+  // deployment. It returns a SUPERSET of the { code, body } this file already
+  // reads, and it copies a route's `error` into `why` when the route sent no
+  // `why` — which is the whole fix for the symptom the owner hit: this panel
+  // printed "HTTP 403 with no reason in the body" while the body HAD a reason.
+  function postJSON(path, body) { return W.HW_LIVE.post(path, body); }
 
   function load() {
     if (!armed) { return Promise.resolve('off'); }
@@ -1076,8 +1214,10 @@
   }
 
   function panelHTML(P) {
-    var h = '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;' +
-      'text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:8px">The counter</div>';
+    // The title now lives in the docked panel's own header, where it stays put
+    // while the body scrolls. The long disclosure already lives behind the
+    // "What is real" tab below, which is this panel's own why-toggle.
+    var h = '';
 
     if (_status !== 'live') {
       h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5">' +
@@ -1145,19 +1285,37 @@
     if (!armed) { return; }
     var P = palette();
     if (!P) { paintWhenThemed(); return; }   // no tokens yet -> wait, never a hex here
+    var D = dock();
+    if (!D) { paintWhenThemed(); return; }   // no document.body yet
 
     if (!_el) {
+      // The pill goes in the SHARED TRAY; the panel is its SIBLING, pinned to
+      // the dock. Before, the panel was the pill's own previous sibling inside
+      // one fixed box, so opening it grew that box upward and shoved the other
+      // three seams around.
       _el = document.createElement('div');
       _el.id = 'hw-checkin-badge';
-      document.body.appendChild(_el);
+      _el.style.cssText = 'display:flex;pointer-events:none';
+      D.tray().appendChild(_el);
+
+      _panel = document.createElement('div');
+      _panel.id = 'hw-checkin-panel';
+      _panel.setAttribute('role', 'dialog');
+      _panel.setAttribute('aria-label', 'Check-in — the counter');
+      D.slot().appendChild(_panel);
+
       _el.addEventListener('click', onClick);
-      _el.addEventListener('input', onInput);
+      _panel.addEventListener('click', onClick);
+      _panel.addEventListener('input', onInput);
+      // Only the PILL needs a key handler: it is a div with role=button.
+      // Everything inside the panel is a real <button>/<select>/<input>, and a
+      // panel-wide Enter/Space handler would have closed the panel mid-typing.
       _el.addEventListener('keydown', function (e) {
-        if (e.target && /^(SELECT|OPTION|INPUT)$/.test(e.target.tagName)) { return; }
         if (e.key !== 'Enter' && e.key !== ' ') { return; }
         e.preventDefault();
-        onClick(e);
+        toggle();
       });
+      D.register(SEAM_ID, function () { if (_open) { _open = false; paint(); } });
       if (W.MutationObserver && document.body) {
         // tokens.jsx repaints document.body.style on a theme change and emits no
         // event, so the style attribute is the only signal a plain-JS module has.
@@ -1166,7 +1324,7 @@
       }
     }
 
-    var body = _el.querySelector('[data-hwc-scroll]');
+    var body = _panel.querySelector('[data-hwc-scroll]');
     if (body) { _scroll = body.scrollTop; }
     var focusKey = document.activeElement &&
       document.activeElement.getAttribute && document.activeElement.getAttribute('data-hwc-in');
@@ -1178,46 +1336,41 @@
                 _status === 'pending' ? 'Check-in…' :
                 _status === 'slow' ? 'Check-in — still loading' :
                 _status === 'off' ? 'Check-in (off · mock people)' : 'Check-in (no API · mock people)';
-    var sub = _status !== 'live' ? base.replace(/^https?:\/\//, '') :
+    // detail is the whole sentence and goes in the tooltip; the pill carries
+    // only the part somebody has to act on -- how many need a human.
+    var detail = _status !== 'live' ? base.replace(/^https?:\/\//, '') :
       people().length + ' in room · ' + orders().length + ' waiting' +
       (needs ? ' · ' + needs + ' need a human' : '');
+    var sub = _status !== 'live' ? base.replace(/^https?:\/\//, '')
+            : (needs ? needs + ' need a human' : '');
 
-    _el.style.cssText = 'position:fixed;left:' + (RAIL_W + 12) + 'px;bottom:' + BOTTOM + 'px;' +
-      'z-index:2147482002;pointer-events:none;font-family:' + P.fontSans +
-      ';max-width:min(460px,calc(100vw - ' + (RAIL_W + 28) + 'px));';
+    _el.innerHTML = pillHTML(P, 'data-hwc', dot, label, sub,
+      label + ' · ' + detail + ' — click for the room, the orders and the matcher');
 
-    var html = '';
-    if (_open) {
-      html += '<div style="background:' + P.surface + ';border:1px solid ' + P.hairline2 +
-        ';border-radius:' + P.r12 + 'px;box-shadow:' + P.shadowLg + ';padding:13px;margin-bottom:8px;' +
-        'pointer-events:auto"><div data-hwc-scroll style="max-height:70vh;overflow:auto">' +
-        panelHTML(P) + '</div>' +
-        '<button data-hwc="refresh" style="margin-top:11px;width:100%;min-height:' + P.ctrlH.sm +
-        'px;border-radius:' + P.r8 + 'px;border:1px solid ' + P.hairline2 + ';background:' + P.surface2 +
-        ';color:' + P.ink2 + ';font-family:' + P.fontSans + ';font-size:' + P.type.meta +
-        'px;font-weight:600;cursor:pointer">' + (_busy ? 'working…' : 'Re-fetch /api/checkin/board') +
-        '</button></div>';
-    }
-    html += '<div role="button" tabindex="0" data-hw-i data-hwc="toggle" title="' +
-      esc(label + ' — click for the room, the orders and the matcher') +
-      '" style="display:inline-flex;align-items:center;gap:8px;min-height:' + P.ctrlH.xs +
-      'px;padding:0 12px;border-radius:' + P.r999 + 'px;background:' + P.surface + ';border:1px solid ' +
-      P.hairline2 + ';box-shadow:' + P.shadowSm + ';cursor:pointer;user-select:none;pointer-events:auto">' +
-      '<span style="width:7px;height:7px;border-radius:' + P.r999 + 'px;background:' + dot +
-      ';flex:0 0 auto"></span>' +
-      '<span style="font-size:' + P.type.meta + 'px;font-weight:700;color:' + P.ink + '">' +
-      esc(label) + '</span>' +
-      '<span style="font-size:' + P.type.meta + 'px;color:' + P.inkMute + ';font-family:' +
-      ff(P.fontMono) + '">' + esc(sub) + '</span></div>';
+    _panel.style.cssText = panelCSS(P, D, _open);
+    if (!_open) { _panel.innerHTML = ''; return; }
 
-    _el.innerHTML = html;
+    _panel.innerHTML = panelShell(P, 'data-hwc', 'Check-in · the counter',
+      panelHTML(P),
+      '<button data-hwc="refresh" style="width:100%;min-height:' + P.ctrlH.sm +
+      'px;border-radius:' + P.r8 + 'px;border:1px solid ' + P.hairline2 + ';background:' +
+      P.surface2 + ';color:' + P.ink2 + ';font-family:' + P.fontSans + ';font-size:' +
+      P.type.meta + 'px;font-weight:600;cursor:pointer">' +
+      (_busy ? 'working…' : 'Re-fetch /api/checkin/board') + '</button>');
 
-    body = _el.querySelector('[data-hwc-scroll]');
+    body = _panel.querySelector('[data-hwc-scroll]');
     if (body) { body.scrollTop = _scroll; }
     if (focusKey) {
-      var again = _el.querySelector('[data-hwc-in="' + focusKey + '"]');
+      var again = _panel.querySelector('[data-hwc-in="' + focusKey + '"]');
       if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); }
     }
+  }
+
+  // ONE panel at a time, and never open on arrival.
+  function toggle() {
+    _open = !_open;
+    if (_open) { var D = dock(); if (D) { D.opened(SEAM_ID); } }
+    paint();
   }
 
   function onInput(e) {
@@ -1231,9 +1384,13 @@
     var a = t && t.getAttribute && t.getAttribute('data-hwc');
     if (!a) {
       if (t && /^(SELECT|OPTION|INPUT|BUTTON)$/.test(t.tagName)) { return; }
-      _open = !_open; paint(); return;
+      // A stray click inside the open panel must not close it -- only the pill
+      // toggles, and only the x and Escape close.
+      if (_panel && _panel.contains(t)) { return; }
+      toggle(); return;
     }
     e.stopPropagation();
+    if (a === 'close') { _open = false; paint(); return; }
     var cid = t.getAttribute('data-cid'), oid = t.getAttribute('data-oid');
     if (a === 'refresh') { _msg = null; load(); return; }
     if (a === 'tab') { _tab = t.getAttribute('data-tab'); _msg = null; paint(); return; }
@@ -1245,7 +1402,7 @@
     if (a === 'claim') { claim(cid); return; }
     if (a === 'leave') { leave(cid); return; }
     if (a === 'create') { create(); return; }
-    if (a === 'toggle') { _open = !_open; paint(); return; }
+    if (a === 'toggle') { toggle(); return; }
   }
 
   // ── public surface ───────────────────────────────────────────────────────
@@ -1272,7 +1429,12 @@
       _status = 'pending'; paint();
       return load();
     },
-    open: function () { _open = true; paint(); },
+    open: function () {
+      var D = dock();
+      if (D) { D.opened(SEAM_ID); }
+      _open = true; paint();
+    },
+    close: function () { _open = false; paint(); },
     disable: function () {
       try { W.localStorage.setItem(OFF_KEY, '1'); } catch (e) {}
       W.location.reload();

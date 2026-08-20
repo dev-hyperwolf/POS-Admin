@@ -21,7 +21,11 @@
 // a loopback origin, and any failure -- server down, timeout, bad payload --
 // falls back silently to the mock data that is already loaded.
 //
-// PUBLIC SURFACE: window.HW_LIVE = { status, report, refresh(), disable() }.
+// PUBLIC SURFACE: window.HW_LIVE = { status, report, refresh(), disable(),
+//   post(path, body), setToken(v), clearToken(), hasToken(), writes }.
+// post() is the ONE write path for this seam and its four siblings: it attaches
+// the x-hw-write-token header when a token is known and returns the server's own
+// error/hint instead of a bare status code.
 // Turn it off: append `?hwlive=off`, or run `HW_LIVE.disable()` in the console.
 (function () {
   'use strict';
@@ -104,6 +108,153 @@
   // viewer's page at an arbitrary server and render whatever it returns as if
   // it were the operator's own catalog.
   var armed = !disabled;
+
+  // ── writes: the token, and the one POST helper ─────────────────────
+  //
+  // WHY THIS EXISTS. The deployed demo runs WM_DEMO_PUBLIC=1, and the gate at
+  // wmdemo/server.py:364 refuses every POST that does not carry
+  // `x-hw-write-token` -- and it runs BEFORE the route table, so it catches
+  // check-in, stage advance, taxonomy mapping and identity verify alike. No
+  // seam sent that header, so on the deployed URL every interactive control in
+  // this estate failed, and failed while printing a bare status code over a 403
+  // whose body carried a perfectly good sentence. Both halves are fixed here,
+  // once, for all four sibling seams.
+  //
+  // SECURITY, and it is not negotiable: this token is the only thing between a
+  // public URL and anonymous writes to real Weedmaps listings. So it is
+  //   * sent to OUR OWN ORIGIN and nowhere else -- never to an ?hwlive=
+  //     override, never cross-origin (sameOrigin() below);
+  //   * stripped out of the address bar the instant it is read, so it cannot be
+  //     screenshotted, pasted into a chat along with the link, or handed to the
+  //     next site in a Referer header;
+  //   * never logged, never echoed into an error string, and never rendered
+  //     back into the DOM -- not even masked. A masked secret is still a secret
+  //     with its length published.
+  var TOKEN_KEY = 'hw-live-token';
+  var TOKEN_HEADER = 'x-hw-write-token';   // wmdemo/server.py:366
+  var PROBE_PATH = '/api/__hw_write_probe';
+  var _token = null;
+  var _writes = 'unknown';   // unknown | writable | gated | rejected
+  var _tokenSent = false;    // did the last ANSWERED post actually carry it
+
+  function loadToken() {
+    try { return (W.localStorage.getItem(TOKEN_KEY) || '').trim() || null; }
+    catch (e) { return null; }
+  }
+  function storeToken(v) {
+    try {
+      if (v) { W.localStorage.setItem(TOKEN_KEY, v); }
+      else { W.localStorage.removeItem(TOKEN_KEY); }
+    } catch (e) {}
+  }
+
+  // `base` is normally W.location.origin, but ?hwlive=<loopback> can repoint
+  // it, and a repointed base is BY DEFINITION a different server. It does not
+  // get our secret just because it answers on 127.0.0.1.
+  function sameOrigin() { return base === W.location.origin; }
+
+  function takeTokenFromURL() {
+    var raw = qs('hwtoken');
+    if (raw === null) { return; }
+    // STRIP FIRST, unconditionally, before the value is even looked at.
+    // Everything after this line can fail safely; a token left in the address
+    // bar cannot.
+    try {
+      var kept = W.location.search.replace(/^\?/, '').split('&').filter(function (p) {
+        return p && p.split('=')[0] !== 'hwtoken';
+      });
+      if (W.history && W.history.replaceState) {
+        W.history.replaceState(null, '', W.location.pathname +
+          (kept.length ? '?' + kept.join('&') : '') + W.location.hash);
+      }
+    } catch (e) {}
+    var v = String(raw).trim();
+    _token = v || null;         // `?hwtoken=` with nothing after it is the log-out
+    storeToken(_token);
+  }
+
+  _token = loadToken();
+  takeTokenFromURL();           // a token on the URL wins over the stored one
+
+  // THE one POST path. Returns the shape the sibling seams' own fetch chains
+  // already build -- { ok, code, body } -- so adopting it is a one-line change
+  // in each, plus `error`, `hint` and `gated` for anything that wants the
+  // reason without digging for it.
+  //
+  // It NEVER rejects. A caller forced to choose between .then and .catch to
+  // learn whether a request was refused is a caller that gets it wrong once and
+  // reports a COMMITTED write as a network error -- which is exactly the bug
+  // advance() carries a comment about below.
+  function post(path, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    var sent = false;
+    if (_token && sameOrigin()) { headers[TOKEN_HEADER] = _token; sent = true; }
+    return fetch(base + path, {
+      method: 'POST',
+      headers: headers,
+      credentials: 'omit',
+      cache: 'no-store',
+      body: JSON.stringify(body || {})
+    }).then(function (res) {
+      return res.json().then(function (j) { return settleWrite(res, j, sent); },
+                             function () { return settleWrite(res, null, sent); });
+    }).catch(function (e) {
+      // The browser's own message ('Failed to fetch'), never ours, and never
+      // anything derived from the token.
+      return { ok: false, code: 0, body: null, gated: false, hint: null,
+               error: 'request failed: ' + (e && e.message ? e.message : 'unknown') };
+    });
+  }
+
+  function settleWrite(res, j, sent) {
+    // Only the public-mode gate answers 403 with an `error` beginning
+    // 'read-only' (wmdemo/server.py:368). Anything else -- 200, 400, 404, 500 --
+    // means the gate let us through, whatever the route then decided.
+    var gated = res.status === 403 && !!(j && typeof j.error === 'string' &&
+                                         j.error.indexOf('read-only') === 0);
+    // A body we could not parse as JSON is not this API talking (a static host
+    // answers a POST with an HTML 405), so it is evidence of nothing and we
+    // claim nothing from it. Silence beats a green tick.
+    if (j) {
+      _tokenSent = sent;
+      noteWrites(gated ? (sent ? 'rejected' : 'gated') : 'writable');
+    }
+    // ONE VALUE, TWO DIALECTS. Routes here answer a refusal with `error`
+    // (stage, taxonomy, identity) or with `why` (check-in). The check-in seam
+    // prints `why`, which is how a 403 carrying a perfectly good sentence
+    // surfaced as 'HTTP 403 with no reason in the body'. The alias is only ever
+    // ADDED, never overwritten, and the string is always the server's own -- we
+    // are renaming a key, not inventing a reason.
+    if (j && typeof j.error === 'string' && j.why == null) { j.why = j.error; }
+    return {
+      ok: res.ok,
+      code: res.status,
+      body: j,
+      gated: gated,
+      error: (j && (j.error || j.why)) || ('HTTP ' + res.status),
+      hint: (j && j.hint) || null
+    };
+  }
+
+  function noteWrites(state) {
+    if (_writes === state) { return; }
+    _writes = state;
+    paintBadge();
+  }
+
+  // A NON-MUTATING write probe. The gate runs BEFORE the route table, so a POST
+  // to a path that does not exist comes back 403 'read-only' when writes are
+  // gated and 404 'not found' when they are not. Nothing is created, nothing is
+  // changed, no real endpoint is touched -- which is the only reason it is safe
+  // to point at the shared demo. Verified 2026-08-19: 403 from
+  // hyperwolf-wm-demo.onrender.com, 404 from 127.0.0.1:8787.
+  //
+  // The 404 IS the good answer, and devtools logs it as a failed resource.
+  // That one red line in the console is the price of the badge being able to
+  // say 'writes enabled' truthfully instead of guessing, and it is the only
+  // request this seam makes that is expected to fail.
+  function probeWrites() { return post(PROBE_PATH, {}).then(function () { return _writes; }); }
+
 
   // ── state ────────────────────────────────────────────────────────────────
   var _hw = undefined;        // the object pos/data.jsx assigns to window.HW
@@ -910,10 +1061,108 @@
     });
   }
 
+  // ── writes panel ─────────────────────────────────────────────────────────
+  // Read-only is a STATE, not an error, and it is stated first -- above the
+  // catalogue counts -- because it is the answer to "why did that button do
+  // nothing?". When it is read-only the panel says exactly how to fix it; a
+  // user staring at a 403 must never have to guess.
+  function writeLabel() {
+    return _writes === 'writable' ? (_tokenSent ? 'Writes enabled (token accepted)' : 'Writes enabled')
+         : _writes === 'gated'    ? 'Read-only \u2014 no write token'
+         : _writes === 'rejected' ? 'Read-only \u2014 the stored token was refused'
+         : 'Writes not tested yet';
+  }
+
+  function writesHTML(P) {
+    var ok = _writes === 'writable';
+    var bad = _writes === 'gated' || _writes === 'rejected';
+    var tone = ok ? P.good : bad ? P.bad : P.inkMute;
+    var ctl = 'height:' + P.ctrlH.sm + 'px;border-radius:' + P.r8 + 'px;border:1px solid ' +
+      P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink + ';font-size:' +
+      P.type.meta + 'px;padding:0 8px;';
+    var note = 'font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;margin-top:5px';
+
+    var h = '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;' +
+      'text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:6px">Writes</div>';
+    h += '<div style="display:flex;align-items:center;gap:7px;font-size:' + P.type.body +
+      'px;font-weight:700;color:' + tone + ';line-height:1.5">' +
+      '<span style="width:7px;height:7px;border-radius:' + P.r999 + 'px;background:' + tone +
+      ';flex:0 0 auto"></span>' + esc(writeLabel()) + '</div>';
+
+    if (bad) {
+      h += '<div style="' + note + '">' + esc(
+        'this deployment gates writes; append ?hwtoken=\u2026 (Render dashboard \u2192 the ' +
+        'service \u2192 Environment \u2192 WM_DEMO_WRITE_TOKEN)') + '</div>';
+      h += '<div style="' + note + '">Or paste it here \u2014 it is stored for this browser only, ' +
+        'sent to ' + esc(W.location.origin) + ' and nowhere else, and never shown again.</div>';
+      h += '<div style="display:flex;gap:6px;align-items:center;margin-top:7px">' +
+        '<input data-hwl-token type="password" autocomplete="off" spellcheck="false" ' +
+          'placeholder="write token" style="' + ctl + 'flex:1;min-width:0;font-family:' + ff(P.fontMono) + '">' +
+        '<button data-hwl="settoken" style="' + ctl + 'font-family:' + P.fontSans +
+          ';font-weight:600;cursor:pointer;color:' + P.ink2 + '">Use</button></div>';
+    } else if (ok) {
+      h += '<div style="' + note + '">Every interactive control on this page \u2014 stage advance, ' +
+        'check-in, identity, taxonomy \u2014 posts through this seam and is accepted.</div>';
+    } else if (_status !== 'live') {
+      h += '<div style="' + note + '">No API has answered here, so there is nothing to write to. ' +
+        'The screens are on mock data.</div>';
+    }
+
+    // A stored token that CANNOT be sent is worse than none, because the user
+    // believes they have fixed it. Say so.
+    if (_token && !sameOrigin()) {
+      h += '<div style="' + note + ';color:' + P.bad + '">A token is stored, but this page is served ' +
+        'from ' + esc(W.location.origin) + ' while the API base is ' + esc(base) + '. It is never ' +
+        'sent cross-origin, so writes stay read-only here.</div>';
+    }
+    if (_token) {
+      h += '<button data-hwl="cleartoken" style="' + ctl + 'margin-top:7px;font-family:' + P.fontSans +
+        ';font-weight:600;cursor:pointer;color:' + P.inkMute + '">Forget stored token</button>';
+    }
+    return '<div style="padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid ' +
+      P.hairline + '">' + h + '</div>';
+  }
+
+  // ── the sibling dock ─────────────────────────────────────────────────────
+  // The four sibling seams share window.HW_SEAM_DOCK (created by whichever of
+  // them paints first): a tray of pills at bottom 52 and their panels at bottom
+  // 92, both deliberately ABOVE this pill at bottom 14
+  // (hw-live-identity.js:87-89). This panel opens UPWARD out of that pill,
+  // straight into their column -- which is why the tray was painting on top of
+  // it. So while it is open it sits above them and their panels close, which is
+  // the dock's own one-panel-at-a-time rule (hw-live-identity.js:107); the
+  // moment it closes it drops back under the tray and every sibling pill is
+  // clickable again.
+  var _dockReg = false;
+  function dockSync() {
+    var D = W.HW_SEAM_DOCK;
+    if (!D) { return; }
+    if (!_dockReg && D.register) {
+      D.register('hw-live', function () {
+        if (_panelOpen) { _panelOpen = false; paintBadge(); }
+      });
+      _dockReg = true;
+    }
+    if (_panelOpen && D.opened) { D.opened('hw-live'); }
+  }
+
+  // The value is read, used and wiped in the same tick; it is never written
+  // back into the DOM and never leaves this function as anything but a header.
+  function setTokenFromPanel() {
+    if (!_badge) { return; }
+    var el = _badge.querySelector('[data-hwl-token]');
+    if (!el) { return; }
+    var v = String(el.value || '').trim();
+    el.value = '';
+    if (!v) { return; }
+    W.HW_LIVE.setToken(v);
+  }
+
   function panelHTML(P) {
     var r = _report;
     var live = _status === 'live';
-    var h = '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:8px">Data source</div>';
+    var h = writesHTML(P);
+    h += '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:8px">Data source</div>';
     if (!live) {
       h += '<div style="font-size:' + P.type.body + 'px;color:' + P.ink2 + ';line-height:1.5">' +
         'Screens are on the built-in <b>mock</b> catalogue. ' +
@@ -1104,6 +1353,8 @@
         var act = e.target && e.target.getAttribute && e.target.getAttribute('data-hwl');
         if (act === 'refresh') { e.stopPropagation(); W.HW_LIVE.refresh(); return; }
         if (act === 'advance') { e.stopPropagation(); advanceFromPanel(); return; }
+        if (act === 'settoken') { e.stopPropagation(); setTokenFromPanel(); return; }
+        if (act === 'cleartoken') { e.stopPropagation(); W.HW_LIVE.clearToken(); return; }
         if (formish(e.target)) { return; }
         _panelOpen = !_panelOpen;
         paintBadge();
@@ -1118,6 +1369,9 @@
           if (e.key === 'Enter' && e.target.hasAttribute('data-hwl-id')) {
             e.preventDefault(); advanceFromPanel();
           }
+          if (e.key === 'Enter' && e.target.hasAttribute('data-hwl-token')) {
+            e.preventDefault(); setTokenFromPanel();
+          }
           return;
         }
         if (e.key !== 'Enter' && e.key !== ' ') { return; }
@@ -1125,6 +1379,8 @@
         var act = e.target && e.target.getAttribute && e.target.getAttribute('data-hwl');
         if (act === 'refresh') { W.HW_LIVE.refresh(); return; }
         if (act === 'advance') { advanceFromPanel(); return; }
+        if (act === 'settoken') { setTokenFromPanel(); return; }
+        if (act === 'cleartoken') { W.HW_LIVE.clearToken(); return; }
         _panelOpen = !_panelOpen;
         paintBadge();
       });
@@ -1136,10 +1392,15 @@
     var sub = live ? _report.products + ' SKUs · ' + _report.regions.length + ' regions' +
         (_report.orders ? ' · ' + _report.orders.shown + ' orders' : '') :
       _status === 'pending' ? base.replace(/^https?:\/\//, '') : 'API unavailable';
+    // A user who never opens the panel still has to know the buttons will not
+    // write. This is the whole diagnosis in one word, on the pill.
+    if (live && (_writes === 'gated' || _writes === 'rejected')) { sub += ' \u00b7 read-only'; }
 
     // pointer-events:none on the wrapper so the empty gutter to the right of a
     // short pill does not swallow clicks meant for the screen underneath.
-    _badge.style.cssText = 'position:fixed;left:' + (RAIL_W + 12) + 'px;bottom:14px;z-index:2147482000;' +
+    dockSync();
+    _badge.style.cssText = 'position:fixed;left:' + (RAIL_W + 12) + 'px;bottom:14px;z-index:' +
+      (_panelOpen ? 2147482005 : 2147482000) + ';' +
       'pointer-events:none;font-family:' + P.fontSans +
       ';max-width:min(360px,calc(100vw - ' + (RAIL_W + 28) + 'px));';
 
@@ -1204,21 +1465,19 @@
     var id = String(orderId || '').trim();
     if (!id) { _advMsg = 'Enter an order id.'; _advOk = false; paintBadge(); return Promise.resolve({ ok: false, error: 'no order id' }); }
     _advMsg = 'Advancing ' + id + ' → ' + stage + '…'; _advOk = true; paintBadge();
-    return fetch(base + '/api/order/stage', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'omit',
-      cache: 'no-store',
-      body: JSON.stringify({ wm_order_id: id, stage: String(stage), actor: actor || 'pos-demo' })
-    }).then(function (res) {
-      return res.json().then(function (j) { return { ok: res.ok, code: res.status, body: j }; },
-                             function () { return { ok: false, code: res.status, body: {} }; });
-    }).then(function (r) {
+    // Through the shared helper: it attaches x-hw-write-token when one is
+    // known, and hands back the server's OWN sentence rather than a status.
+    return post('/api/order/stage',
+      { wm_order_id: id, stage: String(stage), actor: actor || 'pos-demo' }
+    ).then(function (r) {
       if (!r.ok) {
         _advOk = false;
-        _advMsg = 'Rejected ' + r.code + ': ' + ((r.body && r.body.error) || 'no reason given');
+        // r.error is the server's own text when there is one, and a plain
+        // 'HTTP nnn' when there genuinely is not. Never 'no reason given' over
+        // a body that had a reason in it.
+        _advMsg = r.code ? ('Rejected ' + r.code + ': ' + r.error) : r.error;
         paintBadge();
-        return { ok: false, error: (r.body && r.body.error) || ('HTTP ' + r.code) };
+        return { ok: false, error: r.error };
       }
       var view = r.body.order || null;
       if (view) { _stageOverride[String(view.order_id)] = view; }
@@ -1298,7 +1557,12 @@
       if (!_settled) { settle(null, 'unreachable'); }
     });
 
-    return Promise.all([stateP, boardP]);
+    // The API answered, so ask it the one question the badge cannot guess:
+    // does it take writes from this page? One non-mutating POST, once.
+    return Promise.all([stateP, boardP]).then(function (rs) {
+      if (_payload) { probeWrites(); }
+      return rs;
+    });
   }
 
   function settle(json, status) {
@@ -1364,6 +1628,29 @@
     // painting the four invented ones. Siblings re-render through here.
 
     rerender: rerenderIfMounted,
+    // The shared write path. Every sibling seam routes its POSTs through this
+    // one function so the token, the same-origin rule and the server's own
+    // error text all live in exactly one place.
+    post: post,
+    get writes() { return _writes; },
+    hasToken: function () { return !!_token; },
+    // Takes the token, stores it, re-probes. Returns the new write state --
+    // NEVER the token, and nothing derived from it.
+    setToken: function (v) {
+      v = String(v == null ? '' : v).trim();
+      _token = v || null;
+      storeToken(_token);
+      _writes = 'unknown'; _tokenSent = false;
+      paintBadge();
+      return probeWrites();
+    },
+    clearToken: function () {
+      _token = null;
+      storeToken(null);
+      _writes = 'unknown'; _tokenSent = false;
+      paintBadge();
+      return probeWrites();
+    },
     refresh: function () {
       if (!armed) { return Promise.resolve('off'); }
       _settled = false; _status = 'pending'; paintBadge();

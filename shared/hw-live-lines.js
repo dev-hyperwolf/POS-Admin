@@ -112,8 +112,13 @@
   // ambiguity into the server; one canonical name is the fix.
   var ROUTE = '/api/order/lines';
   var OFF_KEY = 'hw-lines-off';
-  var RAIL_W = 74;               // shared/app-rail.jsx:46 — clear the rail
-  var BOTTOM = 198;              // above taxonomy 90, identity 126, check-in 162
+  var SEAM_ID = 'lines';
+  // POSITION IS NO LONGER THIS FILE'S BUSINESS. Every seam used to pick its own
+  // "clear the siblings" bottom offset without knowing the others existed --
+  // first three collided on one line, then they were spread up the left edge as
+  // four stacked pills, and each opened a 66vh card ON TOP of the Order Queue.
+  // dock() below owns the geometry for all four, so there is one tray and one
+  // open panel instead of four modules guessing about each other.
   var TIMEOUT_MS = 6000;
   var CACHE_CAP = 200;           // a sheet is opened one at a time; this is generous
 
@@ -125,6 +130,149 @@
   // silently dropped — hw-live-taxonomy.js:62 paid for this in a black-on-black
   // warning line. Single quotes survive.
   function ff(v) { return String(v).replace(/"/g, "'"); }
+
+  // ── the seam dock ────────────────────────────────────────────────────────
+  // WHY THIS EXISTS. Four sibling seams each pinned their own fixed pill up the
+  // left edge and each opened a 66vh card ON TOP of the Order Queue -- its tabs,
+  // its kanban, and the pills of the other three. The owner could not drive the
+  // demo. What these panels SAY is not negotiable; how much of the screen they
+  // take is. So: ONE tray of small pills, ONE open panel at a time, docked
+  // bottom-left, height-capped, scrolling inside itself, dismissed by Escape or
+  // by a visible close control. Every seam file defines this block identically
+  // -- whichever loads first wins and the others reuse it, so there is exactly
+  // one tray and exactly one open-panel rule however many seams ship.
+  function dock() {
+    if (W.HW_SEAM_DOCK) { return W.HW_SEAM_DOCK; }
+    if (!document.body) { return null; }
+    var D = {
+      LEFT: 86,            // shared/app-rail.jsx:46 — 74px rail + 12px gutter
+      BOTTOM: 52,          // clears hw-live.js's own pill (bottom 14 + ~30 tall)
+      _root: null,
+      _slot: null,
+      _tray: null,
+      _closers: {},
+      // ONE bottom-anchored column: the open panel on top, the pill tray
+      // underneath. The column is what makes this self-correcting -- when the
+      // tray wraps to a second row on a narrow window the panel is pushed up by
+      // the layout, not by arithmetic somebody has to keep in sync. Measured in
+      // the browser: an earlier build pinned the panel at a fixed bottom:92 and
+      // a wrapped second tray row grew 26px straight through it.
+      root: function () {
+        if (D._root && D._root.parentNode) { return D._root; }
+        var r = document.createElement('div');
+        r.id = 'hw-seam-dock';
+        // pointer-events:none here and auto on each pill and panel: the empty
+        // gutter beside a short pill must not swallow a click meant for the app.
+        r.style.cssText = 'position:fixed;left:' + D.LEFT + 'px;bottom:' + D.BOTTOM +
+          'px;z-index:2147482003;display:flex;flex-direction:column;align-items:flex-start;' +
+          'gap:8px;max-width:calc(100vw - ' + (D.LEFT + 16) + 'px);pointer-events:none';
+        document.body.appendChild(r);
+        D._root = r;
+        return r;
+      },
+      // Where every seam's panel lives. Above the tray, always.
+      slot: function () {
+        if (D._slot && D._slot.parentNode) { return D._slot; }
+        var s = document.createElement('div');
+        s.id = 'hw-seam-panels';
+        s.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start;gap:8px;' +
+          'max-width:100%;pointer-events:none';
+        var r = D.root();
+        r.insertBefore(s, r.firstChild);
+        D._slot = s;
+        return s;
+      },
+      tray: function () {
+        if (D._tray && D._tray.parentNode) { return D._tray; }
+        var t = document.createElement('div');
+        t.id = 'hw-seam-tray';
+        t.style.cssText = 'display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px;' +
+          'max-width:100%;pointer-events:none';
+        D.root().appendChild(t);
+        D._tray = t;
+        return t;
+      },
+      register: function (id, close) { D._closers[id] = close; },
+      // Opening one closes its siblings. Four overlapping cards at the same
+      // z-index is how the identity panel became unreachable earlier this week.
+      opened: function (id) {
+        Object.keys(D._closers).forEach(function (k) {
+          if (k !== id) { try { D._closers[k](); } catch (e) {} }
+        });
+      },
+      closeAll: function () {
+        Object.keys(D._closers).forEach(function (k) { try { D._closers[k](); } catch (e) {} });
+      }
+    };
+    // The only globally bound key, and it only ever CLOSES. A panel you cannot
+    // get out of without hunting for its pill again is the bug being fixed.
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' || e.key === 'Esc') { D.closeAll(); }
+    });
+    W.HW_SEAM_DOCK = D;
+    return D;
+  }
+
+  // The docked panel box. It sits in the dock's own column, so the tray below
+  // it can never be overlapped, and it is capped in BOTH dimensions so it can
+  // never grow over the working area again -- the body scrolls INSIDE it, which
+  // is what keeps the cap honest.
+  function panelCSS(P, D, open) {
+    return 'width:min(400px,calc(100vw - ' + (D.LEFT + 16) + 'px));max-height:min(46vh,380px);' +
+      'flex-direction:column;overflow:hidden;background:' + P.surface + ';border:1px solid ' +
+      P.hairline2 + ';border-radius:' + P.r12 + 'px;box-shadow:' + P.shadowLg + ';font-family:' +
+      P.fontSans + ';pointer-events:auto;display:' + (open ? 'flex' : 'none');
+  }
+
+  // Header (title + a real close control) · body that scrolls inside itself ·
+  // footer that stays reachable however long the body gets.
+  function panelShell(P, attr, title, bodyHTML, footerHTML) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:9px 11px;flex:0 0 auto;' +
+      'border-bottom:1px solid ' + P.hairline + '"><span style="flex:1 1 auto;min-width:0;font-size:' +
+      P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' +
+      P.inkMute + '">' + esc(title) + '</span>' +
+      '<button ' + attr + '="close" aria-label="Close this panel" title="Close (Esc)" ' +
+      'style="flex:0 0 auto;width:24px;height:24px;padding:0;line-height:1;border-radius:' + P.r8 +
+      'px;border:1px solid ' + P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink2 +
+      ';font-family:' + P.fontSans + ';font-size:' + P.type.body +
+      'px;font-weight:700;cursor:pointer">×</button></div>' +
+      '<div ' + attr + '-scroll style="flex:1 1 auto;min-height:0;overflow:auto;padding:11px">' +
+      bodyHTML + '</div>' +
+      (footerHTML ? '<div style="flex:0 0 auto;padding:9px 11px;border-top:1px solid ' +
+        P.hairline + '">' + footerHTML + '</div>' : '');
+  }
+
+  // The small pill. Sub-text is carried only when it is TELLING you something
+  // -- a count of what is broken, or where the API that did not answer lives.
+  // A clean seam is a dot and a name, because four fully-spelled pills is what
+  // pushed this tray into three rows and over the app's own controls.
+  function pillHTML(P, attr, dot, label, sub, tip) {
+    return '<div role="button" tabindex="0" data-hw-i ' + attr + '="toggle" title="' + esc(tip) +
+      '" style="display:inline-flex;align-items:center;gap:7px;min-height:' + P.ctrlH.xs +
+      'px;padding:0 11px;border-radius:' + P.r999 + 'px;background:' + P.surface + ';border:1px solid ' +
+      P.hairline2 + ';box-shadow:' + P.shadowSm + ';cursor:pointer;user-select:none;' +
+      'pointer-events:auto;white-space:nowrap">' +
+      '<span style="width:7px;height:7px;border-radius:' + P.r999 + 'px;background:' + dot +
+      ';flex:0 0 auto"></span>' +
+      '<span style="font-size:' + P.type.meta + 'px;font-weight:700;color:' + P.ink + '">' +
+      esc(label) + '</span>' +
+      (sub ? '<span style="font-size:' + P.type.meta + 'px;color:' + P.inkMute + ';font-family:' +
+        ff(P.fontMono) + '">' + esc(sub) + '</span>' : '') + '</div>';
+  }
+
+  // EVERY WORD OF THE DISCLOSURE IS STILL HERE — it is one click away instead of
+  // 900px of prose opening over the board it is describing. Shortened
+  // presentation, never shortened content.
+  function whyBlock(P, attr, open, notesHTML, n) {
+    return '<div style="margin-top:10px;padding-top:9px;border-top:1px solid ' + P.hairline + '">' +
+      '<button ' + attr + '="why" aria-expanded="' + (open ? 'true' : 'false') +
+      '" style="width:100%;text-align:left;min-height:' + P.ctrlH.xs + 'px;padding:0 9px;' +
+      'border-radius:' + P.r8 + 'px;border:1px solid ' + P.hairline2 + ';background:' + P.surface2 +
+      ';color:' + P.ink2 + ';font-family:' + P.fontSans + ';font-size:' + P.type.micro +
+      'px;font-weight:700;letter-spacing:.06em;cursor:pointer">' + (open ? '▾' : '▸') +
+      '  WHY · SOURCE, AND WHAT IS STILL NOT TRUE (' + n + ')</button>' +
+      (open ? '<div style="margin-top:8px">' + notesHTML + '</div>' : '') + '</div>';
+  }
 
   function qs(name) {
     var m = new RegExp('[?&]' + name + '=([^&]*)').exec(W.location.search);
@@ -163,7 +311,7 @@
   var _order = [];             // cache insertion order, for the cap
   var _hw = null, _hwTries = 0, _wrapTries = 0;
   var _subs = [];              // React panels listening for a repaint
-  var _el = null, _open = false, _scroll = 0, _lookup = '';
+  var _el = null, _panel = null, _open = false, _why = false, _scroll = 0, _lookup = '';
   var _lastOrderId = null;
   var _probeDone = false;
 
@@ -620,7 +768,7 @@
       // edges (top + bottom) makes the browser do the arithmetic in whatever
       // coordinate system it is actually using, and no zoom can defeat it.
       var pos = narrow
-        ? { left: 12, right: 76, bottom: 12, maxHeight: '42vh' }
+        ? { left: 12, right: 76, bottom: 88, maxHeight: '42vh' }   // clears the seam tray
         : { top: 34, right: 20, bottom: 160, width: 'min(400px, 94vw)' };
 
       var style = {
@@ -660,142 +808,188 @@
     W.OrderDetails = Wrapped;
   }
 
-  // ── theme-aware badge ────────────────────────────────────────────────────
-  function badgeHTML(P) {
+  // ── theme-aware pill + docked panel ──────────────────────────────────────
+  function panelBodyHTML(P) {
     var cached = Object.keys(_lines).length;
     var failed = Object.keys(_err).length;
-    var dot = _status === 'live' ? (failed ? P.warn : P.good) :
-              _status === 'unreachable' ? P.bad : P.inkFaint;
-    var label = _status === 'live' ? 'WM order lines' :
-                _status === 'pending' ? 'WM order lines…' :
-                _status === 'slow' ? 'WM order lines — still loading' :
-                _status === 'off' ? 'WM order lines (off)' : 'WM order lines (no route)';
-    var sub = _status === 'live'
-      ? cached + ' read' + (failed ? ' · ' + failed + ' failed' : '')
-      : base.replace(/^https?:\/\//, '') + ROUTE;
+    var p = '';
 
-    var html = '';
-    if (_open) {
-      var p = '';
-      p += '<div style="font-size:' + P.type.strong + 'px;font-weight:700;color:' + P.ink +
-           ';margin-bottom:6px">Order line items — what the sheet should be drawing</div>';
-      p += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim +
-           ';line-height:1.6;margin-bottom:8px">Source: <span style="font-family:' +
-           ff(P.fontMono) + '">GET ' + esc(base + ROUTE) + '?wm_order_id=…</span> ' +
-           '→ wmdemo/order_lines.py, which reads the retained Weedmaps webhook payload ' +
-           '(wm_order_events.raw_payload) and joins each line to the sku we resolved it ' +
-           'to and the FIFO batch commit actually took.</div>';
-
-      if (_routeReason) {
-        p += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.bad +
-             ';background:' + P.badSoft + ';border:1px solid ' + P.bad + ';border-radius:' +
-             P.r8 + 'px;padding:8px 9px;margin-bottom:8px">' + esc(_routeReason) + '</div>';
-      }
-
+    // A dead route is an ACTIVE FAILURE and never goes behind a toggle.
+    if (_routeReason) {
       p += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.bad +
            ';background:' + P.badSoft + ';border:1px solid ' + P.bad + ';border-radius:' +
-           P.r8 + 'px;padding:8px 9px;margin-bottom:8px"><b>Still mock:</b> the order ' +
-           'detail sheet\'s own product table is a hardcoded literal at ' +
-           'pos/screen-orders.jsx:1486, and the item subtotal, the proportional ' +
-           'discount split, the three CA tax lines, the grand total, the cash change ' +
-           'and the packing checklist are all arithmetic over it. This seam does not ' +
-           'own that file; it renders the truth beside it and names the lie. The ' +
-           'migration is one line: <span style="font-family:' + ff(P.fontMono) +
-           '">window.HW.orderLines(o.id)</span>.</div>';
-
-      p += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.7">' +
-           'status <b>' + esc(_status) + '</b> · cached ' + cached + ' · failed ' + failed +
-           (_lastOrderId ? ' · last sheet #' + esc(_lastOrderId) : '') + '</div>';
-
-      p += '<div style="display:flex;gap:6px;margin-top:9px">' +
-           '<input data-hwl="q" value="' + esc(_lookup) + '" placeholder="wm_order_id" ' +
-           'style="flex:1;min-width:0;min-height:' + P.ctrlH.sm + 'px;padding:0 9px;border:1px solid ' +
-           P.fieldBorder + ';border-radius:' + P.r8 + 'px;background:' + P.field + ';color:' + P.ink +
-           ';font-family:' + ff(P.fontMono) + ';font-size:' + P.type.meta + 'px;box-sizing:border-box">' +
-           '<button data-hwl="go" style="min-height:' + P.ctrlH.sm + 'px;padding:0 11px;border-radius:' +
-           P.r8 + 'px;border:1px solid ' + P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink2 +
-           ';font-family:' + P.fontSans + ';font-size:' + P.type.meta +
-           'px;font-weight:600;cursor:pointer">Read</button></div>';
-
-      if (_lookup && (_lines[_lookup] || _err[_lookup] || _inflight[_lookup])) {
-        var d = _lines[_lookup];
-        var t = _inflight[_lookup] ? 'reading…'
-              : _err[_lookup] ? _err[_lookup]
-              : !d.found ? d.reason
-              : d.counts.lines + ' lines · ' + d.counts.resolved + ' resolved · ' +
-                d.counts.unresolved + ' unresolved · source ' + d.payload_source +
-                (d.lines_reason ? ' · ' + d.lines_reason : '');
-        p += '<div style="margin-top:8px;font-size:' + P.type.meta + 'px;line-height:1.55;color:' +
-             P.ink2 + ';font-family:' + ff(P.fontMono) + '">' + esc(t) + '</div>';
-      }
-
-      p += '<div style="margin-top:9px;font-size:' + P.type.micro + 'px;color:' + P.inkMute +
-           ';line-height:1.5">Open any order on the Orders screen — the real lines render ' +
-           'in a panel pinned to the sheet. Off: <span style="font-family:' + ff(P.fontMono) +
-           '">?hwlines=off</span>.</div>';
-
-      html += '<div style="background:' + P.surface + ';border:1px solid ' + P.hairline2 +
-        ';border-radius:' + P.r12 + 'px;box-shadow:' + P.shadowLg + ';padding:13px;margin-bottom:8px;' +
-        'pointer-events:auto"><div data-hwl-scroll style="max-height:66vh;overflow:auto">' +
-        p + '</div></div>';
+           P.r8 + 'px;padding:8px 9px;margin-bottom:8px">' + esc(_routeReason) + '</div>';
     }
 
-    html += '<div role="button" tabindex="0" data-hw-i data-hwl="toggle" title="' +
-      esc(label + ' — click for the source') + '" style="display:inline-flex;align-items:center;gap:8px;' +
-      'min-height:' + P.ctrlH.xs + 'px;padding:0 12px;border-radius:' + P.r999 + 'px;background:' +
-      P.surface + ';border:1px solid ' + P.hairline2 + ';box-shadow:' + P.shadowSm +
-      ';cursor:pointer;user-select:none;pointer-events:auto">' +
-      '<span style="width:7px;height:7px;border-radius:' + P.r999 + 'px;background:' + dot +
-      ';flex:0 0 auto"></span>' +
-      '<span style="font-size:' + P.type.meta + 'px;font-weight:700;color:' + P.ink + '">' +
-      esc(label) + '</span>' +
-      '<span style="font-size:' + P.type.meta + 'px;color:' + P.inkMute + ';font-family:' +
-      ff(P.fontMono) + '">' + esc(sub) + '</span></div>';
+    // The one-line version of the claim, always visible. The paragraph that
+    // proves it is in WHY below -- shortened presentation, not shortened
+    // content: no word of it has been deleted.
+    p += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.bad +
+         ';background:' + P.badSoft + ';border:1px solid ' + P.bad + ';border-radius:' +
+         P.r8 + 'px;padding:8px 9px;margin-bottom:8px"><b>Still mock:</b> the order detail ' +
+         'sheet draws its own hardcoded product table, not these lines.</div>';
 
-    return html;
+    p += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.7">' +
+         'status <b>' + esc(_status) + '</b> · cached ' + cached + ' · failed ' + failed +
+         (_lastOrderId ? ' · last sheet #' + esc(_lastOrderId) : '') + '</div>';
+
+    p += '<div style="display:flex;gap:6px;margin-top:9px">' +
+         '<input data-hwl="q" value="' + esc(_lookup) + '" placeholder="wm_order_id" ' +
+         'style="flex:1;min-width:0;min-height:' + P.ctrlH.sm + 'px;padding:0 9px;border:1px solid ' +
+         P.fieldBorder + ';border-radius:' + P.r8 + 'px;background:' + P.field + ';color:' + P.ink +
+         ';font-family:' + ff(P.fontMono) + ';font-size:' + P.type.meta + 'px;box-sizing:border-box">' +
+         '<button data-hwl="go" style="min-height:' + P.ctrlH.sm + 'px;padding:0 11px;border-radius:' +
+         P.r8 + 'px;border:1px solid ' + P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink2 +
+         ';font-family:' + P.fontSans + ';font-size:' + P.type.meta +
+         'px;font-weight:600;cursor:pointer">Read</button></div>';
+
+    if (_lookup && (_lines[_lookup] || _err[_lookup] || _inflight[_lookup])) {
+      var d = _lines[_lookup];
+      var t = _inflight[_lookup] ? 'reading…'
+            : _err[_lookup] ? _err[_lookup]
+            : !d.found ? d.reason
+            : d.counts.lines + ' lines · ' + d.counts.resolved + ' resolved · ' +
+              d.counts.unresolved + ' unresolved · source ' + d.payload_source +
+              (d.lines_reason ? ' · ' + d.lines_reason : '');
+      p += '<div style="margin-top:8px;font-size:' + P.type.meta + 'px;line-height:1.55;color:' +
+           P.ink2 + ';font-family:' + ff(P.fontMono) + '">' + esc(t) + '</div>';
+    }
+
+    p += '<div style="margin-top:9px;font-size:' + P.type.micro + 'px;color:' + P.inkMute +
+         ';line-height:1.5">Open any order on the Orders screen — the real lines render ' +
+         'in a panel pinned to the sheet.</div>';
+
+    // ── WHY. Every word that used to open unbidden over the queue. ──────────
+    var w = '';
+    w += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim +
+         ';line-height:1.6;margin-bottom:8px">Source: <span style="font-family:' +
+         ff(P.fontMono) + '">GET ' + esc(base + ROUTE) + '?wm_order_id=…</span> ' +
+         '→ wmdemo/order_lines.py, which reads the retained Weedmaps webhook payload ' +
+         '(wm_order_events.raw_payload) and joins each line to the sku we resolved it ' +
+         'to and the FIFO batch commit actually took.</div>';
+    w += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.ink2 +
+         ';line-height:1.6;margin-bottom:8px"><b>Still mock, in full:</b> the order ' +
+         'detail sheet\'s own product table is a hardcoded literal at ' +
+         'pos/screen-orders.jsx:1486, and the item subtotal, the proportional ' +
+         'discount split, the three CA tax lines, the grand total, the cash change ' +
+         'and the packing checklist are all arithmetic over it. This seam does not ' +
+         'own that file; it renders the truth beside it and names the lie. The ' +
+         'migration is one line: <span style="font-family:' + ff(P.fontMono) +
+         '">window.HW.orderLines(o.id)</span>.</div>';
+    w += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkMute +
+         ';line-height:1.5">Turn this seam off with <span style="font-family:' +
+         ff(P.fontMono) + '">?hwlines=off</span>.</div>';
+    p += whyBlock(P, 'data-hwl', _why, w, 3);
+
+    return p;
+  }
+
+  function pillBits(P) {
+    var cached = Object.keys(_lines).length;
+    var failed = Object.keys(_err).length;
+    return {
+      dot: _status === 'live' ? (failed ? P.warn : P.good) :
+           _status === 'unreachable' ? P.bad : P.inkFaint,
+      label: _status === 'live' ? 'WM order lines' :
+             _status === 'pending' ? 'WM order lines…' :
+             _status === 'slow' ? 'WM order lines — still loading' :
+             _status === 'off' ? 'WM order lines (off)' : 'WM order lines (no route)',
+      // detail is the whole sentence and goes in the tooltip; the pill carries
+      // only what is telling you something -- reads that FAILED, or the route
+      // that did not answer.
+      detail: _status === 'live'
+        ? cached + ' read' + (failed ? ' · ' + failed + ' failed' : '')
+        : base.replace(/^https?:\/\//, '') + ROUTE,
+      sub: _status === 'live' ? (failed ? failed + ' failed' : '')
+                              : base.replace(/^https?:\/\//, '') + ROUTE
+    };
   }
 
   function paint() {
     if (!armed || !document.body) { return; }
     var P = palette();
     if (!P) { return; }                       // no tokens ⇒ no badge, not a hex literal
+    var D = dock();
+    if (!D) { return; }
+
     if (!_el) {
+      // The pill goes in the SHARED TRAY; the panel is its SIBLING, pinned to
+      // the dock. Before, the panel was the pill's own previous sibling inside
+      // one fixed box, so opening it grew that box upward and shoved the other
+      // three seams around.
       _el = document.createElement('div');
-      document.body.appendChild(_el);
+      _el.id = 'hw-lines-badge';
+      _el.style.cssText = 'display:flex;pointer-events:none';
+      D.tray().appendChild(_el);
+
+      _panel = document.createElement('div');
+      _panel.id = 'hw-lines-panel';
+      _panel.setAttribute('role', 'dialog');
+      _panel.setAttribute('aria-label', 'Weedmaps order lines');
+      D.slot().appendChild(_panel);
+
       _el.addEventListener('click', onClick);
-      _el.addEventListener('input', function (e) {
+      _panel.addEventListener('click', onClick);
+      _panel.addEventListener('input', function (e) {
         if (e.target && e.target.getAttribute && e.target.getAttribute('data-hwl') === 'q') {
           _lookup = e.target.value.trim();
         }
       });
-      _el.addEventListener('keydown', function (e) {
+      // Enter in the one-field lookup submits it. Nothing else in the panel is
+      // key-bound: every control there is a real <button> the browser already
+      // activates, and a panel-wide handler would have closed the panel.
+      _panel.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && e.target && e.target.getAttribute &&
             e.target.getAttribute('data-hwl') === 'q') {
           e.preventDefault();
           if (_lookup) { fetchLines(_lookup, true); }
         }
       });
+      // The pill is a div with role=button, so it needs Enter/Space itself.
+      _el.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') { return; }
+        e.preventDefault();
+        toggle();
+      });
+      D.register(SEAM_ID, function () { if (_open) { _open = false; paint(); } });
     }
-    var box = _el.querySelector('[data-hwl-scroll]');
+
+    var box = _panel.querySelector('[data-hwl-scroll]');
     if (box) { _scroll = box.scrollTop; }
 
-    _el.style.cssText = 'position:fixed;left:' + (RAIL_W + 12) + 'px;bottom:' + BOTTOM + 'px;' +
-      'z-index:2147482001;pointer-events:none;font-family:' + P.fontSans +
-      ';max-width:min(430px,calc(100vw - ' + (RAIL_W + 28) + 'px));';
-    _el.innerHTML = badgeHTML(P);
+    var b = pillBits(P);
+    _el.innerHTML = pillHTML(P, 'data-hwl', b.dot, b.label, b.sub,
+      b.label + ' · ' + b.detail + ' — click for the source');
 
-    box = _el.querySelector('[data-hwl-scroll]');
+    _panel.style.cssText = panelCSS(P, D, _open);
+    if (!_open) { _panel.innerHTML = ''; return; }
+
+    _panel.innerHTML = panelShell(P, 'data-hwl',
+      'Order line items · what the sheet should be drawing', panelBodyHTML(P), '');
+
+    box = _panel.querySelector('[data-hwl-scroll]');
     if (box) { box.scrollTop = _scroll; }
+  }
+
+  // ONE panel at a time, and never open on arrival.
+  function toggle() {
+    _open = !_open;
+    if (_open) { var D = dock(); if (D) { D.opened(SEAM_ID); } }
+    paint();
   }
 
   function onClick(e) {
     var t = e.target;
     var act = t && t.getAttribute && t.getAttribute('data-hwl');
+    if (act === 'close') { e.stopPropagation(); _open = false; paint(); return; }
+    if (act === 'why') { e.stopPropagation(); _why = !_why; paint(); return; }
     if (act === 'go') { e.stopPropagation(); if (_lookup) { fetchLines(_lookup, true); } return; }
     if (act === 'q') { return; }
     if (t && /^(INPUT|BUTTON|SELECT|OPTION)$/.test(t.tagName)) { return; }
-    _open = !_open;
-    paint();
+    // A stray click inside the open panel must not close it -- only the pill
+    // toggles, and only the x and Escape close.
+    if (_panel && _panel.contains(t)) { return; }
+    toggle();
   }
 
   function watchTheme() {
@@ -824,7 +1018,12 @@
         return s;
       });
     },
-    open: function () { _open = true; paint(); },
+    open: function () {
+      var D = dock();
+      if (D) { D.opened(SEAM_ID); }
+      _open = true; paint();
+    },
+    close: function () { _open = false; paint(); },
     disable: function () {
       try { W.localStorage.setItem(OFF_KEY, '1'); } catch (e) {}
       W.location.reload();
