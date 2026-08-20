@@ -1,3 +1,27 @@
+/* ═══ THIS HARNESS IS WORTH SOMETHING ONLY WHERE IT IMITATES THE BROWSER ═══
+ *
+ * Every place it quietly does NOT is a place where a green suite means nothing.
+ * Four found so far, and two were invisible until another team's code sat
+ * beside ours in a merge:
+ *
+ *   · IT GIVES EACH FILE ITS OWN SCOPE (the IIFE below). The browser does not:
+ *     with no `data-presets`, Babel compiles every top-level `const` to a global
+ *     and the LAST script wins. That hid a live bug where pos/data.jsx and
+ *     pos/screen-orders.jsx both declared `STAGES`, so setStage() returned null
+ *     on every call while the UI reported success. STILL PRESENT — every suite
+ *     depends on it. test/global-collisions.test.mjs covers the specific hole by
+ *     reading the PAGES instead.
+ *   · NO `fetch` — jsdom has none, and the live seams call it at load.
+ *   · ReactDOM WAS THE FROZEN MODULE NAMESPACE, so code that patches
+ *     createRoot (as the live seams do) threw. The browser's UMD global is
+ *     writable.
+ *   · TEARDOWN RACED QUEUED MICROTASKS, failing whole FILES whose every
+ *     assertion had passed.
+ *
+ * The IIFE that hid STAGES and the sealed ReactDOM are the same bug wearing
+ * different clothes. Before trusting this harness on anything load-order or
+ * lifecycle shaped, check it is not lying to you about the browser.
+ */
 /* ── DRIVE A REAL POS SCREEN, HEADLESSLY ─────────────────────────────────────
  *
  * Why this exists, in the owner's words: "they just dont even work. You should

@@ -2484,7 +2484,12 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   !claimMemberId ? `This order carries no member id — “${o.name || 'Walk-in'}” is a name on a ticket, not a wallet. Nothing has been credited, and nothing on this screen can attach a member to a completed order. A walk-in has no wallet.` :
   !claimMember ? `This order names member ${claimMemberId}, who is not in the member book. Nothing has been credited — a return cannot be paid into a wallet that does not exist.` :
   orphanKey ? 'A return on this order was filed against a line that is no longer on it, so what is left to give back cannot be worked out from the record. Nothing has been credited, and this screen will not guess which line that return meant.' :
-  refundCap <= 0 ? `Everything this order collected (${fmt.money(grand)}) has already been given back. Nothing has been credited.` :
+  refundCap <= 0 ? (refundedSoFar > 0
+    ? `Everything this order collected (${fmt.money(grand)}) has already been given back. Nothing has been credited.`
+    // An order settled entirely on wallet/reward credit collected nothing, so
+    // there is nothing at the till to reverse — and saying it was "given back"
+    // would be a false statement about money.
+    : 'This order collected no money — wallet or reward credit covered it in full. Nothing has been credited.') :
   null;
 
   const [claimError, setClaimError] = React.useState(null);
@@ -3011,8 +3016,22 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
             <div data-hw="fully-returned" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface, border: `1.5px solid ${P.hairline2}`, borderRadius: P.r12 }}>
                   <span style={{ flex: '0 0 auto', width: 32, height: 32, borderRadius: 8, background: P.surface3, color: P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="ban" size={17} stroke={1.9} /></span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Nothing left to return</div>
-                    <div style={{ fontSize: 11.5, color: P.inkDim }}>Everything this order collected ({fmt.money(grand)}) has already been given back.</div>
+                    {/* 🔴 TWO DIFFERENT STATES, AND ONE OF THEM WAS A LIE.
+                        `refundCap <= 0` is true both when a return really has
+                        given everything back AND when the order collected
+                        nothing in the first place because wallet/reward credit
+                        covered it — `grand = gross - credits`, so an order
+                        settled entirely on credit has grand 0 from the moment
+                        it was rung up. Telling that operator "everything has
+                        already been given back" is false: nothing has. */}
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>
+                      {refundedSoFar > 0 ? 'Nothing left to return' : 'This order collected no money'}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>
+                      {refundedSoFar > 0
+                        ? `Everything this order collected (${fmt.money(grand)}) has already been given back.`
+                        : <>Wallet or reward credit covered it in full, so there is nothing at the till to reverse. <b style={{ color: P.ink }}>Returning the credit itself is not built yet</b> — adjust the member&rsquo;s wallet directly from their record.</>}
+                    </div>
                   </div>
                 </div> :
             !claimOpen ?
