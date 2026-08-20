@@ -126,9 +126,31 @@ function scoSplit(totals) {
  * own line, its `discAmt` is the lane's apportioned share, and `credits` is
  * zero because nothing was tendered against a wallet.
  */
-function scoPlace(totals) {
+function scoPlace() {
   const HW = window.HW, SHOP = window.SHOP, D = window.SHOPDATA;
-  if (!HW || !D || !totals || !totals.canCheckout || SCO_STATE.placing) return null;
+  if (!HW || !D || !SHOP) return null;
+
+  /* 🔴 IDEMPOTENT AGAINST A DURABLE FACT, NOT A FLAG.
+   *
+   * This used to take `totals` from the caller's render closure and guard on a
+   * transient `SCO_STATE.placing`. Both were wrong in the same way: scoPlace is
+   * fully SYNCHRONOUS, so `placing` was already back to false before a second
+   * click's handler ran, and that handler still held the PRE-CLEAR totals. A
+   * double-tap on "Place order" filed the whole cart twice — two sets of real
+   * orders for one checkout.
+   *
+   * The cart being empty is the durable fact that a checkout already happened.
+   * Totals are re-derived HERE, from the live store, so a stale snapshot cannot
+   * be filed at all. */
+  if (!SHOP.lines().length) return null;
+  const totals = SHOP.totals();
+  if (!totals || !totals.canCheckout) return null;
+
+  // A delivery order with no address is not deliverable. The place bar blocks
+  // this too, but the guard belongs where the writing happens — a caller that
+  // reaches scoPlace another way must not be able to file an undeliverable order.
+  if (!SCO_STATE.address) return null;
+
   SCO_STATE.placing = true;
   try {
     const split = scoSplit(totals);
@@ -184,6 +206,17 @@ function scoPlace(totals) {
     return made;
   } finally { SCO_STATE.placing = false; }
 }
+
+/* Published for the same reason every component in this file is published: the
+ * page has no module system, and things that must be reachable go on `window`.
+ *
+ * scoPlace WRITES REAL ORDERS. It had two defects a reviewer had to drive by
+ * hand because nothing could address it from a test — a double tap filed the
+ * cart twice, and an order could be placed with no delivery address. A
+ * money-writing path that no test can call is a money-writing path nobody is
+ * checking. */
+window.scoPlace = scoPlace;
+window.SCO_STATE = SCO_STATE;
 
 // ── Pieces ─────────────────────────────────────────────────────────────────
 
@@ -298,11 +331,16 @@ window.ShopCheckoutLane = function ShopCheckoutLane({ lane, now, onChange, showA
  */
 window.ShopPlaceBar = function ShopPlaceBar({ totals, onPlace }) {
   const P = scUseP();
-  const blocked = !totals.canCheckout;
+  // An address is as much a reason you cannot check out as a lane minimum is,
+  // and the customer has to be told which one it is.
+  const needsAddress = !SCO_STATE.address;
+  const blocked = !totals.canCheckout || needsAddress;
+  const reasons = (totals.canCheckout ? [] : totals.blockers.map((b) => b.toLowerCase()))
+    .concat(needsAddress ? ['we need a delivery address'] : []);
   return <div data-hw="place-bar" style={{ position: 'sticky', bottom: 0, background: P.surface, borderTop: `1px solid ${P.hairline2}`, padding: 14, marginTop: 8 }}>
     {blocked && <div style={{ fontSize: P.type.meta, color: P.inkDim, marginBottom: 10, lineHeight: 1.5 }}>
       {/* Progress, not a scolding — the same framing the lane bars use. */}
-      Almost there — {totals.blockers.join(' · ').toLowerCase()}.
+      Almost there — {reasons.join(' · ')}.
     </div>}
     <PBtn full size="xl" variant="accent" icon="lock" iconRight="chevron-right"
       disabled={blocked} onClick={onPlace} style={{ justifyContent: 'space-between' }}>
@@ -385,6 +423,6 @@ window.ShopCheckoutScreen = function ShopCheckoutScreen({ now }) {
       <ShopOrderSummary totals={totals} />
     </div>
 
-    <ShopPlaceBar totals={totals} onPlace={() => { scoPlace(totals); bump(); }} />
+    <ShopPlaceBar totals={totals} onPlace={() => { scoPlace(); bump(); }} />
   </div>;
 };

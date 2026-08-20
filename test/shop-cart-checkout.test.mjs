@@ -64,6 +64,11 @@ function withShop(fn) {
 
 /** Two lanes, both comfortably over their minimums. Returns the skus used. */
 function loadTwoLanes(W, expQty = 3, schQty = 3) {
+  // A delivery order REQUIRES an address: an order with nowhere to go is refused
+  // at the point of writing, and the place bar is `disabled` without one. This
+  // has to be set BEFORE the bar renders — `disabled` is computed during render,
+  // so setting it afterwards leaves a dead button and a test that places nothing.
+  W.SCO_STATE.address = '123 Test St, Long Beach';
   const pool = W.SHOPDATA.allProducts().filter((p) => p.qty > 0 && p.price >= 20);
   assert.ok(pool.length >= 2, 'the catalogue must offer two items to build a two-lane cart');
   W.SHOP.add(pool[0].sku, expQty, 'express');
