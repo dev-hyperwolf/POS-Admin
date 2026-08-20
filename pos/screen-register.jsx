@@ -159,6 +159,58 @@ window.RegisterScreen = function RegisterScreen() {
   // Search → select checks the customer in (no separate check-in button needed)
   const checkInCustomer = (m) => {openVisit(m, []);flash(`${m.name.split(' ')[0]} checked in`);};
   // ── Recording the sale ──────────────────────────────────────────────────
+  // The money record the ORDER PANEL prices. Exactly the shape seedOrderMoney
+  // produces in pos/screen-orders.jsx — seed, lines, discReason, discAmt,
+  // promo, promoAmt, referral, referralAmt, credits — built from what the till
+  // actually did rather than re-derived later. There is no second pricer here:
+  // priceOrderMoney() remains the one place a total is computed, and this is
+  // the input it was always supposed to be given.
+  //
+  // Split by KIND, because that shape has a rung for each: a promo code is
+  // promo/promoAmt, a referral is referral/referralAmt, and an approved manual
+  // discount or a redeemed reward is the plain discount. Folding a promo into
+  // the anonymous discount line would price identically and describe the sale
+  // wrongly, which is the same failure one step quieter.
+  //
+  // `seed` is computed the way seedOrderMoney computes it, from the record as
+  // filed, so a till-written record is indistinguishable in shape from a seeded
+  // one and nothing downstream has to know which it is holding.
+  const ticketMoney = (rec, tkLines, ds, credits) => {
+    const ofKind = (k) => (ds || []).filter((d) => d.kind === k);
+    const amtOf = (list) => round2(list.reduce((s, d) => s + (+d.off || 0), 0));
+    const promoD = ofKind('promo');
+    const refD = ofKind('referral');
+    const plain = (ds || []).filter((d) => d.kind !== 'promo' && d.kind !== 'referral');
+    // 🔴 CLAMP THE SAME WAY THE DRAWER DID. The till takes
+    // `off = Math.min(lineMerch, offSum(ds))`, but the components were filed
+    // RAW — so a ticket discounted past its own merchandise total recorded a
+    // bigger discount than was actually given, and the receipt showed money
+    // coming off that never did. Scale the parts down in proportion so they sum
+    // to what was really allowed.
+    const merch = round2(tkLines.reduce((s2, l) => s2 + l.total, 0));
+    const raw = round2(amtOf(plain) + amtOf(promoD) + amtOf(refD));
+    const k = raw > merch && raw > 0 ? merch / raw : 1;
+    const share = (list) => round2(amtOf(list) * k);
+    // Several discounts of the same kind used to be recorded as the FIRST one's
+    // label, so a sale with two manual discounts filed one reason for both.
+    const reasonOf = (list) => list.length > 1
+      ? list.map((d) => d.label).filter(Boolean).join(' + ')
+      : list[0] && list[0].label || 'Discount applied';
+    return {
+      seed: (rec.id ? rec.id.length : 5) + (rec.name || '').length + (rec.items || 1),
+      lines: tkLines.map((l) => ({ ...l })),
+      discReason: reasonOf(plain),
+      discAmt: share(plain),
+      promo: promoD[0] && (promoD[0].code || promoD[0].label) || null,
+      promoAmt: share(promoD),
+      referral: refD[0] && (refD[0].code || refD[0].label) || null,
+      referralAmt: share(refD),
+      // Off the GRAND total, after tax — a credit is not a discount. The sale
+      // was for the full amount and part of it was settled another way.
+      credits: round2(credits) };
+
+  };
+
   // The receipt used to name an order id that was never created: the tender
   // reset the ticket and wrote nothing, so a completed sale appeared in no
   // queue, on no board, in no report. This is the write.
@@ -180,8 +232,14 @@ window.RegisterScreen = function RegisterScreen() {
     const tkLines = tk.cart.map((c) => {const p = find(c.sku);return { sku: c.sku, name: p ? p.name : c.sku, qty: c.qty, price: p ? p.price : 0, total: p ? round2((p.price - c.disc) * c.qty) : 0 };});
     const items = tkLines.reduce((s, l) => s + l.qty, 0);
     const ds = tk.discounts || [];
-    const off = offOf(tk);
-    const gross = round2(subOf(tk) + taxOn(subOf(tk)));
+    // Priced off THE LINES THIS ORDER FILES, not off the live cart. Those same
+    // lines become the money record below, so the amount taken at the drawer
+    // and the amount priceOrderMoney() reads back are two views of one set of
+    // numbers rather than two independent sums that happen to agree today.
+    const lineMerch = round2(tkLines.reduce((s, l) => s + l.total, 0));
+    const off = Math.min(lineMerch, offSum(ds));
+    const netSub = round2(lineMerch - off);
+    const gross = round2(netSub + taxOn(netSub));
     const credits = round2(Math.min(gross, Math.max(0, +(creditsApplied || 0))));
     const collected = round2(gross - credits);
     const reuse = sale && sale.id && !HW.orderById(sale.id) ? sale.id : null;
@@ -203,6 +261,24 @@ window.RegisterScreen = function RegisterScreen() {
       discounts: ds.map((d) => ({ kind: d.kind, label: d.label, off: round2(d.off), mgr: d.mgr || null, reason: d.reason || null, code: d.code || null, points: d.points || 0 })),
       points: round2(ds.reduce((s, d) => s + (+d.points || 0), 0)) });
     if (rec && credits > 0) HW.updateOrder(rec.id, { credits, grossTotal: gross });
+    // 🔴 THE MONEY RECORD IS WRITTEN HERE, AT THE TILL.
+    //
+    // Filing `total: collected` with credits/grossTotal alongside it as loose
+    // fields left the order panel to GUESS: an order with no `money` is one
+    // commitOrderMoney re-seeds from its LINES, so a rung-up sale was re-derived
+    // by code whose job is to invent money for demo records. The drawer figure
+    // and the orders it wrote agreed only at the instant of the write.
+    // commitOrderMoney refuses to touch an order that already carries money, so
+    // filing it now is what makes the figure permanent.
+    //
+    // `paid` rides along for the same reason. orderPaid()'s first rule is "the
+    // written field — whatever put money in the drawer says so on the record",
+    // and until now the only thing writing it was commitOrderMoney, which no
+    // longer runs on an order that arrives carrying money. Leaving it unwritten
+    // would make a settled sale depend on being INFERRED from its channel, and
+    // the panel prints "Payment due at pickup" over anything it reads as open.
+    // The till took the money; the till says so.
+    if (rec) HW.updateOrder(rec.id, { money: ticketMoney(rec, tkLines, ds, credits), paid: true });
     return rec;
   };
   const recordSale = (sale) => recordTicket(tickets[active] || tickets[0], sale, sale && sale.credits);
