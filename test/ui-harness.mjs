@@ -163,10 +163,28 @@ export async function boot(which = 'pos', opts = {}) {
   const harnessTimers = new Set();
   for (const kind of ['setTimeout', 'setInterval']) {
     const orig = window[kind].bind(window);
+    const isOneShot = kind === 'setTimeout';
     window[kind] = (fn, ms, ...rest) => {
       if (harnessClosed) return 0;
-      const id = orig(fn, ms, ...rest);
-      harnessTimers.add([kind === 'setTimeout' ? 'clearTimeout' : 'clearInterval', id]);
+      // A ONE-SHOT TIMER MUST RELEASE ITS OWN ENTRY WHEN IT FIRES.
+      //
+      // This Set was previously only ever emptied by close(), so every
+      // setTimeout ever scheduled was retained for the life of the run. Line
+      // ~223 aliases requestAnimationFrame ONTO setTimeout, so an animating
+      // page adds an entry per frame and the Set grows without bound -- the
+      // harness turning a page-level bug into a memory leak of its own. On this
+      // machine, with several agent runs concurrent, it contributed to taking
+      // the whole box down.
+      //
+      // Intervals stay tracked: they genuinely repeat, and cancelling them at
+      // close() is the reason this tracker exists.
+      let entry;
+      const wrapped = isOneShot
+        ? (...a) => { if (entry) harnessTimers.delete(entry); return fn(...a); }
+        : fn;
+      const id = orig(wrapped, ms, ...rest);
+      entry = [isOneShot ? 'clearTimeout' : 'clearInterval', id];
+      harnessTimers.add(entry);
       return id;
     };
   }
