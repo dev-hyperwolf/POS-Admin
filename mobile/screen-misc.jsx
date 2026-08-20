@@ -53,16 +53,18 @@ window.OnDutySheet = function OnDutySheet() {
 // Filters sheet — Status + Priority chips
 window.FiltersSheet = function FiltersSheet() {
   const P = useP();
-  const [status, setStatus] = React.useState([]);
-  const [tags, setTags] = React.useState([]);
+  // Seed from what is already applied, so reopening the sheet shows the driver
+  // the filters they are currently looking through rather than a blank slate.
+  const [status, setStatus] = React.useState(() => window.M.filters().status);
+  const [tags, setTags] = React.useState(() => window.M.filters().tags);
   const chip = (label, active, onClick) =>
   <button key={label} onClick={onClick} style={{ padding: '9px 16px', borderRadius: 99, border: `1.5px solid ${active ? P.accentBorder : P.hairline3}`, background: active ? P.accentSoft : 'transparent', color: active ? P.accentText : P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>{label}</button>;
 
   const toggle = (v, set, arr) => set(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   return (
     <Sheet title="Filters" onClose={() => window.M.closeSheet()} footer={<div style={{ display: 'flex', gap: 10 }}>
-      <PBtn variant="accent" size="xl" full onClick={() => {window.M.closeSheet();window.M.flash('Filters applied');}}>Apply</PBtn>
-      <PBtn variant="secondary" size="xl" full onClick={() => {setStatus([]);setTags([]);}}>Reset</PBtn>
+      <PBtn variant="accent" size="xl" full onClick={() => {window.M.setFilters({ status, tags });window.M.closeSheet();window.M.flash(status.length + tags.length ? 'Showing ' + (status.length + tags.length) + ' filter' + (status.length + tags.length === 1 ? '' : 's') : 'Filters cleared');}}>Apply</PBtn>
+      <PBtn variant="secondary" size="xl" full onClick={() => {setStatus([]);setTags([]);window.M.clearFilters();}}>Reset</PBtn>
     </div>}>
       <div style={{ fontSize: 15, fontWeight: 700, color: P.ink, margin: '4px 0 12px' }}>Status</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>{['Not Started', 'In Progress', 'Completed', 'Cancelled'].map((s) => chip(s, status.includes(s), () => toggle(s, setStatus, status)))}</div>
@@ -215,27 +217,56 @@ window.NotifsScreen = function NotifsScreen() {
 
 };
 
-// Help / chat
+// ── Help / support ────────────────────────────────────────────
+//   ⚠️ The copy asked for "a brief description of your issue or request" and
+//   then gave the driver nowhere to type one: an unused `msg` state, and a
+//   single button whose entire behaviour was a toast. Nothing on this device
+//   can carry a support ticket, so the fix is NOT a fake send. It is a real
+//   field, a chat control that is `disabled` and says why, and a save that does
+//   the one true thing available — keep the description on the phone so it is
+//   still there when chat opens. Every line of copy states it has not been sent.
+const HELP_DRAFT_KEY = 'hw-m-helpdraft';
+const _helpLoad = () => {try {return localStorage.getItem(HELP_DRAFT_KEY) || '';} catch {return '';}};
+const CHAT_OPENS = 'tomorrow at 8:00 AM';
+
 window.HelpScreen = function HelpScreen() {
   const P = useP();
-  const [msg, setMsg] = React.useState('');
+  const [msg, setMsg] = React.useState(_helpLoad);
+  const [saved, setSaved] = React.useState(_helpLoad);
+  const dirty = msg.trim() !== saved.trim();
+  // Emptying the box and saving REMOVES the kept description — otherwise a
+  // driver who clears the field finds it back on the next visit with no way to
+  // get rid of it, which is the same silence this screen was fixed for.
+  const save = () => {
+    const v = msg.trim();
+    try {if (v) localStorage.setItem(HELP_DRAFT_KEY, v);else localStorage.removeItem(HELP_DRAFT_KEY);} catch {}
+    setSaved(v);
+    window.M.flash(v ? 'Kept on this phone — not sent to support' : 'Kept description removed', 'warn');
+  };
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <window.MTopBar title="Help" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', gap: 10, alignSelf: 'center', marginBottom: 30 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px 24px', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', gap: 10, alignSelf: 'center', marginBottom: 26 }}>
           {['#A78BE0', '#fff'].map((c, i) => <div key={i} style={{ width: 56, height: 44, borderRadius: 12, background: c, position: 'relative', marginTop: i * 8 }}><div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>{[0, 1, 2].map((d) => <span key={d} style={{ width: 6, height: 6, borderRadius: 99, background: i ? '#6A99EC' : '#fff' }} />)}</div></div>)}
         </div>
         <div style={{ fontSize: 30, fontWeight: 800, color: P.accent }}>Hi there,</div>
         <div style={{ fontSize: 30, fontWeight: 800, color: P.ink, marginBottom: 12 }}>How can we help?</div>
-        <div style={{ fontSize: 16, color: P.inkDim, lineHeight: 1.5 }}>Let us know how we can assist. Please provide a brief description of your issue or request.</div>
+        <div style={{ fontSize: 16, color: P.inkDim, lineHeight: 1.5, marginBottom: 16 }}>Let us know how we can assist. Please provide a brief description of your issue or request.</div>
+
+        <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: P.warnSoft, borderRadius: P.r12, marginBottom: 14 }}>
+          <Icon name="clock" size={16} stroke={2} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <span style={{ fontSize: 12.5, color: P.warn, fontWeight: 600, lineHeight: 1.45 }}>Chat is offline until {CHAT_OPENS}. Nothing you write here is sent — it is kept on this phone, ready for when chat opens.</span>
+        </div>
+
+        <textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Describe the issue or request" rows={5} style={{ width: '100%', resize: 'none', padding: '12px 14px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r12, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' }} />
+        {saved && !dirty && <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11.5, fontWeight: 600, color: P.good }}><Icon name="check" size={13} stroke={2.6} />Kept on this phone · not sent yet</div>}
       </div>
-      <div style={{ padding: '12px 16px 34px', flex: '0 0 auto' }}>
-        <button onClick={() => window.M.flash("We'll be back online tomorrow", 'warn')} style={{ width: '100%', display: 'flex', alignItems: 'center', padding: '16px 20px', background: P.accent, border: 'none', borderRadius: P.r16, cursor: 'pointer', textAlign: 'left' }}>
-          <div><div style={{ fontSize: 16, fontWeight: 800, color: P.accentInk }}>Chat with us</div><div style={{ fontSize: 12.5, color: 'rgba(26,20,0,.7)', marginTop: 2 }}>We'll be back online tomorrow</div></div>
-          <div style={{ flex: 1 }} /><Icon name="arrow-right" size={22} color={P.accentInk} stroke={2.2} />
-        </button>
+
+      <div style={{ padding: '12px 16px 34px', flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <PBtn variant="secondary" size="xl" full icon="chat" disabled title={`Chat opens ${CHAT_OPENS}`}>Chat with us · offline until {CHAT_OPENS}</PBtn>
+        {!msg.trim() && !saved && <div style={{ fontSize: 11.5, color: P.inkDim, textAlign: 'center', fontWeight: 600 }}>Type a brief description to keep it for the chat.</div>}
+        <PBtn variant="accent" size="xl" full icon="note" disabled={!dirty || (!msg.trim() && !saved)} onClick={save}>{!msg.trim() && saved ? 'Remove kept description' : saved ? 'Update description' : 'Save description'}</PBtn>
       </div>
     </div>);
 

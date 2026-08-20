@@ -23,6 +23,7 @@ const _M = {
   msgTemplates: _load('hw-m-msgtpl', null), // null → seed from default
   profile: _load('hw-m-profile', null),     // { phone, pendingPhone, avatar, vehicles[], vehIdx }
   packed: _load('hw-m-packed', {}),         // { [taskId]: [sku,...] } — barcodes scanned into the van
+  baskets: _load('hw-m-baskets', {}),       // { [taskId]: [{sku,qty}] } — the basket AS EDITED, per stop
   tourStep: -1,                             // guided walkthrough step (-1 = off)
 };
 let _toastT = null;
@@ -51,6 +52,42 @@ window.M = {
   addToCart(sku, qty) { const e = _M.cart.find((c) => c.sku === sku); if (e) e.qty += (qty || 1); else _M.cart = [..._M.cart, { sku, qty: qty || 1 }]; _emit(); },
   setQty(sku, qty) { if (qty <= 0) _M.cart = _M.cart.filter((c) => c.sku !== sku); else { const e = _M.cart.find((c) => c.sku === sku); if (e) e.qty = qty; } _emit(); },
   clearCart() { _M.cart = []; _M.cartTaskId = null; _emit(); },
+
+  /* ── The basket for ONE stop ───────────────────────────────────────────────
+   *
+   * 🔴 `cart`/`cartTaskId` above is a SINGLE SLOT for the whole app. Every
+   * reader does
+   *     M.s.cartTaskId === taskId && M.s.cart.length ? M.s.cart : base.items
+   * so the moment a driver opens ANY other stop, the edited basket at the first
+   * one is silently replaced by the basket the order shipped with. Three
+   * reviewers found this independently: a governed swap was committed, the audit
+   * record and the van ledger both survived, and the BASKET reverted — which is
+   * the worst of the three to lose, because the van stock stayed spent while the
+   * order went back to asking for the original product. Van stock could then be
+   * over-allocated without limit, one unit per revisit.
+   *
+   * A stop's basket is per stop. Keyed by taskId, persisted, and it does not
+   * care which stop the driver is looking at now.
+   */
+  basketFor(taskId) { const b = _M.baskets[taskId]; return b ? b.map((i) => ({ ...i })) : null; },
+  setBasket(taskId, items) {
+    if (!taskId || !Array.isArray(items)) return null;          // never file under `undefined`
+    const clean = items.filter((i) => i && i.sku && (+i.qty || 0) > 0)
+      .map((i) => ({ ...i, qty: +i.qty }));
+    _M.baskets = { ..._M.baskets, [taskId]: clean };
+    _save('hw-m-baskets', _M.baskets); _emit();
+    return clean;
+  },
+  clearBasket(taskId) {
+    if (!(taskId in _M.baskets)) return false;
+    const next = { ..._M.baskets }; delete next[taskId];
+    _M.baskets = next; _save('hw-m-baskets', _M.baskets); _emit();
+    return true;
+  },
+  /** What this stop is actually delivering: the edited basket if there is one,
+   *  otherwise what the order shipped with. THE one rule — readers must not
+   *  re-derive it, which is how the single-slot fallback spread in the first place. */
+  itemsFor(taskId, fallback) { return window.M.basketFor(taskId) || (fallback || []); },
   cartCount() { return _M.cart.reduce((a, c) => a + c.qty, 0); },
   // sale completion
   recordSale(sale) {
@@ -85,7 +122,32 @@ window.M = {
   seedTips() { if (_M.tips == null) { _M.tips = window.MD.TIPS_SEED.map((t) => ({ ...t })); _save('hw-m-tips', _M.tips); } return _M.tips; },
   addTip(t) { const tip = { id: 'tp' + Date.now(), at: 'just now', ...t }; _M.tips = [tip, ...(_M.tips || [])]; _save('hw-m-tips', _M.tips); _emit(); },
   removeTip(id) { _M.tips = (_M.tips || []).filter((t) => t.id !== id); _save('hw-m-tips', _M.tips); _emit(); },
-  tipTotal() { return (_M.tips || []).reduce((a, t) => a + t.amount, 0); },
+  // Seeds first. Fixing this at the Profile call site left an identical dead end
+  // in MakeChangeSheet, which is opened from checkout: any reader that forgot to
+  // seed silently showed $0.00 over a real tip bank. One reader cannot be the
+  // place this is fixed — the accessor is.
+  tipTotal() { window.M.seedTips(); return (_M.tips || []).reduce((a, t) => a + t.amount, 0); },
+  // stop-list filters. Apply used to close the sheet and flash "Filters applied"
+  // while discarding every chip the driver had tapped.
+  filters() { return _M.filters || { status: [], tags: [] }; },
+  setFilters(f) { _M.filters = { status: [...(f.status || [])], tags: [...(f.tags || [])] }; _save('hw-m-filters', _M.filters); _emit(); },
+  clearFilters() { _M.filters = { status: [], tags: [] }; _save('hw-m-filters', _M.filters); _emit(); },
+  filterCount() { const f = window.M.filters(); return f.status.length + f.tags.length; },
+  // OR within a group, AND across groups — the way every filter UI behaves.
+  // 'Completed' is the one chip that is NOT t.status: a stop is completed when
+  // the driver has finished it on THIS phone, which lives in M.isDone.
+  matchesFilters(t) {
+    const f = window.M.filters();
+    if (!f.status.length && !f.tags.length) return true;
+    if (f.status.length) {
+      const ok = f.status.some((label) => label === 'Completed'
+        ? window.M.isDone(t.id)
+        : !window.M.isDone(t.id) && t.status === label.toLowerCase().replace(/ /g, '-'));
+      if (!ok) return false;
+    }
+    if (f.tags.length && !f.tags.some((label) => (t.prio || '') === label.toLowerCase())) return false;
+    return true;
+  },
   // notifications
   dismissNotif(id) { _M.dismissed = [..._M.dismissed, id]; _save('hw-m-notifdismiss', _M.dismissed); _emit(); },
   clearDismissed() { _M.dismissed = []; _save('hw-m-notifdismiss', []); _emit(); },

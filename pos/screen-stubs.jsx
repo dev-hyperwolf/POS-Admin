@@ -14,9 +14,11 @@ const SPAN = {
 
 window.MembersScreen = function MembersScreen() {
   const P = useP();
+  // Subscribes to the member/check-in store: a record created here has to show
+  // up here, or "it worked" and "it did nothing" look identical.
+  const HW = window.useHW();
   const [q, setQ] = React.useState('');
   const [sel, setSel] = React.useState(null);
-  const [added, setAdded] = React.useState([]);
   const [addOpen, setAddOpen] = React.useState(false);
   const [filtOpen, setFiltOpen] = React.useState(false);
   const [f, setF] = React.useState({ group: 'All', type: 'All', wm: 'All', tier: 'All' });
@@ -25,9 +27,10 @@ window.MembersScreen = function MembersScreen() {
   const setF1 = (k, v) => setF((x) => ({ ...x, [k]: v }));
   const clearF = () => setF({ group: 'All', type: 'All', wm: 'All', tier: 'All' });
   const nFilt = ['group', 'type', 'wm', 'tier'].filter((k) => f[k] !== 'All').length;
-  const isLinked = (m) => m.id.charCodeAt(m.id.length - 1) % 2 === 0;
+  const isLinked = (m) => window.HW.wmLinked(m);
+  const [exportOpen, setExportOpen] = React.useState(false);
 
-  const all = added.concat(window.HW.MEMBERS);
+  const all = HW.MEMBERS;
   const members = all.filter((m) => {
     if (q && !(m.name + m.email + m.phone).toLowerCase().includes(q.toLowerCase())) return false;
     if (f.group !== 'All' && m.group !== f.group) return false;
@@ -47,7 +50,7 @@ window.MembersScreen = function MembersScreen() {
   { label: 'Visits', align: 'right', render: (m) => <span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{m.visits}</span> },
   { label: 'Points', align: 'right', render: (m) => <span style={{ fontFamily: P.fontMono, fontWeight: 600, color: m.points > 1000 ? P.good : P.ink }}>{m.points.toLocaleString()}</span> },
   { label: 'Wallet', align: 'right', render: (m) => <span style={{ fontFamily: P.fontMono, fontWeight: 600, color: m.wallet > 0 ? P.good : P.inkMute }}>{window.HW.fmt.money(m.wallet)}</span> },
-  { label: 'Weedmaps', render: (m) => {const linked = m.id.charCodeAt(m.id.length - 1) % 2 === 0;return linked ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Linked</span> : <span style={{ fontSize: 11.5, color: P.inkMute }}>In-store</span>;} },
+  { label: 'Weedmaps', render: (m) => {const linked = window.HW.wmLinked(m);return linked ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Linked</span> : <span style={{ fontSize: 11.5, color: P.inkMute }}>In-store</span>;} },
   { label: '', align: 'right', width: '56px', render: (m) => <IconBtn icon="chevron-right" size={16} style={{ width: 32, height: 32 }} onClick={() => setSel(m)} /> }];
 
   if (sel) return <MemberDetailPage m={sel} onBack={() => setSel(null)} />;
@@ -61,7 +64,7 @@ window.MembersScreen = function MembersScreen() {
       action={<PBtn variant="accent" icon="user-plus" size="md" onClick={() => {setFiltOpen(false);setAddOpen(true);}}>Add Member</PBtn>} />
       {/* Same check-in queue as Orders — the exported component, not a copy, so
           the two can never drift apart. */}
-      {window.CheckInStrip && <window.CheckInStrip checkins={window.HW.CHECKINS} onStartSale={() => {}} onNewCheckIn={() => setShowCheckIn(true)} />}
+      {window.CheckInStrip && <window.CheckInStrip checkins={HW.CHECKINS} onStartSale={() => {}} onNewCheckIn={() => setShowCheckIn(true)} />}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 11, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Showing</span>
@@ -99,15 +102,69 @@ window.MembersScreen = function MembersScreen() {
             </div>
           </>}
         </div>
-        <PBtn variant="secondary" icon="download" size="md">Export</PBtn>
+        <PBtn variant="secondary" icon="download" size="md" onClick={() => setExportOpen(true)}>Export</PBtn>
       </div>
       <DataTable columns={cols} rows={members} rowKey={(m) => m.id} onRowClick={(m) => setSel(m)} />
       {members.length === 0 && <div style={{ textAlign: 'center', padding: '34px 20px', color: P.inkMute, fontSize: 13.5 }}>No members match those filters.</div>}
-      {addOpen && <AddMemberModal onClose={() => setAddOpen(false)} onAdd={(m) => {setAdded((a) => [m, ...a]);setAddOpen(false);}} />}
-      {showCheckIn && window.CheckInModal && <window.CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={() => setShowCheckIn(false)} />}
+      {exportOpen && <ExportMembersModal rows={members} total={all.length} narrowed={nFilt > 0 || !!q} onClose={() => setExportOpen(false)} />}
+      {addOpen && <AddMemberModal onClose={() => setAddOpen(false)} onAdd={(m) => {window.HW.addMember(m);setAddOpen(false);}} />}
+      {/* The modal hands back {customer, guests, type, delivery} — dropping it
+          was the whole bug: the flow completed and created nothing. */}
+      {showCheckIn && window.CheckInModal && <window.CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={(p) => {window.HW.addCheckIn(p);setShowCheckIn(false);}} />}
     </div>);
 
 };
+
+// ── Export — the rows you are looking at, as CSV ───────────────────────────
+//
+// 'Export' had no handler. It exports what is ON SCREEN, filters and search
+// included, because exporting all 5,000 members from a filtered view is the
+// classic way to hand somebody the wrong spreadsheet — so the count and the
+// caveat are stated before anything is saved. The CSV is shown as well as
+// offered: a browser that blocks the download still leaves it copyable.
+function ExportMembersModal({ rows, total, narrowed, onClose }) {
+  const P = useP();
+  const COLS = [
+  ['Name', (m) => m.name], ['Email', (m) => m.email], ['Phone', (m) => m.phone],
+  ['Group', (m) => m.group], ['Type', (m) => m.type], ['Visits', (m) => m.visits],
+  ['Points', (m) => m.points], ['Wallet', (m) => m.wallet],
+  ['Weedmaps', (m) => window.HW.wmLinked(m) ? 'Linked' : 'In-store']];
+  const cell = (v) => {const t = String(v == null ? '' : v);return (/[",\n]/).test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;};
+  const csv = [COLS.map((c) => c[0]).join(',')].concat(rows.map((m) => COLS.map(([, f]) => cell(f(m))).join(','))).join('\n');
+  const href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(620px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
+          <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="download" size={16} stroke={2} color={P.accent} /></span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>Export {rows.length} member{rows.length === 1 ? '' : 's'}</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>members.csv · {COLS.length} columns</span>
+          </span>
+          <IconBtn icon="x" size={17} label="Close" onClick={onClose} />
+        </div>
+        <div style={{ padding: '14px 18px 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+          {narrowed &&
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+              <Icon name="filter" size={15} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This exports the <b>{rows.length}</b> row{rows.length === 1 ? '' : 's'} your search and filters leave on screen — not all {total}. Clear them first if you want the whole book.</div>
+            </div>}
+          {rows.length === 0 ?
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>Nothing to export — no members match the current filters.</div> : <>
+            <pre style={{ margin: 0, maxHeight: 220, overflow: 'auto', padding: 12, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, fontFamily: P.fontMono, fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>{csv}</pre>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ fontSize: 11.5, color: P.inkDim }}>Nothing leaves the browser — the file is built here.</span>
+              <div style={{ flex: 1 }} />
+              <a href={href} download="members.csv" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minHeight: P.ctrlH.md, padding: '0 16px', borderRadius: P.r8, background: P.accent, color: P.accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 13.5, fontWeight: 600, textDecoration: 'none', fontFamily: P.fontSans }}>
+                <Icon name="download" size={15} stroke={2} />Download members.csv
+              </a>
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>);
+
+}
 
 // ── Add member — creates the customer record; ID is still verified at check-in ─
 function AddMemberModal({ onClose, onAdd }) {
@@ -117,7 +174,17 @@ function AddMemberModal({ onClose, onAdd }) {
   // The scan IS the data entry. Reading the PDF417 barcode fills name and DOB
   // in one action — typing them by hand is the fallback, not the path.
   const onScan = (d) => setV((o) => ({ ...o, doc: d, name: o.name || d.name || 'Jordan A. Vasquez', dob: o.dob || d.dob || '09/02/1988' }));
-  const ok = v.name.trim() && v.phone.trim() && v.dob.trim() && !!v.doc;
+  // The gate was already right. What was missing was SAYING so: the button had
+  // no `disabled` and no message, so clicking it did nothing and named no
+  // reason — and the real blocker (the un-scanned ID) was never on screen.
+  const missing = [
+  !v.doc && 'scan the government ID',
+  !v.name.trim() && 'a full name',
+  !v.dob.trim() && 'a date of birth',
+  !v.phone.trim() && 'a phone number'].
+  filter(Boolean);
+  const ok = missing.length === 0;
+  const needs = !missing.length ? '' : missing.length === 1 ? missing[0] : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
   const submit = () => {
     if (!ok) return;
     onAdd({ id: 'm' + Date.now(), name: v.name.trim(), phone: v.phone.trim(), email: v.email.trim() || '—', type: v.type, group: v.group, visits: 0, points: 0, wallet: 0, member: v.group === 'VIP' });
@@ -150,9 +217,11 @@ function AddMemberModal({ onClose, onAdd }) {
           <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Date of birth is the age gate, and it comes off the scanned document rather than being typed. Adding a phone lets them order delivery later without ever verifying again.</span>
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+        {!ok && <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.4 }}>Still needs {needs}.</span>}
+        <div style={{ flex: ok ? 1 : '0 0 auto' }} />
         <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
-        <PBtn variant="accent" size="md" icon="check" onClick={submit} style={{ opacity: ok ? 1 : .5 }}>Create member</PBtn>
+        <PBtn variant="accent" size="md" icon="check" onClick={submit} disabled={!ok} title={ok ? undefined : `Still needs ${needs}`}>Create member</PBtn>
       </div>
     </div>
   </div>;
@@ -175,20 +244,58 @@ function Sec({ icon, title, sub, right, children }) {
 // ── Dedicated member page ──────────────────────────────────────────
 function MemberDetailPage({ m, onBack }) {
   const P = useP();const fmt = window.HW.fmt;
+  // A wallet credit and a member edit both WRITE — this page has to re-render
+  // off the store, not off a copy it made when it opened.
+  window.useHW();
   const [editing, setEditing] = React.useState(false);
   const [form, setForm] = React.useState({ name: m.name, phone: m.phone, email: m.email });
   const [modal, setModal] = React.useState(null); // 'wallet' | 'note'
   const [openOrder, setOpenOrder] = React.useState(null);
   const [hotNotes, setHotNotes] = React.useState(() => window.HW_HOT.hotNotesFor(m.id));
+  const [notes, setNotes] = React.useState(() => window.HW_HOT.notesFor(m.id));
+  // Adjust-wallet was an uncontrolled input nobody ever read. Both fields live
+  // here now, so "Apply credit" applies the amount that is on screen.
+  const [wAmt, setWAmt] = React.useState('10.00');
+  const [wReason, setWReason] = React.useState('Service recovery');
+  const wNum = parseFloat(wAmt);
+  const wOk = isFinite(wNum) && wNum > 0;
+  const openWallet = () => {setWAmt('10.00');setWReason('Service recovery');setModal('wallet');};
+  const applyCredit = () => {
+    if (!wOk) return;
+    const r = window.HW.creditWallet(m.id, wNum, wReason);
+    if (r) setLogged((l) => [{ icon: 'wallet', accent: true, t: `Wallet credit ${fmt.money(r.amount)} · ${r.reason}`, s: 'Manisha Saini · Just now' }, ...l]);
+    setModal(null);
+  };
+  // "Done editing" used to only flip a boolean — the edits lived in `form` and
+  // died there, while the header went on showing them until you navigated away.
+  const saveEdits = () => {window.HW.updateMember(m.id, form);setEditing(false);};
   const idv = (window.HW.IDV || {})[m.id] || null;
   const h = m.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const linked = m.id.charCodeAt(m.id.length - 1) % 2 === 0;
+  // Was derived from the id's last character, which is why "Unlink Weedmaps
+  // identity" had nothing to write to. HW.wmLinked keeps the derivation as the
+  // seed and lets a real write win.
+  const linked = window.HW.wmLinked(m);
+  const [allHist, setAllHist] = React.useState(false);
+  const [unlinkAsk, setUnlinkAsk] = React.useState(false);
   const tier = m.member || m.group === 'VIP' ? 'VIP' : 'Member';
   const since = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][h % 6] + ' 2024';
   const lifetime = m.visits * (38 + h % 64);
   const nextTier = 2000;const prog = Math.min(1, m.points / nextTier);
   const fav = window.HW.favCategory && window.HW.favCategory(m) || ['Flower', 'Vapes', 'Edibles', 'Pre-Rolls'][h % 4];
-  const hist = Array.from({ length: Math.min(m.visits, 6) || 1 }).map((_, i) => {const hh = h + i * 53;return { id: 'ORD-' + String(230 - i * 4).padStart(5, '0'), date: ['Jun 14', 'Jun 2', 'May 21', 'May 8', 'Apr 27', 'Apr 12'][i] + ', 2026', items: 1 + hh % 4, total: 24 + hh % 78, channel: hh % 3 === 0 ? 'Delivery' : 'Pickup', wm: linked && i % 3 === 0, status: 'Completed' };});
+  // 'View all' was inert because the list stopped at six and there was nothing
+  // else to show. The generator now runs the customer's whole visit count —
+  // dates walk backwards a fortnight at a time past the six hand-written ones —
+  // so the control has a second state to move to, and the count it names is the
+  // count the member record claims.
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const histDate = (i) => {
+    if (i < 6) return ['Jun 14', 'Jun 2', 'May 21', 'May 8', 'Apr 27', 'Apr 12'][i] + ', 2026';
+    const d = new Date(2026, 3, 12);
+    d.setDate(d.getDate() - (i - 5) * 14);
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  };
+  const histAll = Array.from({ length: Math.max(1, m.visits) }).map((_, i) => {const hh = h + i * 53;return { id: 'ORD-' + String(230 - i * 4).padStart(5, '0'), date: histDate(i), items: 1 + hh % 4, total: 24 + hh % 78, channel: hh % 3 === 0 ? 'Delivery' : 'Pickup', wm: linked && i % 3 === 0, status: 'Completed' };});
+  const hist = allHist ? histAll : histAll.slice(0, 6);
   const activityBase = [
   linked ? { icon: 'link', accent: true, t: `Merged from Weedmaps order WM-${88000 + h % 900}`, s: 'System · Jun 2, 2026' } : null,
   { icon: 'star', t: `Redeemed ${200 + h % 400} points · $10 off`, s: 'May 21, 2026' },
@@ -198,7 +305,7 @@ function MemberDetailPage({ m, onBack }) {
   // Verification actions taken on this profile land in the feed immediately.
   const [logged, setLogged] = React.useState([]);
   const onLog = (e) => setLogged((l) => [{ icon: e.icon || 'shield', accent: true, t: e.action, s: `${e.who} · ${e.time}` }, ...l]);
-  const activity = [...logged, ...activityBase];
+  const activity = [...notes.map((n) => ({ icon: 'note', t: n.text, s: `${n.by} · ${n.at}` })), ...logged, ...activityBase];
   const kfmt = { visits: m.visits, points: m.points.toLocaleString(), wallet: fmt.money(m.wallet), spend: fmt.money0(lifetime), aov: fmt.money(m.visits ? lifetime / m.visits : 0) };
   const pick = (arr) => arr[h % arr.length];
   const dob = pick(['04/14/1991', '09/02/1988', '12/21/1995', '06/30/1983', '02/11/1979']);
@@ -232,9 +339,10 @@ function MemberDetailPage({ m, onBack }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to members</button>
         <div style={{ flex: 1 }} />
-        <PBtn variant="secondary" size="md" icon="wallet" onClick={() => setModal('wallet')}>Adjust wallet</PBtn>
+        <PBtn variant="secondary" size="md" icon="wallet" onClick={openWallet}>Adjust wallet</PBtn>
         <PBtn variant="secondary" size="md" icon="note" onClick={() => setModal('note')}>Add note</PBtn>
-        <PBtn variant="accent" size="md" icon={editing ? 'check' : 'pencil'} onClick={() => setEditing((v) => !v)}>{editing ? 'Done editing' : 'Edit member'}</PBtn>
+        {editing && <PBtn variant="secondary" size="md" onClick={() => {setForm({ name: m.name, phone: m.phone, email: m.email });setEditing(false);}}>Discard</PBtn>}
+        <PBtn variant="accent" size="md" icon={editing ? 'check' : 'pencil'} onClick={() => editing ? saveEdits() : setEditing(true)}>{editing ? 'Save changes' : 'Edit member'}</PBtn>
       </div>
 
       {/* Hot notes sit ABOVE the identity header — they have to be read before
@@ -316,7 +424,9 @@ function MemberDetailPage({ m, onBack }) {
             </div>
           </Sec>
 
-          <Sec icon="receipt" title="Order history" sub={`${m.visits} lifetime orders`} right={<PBtn variant="ghost" size="sm">View all</PBtn>}>
+          <Sec icon="receipt" title="Order history" sub={`${m.visits} lifetime orders · showing ${hist.length}`}
+          right={histAll.length > 6 ? <PBtn variant="ghost" size="sm" icon={allHist ? 'chevron-up' : 'list'} onClick={() => setAllHist((v) => !v)}>{allHist ? 'Show recent' : `View all ${histAll.length}`}</PBtn> :
+          <span style={{ fontSize: 11.5, color: P.inkMute }}>All {histAll.length} shown</span>}>
             <div>
               {hist.map((o, i) => <div key={o.id} onClick={() => setOpenOrder(o)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderTop: i ? `1px solid ${P.hairline}` : 'none', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink2, background: P.surface3, padding: '2px 7px', borderRadius: 6 }}>#{o.id}</span>
@@ -351,7 +461,17 @@ function MemberDetailPage({ m, onBack }) {
               {linked ? <>
                 <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This profile was merged from a Weedmaps order. Order history &amp; loyalty are unified.</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}><Icon name="link" size={14} color={P.inkMute} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Merged from</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>WM-{88000 + h % 900}</div></div><span style={{ fontSize: 11.5, color: P.inkMute }}>Jun 2</span></div>
-                <PBtn variant="ghost" size="sm" icon="user-off">Unlink Weedmaps identity</PBtn>
+                {unlinkAsk ?
+                <div style={{ padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, marginBottom: 5 }}>Unlink {m.name.split(' ')[0]} from Weedmaps?</div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginBottom: 9 }}>The merged order history stays on this profile. The next Weedmaps order from this contact arrives as a fresh match candidate instead of landing here automatically.</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <PBtn variant="ghost" size="xs" onClick={() => setUnlinkAsk(false)}>Cancel</PBtn>
+                      <div style={{ flex: 1 }} />
+                      <PBtn variant="danger" size="xs" icon="user-off" onClick={() => {window.HW.setWmLink(m.id, false);setUnlinkAsk(false);}}>Unlink</PBtn>
+                    </div>
+                  </div> :
+                <PBtn variant="ghost" size="sm" icon="user-off" onClick={() => setUnlinkAsk(true)}>Unlink Weedmaps identity</PBtn>}
               </> : <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>No Weedmaps identity linked. If a Weedmaps order matches this customer, you can merge it from the order.</div>}
             </div>
           </Card>
@@ -369,13 +489,21 @@ function MemberDetailPage({ m, onBack }) {
       {modal === 'wallet' && <Modal title="Adjust wallet" onClose={() => setModal(null)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}><span style={{ fontSize: 11.5, color: P.inkDim }}>Current balance</span><span style={{ marginLeft: 'auto', fontSize: 13.5, fontWeight: 800, fontFamily: P.fontMono, color: m.wallet > 0 ? P.good : P.ink }}>{fmt.money(m.wallet)}</span></div>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Amount</span><div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, minHeight: 40 }}><span style={{ color: P.inkMute, fontFamily: P.fontMono, fontWeight: 700 }}>$</span><input defaultValue="10.00" inputMode="decimal" autoFocus style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: P.ink, fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono }} /></div></label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Reason</span><select style={inp()}>{['Service recovery', 'Refund to wallet', 'Promo credit', 'Correction'].map((o) => <option key={o}>{o}</option>)}</select></label>
-          <div style={{ display: 'flex', gap: 9, marginTop: 2 }}><PBtn variant="accent" size="md" full onClick={() => setModal(null)}>Apply credit</PBtn><PBtn variant="secondary" size="md" onClick={() => setModal(null)}>Cancel</PBtn></div>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Amount</span><div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, minHeight: 40 }}><span style={{ color: P.inkMute, fontFamily: P.fontMono, fontWeight: 700 }}>$</span><input value={wAmt} onChange={(e) => setWAmt(e.target.value.replace(/[^0-9.]/g, ''))} inputMode="decimal" autoFocus style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: P.ink, fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono }} /></div></label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Reason</span><select value={wReason} onChange={(e) => setWReason(e.target.value)} style={inp()}>{['Service recovery', 'Refund to wallet', 'Promo credit', 'Correction'].map((o) => <option key={o}>{o}</option>)}</select></label>
+          {!wOk && <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.4 }}>Enter an amount above $0.00 to credit this wallet.</div>}
+          {wOk && <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.4 }}>Wallet goes to <b style={{ color: P.ink }}>{fmt.money((+m.wallet || 0) + wNum)}</b> and the credit is written to the activity feed.</div>}
+          <div style={{ display: 'flex', gap: 9, marginTop: 2 }}><PBtn variant="accent" size="md" full disabled={!wOk} onClick={applyCredit}>Apply credit</PBtn><PBtn variant="secondary" size="md" onClick={() => setModal(null)}>Cancel</PBtn></div>
         </div>
       </Modal>}
+      {/* Both branches have to land somewhere. The plain note used to fall
+          through this handler and vanish — it now lands in Activity. */}
       {modal === 'note' && <window.AddNoteModal member={m} onClose={() => setModal(null)}
-      onSave={(n) => {if (n.hot) setHotNotes((l) => [{ kind: n.kind, text: n.text, by: n.by, at: n.at, block: n.block }, ...l]);setModal(null);}} />}
+      onSave={(n) => {
+        if (n.hot) setHotNotes((l) => [{ kind: n.kind, text: n.text, by: n.by, at: n.at, block: n.block }, ...l]);else
+        setNotes(() => window.HW_HOT.addNote(m.id, { text: n.text, by: n.by || 'Manisha Saini', at: n.at || 'Just now' }));
+        setModal(null);
+      }} />}
       {openOrder && <window.FullOrderView order={openOrder} m={m} onClose={() => setOpenOrder(null)} />}
     </div>);
 
@@ -434,6 +562,93 @@ function CashDrawerSettings({ onClose }) {
   </div>;
 }
 
+
+/* ── Delivery lane economics ─────────────────────────────────────────────────
+ *
+ * The owner: "Fees vary by distance, zone and time. Express minimum varies by
+ * zone — most of the time it is $50", then: make it adjustable here.
+ *
+ * 🔴 THE NUMBERS ARE PROVISIONAL AND THIS PANEL SAYS SO ON SCREEN. The real
+ * per-zone table exists in NO system — checked this repo and the Weedmaps
+ * publisher, which has flat fee constants defaulting to zero and regions
+ * carrying zips and drivers but nothing economic. A wrong minimum silently
+ * blocks real orders or silently free-ships them, and neither shows up as an
+ * error, so the operator is told plainly what these are rather than being left
+ * to assume they are policy.
+ */
+function LaneEconomicsSettings({ onClose }) {
+  const P = useP();
+  const money = window.HW.fmt.money;
+  window.useHW();
+  const cur = window.HW.laneSettings();
+  const [f, setF] = React.useState(() => ({
+    expressMinimum: String(cur.expressMinimum), expressFee: String(cur.expressFee),
+    scheduledMinimum: String(cur.scheduledMinimum), scheduledFee: String(cur.scheduledFee),
+  }));
+  const num = (k) => parseFloat(f[k]);
+  const bad = Object.keys(f).find((k) => !Number.isFinite(num(k)) || num(k) < 0);
+  const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 };
+  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value.replace(/[^0-9.]/g, '') }));
+  const Row = ({ k, label, hint }) =>
+    <div>
+      <div style={lbl}>{label}</div>
+      <div style={{ maxWidth: 180 }}><Field mono value={f[k]} onChange={set(k)} placeholder="0.00" /></div>
+      <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 6, lineHeight: 1.5 }}>{hint}</div>
+    </div>;
+
+  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px,96vw)', maxHeight: '92vh', overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
+        <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="truck" size={16} stroke={2} /></span>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Delivery lanes</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Minimums and fees for Express and Scheduled</div></div>
+        <IconBtn icon="x" size={16} onClick={onClose} />
+      </div>
+
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {window.HW.laneSettingsAreDefault() &&
+          <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.warnSoft, borderRadius: P.r10 }}>
+            <Icon name="info" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+            <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+              <b>These are provisional.</b> $50 is the owner&rsquo;s &ldquo;most of the time&rdquo; figure, adopted so the
+              storefront is testable end to end. No confirmed per-zone table exists in any system yet.
+            </div>
+          </div>}
+
+        <Row k="expressMinimum" label="Express minimum"
+          hint={<span>Below <b style={{ color: P.ink }}>{money(num('expressMinimum') || 0)}</b> of express merchandise the customer is shown how much more is needed. It is a <b>progress bar</b>, not a refusal &mdash; the cart never blocks, it just cannot be checked out until the lane is met.</span>} />
+        <Row k="expressFee" label="Express delivery fee"
+          hint={<span>Added to the express order only, and taxed with it.</span>} />
+        <Row k="scheduledMinimum" label="Scheduled minimum"
+          hint={<span>Usually zero &mdash; scheduled has lead time to load, so there is no van-capacity reason to hold a floor.</span>} />
+        <Row k="scheduledFee" label="Scheduled delivery fee"
+          hint={<span>Free today. Each lane is priced on its own row in the customer&rsquo;s order summary; there is no blended delivery fee anywhere.</span>} />
+
+        <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+          <Icon name="info" size={14} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+            <b>One figure per lane, for every zone.</b> Zone, distance and time-of-day are not modelled here yet.
+            The engine already resolves per-zone rules &mdash; it is the <b>data</b> that is missing, and one honest
+            flat number is easier to notice as wrong than a table somebody invented.
+          </div>
+        </div>
+
+        {bad && <div style={{ fontSize: 11.5, color: P.bad, fontWeight: 600 }}>Every figure must be a number and cannot be negative &mdash; a negative minimum would silently switch the gate off.</div>}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+        <PBtn variant="ghost" size="md" onClick={() => { const d = window.HW.resetLaneSettings(); setF({ expressMinimum: String(d.expressMinimum), expressFee: String(d.expressFee), scheduledMinimum: String(d.scheduledMinimum), scheduledFee: String(d.scheduledFee) }); }}>Reset</PBtn>
+        <span style={{ display: 'flex', gap: 9 }}>
+          <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
+          <PBtn variant="accent" size="md" icon="check" disabled={!!bad}
+            onClick={() => { window.HW.setLaneSettings({ expressMinimum: num('expressMinimum'), expressFee: num('expressFee'), scheduledMinimum: num('scheduledMinimum'), scheduledFee: num('scheduledFee') }); onClose(); }}>
+            Save &middot; min {money(num('expressMinimum') || 0)}
+          </PBtn>
+        </span>
+      </div>
+    </div>
+  </div>;
+}
+
 window.SettingsScreen = function SettingsScreen() {
   const P = useP();
   const POS = window.usePOS();
@@ -446,11 +661,12 @@ window.SettingsScreen = function SettingsScreen() {
           <Eyebrow style={{ marginBottom: 11 }}>{sec.group}</Eyebrow>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(248px,1fr))', gap: 11 }}>
             {sec.items.map(([label, icon]) =>
-          <Card key={label} padding={15} hover onClick={() => label === 'Cash Drawer' && setOpen('drawer')} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+          <Card key={label} padding={15} hover onClick={() => { if (label === 'Cash Drawer') setOpen('drawer'); if (label === 'Delivery Management') setOpen('lanes'); }} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
                 <span style={{ width: 38, height: 38, borderRadius: P.r10, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={18} stroke={1.8} /></span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: P.ink }}>{label}</span>
                   {label === 'Cash Drawer' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Starts at {window.HW.fmt.money(POS.getRequiredFloat())}</span>}
+                  {label === 'Delivery Management' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Express min {window.HW.fmt.money(window.HW.laneSettings().expressMinimum)}{window.HW.laneSettingsAreDefault() ? ' · provisional' : ''}</span>}
                 </span>
                 <Icon name="chevron-right" size={16} stroke={2} color={P.inkMute} />
               </Card>
@@ -459,6 +675,7 @@ window.SettingsScreen = function SettingsScreen() {
         </div>
       )}
       {open === 'drawer' && <CashDrawerSettings onClose={() => setOpen(null)} />}
+      {open === 'lanes' && <LaneEconomicsSettings onClose={() => setOpen(null)} />}
     </div>);
 
 };

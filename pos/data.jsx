@@ -319,10 +319,331 @@ const fmt = {
   money0:(n)=> '$'+Number(n).toLocaleString('en-US'),
 };
 
+// ── Writes ─────────────────────────────────────────────────────────────────
+// Every screen renders straight off MEMBERS / CHECKINS, so a "create" that only
+// closed its modal was indistinguishable from a dead button: the operator got
+// full positive feedback for a record that was never written. These are the one
+// place a record is created or changed, and they notify subscribers so the
+// table, the KPI rail and the waiting strip all move together.
+const _hwSubs = new Set();
+const _hwNotify = () => _hwSubs.forEach((fn) => { try { fn(); } catch {} });
+let _hwSeq = 0;
+const _hwId = (prefix) => prefix + Date.now().toString(36) + (++_hwSeq).toString(36);
+
+function addMember(m) {
+  const rec = {
+    id: (m && m.id) || _hwId('m'),
+    name: (m && m.name || '').trim() || 'Unnamed customer',
+    email: m && m.email || '—', phone: m && m.phone || '—',
+    group: m && m.group || 'Standard', type: m && m.type || 'AdultUse',
+    delivery: m && m.delivery || 'Pick-up',
+    visits: m && m.visits || 0, points: m && m.points || 0, wallet: +(m && m.wallet || 0),
+    member: !!(m && m.member),
+  };
+  MEMBERS.unshift(rec);
+  _hwNotify();
+  return rec;
+}
+
+function updateMember(id, patch) {
+  const m = MEMBERS.find((x) => x.id === id);
+  if (!m || !patch) return null;
+  ['name', 'phone', 'email', 'group', 'type'].forEach((k) => {
+    if (patch[k] != null && String(patch[k]).trim()) m[k] = String(patch[k]).trim();
+  });
+  _hwNotify();
+  return m;
+}
+
+// A credit is money. It either lands on the record or it is refused out loud —
+// there is no third option where the manager is told it worked.
+function creditWallet(id, amount, reason) {
+  const m = MEMBERS.find((x) => x.id === id);
+  const amt = Number(amount);
+  if (!m || !isFinite(amt) || amt <= 0) return null;
+  m.wallet = +(((+m.wallet || 0) + amt).toFixed(2));
+  _hwNotify();
+  return { member: m, amount: +amt.toFixed(2), reason: reason || 'Manual credit' };
+}
+
+// The check-in IS the record. An unknown customer becomes a real member first —
+// a person waiting in the room who exists nowhere is not a check-in.
+function addCheckIn(p) {
+  const c = p && p.customer;
+  if (!c) return null;
+  let member = c.id && MEMBERS.find((x) => x.id === c.id);
+  if (!member) member = addMember({ name: c.name, email: c.email, phone: c.phone, type: p.type || c.type, group: c.group, member: c.member });
+  const rec = {
+    id: _hwId('c'), memberId: member.id, name: member.name,
+    group: member.group, type: p.type || member.type, delivery: p.delivery || 'Pick-up',
+    wait: '0h 0m 00s', waitSec: 0, claimedBy: null, member: !!member.member,
+    visit: (member.visits || 0) + 1, guests: (p.guests || []).slice(),
+  };
+  CHECKINS.push(rec);
+  _hwNotify();
+  return rec;
+}
+
+/**
+ * Take a person off the waiting list — they left, or the check-in was a mistake.
+ *
+ * The ✕ on a check-in card had no handler at all, so the one control that means
+ * "this person is not here any more" left them in the room for ever. This
+ * REMOVES the check-in; it does not touch the customer record, because leaving
+ * the queue is not the same as ceasing to exist.
+ *
+ * Returns the removed record, or null when the id is unknown — the caller can
+ * then say so instead of reporting a removal that never happened.
+ */
+function removeCheckIn(id) {
+  const i = CHECKINS.findIndex((c) => c.id === id);
+  if (i < 0) return null;
+  const [rec] = CHECKINS.splice(i, 1);
+  _hwNotify();
+  return rec;
+}
+
+/**
+ * Whether this customer's Weedmaps identity is linked to us.
+ *
+ * This used to be DERIVED from the id's last character, which meant "Unlink
+ * Weedmaps identity" had nothing it could possibly write to: the answer was
+ * recomputed from the id every render. The derivation stays as the seed value
+ * so the demo still shows a mix, but once anyone sets it, the stored field wins.
+ */
+function wmLinked(m) {
+  if (!m) return false;
+  if (m.wm != null) return !!m.wm;
+  return m.id.charCodeAt(m.id.length - 1) % 2 === 0;
+}
+
+function setWmLink(id, linked) {
+  const m = MEMBERS.find((x) => x.id === id);
+  if (!m) return null;
+  m.wm = !!linked;
+  _hwNotify();
+  return m;
+}
+
+// Hand-off for "check in & start sale": the register reads this once on mount,
+// so the sale opens on the person who just checked in rather than on whatever
+// ticket the register happens to seed itself with.
+// ── Order writes ───────────────────────────────────────────────────────────
+//
+// Same gap as MEMBERS, same symptom. Nothing could write to ORDERS either, so
+// "Save changes" toasted "Order updated" and committed nothing, a completed sale
+// printed a receipt naming an order id that was never created, and no control
+// anywhere moved an order between fulfilment stages — a grep for `.stage =`
+// found only the seed literals.
+//
+// The stages are the ones the queue and WM_STATUS_MAP already agree on. Keeping
+// the order fixed here means a caller cannot skip 'pack' by passing a typo.
+/* 🔴 NAMED ORDER_STAGES, NOT `STAGES`, AND THE REASON IS NOT STYLE.
+ *
+ * pos/screen-orders.jsx:4 ALSO declares a top-level `const STAGES` — an array of
+ * {id,label,color} objects for the kanban columns. 'Hyperwolf POS.html' loads
+ * data.jsx at script 59 and screen-orders.jsx at script 79, and it sets no
+ * `data-presets`, so @babel/standalone transpiles each top-level `const` to a
+ * plain `var` ON WINDOW. There is no per-script scope in the browser and no
+ * SyntaxError — the later file SILENTLY CLOBBERS the earlier one.
+ *
+ * The functions below resolve the identifier at CALL time, so with the objects
+ * array in scope:
+ *     setStage(id, 'pack')  -> ['{id:…}',…].includes('pack') === false -> null
+ *     nextStage('verify')   -> indexOf -> -1                           -> null
+ *     addOrder({stage:'ready'})                        -> coerced to 'verify'
+ * every single time. The activity log printed "Verified order · cleared for
+ * fulfillment" and the kanban card never moved. A rendered falsehood on the
+ * control an associate presses to release product.
+ *
+ * ⚠️ THE TEST SUITE COULD NOT SEE THIS. test/ui-harness.mjs wrapped every file
+ * in (function(){…})(), giving each its own scope — which the browser does not.
+ * The harness was hiding the exact class of bug it exists to catch. Fixed in the
+ * same commit; see test/global-collisions.test.mjs.
+ *
+ * Exported as `STAGES` on window.HW, so no caller changes.
+ */
+const ORDER_STAGES = ['verify', 'pack', 'packing', 'ready', 'done'];
+
+function orderById(id) { return ORDERS.find((o) => o.id === id) || null; }
+
+/**
+ * Create an order. Used by a completed sale, and by anything that needs a real
+ * record rather than a receipt line that refers to nothing.
+ */
+function addOrder(o) {
+  const num = String(Math.max(0, ...ORDERS.map((x) => parseInt(String(x.num || '').replace(/\D/g, ''), 10) || 0)) + 1).padStart(5, '0');
+  const items = (o && o.items) || 0;
+  const rec = {
+    id: (o && o.id) || 'ORD-' + num,
+    num: (o && o.num) || num,
+    name: (o && o.name || '').trim() || 'Walk-in',
+    total: +(+(o && o.total || 0)).toFixed(2),
+    source: (o && o.source) || 'Stilo',
+    channel: (o && o.channel) || 'Store',
+    pay: (o && o.pay) || 'Cash',
+    badge: (o && o.badge) || null,
+    age: (o && o.age) || '0h 0m',
+    items: typeof items === 'number' ? items : (items.length || 0),
+    stage: ORDER_STAGES.includes(o && o.stage) ? o.stage : 'verify',
+    hue: (o && o.hue) != null ? o.hue : 200,
+    /* 🔴 WHO THE SALE WAS FOR, BY ID.
+     *
+     * This was missing, and it made the entire return / exchange / warranty
+     * money path UNREACHABLE for every order this app creates: the commit
+     * button renders only when `o.memberId || o.customerId` resolves to a real
+     * member, and NOTHING wrote either field. `memberId` existed only on
+     * CHECK-INS. So the refund branch was dead code behind a correct-looking
+     * guard — the worst shape, because the guard reads as deliberate.
+     *
+     * NOT the name. A wallet was once resolved with
+     * `MEMBERS.find(m => m.name === o.name)`, which credits whoever happens to
+     * share the name on the ticket. Identity is an id.
+     *
+     * Null for a genuine walk-in, and that is an ANSWER, not a gap — a walk-in
+     * has no wallet, and the panel says so rather than guessing. */
+    memberId: (o && o.memberId) || null,
+  };
+  if (o && o.lines) rec.lines = o.lines.slice();
+  ORDERS.unshift(rec);
+  _hwNotify();
+  return rec;
+}
+
+/** Patch an order in place. Returns the updated record, or null if unknown. */
+function updateOrder(id, patch) {
+  const o = orderById(id);
+  if (!o) return null;
+  Object.assign(o, patch || {});
+  if (o.total != null) o.total = +(+o.total).toFixed(2);
+  _hwNotify();
+  return o;
+}
+
+/**
+ * Move an order through fulfilment.
+ *
+ * Refuses an unknown stage rather than writing it: a typo'd stage silently
+ * removes the order from every queue that filters on the known set, which looks
+ * exactly like the order having been deleted.
+ */
+function setStage(id, stage) {
+  if (!ORDER_STAGES.includes(stage)) return null;
+  return updateOrder(id, { stage });
+}
+
+/** The next stage in the pipeline, or null at the end. */
+function nextStage(stage) {
+  const i = ORDER_STAGES.indexOf(stage);
+  return i < 0 || i === ORDER_STAGES.length - 1 ? null : ORDER_STAGES[i + 1];
+}
+
+/* ── Substitution audit records ───────────────────────────────────────────────
+ *
+ * The engine's applyOrderSubstitution returns a SubstitutionRecord — who
+ * changed what, on which order, in which van, what it did to the money, and
+ * whether consent was given. THE RECORD IS THE POINT of a governed flow.
+ *
+ * Three attempts at the driver swap kept it in React component state, which
+ * meant it existed until the driver left the stop. Reviewers found all three:
+ * the panel showed "1 record", you navigated away and back, and it showed none.
+ * A record that does not outlive the screen is not an audit trail.
+ *
+ * The id comes from the ENGINE. Attempt 3 minted ids from a component ref that
+ * reset to 0 on unmount, so the same order+line produced the SAME id on a later
+ * visit — duplicate audit rows for different events. Filing by the engine's own
+ * id also makes this idempotent: committing the same substitution twice files
+ * one record, not two.
+ */
+const SUBRECS = [];
+
+/** File a record from the engine. Returns it, or null if it was already filed. */
+function addSubRecord(rec) {
+  if (!rec || !rec.id) return null;
+  if (SUBRECS.some((r) => r.id === rec.id)) return null;   // idempotent by design
+  SUBRECS.unshift(rec);
+  _hwNotify();
+  return rec;
+}
+/** Every record for one order, newest first. */
+function subRecords(orderId) { return SUBRECS.filter((r) => r.orderId === orderId); }
+function allSubRecords() { return SUBRECS.slice(); }
+
+/* ── Delivery lane economics — OPERATOR-CONTROLLED ───────────────────────────
+ *
+ * The owner: "Fees vary by distance, zone and time. Express minimum varies by
+ * zone — most of the time it is $50", and then: make it adjustable from POS
+ * settings.
+ *
+ * 🔴 THESE NUMBERS ARE PROVISIONAL AND EVERY SURFACE SAYS SO. The real per-zone
+ * table exists in NO repo — checked both this one and the Weedmaps publisher
+ * (see hyperwolf-commerce-logic/docs/OPEN-QUESTIONS.md §B0a). $50 is the owner's
+ * "most of the time" figure, adopted so the demo is testable end to end, NOT a
+ * confirmed rule. A wrong minimum silently blocks real orders or silently
+ * free-ships them and neither shows up as an error, which is exactly why it is
+ * editable here rather than buried in a constant.
+ *
+ * ZONE IS NOT MODELLED YET, deliberately. The ENGINE already resolves per-zone
+ * lane rules (src/core/lanes.ts, 24 tests) — it is the DATA that is missing. One
+ * flat pair of numbers is honest about that; a fabricated zone table would not
+ * be, and would be much harder to notice was wrong.
+ */
+const LANE_DEFAULTS = { expressMinimum: 50, expressFee: 2, scheduledMinimum: 0, scheduledFee: 0 };
+let _laneSettings = null;
+
+function laneSettings() {
+  if (_laneSettings) return { ..._laneSettings };
+  try {
+    const raw = JSON.parse(localStorage.getItem('hw-lane-settings') || 'null');
+    _laneSettings = raw ? { ...LANE_DEFAULTS, ...raw } : { ...LANE_DEFAULTS };
+  } catch { _laneSettings = { ...LANE_DEFAULTS }; }
+  return { ..._laneSettings };
+}
+
+/** Money only, never negative. A negative minimum would silently disable the
+ *  gate; a negative fee would pay the customer to order. */
+function setLaneSettings(patch) {
+  const cur = laneSettings();
+  const next = { ...cur };
+  for (const k of Object.keys(LANE_DEFAULTS)) {
+    if (!(k in (patch || {}))) continue;
+    const v = Number(patch[k]);
+    if (!Number.isFinite(v) || v < 0) return null;      // refuse, do not coerce
+    next[k] = Math.round(v * 100) / 100;
+  }
+  _laneSettings = next;
+  try { localStorage.setItem('hw-lane-settings', JSON.stringify(next)); } catch {}
+  _hwNotify();
+  return { ...next };
+}
+function resetLaneSettings() { _laneSettings = { ...LANE_DEFAULTS }; try { localStorage.removeItem('hw-lane-settings'); } catch {} _hwNotify(); return laneSettings(); }
+/** True while nobody has moved them — surfaces use this to say "provisional". */
+function laneSettingsAreDefault() {
+  const c = laneSettings();
+  return Object.keys(LANE_DEFAULTS).every((k) => c[k] === LANE_DEFAULTS[k]);
+}
+
+let _pendingSale = null;
+function startSaleFor(customer, guests) { _pendingSale = customer ? { customer, guests: (guests || []).slice() } : null; }
+function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
+
 window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, fmt, visitLabel, visitOrdinal,
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
+  addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
+  STAGES: ORDER_STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
+  addSubRecord, subRecords, allSubRecords,
+  LANE_DEFAULTS, laneSettings, setLaneSettings, resetLaneSettings, laneSettingsAreDefault,
+  subscribe:(fn)=>{ _hwSubs.add(fn); return ()=> _hwSubs.delete(fn); },
   checkinById:(id)=> CHECKINS.find(c=>c.id===id) || null,
   memberById:(id)=> MEMBERS.find(m=>m.id===id) || null,
   catCount:(c)=> c==='Deals'? PRODUCTS.filter(p=>p.was).length : PRODUCTS.filter(p=>p.cat===c).length,
+};
+
+// Re-render on any write. Screens that read HW.MEMBERS / HW.CHECKINS must use
+// this, or a record that really was created still looks like nothing happened.
+window.useHW = function useHW() {
+  const [, force] = React.useReducer((x) => x + 1, 0);
+  React.useEffect(() => window.HW.subscribe(force), []);
+  return window.HW;
 };

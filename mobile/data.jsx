@@ -109,7 +109,42 @@ const ANNOUNCEMENTS = [
   { id: 'a3', label: 'Holiday delivery windows', on: false },
 ];
 
-const DRIVER = { name: 'Jake Telo', phone: '(424) 234-6373', id: 'DRV-2291', vehicle: 'Van · 7HWL294', region: 'Lake Elsinore', appVersion: '2.0.0' };
+// ── WHICH VAN · demo stand-in for what ROUTING already decides ──────────────
+//
+// D4, in the owner's words: "the address falls [in a] weedmaps listing[,] with
+// that listing we could have a region or multiple regions, our logic has 1
+// driver assigned to each region. The system decides which driver is best to
+// fulfill the order based on its routing algorithm."
+//
+// Routing therefore already knows this. It just is not written down anywhere the
+// app can read, so the governed swap could not tell WHICH VAN a stop belongs to
+// and refused every time. D14: seed it, label it, and keep it in ONE place —
+// "make sure we can quickly add more demo data easily."
+//
+// ⚠️ THIS IS DEMO DATA. Replace this table with routing's own output; nothing
+// else has to change. The region ids are the nine in delivery/ddata.jsx.
+//
+// ⚠️ AND IT MUST STAY INDEPENDENT OF WHO IS ACTING. The engine's checkActor
+// compares the ORDER's van against the ACTOR's van. Derive both from the logged-
+// in driver and the comparison is against itself: it can never fail, and the
+// guarantee looks present while enforcing nothing. That defect has already been
+// built once here. The table below is keyed by TASK, not by session.
+const TASK_VAN = {
+  t1: 'RC-01', t2: 'RC-01', t3: 'RC-01', t4: 'RC-01',
+  t5: 'RC-01', t6: 'RC-01', t7: 'RC-01',
+  // Deliberately ANOTHER van: this stop was re-assigned mid-route, so the
+  // governed swap must REFUSE it for the logged-in driver. Without one row like
+  // this the wrong_kit path is never exercised by real data and the guarantee is
+  // untested exactly where it matters.
+  t8: 'RC-03',
+};
+
+// `region` is a PLACE NAME and always was — 'Lake Elsinore' is not one of the
+// nine region ids, which is why nothing could join on it. `regionId` is the id.
+// Jake is covering RC-01 today; delivery/ddata.jsx records Theo Reyes as its
+// usual driver, and a van having a regular assignee who is not on it today is an
+// ordinary operational fact rather than a contradiction.
+const DRIVER = { name: 'Jake Telo', phone: '(424) 234-6373', id: 'DRV-2291', vehicle: 'Van · 7HWL294', region: 'Lake Elsinore', regionId: 'RC-01', appVersion: '2.0.0' };
 
 // Deliveries already completed earlier this shift (baseline for Activity +
 // Discrepancy — live completions from the store are merged on top). `counted`
@@ -207,7 +242,13 @@ const STATUS = {
   'cancelled':   { label: 'Cancelled', color: 'bad' },
 };
 
-window.MD = { TASKS, BREAKS, SCHEDULED, NOTIFS, ANNOUNCEMENTS, DRIVER, TAX_RATE, prod, cartTotals, PRIO, STATUS,
+// Applied here rather than threaded through T_ so the table above stays the one
+// place to edit, and so a task with no entry is visibly unassigned rather than
+// silently defaulted to somebody's van.
+for (const t of TASKS) { const v = TASK_VAN[t.id]; if (v) t.kitId = v; }
+for (const t of SCHEDULED) { const v = TASK_VAN[t.id]; if (v) t.kitId = v; }
+
+window.MD = { TASKS, BREAKS, SCHEDULED, NOTIFS, ANNOUNCEMENTS, DRIVER, TAX_RATE, TASK_VAN, prod, cartTotals, PRIO, STATUS,
   SHIFT, SHIFT_COMPLETED, TASK_HISTORY, VISIT, etaStatus, latestArrival, UPSELL, BOXES, boxOf, batchOf, brandsFor,
   MSG_PARAMS, MSG_TEMPLATES_DEFAULT, fillMsg, TIPS_SEED, INV_DISCREPANCY, AOV, packStatus };
 Object.assign(window, {});

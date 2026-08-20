@@ -23,7 +23,7 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
       <window.MTopBar title={base.name} sub="Shop@Home appointment" right={
       <button onClick={() => window.M.openSheet('textcustomer', { task: base })} title="Text customer" style={{ width: 40, height: 40, borderRadius: 99, background: P.surface3, border: 'none', cursor: 'pointer', color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="chat" size={19} stroke={1.9} /></button>} />
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 130px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 16px 168px' }}>
         {/* appointment window banner */}
         <div style={{ background: P.indica, borderRadius: P.r20, padding: '16px 18px', marginBottom: 16, color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -78,10 +78,17 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
         {preItems.count > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 14px', background: P.surface2, borderRadius: P.r12 }}><Icon name="cart" size={16} stroke={2} color={P.ink2} /><span style={{ fontSize: 12.5, color: P.ink2, fontWeight: 600 }}>{preItems.count} item{preItems.count > 1 ? 's' : ''} pre-picked from their wishlist</span></div>}
       </div>
 
-      {/* footer */}
-      {!done ? <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
-        {!idOk && <div style={{ fontSize: 11.5, color: P.warn, textAlign: 'center', marginBottom: 8, fontWeight: 600 }}>Scan the customer's ID to begin</div>}
+      {/* footer
+          ⚠️ An appointment must ALWAYS have an exit. Shopping is gated on the ID
+          scan, and the gate is right — but with nothing beside it the driver hit
+          a dead end in exactly the cases that need finishing most: guest not
+          home, guest won't show ID, guest changed their mind. The close-out is
+          therefore NOT gated; it routes to CompleteScreen, which owns both
+          halves of an ending — collect payment, or "Can't complete this order". */}
+      {!done ? <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 30px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
+        {!idOk && <div style={{ fontSize: 11.5, color: P.warn, textAlign: 'center', marginBottom: 8, fontWeight: 600 }}>Scan the customer's ID to begin shopping</div>}
         <PBtn variant="accent" size="xl" full icon="shop" disabled={!idOk} onClick={start}>Start shopping with {base.name.split(' ')[0]}</PBtn>
+        <button onClick={() => window.M.push('complete', { taskId })} style={{ width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 4, background: 'transparent', border: 'none', color: P.inkDim, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}><Icon name="flag" size={15} stroke={2} />Close out appointment</button>
       </div> : <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 16px 34px', background: P.bg, borderTop: `1px solid ${P.hairline}` }}>
         <PBtn variant="secondary" size="xl" full icon="receipt" onClick={() => window.M.push('complete', { taskId, receiptOnly: true })}>View receipt</PBtn>
       </div>}

@@ -20,12 +20,39 @@
 
   const cents = (dollars) => Math.round((+dollars || 0) * 100);
 
-  /** '1g' → 1 · '3.5g' → 3.5 · '10mg' → null (mg is an EDIBLES dose, not a weight). */
+  /**
+   * '1g' → 1 · '3.5g' → 3.5 · '5x.5g' → 2.5 · '10mg' → undefined.
+   *
+   * The engine's `sizeGrams` is the TOTAL net weight of the package, so a
+   * multi-pack multiplies out: 5 x 0.5g IS 2.5g of cannabis, and a 2.5g pack is
+   * genuinely a step up from a 1g joint.
+   *
+   * ⚠️ THE MULTI-PACK CASE WAS MISSED FIRST TIME, and it was not cosmetic. With
+   * '5x.5g' unparsed, `sizeGrams` was undefined, `isStepUp` had no weight to
+   * compare, fell through to THC (null on that product) and returned false — so
+   * the Archest Pre-Roll Pack was silently absent from the Upgrade ladder while
+   * the diagnostics blamed "no genuine step up available". A parse failure was
+   * wearing the costume of a merchandising result.
+   *
+   * mg stays undefined ON PURPOSE: it is an edibles DOSE, not a weight, and
+   * treating 100mg as 100 grams would make every gummy the biggest item in the
+   * catalogue.
+   */
   function grams(wt) {
     if (typeof wt !== 'string') return undefined;
-    const m = wt.trim().match(/^([\d.]+)\s*(g|mg)$/i);
-    if (!m) return undefined;
-    return m[2].toLowerCase() === 'g' ? +m[1] : undefined;
+    const t = wt.trim();
+    const multi = t.match(/^(\d+)\s*[x×]\s*([\d.]*\d)\s*g$/i);
+    if (multi) return +(+multi[1] * +multi[2]).toFixed(3);
+    const one = t.match(/^([\d.]*\d)\s*(g|mg)$/i);
+    if (!one) return undefined;
+    return one[2].toLowerCase() === 'g' ? +one[1] : undefined;
+  }
+
+  /** Pieces in the pack: '5x.5g' → 5. A FORMAT attribute, not a quantity. */
+  function pieces(wt) {
+    if (typeof wt !== 'string') return undefined;
+    const m = wt.trim().match(/^(\d+)\s*[x×]\s*[\d.]*\d\s*g$/i);
+    return m ? +m[1] : undefined;
   }
 
   const STRAIN = { indica: 'indica', sativa: 'sativa', hybrid: 'hybrid' };
@@ -48,6 +75,8 @@
     };
     const w = grams(p.wt);
     if (w != null) out.sizeGrams = w;
+    const n = pieces(p.wt);
+    if (n != null) out.unitCount = n;
     if (p.was != null) out.compareAtPrice = cents(p.was);
     if (p.thc != null) out.thcPercent = +p.thc;
     const s = STRAIN[String(p.strain || '').toLowerCase()];

@@ -9,16 +9,50 @@ function cashRows() {
   const norm = (s) => ({ id: s.taskId || s.id, order: s.order, name: s.name, method: s.method, expected: s.cash, counted: s.counted != null ? s.counted : s.cash, at: typeof s.at === 'number' ? 'just now' : s.at });
   return [...shift.map(norm), ...live.map(norm)];
 }
+// ── Driver responses to inventory flags ─────────────────────────────────────
+//   ⚠️ Nothing in this app transmits: there is no loss-prevention endpoint on
+//   the device. "Save response" used to fire the toast "Response saved for loss
+//   prevention" and write NOTHING, anywhere — a false confirmation on a
+//   loss-prevention record, which is worse than having no button. It now writes
+//   the response where it can genuinely be written (this phone), reads it back,
+//   and claims exactly that and nothing more.
+const INV_RESP_KEY = 'hw-m-invresp';
+// Read through to storage on EVERY call rather than caching at load: a response
+// written before this screen was first mounted must still show as recorded.
+const _invAll = () => { try { return JSON.parse(localStorage.getItem(INV_RESP_KEY)) || {}; } catch { return {}; } };
+window.MInvResp = {
+  get(id) { return _invAll()[id] || null; },
+  all() { return _invAll(); },
+  // Returns the record ONLY if it was actually stored. Swallowing the throw and
+  // returning `rec` anyway rebuilt the exact bug this file was written to kill:
+  // the card printed "Recorded · saved on this phone" over a write that never
+  // happened. Private browsing and a full quota both throw here.
+  set(id, rec) { const a = _invAll(); a[id] = rec; try { localStorage.setItem(INV_RESP_KEY, JSON.stringify(a)); } catch { return null; } return rec; }
+};
+
 // Inventory discrepancy card with a driver response (status + note)
 function InvCard({ d }) {
   const P = useP();
   const p = window.MD.prod(d.sku);
   const miss = d.qtyExpected - d.qtyCounted;
-  const [resp, setResp] = React.useState(null);
-  const [note, setNote] = React.useState('');
+  const [rec, setRec] = React.useState(() => window.MInvResp.get(d.id));
+  const [resp, setResp] = React.useState(rec ? rec.status : null);
+  const [note, setNote] = React.useState(rec && rec.note ? rec.note : '');
   const [noteOpen, setNoteOpen] = React.useState(false);
   const RESP = [['found', 'Found it', P.good], ['missing', 'Still missing', P.bad], ['damaged', 'Damaged', P.warn]];
   const tone = resp ? (RESP.find((r) => r[0] === resp) || [])[2] : P.warn;
+  const changed = !rec || rec.status !== resp || (rec.note || '') !== note.trim();
+  const [failed, setFailed] = React.useState(false);
+  const save = () => {
+    const at = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const stored = window.MInvResp.set(d.id, { status: resp, note: note.trim(), at });
+    // A loss-prevention record is exactly the wrong place to report a success we
+    // cannot demonstrate. If the write failed, say so and keep the button live.
+    setFailed(!stored);
+    if (!stored) { window.M.flash("Could not save on this phone \u2014 tell dispatch"); return; }
+    setRec(stored);
+    window.M.flash('Response recorded on this phone');
+  };
   return (
     <div style={{ background: P.surface, border: `1px solid ${resp === 'found' ? P.good : P.warn}`, borderRadius: P.r14, padding: '14px 15px' }}>
       <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
@@ -43,7 +77,10 @@ function InvCard({ d }) {
         <div style={{ display: 'flex', gap: 8, marginBottom: noteOpen || note ? 10 : 0 }}>{RESP.map(([k, l, c]) => { const a = resp === k; return <button key={k} onClick={() => setResp(a ? null : k)} style={{ flex: 1, padding: '10px 4px', borderRadius: P.r10, border: `1.5px solid ${a ? c : P.hairline2}`, background: a ? c + (P.mode === 'dark' ? '22' : '18') : 'transparent', color: a ? c : P.ink2, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{l}</button>; })}</div>
         {!noteOpen && !note ? <button onClick={() => setNoteOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, background: 'none', border: 'none', color: P.info, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: 0 }}><Icon name="note" size={14} stroke={2} />Add a note</button>
           : <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Found under the driver seat" rows={2} style={{ width: '100%', resize: 'none', padding: '10px 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' }} />}
-        {resp && <PBtn variant="secondary" size="sm" full icon="check" onClick={() => window.M.flash('Response saved for loss prevention')} style={{ marginTop: 10 }}>Save response</PBtn>}
+        {!resp && (note.trim() || rec) && <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, marginTop: 10 }}>Pick found, still missing or damaged — a note on its own can't be recorded.</div>}
+        {failed && <div style={{ fontSize: 11.5, color: P.bad, fontWeight: 600, marginTop: 10 }}>This phone would not store the response. Nothing was saved \u2014 report it to dispatch.</div>}
+        {rec && !changed && <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11.5, fontWeight: 600, color: P.good }}><Icon name="check" size={13} stroke={2.6} />Recorded {rec.at} · saved on this phone</div>}
+        {(resp || rec) && <PBtn variant="secondary" size="md" full icon="check" disabled={!resp || !changed} onClick={save} style={{ marginTop: 10 }}>{rec ? 'Update response' : 'Save response'}</PBtn>}
       </div>
     </div>);
 }
@@ -140,7 +177,7 @@ window.DiscrepancyScreen = function DiscrepancyScreen() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, padding: '12px 14px', background: P.surface2, borderRadius: P.r12 }}>
           <Icon name="info" size={15} stroke={2} color={P.inkMute} />
-          <span style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.4 }}>Loss prevention reviews and resolves any flags — you don't need to file anything.</span>
+          <span style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.4 }}>Loss prevention reviews and resolves any flags — you don't need to file anything. Any response you record stays on this phone with the flag.</span>
         </div>
       </div>
     </div>);

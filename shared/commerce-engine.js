@@ -26,6 +26,7 @@ var HWCommerce = (() => {
   // src/demo-entry.ts
   var demo_entry_exports = {};
   __export(demo_entry_exports, {
+    APPROVAL_CHANNELS: () => APPROVAL_CHANNELS,
     BUILTIN_RULES: () => BUILTIN_RULES,
     DEMO_AVAILABILITY: () => DEMO_AVAILABILITY,
     DEMO_CART: () => DEMO_CART,
@@ -48,6 +49,7 @@ var HWCommerce = (() => {
     applyOrderSubstitution: () => applyOrderSubstitution,
     applyPartialSwap: () => applyPartialSwap,
     applySwap: () => applySwap,
+    approvalRequiredFor: () => approvalRequiredFor,
     asIndex: () => asIndex,
     availabilityFromPlan: () => availabilityFromPlan,
     availabilityFromSources: () => availabilityFromSources,
@@ -58,6 +60,7 @@ var HWCommerce = (() => {
     canSwap: () => canSwap,
     candidateReason: () => candidateReason,
     checkActor: () => checkActor,
+    checkApproval: () => checkApproval,
     checkOrderState: () => checkOrderState,
     computeCartTotals: () => computeCartTotals,
     createRuleStore: () => createRuleStore,
@@ -2175,12 +2178,20 @@ var HWCommerce = (() => {
     upsell: ["customer_upgraded", "customer_request"],
     replacement: ["out_of_stock_in_kit", "damaged", "wrong_item_picked", "expired", "compliance_hold", "other"]
   };
+  var APPROVAL_CHANNELS = [
+    "not_required",
+    "support_console",
+    "manager_override",
+    "phone",
+    "declined"
+  ];
 
   // src/core/fulfillment/policy.ts
   var defaultFulfillmentPolicy = {
     priceDelta: "any_reconcile_at_closeout",
     authority: "driver_or_support_anytime",
     driverApprovalThresholdCents: 0,
+    requireDistinctApprover: true,
     consent: "verbal_ok",
     // Level 1 — driver attests. One tap.
     cutoff: "delivered",
@@ -2227,12 +2238,13 @@ var HWCommerce = (() => {
     return null;
   }
   function judgeCandidate(input) {
-    const { actor, policy, paymentMethod, lineDeltaCents, promotionsBroken, kitAgeMs } = input;
+    const { policy, paymentMethod, lineDeltaCents, promotionsBroken, kitAgeMs } = input;
     const warnings = [];
-    const increases = lineDeltaCents > 0;
+    const owed = input.customerOwesDeltaCents ?? lineDeltaCents;
+    const increases = lineDeltaCents > 0 || owed > 0;
     if (increases) {
       if (policy.priceDelta === "never_increase") {
-        return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: "This costs more than the item it replaces." };
+        return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: lineDeltaCents <= 0 && owed > 0 ? `This is cheaper per item but costs the customer ${money(owed)} more, because it breaks a promotion they already earned.` : "This costs more than the item it replaces." };
       }
       if (policy.priceDelta === "increase_needs_cash" && paymentMethod !== "cash") {
         return { allowed: false, requiresApproval: false, requiresPromotionAcknowledgement: false, warnings, blockedReason: "Upcharges are cash-only and this order is not cash." };
@@ -2257,13 +2269,11 @@ var HWCommerce = (() => {
         `Removes ${promotionsBroken} promotion(s) the customer already earned. Their total will be recalculated without it.`
       );
     }
-    let requiresApproval = false;
-    if (actor.kind === "driver") {
-      if (policy.authority === "support_approves_all") requiresApproval = true;
-      if (policy.authority === "driver_free_below_threshold" && lineDeltaCents > policy.driverApprovalThresholdCents) {
-        requiresApproval = true;
-      }
-    }
+    const requiresApproval = approvalRequiredFor({
+      policy,
+      lineDeltaCents,
+      ...input.customerOwesDeltaCents !== void 0 ? { customerOwesDeltaCents: input.customerOwesDeltaCents } : {}
+    });
     if (kitAgeMs != null && kitAgeMs > policy.maxKitAgeMs) {
       warnings.push(`Kit data is ${Math.round(kitAgeMs / 6e4)} min old \u2014 confirm the item is physically there.`);
     }
@@ -2275,17 +2285,87 @@ var HWCommerce = (() => {
     }
     return { allowed: true, requiresApproval, requiresPromotionAcknowledgement, warnings };
   }
+  function approvalRequiredFor(input) {
+    const { policy, lineDeltaCents } = input;
+    const owed = input.customerOwesDeltaCents ?? lineDeltaCents;
+    const worst = Math.max(Math.abs(lineDeltaCents), Math.abs(owed));
+    switch (policy.authority) {
+      case "driver_or_support_anytime":
+        return false;
+      case "support_only":
+        return false;
+      case "support_approves_all":
+        return true;
+      case "driver_free_below_threshold":
+        return worst > policy.driverApprovalThresholdCents;
+    }
+    return true;
+  }
+  var isBlank = (v) => typeof v !== "string" || v.trim() === "";
+  function checkApproval(input) {
+    const { policy, actor, requiresApproval, approval } = input;
+    if (approval !== void 0) {
+      if (approval === null || typeof approval !== "object") {
+        return { code: "approval_invalid", message: "The approval must be a record saying who approved this, and when." };
+      }
+      if (!APPROVAL_CHANNELS.includes(approval.channel)) {
+        return {
+          code: "approval_invalid",
+          message: `"${String(approval.channel)}" is not a way an approval can be obtained.`
+        };
+      }
+      if (approval.channel === "declined") {
+        return { code: "approval_declined", message: "This substitution was refused by the approver." };
+      }
+      if (approval.channel === "not_required") {
+        if (approval.approvedByActorId !== void 0 && !isBlank(approval.approvedByActorId)) {
+          return {
+            code: "approval_invalid",
+            message: 'This approval names an approver but records the channel as "not_required". Say how it was obtained.'
+          };
+        }
+      } else if (isBlank(approval.approvedByActorId)) {
+        return { code: "approval_invalid", message: "An approval must name who gave it." };
+      }
+      if (isBlank(approval.recordedAt) || !Number.isFinite(Date.parse(approval.recordedAt))) {
+        return { code: "approval_invalid", message: "An approval must carry a readable timestamp." };
+      }
+    }
+    if (approval !== void 0 && approval.channel !== "not_required" && policy.requireDistinctApprover && approval.approvedByActorId?.trim() === actor.id.trim()) {
+      return {
+        code: "approval_self",
+        message: "An approval must come from someone other than the person making the change."
+      };
+    }
+    if (!requiresApproval) return null;
+    if (approval === void 0 || approval.channel === "not_required") {
+      return {
+        code: "approval_required",
+        message: "This substitution needs to be approved. Retry with an approval naming who signed it off."
+      };
+    }
+    if (policy.requireDistinctApprover && approval.approvedByActorId?.trim() === actor.id.trim()) {
+      return {
+        code: "approval_self",
+        message: "An approval has to come from someone other than the person making the change."
+      };
+    }
+    return null;
+  }
   function settlementFor(policy, paymentMethod, deltaCents) {
     if (deltaCents === 0) return "none";
+    const byMethod = () => paymentMethod === "cash" ? deltaCents > 0 ? "driver_collects_cash" : "driver_refunds_cash" : "card_adjustment";
     switch (policy.priceDelta) {
       case "any_reconcile_at_closeout":
         return "closeout_reconciliation";
       case "never_increase":
-        return paymentMethod === "cash" ? "driver_refunds_cash" : "card_adjustment";
+        return byMethod();
       case "increase_needs_cash":
         return deltaCents > 0 ? "driver_collects_cash" : "driver_refunds_cash";
       case "increase_needs_card_reauth":
         return "card_adjustment";
+      case "settle_at_door":
+        return byMethod();
     }
   }
   function requiredConsent(policy) {
@@ -2311,9 +2391,12 @@ var HWCommerce = (() => {
       intent = "upsell",
       rules = [],
       policy = defaultFulfillmentPolicy,
-      config = defaultConfig,
       modes = UPSELL_MODES
     } = input;
+    const config = input.config ?? {
+      ...defaultConfig,
+      swap: { ...defaultConfig.swap, onInsufficientQuantity: "offer-partial" }
+    };
     const line = order.lines.find((l) => l.id === lineId);
     if (!line) return null;
     const byId = new Map(products.map((p2) => [p2.id, p2]));
@@ -2354,12 +2437,24 @@ var HWCommerce = (() => {
     for (const mode of modes) {
       const judged = [];
       for (const c of built.byMode[mode] ?? []) {
-        const money2 = priceSubstitution({ order, line, replacement: c.product, products, rules, policy, now });
+        const money2 = priceSubstitution({
+          order,
+          line,
+          replacement: c.product,
+          products,
+          rules,
+          policy,
+          now,
+          units: c.fillable,
+          ...input.computeTax ? { computeTax: input.computeTax } : {}
+        });
         const verdict = judgeCandidate({
           actor,
           policy,
           paymentMethod: order.paymentMethod,
           lineDeltaCents: money2.lineDeltaCents,
+          // The gate prices the ORDER, not the line — see judgeCandidate.
+          customerOwesDeltaCents: money2.customerOwesDeltaCents,
           promotionsBroken: money2.promotionsBroken.length,
           kitAgeMs
         });
@@ -2384,15 +2479,18 @@ var HWCommerce = (() => {
   }
   function priceSubstitution(input) {
     const { order, line, replacement, products, rules, policy, now } = input;
-    const lineDeltaCents = (replacement.price - line.unitPriceCents) * line.quantity;
-    const promotionsBroken = findBrokenPromotions({ order, line, replacement, products, rules, now });
+    const moved = Math.max(0, Math.min(
+      Math.floor(input.units ?? line.quantity),
+      line.quantity
+    ));
+    const lineDeltaCents = (replacement.price - line.unitPriceCents) * moved;
+    const promotionsBroken = findBrokenPromotions({ order, line, replacement, products, rules, now, units: moved });
     const promotionLossCents = promotionsBroken.reduce((s, p2) => s + p2.valueCents, 0);
     const newSubtotal = order.agreed.subtotalCents + lineDeltaCents;
     const newDiscount = Math.max(0, order.agreed.discountCents - promotionLossCents);
-    const oldTaxable = Math.max(1, order.agreed.subtotalCents - order.agreed.discountCents);
-    const effectiveTaxRate = order.agreed.taxCents / oldTaxable;
-    const newTax = Math.round(Math.max(0, newSubtotal - newDiscount) * effectiveTaxRate);
-    const newTotalCents = Math.max(0, newSubtotal - newDiscount) + order.agreed.feesCents + newTax;
+    const newTaxable = Math.max(0, newSubtotal - newDiscount);
+    const newTax = input.computeTax ? Math.max(0, Math.round(input.computeTax(newTaxable, order))) : Math.round(newTaxable * (order.agreed.taxCents / Math.max(1, order.agreed.subtotalCents - order.agreed.discountCents)));
+    const newTotalCents = newTaxable + order.agreed.feesCents + newTax;
     const customerOwesDeltaCents = newTotalCents - order.agreed.totalCents;
     return {
       lineDeltaCents,
@@ -2405,6 +2503,7 @@ var HWCommerce = (() => {
   }
   function findBrokenPromotions(input) {
     const { order, line, replacement, products, rules, now } = input;
+    const moved = Math.max(0, Math.min(Math.floor(input.units ?? line.quantity), line.quantity));
     const applied = new Set(order.appliedPromotionIds ?? []);
     if (applied.size === 0 || rules.length === 0) return [];
     const snapshot = { products: [...products], availability: {} };
@@ -2414,9 +2513,15 @@ var HWCommerce = (() => {
     });
     const base = { snapshot, lanes: {}, now };
     const before = { ...base, cart: toCart(order.lines) };
+    const remaining = line.quantity - moved;
+    const afterLines = order.lines.flatMap((l) => {
+      if (l.id !== line.id) return [l];
+      const swapped = { ...l, id: l.id + "+" + replacement.id, productId: replacement.id, quantity: moved };
+      return remaining > 0 ? [{ ...l, quantity: remaining }, swapped] : [swapped];
+    });
     const after = {
       ...base,
-      cart: toCart(order.lines.map((l) => l.id === line.id ? { ...l, productId: replacement.id } : l))
+      cart: toCart(afterLines)
     };
     const lost = [];
     for (const rule of rules) {
@@ -2440,7 +2545,8 @@ var HWCommerce = (() => {
       now,
       recordId,
       policy = defaultFulfillmentPolicy,
-      acknowledgePromotionLoss = false
+      acknowledgePromotionLoss = false,
+      approval
     } = input;
     const refuse = (code, message) => ({ ok: false, refusal: { code, message } });
     const stateBlock = checkOrderState(order, policy);
@@ -2457,6 +2563,17 @@ var HWCommerce = (() => {
         `This removes ${names}, worth ${(candidate.money.promotionLossCents / 100).toFixed(2)} to the customer. Confirm the customer knows their total changes, then retry with acknowledgePromotionLoss.`
       );
     }
+    const requiresApproval = candidate.verdict.requiresApproval || approvalRequiredFor({
+      policy,
+      lineDeltaCents: candidate.money.lineDeltaCents,
+      customerOwesDeltaCents: candidate.money.customerOwesDeltaCents
+    });
+    const approvalRefusal = checkApproval({ policy, actor, requiresApproval, approval });
+    if (approvalRefusal) return refuse(approvalRefusal.code, approvalRefusal.message);
+    const approvalForRecord = approval ?? {
+      channel: "not_required",
+      recordedAt: now.toISOString()
+    };
     if (policy.consent === "verbal_ok" && consent.channel === "not_required") {
       return refuse("consent_required", "Confirm the customer agreed to this swap.");
     }
@@ -2468,14 +2585,31 @@ var HWCommerce = (() => {
     }
     const line = order.lines.find((l) => l.id === plan.lineId);
     if (!line) return refuse("line_not_found", "That line is no longer on this order.");
+    const moved = Math.max(0, Math.min(candidate.fillable ?? line.quantity, line.quantity));
+    if (moved === 0) {
+      return refuse("nothing_to_move", "This candidate cannot supply any units of that line.");
+    }
+    const remaining = line.quantity - moved;
+    const splitId = () => {
+      const taken = new Set(order.lines.map((l) => l.id));
+      const base = `${plan.lineId}+${candidate.product.id}`;
+      if (!taken.has(base)) return base;
+      for (let n = 2; ; n++) if (!taken.has(`${base}#${n}`)) return `${base}#${n}`;
+    };
     const updated = {
       ...order,
-      lines: order.lines.map((l) => l.id === plan.lineId ? {
-        ...l,
-        productId: candidate.product.id,
-        unitPriceCents: candidate.product.price,
-        substitutedFromProductId: l.productId
-      } : l),
+      lines: order.lines.flatMap((l) => {
+        if (l.id !== plan.lineId) return [l];
+        const swapped = {
+          ...l,
+          ...remaining > 0 ? { id: splitId() } : {},
+          productId: candidate.product.id,
+          unitPriceCents: candidate.product.price,
+          quantity: moved,
+          substitutedFromProductId: l.productId
+        };
+        return remaining > 0 ? [{ ...l, quantity: remaining }, swapped] : [swapped];
+      }),
       agreed: {
         ...order.agreed,
         subtotalCents: order.agreed.subtotalCents + candidate.money.lineDeltaCents,
@@ -2493,10 +2627,13 @@ var HWCommerce = (() => {
       fromProductName: `${plan.currentProduct.brand} ${plan.currentProduct.name}`,
       toProductId: candidate.product.id,
       toProductName: `${candidate.product.brand} ${candidate.product.name}`,
-      quantity: plan.quantity,
+      // What actually moved, not what the line held. On a partial the rest is
+      // still on the order as its own line.
+      quantity: moved,
       reason,
       actor,
       consent,
+      approval: approvalForRecord,
       money: candidate.money,
       orderStatusAtChange: order.status,
       kitId: plan.kitId,
@@ -2508,14 +2645,14 @@ var HWCommerce = (() => {
         kind: "release",
         kitId: plan.kitId,
         productId: plan.currentProduct.id,
-        quantity: plan.quantity,
+        quantity: moved,
         note: `Released from order ${order.id} after substitution ${recordId}`
       },
       {
         kind: "allocate",
         kitId: plan.kitId,
         productId: candidate.product.id,
-        quantity: plan.quantity,
+        quantity: moved,
         note: `Allocated to order ${order.id} by substitution ${recordId}`
       }
     ];

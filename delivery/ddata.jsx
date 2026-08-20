@@ -33,6 +33,79 @@ function effSettings(sr) {
 }
 function overriddenKeys(sr) { return Object.keys(sr.override || {}); }
 
+// ── Region kit stock — DEMO DATA ────────────────────────────────────────────
+// A region IS a van: one kit, one driver, fixed for the day. That is why this
+// lives next to SUBREGIONS and is keyed by region id rather than by driver.
+//
+// Once an order is assigned, the only products that can replace a line are the
+// ones physically in THAT van. Regional availability is irrelevant — another
+// driver having it does not help the customer standing in front of this one.
+// So this table is the candidate pool for every post-submission swap.
+//
+// ⚠️ DEMO DATA — no number below came from a real van. It stands in for the
+// Hyperdrive POS inventory-room feed (the Blaze region rooms RC.., SB.., OC..,
+// LA..) that will eventually supply it. Replace the body of buildRegionStock,
+// not its shape, when that feed lands.
+//
+// Deterministic on purpose — the same sku-hash trick mobile/data.jsx's boxOf
+// uses — so a reload never reshuffles a van and a screenshot stays reproducible.
+// Every region carries a DIFFERENT subset, which is the entire point: a van does
+// not have everything, and a ladder that pretends otherwise offers the customer
+// stock nobody can hand over.
+
+// Order-sensitive rolling hash. mobile/data.jsx's boxOf sums char codes, which
+// is fine there; here it is not, because the SUM of 'SB-01' and of 'RC-01' is
+// the same number — two counties would load identical vans.
+const _stockHash = (s) => {
+  let h = 7;
+  const str = String(s);
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 100003;
+  return h;
+};
+
+// Minutes since the inventory room signed each van out. Kit counts move on every
+// drop-off, so stale data offers what is already gone; the engine flags anything
+// older than its freshness window. RC-03 is deliberately stale so that path is
+// exercised by real data rather than only by a test fixture.
+const REGION_STOCK_AGE_MIN = {
+  'LA-01': 4, 'LA-02': 6, 'SB-01': 3, 'SB-02': 8,
+  'OC-01': 5, 'OC-02': 7, 'RC-01': 2, 'RC-02': 9, 'RC-03': 47,
+};
+
+// Units one van holds of one sku. 0 means "not loaded on this van today" — and
+// roughly a third of the catalogue is 0 for any given region, which is what
+// makes the subsets differ.
+//
+// Region and sku are hashed as ONE string. A plain `hash(sku) + hash(regionId)
+// * k` looks well mixed and is not: `% 3` of it collapses to
+// `hash(regionId) * k % 3`, which is constant per region, so all nine vans came
+// out with three distinct subsets between them — the opposite of what this
+// table exists to demonstrate. Both mistakes were made here before this comment
+// was written; the check that catches them is in test/governance.test.mjs.
+function _kitUnits(regionId, sku) {
+  const h = _stockHash(regionId + '|' + sku);
+  return h % 3 === 0 ? 0 : 1 + (h % 6);
+}
+
+// regionId -> { regionId, driver, ageMin, units:{ sku: units } }
+// Built over the live catalogue so a van can never carry a sku the store does
+// not sell. window.HW is loaded before this file on every entry HTML; the empty
+// fallback degrades to "no kit" rather than inventing stock.
+function buildRegionStock(catalogue) {
+  const out = {};
+  for (const sr of SUBREGIONS) {
+    const units = {};
+    for (const p of (catalogue || [])) {
+      const n = _kitUnits(sr.id, p.sku);
+      if (n > 0) units[p.sku] = n;
+    }
+    out[sr.id] = { regionId: sr.id, driver: sr.driver, ageMin: REGION_STOCK_AGE_MIN[sr.id] || 5, units };
+  }
+  return out;
+}
+const REGION_STOCK = buildRegionStock(window.HW ? window.HW.PRODUCTS : []);
+function stockFor(regionId) { return REGION_STOCK[regionId] || null; }
+
 // ── geometry helpers — centroid + outward-expanded buffer polygon ───────────
 function centroid(pts) { const n = pts.length; let x = 0, y = 0;pts.forEach((p) => {x += p[0];y += p[1];});return [x / n, y / n]; }
 function toPath(pts) { return 'M' + pts.map((p) => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z'; }
@@ -70,4 +143,5 @@ const CALLOFFS = [
   { day: 'wed', driver: 'Nina Patel',  region: 'OC-01', shift: '9:00a–5:00p',  reason: 'Family emergency', at: 'Yesterday 6:10 PM', status: 'open', cover: null },
 ];
 
-window.DDATA = { COUNTIES, COUNTY_BY_ID, SUBREGIONS, effSettings, overriddenKeys, centroid, toPath, bufferPath, WEEK, SCHEDULE_WK, CALLOFFS, DRIVERS };
+window.DDATA = { COUNTIES, COUNTY_BY_ID, SUBREGIONS, effSettings, overriddenKeys, centroid, toPath, bufferPath, WEEK, SCHEDULE_WK, CALLOFFS, DRIVERS,
+  REGION_STOCK, REGION_STOCK_AGE_MIN, stockFor, buildRegionStock };

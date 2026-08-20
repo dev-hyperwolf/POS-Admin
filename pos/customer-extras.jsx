@@ -27,6 +27,18 @@ const HOT_SEED = {
 };
 function hotNotesFor(id) {return (HOT_SEED[id] || []).slice();}
 
+// Plain internal notes. A hot note is a banner; a plain note is history — and
+// history that is thrown away the moment it is written is not history. Kept per
+// member here so it survives leaving the profile and coming back.
+const NOTE_LOG = {};
+function notesFor(id) {return (NOTE_LOG[id] || []).slice();}
+function addNote(id, n) {
+  const rec = { text: (n && n.text || '').trim(), by: n && n.by || 'Manisha Saini', at: n && n.at || 'Just now' };
+  if (!rec.text) return notesFor(id);
+  NOTE_LOG[id] = [rec].concat(NOTE_LOG[id] || []);
+  return notesFor(id);
+}
+
 window.HotNotesBanner = function HotNotesBanner({ notes, onAdd, onResolve }) {
   const P = useP();
   if (!notes || !notes.length) return null;
@@ -108,7 +120,7 @@ window.AddNoteModal = function AddNoteModal({ member, onClose, onSave }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
         <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
-        <PBtn variant="accent" size="md" icon="check" onClick={() => {if (!ok) return;onSave && onSave(hot ? { hot: true, kind, text: text.trim(), block: block || null, by: 'Manisha Saini', at: 'Just now' } : { hot: false, text: text.trim() });}} style={{ opacity: ok ? 1 : .5, ...(hot ? { background: P.bad, color: '#fff' } : null) }}>{hot ? 'Save hot note' : 'Save note'}</PBtn>
+        <PBtn variant="accent" size="md" icon="check" onClick={() => {if (!ok) return;onSave && onSave(hot ? { hot: true, kind, text: text.trim(), block: block || null, by: 'Manisha Saini', at: 'Just now' } : { hot: false, text: text.trim(), by: 'Manisha Saini', at: 'Just now' });}} disabled={!ok} title={ok ? undefined : 'Write the note first — a few words at least'} style={hot && ok ? { background: P.bad, color: '#fff' } : null}>{hot ? 'Save hot note' : 'Save note'}</PBtn>
       </div>
     </div>
   </div>;
@@ -132,17 +144,56 @@ function seedAddresses(m, idAddr) {
   const sameAsId = idAddr && list[0] && list[0].street === idAddr.street;
   return { list, sameAsId };
 }
+// Kept per member so an address the operator adds is still there next time they
+// open the profile — a "saved" address that only lived in component state was
+// indistinguishable from one that was never saved.
+const ADDR_BOOK = {};
+function addressesFor(m, idAddr) {
+  if (!ADDR_BOOK[m.id]) ADDR_BOOK[m.id] = seedAddresses(m, idAddr).list;
+  return ADDR_BOOK[m.id];
+}
+// The ZIP is what decides the region and therefore the zone — the panel says so,
+// so the form has to actually do it. An unknown ZIP is 'not served', which is a
+// real answer, not a failure to save.
+const ZIP_ZONE = {
+  '92595': { region: 'RC7 · Wildomar', zone: 'in' },
+  '92530': { region: 'RC2 · Lake Elsinore', zone: 'in' },
+  '92532': { region: 'RC2 · Lake Elsinore', zone: 'in' },
+  '92883': { region: 'RC4 · Temescal', zone: 'in' },
+  '92562': { region: 'RC1 · Temecula', zone: 'buffer' },
+  '92563': { region: 'RC1 · Temecula', zone: 'buffer' }
+};
+function zoneForZip(zip) {return ZIP_ZONE[String(zip || '').trim()] || { region: 'No region covers this ZIP', zone: 'out' };}
 window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
   const P = useP();
-  const seeded = React.useMemo(() => seedAddresses(m, idAddr), [m.id]);
-  const [list, setList] = React.useState(seeded.list);
+  const [list, setList] = React.useState(() => addressesFor(m, idAddr));
   const [adding, setAdding] = React.useState(false);
+  const [nf, setNf] = React.useState({ label: '', street: '', city: '', zip: '' });
+  const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v }));
+  const commit = (next) => {ADDR_BOOK[m.id] = next;setList(next);};
+  const missing = [
+  !nf.label.trim() && 'a label',
+  !nf.street.trim() && 'a street address',
+  !nf.city.trim() && 'a city',
+  !/^\d{5}$/.test(nf.zip.trim()) && 'a 5-digit ZIP'].
+  filter(Boolean);
+  const addrOk = missing.length === 0;
+  const needs = !missing.length ? '' : missing.length === 1 ? missing[0] : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
+  const saveAddress = () => {
+    if (!addrOk) return;
+    const z = zoneForZip(nf.zip);
+    const rec = { id: 'ad-' + Date.now().toString(36), label: nf.label.trim(), street: nf.street.trim(), city: nf.city.trim(), zip: nf.zip.trim(),
+      region: z.region, zone: z.zone, def: list.length === 0, lastUsed: 'Never', orders: 0 };
+    commit(list.concat([rec]));
+    setNf({ label: '', street: '', city: '', zip: '' });
+    setAdding(false);
+  };
   const ZONE = {
     in: { label: 'In zone', c: P.good, icon: 'check-circle', note: 'Routes to this region and can order delivery.' },
     buffer: { label: 'Buffer', c: P.warn, icon: 'shield', note: 'Outside the drawn polygon but inside the buffer ring — accepted, may add time.' },
     out: { label: 'Not served', c: P.bad, icon: 'x', note: 'No region covers this zip. Delivery checkout is blocked for this address.' }
   };
-  const setDefault = (id) => setList((l) => l.map((a) => ({ ...a, def: a.id === id })));
+  const setDefault = (id) => commit(list.map((a) => ({ ...a, def: a.id === id })));
   return <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r12, overflow: 'hidden' }} data-tour="addr-book">
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 13px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}>
       <Icon name="truck" size={14} stroke={1.9} color={P.ink2} />
@@ -161,15 +212,16 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: z.c }}>{z.label}</span>
           </div>
           <div style={{ fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, marginTop: 2 }}>{a.street}, {a.city}, CA {a.zip}</div>
-          <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 3, lineHeight: 1.45 }}>{a.region} · {a.orders} order{a.orders > 1 ? 's' : ''} · last used {a.lastUsed}</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 3, lineHeight: 1.45 }}>{a.region} · {a.orders} order{a.orders === 1 ? '' : 's'} · last used {a.lastUsed}</div>
           <div style={{ fontSize: 11.5, color: z.c, marginTop: 3, lineHeight: 1.45 }}>{z.note}</div>
         </div>
         {!a.def && <button onClick={() => setDefault(a.id)} style={{ flex: '0 0 auto', alignSelf: 'flex-start', padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>Make default</button>}
       </div>;})}
     {adding && <div style={{ padding: '12px 13px', borderTop: `1px solid ${P.hairline}`, background: P.surface2, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', gap: 8 }}><div style={{ width: 110 }}><Field size="sm" placeholder="Label" /></div><div style={{ flex: 1 }}><Field size="sm" placeholder="Street address" /></div></div>
-      <div style={{ display: 'flex', gap: 8 }}><div style={{ flex: 1 }}><Field size="sm" placeholder="City" /></div><div style={{ width: 100 }}><Field size="sm" mono placeholder="ZIP" /></div>
-        <PBtn variant="accent" size="sm" icon="check" onClick={() => setAdding(false)}>Save</PBtn><PBtn variant="ghost" size="sm" onClick={() => setAdding(false)}>Cancel</PBtn></div>
+      <div style={{ display: 'flex', gap: 8 }}><div style={{ width: 110 }}><Field size="sm" placeholder="Label" value={nf.label} onChange={(e) => setNf1('label', e.target.value)} /></div><div style={{ flex: 1 }}><Field size="sm" placeholder="Street address" value={nf.street} onChange={(e) => setNf1('street', e.target.value)} /></div></div>
+      <div style={{ display: 'flex', gap: 8 }}><div style={{ flex: 1 }}><Field size="sm" placeholder="City" value={nf.city} onChange={(e) => setNf1('city', e.target.value)} /></div><div style={{ width: 100 }}><Field size="sm" mono placeholder="ZIP" value={nf.zip} onChange={(e) => setNf1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
+        <PBtn variant="accent" size="sm" icon="check" disabled={!addrOk} title={addrOk ? undefined : `Still needs ${needs}`} onClick={saveAddress}>Save</PBtn><PBtn variant="ghost" size="sm" onClick={() => {setNf({ label: '', street: '', city: '', zip: '' });setAdding(false);}}>Cancel</PBtn></div>
+      {!addrOk && <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.45 }}>Still needs {needs}.</div>}
       <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>The ZIP decides everything: it resolves to a region, the region's on-shift driver decides what can be sold to it, and an unserved ZIP blocks delivery checkout for this address only.</div>
     </div>}
     <div style={{ display: 'flex', gap: 8, padding: '11px 13px', borderTop: `1px solid ${P.hairline}`, background: P.infoSoft }}>
@@ -374,5 +426,5 @@ window.PriceCheck = function PriceCheck() {
   </>;
 };
 
-window.HW_HOT = { HOT_KINDS, hotNotesFor };
+window.HW_HOT = { HOT_KINDS, hotNotesFor, notesFor, addNote };
 Object.assign(window, {});

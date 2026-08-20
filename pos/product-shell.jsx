@@ -125,6 +125,24 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   const canNext = cur.k === 'shell' ? !!shell :
   cur.k === 'variation' ? !!v.name.trim() && !!sku.trim() && (!v.override || v.price !== '') :
   cur.k === 'batch' ? b.skip || b.qty !== '' && b.cost !== '' : true;
+
+  // WHAT IS STOPPING YOU, in words.
+  //
+  // The gate above is right; being SILENT about it was not. Continue had no
+  // `disabled` attribute and only a faded opacity, so clicking it did nothing,
+  // said nothing, and left no way to find out what was wrong. Driven headlessly,
+  // five consecutive clicks moved the flow zero steps and raised zero errors —
+  // which is precisely what "I don't even know what to do" feels like.
+  const missing =
+    cur.k === 'shell' ? (!shell ? 'Pick a shell to continue.' : null) :
+    cur.k === 'variation' ? (
+      !v.name.trim() ? 'Name the flavour to continue — e.g. “Fruit Punch”.' :
+      !sku.trim() ? 'This variation needs a SKU.' :
+      v.override && v.price === '' ? 'You overrode the price — enter one, or switch the override off.' : null) :
+    cur.k === 'batch' ? (
+      !b.skip && b.qty === '' ? 'Enter a quantity, or tick “create without stock”.' :
+      !b.skip && b.cost === '' ? 'Enter a unit cost, or tick “create without stock”.' : null) :
+    null;
   const effPrice = v.override && v.price !== '' ? parseFloat(v.price) || 0 : shell ? SH.effectivePrice(shell) : 0;
   const margin = effPrice && b.cost ? Math.round((1 - (parseFloat(b.cost) || 0) / (effPrice || 1)) * 100) : null;
 
@@ -436,7 +454,8 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
         {cur.k === 'done' ?
         <PBtn variant="accent" size="md" icon="check" onClick={() => {onDone && onDone(v);onClose();}}>Open the shell</PBtn> :
         <><PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
-          <PBtn variant="accent" size="md" iconRight="chevron-right" onClick={() => {if (!canNext) return;if (FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done') commit();setStep((s) => s + 1);}} style={{ opacity: canNext ? 1 : .5 }}>{FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done' ? 'Create variation' : 'Continue'}</PBtn></>}
+          {missing && <span style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, marginRight: 4, textAlign: 'right', maxWidth: 300 }}>{missing}</span>}
+          <PBtn variant="accent" size="md" iconRight="chevron-right" disabled={!canNext} onClick={() => {if (!canNext) return;if (FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done') commit();setStep((s) => s + 1);}} style={{ opacity: canNext ? 1 : .5 }}>{FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done' ? 'Create variation' : 'Continue'}</PBtn></>}
       </div>
     </div>
   </div>;

@@ -11,6 +11,7 @@ If you add, rename or retire a file, update the hub in the same turn.
 | METRC Batch Pipeline | `METRC Batch Pipeline.html` | `pipeline/` |
 | Promotions Suite | `Promotions Suite.html` | `pweb/` (shell + screens) + `promo/` (data, atoms, builder) |
 | Engage | `Hyperwolf Engage.html` | `engage/` |
+| Shop (storefront) | `Hyperwolf Shop.html` | `shop/` |
 | Shop @ Home | `Shop at Home.html` | `athome/admin.jsx` |
 | Members CRM | `Members CRM.html` | `athome/crm.jsx` |
 | Customer Account | `Customer Account.html` | `athome/account-a/b/c.jsx` + `account-switch.jsx` |
@@ -94,6 +95,22 @@ IS the handoff.
 6. **Radius by role:** 8 controls · 12 cards · 20 sheets · 999 pills. Inner elements go one step smaller.
 7. **Focus is automatic** — `pos/tokens.jsx` injects the `:focus-visible` ring for every native
    interactive. Add `data-hw-i` only to non-button interactives (table rows, custom chips).
+
+## Tests
+
+`npm test` (node --test, zero dependencies). Covers `shared/commerce-adapter.js` —
+the hand-written money/shape boundary — by evaluating it under `vm` in a context
+whose global IS `window`, exactly as the browser loads it. No jsdom, no babel:
+that file is plain JS on purpose.
+
+`test/checks.mjs` holds the mutation-proven assertions; `test/mutation.test.mjs`
+re-runs those same functions against a deliberately broken adapter and requires
+each to fail, with a coverage guard that fails if a check has no mutation aimed
+at it. Tests written inline in `test/adapter.test.mjs` are supplementary and are
+NOT mutation-proven — the file says so.
+
+The .jsx screens are not covered: they are transformed by babel in the browser
+and there is no build step. Verify those by loading the page.
 
 ## Rules
 
