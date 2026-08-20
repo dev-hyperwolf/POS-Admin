@@ -398,16 +398,32 @@
 
   // POST /api/identity/verify.
   //
-  // WRITE AUTH: there is none, anywhere in this seam. hw-live.js:1206-1213
-  // POSTs /api/order/stage with `Content-Type` and nothing else — no bearer, no
-  // token, no cookie (`credentials: 'omit'`). The server route
-  // (wm-demo/wmdemo/server.py:423) checks nothing either. So a write is
-  // possible exactly when the page's OWN ORIGIN serves the API, and impossible
-  // otherwise, because there is no second host to send it to. On a public
-  // deployment /api/identity/verify 404s. The control is therefore NOT RENDERED
-  // when the reads did not come back live, and the reason is printed in its
-  // place — a button that silently fails is the same shape as the green rail
-  // that claimed a customer had been notified about a rejected push.
+  // WRITE AUTH. THIS COMMENT WAS WRONG AND IS CORRECTED — 2026-08-19, measured
+  // in the browser against hyperwolf-wm-demo.onrender.com, not reasoned about.
+  //
+  // It used to say "on a public deployment /api/identity/verify 404s, so the
+  // control is NOT RENDERED". Both halves were false, and the second one was
+  // false about this file's OWN code: the control is gated on `_status ===
+  // 'live'`, which is a fact about the READS. The deployment answers the reads,
+  // so the control was being drawn there the whole time. Confirmed on the
+  // deployed page: the method select and the Record button are both present in
+  // the DOM of member #7's detail.
+  //
+  // What is actually true now: hw-live.js owns the write path and a write-state
+  // probe with it (`HW_LIVE.writes` — unknown | writable | gated | rejected,
+  // hw-live.js:137, :188-206, :245-256). It optionally carries an operator
+  // token, and the server gate runs BEFORE the route table. Read off the
+  // deployment 2026-08-19: `HW_LIVE.writes === 'writable'` with no token set,
+  // so verification writes there are OPEN and this control works. hw-live.js's
+  // own comment at :249-250 still records the earlier 403 and is now stale —
+  // reported to the coordinator rather than edited, since that file is a
+  // sibling seam this unit does not own.
+  //
+  // The control is therefore drawn whenever the reads are live, and DISABLED
+  // with the server's own reason when the write gate is shut — never drawn as
+  // a live primary action that cannot fire. A button that silently fails is
+  // the same shape as the green rail that claimed a customer had been notified
+  // about a rejected push.
   function record(identityId, method, decision, extra) {
     if (!armed) { return Promise.resolve({ ok: false, error: 'seam is off' }); }
     extra = extra || {};
@@ -607,6 +623,18 @@
     // The write control, or the reason there is none.
     if (identityId != null) {
       if (_status === 'live') {
+        // 'unknown' is NOT treated as shut. The probe may simply not have
+        // answered yet, and greying out a working control on a maybe is its own
+        // small lie — the post itself reports a refusal verbatim if one comes.
+        var wr = (W.HW_LIVE && W.HW_LIVE.writes) || 'unknown';
+        var shut = (wr === 'gated' || wr === 'rejected');
+        var wtip = wr === 'gated'
+          ? 'Writes are gated on this server: the write probe came back refused, so a ' +
+            'verification POST would be rejected before it reached the route. An operator ' +
+            'token unlocks it — HW_LIVE.setToken(…) in the console. Nothing is recorded ' +
+            'until then, and the button is disabled rather than drawn as if it would work.'
+          : 'The last write to this server was rejected, so this control is disabled rather ' +
+            'than drawn as a live action. See the hw-live badge for what the server said.';
         var methods = (v.methods || []).map(function (m) {
           return '<option value="' + esc(m) + '">' + esc(m) + '</option>';
         }).join('');
@@ -619,8 +647,19 @@
           '<option value="review">review</option>' +
           '<option value="unknown">unknown</option></select>' +
           '<input data-hwi-ref placeholder="reference" style="' + ctlCSS(P) + 'flex:1 1 90px;min-width:80px">' +
-          '<button data-hwi="record" data-id="' + esc(identityId) + '" style="' + btnCSS(P, true) + '">' +
-          (_busy ? 'working…' : 'Record') + '</button></div>';
+          (shut
+            ? '<button disabled title="' + esc(wtip) + '" style="' + btnCSS(P) +
+              'opacity:.5;cursor:not-allowed">Record</button>'
+            : '<button data-hwi="record" data-id="' + esc(identityId) + '" style="' +
+              btnCSS(P, true) + '">' + (_busy ? 'working…' : 'Record') + '</button>') +
+          '</div>';
+        // The write gate, when it is shut, said in the panel rather than
+        // discovered by clicking. `writes` is hw-live.js's probed state, not a
+        // guess from this file (hw-live.js:137, :245-256).
+        if (shut) {
+          h += '<div style="font-size:' + P.type.meta + 'px;color:' + (P.warn || P.bad) +
+            ';line-height:1.5;margin-top:5px;font-weight:700">' + esc(wtip) + '</div>';
+        }
         h += note(P, 'Every attempt is logged whatever it decided; only "approved" marks the ' +
           'person verified, and a re-scan never rewrites the first proof. A declined scan ' +
           'recorded here will move this row from NEVER LOOKED to LOOKED · NOT PROVEN — which is ' +
@@ -635,6 +674,136 @@
           'rather than drawn and silently failing.');
       }
     }
+    h += '</div>';
+    return h;
+  }
+
+  // ── households: two rows that share a signal and are RIGHT to be two ─────
+  //
+  // THE OWNER'S QUESTION, in his words: "two roommates ordering from the same
+  // address should never become one identity." The ledger already gets this
+  // right. Verified against the deployment 2026-08-19: Paolo Marchetti #7 and
+  // Elena Marchetti #6 both carry +17145550401, both carry their OWN government
+  // document, and they are held as two rows.
+  //
+  // But it got it right SILENTLY, and that is the defect this block fixes. The
+  // two rows render independently, one directly under the other, with the same
+  // phone number printed on both and NOTHING joining them. Read top to bottom
+  // that is not a system being careful — it is a duplicate somebody forgot to
+  // clean up, and the next thing an operator reaches for is a merge. A correct
+  // decision that leaves no trace on screen is indistinguishable from an
+  // oversight, and here the two readings have opposite consequences.
+  //
+  // WHAT THIS BLOCK REFUSES TO SAY. It does NOT claim the system decided to
+  // keep them apart, because nothing records that. The document veto that
+  // splits a shared phone (wm-demo/wmdemo/engine.py:1117-1119, factors
+  // ['phone_exact_vetoed_by_document'], force_new=True at :1201) is returned by
+  // resolve_identity at ingest and PERSISTED NOWHERE: hw_identities carries a
+  // `flags` column and both Marchettis' are empty (read off the deployment),
+  // and wm_customer_mapping stores a bare `match_tier` integer and no factors
+  // at all (wm-demo/wmdemo/store.py:68-74). Re-running the ladder cannot
+  // recover it either — each row carries its own document by then, so
+  // /api/identity/order-match?wm_order_id=40764811 recomputes a clean tier 0
+  // gov_id_exact with vetoed_by_document:false. The reasoning is simply gone.
+  //
+  // So this reports the COLLISION, which is a fact off the wire, and reports
+  // the ABSENCE of a recorded reason, which is also a fact, and invents
+  // neither. Reported to the coordinator as an engine gap; not fixable here.
+  function lastWord(s) {
+    if (!s) { return null; }
+    var p = String(s).trim().split(/\s+/);
+    return p.length > 1 ? p[p.length - 1].toLowerCase() : null;
+  }
+
+  function who(o) {
+    return '#' + o.identity_id + ' ' + (o.name || '(no name)');
+  }
+
+  function cohortsFor(m) {
+    var all = (_page && _page.members) || [];
+    var phone = [], dob = [];
+    for (var i = 0; i < all.length; i++) {
+      var o = all[i];
+      if (String(o.identity_id) === String(m.identity_id)) { continue; }
+      // A null phone is not a shared phone and a null dob is not a shared
+      // birthday. Grouping on absence would file every row with no phone into
+      // one enormous fictitious household — which is the address bug again,
+      // wearing a different field.
+      if (m.phone_e164 && o.phone_e164 === m.phone_e164) { phone.push(o); }
+      if (m.dob && o.dob === m.dob) { dob.push(o); }
+    }
+    return { phone: phone, dob: dob, scanned: all.length };
+  }
+
+  function cohortHTML(P, m) {
+    var c = cohortsFor(m);
+    if (!c.phone.length && !c.dob.length) { return ''; }
+    var h = '<div style="margin-top:6px;padding:7px 8px;border-radius:' + P.r8 +
+      'px;border:1px dashed ' + P.hairline2 + ';background:transparent">';
+
+    if (c.phone.length) {
+      h += '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;' +
+        'text-transform:uppercase;color:' + (P.warn || P.ink2) + ';margin-bottom:4px">' +
+        'Shared phone · held as ' + (c.phone.length + 1) + ' separate people</div>';
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'font-family:' + ff(P.fontMono) + '">' + esc(m.phone_e164) + ' → ' +
+        // A run of spaces COLLAPSES in HTML, so joining on whitespace printed
+        // "#2 Marcus Vane #1 Tomas Iglesias" — two names with nothing between
+        // them, which reads as one person with a strange name. Seen in the
+        // browser before this was changed. A visible separator, always.
+        esc(c.phone.map(function (o) {
+          return who(o) + (o.dob && o.dob !== m.dob ? ' (dob ' + o.dob + ')' : '');
+        }).join('  ·  ')) + '</div>';
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'margin-top:4px"><b style="color:' + P.ink + '">Separate rows are the intended outcome ' +
+        'here, not a duplicate to tidy up.</b> A household shares a phone — a parent and an ' +
+        'adult child, two roommates — so a phone is a hint about an account and never proof of ' +
+        'a person. Merging on it is the failure, not the fix.</div>';
+      // The one thing that CAN settle it, and where to look — not asserted,
+      // because the list endpoint carries no document field at all
+      // (identity_api.py:244 _member_row has no gov_id key; only
+      // /api/identity/member does). Claiming a document from here would be
+      // inventing the only fact that matters.
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
+        'margin-top:4px">Only a government document can prove two people are two people. This ' +
+        'list does not carry documents — open each row and compare the "Government document" ' +
+        'line.</div>';
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
+        'margin-top:4px">And nothing records WHY they were kept apart: the ledger has no field ' +
+        'for that decision. Do not read the silence as an oversight — but do not read it as a ' +
+        'decision either. It was never written down.</div>';
+    }
+
+    if (c.dob.length) {
+      var sameLast = c.dob.filter(function (o) {
+        return lastWord(o.name) && lastWord(o.name) === lastWord(m.name);
+      });
+      h += '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;' +
+        'text-transform:uppercase;color:' + P.inkMute + ';margin:' +
+        (c.phone.length ? '9px 0 4px' : '0 0 4px') + '">Shared date of birth · not a signal</div>';
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'font-family:' + ff(P.fontMono) + '">' + esc(m.dob) + ' → ' +
+        esc(c.dob.map(who).join('  ·  ')) + '</div>';
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
+        'margin-top:4px">' + (sameLast.length
+          ? 'A shared birthday AND a shared last name. Still not a match on its own — but this ' +
+            'is the one pairing worth opening, because it is the shape the matcher comes ' +
+            'closest to acting on (wm-demo/wmdemo/engine.py:1126-1133).'
+          : 'Different last names. No rung of the matcher acts on a date of birth by itself — ' +
+            'every rung that uses one also requires the name ' +
+            '(wm-demo/wmdemo/engine.py:1120-1133). People sharing a birthday is a coincidence, ' +
+            'and it is drawn here so it is not mistaken for a link.') + '</div>';
+    }
+
+    // SCOPE, stated rather than implied. This is a scan of the rows ON THIS
+    // PAGE. There is no endpoint that groups the ledger by phone, so a person
+    // sharing this number on page 2 produces NOTHING here — and a household
+    // block that only sometimes appears, silently, is worse than none.
+    h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint + ';line-height:1.45;' +
+      'margin-top:6px">Checked against the ' + c.scanned + ' row' + (c.scanned === 1 ? '' : 's') +
+      ' shown on this page only. No endpoint groups the ledger by phone or by date of birth, so ' +
+      'a match on another page is not detected here and this block would stay blank.</div>';
+
     h += '</div>';
     return h;
   }
@@ -698,6 +867,11 @@
     }
     h += '</div>';
 
+    // Immediately under the mapping block, because it answers the same
+    // question one step out: that block says which Weedmaps accounts folded
+    // INTO this person, and this one says which neighbouring people did NOT.
+    h += cohortHTML(P, m);
+
     h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkMute + ';font-family:' +
       ff(P.fontMono) + ';margin-top:5px">' +
       esc(m.fulfilled_count) + ' fulfilled · first seen ' + esc(ts(m.first_seen_at) || '?') +
@@ -735,9 +909,25 @@
   function detailHTML(P, d) {
     var h = '';
     var g = d.gov_id || {};
-    h += '<div style="font-size:' + P.type.meta + 'px;color:' + (g.present ? P.ink2 : P.inkDim) +
-      ';line-height:1.5;margin-bottom:7px"><b style="color:' + P.ink + '">Government document:</b> ' +
-      esc(g.present ? (g.kind || 'on file') : (g.means || 'not present')) + '</div>';
+    // `means` IS THE ANSWER AND IT WAS BEING THROWN AWAY on exactly the rows
+    // where it matters. This printed g.kind when a document was present, so
+    // Paolo Marchetti's detail read, in full, "Government document: document" —
+    // a tautology — while the API was returning "a real document identity
+    // (issuing state + number) — this can match a person and can veto a weaker
+    // match" in the field beside it. Worse for the other kind: an upload hash
+    // rendered as the bare word "upload_url", which looks like a document on
+    // file, when identity_api.py:377-379 says it "identifies an upload, not a
+    // human — it never matches and never vetoes". That distinction is the whole
+    // reason the two Marchettis are two rows, and it was the one word not shown.
+    // `means` is populated in all three branches (identity_api.py:364-379).
+    var docKind = g.present ? (g.kind === 'document' ? 'ON FILE · REAL DOCUMENT'
+                                                     : 'ON FILE · UPLOAD HASH ONLY')
+                            : 'NONE';
+    h += '<div style="font-size:' + P.type.meta + 'px;color:' +
+      (g.kind === 'document' ? P.ink2 : P.inkDim) +
+      ';line-height:1.5;margin-bottom:7px"><b style="color:' + P.ink +
+      '">Government document — ' + esc(docKind) + ':</b> ' +
+      esc(g.means || (g.present ? 'on file' : 'not present')) + '</div>';
 
     h += verificationHTML(P, d.verification, d.identity_id);
 
@@ -969,11 +1159,27 @@
     var T = _totals || {};
     var identities = T.identities, live = T.verified_live, lapsed = T.verified_lapsed;
     var unver = T.unverified;
-    h += '<div style="border:1px solid ' + (live ? P.hairline2 : P.bad) + ';border-radius:' +
+    // COLOUR IS A CLAIM, and this box was making one that its own sentence
+    // denied. It drew P.bad / P.badSoft whenever verified_live was 0 — measured
+    // in the browser on the deployment 2026-08-19, border rgb(192,57,43) around
+    // the words "0 of 8", wrapped around the sentence "That is the correct
+    // state, not a failed check". A red alarm frame is read before any prose
+    // inside it, so the panel announced a fault and then spent a paragraph
+    // arguing with itself, and a panel that LOOKS broken is reported as broken
+    // however carefully it is worded. That is the likeliest reason this screen
+    // reads as "not built out".
+    //
+    // Red is now spent on the one state that is actually a failure: a
+    // verification we DID run and that has since LAPSED — a document checked
+    // and now expired, i.e. somebody who reads as cleared and is not. Nobody
+    // has been checked yet is neutral, because that is precisely what the
+    // sentence inside says it is.
+    var alarm = !!lapsed;
+    h += '<div style="border:1px solid ' + (alarm ? P.bad : P.hairline2) + ';border-radius:' +
       P.r8 + 'px;padding:9px;margin-bottom:9px;background:' +
-      (live ? P.surface2 : P.badSoft) + '">' +
+      (alarm ? P.badSoft : P.surface2) + '">' +
       '<div style="font-size:' + P.type.h2 + 'px;font-weight:800;font-family:' + ff(P.fontMono) +
-      ';color:' + (live ? P.ink : P.bad) + '">' + esc(live) + ' of ' + esc(identities) +
+      ';color:' + (alarm ? P.bad : P.ink) + '">' + esc(live) + ' of ' + esc(identities) +
       '</div>' +
       '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.45;' +
       'margin-top:2px">identities have a live verification. ' + esc(unver) +
@@ -1142,10 +1348,15 @@
     if (body) { _scroll = body.scrollTop; }
 
     var T = _totals || {};
-    // A green dot here would say "identity is fine". Nobody in this ledger has
-    // ever been verified, so it is not fine, and the dot says so.
+    // A green dot here would say "identity is fine", and it is not: nobody in
+    // this ledger has ever been verified. But RED said something else again —
+    // that something has broken — for a ledger that is merely new, and it said
+    // it from across the room, before any of the panel's careful wording got a
+    // chance. Same rule as the headline box above: red is reserved for a
+    // verification that LAPSED (checked, now expired — reads as cleared and is
+    // not), amber for people nobody has checked yet.
     var dot = _status !== 'live' ? P.inkFaint
-            : (T.identities && !T.verified_live) ? P.bad
+            : T.verified_lapsed ? P.bad
             : T.unverified ? (P.warn || P.bad) : P.good;
     var label = _status === 'live' ? 'WM identity' :
                 _status === 'pending' ? 'WM identity…' :
