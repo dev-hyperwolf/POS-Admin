@@ -42,8 +42,22 @@
 //     because a bar and a badge ARE the claim that a check ran. Making it
 //     honest is a screen edit, and this seam is not allowed to make one.
 //
+// CAN I MAKE ONE MYSELF? The owner's second question: "am I able to create new
+// customers myself that come in from weedmaps or no?" The "New test customer"
+// tab is the yes. It POSTs /api/customer/create, which synthesises an
+// arriving Weedmaps order and fires it at our own HMAC-signed webhook — the
+// same door a real order arrives through — so the ladder runs on it for real
+// rather than a row being written into hw_identities behind its back. The
+// route answers minted-vs-merged itself and flags the rows it created. The form defaults to a MESSY customer
+// borrowed from the loaded ledger (a shared phone, a colliding birthday, no
+// document), because that is the shape that exercises the rungs; a clean one
+// mints a fresh row and proves nothing. If the route is not served, the tab
+// says which route is missing and creates nothing — a 404 never renders as a
+// tier.
+//
 // PUBLIC SURFACE: window.HW_IDENTITY = { status, members, totals, member,
-//   match, refresh(), search(), openMember(), matchOrder(), record() }, and
+//   match, simForm, simResult, synthetic, refresh(), search(), openMember(),
+//   matchOrder(), record(), simulate() }, and
 //   window.HW.IDENTITY mirrored as a plain property so a POS dev can render the
 //   real ledger from a screen with no fetch code of their own.
 // Turn it off: append `?hwident=off`, or run `HW_IDENTITY.disable()`.
@@ -257,6 +271,94 @@
   var _open = false, _busy = false, _why = false;
   var _msg = null, _msgOk = false;
   var _el = null, _panel = null, _scroll = 0;
+  // ── the test-customer control ────────────────────────────────────────────
+  // _sim holds the FORM, because every state change repaints the whole panel
+  // and an uncontrolled <input> would lose what was typed into it mid-run.
+  // _simSeeded records that the messy defaults have been derived once, from a
+  // ledger page that had actually loaded — re-deriving on every paint would
+  // move the fields under the operator's hands.
+  var _sim = null, _simSeeded = false, _simBusy = false;
+  var _simResult = null;      // { order_id, match, matchErr, note }
+  var _simErr = null;
+  var SYNTH_KEY = 'hw-identity-synthetic';
+  // THE ROUTE, AS SHIPPED. This was built against POST /api/simulate first,
+  // because that was the documented shape at the time; the route that actually
+  // landed is POST /api/customer/create (wm-demo/wmdemo/server.py:1526), and it
+  // is strictly better — it answers minted-vs-merged itself from
+  // first_seen_at, flags the rows it created `synthetic` in the ledger, and
+  // returns the ladder verdict and the verification gate with it. So the panel
+  // reads those answers instead of deriving its own. Nothing below infers an
+  // outcome the route already states.
+  var SIM_PATH = '/api/customer/create';
+  var SYNTH_FLAG = 'synthetic';   // server.py:60 SYNTHETIC_FLAG
+  // WHAT THIS BROWSER MINTED. Kept locally and labelled as local, because it
+  // is exactly that and nothing more: another operator on another machine sees
+  // none of it. The ledger's OWN synthetic signal is the API's `likely_fixture`
+  // marker, which is why the form defaults the name to a QA prefix the server
+  // recognises (identity_api.py:220 _FIXTURE_PREFIXES) instead of relying on
+  // this list. Two independent marks, one of them server-side.
+  //
+  // THREE BUCKETS, NOT ONE, and the reason is the whole point. A test order
+  // that MERGED into somebody lands on a row this panel did not create and
+  // that may well be a real person — badging it "synthetic test customer"
+  // would libel a customer as fake because a QA order touched them. So:
+  //   minted  — the ledger count went up by one, this row is ours
+  //   merged  — the count held, the row already existed, our order joined it
+  //   unclear — the count could not be read, or moved by more than this order
+  // and the badge says which. `ids` from the pre-split storage shape is read
+  // back as `unclear`, because that is exactly what those entries are.
+  var _synth = (function () {
+    function arr(v) { return Object.prototype.toString.call(v) === '[object Array]' ? v : []; }
+    try {
+      var v = JSON.parse(W.localStorage.getItem(SYNTH_KEY) || '{}');
+      return { minted: arr(v.minted), merged: arr(v.merged),
+               unclear: arr(v.unclear).concat(arr(v.ids)),
+               wm: arr(v.wm), orders: arr(v.orders) };
+    } catch (e) {
+      return { minted: [], merged: [], unclear: [], wm: [], orders: [] };
+    }
+  })();
+
+  function synthPush(arr, v) {
+    if (v === null || v === undefined || v === '') { return; }
+    v = String(v);
+    if (arr.indexOf(v) === -1) { arr.push(v); }
+    while (arr.length > 200) { arr.shift(); }
+  }
+
+  function synthSave() {
+    try { W.localStorage.setItem(SYNTH_KEY, JSON.stringify(_synth)); } catch (e) {}
+  }
+
+  function rememberSent(wmId, orderId) {
+    synthPush(_synth.wm, wmId);
+    synthPush(_synth.orders, orderId);
+    synthSave();
+  }
+
+  function rememberLanded(identityId, outcome) {
+    if (identityId === null || identityId === undefined || identityId === '') { return; }
+    synthPush(_synth[outcome] || _synth.unclear, identityId);
+    synthSave();
+  }
+
+  function syntheticMark(m) {
+    var id = String(m.identity_id);
+    // THE SERVER'S OWN FLAG WINS. /api/customer/create flags every row it
+    // brought into existence, and deliberately does NOT flag a pre-existing
+    // customer it merely merged into. That is a fact on the ledger, visible to
+    // every operator on every machine, so it outranks anything this browser
+    // remembers.
+    if ((m.flags || []).indexOf(SYNTH_FLAG) !== -1) { return 'server'; }
+    if (_synth.minted.indexOf(id) !== -1) { return 'minted'; }
+    if (_synth.merged.indexOf(id) !== -1) { return 'merged'; }
+    if (_synth.unclear.indexOf(id) !== -1) { return 'unclear'; }
+    var ids = m.wm_ids || [];
+    for (var i = 0; i < ids.length; i++) {
+      if (_synth.wm.indexOf(String(ids[i])) !== -1) { return 'wm'; }
+    }
+    return null;
+  }
 
   // ── helpers ──────────────────────────────────────────────────────────────
   function esc(s) {
@@ -466,6 +568,200 @@
       return { ok: false, error: 'request failed' };
     });
   }
+
+  // ── create a test customer ───────────────────────────────────────────────
+  // THE OWNER'S QUESTION: "am I able to create new customers myself that come
+  // in from weedmaps or no?" This is the yes. POST /api/customer/create
+  // synthesises an arriving Weedmaps order from the form's fields and fires it
+  // at our own HMAC-signed webhook — the same door a real Weedmaps order comes
+  // through — so the ladder runs on it for real. Nothing here writes to
+  // hw_identities directly; if it did, the answer would be a fake customer
+  // rather than a real arrival.
+  //
+  // THE DEFAULTS ARE DELIBERATELY MESSY, and they are BORROWED FROM THE LEDGER
+  // rather than invented: the phone comes off a real row on the loaded page,
+  // the date of birth and the surname off another. A clean synthetic customer
+  // tests nothing — it mints a fresh row every time and every rung of the
+  // ladder stays dark. A shared phone, a colliding birthday and NO document is
+  // the shape that actually exercises tier 1, the dob-fuzzy pass and the
+  // document veto, which is where every identity bug this project has had
+  // actually lived. When the ledger has not loaded, those two fields are left
+  // BLANK and the form says why — a made-up phone number would be a made-up
+  // collision, and the panel would then be testing itself.
+  //
+  // A BLANK FIELD IS SENT AS AN EMPTY STRING, ON PURPOSE. simulate_order
+  // deep-merges `customer` over a default Jane Doe, and create_customer
+  // overwrites every one of those fields explicitly for that reason. "" is what makes
+  // "Weedmaps sent no phone" actually reach the engine, which is the case that
+  // mints the un-rematchable rows. The form says this next to the fields.
+  function lastNameOf(o) {
+    var p = String((o && o.name) || '').trim().split(/\s+/);
+    return p.length > 1 ? p[p.length - 1] : '';
+  }
+
+  function seedSim(force) {
+    if (_sim && _simSeeded && !force) { return; }
+    var mem = (_page && _page.members) || [];
+    var withPhone = null, withDob = null;
+    mem.forEach(function (o) { if (!withPhone && o.phone_e164) { withPhone = o; } });
+    mem.forEach(function (o) {
+      if (!withDob && o.dob && o !== withPhone) { withDob = o; }
+    });
+    if (!withDob) { mem.forEach(function (o) { if (!withDob && o.dob) { withDob = o; } }); }
+    var stamp = String(Date.now()).slice(-6);
+    _sim = {
+      actor: 'POS identity panel (browser)',
+      // QAID is one of the API's OWN fixture prefixes (identity_api.py:220), so
+      // a row created here is marked as test data BY THE SERVER, for every
+      // operator on every machine — not only in the browser that made it.
+      first_name: 'QAIDPanel' + stamp,
+      last_name: (withDob && lastNameOf(withDob)) || ('Probe' + stamp),
+      phone: withPhone ? String(withPhone.phone_e164) : '',
+      dob: withDob ? String(withDob.dob) : '',
+      wm_customer_id: 'QAPANEL-' + stamp,
+      doc: 'none',
+      doc_state: 'CA',
+      doc_number: 'QAPANEL' + stamp,
+      doc_url: 'https://qa.hyperwolf.invalid/gov-id/' + stamp + '.jpg',
+      fulfillment: 'delivery',
+      fromPhone: withPhone ? who(withPhone) : null,
+      fromDob: withDob ? who(withDob) : null,
+      fromLast: (withDob && lastNameOf(withDob)) ? who(withDob) : null,
+      scanned: mem.length
+    };
+    _simSeeded = !!mem.length;   // a blank-ledger seed is re-derived once rows arrive
+  }
+
+  function simulate() {
+    if (!armed) { return Promise.resolve(null); }
+    if (!W.HW_LIVE || !W.HW_LIVE.post) {
+      _simErr = 'This control posts through HW_LIVE.post, and shared/hw-live.js has not ' +
+        'loaded on this page. Nothing was sent.';
+      paint(); return Promise.resolve(null);
+    }
+    seedSim();
+    var f = _sim;
+    // The route's OWN field names (server.py:1570-1585). Blank strings are sent
+    // rather than the keys omitted, because create_customer overwrites every
+    // field of simulate_order's default Jane Doe explicitly — including with
+    // None — and that is exactly the behaviour the messy cases need.
+    var body = {
+      actor: f.actor,
+      first_name: f.first_name,
+      last_name: f.last_name,
+      phone: f.phone,
+      dob: f.dob,
+      wm_customer_id: f.wm_customer_id,
+      fulfillment: f.fulfillment
+    };
+    if (f.doc === 'document') {
+      body.document = { number: f.doc_number, state: f.doc_state };
+    } else if (f.doc === 'upload') {
+      body.gov_id_url = f.doc_url;
+    }
+
+    _simBusy = true; _simErr = null; _simResult = null; paint();
+
+    return W.HW_LIVE.post(SIM_PATH, body).then(function (r) {
+      _simBusy = false;
+      // EVERY FAILURE BRANCH NAMES THE ROUTE AND THE REASON, and none of them
+      // reaches the verdict renderer — a missing route cannot draw a tier.
+      if (!r.ok) {
+        if (r.code === 404) {
+          _simErr = 'This control needs POST ' + SIM_PATH + ', which this deployment does not ' +
+            'serve (404 from ' + base + '). No customer was created and nothing was matched.';
+        } else if (r.gated) {
+          _simErr = 'Writes are gated on ' + base + ': ' + (r.error || 'read-only') +
+            (r.hint ? ' — ' + r.hint : '') + '. No customer was created.';
+        } else if (r.code === 0) {
+          _simErr = (r.error || 'request failed') + ' — ' + SIM_PATH + ' at ' + base +
+            ' did not answer. No customer was created.';
+        } else if (!r.body) {
+          _simErr = 'POST ' + SIM_PATH + ' answered HTTP ' + r.code + ' with a body that is not ' +
+            'JSON. That is a file host answering a POST, not this API — so this origin does not ' +
+            'serve the control. No customer was created.';
+        } else {
+          // 400 and 502 both carry the route's own sentence, and it explains
+          // the contract better than anything this file could restate.
+          _simErr = 'Refused ' + r.code + ': ' + (r.error || 'no reason given') +
+            (r.body.known_skus ? ' · known skus: ' + r.body.known_skus.join(', ') : '');
+        }
+        paint(); return null;
+      }
+
+      var b = r.body || {};
+      // 202 IS NOT A SUCCESS. The order fired and no identity had appeared by
+      // the time the route stopped waiting. The route says which fact that is;
+      // it is printed verbatim and no verdict is drawn.
+      _simResult = {
+        code: r.code,
+        pending: r.code === 202,
+        order_id: (b.order || {}).wm_order_id || null,
+        fulfillment: (b.order || {}).fulfillment || f.fulfillment,
+        created_ack: !!(b.order || {}).create_ack,
+        doc_mode: f.doc,
+        reason: b.reason || null,
+        created_new: b.created_new_identity,
+        flagged: b.flagged_synthetic,
+        flag_note: b.flag_note || b.flag_error || null,
+        ladder: b.ladder || null,
+        ladder_error: b.ladder_error || null,
+        identity: b.identity || null,
+        verification: b.verification || null,
+        waited_s: b.waited_s,
+        path_note: b.path || null,
+        ledger_q: null
+      };
+      var ident = _simResult.identity;
+      var identId = ident && (ident.identity_id != null ? ident.identity_id : null);
+      rememberSent(f.wm_customer_id, _simResult.order_id);
+      rememberLanded(identId,
+        _simResult.created_new === true ? 'minted'
+        : _simResult.created_new === false ? 'merged' : 'unclear');
+
+      // Put the row in front of the operator, searched by a handle the LANDED
+      // ROW actually carries — which is its POS customer id, not its name; see
+      // the note below. On a merge the ledger row keeps the name it already had —
+      // blank-filling never overwrites a populated column — so searching for
+      // what we just typed returns "nothing in the ledger matches", which
+      // reads as a lost customer when the customer is right there under a
+      // different name. Measured: QAIDPanel731448 merged into #1904
+      // "QAIDMgDst188445969", and a search for QAIDPanel731448 returned 0 rows.
+      // Never by the Weedmaps id either: store.search_identities does not look
+      // at wm_ids at all.
+      //
+      // TWO THINGS WERE WRONG HERE AND QA PROVED BOTH IN THE BROWSER.
+      // (1) `ident` is /api/simulate's identity block, built by
+      //     identity_api._member_row (identity_api.py:248-256), which emits a
+      //     single joined `name` — there is no first_name and no last_name on
+      //     it. `'first_name' in simResult.identity` === false. The first two
+      //     terms of this chain could never be truthy: dead code.
+      // (2) The obvious repair — reach for `ident.name` — is ALSO wrong, and
+      //     silently. store.search_identities:1460 substring-matches only
+      //     first_name, last_name and pos_customer_id as separate columns, so
+      //     the joined "First Last" matches NEITHER and returns zero rows.
+      //     That would have turned a working button into "nothing in the
+      //     ledger matches", which is the failure this comment block already
+      //     describes, reintroduced by the fix for it.
+      // So the POS customer id is chosen FIRST and DELIBERATELY: store.py:1067
+      // assigns one to every identity at insert, and it is exact, so it lands
+      // on the row itself rather than on everybody sharing a first name. Only
+      // if it is missing do we fall back — and then to the FIRST TOKEN of the
+      // name, which is the part search_identities can actually match.
+      var identName = (ident && ident.name) ? String(ident.name).trim() : '';
+      var identFirst = identName ? identName.split(/\s+/)[0] : '';
+      var q = (ident && (ident.pos_customer_id || ident.phone_e164)) ||
+              identFirst || f.first_name || f.phone || '';
+      _simResult.ledger_q = q ? String(q) : null;
+      if (q) { _q = String(q); _offset = 0; _openId = null; _member = null; return load(); }
+      paint(); return null;
+    }).catch(function (e) {
+      _simBusy = false;
+      _simErr = 'Request failed: ' + (e && e.message ? e.message : 'unknown');
+      paint(); return null;
+    });
+  }
+
 
   // ── the one handle on window.HW ──────────────────────────────────────────
   // A PROPERTY WRITE on the object pos/data.jsx published, never
@@ -696,19 +992,37 @@
   //
   // WHAT THIS BLOCK REFUSES TO SAY. It does NOT claim the system decided to
   // keep them apart, because nothing records that. The document veto that
-  // splits a shared phone (wm-demo/wmdemo/engine.py:1117-1119, factors
-  // ['phone_exact_vetoed_by_document'], force_new=True at :1201) is returned by
+  // splits a shared phone (wm-demo/wmdemo/engine.py, factors
+  // ['phone_exact_vetoed_by_document'], force_new=True) used to be returned by
   // resolve_identity at ingest and PERSISTED NOWHERE: hw_identities carries a
   // `flags` column and both Marchettis' are empty (read off the deployment),
   // and wm_customer_mapping stores a bare `match_tier` integer and no factors
   // at all (wm-demo/wmdemo/store.py:68-74). Re-running the ladder cannot
   // recover it either — each row carries its own document by then, so
   // /api/identity/order-match?wm_order_id=40764811 recomputes a clean tier 0
-  // gov_id_exact with vetoed_by_document:false. The reasoning is simply gone.
+  // gov_id_exact with vetoed_by_document:false. For those rows the reasoning is
+  // simply gone, and they are still in the ledger.
+  //
+  // THAT IS NO LONGER TRUE OF NEW SPLITS, verified in the browser 2026-08-19
+  // against a running engine: a fresh document veto now flags BOTH rows
+  // `split_by_document` (engine.py:1139) and writes an `identity_split_veto`
+  // row into hw_identity_audit carrying the reason, the vetoed signal, both
+  // document fingerprints and an explicit "do not merge these" note
+  // (engine.py:1065 _record_document_veto). /api/identity/members does not read
+  // that table, so the flag is visible here and the reason is not — which is a
+  // third state, and splitHTML draws all three separately.
   //
   // So this reports the COLLISION, which is a fact off the wire, and reports
   // the ABSENCE of a recorded reason, which is also a fact, and invents
   // neither. Reported to the coordinator as an engine gap; not fixable here.
+  //
+  // 2026-08-19 — THE GAP IS NOW CLOSEABLE FROM THE ENGINE SIDE, and splitHTML()
+  // below renders the reason the moment a row carries `split_reason` (with
+  // `split_from` naming the row it was split from). Nothing above changes: a
+  // row without those fields still renders the paragraph that says the reason
+  // was never written down, because the splits that predate the audit record
+  // really were never written down and must not be back-dated into documented
+  // decisions. Two states, two renderings, and the file still invents neither.
   function lastWord(s) {
     if (!s) { return null; }
     var p = String(s).trim().split(/\s+/);
@@ -717,6 +1031,185 @@
 
   function who(o) {
     return '#' + o.identity_id + ' ' + (o.name || '(no name)');
+  }
+
+  // ── WHY TWO ROWS WITH ONE PHONE ARE TWO ROWS ─────────────────────────────
+  // THE FIELDS ARE READ, NEVER ASSUMED. `split_from` / `split_reason` are what
+  // the engine writes when it records a veto_split audit record; until a row
+  // actually carries one, splitOf() returns null and the block below keeps
+  // saying the reason was never written down.
+  //
+  // That fallback is not a placeholder to be tidied away later. Every split
+  // that happened BEFORE the audit record existed is genuinely undocumented,
+  // and those rows will keep arriving with neither field forever. Rendering a
+  // documented-looking sentence for them would retro-claim a decision nobody
+  // made — the exact failure this whole block was written to prevent. So the
+  // two states are drawn differently and neither one borrows the other's
+  // wording: "the engine recorded why" and "nothing was recorded" are
+  // different facts with different operator consequences.
+  //
+  // Absent is (missing | null | ''). A row that carries `split_from` with no
+  // `split_reason` is a THIRD state and says so — a recorded split with no
+  // recorded reason is still more than silence, and rounding it up to a reason
+  // would be inventing one.
+  function splitOf(o) {
+    if (!o) { return null; }
+    function has(v) { return !(v === null || v === undefined || v === ''); }
+    var from = o.split_from, reason = o.split_reason;
+    if (!has(from) && !has(reason)) { return null; }
+    return {
+      from: !has(from) ? null : (Array.isArray(from) ? from.filter(has) : [from]),
+      reason: !has(reason) ? null : String(reason)
+    };
+  }
+
+  // The veto is written on the row the engine FORCED NEW (engine.py:1201
+  // force_new=vetoed), so only one half of a split pair can carry it. Read
+  // from this row AND from every neighbour that names this row, or the older
+  // half would render as undocumented while its twin sits directly beneath it
+  // fully explained — which is a worse reading than either fact alone.
+  //
+  // 2026-08-20 — THIS WAS DRAWN FROM INSIDE cohortHTML's shared-phone branch,
+  // and QA measured what that cost. The engine vetoes on FOUR signals
+  // (engine.py:1234 phone, :1241 name+dob, :1252 shared dob, :1282 wm customer
+  // id) and flags BOTH rows `split_by_document` in every one of them
+  // (engine.py:1139) — but only the phone case produces a phone cohort. So
+  // three of the four vetoes rendered no warning at all: row #6 (wm-id veto)
+  // drew the bare token `split_by_document` and NOTHING else, and row #4
+  // (name+dob veto) drew the shared-birthday "coincidence" paragraph, which
+  // points an operator AT a merge the engine has already recorded as provably
+  // wrong. Worse, the block vanished on SEARCH — the cohort is scanned over
+  // the rows on this page, filtering to one row empties it, and search is how
+  // an operator actually reaches a customer. Measured before this change: 6
+  // flagged rows on one page, 2 warnings.
+  //
+  // So it is now called ONCE PER ROW from memberRowHTML, unconditionally, and
+  // every input it needs is ON THE ROW: `flags`, `split_from`, `split_reason`.
+  // The page scan is a BONUS — it can name the other half when the other half
+  // is on screen — and never a precondition. Nothing asserted here depends on
+  // it, and where the scan is all there is, the block says so.
+  function splitHTML(P, m, c) {
+    var lines = [];
+    var mine = splitOf(m);
+    if (mine) { lines.push({ subject: 'This row', s: mine }); }
+    // SCAN EVERY ROW ON THE PAGE, not just the phone cohort. A wm-id veto and
+    // a name+dob veto share no phone at all, so a scan of the phone cohort
+    // could never reach the twin that carries the reason.
+    ((_page && _page.members) || []).forEach(function (o) {
+      if (String(o.identity_id) === String(m.identity_id)) { return; }
+      var s = splitOf(o);
+      if (!s || !s.from) { return; }
+      var pointsHere = s.from.some(function (f) {
+        return String(f) === String(m.identity_id);
+      });
+      if (pointsHere) { lines.push({ subject: who(o), s: { from: null, reason: s.reason } }); }
+    });
+
+    // SCOPE OF THE SCAN, stated wherever the scan is the only thing that could
+    // have named the other row. A filtered ledger is the case that used to
+    // delete this whole block silently, so the filter is named explicitly.
+    var scanned = ((_page && _page.members) || []).length;
+    var scopeNote = 'The other row is not named here: this endpoint carries no <b>split_from</b>, ' +
+      'and the scan for a neighbour that names this row covered only the ' + scanned + ' row' +
+      (scanned === 1 ? '' : 's') + ' shown' +
+      (_q ? ' — and the ledger is filtered to “' + esc(_q) + '”, so the other half of the ' +
+        'split is very likely off screen entirely.' : '.');
+
+    if (!lines.length) {
+      // MEASURED IN THE BROWSER 2026-08-19 AND THIS BRANCH WAS WRONG. Two rows
+      // split by a document veto came back carrying flags ['split_by_document']
+      // — engine.py:1139 flags BOTH sides, and _record_document_veto writes a
+      // full `identity_split_veto` row into hw_identity_audit. So "it was never
+      // written down" had become a falsehood: it IS written down, in a table
+      // /api/identity/members does not read. Three states, not two.
+      var flagged = (m.flags || []).indexOf('split_by_document') !== -1;
+      if (flagged) {
+        return '<div style="margin-top:6px;padding:7px 8px;border-radius:' + P.r8 +
+          'px;border:1px dashed ' + (P.warn || P.ink2) + '">' +
+          '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;' +
+          'text-transform:uppercase;color:' + (P.warn || P.ink2) + ';margin-bottom:3px">' +
+          'The split was deliberate · the reason is not on this endpoint</div>' +
+          '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5">' +
+          'This row carries the flag <b>split_by_document</b>, which the engine sets on BOTH ' +
+          'sides when a government document vetoes a weaker match (engine.py:1139). So this row ' +
+          'was held apart from at least one other <b>on purpose — do not merge them</b>. ' +
+          // WHICH signal was vetoed is NOT claimed. Four rungs can produce this
+          // flag and the flag records none of them, so naming one would be an
+          // invention — and naming the phone one, which is what drawing this
+          // inside the shared-phone block effectively did, is the invention
+          // that was actually shipping.
+          'Which signal was overruled — a shared phone, a shared name and birthday, a shared ' +
+          'birthday alone, or a shared Weedmaps customer id — is not on this row: the flag is ' +
+          'the same in all four cases, and this endpoint carries no <b>split_reason</b>. The ' +
+          'evidence does exist — the engine writes an <b>identity_split_veto</b> row into ' +
+          'hw_identity_audit — and this list cannot read that table. ' + scopeNote +
+          '</div></div>';
+      }
+      // NOT flagged and no fields: nothing about this row says a split ever
+      // happened. Worth a sentence only where a concrete pair is on screen to
+      // be wrong about — otherwise it would print under every ordinary row and
+      // train the operator to skip it.
+      if (!c || !c.phone.length) { return ''; }
+      return '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
+        'margin-top:4px">And nothing HERE records why they were kept apart: no split_reason, and ' +
+        'no split_by_document flag either. Do not read the silence as an oversight — but do not ' +
+        'read it as a decision either, and do not read it as proof that nothing was recorded ' +
+        'anywhere. This list carries neither field; that is all it can say.</div>';
+    }
+
+    // THE HEADER AND THE FOOTER ARE PER-LINE-STATE, NOT PER-BOX. QA read the
+    // rendered DOM of the split_from-without-split_reason case and found three
+    // mutually contradictory sentences in one box: a header asserting the
+    // engine recorded WHY, a body saying it did not, and a footer claiming
+    // only split_reason rows reach this rendering. An operator who reads
+    // headers stopped at "recorded by the engine" — "we were never told"
+    // rendered as "we checked and wrote it down", which is the exact swap this
+    // file exists to prevent. The body was always right; the frame around it
+    // was hard-coded for the best case and was a lie in the other two.
+    var withReason = 0;
+    lines.forEach(function (L) { if (L.s.reason) { withReason++; } });
+    var head = withReason === lines.length
+      ? 'Why they were kept apart · recorded by the engine'
+      : (withReason === 0
+        ? 'The split is recorded · the reason is NOT'
+        : 'Why they were kept apart · recorded in part');
+    var foot = withReason === lines.length
+      ? 'Only rows that carry split_reason read like this. Older splits carry neither field and ' +
+        'say so instead — an absent record is never rendered as a decision.'
+      : (withReason === 0
+        ? 'Nothing in this box is the engine\'s stated reason, because no line here carries a ' +
+          'split_reason. split_from alone says a split WAS recorded; it does not say why. A row ' +
+          'that carried the reason would print the engine\'s own sentence in its place, and this ' +
+          'row does not.'
+        : 'Mixed. The lines above that carry a split_reason print the engine\'s own sentence; ' +
+          'the ones that do not are a recorded split with no recorded grounds. Those are two ' +
+          'different facts and they are not drawn the same way.');
+
+    var h = '<div style="margin-top:6px;padding:7px 8px;border-radius:' + P.r8 +
+      'px;border:1px solid ' + (P.warn || P.ink2) + ';background:' + P.surface3 + '">';
+    h += '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;' +
+      'text-transform:uppercase;color:' + (P.warn || P.ink2) + ';margin-bottom:4px">' +
+      esc(head) + '</div>';
+    lines.forEach(function (L) {
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'margin-top:3px"><b style="color:' + P.ink + '">' + esc(L.subject) + '</b>' +
+        (L.s.from ? ' was split from ' + esc(L.s.from.map(function (f) { return '#' + f; })
+          .join(', ')) : ' records this row as the one it was split from') + '.</div>' +
+        // The engine's own sentence, printed verbatim and on its own line.
+        // This file writes no reason of its own -- a second copy of the veto
+        // wording here is the drift the header warns about.
+        (L.s.reason
+          ? '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+            'margin-top:2px">' + esc(L.s.reason) + '</div>'
+          : '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
+            'margin-top:2px">The split is recorded; the reason is not. split_from is present, ' +
+            'split_reason is empty — a decision with no stated grounds, which is not the same ' +
+            'as a documented one.</div>');
+    });
+    h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint + ';line-height:1.45;' +
+      'margin-top:5px">' + esc(foot) + '</div>';
+    h += '</div>';
+    return h;
   }
 
   function cohortsFor(m) {
@@ -735,8 +1228,10 @@
     return { phone: phone, dob: dob, scanned: all.length };
   }
 
-  function cohortHTML(P, m) {
-    var c = cohortsFor(m);
+  // Takes the cohort as an argument now: memberRowHTML computes it ONCE and
+  // hands the same object to this and to splitHTML, which must run whether or
+  // not this block does.
+  function cohortHTML(P, m, c) {
     if (!c.phone.length && !c.dob.length) { return ''; }
     var h = '<div style="margin-top:6px;padding:7px 8px;border-radius:' + P.r8 +
       'px;border:1px dashed ' + P.hairline2 + ';background:transparent">';
@@ -768,10 +1263,9 @@
         'margin-top:4px">Only a government document can prove two people are two people. This ' +
         'list does not carry documents — open each row and compare the "Government document" ' +
         'line.</div>';
-      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
-        'margin-top:4px">And nothing records WHY they were kept apart: the ledger has no field ' +
-        'for that decision. Do not read the silence as an oversight — but do not read it as a ' +
-        'decision either. It was never written down.</div>';
+      // splitHTML USED TO BE CALLED HERE and nowhere else, which is why the
+      // veto warning only ever appeared on the shared-phone pair. It is now
+      // drawn once per row by memberRowHTML, outside this block entirely.
     }
 
     if (c.dob.length) {
@@ -784,8 +1278,24 @@
       h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
         'font-family:' + ff(P.fontMono) + '">' + esc(m.dob) + ' → ' +
         esc(c.dob.map(who).join('  ·  ')) + '</div>';
+      // THE NUDGE IS WITHDRAWN ONCE THE ENGINE HAS ALREADY RULED. "Worth
+      // opening, the shape the matcher comes closest to acting on" is sound
+      // advice about an OPEN question — and this exact sentence was rendering
+      // on row #4, whose split the engine had already recorded as provably
+      // wrong on a document. Pointing an operator at a merge that is already
+      // settled against is worse than saying nothing, so where either row
+      // carries the veto flag the sentence hands off to the block that
+      // explains it instead of inviting the merge.
+      var dobVetoed = ((m.flags || []).indexOf('split_by_document') !== -1) ||
+        c.dob.some(function (o) { return (o.flags || []).indexOf('split_by_document') !== -1; });
       h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
-        'margin-top:4px">' + (sameLast.length
+        'margin-top:4px">' + (dobVetoed
+          ? 'A shared date of birth, and at least one of these rows carries ' +
+            '<b>split_by_document</b> — so this is not an open question. A government document ' +
+            'has already separated a pair here and the engine recorded the split on purpose. ' +
+            'Read the block below before doing anything with this pairing; do NOT treat the ' +
+            'shared birthday as a lead.'
+          : sameLast.length
           ? 'A shared birthday AND a shared last name. Still not a match on its own — but this ' +
             'is the one pairing worth opening, because it is the shape the matcher comes ' +
             'closest to acting on (wm-demo/wmdemo/engine.py:1126-1133).'
@@ -870,7 +1380,16 @@
     // Immediately under the mapping block, because it answers the same
     // question one step out: that block says which Weedmaps accounts folded
     // INTO this person, and this one says which neighbouring people did NOT.
-    h += cohortHTML(P, m);
+    //
+    // TWO CALLS, ONE COHORT, AND ONLY THE FIRST IS CONDITIONAL. cohortHTML
+    // draws the household reading and needs a neighbour on this page to have
+    // anything to say. splitHTML draws the document-veto warning, which is a
+    // fact about THIS ROW's own flags and fields — it must render on a page of
+    // one, on a search result, and on a veto that shares neither phone nor
+    // date of birth. Nesting the second inside the first is what QA caught.
+    var _c = cohortsFor(m);
+    h += cohortHTML(P, m, _c);
+    h += splitHTML(P, m, _c);
 
     h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkMute + ';font-family:' +
       ff(P.fontMono) + ';margin-top:5px">' +
@@ -880,6 +1399,50 @@
     if (m.flags && m.flags.length) {
       h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.bad + ';margin-top:4px">' +
         esc(m.flags.join(' · ')) + '</div>';
+    }
+
+    // CREATED HERE. A first-hand fact — this browser fired the order that made
+    // or moved this row — and it is drawn as the strongest of the two synthetic
+    // marks because it is the only one that is certain. It is also the LOCAL
+    // one: another operator on another machine sees nothing of this list, which
+    // is why the form does not lean on it and defaults the name to a prefix the
+    // SERVER recognises instead. Both marks, and each one labelled for what it
+    // is worth.
+    var syn = syntheticMark(m);
+    if (syn) {
+      var SYN = {
+        server: ['SYNTHETIC · FLAGGED BY THE LEDGER',
+          'This row carries the ledger\'s own `synthetic` flag, which ' + SIM_PATH +
+          ' sets on rows it brought into existence. It is not a real customer, and unlike the ' +
+          'badges below this one is on the record — every operator sees it.'],
+        minted: ['SYNTHETIC · CREATED FROM THIS PANEL',
+          'This row was MINTED by a test order sent from this browser through ' + SIM_PATH +
+          ' — the ledger count went up by one. It is not a real customer.'],
+        merged: ['A TEST ORDER LANDED HERE',
+          'This row already existed and a synthetic order from this browser MERGED into it — ' +
+          'the ledger count did not move. The person may be perfectly real; only the order ' +
+          'was fake.'],
+        unclear: ['A TEST ORDER LANDED HERE · minted or merged unknown',
+          'A synthetic order from this browser resolved to this row, but the ledger count ' +
+          'could not settle whether it created the row or joined it. Neither is claimed.'],
+        wm: ['CARRIES A SYNTHETIC WEEDMAPS ID',
+          'One of the Weedmaps ids on this row was minted by this browser. That is a fact ' +
+          'about the id, not about the person — this may be a REAL customer a test order ' +
+          'attached itself to.']
+      }[syn];
+      h += '<div style="margin-top:5px;padding:5px 7px;border-radius:' + P.r8 +
+        'px;border:1px dashed ' + (P.warn || P.ink2) + '">' +
+        chip(P, { fg: P.surface, bg: (P.warn || P.ink2) }, SYN[0]) +
+        '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkDim +
+        ';line-height:1.45;margin-top:3px">' + esc(SYN[1]) +
+        // THE LOCALITY DISCLAIMER BELONGS ONLY ON THE LOCAL BADGES. It was
+        // appended to all of them, including the one read straight off the
+        // ledger's own `flags` — so the panel said "this one is on the record,
+        // every operator sees it" and then immediately said "recorded by this
+        // browser only". Read in the rendered DOM before this was changed.
+        (syn === 'server' ? ''
+          : ' Recorded by this browser only — the ledger itself carries no such field, so ' +
+            'another machine sees none of this.') + '</div></div>';
     }
 
     // A HINT, labelled as a hint. The API is explicit that null means "cannot
@@ -1138,6 +1701,293 @@
   }
 
   // ── panel ────────────────────────────────────────────────────────────────
+  // ── the test-customer form ───────────────────────────────────────────────
+  function simField(P, key, label, hint, mono) {
+    return '<div style="margin-bottom:7px">' +
+      '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;' +
+      'text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:2px">' + esc(label) +
+      '</div>' +
+      '<input data-hwi-sim="' + key + '" value="' + esc(_sim[key]) + '" style="' + ctlCSS(P) +
+      'width:100%;box-sizing:border-box' + (mono ? ';font-family:' + ff(P.fontMono) : '') + '">' +
+      (hint ? '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint +
+        ';line-height:1.45;margin-top:2px">' + esc(hint) + '</div>' : '') +
+      '</div>';
+  }
+
+  function simSelect(P, key, label, opts, hint) {
+    var h = '<div style="margin-bottom:7px">' +
+      '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;' +
+      'text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:2px">' + esc(label) +
+      '</div><select data-hwi-sim="' + key + '" data-hwi-sim-repaint="1" style="' + ctlCSS(P) +
+      'width:100%;box-sizing:border-box">';
+    opts.forEach(function (o) {
+      h += '<option value="' + esc(o[0]) + '"' +
+        (String(_sim[key]) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+    });
+    h += '</select>' + (hint ? '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint +
+      ';line-height:1.45;margin-top:2px">' + esc(hint) + '</div>' : '') + '</div>';
+    return h;
+  }
+
+  // EVERY LINE HERE IS THE ROUTE'S OWN ANSWER. create_customer states
+  // minted-vs-merged itself (`created_new_identity`, from first_seen_at), says
+  // whether it flagged the row, returns the recomputed ladder AND what ingest
+  // stored, and returns the verification gate's decision so that "created" is
+  // never mistaken for "checked". Nothing is re-derived here, and a null is
+  // drawn as a null with the route's reason beside it.
+  function simVerdictHTML(P, r) {
+    var h = '';
+    h += sectionTitle(P, 'What the ladder did with it');
+    h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+      'font-family:' + ff(P.fontMono) + ';margin-bottom:6px">HTTP ' + esc(r.code) +
+      ' · order ' + esc(orNone(r.order_id, 'none returned')) + ' · ' + esc(r.fulfillment) +
+      ' · doc ' + esc(r.doc_mode) +
+      (r.waited_s != null ? ' · waited ' + esc(r.waited_s) + 's' : '') + '</div>';
+
+    if (r.pending) {
+      h += '<div style="border:1px solid ' + (P.warn || P.bad) + ';border-radius:' + P.r8 +
+        'px;padding:8px 9px;margin-bottom:7px;background:' + P.surface2 + '">' +
+        chip(P, { fg: P.surface, bg: (P.warn || P.bad) }, 'ACCEPTED · NO IDENTITY YET') +
+        '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'margin-top:5px">' + esc(r.reason ||
+          'the route answered 202 and gave no reason, which is itself worth reporting') +
+        '</div></div>';
+      return h;
+    }
+
+    // 1. MINTED OR MERGED — stated by the route, never inferred from the
+    //    recomputed match state. order_match re-resolves AFTER ingest has
+    //    written, so a row minted seconds ago comes back as `existing`, and
+    //    reading that as "merged into somebody" is the falsehood this whole
+    //    block exists to avoid.
+    var t = vtone(P, 'never_checked');
+    if (r.created_new === true) {
+      h += '<div style="border:1px solid ' + P.ink + ';border-radius:' + P.r8 +
+        'px;padding:8px 9px;margin-bottom:7px;background:' + P.surface2 + '">' +
+        chip(P, { fg: P.surface, bg: P.ink }, 'MINTED A NEW IDENTITY') +
+        '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'margin-top:5px">Nothing on the ladder matched this arrival, so it became a new person. ' +
+        // THREE STATES, NOT TWO. `flagged_synthetic === false` is a route that
+        // checked and says no; ABSENT is a route that never told us. The old
+        // `r.flagged === true ? ... : ...` collapsed absent into false and
+        // asserted "It was NOT flagged synthetic" about a payload that had
+        // said nothing at all — QA proved it with a stub that omitted the key.
+        // server.py:1712/1731/1745 always sets it today, so this is one
+        // deployment skew away rather than live, and that is exactly when a
+        // panel starts lying quietly.
+        (r.flagged === true
+          ? 'The row carries the ledger\'s own `synthetic` flag, so every operator can see it is ' +
+            'test data.'
+          : r.flagged === false
+          ? 'It was NOT flagged synthetic: ' + esc(r.flag_note ||
+            'the route did not say why, which is itself worth reporting') +
+            ' Until that is fixed the row is indistinguishable from a real customer.'
+          : 'Whether it was flagged synthetic is NOT KNOWN: the response carried no ' +
+            '`flagged_synthetic` at all, so this panel cannot tell you either way — and an ' +
+            'absent field is not a "no". Check the row\'s flags in the ledger below before ' +
+            'assuming this row is distinguishable from a real customer.') +
+        '</div></div>';
+    } else if (r.created_new === false) {
+      h += '<div style="border:1px solid ' + t.fg + ';border-radius:' + P.r8 +
+        'px;padding:8px 9px;margin-bottom:7px;background:' + P.surface2 + '">' +
+        chip(P, t, 'MERGED INTO AN EXISTING IDENTITY') +
+        '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'margin-top:5px">The ladder matched rather than minted, so nobody new was created — ' +
+        'that is the matcher working, not a failure. ' +
+        // SAME BUG, OTHER BRANCH. `r.flag_note || 'The row was not flagged
+        // synthetic.'` fabricated a verdict out of a missing note: QA stubbed
+        // {created_new_identity:false, flagged_synthetic:true} with no
+        // flag_note and the panel printed "The row was not flagged synthetic"
+        // straight over the top of a payload that said the opposite. The note
+        // is printed when it exists; otherwise the flag itself is reported,
+        // and an absent flag is reported as absent.
+        esc(r.flag_note ||
+          (r.flagged === true
+            ? 'No flag_note came back, and the route reports flagged_synthetic TRUE on a merge — ' +
+              'so a pre-existing row has been marked test data. That is worth checking: it is ' +
+              'the shape that labels a real customer synthetic.'
+            : r.flagged === false
+            ? 'The route reports flagged_synthetic false and sent no note explaining it. Not ' +
+              'flagging a row that already existed is the intended behaviour here, but the ' +
+              'route normally says so in flag_note and this time did not.'
+            : 'The route said nothing about flagging: no flag_note and no flagged_synthetic in ' +
+              'the response. Whether this row carries the synthetic flag is unknown from here — ' +
+              'not "no".')) + '</div></div>';
+    } else {
+      h += gap(P, 'Minted or merged', r.reason ||
+        'the route returned created_new_identity as null and gave no reason for it. It is NOT ' +
+        'being inferred from the recomputed match state, which cannot tell the two apart.');
+    }
+
+    // 2. WHICH RUNG FIRED. The route's own tier label and evidence sentences,
+    //    printed verbatim — this file owns no tier vocabulary.
+    if (r.ladder_error) {
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.bad + ';line-height:1.5;' +
+        'margin-bottom:6px">' + esc(r.ladder_error) + '</div>';
+    } else if (!r.ladder) {
+      h += gap(P, 'The rung that fired',
+        'the route returned no ladder block and no error explaining its absence.');
+    } else {
+      var L = r.ladder;
+      h += kv(P, 'tier', (L.tier == null ? 'none' : L.tier) + ' · ' +
+        orNone(L.tier_label, 'no label from the API'), true);
+      h += kv(P, 'state', orNone(L.state) + ' (recomputed)', true);
+      h += kv(P, 'identity', L.identity_id == null ? 'none' : '#' + L.identity_id, true);
+      h += kv(P, 'ingest stored', L.stored_by_ingest == null
+        ? 'nothing recorded on the order' : '#' + L.stored_by_ingest, true);
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+        'margin-top:5px"><b style="color:' + P.ink + '">Why: </b>' +
+        ((L.evidence && L.evidence.length)
+          ? esc(L.evidence.join(' · '))
+          : 'nothing on this order matched any rung — no document, no phone, no name+dob, no ' +
+            'Weedmaps customer id already on file.') + '</div>';
+      if (L.note) {
+        h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint +
+          ';line-height:1.45;margin-top:4px">' + esc(L.note) + '</div>';
+      }
+      if (L.vetoed_by_document) {
+        h += '<div style="font-size:' + P.type.meta + 'px;color:' + (P.warn || P.bad) +
+          ';line-height:1.5;margin-top:5px"><b>Vetoed by document.</b> A government document ' +
+          'refused a weaker match, so this arrival was kept apart on purpose.</div>';
+      }
+    }
+
+    // 3. CREATING SOMEBODY IS NOT CHECKING THEIR ID, and the route returns the
+    //    gate decision so nobody has to assume it.
+    var v = r.verification;
+    if (v) {
+      h += sectionTitle(P, 'Are they verified?');
+      if (v.error) {
+        h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.bad + ';line-height:1.5">' +
+          esc(v.error) + '</div>';
+      } else {
+        var vt = vtone(P, v.state);
+        h += chip(P, vt, vt.word);
+        var ph = v.pickup_handoff || {};
+        h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+          'margin-top:5px">' + esc(v.note || '') + '</div>';
+        h += '<div style="margin-top:5px">' +
+          kv(P, 'handoff', ph.allowed ? 'allowed' : 'BLOCKED' +
+            (ph.block_code ? ' · ' + ph.block_code : ''), true) + '</div>';
+        if (ph.reason) {
+          h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+            'margin-top:3px">' + esc(ph.reason) + '</div>';
+        }
+        if (ph.remedy) {
+          h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
+            'margin-top:3px"><b>Remedy: </b>' + esc(ph.remedy) + '</div>';
+        }
+      }
+    }
+
+    var ours = r.identity;
+    if (ours && ours.error) {
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.bad + ';line-height:1.5;' +
+        'margin-top:6px">' + esc(ours.error) + '</div>';
+    } else if (ours && ours.identity_id != null) {
+      h += sectionTitle(P, 'The row it landed on');
+      h += kv(P, 'identity', '#' + ours.identity_id, true);
+      h += kv(P, 'name', orNone(ours.name, 'no name'));
+      h += kv(P, 'phone', orNone(ours.phone_e164, 'none'), true);
+      h += kv(P, 'dob', orNone(ours.dob, 'none'), true);
+      h += kv(P, 'wm ids', (ours.wm_ids && ours.wm_ids.length)
+        ? ours.wm_ids.join('  ·  ') : 'none', true);
+      h += kv(P, 'flags', (ours.flags && ours.flags.length)
+        ? ours.flags.join('  ·  ') : 'none', true);
+      h += kv(P, 'document', (ours.gov_id && ours.gov_id.means) || 'unknown');
+      h += '<div style="margin-top:6px"><button data-hwi="sim-show" style="' + btnCSS(P) +
+        '">Show it in the ledger →</button></div>';
+    }
+
+    if (r.path_note) { h += note(P, r.path_note); }
+    return h;
+  }
+
+  function simHTML(P) {
+    seedSim();
+    var h = '';
+    h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+      'margin-bottom:8px">POST ' + esc(SIM_PATH) + ' synthesises an arriving Weedmaps order ' +
+      'from these fields and fires it at our own HMAC-signed webhook — the same door, the same ' +
+      'receiver, the same async ingest, the same 5-tier ladder. It does NOT write the ledger, ' +
+      'so the identity falls out of the far end exactly the way a live one does. Which means ' +
+      'the ladder may merge this order into somebody who already exists instead of minting ' +
+      'anyone: that is the matcher working, and it is reported as such.</div>';
+
+    if (_sim.fromPhone || _sim.fromDob) {
+      h += note(P, 'The defaults are deliberately messy and borrowed from rows on this page: ' +
+        (_sim.fromPhone ? 'phone from ' + _sim.fromPhone + '. ' : '') +
+        (_sim.fromDob ? 'date of birth and surname from ' + _sim.fromDob + '. ' : '') +
+        'A clean customer mints a fresh row every time and leaves every rung of the ladder dark.');
+    } else {
+      h += note(P, 'The ledger page has not loaded, so no real phone or date of birth could be ' +
+        'borrowed. Those two fields are BLANK rather than filled with an invented number — a ' +
+        'made-up collision would only be testing this panel against itself.');
+    }
+
+    // ACTOR IS REQUIRED BY THE ROUTE and it refuses without one, because
+    // nothing in this database records who created an identity row — that gap
+    // is why its own fixture answer has to be a heuristic. The default names
+    // this panel rather than pretending to be a person; put your own name in
+    // and the row's provenance stops being "a browser".
+    h += simField(P, 'actor', 'Created by (required)',
+      'The route refuses without this. Nothing else in the ledger records who made a row, so ' +
+      'this is the only provenance the customer will ever carry.');
+    h += simField(P, 'first_name', 'First name',
+      'QAID… is one of the API\'s own fixture prefixes, so the server marks this row as test ' +
+      'data for every operator. The route also flags rows it creates `synthetic` on the ledger ' +
+      'itself, which does not depend on the name at all.');
+    h += simField(P, 'last_name', 'Last name',
+      _sim.fromLast ? 'Borrowed from ' + _sim.fromLast + ' — shared surname + shared birthday ' +
+        'is the pairing the dob-fuzzy rung comes closest to acting on.' : null);
+    h += simField(P, 'phone', 'Phone',
+      'Blank is sent as an empty string, which means "Weedmaps sent no phone" — not "use the ' +
+      'default". That is the case that mints rows the ladder can never re-find.', true);
+    h += simField(P, 'dob', 'Date of birth (YYYY-MM-DD)',
+      'Blank means Weedmaps sent none, which is the normal case for a delivery order.', true);
+    h += simField(P, 'wm_customer_id', 'Weedmaps customer id',
+      'A non-numeric id is what the API reads as synthetic — real Weedmaps customer ids are ' +
+      'numeric (identity_api.py:239). Blank sends no id at all.', true);
+
+    h += simSelect(P, 'doc', 'Government document', [
+      ['none', 'None — nothing attached'],
+      ['upload', 'Upload URL only — identifies an upload, not a human'],
+      ['document', 'Real document — issuing state + number']
+    ], 'Only the third can match at tier 0 or veto a weaker match. The second hashes a URL and ' +
+       'is deliberately non-comparable, which is why it can do neither.');
+    if (_sim.doc === 'document') {
+      h += simField(P, 'doc_state', 'Issuing state', null, true);
+      h += simField(P, 'doc_number', 'Document number',
+        'Paste another row\'s number to test a tier-0 match; leave this unique to test the ' +
+        'veto against a shared phone.', true);
+    } else if (_sim.doc === 'upload') {
+      h += simField(P, 'doc_url', 'Document URL', null, true);
+    }
+
+    h += simSelect(P, 'fulfillment', 'Fulfillment', [
+      ['delivery', 'Delivery'], ['pickup', 'Pickup']
+    ], 'Pickup arrives on the dispensary listing with an empty shipping address.');
+
+    h += '<div style="display:flex;gap:6px;margin:9px 0 4px">' +
+      '<button data-hwi="sim-run" style="' + btnCSS(P, true) + '">' +
+      (_simBusy ? 'working…' : 'Send it as a Weedmaps order') + '</button>' +
+      '<button data-hwi="sim-reseed" style="' + btnCSS(P) + '">New messy defaults</button></div>';
+
+    if (_simErr) {
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.bad + ';line-height:1.5;' +
+        'margin-top:6px">' + esc(_simErr) + '</div>';
+    }
+    if (_simResult) { h += simVerdictHTML(P, _simResult); }
+
+    h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint + ';line-height:1.45;' +
+      'margin-top:9px">A row this creates carries the ledger\'s own <b>synthetic</b> flag, which ' +
+      'every operator on every machine sees. A row it merely MERGED INTO is deliberately not ' +
+      'flagged — labelling a customer who already existed as a test record would be the same ' +
+      'lie pointing the other way — so those are marked from a list this browser keeps, and the ' +
+      'badge says which of the two it is.</div>';
+    return h;
+  }
+
   function panelHTML(P) {
     // The title now lives in the docked panel's own header, where it stays put
     // while the body scrolls.
@@ -1191,7 +2041,8 @@
 
     // tabs
     h += '<div style="display:flex;gap:6px;margin-bottom:8px">';
-    [['ledger', 'Ledger'], ['match', 'Order match']].forEach(function (t) {
+    [['ledger', 'Ledger'], ['match', 'Order match'],
+     ['simulate', 'New test customer']].forEach(function (t) {
       var on = _tab === t[0];
       h += '<button data-hwi="tab" data-tab="' + t[0] + '" style="' + btnCSS(P, on) + '">' +
         esc(t[1]) + '</button>';
@@ -1206,11 +2057,27 @@
 
     if (_tab === 'match') {
       h += matchHTML(P);
+    } else if (_tab === 'simulate') {
+      h += simHTML(P);
     } else {
       h += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
-        '<input data-hwi-q placeholder="name, phone, or Weedmaps customer id" value="' +
+        // THE PLACEHOLDER USED TO SAY "or Weedmaps customer id" AND IT DOES NOT
+        // WORK. Measured 2026-08-19 against a running API: q=qa-t-188445969
+        // (a Weedmaps id sitting on identity #1904) returns 0 rows, while
+        // q=QAIDMgDst188445969 returns that same row. store.search_identities
+        // (wm-demo/wmdemo/store.py) matches phone digits, first_name,
+        // last_name and pos_customer_id — wm_ids is not in the list, and
+        // identity_api.members() has no other path. So the panel was inviting
+        // an operator to paste the ONE identifier the whole panel is about and
+        // then telling them "nothing in the ledger matches", which reads as a
+        // lost customer rather than an unsupported search.
+        '<input data-hwi-q placeholder="name, phone, or POS customer id" value="' +
         esc(_q) + '" style="' + ctlCSS(P) + 'flex:1 1 auto">' +
-        '<button data-hwi="search" style="' + btnCSS(P, true) + '">Search</button></div>';
+        '<button data-hwi="search" style="' + btnCSS(P, true) + '">Search</button></div>' +
+        '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint + ';line-height:1.45;' +
+        'margin:-3px 0 7px">There is no search by Weedmaps customer id — the ledger search ' +
+        'matches phone digits, first name, last name and POS id only. A Weedmaps id typed here ' +
+        'returns nothing, and that is the search saying no, not the ledger.</div>';
 
       var mem = (_page && _page.members) || [];
       var total = _page ? _page.total : null;
@@ -1333,8 +2200,15 @@
       _panel.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter' || !e.target || !e.target.hasAttribute) { return; }
         if (e.target.hasAttribute('data-hwi-q')) { e.preventDefault(); doSearch(); return; }
-        if (e.target.hasAttribute('data-hwi-order')) { e.preventDefault(); doMatch(); }
+        if (e.target.hasAttribute('data-hwi-order')) { e.preventDefault(); doMatch(); return; }
+        if (e.target.hasAttribute('data-hwi-sim')) { e.preventDefault(); simulate(); }
       });
+      // The test-customer form is MANY fields and the panel repaints on every
+      // state change, so its values live in _sim and are synced on the way in.
+      // An uncontrolled input here would lose what was typed the moment a
+      // theme change or a fetch settled.
+      _panel.addEventListener('input', onSimInput);
+      _panel.addEventListener('change', onSimInput);
       D.register(SEAM_ID, function () { if (_open) { _open = false; paint(); } });
       if (W.MutationObserver && document.body) {
         // tokens.jsx repaints document.body.style on a theme change and emits
@@ -1415,6 +2289,18 @@
     matchOrder(val('[data-hwi-order]').trim());
   }
 
+  function onSimInput(e) {
+    var t = e.target;
+    if (!t || !t.getAttribute || !_sim) { return; }
+    var key = t.getAttribute('data-hwi-sim');
+    if (!key) { return; }
+    _sim[key] = String(t.value == null ? '' : t.value);
+    // The document select decides WHICH fields exist below it, so that one
+    // repaints. Nothing else does: repainting on every keystroke would move
+    // the caret to the end of whatever was being typed.
+    if (e.type === 'change' && t.getAttribute('data-hwi-sim-repaint')) { paint(); }
+  }
+
   function onClick(e) {
     var t = e.target;
     // Buttons carry the action; a click on the label inside one still lands on
@@ -1429,6 +2315,18 @@
     if (act === 'refresh') { e.stopPropagation(); load(); return; }
     if (act === 'search') { e.stopPropagation(); doSearch(); return; }
     if (act === 'do-match') { e.stopPropagation(); doMatch(); return; }
+    if (act === 'sim-run') { e.stopPropagation(); simulate(); return; }
+    if (act === 'sim-reseed') { e.stopPropagation(); seedSim(true); paint(); return; }
+    if (act === 'sim-show') {
+      e.stopPropagation();
+      // The same handle simulate() used — the first name, never the Weedmaps
+      // id, which this ledger cannot search on.
+      var sq = (_simResult && _simResult.ledger_q) || '';
+      _tab = 'ledger';
+      if (sq) { _q = sq; _offset = 0; _openId = null; _member = null; load(); }
+      else { _q = ''; _offset = 0; _openId = null; _member = null; load(); }
+      return;
+    }
     if (act === 'tab') {
       e.stopPropagation(); _tab = t.getAttribute('data-tab'); paint(); return;
     }
@@ -1484,6 +2382,13 @@
     openMember: openMember,
     matchOrder: matchOrder,
     record: record,
+    // Create a test customer that arrives THROUGH the Weedmaps door. Takes no
+    // arguments on purpose: the fields are the form's, so a console call and a
+    // click send exactly the same order and cannot drift apart.
+    simulate: simulate,
+    get simForm() { return _sim; },
+    get simResult() { return _simResult; },
+    get synthetic() { return _synth; },
     open: function () {
       var D = dock();
       if (D) { D.opened(SEAM_ID); }
