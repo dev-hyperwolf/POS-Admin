@@ -11,14 +11,12 @@
 // cannot be published. Weedmaps requires a real category_id on every menu item,
 // and a sub-category with none means every product under it is REJECTED.
 //
-// WHY THE BOARD IS IN THIS PANEL AND NOT ON THAT SCREEN. `SEED` is a
-// module-scope const inside a Babel-compiled .jsx, and the screen holds it in
-// `React.useState(SEED)` (screen-categories.jsx:130). There is no window handle
-// and no props seam — the component simply cannot be driven from outside
-// without editing it, and this unit owns exactly one new file plus one script
-// tag. So the LIVE board renders here, in the seam's own panel, and that screen
-// is untouched and still shows its own invented data. That is stated on the
-// panel rather than left for someone to discover.
+// THE SCREEN IS NO LONGER BLIND (2026-08-20). pos/screen-categories.jsx now
+// reads window.HW_TAXONOMY itself and writes through HW_TAXONOMY.map/unmap, so
+// the Categories screen and this panel render the same rows and the same node
+// ids. This panel stays because it is reachable from anywhere in the POS and
+// because it states the seam's own status; it is a second view of one board,
+// not the only honest one.
 //
 // THE FOUR STATES, AND WHY THEY ARE DRAWN AS DIFFERENTLY AS THEY ARE.
 //   mapped   — one or more LIVE WM nodes. Publishes.
@@ -37,7 +35,8 @@
 // PUBLIC SURFACE: window.HW_TAXONOMY = { status, board, nodes, coverage,
 //   refresh(), map(), unmap(), skip(), unskip() }. Also mirrored onto
 //   window.HW.WM_TAXONOMY as a plain property so a POS dev can render the real
-//   board from a screen with no fetch code of their own.
+//   board from a screen with no fetch code of their own. pos/screen-categories.jsx
+//   reads the getters above directly and is the primary consumer.
 // Turn it off: append `?hwtax=off`, or run `HW_TAXONOMY.disable()`.
 (function () {
   'use strict';
@@ -365,10 +364,15 @@
     return W.HW_LIVE.post(path, body).then(function (r) {
       _busy = false;
       if (!r.ok) {
+        // hw-live.js already produced the only honest sentence available for a
+        // transport failure ('request failed: Failed to fetch', code 0). Dropping
+        // it left every caller printing 'HTTP 0', which names no cause at all --
+        // verified in the browser 2026-08-20 with the API stopped mid-session.
+        var why = (r.body && r.body.error) || r.error || null;
         _msgOk = false;
-        _msg = 'Rejected ' + r.code + ': ' + ((r.body && r.body.error) || 'no reason given');
+        _msg = 'Rejected ' + r.code + ': ' + (why || 'no reason given');
         paint();
-        return { ok: false, error: (r.body && r.body.error) || ('HTTP ' + r.code) };
+        return { ok: false, error: why || ('HTTP ' + r.code) };
       }
       _msgOk = true;
       var row = r.body && r.body.row;
@@ -653,14 +657,16 @@
     // the board they describe is how this panel stopped being read at all.
     var w = '', wn = 0;
     function w_(s) { w += note(P, s); wn++; }
-    w_('THE CATEGORIES SCREEN ITSELF IS UNTOUCHED. pos/screen-categories.jsx still ' +
-      'renders its own const SEED and 89 hand-typed Weedmaps LABELS with no ids ' +
-      '(screen-categories.jsx:17-29, :38-62). Its board is a mockup; this one is the contract. ' +
-      'They will disagree, and this one is right.');
-    w_('Why here and not there: SEED is a module-scope const held in React.useState ' +
-      '(screen-categories.jsx:130) with no window handle, so the screen cannot be driven without ' +
-      'editing it — and this seam is not allowed to. Wiring it is a one-line change for the POS ' +
-      'devs: read window.HW.WM_TAXONOMY.rows instead of SEED.');
+    w_('THE CATEGORIES SCREEN IS NOW WIRED TO THIS BOARD (2026-08-20). It reads ' +
+      'window.HW_TAXONOMY directly — same rows, same node ids, same states — and writes through ' +
+      'HW_TAXONOMY.map/unmap, so the two cannot disagree about what is mapped. Its hand-typed ' +
+      'node labels survive only as the no-API fallback and are stamped MOCK wherever they show. ' +
+      'This panel is now a second view of the same data, not the only honest one.');
+    w_('The screen carries three checks this panel does not: our category NAME against ' +
+      'Weedmaps\' tree (engine.py:176 resolves by lowercased name, and a miss publishes the item ' +
+      'UNCATEGORISED rather than blocking it), a mapping whose WM ROOT disagrees with our ' +
+      'top-level category, and the category_shutout in mapping.py:220. Corrections there are ' +
+      'offered and never auto-applied.');
     var noSub = (cov.by_status || {}).no_sub_category || 0;
     if (noSub) {
       w_(noSub + ' of ' + cov.products + ' live products carry NO sub-category at all, so ' +
@@ -679,8 +685,10 @@
     w_('Node ids, paths and retirement come from the API\'s own wm_nodes table. This file ' +
       'contains no taxonomy list of its own — a second copy is exactly the drift this board exists ' +
       'to end.');
-    w_('Still mock on this panel: nothing. Still mock on the Categories SCREEN: all of it — ' +
-      'its categories, its sub-categories, its WM node labels and its status pills.');
+    w_('Still mock on this panel: nothing. Still mock on the Categories SCREEN: nothing ' +
+      'while this seam is live — it renders these same rows and node ids. Its own hand-typed ' +
+      'labels appear only when no API answers, and they are labelled MOCK when they do. Its ' +
+      'category COPY fields (descriptions, meta, FAQs) are still unwired: there is no route.');
     w_('SKU→sub-category assignment has no HTTP route yet, so the per-row product counts ' +
       'move only when someone writes to the API directly. Every other control here is live.');
     h += whyBlock(P, 'data-hwt', _why, w, wn);
