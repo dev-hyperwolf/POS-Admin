@@ -244,4 +244,105 @@
     WM_PRESETS: WM_PRESETS,
     presets: Object.keys(WM_PRESETS),
   };
+
+  // ── The panel ─────────────────────────────────────────────────────────────
+  //
+  // An API nobody can find is the same as no API. This is a floating button on
+  // every page that loads the file, sitting LEFT of the app switcher so the two
+  // do not overlap. Styles are inline and self-contained because this renders
+  // outside React and has no access to the design tokens — same constraint
+  // app-switcher.js works under.
+  //
+  // The important part is not the buttons. It is that every result says WHERE
+  // the thing went and what to do next, which is the actual complaint this
+  // whole file exists to answer.
+  function mountPanel() {
+    if (document.querySelector('[data-hw-seed]')) return;
+
+    var MONO = '"IBM Plex Mono",ui-monospace,Menlo,monospace';
+    var SANS = 'Inter,-apple-system,sans-serif';
+
+    var wrap = document.createElement('div');
+    wrap.setAttribute('data-hw-seed', '');
+    wrap.style.cssText = 'position:fixed;right:74px;bottom:16px;z-index:2147483000;font-family:' + MONO;
+
+    var menu = document.createElement('div');
+    menu.style.cssText = 'position:absolute;right:0;bottom:52px;width:290px;max-height:74vh;overflow:auto;'
+      + 'background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;'
+      + 'box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);'
+      + 'pointer-events:none;transition:opacity .14s,transform .14s';
+
+    function head(t) {
+      var h = document.createElement('div');
+      h.textContent = t;
+      h.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#726d61;padding:9px 10px 6px';
+      return h;
+    }
+
+    var out = document.createElement('div');
+    out.style.cssText = 'margin:6px 4px 2px;padding:9px 10px;border-radius:9px;background:#15140f;'
+      + 'border:1px solid #3d3930;font-size:11.5px;line-height:1.5;color:#a8a293;font-family:' + SANS + ';display:none';
+
+    function report(r) {
+      out.style.display = 'block';
+      if (!r || !r.ok) {
+        out.innerHTML = '<b style="color:#e88b6f">Could not create it.</b><br>' + ((r && r.message) || 'Unknown error.');
+        return;
+      }
+      out.innerHTML = '<b style="color:#7fd1a3">Created</b> ' + r.message
+        + '<br><span style="color:#e3b84a">Where:</span> ' + r.where
+        + '<br><span style="color:#8f8a7c">' + r.next + '</span>'
+        + '<br><span style="color:#6a655a;font-size:10.5px">Refresh the page to clear everything you seeded.</span>';
+    }
+
+    function row(label, sub, fn) {
+      var b = document.createElement('button');
+      b.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 10px;border-radius:8px;border:none;'
+        + 'background:transparent;color:#e9e6dd;font-size:12.5px;font-weight:600;cursor:pointer;font-family:' + SANS;
+      b.innerHTML = label + (sub ? '<br><span style="font-size:11px;font-weight:400;color:#8f8a7c">' + sub + '</span>' : '');
+      b.onmouseenter = function () { b.style.background = '#292720'; };
+      b.onmouseleave = function () { b.style.background = 'transparent'; };
+      b.onclick = function () { report(fn()); };
+      return b;
+    }
+
+    menu.appendChild(head('Weedmaps order'));
+    Object.keys(WM_PRESETS).forEach(function (k) {
+      menu.appendChild(row(WM_PRESETS[k].label.split(' — ')[0],
+        WM_PRESETS[k].label.split(' — ')[1] || '', function () { return weedmapsOrder(k); }));
+    });
+    menu.appendChild(head('Catalogue & customers'));
+    menu.appendChild(row('New product', 'Random name, real brand, in stock', function () { return product(); }));
+    menu.appendChild(row('New customer', 'Becomes a match candidate for the next WM order', function () { return customer(); }));
+    menu.appendChild(out);
+
+    var btn = document.createElement('button');
+    btn.textContent = '+ Demo data';
+    btn.style.cssText = 'display:flex;align-items:center;gap:7px;height:38px;padding:0 13px;border-radius:11px;'
+      + 'border:1px solid #3d3930;background:#1c1b15;color:#e9e6dd;font-size:12px;font-weight:700;'
+      + 'cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35);font-family:' + MONO;
+
+    var open = false;
+    function setOpen(v) {
+      open = v;
+      menu.style.opacity = v ? '1' : '0';
+      menu.style.transform = v ? 'translateY(0) scale(1)' : 'translateY(8px) scale(.98)';
+      menu.style.pointerEvents = v ? 'auto' : 'none';
+      btn.style.background = v ? '#292720' : '#1c1b15';
+    }
+    btn.onclick = function (e) { e.stopPropagation(); setOpen(!open); };
+    document.addEventListener('click', function (e) { if (open && !wrap.contains(e.target)) setOpen(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open) setOpen(false); });
+
+    wrap.appendChild(menu);
+    wrap.appendChild(btn);
+    document.body.appendChild(wrap);
+    setOpen(false);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountPanel);
+  } else {
+    mountPanel();
+  }
 })();
