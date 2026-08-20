@@ -1,10 +1,21 @@
 // ── Register screen — New Sale (product picker + cart) ─────────────────────
 const useP = window.useP;
-const TAX = 0.0822;
+
+// Tax is window.HW.taxBreakdown and nothing else. This file used to carry its
+// own `TAX = 0.0822`, which is why the footer could show "Taxes (23.22%) $12.40"
+// above a Total that had only charged 8.22% — two tax models, one sale.
+// A discount comes off the MERCHANDISE subtotal, and tax is charged on what is
+// left, so the customer is not taxed on money they did not pay.
+const round2 = (n) => Math.round((+n || 0) * 100) / 100;
+const taxOn = (base) => window.HW.taxBreakdown(base).total;
+const PAY_LABEL = { cash: 'Cash', card: 'Card', split: 'Split', wallet: 'Wallet' };
 
 window.RegisterScreen = function RegisterScreen() {
   const P = useP();
-  const products = window.HW.PRODUCTS;
+  // Reads HW.* AND writes to it (a completed sale creates an order), so it has
+  // to subscribe — otherwise a real write still looks like nothing happened.
+  const HW = window.useHW();
+  const products = HW.PRODUCTS;
   // ── Tickets ─────────────────────────────────────────────────────────────
   // A party is ONE ticket by default — one cart, one checkout, which is what
   // most visits are. A guest only gets their own ticket when the associate
@@ -12,10 +23,13 @@ window.RegisterScreen = function RegisterScreen() {
   // A check-in that said "& start sale" hands the person over here. Taking it is
   // what makes the sale open on THEM instead of on the demo ticket below.
   const [pending] = React.useState(() => window.HW.takePendingSale ? window.HW.takePendingSale() : null);
+  // `discounts` lives on the TICKET, not inside the discount card: a discount is
+  // money off THIS sale, so it has to survive a re-render, follow the ticket the
+  // party is on, and be readable by the tender that records the order.
   const [tickets, setTickets] = React.useState(() => pending && pending.customer ?
-    [{ id: 't1', person: pending.customer, cart: [], paid: false }] :
+    [{ id: 't1', person: pending.customer, cart: [], paid: false, discounts: [] }] :
     [{ id: 't1', person: window.HW.MEMBERS[2],
-    cart: [{ sku: 'H480PRO1', qty: 1, disc: 0 }, { sku: 'F2Q4EN2C', qty: 1, disc: 0 }], paid: false }]);
+    cart: [{ sku: 'H480PRO1', qty: 1, disc: 0 }, { sku: 'F2Q4EN2C', qty: 1, disc: 0 }], paid: false, discounts: [] }]);
   const [active, setActive] = React.useState(0);
   const [guests, setGuests] = React.useState(() => pending ? pending.guests || [] : [
   { key: 'g-mia', id: null, name: 'Mia Tran', dob: '09/02/1988', phone: '(951) 555-0121', member: false, doc: { onFile: true } },
@@ -28,6 +42,9 @@ window.RegisterScreen = function RegisterScreen() {
   const [pay, setPay] = React.useState('cash');
   const [discMode, setDiscMode] = React.useState('$');
   const [showPay, setShowPay] = React.useState(false);
+  const [payScope, setPayScope] = React.useState('ticket'); // ticket | party (one tender, N orders)
+  // The POS.lastSale as it stood when the tender opened. See closePay.
+  const payMark = React.useRef(null);
   const [showCheckIn, setShowCheckIn] = React.useState(false);
   const [queueOpen, setQueueOpen] = React.useState(true); // committed sliding check-in queue
   const [showDetails, setShowDetails] = React.useState(false); // member-details dropdown
@@ -38,9 +55,32 @@ window.RegisterScreen = function RegisterScreen() {
   const customer = t ? t.person : null;
   const cart = t ? t.cart : [];
   const multi = tickets.length > 1;
-  const setCart = (v) => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: typeof v === 'function' ? v(x.cart) : v } : x));
+  // Emptying the cart empties the discounts with it — on EVERY path, not just
+  // the Clear button. setQty(0) and the per-line trash used to strip the last
+  // line and leave a $5 discount sitting on an empty ticket. The footer hides
+  // it (discountOff is capped at the merchandise total, so an empty cart shows
+  // nothing) right up until the next product is added, and then that sale is
+  // silently mispriced. One place, so no future caller can reintroduce it.
+  const setCart = (v) => setTickets((ts) => ts.map((x, i) => {
+    if (i !== active) return x;
+    const next = typeof v === 'function' ? v(x.cart) : v;
+    return next.length === 0 ? { ...x, cart: next, discounts: [] } : { ...x, cart: next };
+  }));
   // A fresh check-in replaces the whole ticket set — new visit, new sale.
-  const openVisit = (person, g) => {setTickets([{ id: 't1', person, cart: [], paid: false }]);setActive(0);setGuests(g || []);};
+  const openVisit = (person, g) => {setTickets([{ id: 't1', person, cart: [], paid: false, discounts: [] }]);setActive(0);setGuests(g || []);};
+
+  // ── Discounts ───────────────────────────────────────────────────────────
+  // One discount per KIND — one approved manual discount, one reward, one promo
+  // code. Applying a second of the same kind replaces the first rather than
+  // quietly stacking two, which is how a $5 discount becomes $15 off.
+  const discounts = (t && t.discounts) || [];
+  const setDiscount = (kind, d) => setTickets((ts) => ts.map((x, i) => i === active ?
+  { ...x, discounts: [...(x.discounts || []).filter((e) => e.kind !== kind), ...(d ? [{ ...d, kind }] : [])] } : x));
+  const applyDiscount = (d) => {setDiscount(d.kind, d);flash(`${window.HW.fmt.money(d.off)} off · ${d.label}`);};
+  const removeDiscount = (kind) => setDiscount(kind, null);
+  // Emptying the cart empties the discounts with it — a $5 discount sitting on
+  // an empty ticket is the next sale's mispriced surprise.
+  const clearTicket = () => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: [], discounts: [] } : x));
 
   // Keep the floating switcher / tour launcher off the TENDER button.
   React.useEffect(() => {
@@ -49,18 +89,42 @@ window.RegisterScreen = function RegisterScreen() {
   }, []);
 
   const find = (sku) => products.find((p) => p.sku === sku);
-  const add = (p) => setCart((c) => {const e = c.find((x) => x.sku === p.sku);if (e) return c.map((x) => x.sku === p.sku ? { ...x, qty: x.qty + 1 } : x);return [...c, { sku: p.sku, qty: 1, disc: 0 }];});
+  // A paid ticket is a closed transaction. Letting items back onto it re-arms
+  // the TENDER button on a ticket that has already been charged, which is the
+  // second-order bug by another door.
+  const add = (p) => {
+    if (t && t.paid) {flash(`${t.person.name.split(' ')[0]}’s ticket is paid — open a new ticket to sell more`);return;}
+    setCart((c) => {const e = c.find((x) => x.sku === p.sku);if (e) return c.map((x) => x.sku === p.sku ? { ...x, qty: x.qty + 1 } : x);return [...c, { sku: p.sku, qty: 1, disc: 0 }];});
+  };
   const setQty = (sku, qty) => setCart((c) => qty <= 0 ? c.filter((x) => x.sku !== sku) : c.map((x) => x.sku === sku ? { ...x, qty } : x));
   const remove = (sku) => setCart((c) => c.filter((x) => x.sku !== sku));
 
   const lines = cart.map((c) => {const p = find(c.sku);return { ...c, p, total: (p.price - c.disc) * c.qty };});
-  const sub = lines.reduce((s, l) => s + l.total, 0);
-  const tax = sub * TAX;
-  const total = sub + tax;
+  // merch → what the goods cost · discountOff → what comes off before tax
+  // sub   → the taxable subtotal · total → what the customer actually pays
+  const merch = round2(lines.reduce((s, l) => s + l.total, 0));
+  const offSum = (ds) => round2((ds || []).reduce((s, d) => s + (+d.off || 0), 0));
+  const discountOff = Math.min(merch, offSum(discounts));
+  const sub = round2(merch - discountOff);
+  const tax = taxOn(sub);
+  const total = round2(sub + tax);
   const count = lines.reduce((s, l) => s + l.qty, 0);
-  const subOf = (c) => c.reduce((s, x) => {const p = find(x.sku);return s + (p ? (p.price - x.disc) * x.qty : 0);}, 0);
-  const totalOf = (c) => subOf(c) * (1 + TAX);
-  const partyTotal = tickets.reduce((s, x) => s + totalOf(x.cart), 0);
+  const merchOf = (c) => round2(c.reduce((s, x) => {const p = find(x.sku);return s + (p ? (p.price - x.disc) * x.qty : 0);}, 0));
+  const offOf = (tk) => Math.min(merchOf(tk.cart), offSum(tk.discounts));
+  const subOf = (tk) => round2(merchOf(tk.cart) - offOf(tk));
+  // A paid ticket is emptied when it is paid, so it can no longer price itself.
+  // `paidTotal` is what the order that closed it actually recorded, which keeps
+  // the party bar honest instead of dropping to zero the moment a guest pays.
+  const totalOf = (tk) => {if (tk.paid) return round2(tk.paidTotal || 0);const s = subOf(tk);return round2(s + taxOn(s));};
+  const partyTotal = round2(tickets.reduce((s, x) => s + totalOf(x), 0));
+  // The open half of the party — what a single "Pay all" tender is charging.
+  // Summed the same way each ticket prices itself (2-dp subtotal + 2-dp tax),
+  // so the one amount taken at the drawer equals the sum of the orders written.
+  const openT = tickets.filter((x) => !x.paid && x.cart.length > 0);
+  const partySub = round2(openT.reduce((s, x) => s + subOf(x), 0));
+  const partyTax = round2(openT.reduce((s, x) => s + taxOn(subOf(x)), 0));
+  const partyDue = round2(partySub + partyTax);
+  const partyCount = openT.reduce((s, x) => s + x.cart.reduce((n, c) => n + c.qty, 0), 0);
 
   const flash = (m) => {setToast(m);setTimeout(() => setToast(null), 1800);};
 
@@ -71,7 +135,7 @@ window.RegisterScreen = function RegisterScreen() {
     const m = window.HW.MEMBERS.find((x) => x.name === gn) || (g && g.id ? window.HW.memberById(g.id) : null);
     const person = m || { id: (g && g.key) || 'g-' + gn, name: gn, email: '—', phone: g && g.phone || '—',
       points: 0, visits: 1, wallet: 0, type: 'AdultUse', member: false, guestOf: customer && customer.name };
-    setTickets((ts) => {setActive(ts.length);return [...ts, { id: 't' + (ts.length + 1), person, cart: [], paid: false }];});
+    setTickets((ts) => {setActive(ts.length);return [...ts, { id: 't' + (ts.length + 1), person, cart: [], paid: false, discounts: [] }];});
     flash(`Separate ticket opened for ${gn.split(' ')[0]}`);
   };
   const dropTicket = (i) => {
@@ -94,15 +158,132 @@ window.RegisterScreen = function RegisterScreen() {
   };
   // Search → select checks the customer in (no separate check-in button needed)
   const checkInCustomer = (m) => {openVisit(m, []);flash(`${m.name.split(' ')[0]} checked in`);};
+  // ── Recording the sale ──────────────────────────────────────────────────
+  // The receipt used to name an order id that was never created: the tender
+  // reset the ticket and wrote nothing, so a completed sale appeared in no
+  // queue, on no board, in no report. This is the write.
+  //
+  // The payment modal mints its own receipt id. Reuse it when it is free, so
+  // the paper and the queue name the same order; fall back to the store's own
+  // sequence when it collides, because two orders sharing an id is worse than
+  // a receipt whose number is one off.
+  //
+  // `creditsApplied` is the part of the bill settled with points or wallet
+  // money. pos/payment.jsx runs its own credit path — the CASH_REWARDS ladder
+  // and the wallet field — which reduces the drawer's `balance` and never
+  // touches the cart total. Recording totalOf(tk) therefore filed an order for
+  // MORE money than was collected: the receipt said "Collected $36.93" and the
+  // queue said $39.43 for the same sale. The order records the money taken,
+  // and keeps the pre-credit figure alongside it so nothing is hidden.
+  const recordTicket = (tk, sale, creditsApplied) => {
+    if (!tk) return null;
+    const tkLines = tk.cart.map((c) => {const p = find(c.sku);return { sku: c.sku, name: p ? p.name : c.sku, qty: c.qty, price: p ? p.price : 0, total: p ? round2((p.price - c.disc) * c.qty) : 0 };});
+    const items = tkLines.reduce((s, l) => s + l.qty, 0);
+    const ds = tk.discounts || [];
+    const off = offOf(tk);
+    const gross = round2(subOf(tk) + taxOn(subOf(tk)));
+    const credits = round2(Math.min(gross, Math.max(0, +(creditsApplied || 0))));
+    const collected = round2(gross - credits);
+    const reuse = sale && sale.id && !HW.orderById(sale.id) ? sale.id : null;
+    const rec = HW.addOrder({
+      // id AND num together — addOrder numbers from its own sequence, so
+      // handing it only the id files ORD-00240 on the board as "#00230".
+      id: reuse || undefined,
+      num: reuse ? reuse.replace(/^ORD-/, '') : undefined,
+      name: tk.person && tk.person.name || sale && sale.name || 'Walk-in',
+      total: collected, items, lines: tkLines,
+      pay: PAY_LABEL[sale && sale.method || pay] || 'Cash',
+      source: 'Stilo', channel: 'Store',
+      badge: tk.person && tk.person.member ? 'Member' : null,
+      stage: 'verify' });
+    // addOrder writes a fixed shape, so the discount detail is patched on: the
+    // sale is not honestly recorded if the money that came off it is missing.
+    if (rec && off > 0) HW.updateOrder(rec.id, {
+      discount: off,
+      discounts: ds.map((d) => ({ kind: d.kind, label: d.label, off: round2(d.off), mgr: d.mgr || null, reason: d.reason || null, code: d.code || null, points: d.points || 0 })),
+      points: round2(ds.reduce((s, d) => s + (+d.points || 0), 0)) });
+    if (rec && credits > 0) HW.updateOrder(rec.id, { credits, grossTotal: gross });
+    return rec;
+  };
+  const recordSale = (sale) => recordTicket(tickets[active] || tickets[0], sale, sale && sale.credits);
+
+  // Mark a ticket paid AND strip it. A paid ticket that keeps its cart keeps a
+  // live TENDER button, and a second press writes a second real order for money
+  // nobody collected — reproduced once as ORD-00240.
+  const closeTicket = (idx, paidTotal) => setTickets((ts) => ts.map((x, i) =>
+  i === idx ? { ...x, paid: true, paidTotal, cart: [], discounts: [] } : x));
+
   // Tender closes the ACTIVE ticket only, then lands on the next unpaid one.
-  const onPaid = () => {
+  const onPaid = (sale) => {
     setShowPay(false);
-    if (!multi) {setCart([]);flash('Sale complete · receipt printed');return;}
+    // Whatever happens next, this sale has now been banked. Re-marking means a
+    // later onClose for the same modal cannot record it a second time.
+    payMark.current = window.POS && window.POS.getLastSale ? window.POS.getLastSale() : null;
+    if (payScope === 'party') {payParty(sale);return;}
     const paidIdx = active;
-    setTickets((ts) => ts.map((x, i) => i === paidIdx ? { ...x, paid: true } : x));
+    const rec = recordSale(sale);
+    const named = rec ? ` · ${rec.id}` : '';
+    if (!multi) {clearTicket();flash(`Sale complete${named} · receipt printed`);return;}
+    closeTicket(paidIdx, rec ? rec.total : totalOf(tickets[paidIdx]));
     const next = tickets.findIndex((x, i) => i !== paidIdx && !x.paid);
-    if (next >= 0) {setActive(next);flash(`Paid · now on ${tickets[next].person.name.split(' ')[0]}’s ticket`);} else
-    flash('Party closed · every ticket paid');
+    if (next >= 0) {setActive(next);flash(`Paid${named} · now on ${tickets[next].person.name.split(' ')[0]}’s ticket`);} else
+    flash(`Paid${named} · party closed, every ticket paid`);
+  };
+
+  // ── Pay all — ONE tender, N transactions ────────────────────────────────
+  // The host paying for everyone is the common case, and it stayed N legal
+  // sales: each guest's ticket keeps its own purchase limit and points, so each
+  // one gets its own order. This control used to be a bare toast — driven with
+  // two open tickets it congratulated the operator and wrote nothing, leaving
+  // the bar reading "0 paid, 2 open" over money that had been taken.
+  //
+  // Credits are consumed ticket by ticket rather than split by ratio: the
+  // orders then add up to the amount tendered EXACTLY, with no rounding
+  // remainder to lose between the drawer and the board.
+  const payParty = (sale) => {
+    const open = tickets.map((x, i) => ({ x, i })).filter((e) => !e.x.paid && e.x.cart.length > 0);
+    if (!open.length) {flash('Nothing open to charge — every ticket is paid or empty');return;}
+    let left = round2(Math.max(0, +(sale && sale.credits || 0)));
+    const ids = [];
+    const paidTotals = {};
+    for (const e of open) {
+      const use = round2(Math.min(left, totalOf(e.x)));
+      left = round2(left - use);
+      const rec = recordTicket(e.x, sale, use);
+      if (rec) {ids.push(rec.id);paidTotals[e.i] = rec.total;}
+    }
+    setTickets((ts) => ts.map((x, i) => paidTotals[i] == null ? x :
+    { ...x, paid: true, paidTotal: paidTotals[i], cart: [], discounts: [] }));
+    flash(`One tender · ${ids.length} ticket${ids.length > 1 ? 's' : ''} paid · ${ids.join(', ')}`);
+  };
+
+  // ── Opening and closing the tender ──────────────────────────────────────
+  const openPay = (scope) => {
+    if (scope === 'party') {
+      if (!openT.length) {flash('Nothing open to charge — every ticket is paid or empty');return;}
+    } else if (t && t.paid) {
+      flash(`${t.person.name.split(' ')[0]}’s ticket is already paid — nothing left to tender`);return;
+    } else if (count === 0) {
+      flash('Nothing on the ticket to tender');return;
+    }
+    // finalize()'s own fingerprint, sampled before the modal opens. See closePay.
+    payMark.current = window.POS && window.POS.getLastSale ? window.POS.getLastSale() : null;
+    setPayScope(scope);
+    setShowPay(true);
+  };
+
+  // The write must NOT hang off which control dismissed the receipt. By the
+  // time the receipt is on screen, pos/payment.jsx's finalize() has popped the
+  // drawer, banked the cash on the session and printed — the money is taken.
+  // Dismissing with the header ✕ or the scrim called setShowPay(false) and
+  // nothing else, so a real payment left no order in any queue, on any board,
+  // in any report. POS.setLastSale is written by finalize and by nothing else,
+  // so a lastSale that is not the one sampled in openPay means the sale went
+  // through and has to be recorded, whichever way the operator closed the modal.
+  const closePay = () => {
+    const s = window.POS && window.POS.getLastSale ? window.POS.getLastSale() : null;
+    if (s && s !== payMark.current) {onPaid(s);return;}
+    setShowPay(false);
   };
 
   // Smart up-sell filters
@@ -183,17 +364,28 @@ window.RegisterScreen = function RegisterScreen() {
         </div>
 
         {/* RIGHT — cart */}
-        <CartPane P={P} lines={lines} sub={sub} tax={tax} total={total} count={count} pay={pay} setPay={setPay}
-        setQty={setQty} remove={remove} setCart={setCart} customer={customer} cartSkus={cart.map((c) => c.sku)}
+        <CartPane P={P} lines={lines} merch={merch} discountOff={discountOff} sub={sub} tax={tax} total={total} count={count} pay={pay} setPay={setPay}
+        setQty={setQty} remove={remove} onClearCart={clearTicket} customer={customer} cartSkus={cart.map((c) => c.sku)}
+        discounts={discounts} onApplyDiscount={applyDiscount} onRemoveDiscount={removeDiscount}
         onAdd={(p) => {add(p);flash(p.name + ' added');}}
         tabs={multi ? <TicketTabs tickets={tickets} active={active} onPick={setActive} onDrop={dropTicket} totalOf={totalOf} /> : null}
-        footNote={multi ? <PartyTotalBar P={P} tickets={tickets} partyTotal={partyTotal} onPayAll={() => flash('One tender · all open tickets charged to ' + tickets[0].person.name.split(' ')[0])} /> : null}
-        discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => setShowPay(true)} />
+        footNote={multi ? <PartyTotalBar P={P} tickets={tickets} partyTotal={partyTotal} onPayAll={() => openPay('party')} /> : null}
+        discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => openPay('ticket')} />
       </div>
 
       {showCheckIn && <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={onCheckIn} />}
 
-      {showPay && <PaymentModal total={total} sub={sub} tax={tax} count={count} customer={customer} onClose={() => setShowPay(false)} onDone={onPaid} />}
+      {/* One tender for a party charges the OPEN half of the party, and is
+          taken against the person the visit is on. Everything else is this
+          ticket. onClose is not a cancel — see closePay. */}
+      {showPay &&
+      <PaymentModal
+        total={payScope === 'party' ? partyDue : total}
+        sub={payScope === 'party' ? partySub : sub}
+        tax={payScope === 'party' ? partyTax : tax}
+        count={payScope === 'party' ? partyCount : count}
+        customer={payScope === 'party' ? tickets[0] && tickets[0].person : customer}
+        onClose={closePay} onDone={onPaid} />}
 
       {toast && <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: P.ink, color: P.surface, padding: '11px 18px', borderRadius: P.r999, fontSize: 13.5, fontWeight: 600, boxShadow: P.shadowLg, display: 'flex', alignItems: 'center', gap: 9, zIndex: 60 }}><Icon name="check-circle" size={16} stroke={2} color={P.accent} />{toast}</div>}
     </div>);
@@ -453,7 +645,7 @@ function TicketTabs({ tickets, active, onPick, onDrop, totalOf }) {
     <div style={{ display: 'flex', background: P.surface3, borderBottom: `1px solid ${P.hairline2}`, flex: '0 0 auto' }}>
       {tickets.map((t, i) => {
         const on = i === active;
-        const amt = totalOf(t.cart);
+        const amt = totalOf(t);
         return (
           <button key={t.id} onClick={() => onPick(i)} title={`${t.person.name} · ticket ${i + 1}`} style={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px', background: on ? P.surface2 : 'transparent', border: 'none', borderRight: i < tickets.length - 1 ? `1px solid ${P.hairline2}` : 'none', boxShadow: on ? `inset 0 2px 0 ${P.accent}` : 'none', cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
             <Avatar name={t.person.name} size={24} crown={t.person.member} />
@@ -700,11 +892,27 @@ function MemberDetails({ customer, guests, onClose }) {
   const mmic = 'MMIC-' + (25800 + seed * 137).toString().slice(0, 5);
   const medMd = pick(['Dr. A. Okafor', 'Dr. L. Brandt', 'Dr. S. Patel', 'Dr. R. Nguyen']);
   const medIssued = pick(['Jan 2026', 'Nov 2025', 'Mar 2026', 'Aug 2025']);
-  const orders = [{ id: '00219', date: 'Jun 8', items: 3, total: 41.0, tag: window.HW_BRANDS.name.jeeter + ' · Pre-Rolls' }, { id: '00204', date: 'Jun 1', items: 2, total: 28.5, tag: window.HW_BRANDS.name.lowell + ' · Flower' }, { id: '00188', date: 'May 24', items: 5, total: 96.2, tag: 'KIVA · Edibles' }, { id: '00171', date: 'May 18', items: 1, total: 15.0, tag: 'Allswell · Flower' }, { id: '00150', date: 'May 9', items: 4, total: 62.4, tag: 'West Coast Cure · Concentrates' }, { id: '00132', date: 'Apr 30', items: 2, total: 33.2, tag: 'AMMO · Vapes' }];
+  // ── This member's order history ─────────────────────────────────────────
+  // The rows the ORDER BOOK can actually produce a record for come first, and
+  // clicking one opens THAT record — so an edit made from here lands on the
+  // order the queue is showing.
+  //
+  // The rest are archive lines. Handing OrderDetails a literal built from one
+  // of them — `{ id: '00219', name, items, total }` — is a landmine: '00219' is
+  // not a board id, the object carries no stage, and the moment it gains one,
+  // OrderDetails turns its edit controls on and every save runs
+  // HW.updateOrder('00219', …), which returns null and fails in silence. So an
+  // archive row says it is archived rather than opening an editor whose writes
+  // go nowhere.
+  const liveOrders = (window.HW.ORDERS || []).filter((o) => o.name === m.name).map((o) =>
+  ({ id: o.id, date: o.age || '—', items: o.items, total: o.total, tag: `${o.source} · ${o.channel} · ${o.pay}`, live: true }));
+  const ARCHIVE = [{ id: '00219', date: 'Jun 8', items: 3, total: 41.0, tag: window.HW_BRANDS.name.jeeter + ' · Pre-Rolls' }, { id: '00204', date: 'Jun 1', items: 2, total: 28.5, tag: window.HW_BRANDS.name.lowell + ' · Flower' }, { id: '00188', date: 'May 24', items: 5, total: 96.2, tag: 'KIVA · Edibles' }, { id: '00171', date: 'May 18', items: 1, total: 15.0, tag: 'Allswell · Flower' }, { id: '00150', date: 'May 9', items: 4, total: 62.4, tag: 'West Coast Cure · Concentrates' }, { id: '00132', date: 'Apr 30', items: 2, total: 33.2, tag: 'AMMO · Vapes' }];
+  const orders = [...liveOrders, ...ARCHIVE.filter((a) => !liveOrders.some((l) => l.id === 'ORD-' + a.id))];
   const referrals = (guests && guests.length ? guests.map((g)=>window.guestName?window.guestName(g):g) : ['Dev Anand', 'Mia Tran']).slice(0, 4);
 
   const [lb, setLb] = React.useState(null); // enlarged photo
   const [ord, setOrd] = React.useState(null); // order details modal
+  const [histNote, setHistNote] = React.useState(null); // id of an archive row the operator clicked
   const [oq, setOq] = React.useState(''); // smart order search
   const oList = orders.filter((o) => !oq || (o.id + ' ' + o.date + ' ' + o.tag).toLowerCase().includes(oq.toLowerCase()));
   const [editing, setEditing] = React.useState(null); // field being edited
@@ -829,17 +1037,31 @@ function MemberDetails({ customer, guests, onClose }) {
             <div style={{ marginBottom: 8 }}><Field icon="search" placeholder="Search order #, brand, product, date…" size="sm" value={oq} onChange={(e) => setOq(e.target.value)} /></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 188, overflowY: 'auto' }}>
               {oList.map((o) =>
-              <button key={o.id} onClick={() => setOrd({ id: o.id, name: m.name, items: o.items, total: o.total, pay: 'Wallet', badge: m.member ? 'Member' : null })} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+              <button key={o.id} title={o.live ? 'Open this order' : 'Archived — no live record'}
+              onClick={() => {
+                if (!o.live) {setHistNote(o.id);return;}
+                // Resolved at click time, not at render: the record is the one
+                // the order book holds right now, so the modal's edits write.
+                const real = window.HW.orderById(o.id);
+                if (!real) {setHistNote(o.id);return;}
+                setHistNote(null);setOrd(real);
+              }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, opacity: o.live ? 1 : .72 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>#{o.id}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{o.live ? o.id : '#' + o.id}</div>
                     <div style={{ fontSize: 10, color: P.inkMute, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.date} · {o.tag}</div>
                   </div>
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(o.total)}</span>
-                  <Icon name="chevron-right" size={14} color={P.inkFaint} />
+                  {o.live ?
+                <Icon name="chevron-right" size={14} color={P.inkFaint} /> :
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.07em', color: P.inkMute, fontFamily: P.fontMono }}>ARCHIVED</span>}
                 </button>
               )}
               {oList.length === 0 && <div style={{ padding: '14px 8px', textAlign: 'center', fontSize: 11.5, color: P.inkMute }}>No orders match</div>}
             </div>
+            {histNote &&
+          <div style={{ marginTop: 7, padding: '7px 9px', background: P.surface3, borderRadius: P.r8, fontSize: 10.5, color: P.ink2, lineHeight: 1.45 }}>
+                #{histNote} is archived history — the order book holds no record for it, so there is nothing to open or edit.
+              </div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11.5, color: P.inkDim }}><span>{m.visits} lifetime orders</span><span style={{ fontFamily: P.fontMono }}>avg {window.HW.fmt.money(avgBasket)}</span></div>
           </Panel>
 

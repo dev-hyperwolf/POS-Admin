@@ -27,7 +27,8 @@ window.MembersScreen = function MembersScreen() {
   const setF1 = (k, v) => setF((x) => ({ ...x, [k]: v }));
   const clearF = () => setF({ group: 'All', type: 'All', wm: 'All', tier: 'All' });
   const nFilt = ['group', 'type', 'wm', 'tier'].filter((k) => f[k] !== 'All').length;
-  const isLinked = (m) => m.id.charCodeAt(m.id.length - 1) % 2 === 0;
+  const isLinked = (m) => window.HW.wmLinked(m);
+  const [exportOpen, setExportOpen] = React.useState(false);
 
   const all = HW.MEMBERS;
   const members = all.filter((m) => {
@@ -49,7 +50,7 @@ window.MembersScreen = function MembersScreen() {
   { label: 'Visits', align: 'right', render: (m) => <span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{m.visits}</span> },
   { label: 'Points', align: 'right', render: (m) => <span style={{ fontFamily: P.fontMono, fontWeight: 600, color: m.points > 1000 ? P.good : P.ink }}>{m.points.toLocaleString()}</span> },
   { label: 'Wallet', align: 'right', render: (m) => <span style={{ fontFamily: P.fontMono, fontWeight: 600, color: m.wallet > 0 ? P.good : P.inkMute }}>{window.HW.fmt.money(m.wallet)}</span> },
-  { label: 'Weedmaps', render: (m) => {const linked = m.id.charCodeAt(m.id.length - 1) % 2 === 0;return linked ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Linked</span> : <span style={{ fontSize: 11.5, color: P.inkMute }}>In-store</span>;} },
+  { label: 'Weedmaps', render: (m) => {const linked = window.HW.wmLinked(m);return linked ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Linked</span> : <span style={{ fontSize: 11.5, color: P.inkMute }}>In-store</span>;} },
   { label: '', align: 'right', width: '56px', render: (m) => <IconBtn icon="chevron-right" size={16} style={{ width: 32, height: 32 }} onClick={() => setSel(m)} /> }];
 
   if (sel) return <MemberDetailPage m={sel} onBack={() => setSel(null)} />;
@@ -101,10 +102,11 @@ window.MembersScreen = function MembersScreen() {
             </div>
           </>}
         </div>
-        <PBtn variant="secondary" icon="download" size="md">Export</PBtn>
+        <PBtn variant="secondary" icon="download" size="md" onClick={() => setExportOpen(true)}>Export</PBtn>
       </div>
       <DataTable columns={cols} rows={members} rowKey={(m) => m.id} onRowClick={(m) => setSel(m)} />
       {members.length === 0 && <div style={{ textAlign: 'center', padding: '34px 20px', color: P.inkMute, fontSize: 13.5 }}>No members match those filters.</div>}
+      {exportOpen && <ExportMembersModal rows={members} total={all.length} narrowed={nFilt > 0 || !!q} onClose={() => setExportOpen(false)} />}
       {addOpen && <AddMemberModal onClose={() => setAddOpen(false)} onAdd={(m) => {window.HW.addMember(m);setAddOpen(false);}} />}
       {/* The modal hands back {customer, guests, type, delivery} — dropping it
           was the whole bug: the flow completed and created nothing. */}
@@ -112,6 +114,57 @@ window.MembersScreen = function MembersScreen() {
     </div>);
 
 };
+
+// ── Export — the rows you are looking at, as CSV ───────────────────────────
+//
+// 'Export' had no handler. It exports what is ON SCREEN, filters and search
+// included, because exporting all 5,000 members from a filtered view is the
+// classic way to hand somebody the wrong spreadsheet — so the count and the
+// caveat are stated before anything is saved. The CSV is shown as well as
+// offered: a browser that blocks the download still leaves it copyable.
+function ExportMembersModal({ rows, total, narrowed, onClose }) {
+  const P = useP();
+  const COLS = [
+  ['Name', (m) => m.name], ['Email', (m) => m.email], ['Phone', (m) => m.phone],
+  ['Group', (m) => m.group], ['Type', (m) => m.type], ['Visits', (m) => m.visits],
+  ['Points', (m) => m.points], ['Wallet', (m) => m.wallet],
+  ['Weedmaps', (m) => window.HW.wmLinked(m) ? 'Linked' : 'In-store']];
+  const cell = (v) => {const t = String(v == null ? '' : v);return (/[",\n]/).test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;};
+  const csv = [COLS.map((c) => c[0]).join(',')].concat(rows.map((m) => COLS.map(([, f]) => cell(f(m))).join(','))).join('\n');
+  const href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(620px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
+          <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="download" size={16} stroke={2} color={P.accent} /></span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>Export {rows.length} member{rows.length === 1 ? '' : 's'}</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>members.csv · {COLS.length} columns</span>
+          </span>
+          <IconBtn icon="x" size={17} label="Close" onClick={onClose} />
+        </div>
+        <div style={{ padding: '14px 18px 18px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+          {narrowed &&
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+              <Icon name="filter" size={15} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This exports the <b>{rows.length}</b> row{rows.length === 1 ? '' : 's'} your search and filters leave on screen — not all {total}. Clear them first if you want the whole book.</div>
+            </div>}
+          {rows.length === 0 ?
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>Nothing to export — no members match the current filters.</div> : <>
+            <pre style={{ margin: 0, maxHeight: 220, overflow: 'auto', padding: 12, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, fontFamily: P.fontMono, fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>{csv}</pre>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ fontSize: 11.5, color: P.inkDim }}>Nothing leaves the browser — the file is built here.</span>
+              <div style={{ flex: 1 }} />
+              <a href={href} download="members.csv" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, minHeight: P.ctrlH.md, padding: '0 16px', borderRadius: P.r8, background: P.accent, color: P.accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 13.5, fontWeight: 600, textDecoration: 'none', fontFamily: P.fontSans }}>
+                <Icon name="download" size={15} stroke={2} />Download members.csv
+              </a>
+            </div>
+          </>}
+        </div>
+      </div>
+    </div>);
+
+}
 
 // ── Add member — creates the customer record; ID is still verified at check-in ─
 function AddMemberModal({ onClose, onAdd }) {
@@ -218,13 +271,31 @@ function MemberDetailPage({ m, onBack }) {
   const saveEdits = () => {window.HW.updateMember(m.id, form);setEditing(false);};
   const idv = (window.HW.IDV || {})[m.id] || null;
   const h = m.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const linked = m.id.charCodeAt(m.id.length - 1) % 2 === 0;
+  // Was derived from the id's last character, which is why "Unlink Weedmaps
+  // identity" had nothing to write to. HW.wmLinked keeps the derivation as the
+  // seed and lets a real write win.
+  const linked = window.HW.wmLinked(m);
+  const [allHist, setAllHist] = React.useState(false);
+  const [unlinkAsk, setUnlinkAsk] = React.useState(false);
   const tier = m.member || m.group === 'VIP' ? 'VIP' : 'Member';
   const since = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][h % 6] + ' 2024';
   const lifetime = m.visits * (38 + h % 64);
   const nextTier = 2000;const prog = Math.min(1, m.points / nextTier);
   const fav = window.HW.favCategory && window.HW.favCategory(m) || ['Flower', 'Vapes', 'Edibles', 'Pre-Rolls'][h % 4];
-  const hist = Array.from({ length: Math.min(m.visits, 6) || 1 }).map((_, i) => {const hh = h + i * 53;return { id: 'ORD-' + String(230 - i * 4).padStart(5, '0'), date: ['Jun 14', 'Jun 2', 'May 21', 'May 8', 'Apr 27', 'Apr 12'][i] + ', 2026', items: 1 + hh % 4, total: 24 + hh % 78, channel: hh % 3 === 0 ? 'Delivery' : 'Pickup', wm: linked && i % 3 === 0, status: 'Completed' };});
+  // 'View all' was inert because the list stopped at six and there was nothing
+  // else to show. The generator now runs the customer's whole visit count —
+  // dates walk backwards a fortnight at a time past the six hand-written ones —
+  // so the control has a second state to move to, and the count it names is the
+  // count the member record claims.
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const histDate = (i) => {
+    if (i < 6) return ['Jun 14', 'Jun 2', 'May 21', 'May 8', 'Apr 27', 'Apr 12'][i] + ', 2026';
+    const d = new Date(2026, 3, 12);
+    d.setDate(d.getDate() - (i - 5) * 14);
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  };
+  const histAll = Array.from({ length: Math.max(1, m.visits) }).map((_, i) => {const hh = h + i * 53;return { id: 'ORD-' + String(230 - i * 4).padStart(5, '0'), date: histDate(i), items: 1 + hh % 4, total: 24 + hh % 78, channel: hh % 3 === 0 ? 'Delivery' : 'Pickup', wm: linked && i % 3 === 0, status: 'Completed' };});
+  const hist = allHist ? histAll : histAll.slice(0, 6);
   const activityBase = [
   linked ? { icon: 'link', accent: true, t: `Merged from Weedmaps order WM-${88000 + h % 900}`, s: 'System · Jun 2, 2026' } : null,
   { icon: 'star', t: `Redeemed ${200 + h % 400} points · $10 off`, s: 'May 21, 2026' },
@@ -353,7 +424,9 @@ function MemberDetailPage({ m, onBack }) {
             </div>
           </Sec>
 
-          <Sec icon="receipt" title="Order history" sub={`${m.visits} lifetime orders`} right={<PBtn variant="ghost" size="sm">View all</PBtn>}>
+          <Sec icon="receipt" title="Order history" sub={`${m.visits} lifetime orders · showing ${hist.length}`}
+          right={histAll.length > 6 ? <PBtn variant="ghost" size="sm" icon={allHist ? 'chevron-up' : 'list'} onClick={() => setAllHist((v) => !v)}>{allHist ? 'Show recent' : `View all ${histAll.length}`}</PBtn> :
+          <span style={{ fontSize: 11.5, color: P.inkMute }}>All {histAll.length} shown</span>}>
             <div>
               {hist.map((o, i) => <div key={o.id} onClick={() => setOpenOrder(o)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderTop: i ? `1px solid ${P.hairline}` : 'none', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink2, background: P.surface3, padding: '2px 7px', borderRadius: 6 }}>#{o.id}</span>
@@ -388,7 +461,17 @@ function MemberDetailPage({ m, onBack }) {
               {linked ? <>
                 <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This profile was merged from a Weedmaps order. Order history &amp; loyalty are unified.</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}><Icon name="link" size={14} color={P.inkMute} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Merged from</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>WM-{88000 + h % 900}</div></div><span style={{ fontSize: 11.5, color: P.inkMute }}>Jun 2</span></div>
-                <PBtn variant="ghost" size="sm" icon="user-off">Unlink Weedmaps identity</PBtn>
+                {unlinkAsk ?
+                <div style={{ padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, marginBottom: 5 }}>Unlink {m.name.split(' ')[0]} from Weedmaps?</div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginBottom: 9 }}>The merged order history stays on this profile. The next Weedmaps order from this contact arrives as a fresh match candidate instead of landing here automatically.</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <PBtn variant="ghost" size="xs" onClick={() => setUnlinkAsk(false)}>Cancel</PBtn>
+                      <div style={{ flex: 1 }} />
+                      <PBtn variant="danger" size="xs" icon="user-off" onClick={() => {window.HW.setWmLink(m.id, false);setUnlinkAsk(false);}}>Unlink</PBtn>
+                    </div>
+                  </div> :
+                <PBtn variant="ghost" size="sm" icon="user-off" onClick={() => setUnlinkAsk(true)}>Unlink Weedmaps identity</PBtn>}
               </> : <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>No Weedmaps identity linked. If a Weedmaps order matches this customer, you can merge it from the order.</div>}
             </div>
           </Card>

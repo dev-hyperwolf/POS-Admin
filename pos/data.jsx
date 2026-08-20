@@ -384,6 +384,47 @@ function addCheckIn(p) {
   return rec;
 }
 
+/**
+ * Take a person off the waiting list — they left, or the check-in was a mistake.
+ *
+ * The ✕ on a check-in card had no handler at all, so the one control that means
+ * "this person is not here any more" left them in the room for ever. This
+ * REMOVES the check-in; it does not touch the customer record, because leaving
+ * the queue is not the same as ceasing to exist.
+ *
+ * Returns the removed record, or null when the id is unknown — the caller can
+ * then say so instead of reporting a removal that never happened.
+ */
+function removeCheckIn(id) {
+  const i = CHECKINS.findIndex((c) => c.id === id);
+  if (i < 0) return null;
+  const [rec] = CHECKINS.splice(i, 1);
+  _hwNotify();
+  return rec;
+}
+
+/**
+ * Whether this customer's Weedmaps identity is linked to us.
+ *
+ * This used to be DERIVED from the id's last character, which meant "Unlink
+ * Weedmaps identity" had nothing it could possibly write to: the answer was
+ * recomputed from the id every render. The derivation stays as the seed value
+ * so the demo still shows a mix, but once anyone sets it, the stored field wins.
+ */
+function wmLinked(m) {
+  if (!m) return false;
+  if (m.wm != null) return !!m.wm;
+  return m.id.charCodeAt(m.id.length - 1) % 2 === 0;
+}
+
+function setWmLink(id, linked) {
+  const m = MEMBERS.find((x) => x.id === id);
+  if (!m) return null;
+  m.wm = !!linked;
+  _hwNotify();
+  return m;
+}
+
 // Hand-off for "check in & start sale": the register reads this once on mount,
 // so the sale opens on the person who just checked in rather than on whatever
 // ticket the register happens to seed itself with.
@@ -463,7 +504,7 @@ function takePendingSale() { const p = _pendingSale; _pendingSale = null; return
 window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, fmt, visitLabel, visitOrdinal,
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
-  addMember, updateMember, creditWallet, addCheckIn, startSaleFor, takePendingSale,
+  addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
   STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
   subscribe:(fn)=>{ _hwSubs.add(fn); return ()=> _hwSubs.delete(fn); },
   checkinById:(id)=> CHECKINS.find(c=>c.id===id) || null,

@@ -1,7 +1,10 @@
 // ── Cart pane + Payment modal ──────────────────────────────────────────────
 const useP = window.useP;
 
-window.CartPane = function CartPane({ P, lines, sub, tax, total, count, pay, setPay, setQty, remove, setCart, customer, cartSkus, onAdd, discMode, setDiscMode, tab, setTab, onPay, tabs, footNote }) {
+// `merch` is what the goods cost; `sub` is what is left to tax after
+// `discountOff` comes off. They are separate props because the footer has to
+// show the customer both — a total that quietly shrank is a total nobody trusts.
+window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote }) {
   const walletAmt = customer?.wallet || 0;
   const [taxOpen, setTaxOpen] = React.useState(false);
   const goal = window.HW.STATS.associate.goal;
@@ -32,7 +35,7 @@ window.CartPane = function CartPane({ P, lines, sub, tax, total, count, pay, set
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Eyebrow>{count} item{count > 1 ? 's' : ''}</Eyebrow>
-              <button onClick={() => setCart([])} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '0 4px', background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="x" size={12} stroke={2} />Clear</button>
+              <button onClick={() => onClearCart && onClearCart()} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '0 4px', background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="x" size={12} stroke={2} />Clear</button>
             </div>
             {lines.map((l) =>
             <div key={l.sku} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: P.surface, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
@@ -52,10 +55,11 @@ window.CartPane = function CartPane({ P, lines, sub, tax, total, count, pay, set
           <AovBooster P={P} total={total} goal={goal} gap={gap} goalPct={goalPct} recs={recs} onAdd={onAdd} />
 
           {/* Discount + promo — committed to the compact layout */}
-          <DiscountCard P={P} discMode={discMode} setDiscMode={setDiscMode} subtotal={sub} />
+          <DiscountCard P={P} discMode={discMode} setDiscMode={setDiscMode} subtotal={merch == null ? sub : merch}
+          discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} />
 
           {/* Rewards — placed right by the payment types (comment: move rewards near payment) */}
-          <RewardsCard P={P} customer={customer} />
+          <RewardsCard P={P} customer={customer} discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} />
         </>}
       </div>
 
@@ -68,7 +72,8 @@ window.CartPane = function CartPane({ P, lines, sub, tax, total, count, pay, set
             they are the same every sale, so they only cost height. */}
           <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, fontSize: 11.5 }}>
-              <Row P={P} k="Sub-total" v={window.HW.fmt.money(sub)} />
+              <Row P={P} k="Sub-total" v={window.HW.fmt.money(merch == null ? sub : merch)} />
+              {discountOff > 0 && <Row P={P} k="Discount" v={`−${window.HW.fmt.money(discountOff)}`} tone={P.good} />}
               <TaxRow P={P} sub={sub} open={taxOpen} onToggle={() => setTaxOpen((o) => !o)} />
               <Row P={P} k="Items" v={count} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 2, paddingTop: 5, borderTop: `1px dashed ${P.hairline2}` }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Total</span><span style={{ fontSize: 21, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(total)}</span></div>
@@ -86,15 +91,24 @@ window.CartPane = function CartPane({ P, lines, sub, tax, total, count, pay, set
 // Loyalty rewards — the tier coins, sized small so the cart stays short.
 // The ladder is fixed: 100 pts → $2.50, 200 → $5, 400 → $10, 800 → $20, plus
 // the birthday $20 which is not points-gated at all.
-function RewardsCard({ P, customer }) {
-  const [redeemed, setRedeemed] = React.useState(null);
+//
+// The redemption used to live in this component's own `redeemed` state, so the
+// card printed "$2.50 off applied · 100 pts redeemed" over a total that had not
+// moved a cent. It now hands the discount UP to the ticket, and reads back the
+// one the ticket is actually carrying.
+function RewardsCard({ P, customer, discounts, onApply, onRemove }) {
   const rewards = window.HW.REWARDS;
   const pts = customer?.points || 0;
   const goldInk = P.accentText;
   const tier = pts >= 2000 ? 'Platinum' : pts >= 1000 ? 'Gold' : pts >= 300 ? 'Silver' : 'Bronze';
   const tierColor = tier === 'Platinum' ? P.info : tier === 'Gold' ? goldInk : tier === 'Silver' ? P.neutral : P.warn;
   const unlocked = (r) => r.bday || pts >= r.cost;
-  const doRedeem = (id) => setRedeemed((r) => r === id ? null : id);
+  const held = (discounts || []).filter((d) => d.kind === 'reward')[0] || null;
+  const redeemed = held ? held.rewardId : null;
+  const doRedeem = (r) => {
+    if (redeemed === r.id) {onRemove && onRemove('reward');return;}
+    onApply && onApply({ kind: 'reward', rewardId: r.id, off: r.value, label: r.label, points: r.bday ? 0 : r.cost });
+  };
 
   if (!customer) {
     return (
@@ -121,7 +135,7 @@ function RewardsCard({ P, customer }) {
         {rewards.map((r) => {
           const can = unlocked(r);const isR = redeemed === r.id;
           return (
-            <button key={r.id} disabled={!can} onClick={() => doRedeem(r.id)} title={r.bday ? 'Birthday reward — no points required' : `${r.cost} pts`}
+            <button key={r.id} disabled={!can} onClick={() => doRedeem(r)} title={can ? r.bday ? 'Birthday reward — no points required' : `${r.cost} pts` : `Locked — ${r.cost - pts} more points needed`}
               style={{ flex: '0 0 auto', width: 62, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '5px 4px 6px', background: isR ? P.accentSoft : P.surface, border: `1px solid ${isR ? P.accentBorder : can ? P.hairline2 : P.hairline}`, borderRadius: P.r10, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .55, fontFamily: P.fontSans }}>
               <span style={{ width: 22, height: 22, borderRadius: 99, background: can ? P.accent : P.surface3, color: can ? P.accentInk : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={isR ? 'check' : can ? r.icon : 'lock'} size={12} stroke={2} /></span>
               <span style={{ fontSize: 10, fontWeight: 700, color: P.ink, textAlign: 'center', lineHeight: 1.15, whiteSpace: 'nowrap' }}>{r.short || r.label}</span>
@@ -130,9 +144,14 @@ function RewardsCard({ P, customer }) {
         })}
       </div>
 
-      {redeemed &&
+      {held &&
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 7, fontSize: 11.5, color: goldInk, fontWeight: 600 }}>
-          <Icon name="gift" size={12} stroke={1.9} />{rewards.find((r) => r.id === redeemed).label} applied{rewards.find((r) => r.id === redeemed).bday ? '' : ` · ${rewards.find((r) => r.id === redeemed).cost} pts redeemed`}
+          <Icon name="gift" size={12} stroke={1.9} />
+          {/* "costs", not "redeemed": the points come off when the sale is
+              tendered, and this card is not the thing that debits them. */}
+          {/* No remove button: the coin itself is the toggle, and it is already
+              a proper target. A second 20px × on top of it would be worse. */}
+          {held.label} applied — {window.HW.fmt.money(held.off)} off{held.points ? ` · costs ${held.points} pts` : ''} · tap the coin to release it
         </div>}
     </Card>);
 }
@@ -156,16 +175,23 @@ function DiscountApprovalModal({ P, amount, mode, subtotal, onClose, onApprove }
   const [pin, setPin] = React.useState('');
   const [reason, setReason] = React.useState('');
   const [note, setNote] = React.useState('');
-  const [err, setErr] = React.useState('');
   const amt = parseFloat(amount) || 0;
   const off = mode === '%' ? subtotal * (amt / 100) : amt;
   const pctOff = subtotal > 0 ? off / subtotal * 100 : 0;
   const steep = pctOff >= 25;
   const needNote = reason === 'other';
-  const ok = mgr && pin.length >= 4 && reason && (!needNote || note.trim().length > 2);
+  // What is still missing, named. The button used to sit at 50% opacity and
+  // `return` on click: the gate was right, the SILENCE was the bug — a manager
+  // pressing Approve on an empty form got nothing back and no reason.
+  const missing = [
+  !mgr && 'choose the approving manager',
+  pin.length < 4 && 'enter the manager PIN',
+  !reason && 'pick a reason',
+  needNote && note.trim().length <= 2 && 'write the note that "Other" requires'].
+  filter(Boolean);
+  const ok = missing.length === 0;
   const submit = () => {
     if (!ok) return;
-    if (pin !== '1234' && pin.length < 4) {setErr('PIN must be at least 4 digits');return;}
     onApprove({ mgr, reason, note: note.trim(), off });
     onClose();
   };
@@ -201,8 +227,8 @@ function DiscountApprovalModal({ P, amount, mode, subtotal, onClose, onApprove }
         </div>
         <div>
           <div style={lbl}>Manager PIN</div>
-          <div style={{ maxWidth: 180 }}><Field mono type="password" placeholder="••••" value={pin} onChange={(e) => {setPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));setErr('');}} /></div>
-          {err && <div style={{ fontSize: 11.5, color: P.bad, marginTop: 5 }}>{err}</div>}
+          <div style={{ maxWidth: 180 }}><Field mono type="password" placeholder="••••" value={pin} onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} /></div>
+          {pin.length > 0 && pin.length < 4 && <div style={{ fontSize: 11.5, color: P.warn, marginTop: 5 }}>A manager PIN is at least 4 digits.</div>}
         </div>
         <div>
           <div style={lbl}>Reason</div>
@@ -224,25 +250,68 @@ function DiscountApprovalModal({ P, amount, mode, subtotal, onClose, onApprove }
           <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>The manager's name, the reason and the amount are written to the audit log against this sale and appear in the daily discount report.</span>
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+        {!ok && <span style={{ flex: 1, minWidth: 0, display: 'inline-flex', alignItems: 'flex-start', gap: 6, fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>
+          <Icon name="info" size={13} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          To approve, {missing.join(', ')}.
+        </span>}
+        <div style={{ flex: ok ? 1 : '0 0 auto' }} />
         <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
-        <PBtn variant="accent" size="md" icon="check" onClick={submit} style={{ opacity: ok ? 1 : .5 }}>Approve −{money(off)}</PBtn>
+        <PBtn variant="accent" size="md" icon="check" disabled={!ok} title={ok ? `Approve ${money(off)} off` : `Still needed: ${missing.join(', ')}`} onClick={submit}>Approve −{money(off)}</PBtn>
       </div>
     </div>
   </div>;
 }
 
+// The promo codes this store honours. Local, like DISC_REASONS and MANAGERS —
+// a code that is not on this list is REFUSED OUT LOUD rather than swallowed.
+const PROMO_CODES = [
+{ code: 'WELCOME10', pct: 10, label: '10% off · new member welcome' },
+{ code: 'GREEN5', amt: 5, label: '$5 off · Green Wednesday' },
+{ code: 'LOCAL15', pct: 15, label: '15% off · neighbourhood rate' }];
+
 // Discount + promo — one compact layout. The manager-sign-off rule is taught
 // in the guided walkthrough, not printed under the field every sale.
-function DiscountCard({ P, discMode, setDiscMode, subtotal }) {
+//
+// ⚠️ The approved discount does NOT live here. It used to — `applied` was local
+// state, so a manager could sign off and the total would not move. Everything
+// that changes money is handed to `onApply` and read back out of `discounts`.
+function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, onRemove }) {
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [amount, setAmount] = React.useState('');
+  const [code, setCode] = React.useState('');
+  const [promoErr, setPromoErr] = React.useState('');
   const [approval, setApproval] = React.useState(null); // pending request
-  const [applied, setApplied] = React.useState(null); // { off, mgr, reason, note }
   const money = window.HW.fmt.money;
+  const r2 = (n) => Math.round((+n || 0) * 100) / 100;
+  const list = discounts || [];
+  const applied = list.filter((d) => d.kind === 'manual')[0] || null;
+  const promo = list.filter((d) => d.kind === 'promo')[0] || null;
+  const sub = r2(subtotal);
+  const amt = parseFloat(amount) || 0;
+  const off = discMode === '%' ? r2(sub * (amt / 100)) : r2(amt);
   const modeSeg = <Seg value={discMode} onChange={setDiscMode} size="sm" options={[{ value: '$', label: '$' }, { value: '%', label: '%' }]} />;
+  // Why Apply is refusing, in a sentence. An empty field used to `return` and
+  // say nothing at all, which reads exactly like a dead button.
+  const blocked =
+  sub <= 0 ? 'Add something to the cart before discounting it.' :
+  !amount.trim() ? 'Enter an amount, then Apply.' :
+  !(amt > 0) ? 'A discount has to be more than zero.' :
+  discMode === '%' && amt > 100 ? 'A percentage cannot be over 100%.' :
+  off > sub ? `That is ${money(off)} off a ${money(sub)} subtotal.` : '';
   // Applying is a REQUEST — nothing changes until a manager signs it off.
-  const request = () => {if (!(parseFloat(amount) > 0)) return;setApproval({ amount, mode: discMode });};
+  const request = () => {if (blocked) return;setApproval({ amount, mode: discMode });};
+  const applyPromo = () => {
+    const c = code.trim().toUpperCase();
+    if (!c) {setPromoErr('Enter a promo code, then Apply.');return;}
+    if (sub <= 0) {setPromoErr('Add something to the cart before applying a code.');return;}
+    const hit = PROMO_CODES.filter((p) => p.code === c)[0];
+    if (!hit) {setPromoErr(`${c} is not a code this store honours.`);return;}
+    const value = Math.min(sub, hit.pct ? r2(sub * hit.pct / 100) : r2(hit.amt));
+    onApply && onApply({ kind: 'promo', off: value, label: hit.label, code: c });
+    setPromoErr('');setCode('');
+  };
+  const note = { fontSize: 10, color: P.inkDim, lineHeight: 1.4, marginTop: 5 };
   return (
     <Card padding={9} style={{ marginBottom: 10, background: P.surface }} data-tour="disc-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
@@ -257,22 +326,41 @@ function DiscountCard({ P, discMode, setDiscMode, subtotal }) {
           <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>−{money(applied.off)} approved</div>
           <div style={{ fontSize: 10, color: P.inkDim, lineHeight: 1.4 }}>{(DISC_REASONS.filter((r) => r.k === applied.reason)[0] || {}).label} · signed off by {applied.mgr}</div>
         </div>
-        <IconBtn icon="x" size={12} style={{ width: 20, height: 20 }} title="Remove discount" onClick={() => {setApplied(null);setAmount('');}} />
+        <IconBtn icon="x" size={12} style={{ width: 20, height: 20 }} title="Remove discount" label="Remove discount" onClick={() => {onRemove && onRemove('manual');setAmount('');}} />
+      </div>}
+
+      {promo && <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 9px', background: P.goodSoft, border: `1px solid ${P.good}44`, borderRadius: P.r10, marginBottom: 7 }}>
+        <Icon name="tag" size={13} color={P.good} style={{ flex: '0 0 auto' }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>−{money(promo.off)} · {promo.code}</div>
+          <div style={{ fontSize: 10, color: P.inkDim, lineHeight: 1.4 }}>{promo.label}</div>
+        </div>
+        <IconBtn icon="x" size={12} style={{ width: 20, height: 20 }} title="Remove promo code" label="Remove promo code" onClick={() => onRemove && onRemove('promo')} />
       </div>}
 
       <div style={{ display: 'flex', gap: 7 }}>
         <Field placeholder="Discount" size="sm" mono value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} suffix={modeSeg} />
-        <PBtn variant="soft" size="sm" onClick={request}>Apply</PBtn>
+        <PBtn variant="soft" size="sm" disabled={!!blocked} title={blocked || `Request ${money(off)} off`} onClick={request}>Apply</PBtn>
       </div>
+      {blocked && <div style={note}>{blocked}</div>}
       {promoOpen ?
-      <div style={{ display: 'flex', gap: 7, marginTop: 6 }}>
-          <Field icon="tag" placeholder="Promo code" size="sm" />
-          <PBtn variant="soft" size="sm">Apply</PBtn>
+      <div style={{ marginTop: 6 }}>
+          <div style={{ display: 'flex', gap: 7 }}>
+            <Field icon="tag" placeholder="Promo code" size="sm" value={code}
+            onChange={(e) => {setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''));setPromoErr('');}} />
+            <PBtn variant="soft" size="sm" disabled={!code.trim()} title={code.trim() ? `Apply ${code.trim()}` : 'Enter a promo code first'} onClick={applyPromo}>Apply</PBtn>
+          </div>
+          {(promoErr || !code.trim()) &&
+          <div style={{ ...note, color: promoErr ? P.bad : P.inkDim, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+              {promoErr && <Icon name="alert" size={11} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />}
+              {promoErr || 'Enter a promo code, then Apply.'}
+            </div>}
         </div> :
       <button onClick={() => setPromoOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, minHeight: P.ctrlH.xs, background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, padding: '0 2px' }}><Icon name="plus" size={12} stroke={2.2} />Add promo code</button>}
 
-      {approval && <DiscountApprovalModal P={P} amount={approval.amount} mode={approval.mode} subtotal={subtotal || 0}
-      onClose={() => setApproval(null)} onApprove={(r) => setApplied(r)} />}
+      {approval && <DiscountApprovalModal P={P} amount={approval.amount} mode={approval.mode} subtotal={sub}
+      onClose={() => setApproval(null)}
+      onApprove={(r) => {onApply && onApply({ kind: 'manual', off: Math.min(sub, r2(r.off)), label: 'Manual discount', mgr: r.mgr, reason: r.reason, note: r.note });setAmount('');}} />}
     </Card>);
 
 }
@@ -346,7 +434,7 @@ function TaxRow({ P, sub, open, onToggle }) {
     </>);
 }
 
-function Row({ P, k, v }) {return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, color: P.inkDim }}><span style={{ whiteSpace: 'nowrap' }}>{k}</span><span style={{ color: P.ink2, fontWeight: 600, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{v}</span></div>;}
+function Row({ P, k, v, tone }) {return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, color: P.inkDim }}><span style={{ whiteSpace: 'nowrap' }}>{k}</span><span style={{ color: tone || P.ink2, fontWeight: 600, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{v}</span></div>;}
 
 
 Object.assign(window, {});
