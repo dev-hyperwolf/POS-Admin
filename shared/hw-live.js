@@ -246,8 +246,13 @@
   // to a path that does not exist comes back 403 'read-only' when writes are
   // gated and 404 'not found' when they are not. Nothing is created, nothing is
   // changed, no real endpoint is touched -- which is the only reason it is safe
-  // to point at the shared demo. Verified 2026-08-19: 403 from
-  // hyperwolf-wm-demo.onrender.com, 404 from 127.0.0.1:8787.
+  // to point at the shared demo. Verified 2026-08-20: 404 from BOTH
+  // hyperwolf-wm-demo.onrender.com and 127.0.0.1:8787 -- writes are now open on
+  // the deployment (WM_DEMO_PUBLIC=0) and no token is required. The earlier note
+  // here recorded a 403 and was read by a later agent as evidence that writes
+  // were still shut, which suppressed a control that in fact worked. A comment
+  // stating a REMOTE, MUTABLE fact goes stale silently; the probe is the
+  // authority, not this line.
   //
   // The 404 IS the good answer, and devtools logs it as a failed resource.
   // That one red line in the console is the price of the badge being able to
