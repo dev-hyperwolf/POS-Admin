@@ -61,6 +61,18 @@
      retains. The sheet previously synthesised a cart from a hash of the order
      id, so its TOTAL contradicted the queue card on the same screen. -->
 <script src="shared/hw-live-lines.js"></script>
+<!-- Our product -> their product. The mapping engine has always been able to
+     answer "is this SKU verified on Weedmaps"; nothing on a screen asked it, so
+     the answer was a curl command. Shows the losing candidates with their
+     scores, and keeps three different reasons a SKU is unmapped apart: no
+     confident match, a human said no, and Weedmaps genuinely does not carry it
+     -- the operator's next move differs for each. -->
+<script src="shared/hw-live-mapping.js"></script>
+<!-- Our regions -> their listings. This mapping was already live and correct
+     and simply invisible. MODE is the point: `full` is the pickup storefront
+     selling store on-hand stock; `kits` is delivery, selling the union of
+     on-shift driver kits. Publishing them the same way is the classic mistake. -->
+<script src="shared/hw-live-regions.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from
