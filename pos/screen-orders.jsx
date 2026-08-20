@@ -2132,6 +2132,22 @@ function orderMoney(o) {return o && o.money || seedOrderMoney(o || {});}
  */
 function commitOrderMoney(o) {
   if (!o || o.money) return false;
+  /* 🔴 NEVER INVENT MONEY FOR AN ORDER THIS APP DID NOT CREATE.
+   *
+   * A live Weedmaps order arrives through shared/hw-live.js carrying `_live:true`
+   * and, deliberately, NO `money` and NO `lines` — hw-live sets items:0 meaning
+   * "we were not told", not "there is nothing". seedOrderMoney's answer to an
+   * order with no lines is DEMO_BASKET, so this function would have fabricated a
+   * basket for a real customer's order and then OVERWRITTEN its total with the
+   * price of goods they never bought.
+   *
+   * Found by the Weedmaps session's merge QA, not by me. It would not have
+   * fired on `main` alone — it needs their seam present to have anything to
+   * corrupt — which is exactly why two green halves are not a green whole.
+   *
+   * A live order's money belongs to whoever fetched it. We display it; we do not
+   * price it. */
+  if (o._live) return false;
   const m = seedOrderMoney(o);
   return !!window.HW.updateOrder(o.id, { money: m, total: priceOrderMoney(m).grand });
 }
