@@ -1218,7 +1218,14 @@
       var q = ro.queue || {};
       h += '<div style="margin-top:10px;padding-top:9px;border-top:1px solid ' + P.hairline + '">' +
         '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:6px">Order queue</div></div>';
-      h += line(P, 'Pickup board', ro.pickup.total + ' orders · complete', P.ink);
+      // 'complete' was true of the API's answer at fetch time and says nothing
+      // about now: the till and the storefront write orders into HW.ORDERS
+      // between polls, so this board can be complete-as-fetched and already
+      // missing rows a user can see on screen. Date the claim rather than
+      // overstate it -- an operator can act on 'as of last load', but
+      // 'complete' invites them to trust a number that has moved.
+      h += line(P, 'Pickup board',
+                ro.pickup.total + ' orders · complete as of last load', P.ink);
       h += line(P, 'Delivery tab', ro.delivery.shown + ' of ' + ro.delivery.total +
         (ro.delivery.shown < ro.delivery.total ? ' · capped' : ''),
         ro.delivery.shown < ro.delivery.total ? P.warn : P.ink);
@@ -1420,8 +1427,16 @@
     var live = _status === 'live';
     var dot = live ? P.good : _status === 'pending' ? P.warn : P.inkFaint;
     var label = live ? 'Live data' : _status === 'pending' ? 'Checking API…' : 'Mock data';
+    // COUNT AT PAINT TIME, NOT AT FETCH TIME. _report.orders.shown is computed
+    // once per apply() and never recomputed. That was correct while this seam
+    // was the only writer of HW.ORDERS. Now the till and the storefront write
+    // into that array too, so a stored count goes stale the moment a cashier
+    // tenders a sale: the queue shows 258 cards and this pill still says 255.
+    // Reading .length here costs nothing and cannot drift.
+    var _shownNow = (_hw && _hw.ORDERS) ? _hw.ORDERS.length
+                  : (_report.orders ? _report.orders.shown : null);
     var sub = live ? _report.products + ' SKUs · ' + _report.regions.length + ' regions' +
-        (_report.orders ? ' · ' + _report.orders.shown + ' orders' : '') :
+        (_shownNow != null ? ' · ' + _shownNow + ' orders' : '') :
       _status === 'pending' ? base.replace(/^https?:\/\//, '') : 'API unavailable';
     // A user who never opens the panel still has to know the buttons will not
     // write. This is the whole diagnosis in one word, on the pill.
