@@ -11,6 +11,7 @@ If you add, rename or retire a file, update the hub in the same turn.
 | METRC Batch Pipeline | `METRC Batch Pipeline.html` | `pipeline/` |
 | Promotions Suite | `Promotions Suite.html` | `pweb/` (shell + screens) + `promo/` (data, atoms, builder) |
 | Engage | `Hyperwolf Engage.html` | `engage/` |
+| Shop (storefront) | `Hyperwolf Shop.html` | `shop/` |
 | Shop @ Home | `Shop at Home.html` | `athome/admin.jsx` |
 | Members CRM | `Members CRM.html` | `athome/crm.jsx` |
 | Customer Account | `Customer Account.html` | `athome/account-a/b/c.jsx` + `account-switch.jsx` |

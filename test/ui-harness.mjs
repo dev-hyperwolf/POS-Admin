@@ -82,6 +82,11 @@ function transform(src) {
 const ENTRIES = {
   pos: 'Hyperwolf POS.html',
   driver: 'Hyperwolf Driver App.html',
+  // The customer storefront. Its cart and checkout screens are built in
+  // parallel and may not exist yet; `scriptsFor` already skips a src that is
+  // not on disk, so booting 'shop' works either way and the shell renders its
+  // own "not loaded" state for whichever screen is missing.
+  shop: 'Hyperwolf Shop.html',
 };
 
 /**

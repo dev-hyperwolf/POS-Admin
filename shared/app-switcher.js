@@ -14,6 +14,7 @@
     ['Hyperdrive Logistics.html', 'Logistics', 'log'],
     ['Hyperwolf Driver App.html', 'Driver App', 'drv'],
     ['POS Terminal Configuration.html', 'Terminals', 'term'],
+    ['Hyperwolf Shop.html', 'Shop', 'shop'],
     ['Shop at Home.html', 'Shop @ Home', 'sah'],
     ['Members CRM.html', 'Members CRM', 'crm'],
     ['Customer Account.html', 'Customer Account', 'acct'],
