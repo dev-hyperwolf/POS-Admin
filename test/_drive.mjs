@@ -89,3 +89,33 @@ export async function captureId(app) {
   clickBtn(app, /Save to profile/); await app.settle();
   return true;
 }
+
+/** Open the stop card for a named customer (verifies we hit the intended card). */
+export async function openStop(app, name) {
+  const card = [...app.document.querySelectorAll('[data-tour="stop"],[data-tour="appt"]')]
+    .find((c) => (c.textContent || '').includes(name));
+  if (!card) return false;
+  card.dispatchEvent(new app.window.MouseEvent('click', { bubbles: true }));
+  await app.settle();
+  return true;
+}
+
+/** Smallest element that contains `marker` text AND a button — a modal/overlay scope. */
+export function scopeOf(app, marker) {
+  return [...app.document.querySelectorAll('div')]
+    .filter((d) => marker.test(d.textContent || '') && d.querySelector('button'))
+    .sort((a, b) => a.querySelectorAll('*').length - b.querySelectorAll('*').length)[0] || null;
+}
+export const inScope = (root, re) => [...root.querySelectorAll('button')]
+  .filter((b) => re.test((b.textContent || '').replace(/\s+/g, ' ').trim()));
+
+/** The phone app itself — everything outside it is the desktop app-rail chrome. */
+export const appRoot = (app) => app.document.querySelector('[data-approot]');
+export const appBtns = (app, re = /.*/) => [...appRoot(app).querySelectorAll('button')]
+  .filter((b) => re.test((b.textContent || '').replace(/\s+/g, ' ').trim()));
+export const appClick = (app, re, nth = 0) => {
+  const b = appBtns(app, re)[nth];
+  if (!b) return false;
+  b.dispatchEvent(new app.window.MouseEvent('click', { bubbles: true }));
+  return true;
+};

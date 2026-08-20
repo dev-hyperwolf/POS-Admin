@@ -14,9 +14,11 @@ const SPAN = {
 
 window.MembersScreen = function MembersScreen() {
   const P = useP();
+  // Subscribes to the member/check-in store: a record created here has to show
+  // up here, or "it worked" and "it did nothing" look identical.
+  const HW = window.useHW();
   const [q, setQ] = React.useState('');
   const [sel, setSel] = React.useState(null);
-  const [added, setAdded] = React.useState([]);
   const [addOpen, setAddOpen] = React.useState(false);
   const [filtOpen, setFiltOpen] = React.useState(false);
   const [f, setF] = React.useState({ group: 'All', type: 'All', wm: 'All', tier: 'All' });
@@ -27,7 +29,7 @@ window.MembersScreen = function MembersScreen() {
   const nFilt = ['group', 'type', 'wm', 'tier'].filter((k) => f[k] !== 'All').length;
   const isLinked = (m) => m.id.charCodeAt(m.id.length - 1) % 2 === 0;
 
-  const all = added.concat(window.HW.MEMBERS);
+  const all = HW.MEMBERS;
   const members = all.filter((m) => {
     if (q && !(m.name + m.email + m.phone).toLowerCase().includes(q.toLowerCase())) return false;
     if (f.group !== 'All' && m.group !== f.group) return false;
@@ -61,7 +63,7 @@ window.MembersScreen = function MembersScreen() {
       action={<PBtn variant="accent" icon="user-plus" size="md" onClick={() => {setFiltOpen(false);setAddOpen(true);}}>Add Member</PBtn>} />
       {/* Same check-in queue as Orders — the exported component, not a copy, so
           the two can never drift apart. */}
-      {window.CheckInStrip && <window.CheckInStrip checkins={window.HW.CHECKINS} onStartSale={() => {}} onNewCheckIn={() => setShowCheckIn(true)} />}
+      {window.CheckInStrip && <window.CheckInStrip checkins={HW.CHECKINS} onStartSale={() => {}} onNewCheckIn={() => setShowCheckIn(true)} />}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 11, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Showing</span>
@@ -103,8 +105,10 @@ window.MembersScreen = function MembersScreen() {
       </div>
       <DataTable columns={cols} rows={members} rowKey={(m) => m.id} onRowClick={(m) => setSel(m)} />
       {members.length === 0 && <div style={{ textAlign: 'center', padding: '34px 20px', color: P.inkMute, fontSize: 13.5 }}>No members match those filters.</div>}
-      {addOpen && <AddMemberModal onClose={() => setAddOpen(false)} onAdd={(m) => {setAdded((a) => [m, ...a]);setAddOpen(false);}} />}
-      {showCheckIn && window.CheckInModal && <window.CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={() => setShowCheckIn(false)} />}
+      {addOpen && <AddMemberModal onClose={() => setAddOpen(false)} onAdd={(m) => {window.HW.addMember(m);setAddOpen(false);}} />}
+      {/* The modal hands back {customer, guests, type, delivery} — dropping it
+          was the whole bug: the flow completed and created nothing. */}
+      {showCheckIn && window.CheckInModal && <window.CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={(p) => {window.HW.addCheckIn(p);setShowCheckIn(false);}} />}
     </div>);
 
 };
@@ -117,7 +121,17 @@ function AddMemberModal({ onClose, onAdd }) {
   // The scan IS the data entry. Reading the PDF417 barcode fills name and DOB
   // in one action — typing them by hand is the fallback, not the path.
   const onScan = (d) => setV((o) => ({ ...o, doc: d, name: o.name || d.name || 'Jordan A. Vasquez', dob: o.dob || d.dob || '09/02/1988' }));
-  const ok = v.name.trim() && v.phone.trim() && v.dob.trim() && !!v.doc;
+  // The gate was already right. What was missing was SAYING so: the button had
+  // no `disabled` and no message, so clicking it did nothing and named no
+  // reason — and the real blocker (the un-scanned ID) was never on screen.
+  const missing = [
+  !v.doc && 'scan the government ID',
+  !v.name.trim() && 'a full name',
+  !v.dob.trim() && 'a date of birth',
+  !v.phone.trim() && 'a phone number'].
+  filter(Boolean);
+  const ok = missing.length === 0;
+  const needs = !missing.length ? '' : missing.length === 1 ? missing[0] : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
   const submit = () => {
     if (!ok) return;
     onAdd({ id: 'm' + Date.now(), name: v.name.trim(), phone: v.phone.trim(), email: v.email.trim() || '—', type: v.type, group: v.group, visits: 0, points: 0, wallet: 0, member: v.group === 'VIP' });
@@ -150,9 +164,11 @@ function AddMemberModal({ onClose, onAdd }) {
           <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Date of birth is the age gate, and it comes off the scanned document rather than being typed. Adding a phone lets them order delivery later without ever verifying again.</span>
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+        {!ok && <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.4 }}>Still needs {needs}.</span>}
+        <div style={{ flex: ok ? 1 : '0 0 auto' }} />
         <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
-        <PBtn variant="accent" size="md" icon="check" onClick={submit} style={{ opacity: ok ? 1 : .5 }}>Create member</PBtn>
+        <PBtn variant="accent" size="md" icon="check" onClick={submit} disabled={!ok} title={ok ? undefined : `Still needs ${needs}`}>Create member</PBtn>
       </div>
     </div>
   </div>;
@@ -175,11 +191,31 @@ function Sec({ icon, title, sub, right, children }) {
 // ── Dedicated member page ──────────────────────────────────────────
 function MemberDetailPage({ m, onBack }) {
   const P = useP();const fmt = window.HW.fmt;
+  // A wallet credit and a member edit both WRITE — this page has to re-render
+  // off the store, not off a copy it made when it opened.
+  window.useHW();
   const [editing, setEditing] = React.useState(false);
   const [form, setForm] = React.useState({ name: m.name, phone: m.phone, email: m.email });
   const [modal, setModal] = React.useState(null); // 'wallet' | 'note'
   const [openOrder, setOpenOrder] = React.useState(null);
   const [hotNotes, setHotNotes] = React.useState(() => window.HW_HOT.hotNotesFor(m.id));
+  const [notes, setNotes] = React.useState(() => window.HW_HOT.notesFor(m.id));
+  // Adjust-wallet was an uncontrolled input nobody ever read. Both fields live
+  // here now, so "Apply credit" applies the amount that is on screen.
+  const [wAmt, setWAmt] = React.useState('10.00');
+  const [wReason, setWReason] = React.useState('Service recovery');
+  const wNum = parseFloat(wAmt);
+  const wOk = isFinite(wNum) && wNum > 0;
+  const openWallet = () => {setWAmt('10.00');setWReason('Service recovery');setModal('wallet');};
+  const applyCredit = () => {
+    if (!wOk) return;
+    const r = window.HW.creditWallet(m.id, wNum, wReason);
+    if (r) setLogged((l) => [{ icon: 'wallet', accent: true, t: `Wallet credit ${fmt.money(r.amount)} · ${r.reason}`, s: 'Manisha Saini · Just now' }, ...l]);
+    setModal(null);
+  };
+  // "Done editing" used to only flip a boolean — the edits lived in `form` and
+  // died there, while the header went on showing them until you navigated away.
+  const saveEdits = () => {window.HW.updateMember(m.id, form);setEditing(false);};
   const idv = (window.HW.IDV || {})[m.id] || null;
   const h = m.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   const linked = m.id.charCodeAt(m.id.length - 1) % 2 === 0;
@@ -198,7 +234,7 @@ function MemberDetailPage({ m, onBack }) {
   // Verification actions taken on this profile land in the feed immediately.
   const [logged, setLogged] = React.useState([]);
   const onLog = (e) => setLogged((l) => [{ icon: e.icon || 'shield', accent: true, t: e.action, s: `${e.who} · ${e.time}` }, ...l]);
-  const activity = [...logged, ...activityBase];
+  const activity = [...notes.map((n) => ({ icon: 'note', t: n.text, s: `${n.by} · ${n.at}` })), ...logged, ...activityBase];
   const kfmt = { visits: m.visits, points: m.points.toLocaleString(), wallet: fmt.money(m.wallet), spend: fmt.money0(lifetime), aov: fmt.money(m.visits ? lifetime / m.visits : 0) };
   const pick = (arr) => arr[h % arr.length];
   const dob = pick(['04/14/1991', '09/02/1988', '12/21/1995', '06/30/1983', '02/11/1979']);
@@ -232,9 +268,10 @@ function MemberDetailPage({ m, onBack }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to members</button>
         <div style={{ flex: 1 }} />
-        <PBtn variant="secondary" size="md" icon="wallet" onClick={() => setModal('wallet')}>Adjust wallet</PBtn>
+        <PBtn variant="secondary" size="md" icon="wallet" onClick={openWallet}>Adjust wallet</PBtn>
         <PBtn variant="secondary" size="md" icon="note" onClick={() => setModal('note')}>Add note</PBtn>
-        <PBtn variant="accent" size="md" icon={editing ? 'check' : 'pencil'} onClick={() => setEditing((v) => !v)}>{editing ? 'Done editing' : 'Edit member'}</PBtn>
+        {editing && <PBtn variant="secondary" size="md" onClick={() => {setForm({ name: m.name, phone: m.phone, email: m.email });setEditing(false);}}>Discard</PBtn>}
+        <PBtn variant="accent" size="md" icon={editing ? 'check' : 'pencil'} onClick={() => editing ? saveEdits() : setEditing(true)}>{editing ? 'Save changes' : 'Edit member'}</PBtn>
       </div>
 
       {/* Hot notes sit ABOVE the identity header — they have to be read before
@@ -369,13 +406,21 @@ function MemberDetailPage({ m, onBack }) {
       {modal === 'wallet' && <Modal title="Adjust wallet" onClose={() => setModal(null)}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}><span style={{ fontSize: 11.5, color: P.inkDim }}>Current balance</span><span style={{ marginLeft: 'auto', fontSize: 13.5, fontWeight: 800, fontFamily: P.fontMono, color: m.wallet > 0 ? P.good : P.ink }}>{fmt.money(m.wallet)}</span></div>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Amount</span><div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, minHeight: 40 }}><span style={{ color: P.inkMute, fontFamily: P.fontMono, fontWeight: 700 }}>$</span><input defaultValue="10.00" inputMode="decimal" autoFocus style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: P.ink, fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono }} /></div></label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Reason</span><select style={inp()}>{['Service recovery', 'Refund to wallet', 'Promo credit', 'Correction'].map((o) => <option key={o}>{o}</option>)}</select></label>
-          <div style={{ display: 'flex', gap: 9, marginTop: 2 }}><PBtn variant="accent" size="md" full onClick={() => setModal(null)}>Apply credit</PBtn><PBtn variant="secondary" size="md" onClick={() => setModal(null)}>Cancel</PBtn></div>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Amount</span><div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 12px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, minHeight: 40 }}><span style={{ color: P.inkMute, fontFamily: P.fontMono, fontWeight: 700 }}>$</span><input value={wAmt} onChange={(e) => setWAmt(e.target.value.replace(/[^0-9.]/g, ''))} inputMode="decimal" autoFocus style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', color: P.ink, fontSize: 13.5, fontWeight: 700, fontFamily: P.fontMono }} /></div></label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><span style={lblU}>Reason</span><select value={wReason} onChange={(e) => setWReason(e.target.value)} style={inp()}>{['Service recovery', 'Refund to wallet', 'Promo credit', 'Correction'].map((o) => <option key={o}>{o}</option>)}</select></label>
+          {!wOk && <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.4 }}>Enter an amount above $0.00 to credit this wallet.</div>}
+          {wOk && <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.4 }}>Wallet goes to <b style={{ color: P.ink }}>{fmt.money((+m.wallet || 0) + wNum)}</b> and the credit is written to the activity feed.</div>}
+          <div style={{ display: 'flex', gap: 9, marginTop: 2 }}><PBtn variant="accent" size="md" full disabled={!wOk} onClick={applyCredit}>Apply credit</PBtn><PBtn variant="secondary" size="md" onClick={() => setModal(null)}>Cancel</PBtn></div>
         </div>
       </Modal>}
+      {/* Both branches have to land somewhere. The plain note used to fall
+          through this handler and vanish — it now lands in Activity. */}
       {modal === 'note' && <window.AddNoteModal member={m} onClose={() => setModal(null)}
-      onSave={(n) => {if (n.hot) setHotNotes((l) => [{ kind: n.kind, text: n.text, by: n.by, at: n.at, block: n.block }, ...l]);setModal(null);}} />}
+      onSave={(n) => {
+        if (n.hot) setHotNotes((l) => [{ kind: n.kind, text: n.text, by: n.by, at: n.at, block: n.block }, ...l]);else
+        setNotes(() => window.HW_HOT.addNote(m.id, { text: n.text, by: n.by || 'Manisha Saini', at: n.at || 'Just now' }));
+        setModal(null);
+      }} />}
       {openOrder && <window.FullOrderView order={openOrder} m={m} onClose={() => setOpenOrder(null)} />}
     </div>);
 

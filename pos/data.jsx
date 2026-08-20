@@ -319,10 +319,92 @@ const fmt = {
   money0:(n)=> '$'+Number(n).toLocaleString('en-US'),
 };
 
+// ── Writes ─────────────────────────────────────────────────────────────────
+// Every screen renders straight off MEMBERS / CHECKINS, so a "create" that only
+// closed its modal was indistinguishable from a dead button: the operator got
+// full positive feedback for a record that was never written. These are the one
+// place a record is created or changed, and they notify subscribers so the
+// table, the KPI rail and the waiting strip all move together.
+const _hwSubs = new Set();
+const _hwNotify = () => _hwSubs.forEach((fn) => { try { fn(); } catch {} });
+let _hwSeq = 0;
+const _hwId = (prefix) => prefix + Date.now().toString(36) + (++_hwSeq).toString(36);
+
+function addMember(m) {
+  const rec = {
+    id: (m && m.id) || _hwId('m'),
+    name: (m && m.name || '').trim() || 'Unnamed customer',
+    email: m && m.email || '—', phone: m && m.phone || '—',
+    group: m && m.group || 'Standard', type: m && m.type || 'AdultUse',
+    delivery: m && m.delivery || 'Pick-up',
+    visits: m && m.visits || 0, points: m && m.points || 0, wallet: +(m && m.wallet || 0),
+    member: !!(m && m.member),
+  };
+  MEMBERS.unshift(rec);
+  _hwNotify();
+  return rec;
+}
+
+function updateMember(id, patch) {
+  const m = MEMBERS.find((x) => x.id === id);
+  if (!m || !patch) return null;
+  ['name', 'phone', 'email', 'group', 'type'].forEach((k) => {
+    if (patch[k] != null && String(patch[k]).trim()) m[k] = String(patch[k]).trim();
+  });
+  _hwNotify();
+  return m;
+}
+
+// A credit is money. It either lands on the record or it is refused out loud —
+// there is no third option where the manager is told it worked.
+function creditWallet(id, amount, reason) {
+  const m = MEMBERS.find((x) => x.id === id);
+  const amt = Number(amount);
+  if (!m || !isFinite(amt) || amt <= 0) return null;
+  m.wallet = +(((+m.wallet || 0) + amt).toFixed(2));
+  _hwNotify();
+  return { member: m, amount: +amt.toFixed(2), reason: reason || 'Manual credit' };
+}
+
+// The check-in IS the record. An unknown customer becomes a real member first —
+// a person waiting in the room who exists nowhere is not a check-in.
+function addCheckIn(p) {
+  const c = p && p.customer;
+  if (!c) return null;
+  let member = c.id && MEMBERS.find((x) => x.id === c.id);
+  if (!member) member = addMember({ name: c.name, email: c.email, phone: c.phone, type: p.type || c.type, group: c.group, member: c.member });
+  const rec = {
+    id: _hwId('c'), memberId: member.id, name: member.name,
+    group: member.group, type: p.type || member.type, delivery: p.delivery || 'Pick-up',
+    wait: '0h 0m 00s', waitSec: 0, claimedBy: null, member: !!member.member,
+    visit: (member.visits || 0) + 1, guests: (p.guests || []).slice(),
+  };
+  CHECKINS.push(rec);
+  _hwNotify();
+  return rec;
+}
+
+// Hand-off for "check in & start sale": the register reads this once on mount,
+// so the sale opens on the person who just checked in rather than on whatever
+// ticket the register happens to seed itself with.
+let _pendingSale = null;
+function startSaleFor(customer, guests) { _pendingSale = customer ? { customer, guests: (guests || []).slice() } : null; }
+function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
+
 window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, fmt, visitLabel, visitOrdinal,
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
+  addMember, updateMember, creditWallet, addCheckIn, startSaleFor, takePendingSale,
+  subscribe:(fn)=>{ _hwSubs.add(fn); return ()=> _hwSubs.delete(fn); },
   checkinById:(id)=> CHECKINS.find(c=>c.id===id) || null,
   memberById:(id)=> MEMBERS.find(m=>m.id===id) || null,
   catCount:(c)=> c==='Deals'? PRODUCTS.filter(p=>p.was).length : PRODUCTS.filter(p=>p.cat===c).length,
+};
+
+// Re-render on any write. Screens that read HW.MEMBERS / HW.CHECKINS must use
+// this, or a record that really was created still looks like nothing happened.
+window.useHW = function useHW() {
+  const [, force] = React.useReducer((x) => x + 1, 0);
+  React.useEffect(() => window.HW.subscribe(force), []);
+  return window.HW;
 };

@@ -26,7 +26,9 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
   const confirmBind = (o) => setBind(o.id, { ...bindOf(o), state: 'auto', conf: 100, confirmedBy: 'Manisha Saini' });
   const bindTo = (o, checkinId, guest) => setBind(o.id, { state: 'auto', conf: 100, checkinId, guest, signals: ['handle'], boundBy: 'Manisha Saini' });
   const orders = window.HW.ORDERS;
-  const checkins = window.HW.CHECKINS;
+  // Reads the live check-in store — a new check-in has to appear in the strip
+  // above, not just close its modal.
+  const checkins = window.useHW().CHECKINS;
   const isDelivery = tab === 'delivery';
   const channelOf = (o) => isDelivery ? o.channel === 'Delivery' : o.channel === 'Store';
   const visible = orders.filter((o) => channelOf(o) && (!q || (o.name + o.id).toLowerCase().includes(q.toLowerCase())));
@@ -95,7 +97,14 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
 
       {matching && <MatchSheet o={matching} bind={bindOf(matching)} onBind={(cid, guest) => {bindTo(matching, cid, guest);setMatching(null);}} onClose={() => setMatching(null)} />}
 
-      {showCheckIn && <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={({ start }) => {setShowCheckIn(false);if (start) onStartSale();}} />}
+      {/* The payload was being thrown away: the check-in was never created, and
+          "check in & start sale" opened the register on whoever it seeds itself
+          with rather than the person standing there. */}
+      {showCheckIn && <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={(p) => {
+        const ci = window.HW.addCheckIn(p);
+        setShowCheckIn(false);
+        if (p.start && ci) {window.HW.startSaleFor(window.HW.memberById(ci.memberId), ci.guests);onStartSale && onStartSale();}
+      }} />}
       {detail && <OrderDetails o={detail} onClose={() => setDetail(null)} />}
     </div>);
 

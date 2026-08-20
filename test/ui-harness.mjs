@@ -160,6 +160,7 @@ export async function boot(which = 'pos', opts = {}) {
 
   const settle = () => new Promise((r) => setTimeout(r, opts.settleMs ?? 40));
 
+  const roots = [];   // every React root mounted here, so close() can unmount them
   const api = {
     window, document: window.document, errors,
     /** All visible text, newlines collapsed — cheap to assert against. */
@@ -200,12 +201,27 @@ export async function boot(which = 'pos', opts = {}) {
           + `Errors so far: ${errors.join(' | ') || '(none)'}`);
       }
       const root = ReactDOM.createRoot(window.document.getElementById('root'));
+      roots.push(root);
       await new Promise((r) => { root.render(React.createElement(Comp)); setTimeout(r, opts.settleMs ?? 60); });
       return api;
     },
   };
-  /** jsdom keeps the process alive. Always close, or `node --test` hangs. */
-  api.close = () => { try { window.close(); } catch { /* already gone */ } };
+  /**
+   * jsdom keeps the process alive. Always close, or `node --test` hangs.
+   *
+   * ⚠️ UNMOUNT FIRST. A cleanup that touches `document` — RegisterScreen's
+   * `document.body.removeAttribute(...)` is the live example — runs AFTER
+   * window.close() has torn the document down, and jsdom reports that as an
+   * uncaught error that kills the whole node process. The symptom is a suite
+   * that dies with "Cannot read properties of undefined (reading 'body')"
+   * pointing at react-dom, long after the assertions passed. Unmounting while
+   * the document still exists runs those cleanups the way a browser would.
+   */
+  api.close = () => {
+    for (const r of roots) { try { r.unmount(); } catch { /* already gone */ } }
+    roots.length = 0;
+    try { window.close(); } catch { /* already gone */ }
+  };
 
   return api;
 }

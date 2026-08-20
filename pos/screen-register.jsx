@@ -9,10 +9,15 @@ window.RegisterScreen = function RegisterScreen() {
   // A party is ONE ticket by default — one cart, one checkout, which is what
   // most visits are. A guest only gets their own ticket when the associate
   // opens one for them, and the tab strip appears only once that happens.
-  const [tickets, setTickets] = React.useState(() => [{ id: 't1', person: window.HW.MEMBERS[2],
+  // A check-in that said "& start sale" hands the person over here. Taking it is
+  // what makes the sale open on THEM instead of on the demo ticket below.
+  const [pending] = React.useState(() => window.HW.takePendingSale ? window.HW.takePendingSale() : null);
+  const [tickets, setTickets] = React.useState(() => pending && pending.customer ?
+    [{ id: 't1', person: pending.customer, cart: [], paid: false }] :
+    [{ id: 't1', person: window.HW.MEMBERS[2],
     cart: [{ sku: 'H480PRO1', qty: 1, disc: 0 }, { sku: 'F2Q4EN2C', qty: 1, disc: 0 }], paid: false }]);
   const [active, setActive] = React.useState(0);
-  const [guests, setGuests] = React.useState(() => [
+  const [guests, setGuests] = React.useState(() => pending ? pending.guests || [] : [
   { key: 'g-mia', id: null, name: 'Mia Tran', dob: '09/02/1988', phone: '(951) 555-0121', member: false, doc: { onFile: true } },
   { key: 'g-sam', id: null, name: 'Sam Cole', dob: '12/21/1995', phone: '', member: false, doc: { onFile: true } }]); // party roster captured at check-in
   const [tab, setTab] = React.useState('products');
