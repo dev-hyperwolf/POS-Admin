@@ -261,7 +261,18 @@ export async function boot(which = 'pos', opts = {}) {
   window.ReactDOM = { ...ReactDOM };
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
   window.scrollTo = () => {};
-  window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+  /* rAF GOES THROUGH THE TRACKED window.setTimeout, DELIBERATELY.
+   *
+   * A bare `setTimeout` here resolves to NODE's global, not window's, so every
+   * animation frame bypassed the tracker: never cancelled at teardown, so a
+   * callback could fire into a destroyed document.
+   *
+   * The other session flagged the sharper version of this while auditing the
+   * leak I introduced — with the tracker's original never-delete behaviour, an
+   * animating page added a RETAINED ENTRY PER FRAME. That is the difference
+   * between a slow leak and a machine in trouble. One-shots now release
+   * themselves when they fire, so routing rAF here is safe as well as correct. */
+  window.requestAnimationFrame = (cb) => window.setTimeout(cb, 0);
 
   for (const src of scriptsFor(entry)) {
     try {
