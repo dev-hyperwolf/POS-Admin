@@ -438,7 +438,32 @@ function setWmLink(id, linked) {
 //
 // The stages are the ones the queue and WM_STATUS_MAP already agree on. Keeping
 // the order fixed here means a caller cannot skip 'pack' by passing a typo.
-const STAGES = ['verify', 'pack', 'packing', 'ready', 'done'];
+/* 🔴 NAMED ORDER_STAGES, NOT `STAGES`, AND THE REASON IS NOT STYLE.
+ *
+ * pos/screen-orders.jsx:4 ALSO declares a top-level `const STAGES` — an array of
+ * {id,label,color} objects for the kanban columns. 'Hyperwolf POS.html' loads
+ * data.jsx at script 59 and screen-orders.jsx at script 79, and it sets no
+ * `data-presets`, so @babel/standalone transpiles each top-level `const` to a
+ * plain `var` ON WINDOW. There is no per-script scope in the browser and no
+ * SyntaxError — the later file SILENTLY CLOBBERS the earlier one.
+ *
+ * The functions below resolve the identifier at CALL time, so with the objects
+ * array in scope:
+ *     setStage(id, 'pack')  -> ['{id:…}',…].includes('pack') === false -> null
+ *     nextStage('verify')   -> indexOf -> -1                           -> null
+ *     addOrder({stage:'ready'})                        -> coerced to 'verify'
+ * every single time. The activity log printed "Verified order · cleared for
+ * fulfillment" and the kanban card never moved. A rendered falsehood on the
+ * control an associate presses to release product.
+ *
+ * ⚠️ THE TEST SUITE COULD NOT SEE THIS. test/ui-harness.mjs wrapped every file
+ * in (function(){…})(), giving each its own scope — which the browser does not.
+ * The harness was hiding the exact class of bug it exists to catch. Fixed in the
+ * same commit; see test/global-collisions.test.mjs.
+ *
+ * Exported as `STAGES` on window.HW, so no caller changes.
+ */
+const ORDER_STAGES = ['verify', 'pack', 'packing', 'ready', 'done'];
 
 function orderById(id) { return ORDERS.find((o) => o.id === id) || null; }
 
@@ -460,7 +485,7 @@ function addOrder(o) {
     badge: (o && o.badge) || null,
     age: (o && o.age) || '0h 0m',
     items: typeof items === 'number' ? items : (items.length || 0),
-    stage: STAGES.includes(o && o.stage) ? o.stage : 'verify',
+    stage: ORDER_STAGES.includes(o && o.stage) ? o.stage : 'verify',
     hue: (o && o.hue) != null ? o.hue : 200,
   };
   if (o && o.lines) rec.lines = o.lines.slice();
@@ -487,14 +512,14 @@ function updateOrder(id, patch) {
  * exactly like the order having been deleted.
  */
 function setStage(id, stage) {
-  if (!STAGES.includes(stage)) return null;
+  if (!ORDER_STAGES.includes(stage)) return null;
   return updateOrder(id, { stage });
 }
 
 /** The next stage in the pipeline, or null at the end. */
 function nextStage(stage) {
-  const i = STAGES.indexOf(stage);
-  return i < 0 || i === STAGES.length - 1 ? null : STAGES[i + 1];
+  const i = ORDER_STAGES.indexOf(stage);
+  return i < 0 || i === ORDER_STAGES.length - 1 ? null : ORDER_STAGES[i + 1];
 }
 
 /* ── Substitution audit records ───────────────────────────────────────────────
@@ -590,7 +615,7 @@ window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, 
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
   addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
-  STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
+  STAGES: ORDER_STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
   addSubRecord, subRecords, allSubRecords,
   LANE_DEFAULTS, laneSettings, setLaneSettings, resetLaneSettings, laneSettingsAreDefault,
   subscribe:(fn)=>{ _hwSubs.add(fn); return ()=> _hwSubs.delete(fn); },
