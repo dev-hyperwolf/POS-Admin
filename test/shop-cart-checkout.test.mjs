@@ -307,7 +307,7 @@ test('an under-minimum cart cannot be placed, and says so as progress rather tha
 
 // ── The tip ────────────────────────────────────────────────────────────────
 
-test('the tip is express-only, is derived from the express subtotal, and does not move the priced total', async () => {
+test('the tip is express-only, is derived from the express subtotal, and IS charged', async () => {
   await withShop(async (app, W, open) => {
     loadTwoLanes(W, 3, 3);
     const t = W.SHOP.totals();
@@ -327,8 +327,14 @@ test('the tip is express-only, is derived from the express subtotal, and does no
     const expectedTip = Math.round(exp.subtotalCents * 0.20);
     assert.ok(app.text().includes(W.SHOP.money(expectedTip)),
       'the tip must be shown, derived from the express lane subtotal');
+    // ⚠️ THIS ASSERTION USED TO SAY THE OPPOSITE. It read "the tip is captured,
+    // not charged — the priced total must not move", which was a reasonable
+    // reading of the tax rule (a stated gratuity is not taxable, and the money
+    // record had no post-tax slot). The owner overruled it: the tip IS charged.
+    // The tax concern was real and is handled by giving the record a post-tax
+    // slot, mirroring `credits`, rather than by not charging.
     assert.equal(W.SHOP.totals().totalCents, totalBefore,
-      'the tip is captured, not charged — the priced total must not move');
+      'the ENGINE total must not move — the tip is not merchandise and is not taxed');
 
     const before = W.HW.ORDERS.length;
     assert.ok(app.click((s) => /CLICK TO PLACE ORDER/.test(s)));
@@ -336,9 +342,23 @@ test('the tip is express-only, is derived from the express subtotal, and does no
     const written = W.HW.ORDERS.length - before;
     let byLane = {};
     for (let i = 0; i < written; i++) byLane[W.HW.ORDERS[i].money.lane] = W.HW.ORDERS[i];
-    assert.equal(Math.round(byLane.express.money.tipAmt * 100), expectedTip,
-      'the tip is recorded on the express order');
-    assert.equal(byLane.scheduled.money.tipAmt, 0, 'and on no other order');
+    // ⚠️ THE KEY IS `tip`, NOT `tipAmt`. priceOrderMoney (pos/screen-orders.jsx)
+    // reads `m.tip`; filing it under any other name means the storefront quotes
+    // a tipped total and the order panel prices an untipped one — two money
+    // authorities across two surfaces. A mutation that renamed this key survived
+    // four other tip tests, which is why the assertion is on the KEY and on the
+    // FILED TOTAL rather than on the stored number alone.
+    assert.equal(Math.round(byLane.express.money.tip * 100), expectedTip,
+      'the tip is recorded on the express order, under the key the pricer reads');
+    assert.equal(byLane.scheduled.money.tip, 0, 'and on no other order');
+
+    // And it was actually CHARGED: the filed total carries it.
+    const exLane = W.SHOP.totals ? null : null;
+    assert.equal(
+      Math.round(byLane.express.total * 100) - Math.round(byLane.express.money.tip * 100)
+        + Math.round(byLane.scheduled.total * 100),
+      totalBefore,
+      'the two filed orders minus the tip must reconcile to the engine total');
   });
 });
 

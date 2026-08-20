@@ -60,6 +60,15 @@ const SCO_STATE = {
  * with the button. So it is shown, recorded on the express order as `tipAmt`,
  * and left out of the taxed total, with that said on screen.
  */
+/** The tip across the whole checkout — express only, zero when there is no
+ *  express lane. The place bar must quote what the customer will actually be
+ *  charged, and a tip that is charged but not shown is the same class of bug as
+ *  a tip that is shown and not charged. */
+function scoTipTotalCents(totals) {
+  const ex = totals && totals.lanes && totals.lanes.find((l) => l.lane === 'express');
+  return ex ? scoTipCents(ex.subtotalCents) : 0;
+}
+
 function scoTipCents(expressSubtotalCents) {
   const t = SCO_STATE.tip;
   if (!t || t.mode === 'none') return 0;
@@ -178,7 +187,11 @@ function scoPlace() {
         moneyLines.push({ sku: 'DLV-' + String(L.lane).toUpperCase(), name: meta.label + ' delivery',
           brand: 'Hyperwolf', qty: 1, price: L.feeCents / 100, total: L.feeCents / 100 });
       }
-      const total = +(L.totalCents / 100).toFixed(2);
+      // The tip rides on the EXPRESS order only, and it is charged: the owner's
+      // decision. It is added AFTER tax — a voluntary, separately-stated
+      // gratuity is not taxable in California — which is why it is not a line.
+      const laneTip = L.lane === 'express' ? tipCents : 0;
+      const total = +((L.totalCents + laneTip) / 100).toFixed(2);
       const rec = HW.addOrder({
         name, total, items: L.itemCount, source: 'Hyperwolf', channel: 'Web',
         pay: 'Card', stage: 'verify', badge: meta.label, lines: laneLines,
@@ -193,7 +206,11 @@ function scoPlace() {
           lane: L.lane,
           deliveryFee: +(L.feeCents / 100).toFixed(2),
           quotedTaxAmt: +(L.taxCents / 100).toFixed(2),
-          tipAmt: L.lane === 'express' ? +(tipCents / 100).toFixed(2) : 0,
+          // `tip`, not `tipAmt`: this object IS the shape priceOrderMoney reads
+          // (pos/screen-orders.jsx), and it reads `m.tip`. Filing it under a
+          // different key was the storefront quoting one total and the order
+          // panel pricing another — two money authorities across two surfaces.
+          tip: +(laneTip / 100).toFixed(2),
           deliverTo: SCO_STATE.address || null,
         },
       });
@@ -349,7 +366,7 @@ window.ShopPlaceBar = function ShopPlaceBar({ totals, onPlace }) {
         <span style={{ fontSize: P.type.strong, fontWeight: 700 }}>Place order</span>
       </span>
       <span style={{ fontSize: P.type.numRow, fontWeight: P.weight.num, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>
-        {window.SHOP.money(totals.totalCents)}
+        {window.SHOP.money(totals.totalCents + scoTipTotalCents(totals))}
       </span>
     </PBtn>
   </div>;

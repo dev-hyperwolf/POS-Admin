@@ -2080,7 +2080,15 @@ function seedOrderMoney(o) {
     // This is not a discount — the sale was for the full amount and part of it
     // was paid another way — so it comes off the GRAND total, after tax, not
     // off the taxable base.
-    credits: +(o.credits || 0) };
+    credits: +(o.credits || 0),
+    /* The driver gratuity, in dollars. Charged, per the owner's decision, but
+     * NOT TAXED — a voluntary, separately-stated gratuity is not taxable in
+     * California, and folding it into a line would tax it.
+     *
+     * It is the exact mirror of `credits`: both sit OUTSIDE the taxed base and
+     * move the grand total after tax. A credit is money the customer already
+     * put in; a tip is money they are adding on top. Same slot, opposite sign. */
+    tip: +(o.tipAmt || 0) };
 
 }
 
@@ -2105,9 +2113,13 @@ function priceOrderMoney(m) {
   // A recorded total that does not match what was taken is the bug this whole
   // money authority exists to prevent, pointed the other way.
   const credits = Math.max(0, +(m && m.credits || 0));
+  const tip = Math.max(0, +(m && m.tip || 0));
   const gross = +(taxBase + tax.total).toFixed(2);
-  return { sub, cartDisc, taxBase, tax, rate: tax.rate, credits, gross,
-    grand: +Math.max(0, gross - credits).toFixed(2) };
+  // The tip is added AFTER the clamp, deliberately: an order discounted to zero
+  // still owes the gratuity the customer chose to add. Clamping the two together
+  // would silently swallow it.
+  return { sub, cartDisc, taxBase, tax, rate: tax.rate, credits, tip, gross,
+    grand: +(Math.max(0, gross - credits) + tip).toFixed(2) };
 }
 
 /** The money record for an order — the stored one if there is one, never re-rolled. */
