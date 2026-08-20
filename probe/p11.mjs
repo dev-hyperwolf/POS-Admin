@@ -1,0 +1,24 @@
+import { withApp } from '../test/ui-harness.mjs';
+await withApp('pos', async (app) => {
+  const W = app.window; W.__sale=0;
+  W.ProbeOrders = () => W.React.createElement(W.OrdersScreen, { onStartSale: () => W.__sale++ });
+  await app.mount('ProbeOrders');
+  console.log('errors', app.errors);
+  console.log('unowned banner?', /no owner/.test(app.text()));
+  console.log('Resolve ->', app.click('Resolve')); await app.settle();
+  console.log('MatchSheet open?', /Who is this order for/.test(app.text()));
+  console.log('buttons:', JSON.stringify(app.buttons().slice(0,40)));
+  console.log('switch to All customers ->', app.click((t)=>/All customers/.test(t))); await app.settle();
+  console.log('book listed?', app.text().includes('not in the store'));
+  const s = [...app.document.querySelectorAll('input')].find(i=>/every customer/.test(i.placeholder||''));
+  const setter = Object.getOwnPropertyDescriptor(W.HTMLInputElement.prototype,'value').set;
+  setter.call(s,'Dony'); s.dispatchEvent(new W.Event('input',{bubbles:true})); await app.settle();
+  console.log('search filters?', app.text().includes('Dony Fernandez'), '| Harshil filtered out?', !/Harshil Fernandez/.test(''));
+  console.log('CHECKINS before:', W.HW.CHECKINS.length);
+  console.log('click Check in & bind ->', app.click((t)=>/^Check in & bind$/.test(t))); await app.settle();
+  console.log('sheet closed?', !/Who is this order for/.test(app.text()));
+  console.log('CHECKINS after:', W.HW.CHECKINS.length, '| waiting shown:', (app.text().match(/(\d+) waiting/)||[])[1]);
+  console.log('Dony in check-in strip?', app.text().includes('Dony'));
+  console.log('unowned banner gone?', !/no owner/.test(app.text()));
+  console.log('errors', app.errors);
+});

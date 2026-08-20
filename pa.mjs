@@ -1,0 +1,16 @@
+import { bootDriver, labels, clickSel, state, onDuty, scanAll, btn, clickBtn, toCloseOut, captureId } from './test/_drive.mjs';
+const app = await bootDriver();
+await onDuty(app);
+await toCloseOut(app, 0);
+await captureId(app);
+clickBtn(app, /^EXPECTEDCard$/); await app.settle();
+clickBtn(app, /^Charge card/); await new Promise(r=>setTimeout(r,1600));
+clickBtn(app, /^Approve$/); await new Promise(r=>setTimeout(r,3200));
+console.log('complete delivery:', clickBtn(app, /^Complete delivery$/)); await app.settle();
+console.log('Delivered?', /Delivered to/.test(app.text()));
+console.log('completed', JSON.stringify(app.window.M.s.completed.map(c=>({t:c.taskId,total:c.total,collected:c.collected,method:c.method,fee:c.fee,change:c.change}))));
+console.log('BTN', JSON.stringify(labels(app).slice(15)));
+console.log('next stop:', clickBtn(app, /Next stop/)); await app.settle();
+console.log('STATE', JSON.stringify(state(app).stack), state(app).tab);
+console.log('ERR', app.errors);
+app.close();

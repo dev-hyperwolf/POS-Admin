@@ -1,0 +1,11 @@
+import { bootDriver, labels, deepClick, clickSel, state, onDuty } from './test/_drive.mjs';
+const app = await bootDriver();
+await onDuty(app);
+const cards = app.document.querySelectorAll('[data-tour="stop"]');
+console.log('stop cards:', cards.length);
+console.log('clicked:', !!clickSel(app, '[data-tour="stop"]', 0));
+await app.settle();
+console.log('STATE', state(app));
+console.log('BTN', JSON.stringify(labels(app)));
+console.log('ERR', app.errors);
+app.close();

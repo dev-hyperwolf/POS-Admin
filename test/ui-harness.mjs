@@ -17,6 +17,18 @@
  * overflow, focus rings, anything visual. It answers "does this WORK", never
  * "does this LOOK right".
  *
+ * ⚠️ TWO TRAPS THAT WILL COST YOU AN HOUR EACH.
+ *
+ * 1. CROSS-REALM VALUES. Everything reached through `app.window` belongs to the
+ *    jsdom realm, so an Array from it does NOT share Node's Array prototype.
+ *    `assert/strict`'s deepEqual/deepStrictEqual compares prototypes and FAILS
+ *    on two empty arrays. Compare primitives: `.join(',')`, `.length`, a string.
+ *
+ * 2. `typeof null === 'object'`. The adapter and the bridge deliberately set
+ *    themselves to `null` when their dependency is missing, so a probe printing
+ *    "HWGovern: object" can mean "loaded" OR "explicitly null". Check for null
+ *    directly. This fooled me twice and made a broken load look like a good one.
+ *
  * Usage:
  *   const app = await boot('pos');
  *   app.click('Catalog');
@@ -89,7 +101,18 @@ export async function withApp(which, fn, opts) {
 export async function boot(which = 'pos', opts = {}) {
   const entry = ENTRIES[which] || which;
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
-    url: 'http://localhost/', pretendToBeVisual: true, runScripts: 'outside-only',
+    url: 'http://localhost/', pretendToBeVisual: true,
+    // 'dangerously' so injected <script> elements run with TRUE script
+    // semantics. With 'outside-only' + window.eval, a top-level `var` does NOT
+    // become a window property — so `var HWCommerce = ...` in the engine bundle
+    // never reached window.HWCommerce, the adapter saw undefined and set
+    // window.HWSwap = null, and every downstream check silently got null.
+    //
+    // That fooled me twice, because `typeof null === 'object'` — a probe reading
+    // "HWGovern: object" looked like success and was reporting a null. If a
+    // harness can lie about whether the thing under test even loaded, every
+    // result it produces is worthless.
+    runScripts: 'dangerously',
   });
   const { window } = dom;
 
@@ -121,12 +144,19 @@ export async function boot(which = 'pos', opts = {}) {
 
   for (const src of scriptsFor(entry)) {
     try {
-      window.eval(transform(src));
+      const el = window.document.createElement('script');
+      el.textContent = transform(src);
+      window.document.head.appendChild(el);
     } catch (err) {
       errors.push(`${src}: ${err.message}`);
       if (opts.strict) throw new Error(`${src}: ${err.message}`);
     }
   }
+
+  // A script that throws inside jsdom reports through the error event, not the
+  // append call, so surface anything that failed rather than carrying on with a
+  // half-loaded page.
+  if (opts.strict && errors.length) throw new Error(errors.join(' | '));
 
   const settle = () => new Promise((r) => setTimeout(r, opts.settleMs ?? 40));
 

@@ -449,9 +449,28 @@
     return driverToRegion(d.driver);
   }
 
-  /** The van the ACTING person is carrying, or null for an unscoped actor. */
-  function actorKitId(driverName) {
-    return driverToRegion(driverName);
+  /**
+   * The van the ACTING person is carrying, or null for an unscoped actor.
+   *
+   * Prefers an explicit `regionId` on the driver profile over matching by name.
+   * The name join exists for the DISPATCH record, which writes 'Theo R.' and has
+   * no id to offer; a logged-in driver has a profile and should carry the id
+   * outright. It also handles the ordinary case of someone covering a van that
+   * is not usually theirs — the register's `driver` is the regular assignee, not
+   * whoever is on it today, so name-matching alone would return null for them.
+   */
+  function actorKitId(driverOrName) {
+    if (driverOrName && typeof driverOrName === 'object') {
+      if (driverOrName.regionId && regionStock() && regionStock()[driverOrName.regionId]) {
+        return driverOrName.regionId;
+      }
+      return driverToRegion(driverOrName.name);
+    }
+    var d = window.MD && window.MD.DRIVER;
+    if (d && d.name === driverOrName && d.regionId && regionStock() && regionStock()[d.regionId]) {
+      return d.regionId;
+    }
+    return driverToRegion(driverOrName);
   }
 
   /**
