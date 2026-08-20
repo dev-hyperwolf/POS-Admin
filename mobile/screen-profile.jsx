@@ -32,6 +32,12 @@ window.ProfileScreen = function ProfileScreen() {
   const [notif, setNotif] = React.useState(true);
   const [ann, setAnn] = React.useState(window.MD.ANNOUNCEMENTS.map((a) => a.on));
   const delivered = window.MD.SHIFT_COMPLETED.length + (M.s.completed || []).filter((s) => s.outcome !== 'failed').length;
+  // ⚠️ tipTotal() sums _M.tips, which stays null until seedTips() runs — so any
+  // screen that reads the bank WITHOUT seeding first reports $0.00 while the log
+  // holds real money. TipsScreen and ActivityScreen seed; this one did not, and
+  // showed "My tips $0.00" over three seeded tips. Seed, then read.
+  window.M.seedTips();
+  const tipBank = window.M.tipTotal();
 
   return (
     <div style={{ padding: '2px 16px 100px', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -67,7 +73,7 @@ window.ProfileScreen = function ProfileScreen() {
       </Group>
 
       <Group label="Money & activity">
-        <Row icon="cash" tint={P.accent} title="My tips" detail={window.HW.fmt.money(window.M.tipTotal())} onClick={() => window.M.push('tips')} />
+        <Row icon="cash" tint={P.accent} title="My tips" detail={window.HW.fmt.money(tipBank)} onClick={() => window.M.push('tips')} />
         <Row icon="receipt" tint={P.info} title="Order history" onClick={() => window.M.push('orderhistory')} />
         <Row icon="list" tint={P.indica} title="Task history" onClick={() => window.M.push('taskhistory')} last />
       </Group>

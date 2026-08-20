@@ -265,18 +265,19 @@ window.HomeScreen = function HomeScreen() {
           <window.BreakBanner />
           {tab === 'today' && <VanPackBanner />}
           <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px 10px', flex: '0 0 auto' }}>
-            <div style={{ fontSize: 12.5, color: P.inkMute, fontFamily: P.fontMono }}>{tab === 'today' ? `${window.MD.TASKS.length} stops today` : `${window.MD.SCHEDULED.length} scheduled · ${window.MD.SCHEDULED.filter((s) => s.appt).length} shop@home`}</div>
+            <div style={{ fontSize: 12.5, color: P.inkMute, fontFamily: P.fontMono }}>{tab === 'today' ? (M.filterCount() ? `${window.MD.TASKS.filter((t) => M.matchesFilters(t)).length} of ${window.MD.TASKS.length} stops · filtered` : `${window.MD.TASKS.length} stops today`) : `${window.MD.SCHEDULED.length} scheduled · ${window.MD.SCHEDULED.filter((s) => s.appt).length} shop@home`}</div>
             <div style={{ flex: 1 }} />
-            <button onClick={() => window.M.openSheet('filters')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>Filters<Icon name="chevron-down" size={15} stroke={2} color={P.info} /></button>
+            <button onClick={() => window.M.openSheet('filters')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink2, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>{M.filterCount() ? `Filters · ${M.filterCount()}` : 'Filters'}<Icon name="chevron-down" size={15} stroke={2} color={P.info} /></button>
           </div>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 16px 90px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {tab === 'today' ?
           (() => {
             const tmin = (s) => {if (!s) return 9999;const m = s.match(/(\d+):(\d+)\s*(AM|PM)/i);if (!m) return 9999;let h = +m[1] % 12;if (/PM/i.test(m[3])) h += 12;return h * 60 + +m[2];};
-            const active = window.MD.TASKS.filter((t) => !M.isDone(t.id)).map((t) => ({ kind: 'stop', t, at: tmin(t.eta) }));
+            const shown = window.MD.TASKS.filter((t) => M.matchesFilters(t));
+            const active = shown.filter((t) => !M.isDone(t.id)).map((t) => ({ kind: 'stop', t, at: tmin(t.eta) }));
             const openBreaks = window.MD.BREAKS.filter((b) => b.status !== 'completed').map((b) => ({ kind: 'break', b, at: tmin(b.start) }));
             const merged = [...active, ...openBreaks].sort((a, x) => a.at - x.at);
-            const doneList = window.MD.TASKS.filter((t) => M.isDone(t.id));
+            const doneList = shown.filter((t) => M.isDone(t.id));
             const doneBreaks = window.MD.BREAKS.filter((b) => b.status === 'completed');
             return [
             ...merged.map((e) => e.kind === 'stop' ? <StopCard key={e.t.id} t={e.t} /> : <BreakCard key={e.b.id} b={e.b} />),

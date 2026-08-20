@@ -85,7 +85,32 @@ window.M = {
   seedTips() { if (_M.tips == null) { _M.tips = window.MD.TIPS_SEED.map((t) => ({ ...t })); _save('hw-m-tips', _M.tips); } return _M.tips; },
   addTip(t) { const tip = { id: 'tp' + Date.now(), at: 'just now', ...t }; _M.tips = [tip, ...(_M.tips || [])]; _save('hw-m-tips', _M.tips); _emit(); },
   removeTip(id) { _M.tips = (_M.tips || []).filter((t) => t.id !== id); _save('hw-m-tips', _M.tips); _emit(); },
-  tipTotal() { return (_M.tips || []).reduce((a, t) => a + t.amount, 0); },
+  // Seeds first. Fixing this at the Profile call site left an identical dead end
+  // in MakeChangeSheet, which is opened from checkout: any reader that forgot to
+  // seed silently showed $0.00 over a real tip bank. One reader cannot be the
+  // place this is fixed — the accessor is.
+  tipTotal() { window.M.seedTips(); return (_M.tips || []).reduce((a, t) => a + t.amount, 0); },
+  // stop-list filters. Apply used to close the sheet and flash "Filters applied"
+  // while discarding every chip the driver had tapped.
+  filters() { return _M.filters || { status: [], tags: [] }; },
+  setFilters(f) { _M.filters = { status: [...(f.status || [])], tags: [...(f.tags || [])] }; _save('hw-m-filters', _M.filters); _emit(); },
+  clearFilters() { _M.filters = { status: [], tags: [] }; _save('hw-m-filters', _M.filters); _emit(); },
+  filterCount() { const f = window.M.filters(); return f.status.length + f.tags.length; },
+  // OR within a group, AND across groups — the way every filter UI behaves.
+  // 'Completed' is the one chip that is NOT t.status: a stop is completed when
+  // the driver has finished it on THIS phone, which lives in M.isDone.
+  matchesFilters(t) {
+    const f = window.M.filters();
+    if (!f.status.length && !f.tags.length) return true;
+    if (f.status.length) {
+      const ok = f.status.some((label) => label === 'Completed'
+        ? window.M.isDone(t.id)
+        : !window.M.isDone(t.id) && t.status === label.toLowerCase().replace(/ /g, '-'));
+      if (!ok) return false;
+    }
+    if (f.tags.length && !f.tags.some((label) => (t.prio || '') === label.toLowerCase())) return false;
+    return true;
+  },
   // notifications
   dismissNotif(id) { _M.dismissed = [..._M.dismissed, id]; _save('hw-m-notifdismiss', _M.dismissed); _emit(); },
   clearDismissed() { _M.dismissed = []; _save('hw-m-notifdismiss', []); _emit(); },
