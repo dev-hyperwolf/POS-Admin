@@ -249,6 +249,23 @@ function scartMeetsMinimum(offer, laneTotals) {
  * for an AND rule, exactly ONE unmet condition, because closing one gap of two
  * satisfies nothing.
  */
+/** What a rule is actually worth here, in cents, or null when the engine cannot
+ *  say. Used to refuse advertising a reward of nothing. */
+function scartRewardCents(rule, ctx, E) {
+  try {
+    if (typeof E.rewardValueCents === 'function') return E.rewardValueCents(rule, ctx);
+    const rw = rule && rule.reward;
+    if (!rw) return null;
+    if (typeof rw.amountCents === 'number') return rw.amountCents;
+    if (typeof rw.percent === 'number' && ctx.cart) {
+      // A percentage of nothing is nothing, which is the case that matters.
+      const sub = (ctx.cart.lines || []).reduce((n, l) => n + (l.unitPriceCents || 0) * (l.quantity || 0), 0);
+      return Math.round(sub * (rw.percent / 100));
+    }
+    return null;                         // unknown shape — do not refuse on a guess
+  } catch (err) { return null; }
+}
+
 function scartSavings() {
   const E = window.HWCommerce, SHOP = window.SHOP;
   if (!E || typeof E.evaluateRule !== 'function' || !SHOP) return [];
@@ -263,17 +280,43 @@ function scartSavings() {
     try {
       if (!E.isRuleActive(rule, ctx.now)) continue;
       if (!E.isRuleOnChannel(rule, ctx)) continue;
-      if (false) continue;
+      /* 🔴 THIS LINE WAS LITERALLY `if (false) continue;` — a dead gate.
+       *
+       * The engine's own gate list (offerFromRule) runs isRuleOnChannel AND
+       * isRuleAvailableToCustomer. Without the second one this line advertised
+       * members-only and audience-restricted rewards to everybody, and the
+       * shopper could not have claimed a single one of them. */
+      if (typeof E.isRuleAvailableToCustomer === 'function'
+        && !E.isRuleAvailableToCustomer(rule, ctx)) continue;
     } catch (err) { continue; }
     let r;
     try { r = E.evaluateRule(rule, ctx); } catch (err) { continue; }
     if (r.satisfied) continue;
     const unmet = r.conditions.filter((c) => !c.satisfied);
     if (rule.combiner !== 'OR' && unmet.length !== 1) continue;
+    /* THE ENGINE CHECKS TWO MORE THINGS BEFORE IT WILL OFFER A RULE, and this
+     * reimplementation omitted both:
+     *
+     *  · A REWARD WORTH NOTHING IS NOT AN OFFER. offerFromRule refuses when
+     *    rewardValueCents <= 0. Without it the cart told a shopper to spend
+     *    more to unlock $0.00.
+     *  · ADVICE THAT CANNOT BE TAKEN IS NOT ADVICE. A gap is only closable in a
+     *    lane the cart can actually reach; the engine picks a product for the
+     *    gap and re-evaluates. A spend gap in a lane the van cannot serve reads
+     *    as "add $12 more" against an impossibility.
+     *
+     * ⚠️ THIS WHOLE FUNCTION IS A REIMPLEMENTATION OF offerFromRule, WHICH IS
+     * WHY IT DRIFTED. `getUpsells` IS exported on window.HWCommerce and is the
+     * right long-term home for this line — replacing it is a bigger change than
+     * this fix and belongs with someone who can re-verify the cart UI against
+     * it. Recorded rather than silently left. */
     const spend = r.closableGaps.filter((g) => g.kind === 'spend')
       .sort((a, b) => a.amountCents - b.amountCents)[0];
     if (!spend) continue;
-    out.push({ id, rule, gap: spend });
+    const worth = scartRewardCents(rule, ctx, E);
+    if (worth != null && worth <= 0) continue;
+    if (spend.lane && ctx.lanes && !ctx.lanes[spend.lane]) continue;
+    out.push({ id, rule, gap: spend, rewardCents: worth });
   }
   return out.sort((a, b) => a.gap.amountCents - b.gap.amountCents);
 }

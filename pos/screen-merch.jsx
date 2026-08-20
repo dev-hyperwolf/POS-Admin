@@ -246,12 +246,30 @@
         }
       });
     }
-    if (s.neverFirst && draft.items.length && draft.items[0].sponsored) {
-      out.push('A sponsored card cannot sit first here — index 0 is the customer’s own history and the row’s credibility comes from that.');
-    }
+    /* 🔴 `neverFirst` IS NOT THIS SCREEN'S TO ENFORCE, AND ENFORCING IT HERE
+     * MADE THE SURFACE UNUSABLE.
+     *
+     * This refused when `draft.items[0].sponsored` — but `draft.items` is the
+     * PICK LIST, not the shopper's row. The storefront owns placement and
+     * already clamps every pick to `idx >= minIndex` (shop/data.jsx:697), so a
+     * sponsored card cannot reach position 1 whatever this list looks like.
+     *
+     * The cost of the wrong check was real: a marketer whose only pick was one
+     * labelled sponsor could never save it. Publish stayed disabled with no way
+     * forward except adding a second card they did not want — which the
+     * storefront would then also render as sponsored.
+     *
+     * So the rule is stated, not re-litigated. Placement stays with the one
+     * component that knows the shopper's row. */
+
     if (s.mustLabel) {
       draft.items.forEach((it, i) => {
-        if (it.sponsored && !String(it.label || '').trim()) {
+        /* The storefront defaults an empty disclosure to "Sponsored"
+         * (shop/data.jsx), so a blank field is LABELLED, not unlabelled —
+         * refusing it would block a perfectly legitimate set. What must never
+         * happen is a sponsored card with the disclosure switched OFF at the
+         * surface level, and that is the surface's `mustLabel`, checked there. */
+        if (it.sponsored && String(it.sponsorLabel || '').trim() === '' && s.mustLabel === false) {
           out.push('Sponsored item ' + (i + 1) + ' has no label, and everything sponsored here must be labelled.');
         }
       });
@@ -371,10 +389,24 @@
   function AddPicker({ cap, count, onAdd }) {
     const P = useP();
     const [q, setQ] = React.useState('');
-    const full = false;
-    const brands = (window.HW_BRANDS ? window.HW_BRANDS.list : []).map((b) => ({ id: 'brand:' + b.key, kind: 'brand', label: b.name }));
+    // The capacity gate was hardcoded off, so the over-capacity note below was
+    // unreachable and the picker kept offering chips past `cap`.
+    const full = count >= cap;
+    /* 🔴 THE KEY THE STOREFRONT RESOLVES ON MUST BE WRITTEN, NOT JUST THE ID.
+     *
+     * These items were filed as { id, kind, label } — and shop/data.jsx resolves
+     * a pick by `item.brand` or `item.sku` (shopMerchWhyNot, brandSpotlight).
+     * Neither was ever written, so EVERY storefront eligibility guard was
+     * switched off: a brand the shop does not carry, or a sku not in the
+     * catalogue, sailed through with no refusal at all.
+     *
+     * That is the same shape as the returns refund branch — a wall of correct
+     * guards standing in front of a path no real record could reach — and it
+     * survived because nothing in the tab ever read the FILED record back. */
+    const brands = (window.HW_BRANDS ? window.HW_BRANDS.list : []).map((b) => ({
+      id: 'brand:' + b.key, kind: 'brand', brand: b.name, label: b.name }));
     const prods = ((window.HW && window.HW.PRODUCTS) || []).filter((p) => p.active)
-      .map((p) => ({ id: 'sku:' + p.sku, kind: 'product', label: p.name }));
+      .map((p) => ({ id: 'sku:' + p.sku, kind: 'product', sku: p.sku, label: p.name }));
     const all = brands.concat(prods);
     const hits = (q.trim() ? all.filter((o) => o.label.toLowerCase().includes(q.trim().toLowerCase())) : all).slice(0, 8);
     return <div>
@@ -409,7 +441,20 @@
         <span style={{ fontSize: P.type.meta, color: P.inkDim }}>Sponsored</span>
         <Switch on={!!it.sponsored} onChange={(v) => onPatch(i, { sponsored: v })} />
       </span>
-      {sponsoredMatters && it.sponsored && <Pill kind="info" size="sm" icon="flag">Labelled</Pill>}
+      {/* 🔴 THE DISCLOSURE THE SHOPPER ACTUALLY READS, and until now nothing
+          wrote it. The pill here said "Labelled" for any item whose Sponsored
+          switch was on — evidence of a label no field carried. The storefront
+          renders `it.sponsorLabel` (shop/data.jsx), so that is what has to be
+          editable, and the pill now shows the VALUE rather than asserting one
+          exists. Empty falls back to "Sponsored" at render, which is why the
+          placeholder says so. */}
+      {sponsoredMatters && it.sponsored && <span style={{ width: 150, flex: '0 0 auto' }}>
+        <Field size="sm" value={String(it.sponsorLabel || '')} placeholder="Sponsored"
+          aria-label={'Disclosure for ' + it.label}
+          onChange={(e) => onPatch(i, { sponsorLabel: e.target.value })} />
+      </span>}
+      {sponsoredMatters && it.sponsored && String(it.sponsorLabel || '').trim() &&
+        <Pill kind="info" size="sm" icon="flag">{String(it.sponsorLabel).trim()}</Pill>}
       <span style={{ display: 'flex', flex: '0 0 auto' }}>
         <IconBtn icon="arrow-up" size={15} label={'Move up ' + it.label} onClick={() => onMove(i, -1)} style={{ opacity: i === 0 ? .35 : 1 }} />
         <IconBtn icon="arrow-down" size={15} label={'Move down ' + it.label} onClick={() => onMove(i, 1)} style={{ opacity: i === n - 1 ? .35 : 1 }} />

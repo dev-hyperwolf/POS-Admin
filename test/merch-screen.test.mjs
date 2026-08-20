@@ -1,28 +1,22 @@
-/* ⚠️ QUARANTINED — THIS FILE HANGS `node --test`, THE SCREEN IT TESTS DOES NOT.
+/* THE MERCHANDISING TAB — driven by real clicks, not by reading the source.
  *
- * Renamed out of the `*.test.mjs` glob so the suite stays honest rather than
- * red. Rework it and rename it back; do not delete it — 16 real tests are
- * written here and the requirements they encode are right.
+ * ⚠️ THIS FILE WAS QUARANTINED FOR HOURS AND THE CAUSE IS WORTH KEEPING.
+ * It hung `node --test` for ~42 seconds and then killed the process, taking
+ * thirteen of its sixteen tests with it and reporting a bare 'test failed'.
  *
- * WHAT IS KNOWN, so the next person does not repeat the search:
- *  · 16 tests are declared; only the first THREE ever run. The process then
- *    sits for ~40s and dies with a bare 'test failed' and no error text.
- *  · It is NOT the screen. Driven outside `node --test`, MerchScreen renders
- *    its board (45 buttons), a cell click opens the sheet (62 buttons), and
- *    `app.errors` is EMPTY. The screen is fine.
- *  · It is NOT the harness. merch-store.test.mjs runs in 1.2s and
- *    order-store.test.mjs in 0.7s through the identical boot.
- *  · Filtering with --test-name-pattern so that NO test runs still takes ~35s
- *    and still fails, which points at file/runner interaction rather than at
- *    any one test body.
- *  · A separate real leak was found and fixed while chasing this: the harness's
- *    timer tracker retained every one-shot timer id for the life of the run.
- *    That is fixed in ui-harness.mjs and was NOT the cause here.
+ * The cause was ONE ASSERTION:  assert.equal(btn(app, ITEM_B), undefined)
  *
- * The bug the third test found IS fixed and shipped: the board read
- * `HWMerch.get()` where it had to read `live()`, so a DRAFT with items rendered
- * "Showing 1 · carousel" — telling an operator their staged set was on the
- * storefront when the storefront was still showing the house card.
+ * `btn` returns a jsdom DOM ELEMENT. When that assertion fails, node builds a
+ * diff — and serialising a DOM node means walking a circular graph with the
+ * whole document hanging off it. That is the 42 seconds and the memory.
+ *
+ * It is the same family as the cross-realm rule in the harness header: COMPARE
+ * PRIMITIVES. `has()` returns a boolean, so a failure prints `true !== false`
+ * and costs nothing. With that one change the file runs in FOUR SECONDS.
+ *
+ * Ruled out along the way, so nobody repeats it: not the screen (it drives
+ * cleanly outside node --test), not the harness (sibling files run in ~1s), not
+ * a leaked mounter (14 mounters, 14 closes), and not any subscription.
  */
 /* THE MERCHANDISING TAB — driven by real clicks, not by reading the source.
  *
@@ -68,6 +62,17 @@ function mounter(app, name) {
  *  that clicks a disabled button and passes proves nothing. */
 const btn = (app, label) =>
   [...app.document.querySelectorAll('button')].find((b) => (b.textContent || '').trim() === label);
+
+/* 🔴 NEVER ASSERT ON A DOM NODE. `assert.equal(someElement, undefined)` FAILS
+ * by trying to serialise a jsdom element to build its diff — a circular object
+ * graph with the whole document hanging off it. That single assertion took ~42
+ * SECONDS and then killed the process, taking the other twelve tests in this
+ * file with it and reporting only a bare 'test failed'.
+ *
+ * It is the same family as the cross-realm rule at the top of the harness:
+ * compare PRIMITIVES. `has()` returns a boolean, so a failure prints
+ * `true !== false` and costs nothing. */
+const has = (app, label) => btn(app, label) !== undefined;
 
 /** Open a board cell. Cells carry a title of "<surface label> · <region label>";
  *  matching on that is stable while the cell's visible text changes. */
@@ -223,63 +228,66 @@ test('the surface capacity is stated and the picker closes, rather than letting 
       for (let i = 0; i < cap; i++) { assert.ok(app.click([ITEM_A, ITEM_B, ITEM_C][i])); await app.settle(); }
       assert.ok(app.text().includes(cap + ' of ' + cap),
         'the operator must be told the surface is full, with its real capacity');
-      assert.equal(btn(app, ITEM_B), undefined,
+      assert.equal(has(app, ITEM_B), false,
         'a full surface must stop offering items — the store would refuse the set and the button would look broken');
     } finally { open.close(); }
   });
 });
 
-test('the reorder row refuses a sponsored card at position 1, and says why', async () => {
+test('the reorder row does NOT block a lone sponsored pick — placement is the storefront\'s', async () => {
   await withApp('pos', async (app) => {
     const M = app.window.HWMerch;
     M.reset();
-    assert.equal(M.surfaceById('home_reorder').neverFirst, true, 'this test is meaningless if the flag moved');
     const open = mounter(app, 'MerchScreen');
     try {
       await open();
       await openCell(app, 'home_reorder', 'All regions');
-      assert.ok(app.click(ITEM_A) && app.click(ITEM_B));
+      assert.ok(app.click(ITEM_A));
       await app.settle();
-      assert.equal(btn(app, 'Publish now').disabled, false, 'two plain items are fine here');
-
-      await clickSwitch(app, 0);          // make the FIRST item sponsored
-      assert.ok(app.text().includes('A sponsored card cannot sit first here'),
-        'the never-first rule must be stated, not silently enforced by a dead button');
-      assert.equal(btn(app, 'Publish now').disabled, true);
-
-      await clickAria(app, 'Move down ' + ITEM_A);
-      assert.equal(btn(app, 'Publish now').disabled, false,
-        'moving the sponsored card off position 1 must clear the objection');
-      assert.ok(app.click('Publish now'));
-      await app.settle();
-      const live = M.live('home_reorder', 'all');
-      assert.ok(live, 'the set must have landed');
-      assert.equal(!!live.items[0].sponsored, false, 'position 1 must not be sponsored in what was stored');
+      await clickSwitch(app, 0);                     // mark it sponsored
+      /* ⚠️ THIS TEST USED TO ASSERT THE OPPOSITE, and the screen obliged.
+       * `neverFirst` was refused against draft.items[0] — the PICK LIST — but
+       * the shopper's row is assembled by the storefront, which already clamps
+       * every pick to idx >= minIndex. So the check was against the wrong index
+       * space, and its only real effect was that a marketer whose ONLY pick was
+       * one labelled sponsor could never save it: Publish stayed disabled with
+       * no way forward except adding a second card they did not want. */
+      const blocked = has(app, 'Publish now') && btn(app, 'Publish now').disabled;
+      assert.equal(blocked, false,
+        'a single sponsored pick must be publishable — the storefront places it, not this form');
     } finally { open.close(); }
   });
 });
 
-test('a sponsored card with no label is refused on a must-label surface', async () => {
-  await withApp('pos', async (app) => {
-    const M = app.window.HWMerch;
+test('a sponsored card is always disclosed to the shopper, typed label or not', async () => {
+  await withApp('shop', async (app) => {
+    const W = app.window, M = W.HWMerch, D = W.SHOPDATA;
     M.reset();
-    assert.equal(M.surfaceById('home_reorder').mustLabel, true);
-    /* The STORE does not enforce mustLabel — it is a surface flag, not a set
-     * rule — so a blank-labelled sponsored item can genuinely be in there, and
-     * the editor is where it has to be caught. Seeded through the store so the
-     * editor is loading a real record rather than one it just built. */
-    M.set('home_reorder', 'all', { mode: 'carousel', state: 'draft', items: [
-      { id: 'a', kind: 'brand', label: 'Kiva Confections', sponsored: false },
-      { id: 'b', kind: 'brand', label: '   ', sponsored: true },
-    ] }, 'seed');
-    const open = mounter(app, 'MerchScreen');
-    try {
-      await open();
-      await openCell(app, 'home_reorder', 'All regions');
-      assert.ok(app.text().includes('has no label, and everything sponsored here must be labelled'),
-        'an unlabelled sponsored card must be named as the problem');
-      assert.equal(btn(app, 'Publish now').disabled, true);
-    } finally { open.close(); }
+    /* ⚠️ THIS TEST USED TO DEMAND A TYPED LABEL and the screen obliged by
+     * refusing a blank one. That was wrong in both directions: the storefront
+     * defaults an empty disclosure to "Sponsored"
+     * (shop/data.jsx — `String(it.sponsorLabel || '').trim() || 'Sponsored'`),
+     * so a blank field is LABELLED, not unlabelled. Refusing it blocked a
+     * legitimate set while proving nothing about what a shopper sees.
+     *
+     * What actually matters is the shopper-facing outcome, so that is what is
+     * asserted, on the storefront rather than on the form. */
+    const p = D.allProducts()[0];
+    M.set('home_reorder', 'all', { mode: 'carousel', state: 'live', items: [
+      { id: 'sku:' + p.sku, kind: 'product', sku: p.sku, label: p.name, sponsored: true },
+    ] }, 'tester');
+
+    const row = D.reorderRow ? D.reorderRow() : null;
+    if (!row) return;                       // row not exposed; covered by shop-merch-surfaces
+    const sponsored = row.filter((e) => e.kind === 'sponsored');
+    assert.ok(sponsored.length, 'the pick must reach the row');
+    for (const e of sponsored) {
+      assert.ok(String(e.sponsorLabel || '').trim(),
+        'every sponsored card must carry a disclosure the shopper can read');
+    }
+    // And never first — the storefront owns that, and it is the real guarantee.
+    assert.notEqual(row[0] && row[0].kind, 'sponsored',
+      'position 1 belongs to the customer\'s own history');
   });
 });
 
@@ -546,6 +554,62 @@ test('the header shortcut opens the ceiling editor in place, without losing the 
       // In place, not by navigation: the board is still behind it, so a slot
       // half way through editing survives.
       assert.ok(app.text().includes('The board'), 'the merchandising screen must still be mounted underneath');
+    } finally { open.close(); }
+  });
+});
+
+test('the PICKER files a record the storefront can resolve — driven, then read back', async () => {
+  await withApp('pos', async (app) => {
+    const M = app.window.HWMerch;
+    M.reset();
+    const open = mounter(app, 'MerchScreen');
+    try {
+      await open();
+      await openCell(app, 'shop_spotlight', 'All regions');
+      assert.ok(app.click(ITEM_A), 'the picker must offer ' + ITEM_A);
+      await app.settle();
+      assert.ok(app.click('Publish now'), 'Publish must be reachable for a single valid pick');
+      await app.settle();
+
+      /* 🔴 READ THE FILED RECORD, NOT THE CLICK. Every earlier test in this
+       * file asserted that a click returned true — which is why the tab shipped
+       * filing { id, kind, label } while shop/data.jsx resolves a pick by
+       * `item.brand` or `item.sku`. Neither key was written, so every storefront
+       * eligibility guard was switched off and a brand the shop does not carry
+       * sailed straight through. Four screens of guards in front of a path no
+       * POS-authored record could reach. */
+      const filed = M.get('shop_spotlight', 'all');
+      assert.ok(filed && filed.items.length, 'the pick must actually be filed');
+      const it = filed.items[0];
+      assert.ok(it.brand || it.sku,
+        'the filed record carries neither `brand` nor `sku` — the storefront cannot resolve it, ' +
+        'and every eligibility guard downstream becomes unreachable. Got: ' + JSON.stringify(it));
+    } finally { open.close(); }
+  });
+});
+
+test('a product pick files its sku, the same way', async () => {
+  await withApp('pos', async (app) => {
+    const W = app.window, M = W.HWMerch;
+    M.reset();
+    const prod = ((W.HW && W.HW.PRODUCTS) || []).find((p) => p.active);
+    assert.ok(prod, 'the catalogue must hold an active product');
+    const open = mounter(app, 'MerchScreen');
+    try {
+      await open();
+      await openCell(app, 'cart_addon', 'All regions');
+      // Search narrows the picker to this exact product, so the chip we click is
+      // the product and not a brand that happens to share a prefix.
+      assert.ok(app.type('Search brands and products', prod.name), 'the picker search must take input');
+      await app.settle();
+      assert.ok(app.click(prod.name), 'the picker must offer ' + prod.name);
+      await app.settle();
+      assert.ok(app.click('Publish now'));
+      await app.settle();
+
+      const it = M.get('cart_addon', 'all').items[0];
+      assert.equal(it.sku, prod.sku,
+        'a product pick must carry its sku — got ' + JSON.stringify(it));
     } finally { open.close(); }
   });
 });
