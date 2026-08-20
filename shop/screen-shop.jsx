@@ -11,23 +11,65 @@ const useP = window.useP;
 // `SHOP.totals()`; nothing on this screen adds money up.
 function shelfPrice(p) { return window.HW.fmt.money(p.price); }
 
-function BrandSpotlight() {
+/* ── THE SPOTLIGHT — WHAT MARKETING PICKED, OR THE HOUSE CARD ────────────────
+ *
+ * 🔴 THIS SCREEN DERIVES NOTHING. It used to print the deepest markdown in the
+ * catalogue, which is how the shop came to advertise "Connected — Up to 97% off"
+ * to customers. `SHOPDATA.brandSpotlight()` now reads
+ * `HWMerch.live('shop_spotlight', region)`, and when there is no live pick it
+ * hands back the HOUSE CARD — never the derivation.
+ *
+ * CAROUSEL vs WEIGHTED is settled in the data layer: `cards` is already the list
+ * this visitor should see (all of them in carousel, exactly one in weighted), so
+ * mapping over it honours both modes without this file knowing which is on.
+ */
+function SpotlightCard({ card, source }) {
   const P = useP();
   const S = window.useShop();
-  const sp = window.SHOPDATA.brandSpotlight();
-  if (!sp) return null;
+  const merch = source === 'merch';
+  // The CTA only exists when the card names a brand the catalogue carries — a
+  // "Shop nothing" button is worse than no button.
+  const cta = card.brand || null;
+  const meta = [card.kicker, card.etaMinutes ? `Ready ~${card.etaMinutes}m` : '']
+    .filter(Boolean).join(' · ');
   return (
     <div style={{ background: P.rail, borderRadius: P.r12, padding: 20, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 260 }}>
-      <div style={{ fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', color: P.accent, fontFamily: P.fontMono }}>Brand spotlight</div>
-      <div style={{ fontSize: P.type.h2, fontWeight: 700, color: P.railBright, lineHeight: 1.15 }}>{sp.brand}</div>
-      <div style={{ fontSize: P.type.strong, fontWeight: 600, color: P.accent }}>{sp.offer}</div>
-      <div style={{ fontSize: P.type.meta, fontWeight: 600, letterSpacing: '.10em', textTransform: 'uppercase', color: P.railInk, fontFamily: P.fontMono }}>
-        {sp.kicker ? sp.kicker + ' · ' : ''}{sp.etaMinutes ? `Ready ~${sp.etaMinutes}m` : ''}
+      <div style={{ fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', color: P.accent, fontFamily: P.fontMono }}>
+        {merch ? 'Brand spotlight' : 'Hyperwolf'}
       </div>
+      <div style={{ fontSize: P.type.h2, fontWeight: 700, color: P.railBright, lineHeight: 1.15 }}>{card.title}</div>
+      {card.offer &&
+      <div style={{ fontSize: P.type.strong, fontWeight: 600, color: P.accent }}>{card.offer}</div>}
+      {meta &&
+      <div style={{ fontSize: P.type.meta, fontWeight: 600, letterSpacing: '.10em', textTransform: 'uppercase', color: P.railInk, fontFamily: P.fontMono }}>{meta}</div>}
+      {cta &&
       <div style={{ marginTop: 4 }}>
         <PBtn variant="accent" size="sm" iconRight="chevron-right"
-          onClick={() => { S.setQuery(sp.brand); S.setCategory('All'); }}>Shop {sp.brand}</PBtn>
+          onClick={() => { S.setQuery(cta); S.setCategory('All'); }}>Shop {cta}</PBtn>
+      </div>}
+    </div>);
+
+}
+
+function BrandSpotlight() {
+  const P = useP();
+  const sp = window.SHOPDATA.brandSpotlight();
+  if (!sp || !sp.cards || !sp.cards.length) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 260 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {sp.cards.map((c, i) => <SpotlightCard key={(c.brand || c.title || '') + i} card={c} source={sp.source} />)}
       </div>
+      {/* ⚠️ SAY THAT THIS IS DEMO STORAGE. HWMerch is per-browser and syncs with
+          nothing, so two marketers have two realities. A surface that implied a
+          shared source of truth would be lying about where its content came
+          from — and the whole point of the seam is that this stays visible until
+          the real backing store is chosen. */}
+      {sp.demo &&
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: P.type.micro, color: P.inkMute, fontFamily: P.fontMono }}>
+        <Icon name="info" size={12} stroke={1.8} />
+        Demo merchandising · this browser only
+      </div>}
     </div>);
 
 }
@@ -62,6 +104,28 @@ function CategorySidebar() {
         })}
       </div>}
     </aside>);
+
+}
+
+/* ── THE FIVE RAILS ─────────────────────────────────────────────────────────
+ *
+ * 🔴 A RAIL LABEL MAKES A CLAIM, SO THE SCREEN SAYS WHAT THE LIST ACTUALLY IS.
+ * "Best Sellers" claims sales data and "New Arrivals" claims stocking dates. The
+ * catalogue carries neither `unitsSold` nor `firstSeenAt`, so an auto rail would
+ * have to invent a ranking — the same failure as the 97% card, wearing a
+ * different label. `SHOPDATA.railBasis()` reports where the list came from
+ * (a merchandiser's pick / a real markdown / an editorial list) and the note is
+ * shown under the chips for whichever rail is selected.
+ */
+function RailBasisNote({ railId }) {
+  const P = useP();
+  const b = window.SHOPDATA.railBasis(railId);
+  if (!b || !b.note) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: P.type.meta, color: P.inkMute }}>
+      <Icon name={b.source === 'merch' ? 'megaphone' : 'info'} size={13} stroke={1.8} />
+      <span>{b.note}{b.source === 'merch' && b.by && b.by.who ? ` · ${b.by.who}` : ''}</span>
+    </div>);
 
 }
 
@@ -154,6 +218,7 @@ window.ShopShopScreen = function ShopShopScreen() {
         <CategorySidebar />
         <div style={{ flex: 1, minWidth: 300, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <Rails />
+          {railId && <RailBasisNote railId={railId} />}
           {list.length === 0 ?
             <EmptyState icon="search" title="Nothing here yet"
               body="No products match this category, rail and search together."

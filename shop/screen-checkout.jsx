@@ -372,6 +372,19 @@ window.ShopPlaceBar = function ShopPlaceBar({ totals, onPlace }) {
   </div>;
 };
 
+/**
+ * The checkout's own upsell surface.
+ *
+ * A thin wrapper on purpose: the CARD, the ranking, the lane refusal and the
+ * dismissal set all live in shop/screen-cart.jsx, and a second copy here is how
+ * two screens start disagreeing about what the engine said. All this file
+ * decides is which surface id to ask for and what to call it.
+ */
+window.ShopUpsellCallout = function ShopUpsellCallout({ totals, onChange }) {
+  return <ShopUpsellRail surface="checkout_callout" title="Before you place it"
+    totals={totals} onChange={onChange} />;
+};
+
 // ── The screen ─────────────────────────────────────────────────────────────
 
 window.ShopCheckoutScreen = function ShopCheckoutScreen({ now }) {
@@ -434,9 +447,19 @@ window.ShopCheckoutScreen = function ShopCheckoutScreen({ now }) {
     <div style={{ padding: '16px 16px 0' }}>
       {totals.lanes.map((l, i) => <ShopCheckoutLane key={l.lane} lane={l} now={now || new Date()}
         onChange={bump} showAddress={i === 0} />)}
+      {/* 🔴 THE UPSELL SURFACE HERE IS `checkout_callout`, NOT THE CART'S.
+          The engine gives this surface two slots against the cart's six, and
+          that difference is the whole point: a customer with a finger on "Place
+          order" is interruptible once, not six times. The cards, the ranking and
+          the cap are the engine's — see shop/screen-cart.jsx, which owns the
+          components and the ONE dismissal set both screens share, so a card
+          waved away in the cart does not reappear here. */}
+      <ShopUpsellCallout totals={totals} onChange={bump} />
       {/* The same ORDER SUMMARY the cart frame draws, reused rather than
           reinvented, so the per-lane delivery rows and the tax behind this
           total are visible where the total is pressed. */}
+      <ShopSavingsLines onChange={bump} />
+      <div style={{ height: 16 }} />
       <ShopOrderSummary totals={totals} />
     </div>
 

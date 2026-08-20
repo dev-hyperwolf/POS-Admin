@@ -1,16 +1,147 @@
 // ── Cart pane + Payment modal ──────────────────────────────────────────────
 const useP = window.useP;
 
+/* ── THE ONE PLACE THE POS ASKS THE ENGINE FOR AN OFFER ──────────────────────
+ *
+ * `window.HWSwap.recommendations` is @hyperwolf/commerce-logic reached through
+ * shared/commerce-adapter.js — the SAME call pos/screen-orders.jsx's
+ * AddItemPanel already makes, and the same code the web cart and the driver app
+ * rank with. This wrapper adds the three things every POS surface needs and
+ * nothing else. It scores nothing itself.
+ *
+ * ⚠️ DO NOT ADD A SCORER HERE. pos/data.jsx still carries its own `upsell()`
+ * helper — a small hand-rolled "same brand or same category" ranker that cannot
+ * see promotion unlocks, which is exactly why the cart used to miss them. It
+ * stays as the no-engine fallback and MUST NOT grow a second opinion.
+ *
+ * It lives on `window` rather than as a top-level function because these pages
+ * have no module scope: pos/screen-register.jsx is a separate <script> and
+ * reaches this by name at call time. screen-cart.jsx loads first, so it is
+ * always defined by the time anything renders.
+ */
+window.HWPosUpsell = (function () {
+  'use strict';
+
+  const swap = () => (typeof window !== 'undefined' && window.HWSwap) || null;
+
+  /**
+   * The engine's OWN slot count for a surface — never a number chosen here.
+   *
+   * How many offers a surface may show is a merchandising decision that lives
+   * in `defaultConfig.upsell.slotsBySurface`, next to the weights that produced
+   * the ranking. A screen that picks its own `.slice(0, 4)` silently overrides
+   * that config and the config stops being the answer to "how many do we show".
+   *
+   * Returns 0 when the engine is not loaded, which is the caller's signal to
+   * render no control at all rather than an inert one.
+   */
+  function slotsFor(surface) {
+    const S = swap();
+    const u = S && S.engine && S.engine.defaultConfig && S.engine.defaultConfig.upsell;
+    const n = u && u.slotsBySurface ? u.slotsBySurface[surface] : 0;
+    return typeof n === 'number' && n > 0 ? n : 0;
+  }
+
+  /**
+   * Ranked offers for one surface.
+   *
+   * Returns `null` when the engine is absent (caller falls back or renders
+   * nothing) and `[]` when the engine ran and had nothing to say — two very
+   * different states that must not look alike.
+   *
+   * ⚠️ FULFILLABILITY IS THE ENGINE'S JOB, NOT A FILTER OUT HERE. The whole
+   * catalogue goes in; the adapter turns each product's `qty` into per-lane
+   * availability and `upsell.respectLaneAvailability` drops anything the lane
+   * cannot actually fill. Post-filtering on `qty` here would look identical on
+   * a good day and quietly disagree with the engine on a bad one — and it would
+   * take slots away from offers that WERE fulfillable, because the slice has
+   * already happened by then.
+   *
+   * ⚠️ DISMISSAL IS FILTERED AFTER, AND HAS TO BE. `getUpsells` takes a
+   * `dismissed` option, but shared/commerce-adapter.js does not forward it (and
+   * that file is not ours to change). So we ask for `slots + hidden.length`
+   * offers and drop the hidden ones from the top: because only `hidden.length`
+   * ids can ever be dropped, what is left is exactly the top `slots` offers
+   * that were not dismissed. The number DISPLAYED is still the config's.
+   */
+  function offersFor(opts) {
+    const S = swap();
+    if (!S || typeof S.recommendations !== 'function') return null;
+    const slots = slotsFor(opts.surface);
+    if (!slots) return null;
+    const hidden = opts.hidden || [];
+    const catalogue = opts.catalogue ||
+      (window.HW.PRODUCTS || []).filter((p) => p.active);
+    // The member's go-to category is the one affinity signal this estate has
+    // that the cart itself cannot supply. It is DATA handed to the engine, not
+    // a ranking: the engine decides what it is worth (weights.favoriteCategory).
+    const fav = opts.customer && window.HW.favCategory ?
+      window.HW.favCategory(opts.customer) : null;
+    const ranked = S.recommendations({
+      catalogue,
+      orderItems: opts.orderItems || [],
+      surface: opts.surface,
+      limit: slots + hidden.length,
+      customer: fav ? { favoriteCategories: [fav] } : undefined,
+    });
+    if (!ranked) return null;
+    const drop = new Set(hidden);
+    return ranked.
+      filter((o) => !drop.has(o.product.sku || o.product.id)).
+      slice(0, slots).
+      map((o) => ({ p: o.product, reason: o.reason, kind: o.kind }));
+  }
+
+  return { slotsFor, offersFor };
+})();
+
 // `merch` is what the goods cost; `sub` is what is left to tax after
 // `discountOff` comes off. They are separate props because the footer has to
 // show the customer both — a total that quietly shrank is a total nobody trusts.
-window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote }) {
+window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote, upsellHidden, onDismissUpsell }) {
   const walletAmt = customer?.wallet || 0;
   const [taxOpen, setTaxOpen] = React.useState(false);
   const goal = window.HW.STATS.associate.goal;
   const gap = Math.max(0, goal - total);
   const goalPct = goal > 0 ? Math.min(1, total / goal) : 0;
-  const recs = window.HW.upsell(cartSkus || [], customer).slice(0, 4);
+
+  /* ── SUGGESTIONS WHILE THE SALE IS BEING RUNG UP ──────────────────────────
+   *
+   * The cart is the highest-intent moment in the shop: the person is at the
+   * counter, the screen already has their attention, and the associate has a
+   * reason to speak. So this rail is ranked by the upsell engine — the same one
+   * behind the driver's "For {customer}" chip and the order picker — and not by
+   * the local `HW.upsell` helper, which cannot see promotion unlocks.
+   *
+   * ⚠️ THE STRING KEYS ARE DELIBERATE. `lines` and `upsellHidden` are new arrays
+   * on every render, so memoising on them directly would re-rank on every
+   * keystroke anywhere in the register.
+   *
+   * When the engine has not loaded we fall back to `HW.upsell` rather than
+   * showing an empty rail — the cart still has to sell something. `engine`
+   * records WHICH list this is, because a hand-rolled list dressed as an
+   * engine-ranked one is how nobody notices the engine stopped loading.
+   */
+  const hidden = upsellHidden || [];
+  const hiddenKey = hidden.join(',');
+  const cartKey = (lines || []).map((l) => l.sku + ':' + l.qty).join(',');
+  const custKey = customer ? customer.id || customer.name : '';
+  const { recs, engineRanked } = React.useMemo(() => {
+    const drop = new Set(hidden);
+    const ranked = window.HWPosUpsell && window.HWPosUpsell.offersFor({
+      surface: 'cart_add_to_order',
+      orderItems: (lines || []).map((l) => ({ sku: l.sku, qty: l.qty })),
+      customer,
+      hidden,
+    });
+    if (ranked) return { recs: ranked, engineRanked: true };
+    return {
+      recs: window.HW.upsell(cartSkus || [], customer).
+        filter((p) => !drop.has(p.sku)).slice(0, 4).
+        map((p) => ({ p, reason: p._reason })),
+      engineRanked: false,
+    };
+  }, [cartKey, hiddenKey, custKey]);
 
   const payMethods = [
   ['cash', 'Cash', 'cash', null],
@@ -51,8 +182,9 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
             )}
           </div>
 
-          {/* AOV booster — goal meter + recommended up-sells (comment 8) */}
-          <AovBooster P={P} total={total} goal={goal} gap={gap} goalPct={goalPct} recs={recs} onAdd={onAdd} />
+          {/* AOV booster — goal meter + engine-ranked up-sells (comment 8) */}
+          <AovBooster P={P} total={total} goal={goal} gap={gap} goalPct={goalPct} recs={recs} onAdd={onAdd}
+          engineRanked={engineRanked} onDismiss={onDismissUpsell} />
 
           {/* Discount + promo — committed to the compact layout */}
           <DiscountCard P={P} discMode={discMode} setDiscMode={setDiscMode} subtotal={merch == null ? sub : merch}
@@ -366,7 +498,22 @@ function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, 
 }
 
 // AOV goal meter — the bar, plus recommended up-sells.
-function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd }) {
+/**
+ * The goal meter and the suggestion rail, in one card.
+ *
+ * ⚠️ `recs` IS `[{ p, reason }]`, not a list of products. It used to be
+ * products carrying a `_reason` the card then threw away — the local helper had
+ * been computing a reason for every row since it was written and no cashier
+ * ever saw one. Both list shapes now arrive normalised, so the card renders the
+ * engine's copy and the fallback's copy through the same path.
+ *
+ * ⚠️ THE RAIL IS NO LONGER GATED ON THE AOV GOAL. It used to disappear the
+ * moment `total` crossed the associate's goal, which meant the suggestion
+ * surface switched itself off during exactly the sales that were going well.
+ * The meter is a staff metric; the rail is the customer's. They share a card
+ * and nothing else.
+ */
+function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd, engineRanked, onDismiss }) {
   const met = gap <= 0;
   const meterColor = met ? P.good : P.info;
   const headColor = met ? P.good : P.warn;
@@ -383,12 +530,17 @@ function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd }) {
         <BarMeter value={goalPct} max={1} color={meterColor} height={4} />
       </div>
 
-      {!met && recs.length > 0 &&
+      {recs.length > 0 &&
       <div style={{ borderTop: `1px solid ${P.hairline}`, padding: '7px 11px 9px', background: P.surface2 }}>
-          <Eyebrow style={{ marginBottom: 6 }}>Recommended for this member</Eyebrow>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <Eyebrow>{engineRanked ? 'Suggested for this sale' : 'Recommended for this member'}</Eyebrow>
+            {/* Say which list this is. A hand-rolled fallback that looks like an
+                engine ranking is how nobody notices the engine stopped loading. */}
+            {engineRanked && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: P.type.micro, fontWeight: 700, color: P.accentText, whiteSpace: 'nowrap' }}><Icon name="sparkle" size={11} stroke={2} />Ranked</span>}
+          </div>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-            {recs.map((r) =>
-          <div key={r.sku} style={{ flex: '0 0 auto', width: 214, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, padding: 9, display: 'flex', gap: 9 }}>
+            {recs.map(({ p: r, reason }) =>
+          <div key={r.sku} style={{ flex: '0 0 auto', width: 232, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, padding: 9, display: 'flex', gap: 9 }}>
                 <Thumb item={r} size={44} radius={8} />
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
@@ -396,6 +548,8 @@ function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd }) {
                     <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: window.HW.CAT_COLOR[r.cat] || P.ink2, background: (window.HW.CAT_COLOR[r.cat] || P.ink2) + '1f', borderRadius: 5, padding: '1px 5px', flex: '0 0 auto', whiteSpace: 'nowrap' }}>{r.cat}</span>
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</div>
+                  {/* WHY this card is here, in the engine's own words. */}
+                  {reason && <div style={{ fontSize: P.type.micro, fontWeight: 700, color: P.accentText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reason}</div>}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                     {r.strain && <StrainPill type={r.strain} thc={r.thc} />}
                     {r.wt && <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{r.wt}</span>}
@@ -406,7 +560,12 @@ function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd }) {
                     <span style={{ fontSize: 10, color: r.qty < 10 ? P.warn : P.inkFaint, fontFamily: P.fontMono, marginLeft: 'auto' }}>{r.qty} left</span>
                   </div>
                 </div>
-                <button onClick={() => onAdd && onAdd(r)} title={`Add ${r.name}`} style={{ flex: '0 0 auto', alignSelf: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, background: P.accent, color: P.accentInk, border: 'none', borderRadius: 8, cursor: 'pointer' }}><Icon name="plus" size={15} stroke={2.6} /></button>
+                <div style={{ flex: '0 0 auto', alignSelf: 'center', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <button onClick={() => onAdd && onAdd(r)} title={`Add ${r.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, background: P.accent, color: P.accentInk, border: 'none', borderRadius: 10, cursor: 'pointer' }}><Icon name="plus" size={17} stroke={2.6} /></button>
+                  {/* "Not for them" — for THIS sale only. The next customer gets
+                      a clean slate, because the dismissal lives on the ticket. */}
+                  {onDismiss && <button onClick={() => onDismiss(r.sku)} title={`Not for this sale · ${r.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, background: P.surface, color: P.inkDim, border: `1px solid ${P.hairline2}`, borderRadius: 10, cursor: 'pointer' }}><Icon name="x" size={15} stroke={2.2} /></button>}
+                </div>
               </div>
           )}
           </div>

@@ -50,6 +50,9 @@ window.RegisterScreen = function RegisterScreen() {
   const [showDetails, setShowDetails] = React.useState(false); // member-details dropdown
   const [chipView, setChipView] = React.useState('bar'); // claimed-customer layout: bar | detailed | compact
   const [toast, setToast] = React.useState(null);
+  // "For this ticket" — engine ranking over the product grid. See `rankRecs`.
+  const [rankOn, setRankOn] = React.useState(false);
+  const [rankBasis, setRankBasis] = React.useState(null);
 
   const t = tickets[active] || tickets[0];
   const customer = t ? t.person : null;
@@ -64,7 +67,7 @@ window.RegisterScreen = function RegisterScreen() {
   const setCart = (v) => setTickets((ts) => ts.map((x, i) => {
     if (i !== active) return x;
     const next = typeof v === 'function' ? v(x.cart) : v;
-    return next.length === 0 ? { ...x, cart: next, discounts: [] } : { ...x, cart: next };
+    return next.length === 0 ? { ...x, cart: next, discounts: [], upsellHidden: [] } : { ...x, cart: next };
   }));
   // A fresh check-in replaces the whole ticket set — new visit, new sale.
   const openVisit = (person, g) => {setTickets([{ id: 't1', person, cart: [], paid: false, discounts: [] }]);setActive(0);setGuests(g || []);};
@@ -80,7 +83,17 @@ window.RegisterScreen = function RegisterScreen() {
   const removeDiscount = (kind) => setDiscount(kind, null);
   // Emptying the cart empties the discounts with it — a $5 discount sitting on
   // an empty ticket is the next sale's mispriced surprise.
-  const clearTicket = () => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: [], discounts: [] } : x));
+  const clearTicket = () => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: [], discounts: [], upsellHidden: [] } : x));
+
+  // ── Dismissed suggestions ───────────────────────────────────────────────
+  // A "no thanks" is worth exactly one sale. It lives on the TICKET, next to
+  // the discounts, for the same reason they do: CartPane never unmounts between
+  // sales, so a dismissal held in its own state would follow the associate to
+  // the next customer — who never said no to anything. Every path that empties
+  // a ticket (clear, tender, party tender, last line removed) empties this too.
+  const upsellHidden = (t && t.upsellHidden) || [];
+  const dismissUpsell = (sku) => setTickets((ts) => ts.map((x, i) => i === active ?
+  { ...x, upsellHidden: (x.upsellHidden || []).includes(sku) ? x.upsellHidden : [...x.upsellHidden || [], sku] } : x));
 
   // Keep the floating switcher / tour launcher off the TENDER button.
   React.useEffect(() => {
@@ -291,7 +304,7 @@ window.RegisterScreen = function RegisterScreen() {
   // live TENDER button, and a second press writes a second real order for money
   // nobody collected — reproduced once as ORD-00240.
   const closeTicket = (idx, paidTotal) => setTickets((ts) => ts.map((x, i) =>
-  i === idx ? { ...x, paid: true, paidTotal, cart: [], discounts: [] } : x));
+  i === idx ? { ...x, paid: true, paidTotal, cart: [], discounts: [], upsellHidden: [] } : x));
 
   // Tender closes the ACTIVE ticket only, then lands on the next unpaid one.
   const onPaid = (sale) => {
@@ -333,7 +346,7 @@ window.RegisterScreen = function RegisterScreen() {
       if (rec) {ids.push(rec.id);paidTotals[e.i] = rec.total;}
     }
     setTickets((ts) => ts.map((x, i) => paidTotals[i] == null ? x :
-    { ...x, paid: true, paidTotal: paidTotals[i], cart: [], discounts: [] }));
+    { ...x, paid: true, paidTotal: paidTotals[i], cart: [], discounts: [], upsellHidden: [] }));
     flash(`One tender · ${ids.length} ticket${ids.length > 1 ? 's' : ''} paid · ${ids.join(', ')}`);
   };
 
@@ -376,10 +389,73 @@ window.RegisterScreen = function RegisterScreen() {
     bundle: (p) => /pack|5x|all-in|ready/i.test(p.name + p.wt),
     staff: (p) => ['LDI4DRP', 'GBZ35RR', 'FCF1LRS', 'BBH2JNT'].includes(p.sku)
   };
-  const list = products.filter((p) =>
+  let list = products.filter((p) =>
   (cat === 'All' || (cat === 'Deals' ? p.was : p.cat === cat)) && (
   brands.size === 0 || brands.has(p.brand)) && (
   !q || (p.name + p.brand).toLowerCase().includes(q.toLowerCase())));
+
+  /* ── "FOR THIS TICKET" — the grid, ranked by the upsell engine ─────────────
+   *
+   * The same call pos/screen-orders.jsx's AddItemPanel makes, on the surface a
+   * cashier actually spends the sale looking at. Nothing here decides what is
+   * worth suggesting: @hyperwolf/commerce-logic weighs favourite category,
+   * category affinity, sale, known brand, potency, stock depth, margin and —
+   * dominating all of them — whether an item unlocks a promotion this ticket is
+   * close to. The grid only re-orders.
+   *
+   * ⚠️ THE RANKING IS FROZEN WHILE THE CHIP IS ON, and this is not an
+   * optimisation. Deriving it from `cart` re-ran the engine on every Add, the
+   * product just added dropped out (the engine skips what is already in the
+   * cart) and the WHOLE GRID re-sorted under the cashier's finger — the tile
+   * they had just tapped moved and the next tap landed on something else.
+   * AddItemPanel carries the same guard and the same scar; see its comment.
+   *
+   * `rankBasis` is the ticket as it stood when the chip was switched on, or
+   * when the party moved to another ticket. Toggling the chip off and on is the
+   * deliberate way to re-rank against what is now on the ticket.
+   */
+  React.useEffect(() => {
+    if (!rankOn) {setRankBasis(null);return;}
+    setRankBasis(cart.map((c) => ({ sku: c.sku, qty: c.qty })));
+  }, [rankOn, active]);
+
+  const rankRecs = React.useMemo(() => {
+    if (!rankOn || !rankBasis || !window.HWPosUpsell) return null;
+    // `shop_grid_tile` is a grid of product tiles, which is precisely what this
+    // is. Its slot count comes from the engine's config — ranking the whole
+    // catalogue would put a gold reason line on nearly every tile, which is
+    // wallpaper rather than a signal.
+    return window.HWPosUpsell.offersFor({
+      surface: 'shop_grid_tile',
+      orderItems: rankBasis,
+      customer,
+      catalogue: products.filter((p) => p.active),
+    });
+  }, [rankOn, rankBasis, customer && customer.id]);
+
+  // sku → the engine's own reason copy, so a tile can say WHY it is up here.
+  const rankReason = React.useMemo(() => {
+    const m = new Map();
+    (rankRecs || []).forEach((r) => m.set(r.p.sku, r.reason));
+    return m;
+  }, [rankRecs]);
+
+  // ORDER, never filter. Filtering the grid down to three tiles would empty the
+  // catalogue the cashier is mid-search in. Ranked tiles rise; everything else
+  // keeps catalogue order beneath them (stable sort, equal keys).
+  if (rankOn && rankRecs && rankRecs.length) {
+    const rk = new Map(rankRecs.map((r, i) => [r.p.sku, i]));
+    const at = (p) => rk.has(p.sku) ? rk.get(p.sku) : Number.MAX_SAFE_INTEGER;
+    list = list.slice().sort((a, b) => at(a) - at(b));
+  }
+  // Is anything the cashier can SEE ranked? Search and the category chips still
+  // apply, so a ranking can be live and have nothing left in view — and "Best
+  // match first" over a grid where no tile is ranked is a claim about nothing.
+  const rankedHere = rankOn && list.some((p) => rankReason.has(p.sku));
+  // The chip is DROPPED when the engine is absent rather than shown doing
+  // nothing: `slotsFor` returns 0 without window.HWSwap, and a control that is
+  // always there and sometimes inert is worse than one that is honestly missing.
+  const canRank = !!(window.HWPosUpsell && window.HWPosUpsell.slotsFor('shop_grid_tile') > 0);
 
   return (
     <div style={{ position: 'relative', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -420,6 +496,11 @@ window.RegisterScreen = function RegisterScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
               <ProductSearch q={q} setQ={setQ} onScan={() => flash('Scanner ready — scan a barcode')} />
               <div style={{ flex: '0 0 auto' }}><BrandFilter products={products} brands={brands} setBrands={setBrands} /></div>
+              {canRank &&
+              <button onClick={() => setRankOn((o) => !o)} title="Rank the grid for what is already on this ticket"
+                style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 40, padding: '0 13px', borderRadius: P.r999, border: `1px solid ${rankOn ? P.accentBorder : P.hairline2}`, background: rankOn ? P.accentSoft : P.surface, color: rankOn ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+                <Icon name="sparkle" size={13} stroke={2} />For this ticket
+              </button>}
               <span style={{ flex: '0 0 auto', width: 1, height: 22, background: P.hairline2, margin: '0 1px' }} />
               {['All', ...window.HW.CATS].map((c) => {
                 const a = c === cat;
@@ -436,8 +517,14 @@ window.RegisterScreen = function RegisterScreen() {
             </div>
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 22px 22px' }}>
+            {/* Say which list this is. A ranking that silently failed and a
+                ranking that found nothing must not look like one that worked. */}
+            {rankOn &&
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 2px 8px', fontSize: P.type.micro, fontWeight: 700, color: P.accentText }}>
+              <Icon name="sparkle" size={11} stroke={2} />{rankedHere ? 'Best match first' : 'No ranking — catalogue order'}
+            </div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(252px,1fr))', gap: 10 }}>
-              {list.map((p) => <ProductRow key={p.sku} p={p} inCart={cart.find((c) => c.sku === p.sku)?.qty} onAdd={() => {add(p);flash(p.name + ' added');}} />)}
+              {list.map((p) => <ProductRow key={p.sku} p={p} inCart={cart.find((c) => c.sku === p.sku)?.qty} why={rankOn ? rankReason.get(p.sku) : null} onAdd={() => {add(p);flash(p.name + ' added');}} />)}
             </div>
             {list.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: P.inkMute }}>No products match</div>}
           </div>
@@ -448,6 +535,7 @@ window.RegisterScreen = function RegisterScreen() {
         setQty={setQty} remove={remove} onClearCart={clearTicket} customer={customer} cartSkus={cart.map((c) => c.sku)}
         discounts={discounts} onApplyDiscount={applyDiscount} onRemoveDiscount={removeDiscount}
         onAdd={(p) => {add(p);flash(p.name + ' added');}}
+        upsellHidden={upsellHidden} onDismissUpsell={dismissUpsell}
         tabs={multi ? <TicketTabs tickets={tickets} active={active} onPick={setActive} onDrop={dropTicket} totalOf={totalOf} /> : null}
         footNote={multi ? <PartyTotalBar P={P} tickets={tickets} partyTotal={partyTotal} onPayAll={() => openPay('party')} /> : null}
         discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => openPay('ticket')} />
@@ -1176,11 +1264,18 @@ function MemberDetails({ customer, guests, onClose }) {
 
 }
 
-function ProductRow({ p, inCart, onAdd }) {
+// `why` is the upsell engine's own reason copy for this tile, present only when
+// "For this ticket" ranked it. It is the engine's sentence, never one written
+// here — a reason invented by the UI is a claim the ranking never made.
+function ProductRow({ p, inCart, onAdd, why }) {
   const P = useP();
   const [sheet, setSheet] = React.useState(false);
   return (
-    <div onClick={() => setSheet(true)} title="View product details" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 10px', background: P.surface, border: `1px solid ${inCart ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, transition: 'border-color .12s', cursor: 'pointer' }}
+    // `data-hw-sku` names WHICH product this tile is, so the grid's ORDER is
+    // readable — the "For this ticket" ranking is an ordering, and an ordering
+    // that cannot be read cannot be tested. Not in the harness's clickable
+    // selector, so it adds no new click target.
+    <div onClick={() => setSheet(true)} data-hw-sku={p.sku} title="View product details" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 10px', background: P.surface, border: `1px solid ${inCart ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, transition: 'border-color .12s', cursor: 'pointer' }}
       onMouseEnter={(e) => {if (!inCart) e.currentTarget.style.borderColor = P.hairline3;}}
       onMouseLeave={(e) => {if (!inCart) e.currentTarget.style.borderColor = P.hairline2;}}>
       <Thumb item={p} size={40} />
@@ -1190,6 +1285,7 @@ function ProductRow({ p, inCart, onAdd }) {
           <span style={{ fontSize: 10, color: p.qty < 10 ? P.warn : P.inkFaint, fontFamily: P.fontMono, whiteSpace: 'nowrap', flex: '0 0 auto' }}>{p.qty} left</span>
         </div>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+        {why && <div data-hw-why={why} style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, fontSize: P.type.micro, fontWeight: 700, color: P.accentText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><Icon name="sparkle" size={10} stroke={2} />{why}</div>}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
           {p.strain && <StrainPill type={p.strain} thc={p.thc} />}
           {p.wt && <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{p.wt}</span>}

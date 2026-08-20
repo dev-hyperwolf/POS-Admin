@@ -11,6 +11,7 @@
     { id: 'batches', label: 'Batches', icon: 'box', href: 'METRC Batch Pipeline.html' },
     { id: 'promos', label: 'Promos', icon: 'tag', href: 'Promotions Suite.html' },
     { id: 'swapupsell', label: 'Swap & Upsell', icon: 'swap', href: 'Swap and Upsell Engine.html' },
+    { id: 'merch', label: 'Merch', icon: 'layout-template', pos: 'merch' },
     { id: 'members', label: 'Members', icon: 'users', pos: 'members' },
     { id: 'terminals', label: 'Terminals', icon: 'card', href: 'POS Terminal Configuration.html' },
     { id: 'delivery', label: 'Delivery', icon: 'pin', href: 'Hyperwolf Delivery.html' },

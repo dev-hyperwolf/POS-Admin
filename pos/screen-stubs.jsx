@@ -511,7 +511,7 @@ function MemberDetailPage({ m, onBack }) {
 
 const SETTINGS = [
 { group: 'Store', items: [['Terminal', 'scan'], ['Store Information', 'shop'], ['Notification', 'bell'], ['Tax Management', 'percent']] },
-{ group: 'Commerce', items: [['Shop Settings', 'settings'], ['Delivery Management', 'truck'], ['Cannabis Limit Management', 'leaf'], ['Credit Card Fee Settings', 'card']] },
+{ group: 'Commerce', items: [['Shop Settings', 'settings'], ['Delivery Management', 'truck'], ['Claim Ceiling', 'shield'], ['Cannabis Limit Management', 'leaf'], ['Credit Card Fee Settings', 'card']] },
 { group: 'Cash handling', items: [['Cash Drawer', 'cash'], ['Close Shift', 'lock'], ['METRC Sync', 'refresh'], ['Audit Log', 'list']] }];
 
 
@@ -661,12 +661,17 @@ window.SettingsScreen = function SettingsScreen() {
           <Eyebrow style={{ marginBottom: 11 }}>{sec.group}</Eyebrow>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(248px,1fr))', gap: 11 }}>
             {sec.items.map(([label, icon]) =>
-          <Card key={label} padding={15} hover onClick={() => { if (label === 'Cash Drawer') setOpen('drawer'); if (label === 'Delivery Management') setOpen('lanes'); }} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+          <Card key={label} padding={15} hover onClick={() => { if (label === 'Cash Drawer') setOpen('drawer'); if (label === 'Delivery Management') setOpen('lanes'); if (label === 'Claim Ceiling') setOpen('claim'); }} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
                 <span style={{ width: 38, height: 38, borderRadius: P.r10, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={18} stroke={1.8} /></span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: P.ink }}>{label}</span>
                   {label === 'Cash Drawer' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Starts at {window.HW.fmt.money(POS.getRequiredFloat())}</span>}
                   {label === 'Delivery Management' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Express min {window.HW.fmt.money(window.HW.laneSettings().expressMinimum)}{window.HW.laneSettingsAreDefault() ? ' · provisional' : ''}</span>}
+                  {/* The claim ceiling sits beside the lane minimums because it is the
+                      same kind of number: one operator-set figure the storefront is held
+                      to. It caps the deepest discount merchandising copy may ADVERTISE —
+                      the guard that "Up to 97% off" got past. */}
+                  {label === 'Claim Ceiling' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Max advertised {window.HWClaim ? window.HWClaim.get() : '—'}%{window.HWClaim && window.HWClaim.isDefault() ? ' · provisional' : ''}</span>}
                 </span>
                 <Icon name="chevron-right" size={16} stroke={2} color={P.inkMute} />
               </Card>
@@ -676,6 +681,7 @@ window.SettingsScreen = function SettingsScreen() {
       )}
       {open === 'drawer' && <CashDrawerSettings onClose={() => setOpen(null)} />}
       {open === 'lanes' && <LaneEconomicsSettings onClose={() => setOpen(null)} />}
+      {open === 'claim' && window.ClaimCeilingSettings && <window.ClaimCeilingSettings onClose={() => setOpen(null)} />}
     </div>);
 
 };

@@ -20,6 +20,7 @@ function App() {
   if (route === 'orders') screen = <OrdersScreen onStartSale={() => go('register')} />;else
   if (route === 'catalog') screen = <CatalogScreen />;else
   if (route === 'members') screen = <MembersScreen />;else
+  if (route === 'merch') screen = <window.MerchScreen />;else
   if (route === 'settings') screen = <SettingsScreen />;else
   screen = <RegisterScreen />;
 

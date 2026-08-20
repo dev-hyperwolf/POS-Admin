@@ -184,13 +184,30 @@ export async function boot(which = 'pos', opts = {}) {
    * failed FILE even though every assertion in it passed. Six files failed that
    * way on the merged tree, and guarding fetch alone did not fix it because the
    * retry is scheduled, not fetched. */
+  /* ⚠️ A ONE-SHOT TIMER FORGETS ITSELF WHEN IT FIRES.
+   *
+   * The first version of this retained EVERY id for the life of the harness, in
+   * a Set that only close() ever emptied. A page that schedules timers in a
+   * loop — which a render loop does — therefore grew that Set without bound,
+   * and the harness turned a page-level bug into a memory leak of its own. That
+   * is the harness making things worse rather than observing them, and across
+   * many concurrent runs it is the difference between one slow test and a
+   * machine in trouble.
+   *
+   * setInterval entries stay until cleared, because they genuinely repeat. */
   const harnessTimers = new Set();
   for (const kind of ['setTimeout', 'setInterval']) {
     const orig = window[kind].bind(window);
+    const clearName = kind === 'setTimeout' ? 'clearTimeout' : 'clearInterval';
     window[kind] = (fn, ms, ...rest) => {
       if (harnessClosed) return 0;
-      const id = orig(fn, ms, ...rest);
-      harnessTimers.add([kind === 'setTimeout' ? 'clearTimeout' : 'clearInterval', id]);
+      let entry;
+      const wrapped = kind === 'setTimeout'
+        ? (...a) => { harnessTimers.delete(entry); return typeof fn === 'function' ? fn(...a) : undefined; }
+        : fn;
+      const id = orig(wrapped, ms, ...rest);
+      entry = [clearName, id];
+      harnessTimers.add(entry);
       return id;
     };
   }
