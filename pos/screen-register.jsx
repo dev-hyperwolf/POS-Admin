@@ -249,6 +249,10 @@ window.RegisterScreen = function RegisterScreen() {
       id: reuse || undefined,
       num: reuse ? reuse.replace(/^ORD-/, '') : undefined,
       name: tk.person && tk.person.name || sale && sale.name || 'Walk-in',
+      // By ID, so a return credits the wallet of the person who actually bought
+      // it rather than whoever shares the name on the ticket. A walk-in has no
+      // id and gets null, which the return panel reports honestly.
+      memberId: tk.person && (tk.person.memberId || tk.person.id) || null,
       total: collected, items, lines: tkLines,
       pay: PAY_LABEL[sale && sale.method || pay] || 'Cash',
       source: 'Stilo', channel: 'Store',

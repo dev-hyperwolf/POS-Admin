@@ -2032,6 +2032,30 @@ function lineGross(l) {
   return l && l.total != null ? +l.total : (+l.price || 0) * (+l.qty || 0);
 }
 
+/**
+ * THE STABLE IDENTITY OF ONE ORDER LINE.
+ *
+ * 🔴 A previous attempt filed return claims against a line by PRODUCT NAME and
+ * drained them back in line-index order. One product on two lines at different
+ * per-unit gross meant a claim filed against the dearer line was paid out at
+ * the cheaper line's rate, and — because nothing was written to the record —
+ * closing and reopening the panel let the same purchase be credited a second
+ * time. A wallet went 0 -> 18.48 -> 36.96 for ONE purchase.
+ *
+ * So the join is the line's POSITION plus what that position holds. The name is
+ * in there for a human reading the audit row, but it is not what makes the key
+ * unique: two lines of the same product differ by index and by price.
+ *
+ * A completed order is not editable in this panel, so its lines are frozen and
+ * the position is stable. If a line ever does move under a filed return, the
+ * key stops matching, and the panel REFUSES the whole claim flow out loud
+ * rather than guessing which line the earlier return meant.
+ */
+function lineKey(l, i) {
+  return [i, (l && l.name) || '', +((l && l.qty) || 0),
+  +(+((l && l.price) || 0)).toFixed(2), +lineGross(l).toFixed(2)].join('|');
+}
+
 /** Seed the money for an order that has never had any. Called once per order. */
 function seedOrderMoney(o) {
   const seed = (o.id ? o.id.length : 5) + (o.name || '').length + (o.items || 1);
@@ -2240,12 +2264,44 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const itemsSub = priced.sub;
   const cartDisc = priced.cartDisc; // total cart-level discount, clamped at the subtotal
 
+  // ── What has ALREADY been given back on this order ────────────────────────
+  //
+  // 🔴 THIS IS WHAT MAKES A SECOND CREDIT IMPOSSIBLE. `done` is component
+  // state: it dies with the modal, so a flow that only sets it lets the same
+  // purchase be credited again the moment the panel is reopened. The returns
+  // live on the ORDER RECORD, keyed by lineKey(), and every bound below is read
+  // from them.
+  const filedReturns = Array.isArray(o.returns) ? o.returns : [];
+  const liveKeys = baseItems.map((l, i) => lineKey(l, i));
+  const returnedBy = {};
+  filedReturns.forEach((r) => ((r && r.lines) || []).forEach((rl) => {
+    if (rl && rl.key) returnedBy[rl.key] = (returnedBy[rl.key] || 0) + (+rl.qty || 0);
+  }));
+  // A filed return that no longer matches any line on the order. Nothing can be
+  // worked out from here without guessing, so the flow refuses instead.
+  const orphanKey = Object.keys(returnedBy).find((k) => returnedBy[k] > 0 && liveKeys.indexOf(k) < 0) || null;
+  const refundedSoFar = +filedReturns.reduce((s2, r) => s2 + (+(r && r.amount) || 0), 0).toFixed(2);
+  // 🔴 A RETURN GIVES BACK WHAT THE LINE CONTRIBUTED TO WHAT WAS COLLECTED.
+  // priceOrderMoney is the authority and it says `grand = gross - credits`:
+  // wallet and reward credit settled at the drawer were never taken in the
+  // first place. Refunding the line's GROSS share hands those credits back a
+  // SECOND time. This ratio is 1 on an order that paid no credits, so it costs
+  // an ordinary order nothing.
+  const collectedRatio = priced.gross > 0 ? priced.grand / priced.gross : 0;
+
   // ── Proportional discount allocation across each item (comment 6) ──
-  const items = baseItems.map((l) => {
+  const items = baseItems.map((l, i) => {
     const gross = lineGross(l);
     const discShare = itemsSub > 0 ? +(cartDisc * gross / itemsSub).toFixed(2) : 0;
     const net = gross - discShare;
-    return { ...l, gross, discShare, net, unitNet: l.qty ? net / l.qty : 0, unitDisc: l.qty ? discShare / l.qty : 0 };
+    const unitNet = l.qty ? net / l.qty : 0;
+    const key = liveKeys[i];
+    const returned = Math.min(+l.qty || 0, returnedBy[key] || 0);
+    return { ...l, gross, discShare, net, unitNet, unitDisc: l.qty ? discShare / l.qty : 0,
+      // Identity, what is left on THIS line, and what one of its units is worth
+      // back. A returned unit can never exceed what this specific line holds.
+      key, idx: i, returned, remaining: Math.max(0, (+l.qty || 0) - returned),
+      unitRefund: unitNet * (1 + priced.rate) * collectedRatio };
   });
 
   // ── CA cannabis tax breakdown (comment 4) ──
@@ -2369,14 +2425,117 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
 
   // ── Single return / exchange / warranty flow (comment 5) ──
   const reasons = ['Changed mind', 'Wrong item', 'Didn’t like effect', 'Wrong strain / potency', 'Defective — won’t fire', 'Leaking / damaged', 'Expired product', 'Priced wrong'];
-  const selEntries = Object.entries(selected).filter(([, q]) => q > 0).map(([i, q]) => ({ item: items[+i], q }));
-  const refundAmt = +selEntries.reduce((s, { item, q }) => s + item.unitNet * (1 + taxRate) * q, 0).toFixed(2);
-  const refundUnits = selEntries.reduce((s, { q }) => s + q, 0);
-  const canSubmit = claimOpen && selEntries.length > 0 && reason;
+  const selEntries = Object.entries(selected).filter(([, q]) => q > 0)
+  .map(([i, q]) => ({ item: items[+i], q })).filter((e) => e.item);
+  // The ceiling on the WHOLE order: everything ever handed back on it, across
+  // every session, can never exceed what the order actually collected.
+  const refundCap = +Math.max(0, grand - refundedSoFar).toFixed(2);
+  const rawRefund = +selEntries.reduce((s2, { item, q }) => s2 + item.unitRefund * q, 0).toFixed(2);
+  const refundAmt = +Math.min(rawRefund, refundCap).toFixed(2);
+  const refundUnits = selEntries.reduce((s2, { q }) => s2 + q, 0);
 
-  const toggleItem = (i) => setSelected((p) => {const n = { ...p };if (n[i]) delete n[i];else n[i] = 1;return n;});
-  const setItemQty = (i, q) => setSelected((p) => ({ ...p, [i]: Math.max(1, Math.min(items[i].qty, q)) }));
-  const startClaim = () => {setClaimOpen(true);setSelected({});setReason(null);setNote('');};
+  // ── WHOSE WALLET ──────────────────────────────────────────────────────────
+  //
+  // 🔴 BY ID, NEVER BY NAME. A previous attempt did
+  // `MEMBERS.find(m => m.name === o.name)` under a comment claiming it refused
+  // to “credit whoever happens to share the name on the ticket” — which is
+  // exactly what it did. Two customers called Girish Sharma is not a rare
+  // event, and the one who gets the money is whichever the array happens to
+  // hold first.
+  //
+  // A walk-in has no wallet. That is not a problem to route around; it is the
+  // answer, and it is said out loud.
+  const claimMemberId = o.memberId || o.customerId || null;
+  const claimMember = claimMemberId ? window.HW.memberById(claimMemberId) : null;
+  const claimRefusal =
+  // ⚠️ DO NOT NAME A REMEDY THAT IS NOT ON THE SCREEN. The first draft of this
+  // string told the operator to “attach the customer to the order from Members”
+  // — and nothing in this estate writes a memberId onto an order, so that is
+  // the same defect as the panel that pointed at a Weedmaps block which does
+  // not render. Say what is true and stop.
+  !claimMemberId ? `This order carries no member id — “${o.name || 'Walk-in'}” is a name on a ticket, not a wallet. Nothing has been credited, and nothing on this screen can attach a member to a completed order. A walk-in has no wallet.` :
+  !claimMember ? `This order names member ${claimMemberId}, who is not in the member book. Nothing has been credited — a return cannot be paid into a wallet that does not exist.` :
+  orphanKey ? 'A return on this order was filed against a line that is no longer on it, so what is left to give back cannot be worked out from the record. Nothing has been credited, and this screen will not guess which line that return meant.' :
+  refundCap <= 0 ? `Everything this order collected (${fmt.money(grand)}) has already been given back. Nothing has been credited.` :
+  null;
+
+  const [claimError, setClaimError] = React.useState(null);
+  // ⚠️ A LATCH, NOT STATE. Two clicks land in the SAME tick, before React has
+  // re-rendered anything — so a guard that reads `done` or `claimOpen` from this
+  // render sees the pre-click values on both and files two returns. A ref moves
+  // synchronously, which is the only thing that is true of both clicks.
+  const claiming = React.useRef(false);
+  const submitBlockedWhy =
+  selEntries.length === 0 ? 'Select at least one item above to return.' :
+  !reason ? 'Choose a reason for the return.' :
+  null;
+  const canSubmit = claimOpen && !claimRefusal && !submitBlockedWhy;
+
+  const toggleItem = (i) => setSelected((p) => {
+    if (!items[i] || items[i].remaining <= 0) return p;   // nothing left on that line
+    const n = { ...p };if (n[i]) delete n[i];else n[i] = 1;return n;
+  });
+  // Bounded by what THIS LINE still holds, not by what it was sold with.
+  const setItemQty = (i, q) => setSelected((p) => ({ ...p, [i]: Math.max(1, Math.min(items[i].remaining, q)) }));
+  const startClaim = () => {claiming.current = false;setClaimOpen(true);setSelected({});setReason(null);setNote('');setClaimError(null);};
+
+  /**
+   * FILE THE RETURN, THEN PAY IT.
+   *
+   * Everything that decides money is re-read from the order book HERE, at click
+   * time — never trusted from the render that drew the button. That is what
+   * makes a double-fire and a reopened panel behave the same as a first click:
+   * both see the returns that are actually on the record.
+   *
+   * The record is written BEFORE the wallet, and rolled back if the wallet
+   * refuses. The other order — pay, then record — leaves a credited wallet with
+   * no return against it, which is a second credit waiting to happen.
+   */
+  const commitClaim = () => {
+    if (claiming.current) return;
+    claiming.current = true;
+    const refuse = (msg) => {claiming.current = false;setClaimError(msg);};
+    setClaimError(null);
+    if (claimRefusal) return refuse(claimRefusal);
+    const rec = window.HW.orderById(o.id);
+    if (!rec) return refuse(`Order ${o.id} is not in the order book, so nothing was credited and no return was filed. Close this and reopen it from the queue.`);
+    const prior = Array.isArray(rec.returns) ? rec.returns : [];
+    const priorBy = {};
+    prior.forEach((r) => ((r && r.lines) || []).forEach((rl) => {
+      if (rl && rl.key) priorBy[rl.key] = (priorBy[rl.key] || 0) + (+rl.qty || 0);
+    }));
+    const claimLines = selEntries.map(({ item, q }) => ({ key: item.key, idx: item.idx, name: item.name, qty: q, unit: +item.unitRefund.toFixed(4) }));
+    // Bounded LINE BY LINE against the live record. This is the check a
+    // second click in the same tick trips on.
+    const over = claimLines.find((cl) => (priorBy[cl.key] || 0) + cl.qty > ((items[cl.idx] && items[cl.idx].qty) || 0));
+    if (over) {
+      const left = Math.max(0, ((items[over.idx] && items[over.idx].qty) || 0) - (priorBy[over.key] || 0));
+      return refuse(`${over.name}: only ${left} of that line ${left === 1 ? 'is' : 'are'} left to return, and ${over.qty} ${over.qty === 1 ? 'was' : 'were'} asked for. Nothing has been credited.`);
+    }
+    const priorAmt = +prior.reduce((s2, r) => s2 + (+(r && r.amount) || 0), 0).toFixed(2);
+    const cap = +Math.max(0, grand - priorAmt).toFixed(2);
+    const amount = +Math.min(+claimLines.reduce((s2, cl) => s2 + cl.unit * cl.qty, 0).toFixed(2), cap).toFixed(2);
+    if (!(amount > 0)) return refuse(`This order has nothing left to give back — ${fmt.money(grand)} was collected and ${fmt.money(priorAmt)} has already been returned. Nothing has been credited.`);
+    // The id is minted from what is already filed, so two returns on one order
+    // cannot share one. A duplicate is refused rather than overwriting the
+    // first — the same rule addSubRecord already applies to audit records.
+    const id = `RET-${o.id}-${prior.length + 1}`;
+    if (prior.some((r) => r && r.id === id)) return refuse(`A return is already filed under ${id} on this order, so this one was not filed and nothing has been credited.`);
+    const record = { id, at: Date.now(), memberId: claimMember.id, member: claimMember.name,
+      amount, units: refundUnits, reason, note: note.trim() || null, by: 'Manisha Saini', lines: claimLines };
+    const filed = window.HW.updateOrder(o.id, { returns: prior.concat([record]) });
+    if (!filed) return refuse(`Order ${o.id} could not be written, so nothing has been credited.`);
+    const credited = window.HW.creditWallet(claimMember.id, amount, `Return · ${o.id} · ${reason}`);
+    if (!credited) {
+      window.HW.updateOrder(o.id, { returns: prior });   // roll the record back
+      return refuse(`${claimMember.name}’s wallet refused ${fmt.money(amount)}. Nothing has been credited and no return was filed.`);
+    }
+    setExtraLog((l) => [...l, { who: 'Manisha Saini', role: 'You',
+      action: `Return ${id} · ${refundUnits} unit${refundUnits === 1 ? '' : 's'} · ${reason} · ${fmt.money(amount)} to ${credited.member.name}’s wallet`,
+      time: 'just now', icon: 'refresh', accent: true }]);
+    setClaimOpen(false);setSelected({});
+    setDone({ ...record, wallet: credited.member.wallet });
+  };
 
   // ── Edit-order flow (fulfillment orders) ──
   const startEdit = () => {setDraft(baseItems.map((l) => ({ ...l })));setEditOpen(true);setApproval(false);setEditNote('');
@@ -2462,7 +2621,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
       return;
     }
     setSaveError(null);
-    const verb = balanceDiff > 0 ? `+${fmt.money(balanceDiff)} due at ${channel === 'delivery' ? 'delivery' : 'pickup'}` : balanceDiff < 0 ? `${fmt.money(Math.abs(balanceDiff))} to wallet` : 'no balance change';
+    const verb = balanceDiff > 0 ? `+${fmt.money(balanceDiff)} due at ${channel === 'delivery' ? 'delivery' : 'pickup'}` : balanceDiff < 0 ? `${fmt.money(Math.abs(balanceDiff))} refund owed` : 'no balance change';
     const why = editNote.trim() ? ` · “${editNote.trim()}”` : '';
     setExtraLog((l) => [...l, { who: 'Manisha Saini', role: 'You', action: `Edited order · ${lines.length} line${lines.length === 1 ? '' : 's'} · ${fmt.money(saved.total)} · ${verb}${approval ? ' · mgr approved (Carla M.)' : ''}${why}`, time: 'just now', icon: 'pencil', accent: true }]);
     setEditOpen(false);setSavedEdit(true);
@@ -2507,7 +2666,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   reached >= 2 && { who: pk(['Theo Park', 'Devon Pierce']), role: 'Budtender', action: 'Packing started', time: '2:28 PM', icon: 'box' },
   hasDisc && { who: 'Carla Mendes', role: 'Manager', action: `Approved discount · ${discReason}`, time: '2:30 PM', icon: 'shield', accent: true },
   reached >= 3 && { who: pk(['Theo Park', 'Devon Pierce']), role: 'Budtender', action: channel === 'delivery' ? hasDriver ? 'Handed to driver · ' + driver : 'Staged for dispatch · no driver assigned yet' : 'Ready for pickup · customer notified', time: '2:34 PM', icon: 'check' },
-  reached >= 4 && { who: o.name, role: 'Customer', action: 'Order completed · receipt sent', time: '2:41 PM', icon: 'check-circle' }].
+  reached >= 4 && { who: o.name, role: 'Customer', action: 'Order completed', time: '2:41 PM', icon: 'check-circle' }].
   filter(Boolean);
   const fullLog = [...baseLog, ...extraLog];
 
@@ -2679,23 +2838,33 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {items.map((l, i) => {
                 const active = !!selected[i];
-                const pickable = claimOpen && !done;
+                // A line with nothing left on it is not pickable — the bound is
+                // per line, read from the returns filed on the record.
+                const pickable = claimOpen && !done && l.remaining > 0;
                 const packed = inFulfillment && (packScan[i] || 0) >= l.qty;
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: packed ? P.goodSoft : active ? P.accentSoft : P.surface2, border: `1.5px solid ${packed ? P.good : active ? P.accentBorder : P.hairline}`, borderRadius: P.r10, cursor: pickable ? 'pointer' : 'default' }} onClick={() => pickable && toggleItem(i)}>
+                  // ⚠️ A ROW THE OPERATOR CLICKS IS A CONTROL. While it is
+                  // pickable it announces itself as one — which is also what
+                  // makes it addressable to anything driving this screen; a
+                  // bare div with an onClick is unreachable to a keyboard and
+                  // to a test alike, and an unreachable money control is how
+                  // the dead commit button survived review twice.
+                  <div key={i} data-hw-i={pickable ? 'return-line' : undefined} data-hw-line={i}
+                  role={pickable ? 'button' : undefined} tabIndex={pickable ? 0 : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', minHeight: 40, background: packed ? P.goodSoft : active ? P.accentSoft : P.surface2, border: `1.5px solid ${packed ? P.good : active ? P.accentBorder : P.hairline}`, borderRadius: P.r10, cursor: pickable ? 'pointer' : 'default' }} onClick={() => pickable && toggleItem(i)}>
                     {packed && <Icon name="check-circle" size={16} stroke={2} color={P.good} style={{ flex: '0 0 auto' }} />}
                     {pickable &&
                     <span style={{ flex: '0 0 auto', width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${active ? P.accentBorder : P.hairline3}`, background: active ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{active && <Icon name="check" size={11} stroke={3} color={P.accentInk} />}</span>}
                     <Thumb item={{ name: l.name, cat: l.cat }} size={34} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{l.name}</div>
-                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{l.brand} · {fmt.money(l.price)} ea{l.discShare > 0 ? ` · −${fmt.money(l.discShare)} disc` : ''}</div>
+                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{l.brand} · {fmt.money(l.price)} ea{l.discShare > 0 ? ` · −${fmt.money(l.discShare)} disc` : ''}{l.returned > 0 ? ` · ${l.returned} of ${l.qty} returned` : ''}</div>
                     </div>
                     {/* per-item qty selector when this item is selected & qty>1 (comment 7) */}
-                    {pickable && active && l.qty > 1 ?
+                    {pickable && active && l.remaining > 1 ?
                     <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Stepper value={selected[i]} min={1} max={l.qty} onChange={(q) => setItemQty(i, q)} size="sm" />
-                        <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>of {l.qty}</span>
+                        <Stepper value={selected[i]} min={1} max={l.remaining} onChange={(q) => setItemQty(i, q)} size="sm" />
+                        <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>of {l.remaining} left</span>
                       </div> :
                     <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>×{l.qty}</span>}
                     <div style={{ width: 64, textAlign: 'right' }}>
@@ -2717,8 +2886,13 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 6, padding: '9px 11px', borderRadius: P.r10, background: balanceDiff > 0 ? P.warnSoft : balanceDiff < 0 ? P.goodSoft : P.surface2, border: `1px solid ${balanceDiff > 0 ? P.warn + '55' : balanceDiff < 0 ? P.good + '55' : P.hairline}` }}>
                   <Icon name={balanceDiff > 0 ? 'cash' : balanceDiff < 0 ? 'wallet' : 'check'} size={15} color={balanceDiff > 0 ? P.warn : balanceDiff < 0 ? P.good : P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{balanceDiff > 0 ? `Balance due at ${channel === 'delivery' ? 'delivery' : 'pickup'}` : balanceDiff < 0 ? 'Overpayment — credited to wallet' : 'No balance change'}</div>
-                    <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>{balanceDiff > 0 ? 'Collect the difference when the order is handed over.' : balanceDiff < 0 ? 'Applied automatically on save — store credit, not a cash refund. Nothing to click.' : 'The edited order costs the same as the original.'}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{balanceDiff > 0 ? `Balance due at ${channel === 'delivery' ? 'delivery' : 'pickup'}` : balanceDiff < 0 ? 'Refund owed to the customer' : 'No balance change'}</div>
+                    {/* ⚠️ SAY ONLY WHAT SAVING ACTUALLY DOES. This read
+                          “Overpayment — credited to wallet · applied automatically
+                          on save”, and no line of code anywhere writes a wallet on
+                          save. Naming a remedy the screen does not perform is the
+                          same defect as naming one the screen does not show. */}
+                    <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>{balanceDiff > 0 ? 'Collect the difference when the order is handed over.' : balanceDiff < 0 ? 'Saving changes the order only — no wallet is credited here. Settle the difference at ' + (channel === 'delivery' ? 'delivery' : 'pickup') + '.' : 'The edited order costs the same as the original.'}</div>
                   </div>
                   <span style={{ fontSize: 15, fontWeight: 800, fontFamily: P.fontMono, flex: '0 0 auto', color: balanceDiff > 0 ? P.warn : balanceDiff < 0 ? P.good : P.inkMute }}>{balanceDiff > 0 ? '+' : balanceDiff < 0 ? '−' : ''}{fmt.money(Math.abs(balanceDiff))}</span>
                 </div>
@@ -2773,13 +2947,52 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
           {/* ACTION — completed orders → return / exchange / warranty.
                      Edit order now lives in the header + a top bar (comment), not here. */}
           {done || inFulfillment ? null :
-          <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r14, background: P.surface2, padding: 13 }}>
-              {!claimOpen ?
-            <button onClick={startClaim} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '11px 13px', background: P.surface, border: `1.5px solid ${P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+          <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r14, background: P.surface2, padding: 13, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* ⚠️ THE REFUSAL LIVES ABOVE THE PANEL IT CAME FROM. Refusing
+                    can itself change what this block renders — a claim refused
+                    because the order is now fully returned closes the claim
+                    panel — and an error rendered INSIDE that panel disappears
+                    with it. The operator would see the button do nothing, which
+                    is the failure mode this whole flow exists to end. */}
+              {claimError &&
+            <div data-hw="claim-error" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '11px 13px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
+                  <Icon name="alert" size={16} stroke={2} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                  <div style={{ fontSize: 11.5, color: P.ink, lineHeight: 1.45 }}>{claimError}</div>
+                </div>}
+
+              {/* WHAT HAS ALREADY GONE BACK. This is the visible half of the
+                    bound: the panel cannot be reopened and credited again,
+                    because the returns are on the record and they are shown. */}
+              {filedReturns.length > 0 &&
+            <div data-hw="returns-filed" style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, padding: '9px 11px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+                    <Icon name="refresh" size={13} stroke={2} color={P.ink2} />
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Already returned on this order</span>
+                    <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{fmt.money(refundedSoFar)} of {fmt.money(grand)}</span>
+                  </div>
+                  {filedReturns.map((r) =>
+              <div key={r.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, lineHeight: 1.6 }}>
+                      <span style={{ color: P.ink2 }}>{r.id}</span>
+                      <span style={{ flex: 1, minWidth: 0 }}>{(r.lines || []).map((rl) => `${rl.qty} × ${rl.name}`).join(', ')} · {r.reason}</span>
+                      <span style={{ color: P.ink, fontWeight: 700 }}>{fmt.money(r.amount)}</span>
+                    </div>
+              )}
+                </div>}
+
+              {refundCap <= 0 ?
+            <div data-hw="fully-returned" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface, border: `1.5px solid ${P.hairline2}`, borderRadius: P.r12 }}>
+                  <span style={{ flex: '0 0 auto', width: 32, height: 32, borderRadius: 8, background: P.surface3, color: P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="ban" size={17} stroke={1.9} /></span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Nothing left to return</div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim }}>Everything this order collected ({fmt.money(grand)}) has already been given back.</div>
+                  </div>
+                </div> :
+            !claimOpen ?
+            <button onClick={startClaim} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', minHeight: 40, padding: '11px 13px', background: P.surface, border: `1.5px solid ${P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                   <span style={{ flex: '0 0 auto', width: 32, height: 32, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="refresh" size={17} stroke={1.9} /></span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Start a return / exchange / warranty</div>
-                    <div style={{ fontSize: 11.5, color: P.inkDim }}>One flow — select items, choose a reason, credit the wallet.</div>
+                    <div style={{ fontSize: 11.5, color: P.inkDim }}>One flow — select items, choose a reason, credit the member's wallet. {fmt.money(refundCap)} left to give back.</div>
                   </div>
                   <Icon name="chevron-right" size={16} color={P.inkFaint} />
                 </button> :
@@ -2803,28 +3016,48 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
 
                   <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note (optional) — condition, manager approval…" style={{ width: '100%', padding: '9px 12px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, color: P.ink, fontSize: 12.5, fontFamily: P.fontSans, outline: 'none', boxSizing: 'border-box' }} />
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
+                  {/* WHAT WILL BE WRITTEN, or WHY NOTHING WILL BE. Never both,
+                        and never a button that cannot do what it says. */}
+                  {claimRefusal ?
+              <div data-hw="claim-refused" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '11px 13px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
+                    <Icon name="user-off" size={16} stroke={1.9} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>No wallet to credit — nothing has been credited</div>
+                      <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45, marginTop: 1 }}>{claimRefusal}</div>
+                    </div>
+                  </div> :
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
                     <Icon name="wallet" size={16} stroke={1.9} color={P.good} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Credited to customer wallet</div>
-                      <div style={{ fontSize: 11.5, color: P.inkDim }}>Item value incl. tax · proportional discount applied · no cash refunds.</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>To {claimMember.name}’s wallet</div>
+                      <div style={{ fontSize: 11.5, color: P.inkDim }}>Item value incl. tax, less its share of the discount{collectedRatio < 1 ? ' and of the credit settled at the drawer' : ''} · no cash refunds.</div>
                     </div>
                     <span style={{ fontSize: 15, fontWeight: 700, color: P.good, fontFamily: P.fontMono }}>+{fmt.money(refundAmt)}</span>
-                  </div>
+                  </div>}
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+                    {/* A DISABLED BUTTON MUST SAY WHY — the saveEdit precedent. */}
+                    {!claimRefusal && submitBlockedWhy && <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: P.inkDim, textAlign: 'right' }}>{submitBlockedWhy}</span>}
                     <PBtn variant="secondary" size="md" onClick={() => setClaimOpen(false)}>Cancel</PBtn>
-                    <PBtn variant="accent" size="md" icon="wallet" disabled={!canSubmit} onClick={() => setDone(true)}>Credit {fmt.money(refundAmt)} to wallet</PBtn>
+                    {/* No wallet → no button. An enabled control that can only
+                          fail, or a disabled one with no explanation, are the two
+                          ways this screen has lied before. */}
+                    {!claimRefusal &&
+                <PBtn variant="accent" size="md" icon="wallet" disabled={!canSubmit} onClick={commitClaim}>Credit {fmt.money(refundAmt)} to wallet</PBtn>}
                   </div>
                 </div>}
             </div>}
 
           {done &&
-          <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', background: P.goodSoft, borderRadius: P.r12 }}>
+          <div data-hw="claim-done" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 16px', background: P.goodSoft, borderRadius: P.r12 }}>
               <Icon name="check-circle" size={22} stroke={2} color={P.good} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{fmt.money(refundAmt)} credited to {o.name.split(' ')[0]}’s wallet</div>
-                <div style={{ fontSize: 11.5, color: P.inkDim }}>{refundUnits} unit{refundUnits > 1 ? 's' : ''} · {reason} · receipt sent</div>
+                {/* Every figure here comes off the record that was written and
+                      the wallet that took it — not off component state that
+                      described an intention. “receipt sent” is gone: there is no
+                      mailer in this estate, so nothing was sent. */}
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{fmt.money(done.amount)} credited to {done.member}’s wallet</div>
+                <div style={{ fontSize: 11.5, color: P.inkDim }}>{done.units} unit{done.units === 1 ? '' : 's'} · {done.reason} · {done.id} · wallet now {fmt.money(done.wallet)}</div>
               </div>
               <PBtn variant="soft" size="md" onClick={onClose}>Done</PBtn>
             </div>}
@@ -2836,4 +3069,11 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
 
 // Exported so other screens mount the SAME component rather than a fork — the
 // check-in queue has to behave identically wherever it appears.
-Object.assign(window, { CheckInStrip });
+//
+// `lineKey` is published for a narrower reason: it is the join a filed return
+// uses, and nothing outside this module can construct one. A test that needs to
+// put a PRIOR return on a record — to prove the commit path re-reads the book
+// rather than trusting its own render — would otherwise have to hand-roll a
+// second copy of this function, and a hand-rolled copy that drifts makes the
+// test agree with itself instead of with the screen.
+Object.assign(window, { CheckInStrip, orderLineKey: lineKey });

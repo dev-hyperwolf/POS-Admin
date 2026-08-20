@@ -487,6 +487,22 @@ function addOrder(o) {
     items: typeof items === 'number' ? items : (items.length || 0),
     stage: ORDER_STAGES.includes(o && o.stage) ? o.stage : 'verify',
     hue: (o && o.hue) != null ? o.hue : 200,
+    /* 🔴 WHO THE SALE WAS FOR, BY ID.
+     *
+     * This was missing, and it made the entire return / exchange / warranty
+     * money path UNREACHABLE for every order this app creates: the commit
+     * button renders only when `o.memberId || o.customerId` resolves to a real
+     * member, and NOTHING wrote either field. `memberId` existed only on
+     * CHECK-INS. So the refund branch was dead code behind a correct-looking
+     * guard — the worst shape, because the guard reads as deliberate.
+     *
+     * NOT the name. A wallet was once resolved with
+     * `MEMBERS.find(m => m.name === o.name)`, which credits whoever happens to
+     * share the name on the ticket. Identity is an id.
+     *
+     * Null for a genuine walk-in, and that is an ANSWER, not a gap — a walk-in
+     * has no wallet, and the panel says so rather than guessing. */
+    memberId: (o && o.memberId) || null,
   };
   if (o && o.lines) rec.lines = o.lines.slice();
   ORDERS.unshift(rec);
