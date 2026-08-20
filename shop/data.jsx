@@ -338,12 +338,57 @@ function shopContext(now) {
  * Returns null when the engine has not loaded, so a caller renders an honest
  * "unavailable" rather than a wrong number.
  */
+/**
+ * 🔴 THE ESTATE'S TAX FUNCTION, HANDED TO THE ENGINE.
+ *
+ * The owner's instruction, verbatim: "the total needs to fully update when an
+ * adjustment is made - no exceptions. This needs to be bulletproof" — and, on
+ * how tax should be computed, "give the engine our tax function".
+ *
+ * Without this the storefront quotes the engine's BUILT-IN flat rate (10.25%)
+ * while every other surface in the estate itemises `HW.taxBreakdown` (local +
+ * excise + sales, ~23.22% on the same base). Measured by a reviewer: the same
+ * cart was quoted to the customer at one figure and re-priced about 10% higher
+ * the moment the order was opened in the POS. That is two money authorities —
+ * the exact bug this project has already shipped and reverted once — just
+ * spread across two surfaces instead of sitting on one screen.
+ *
+ * `taxBreakdown` works in DOLLARS; the engine works in integer cents. Same
+ * bridge as `estateTax()` in shared/commerce-governance.js — deliberately the
+ * same shape, so the two cannot drift.
+ */
+function shopEstateTax() {
+  const hw = window.HW;
+  if (!hw || typeof hw.taxBreakdown !== 'function') return undefined;
+  return function (taxableBaseCents) {
+    return Math.round(hw.taxBreakdown((taxableBaseCents || 0) / 100).total * 100);
+  };
+}
+
+/**
+ * THE options every storefront pricing call uses. Exposed rather than inlined so
+ * that nothing — including a test — can price this cart with a DIFFERENT option
+ * set and still believe it is comparing like with like. A test that rebuilt
+ * these by hand went stale the moment `computeTax` was added, and reported a
+ * second money authority that did not exist.
+ */
+function shopEngineOptions() {
+  const E = _SD_E();
+  return {
+    rules: (E && E.BUILTIN_RULES) || [],
+    // Omitting this is what made the storefront quote a different tax from the
+    // rest of the estate. `undefined` means "not supplied", which is what
+    // computeCartTotals already expects — it then falls back to its own rate.
+    computeTax: shopEstateTax(),
+  };
+}
+
 function shopTotals(now) {
   const E = _SD_E();
   const ctx = shopContext(now);
   if (!E || !ctx) return null;
   try {
-    return E.computeCartTotals(ctx, { rules: E.BUILTIN_RULES || [] });
+    return E.computeCartTotals(ctx, shopEngineOptions());
   } catch (err) { return null; }
 }
 
@@ -398,7 +443,7 @@ window.SHOP = {
   setLane: shopSetLane, clear: shopClear,
   lines: () => _SHOP.lines,
   itemCount: shopItemCount,
-  context: shopContext, totals: shopTotals, money: shopMoney,
+  context: shopContext, totals: shopTotals, money: shopMoney, engineOptions: shopEngineOptions,
 };
 
 // Re-render on any write, the same contract as `window.useHW`.

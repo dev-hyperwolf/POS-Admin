@@ -148,7 +148,10 @@ test('there is ONE money authority: SHOP.totals() IS computeCartTotals', async (
 
     const mine = W.SHOP.totals();
     assert.notEqual(mine, null, 'totals came back null with the engine loaded');
-    const direct = W.HWCommerce.computeCartTotals(W.SHOP.context(), { rules: W.HWCommerce.BUILTIN_RULES });
+    // The SAME options the storefront prices with — rebuilding them here by
+    // hand is how this test went stale when computeTax was added and reported a
+    // second money authority that did not exist.
+    const direct = W.HWCommerce.computeCartTotals(W.SHOP.context(), W.SHOP.engineOptions());
     for (const k of ['subtotalCents', 'discountCents', 'feesCents', 'taxCents', 'totalCents', 'orderCount', 'itemCount']) {
       assert.equal(mine[k], direct[k], `${k} disagrees with the engine — a second total exists`);
     }
