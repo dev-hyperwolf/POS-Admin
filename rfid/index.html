@@ -62,5 +62,14 @@
 <script type="text/babel" src="rfid/screen-system.jsx"></script>
 <script type="text/babel" src="rfid/screen-handheld.jsx"></script>
 <script type="text/babel" src="rfid/app.jsx"></script>
+
+<!-- PLATFORM CHROME. Every other console loads these; this one did not, which is why
+     the note taker and the app switcher were missing from the RFID tab while they
+     worked everywhere else. Order matches Hyperwolf POS.html: switcher, tour steps,
+     tour, notes. Loaded last, after the app, because they attach to a mounted DOM. -->
+<script src="shared/app-switcher.js"></script>
+<script src="shared/tour-steps.js"></script>
+<script src="shared/tour.js"></script>
+<script src="shared/notes.js"></script>
 </body>
 </html>
