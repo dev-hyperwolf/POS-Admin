@@ -39,6 +39,40 @@
 </template>
 <div id="root"></div>
 
+<!-- The live-data seam. FIRST on purpose: it kicks off GET /api/state before the
+     ~5MB of React + Babel below start downloading, so on the live path the payload
+     has landed long before pos/data.jsx runs and no re-render is ever needed.
+     Inert unless the page is served from a loopback origin — the GitHub Pages
+     demo never fetches anything. See shared/hw-live.README.md. -->
+<script src="shared/hw-live.js"></script>
+<!-- The sub-category -> Weedmaps node mapping board, live from /api/taxonomy.
+     Same loopback gate as hw-live.js, so the GitHub Pages demo never fetches. -->
+<script src="shared/hw-live-taxonomy.js"></script>
+<!-- The identity ledger: which Weedmaps customer ids map to which of our people,
+     the per-order match with its tier and evidence, and verification in four
+     states that must never render the same. Same arming rule as its siblings —
+     inert wherever /api does not answer, so GitHub Pages is untouched. -->
+<script src="shared/hw-live-identity.js"></script>
+<!-- The counter check-in strip and the arrival matcher, including the LOSING
+     candidates and their scores: an associate who cannot see why the runner-up
+     lost cannot disagree with the machine. -->
+<script src="shared/hw-live-checkin.js"></script>
+<!-- Real order line items, from the raw Weedmaps payload the estate already
+     retains. The sheet previously synthesised a cart from a hash of the order
+     id, so its TOTAL contradicted the queue card on the same screen. -->
+<script src="shared/hw-live-lines.js"></script>
+<!-- Our product -> their product. The mapping engine has always been able to
+     answer "is this SKU verified on Weedmaps"; nothing on a screen asked it, so
+     the answer was a curl command. Shows the losing candidates with their
+     scores, and keeps three different reasons a SKU is unmapped apart: no
+     confident match, a human said no, and Weedmaps genuinely does not carry it
+     -- the operator's next move differs for each. -->
+<script src="shared/hw-live-mapping.js"></script>
+<!-- Our regions -> their listings. This mapping was already live and correct
+     and simply invisible. MODE is the point: `full` is the pickup storefront
+     selling store on-hand stock; `kits` is delivery, selling the union of
+     on-shift driver kits. Publishing them the same way is the classic mistake. -->
+<script src="shared/hw-live-regions.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from

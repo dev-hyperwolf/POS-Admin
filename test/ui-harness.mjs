@@ -198,15 +198,33 @@ export async function boot(which = 'pos', opts = {}) {
   const harnessTimers = new Set();
   for (const kind of ['setTimeout', 'setInterval']) {
     const orig = window[kind].bind(window);
-    const clearName = kind === 'setTimeout' ? 'clearTimeout' : 'clearInterval';
+    const isOneShot = kind === 'setTimeout';
     window[kind] = (fn, ms, ...rest) => {
       if (harnessClosed) return 0;
+      // A ONE-SHOT TIMER MUST RELEASE ITS OWN ENTRY WHEN IT FIRES.
+      //
+      // This Set was previously only ever emptied by close(), so every
+      // setTimeout ever scheduled was retained for the life of the run. Line
+      // ~223 aliases requestAnimationFrame ONTO setTimeout, so an animating
+      // page adds an entry per frame and the Set grows without bound -- the
+      // harness turning a page-level bug into a memory leak of its own. On this
+      // machine, with several agent runs concurrent, it contributed to taking
+      // the whole box down.
+      //
+      // Intervals stay tracked: they genuinely repeat, and cancelling them at
+      // close() is the reason this tracker exists.
+      //
+      // MERGE NOTE: both branches fixed this same leak independently. This keeps
+      // BOTH guards -- `if (entry)` (feat) for a timer that fires before the
+      // assignment lands, and the `typeof fn === 'function'` check (main) because
+      // setTimeout legally accepts a string. Dropping either re-opens a hole the
+      // other branch had already closed.
       let entry;
-      const wrapped = kind === 'setTimeout'
-        ? (...a) => { harnessTimers.delete(entry); return typeof fn === 'function' ? fn(...a) : undefined; }
+      const wrapped = isOneShot
+        ? (...a) => { if (entry) harnessTimers.delete(entry); return typeof fn === 'function' ? fn(...a) : undefined; }
         : fn;
       const id = orig(wrapped, ms, ...rest);
-      entry = [clearName, id];
+      entry = [isOneShot ? 'clearTimeout' : 'clearInterval', id];
       harnessTimers.add(entry);
       return id;
     };

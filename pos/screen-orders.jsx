@@ -398,7 +398,7 @@ function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
               </> :
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '9px 0 0', padding: '8px 9px', background: P.infoSoft, borderRadius: P.r10 }}>
                 <Icon name="info" size={12} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Nobody in the room is a plausible match — search the customer book or check them in from the order.</span>
+                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>{bind.boardWhy || 'Nobody in the room is a plausible match — search the customer book or check them in from the order.'}</span>
               </div>}
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                 <PBtn variant="secondary" size="xs" icon="search" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Search</PBtn>
@@ -415,7 +415,14 @@ function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
 function UnownedBanner({ items, onResolve }) {
   const P = useP();
   const sum = items.reduce((s, o) => s + o.total, 0);
-  const oldest = items.reduce((a, o) => o.age > a ? o.age : a, '0h 0m');
+  // COMPARE MINUTES, NOT STRINGS. This reduced with `o.age > a` over display
+  // strings, so '22h 34m' < '4h 11m' lexicographically and the banner reported
+  // the oldest order as 4h when a 22h one was three cards down. An operator
+  // triaging by this banner never escalates the order that has actually been
+  // waiting a day. Zero-padding is inconsistent too ('5h 02m' vs '0h 3m'), so
+  // the string ordering was arbitrary regardless of magnitude.
+  const ageMins = (a) => {const m = /(\d+)\s*h\s*(\d+)/.exec(String(a || '')); return m ? (+m[1]) * 60 + (+m[2]) : -1;};
+  const oldest = items.reduce((a, o) => ageMins(o.age) > ageMins(a) ? o.age : a, '0h 0m');
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 14, padding: '11px 15px', background: P.surface, border: `1px solid ${P.warn}`, borderLeft: `4px solid ${P.warn}`, borderRadius: P.r12 }}>
       <span style={{ width: 30, height: 30, borderRadius: 9, background: P.warnSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="shield" size={16} stroke={2} color={P.warn} /></span>
@@ -436,8 +443,14 @@ function MatchSheet({ o, bind, onBind, onClose }) {
   const [tabv, setTabv] = React.useState('room');
   const wm = window.HW.WM_ORDER[o.id] || {};
   const checkins = window.HW.CHECKINS;
-  const scored = (ci) => {const c = (bind.candidates || []).find((x) => x.checkinId === ci.id);return c ? c.conf : 5;};
-  const inRoom = checkins.slice().sort((a, b) => scored(b) - scored(a));
+  // `5` IS NOT A SCORE. This defaulted every unscored person to the constant 5
+  // and then drew it under "ranked by match" with a bar meter. On live data
+  // that is four real people standing in a real room, each shown a confidence
+  // nobody computed, sorted by a value that is the same for all of them. Null
+  // means unscored and renders as "not scored", never as a number or a bar.
+  const scored = (ci) => {const c = (bind.candidates || []).find((x) => x.checkinId === ci.id);return c ? c.conf : null;};
+  const anyScored = (bind.candidates || []).length > 0;
+  const inRoom = checkins.slice().sort((a, b) => (scored(b) == null ? -1 : scored(b)) - (scored(a) == null ? -1 : scored(a)));
   const ql = q.trim().toLowerCase();
   const book = ql ? window.HW.MEMBERS.filter((m) => (m.name + m.email + m.phone).toLowerCase().includes(ql)) : window.HW.MEMBERS.slice(0, 5);
   // Guests already on record inside a party are bindable people too.
@@ -471,7 +484,7 @@ function MatchSheet({ o, bind, onBind, onClose }) {
             </div>}
 
           {tabv === 'room' ? <>
-            <Eyebrow>People in the store · ranked by match</Eyebrow>
+            <Eyebrow>{anyScored ? 'People in the store \u00b7 ranked by match' : 'People in the store \u00b7 NOT ranked \u2014 nobody has been scored against this order'}</Eyebrow>
             {inRoom.map((ci) => {const s = scored(ci);const top = s >= 40;
               return (
                 <div key={ci.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: P.surface, border: `1px solid ${top ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, boxShadow: top ? `0 0 0 2px ${P.accentSoft}` : 'none' }}>
@@ -480,8 +493,10 @@ function MatchSheet({ o, bind, onBind, onClose }) {
                     <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{ci.name}</span>
                     <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>in store {ci.wait.replace(/^0h /, '')} · {ci.type}{(ci.guests || []).length ? ` · party of ${1 + ci.guests.length}` : ''}</span>
                   </span>
-                  <span style={{ width: 64 }}><BarMeter value={s / 100} color={s >= 50 ? P.warn : P.neutral} height={4} /></span>
-                  <span style={{ fontSize: 11.5, fontWeight: 800, color: s >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono, width: 22, textAlign: 'right' }}>{s}</span>
+                  {/* A bar IS the claim that a confidence was computed. Drawing
+                      one for an unscored person is the same lie as the number. */}
+                  <span style={{ width: 64 }}>{s == null ? null : <BarMeter value={s / 100} color={s >= 50 ? P.warn : P.neutral} height={4} />}</span>
+                  <span style={{ fontSize: s == null ? 9.5 : 11.5, fontWeight: 800, color: s == null ? P.inkMute : s >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono, width: s == null ? 62 : 22, textAlign: 'right' }}>{s == null ? 'not scored' : s}</span>
                   <PBtn variant={top ? 'accent' : 'secondary'} size="xs" onClick={() => onBind(ci.id)}>Bind</PBtn>
                 </div>);
             })}
@@ -1627,6 +1642,44 @@ function WmOrderBlock({ o, wm, onLog }) {
   const P = useP();
   const map = window.HW.WM_STATUS_MAP;
   const cur = map[o.stage] || map.verify;
+  // MERGE 2026-08-20, hunk 1 of 3: UNION, with main's one line winning.
+  // The push/ack rail below is mine and survives whole -- 17 references in this
+  // component depend on push/pushState/acked/railTo/wmTone/pushLine.
+  // The useState initialiser is MAIN'S, deliberately: mine keyed off wm.level,
+  // so a LOW-RISK order rendered 'Verified — cleared for fulfillment' while it
+  // sat unreleased in Verification Pending, and the pending action row is the
+  // only caller of doVerify, so nothing could then release it. Main's keys off
+  // o.stage, which is the fact. Low risk shortens a review; it does not perform
+  // one. Both sides were fixing a rendered falsehood; main's was the right fix.
+  // WHAT WEEDMAPS ACTUALLY HAS, which is not the same as what our stage implies.
+  // This block used to derive the whole progress rail from `cur` -- our stage run
+  // through the contract map -- with tone hardcoded to "good". So advancing an
+  // order to `ready` painted a green, check-marked rail through
+  // READY_FOR_ATTAINMENT and the sentence "customer sees: Ready for pickup",
+  // whether or not the push to Weedmaps succeeded. It currently returns HTTP 400,
+  // so that rail was reliably a lie, and an operator reading it stops chasing an
+  // order the customer was never told about.
+  // `_push` is supplied by shared/hw-live.js from the live outbound queue and is
+  // ABSENT on mock data, so the mock demo is untouched and renders exactly as before.
+  // On the ORDER, not on `wm` -- shared/hw-live.js attaches the queue evidence
+  // to the order row. Reading it off `wm` silently yielded null, so every
+  // honest branch below was inert and the panel kept asserting delivery. The
+  // `wm` fallback is there only so a future seam change cannot re-break this
+  // without saying so.
+  const push = (o && o._push) || wm._push || null;
+  const pushState = push ? (push.state || 'none') : null;
+  const acked = pushState === 'sent';
+  // The rail advances to what WM acknowledged. Un-acknowledged is not "done".
+  const railTo = push == null ? cur.wm : (acked ? ((o && o._mirrored) || wm._mirrored || cur.wm) : null);
+  const wmTone = push == null ? 'good'
+    : acked ? 'good' : pushState === 'failed' ? 'bad' : 'warn';
+  const pushLine = push == null ? null
+    : acked ? 'Weedmaps acknowledged this status.'
+    : pushState === 'failed'
+      ? ('NOT sent to Weedmaps — push failed' + (push.attempts ? ' after ' + push.attempts + ' attempt(s)' : '') + (push.last_error ? ': ' + push.last_error : '') + '. The customer has not been told.')
+      : pushState === 'none'
+        ? 'Never pushed to Weedmaps. The customer has not been told.'
+        : ('Queued for Weedmaps, not yet acknowledged' + (push.attempts ? ' (' + push.attempts + ' attempt(s))' : '') + '. The customer has not been told.');
   // 🔴 THE STAGE IS THE TRUTH, NOT THE RISK SCORE. This initialised to
   // 'approved' whenever `wm.level === 'low'`, so a low-risk order sitting in
   // Verification Pending rendered "Verified — cleared for fulfillment" while
@@ -1741,14 +1794,22 @@ function WmOrderBlock({ o, wm, onLog }) {
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="user" size={13} stroke={1.9} color={P.ink2} /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>Contact on file</span><button onClick={() => setPeek(true)} title="Open the customer profile" style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="user-check" size={11} stroke={2.2} />View profile</button></div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px', padding: '11px 12px', background: P.surface }}>
-        {[['Name', wm.contact.name, wm.checks.name, false], ['Phone', wm.contact.phone, wm.checks.phone, true], ['Email', 'Not provided by Weedmaps', 'na', false], ...(wm.contact.address ? [['Delivery address', wm.contact.address, wm.checks.address, true]] : [])].map(([lb, val, st, mono]) => {const bad = badState(st);return <div key={lb} style={{ minWidth: 0, gridColumn: lb === 'Delivery address' ? '1/-1' : 'auto' }}>
+        {[['Name', wm.contact.name, wm.checks.name, false], ['Phone', wm.contact.phone, wm.checks.phone, true], ['Email', (wm.contact && wm.contact.email) || 'Not provided by Weedmaps', (wm.contact && wm.contact.email) ? (wm.checks && wm.checks.email) || 'na' : 'na', false], ...(wm.contact.address ? [['Delivery address', wm.contact.address, wm.checks.address, true]] : [])].map(([lb, val, st, mono]) => {const bad = badState(st);return <div key={lb} style={{ minWidth: 0, gridColumn: lb === 'Delivery address' ? '1/-1' : 'auto' }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>{lb}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: bad ? P.bad : P.ink, fontFamily: mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{val}</span>{bad && <Icon name="shield" size={11} stroke={2} color={P.bad} style={{ flex: '0 0 auto' }} />}</div>
         </div>;})}
       </div>
     </div></Fold>}
     <div style={{ display: 'flex', alignItems: 'stretch', gap: 0, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
-      {[['Our stage', stageMeta(o.stage).label, P.ink], ['Weedmaps status', cur.wm, '#1F5FC0'], ['Customer sees', cur.cust, cur.tone === 'good' ? P.good : cur.tone === 'bad' ? P.bad : P.ink2]].map(([k, v, c], i) =>
+      {/* The middle and right cells used to assert what Weedmaps holds and what
+          the customer reads, both derived from OUR stage. On a rejected push
+          that is simply false, and this strip is the most prominent thing on
+          the panel -- an operator reads it and stops chasing the order. When
+          the live seam supplies push evidence (absent on mock data, so the
+          mock demo is unchanged) an unacknowledged status says so here. */}
+      {[['Our stage', stageMeta(o.stage).label, P.ink],
+        ['Weedmaps status', push && !acked ? 'NOT SENT — ' + cur.wm : cur.wm, push && !acked ? P.bad : '#1F5FC0'],
+        ['Customer sees', push && !acked ? 'nothing yet — never delivered' : cur.cust, push && !acked ? P.bad : (cur.tone === 'good' ? P.good : cur.tone === 'bad' ? P.bad : P.ink2)]].map(([k, v, c], i) =>
       <React.Fragment key={k}>
         {i > 0 && <div style={{ display: 'flex', alignItems: 'center', padding: '0 2px', color: P.inkFaint }}><Icon name="chevron-right" size={15} stroke={2.2} /></div>}
         <div style={{ flex: 1, minWidth: 0, padding: '10px 12px' }}>
@@ -1758,12 +1819,16 @@ function WmOrderBlock({ o, wm, onLog }) {
       </React.Fragment>)}
     </div>
     {/* WM status progression — reference, not a decision. Folded by default. */}
-    <Fold id="wm-status" icon="link" title="Weedmaps order status" status={cur.wm.replace(/_/g, ' ')} tone="good">
+    <Fold id="wm-status" icon="link" title="Weedmaps order status" status={cur.wm.replace(/_/g, ' ')} tone={wmTone}>
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="link" size={12} color="#1F5FC0" /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>What the customer sees</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>on weedmaps.com</span></div>
+      {pushLine && <div style={{ padding: '9px 12px', background: acked ? P.surface : P.surface3, borderBottom: `1px solid ${P.hairline}`, display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+        <Icon name={acked ? 'check' : 'alert'} size={12} color={acked ? P.good : pushState === 'failed' ? P.bad : P.warn || P.inkDim} />
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: acked ? P.ink : P.bad, lineHeight: 1.35 }}>{pushLine}</span>
+      </div>}
       <div style={{ padding: '14px 14px 12px', background: P.surface }}>
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-          {window.HW.WM_STATUS_ORDER.map((ws, i) => {const ci = window.HW.WM_STATUS_ORDER.indexOf(cur.wm);const active = i === ci;const done = i < ci;return <React.Fragment key={ws}>
+          {window.HW.WM_STATUS_ORDER.map((ws, i) => {const ci = railTo == null ? -1 : window.HW.WM_STATUS_ORDER.indexOf(railTo);const active = i === ci;const done = i < ci;return <React.Fragment key={ws}>
             {i > 0 && <div style={{ flex: 1, height: 2, background: i <= ci ? P.good : P.hairline2, marginTop: 9 }} />}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: 76 }}>
               <span style={{ width: 20, height: 20, borderRadius: 99, background: active ? '#1F5FC0' : done ? P.good : P.surface3, color: active || done ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', border: active || done ? 'none' : `1px solid ${P.hairline2}`, boxShadow: active ? '0 0 0 3px rgba(31,95,192,.18)' : 'none' }}>{done ? <Icon name="check" size={12} stroke={2.6} /> : <span style={{ fontSize: 10, fontWeight: 800, fontFamily: P.fontMono }}>{i + 1}</span>}</span>
@@ -1774,10 +1839,33 @@ function WmOrderBlock({ o, wm, onLog }) {
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px', background: P.accentSoft, borderRadius: P.r10 }}><Pill kind="accent" dot>Now</Pill><span style={{ fontSize: 11.5, color: P.ink2 }}>Weedmaps status <b style={{ color: P.ink }}>{cur.wm.replace(/_/g, ' ')}</b> — customer sees “{cur.cust}”</span></div>
       </div>
     </div></Fold>
-    <Fold id="wm-fraud" icon="shield" title="Identity & fraud check" tone={wm.level === 'high' ? 'bad' : wm.level === 'medium' ? 'warn' : 'good'}
+    <Fold id="wm-fraud" icon="shield" title="Identity & fraud check" tone={(o && o._live) ? 'warn' : wm.level === 'high' ? 'bad' : wm.level === 'medium' ? 'warn' : 'good'}
     status={verify === 'pending' ? wm.flags && wm.flags.length ? wm.flags.length + ' signal' + (wm.flags.length > 1 ? 's' : '') + ' · needs a decision' : 'needs a decision' : verify === 'approved' ? 'cleared' : verify === 'hold' ? 'on hold' : 'rejected'}
     defOpen={verify === 'pending'}>
     <div>
+      {/* NO RISK MODEL EXISTS. engine.evaluate_fraud returns (action, reason) —
+          there is no score, and no per-field check model at all. On a LIVE
+          order the bar below would fill to a number nobody computed and, worse,
+          the no-flags branch renders a green tick reading "Identity checks
+          passed", which is how an operator releases an order believing it was
+          screened. A bar and a badge ARE the claim that a check ran, so no
+          value can make them honest — the block has to say it did not run.
+          Gated on o._live, which the live seam sets, so mock orders keep the
+          design's original behaviour untouched. */}
+      {o && o._live ? <div style={{ border: `1px dashed ${P.hairline2}`, borderRadius: P.r12, padding: '11px 12px', marginBottom: 10, background: P.surface2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+          <Icon name="shield" size={14} stroke={1.9} color={P.inkMute} />
+          <span style={{ fontSize: 12, fontWeight: 800, color: P.ink, letterSpacing: '.02em' }}>NOT COMPUTED</span>
+        </div>
+        <div style={{ fontSize: 11.5, lineHeight: 1.5, color: P.ink2 }}>
+          There is no risk score and no per-field identity check in this system.
+          The anti-abuse gate returns an action and a reason, not a score, and
+          nothing here has screened this customer. Weedmaps sends a name, a
+          phone and sometimes an address — no document, no date of birth — so a
+          Weedmaps contact starts unverified and that is the correct answer, not
+          a failure. Use the identity panel for what is actually known.
+        </div>
+      </div> : <React.Fragment>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
         <Icon name="shield" size={15} stroke={1.9} color={riskC} />
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Risk score</span>
@@ -1793,6 +1881,7 @@ function WmOrderBlock({ o, wm, onLog }) {
         <WmCheckRow label="Phone" state={wm.checks.phone} />
         {wm.checks.address !== 'n/a' && <WmCheckRow label="Delivery address" state={wm.checks.address} />}
       </div>}
+      </React.Fragment>}
       {wm.flags && wm.flags.length > 0 &&
         <div style={{ marginTop: 9, padding: '10px 12px', background: P.badSoft, borderRadius: P.r10 }}>
         <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: P.bad, marginBottom: 6 }}>{wm.flags.length} fraud signal{wm.flags.length > 1 ? 's' : ''}</div>
@@ -2242,23 +2331,48 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const [dReferral, setDReferral] = React.useState(null);
   const [dReferralAmt, setDReferralAmt] = React.useState(0);
 
-  // Line NAME is the join back to the catalogue — SwapPanel resolves the line
-  // it is replacing by name, and AddItemPanel builds the order context the same
-  // way. 'Doubleshot Edible' was not a product: the catalogue calls it
-  // 'Doubleshot' (DBL78MG), so that line resolved to nothing, dropped out of
-  // the upsell context, and the picker then recommended a product that was
-  // already on the order. Every name here must exist in window.HW.PRODUCTS.
+  // MERGE 2026-08-20, hunk 2 of 3: a THREE-WAY CHAIN, and the ORDER is
+  // load-bearing in a way neither branch had on its own.
   //
-  // An order that has been EDITED carries its real lines on the record, and
-  // those win. Falling back to the demo lines after a save would show the
-  // operator the basket they just replaced while the queue showed the new
-  // total — the two views disagreeing about the same order.
+  //     o.lines  ->  LIVE Weedmaps lines  ->  money.lines
   //
-  // The basket now lives on the money record (DEMO_BASKET seeds it once), so
-  // the hard-coded demo lines are no longer read here at all. That fallback was
-  // the second half of the money bug: the committed total came off a basket the
-  // record had never agreed to.
-  const baseItems = (o.lines && o.lines.length ? o.lines : money.lines).map((l) => ({ ...l }));
+  // Main's side was `o.lines || money.lines`, and money.lines reaches
+  // orderMoney() -> seedOrderMoney(), whose answer for an order with NO lines
+  // is DEMO_BASKET. A live Weedmaps order arrives with no lines -- hw-live.js
+  // sets items:0 deliberately, meaning "we were not told", never "zero items".
+  // So main's ordering would have rendered a REAL CUSTOMER'S ORDER as three
+  // invented demo products. Found by the main-side session, not by me: I know
+  // the live path, they know the money path, and the bug existed only at the
+  // join.
+  //
+  // My side dropped main's edited-order case, where a saved edit puts real
+  // lines on the record and those must beat everything.
+  //
+  // So: an EDITED order's own lines win, then what Weedmaps actually sent,
+  // then the money record. The demo basket is last and is now only ever
+  // reached by mock data, which is the only thing it was ever true for.
+  const _liveLines = (window.HW_LINES && typeof window.HW_LINES.get === 'function')
+    ? window.HW_LINES.get(o.id) : null;
+  // .found lives on .data, not the top level, and the first call returns
+  // state:'loading' while it fetches. Checking .found here made this branch
+  // INERT once already: it always fell through to the invented cart and looked
+  // correct. It re-renders through HW_LIVE when the payload lands.
+  const _ll = _liveLines && _liveLines.state === 'live' && (_liveLines.lines || []).length
+    ? _liveLines.lines : null;
+  const _liveBase = _ll ? _ll.map((l) => ({
+    name: (l.pos_name || (l.wm && l.wm.name) || l.sku || 'Unresolved line'),
+    brand: (l.wm && l.wm.brand) || '',
+    cat: l.category || '',
+    qty: Number((l.wm && l.wm.quantity) || 1),
+    price: Number((l.wm && (l.wm.adjusted_price || l.wm.original_price)) || 0),
+    // An unresolved line is not dropped: a line we could not match to a SKU is
+    // exactly what an operator needs to see.
+    unresolved: !l.resolved,
+    unresolvedWhy: l.unresolved_reason || null
+  })) : null;
+  const baseItems = (o.lines && o.lines.length ? o.lines
+                     : _liveBase ? _liveBase
+                     : money.lines).map((l) => ({ ...l }));
 
   // ── Order metadata ──
   const channel = o.channel === 'Delivery' ? 'delivery' : o.source === 'Web' || o.source === 'Weedmaps' || /pick/i.test(o.pay || '') ? 'pickup' : 'pos';
@@ -2333,6 +2447,18 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   });
 
   // ── CA cannabis tax breakdown (comment 4) ──
+  // MERGE 2026-08-20, hunk 3 of 3: MAIN WHOLESALE, with _liveGrand spliced back.
+  //
+  // Main's tax block is right and mine is deleted: HW.taxBreakdown is one
+  // helper precisely so no screen can quietly disagree about tax, and my copy
+  // was a second set of the same rates. The governed swapCtx below is main's
+  // and has no counterpart on my side.
+  //
+  // STORED WINS. Where Weedmaps served an authoritative grand_total, that is
+  // what the customer agreed to, and recomputing it prices a governed
+  // substitution against a fiction -- a recorded case turned a real $28 order
+  // into a $9.86 sheet against a $34 queue card. A recomputation that
+  // disagrees with the record is the bug, whatever the arithmetic says.
   // HW.taxBreakdown, not a second copy of the rates: data.jsx keeps one helper
   // precisely so no screen can quietly disagree about tax.
   const taxBase = priced.taxBase;
@@ -2341,7 +2467,10 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const localTax = priced.tax.local; // local cannabis tax 2.22%
   const totalTax = priced.tax.total;
   const taxRate = priced.rate;
-  const grand = priced.grand;
+  const _liveGrand = _ll && _liveLines && _liveLines.data
+    && typeof _liveLines.data.grand_total === 'number'
+    ? _liveLines.data.grand_total : null;
+  const grand = _liveGrand != null ? _liveGrand : priced.grand;
 
   // ── The governed-substitution context ───────────────────────────────────────
   //
@@ -2390,7 +2519,15 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
         agreed: {
           subtotalCents: cents(itemsSub),
           discountCents: cents(cartDisc),
-          feesCents: 0,
+          // NOT ZERO WHEN THE TOTAL IS LIVE. Main's comment below is true of a
+          // POS order -- no fees, so grand === taxBase + totalTax and `agreed`
+          // reconciles exactly. It is NOT true of a Weedmaps order: their
+          // grand_total covers fees and cart-level discounts carried on no line,
+          // so hard-coding 0 leaves the governance engine short by real money on
+          // exactly the orders it matters for. Derive the residual instead.
+          feesCents: _liveGrand != null
+            ? cents(grand - taxBase - totalTax)
+            : 0,
           taxCents: cents(totalTax),
           totalCents: cents(grand),
         },
