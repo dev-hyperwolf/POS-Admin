@@ -60,7 +60,7 @@ function HeaderViewMenu({ hv, setHv }) {
           {opts.map((o) => {
             const a = o.value === hv;
             return (
-              <button key={o.value} onClick={() => {setHv(o.value);setOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '8px 9px', background: a ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+              <button key={o.value} onClick={() => {setHv(o.value);setOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '8px 9px', background: a ? P.surface3 : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                 <Icon name={o.icon} size={14} stroke={1.9} color={a ? P.ink : P.ink2} />
                 <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink }}>{o.label}</span>
                 {a && <Icon name="check" size={14} stroke={2.6} color={P.ink} />}

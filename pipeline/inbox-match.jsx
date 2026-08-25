@@ -71,7 +71,7 @@
     }, [q, candidates, brandFilter, categoryFilter]);
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     const chip = (active) => ({ height: 20, padding: '0 8px', borderRadius: 99, fontSize: 11.5, cursor: 'pointer', fontFamily: P.fontSans,
-      background: active ? P.accentSoft : P.surface, color: active ? accentInk : P.inkMute, border: `1px solid ${active ? P.accentBorder : P.hairline2}` });
+      background: active ? P.ink : P.surface, color: active ? P.surface : P.inkMute, border: `1px solid ${active ? P.ink : P.hairline2}` });
     return (
       <div style={{ flexBasis: '100%', marginTop: 8, borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface, padding: 8, boxShadow: P.shadowMd }}>
         <Field autoFocus size="sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by brand, name, or SKU…" aria-label="Search products" />

@@ -307,7 +307,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
               <div style={{ marginBottom: 13 }}><Lb>Type</Lb>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[['Indica', P.indica], ['Sativa', P.sativa], ['Hybrid', P.hybrid]].map(([t, c]) => {const on = v.strain === t;
-                    return <button key={t} onClick={() => setV((o) => ({ ...o, strain: t, desc: SH.aiDesc(shell, { name: o.name, strain: t }) }))} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', borderRadius: P.r999, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+                    return <button key={t} onClick={() => setV((o) => ({ ...o, strain: t, desc: SH.aiDesc(shell, { name: o.name, strain: t }) }))} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', borderRadius: P.r999, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
                       <span style={{ width: 6, height: 6, borderRadius: 99, background: c }} />{t}</button>;})}
                   <Sel2 value={['Indica', 'Sativa', 'Hybrid'].includes(v.strain) ? 'More' : v.strain} onChange={(x) => x !== 'More' && s1('strain', x)} options={['More', 'CBD', 'N/A']} />
                 </div>

@@ -498,7 +498,7 @@ window.RegisterScreen = function RegisterScreen() {
               <div style={{ flex: '0 0 auto' }}><BrandFilter products={products} brands={brands} setBrands={setBrands} /></div>
               {canRank &&
               <button onClick={() => setRankOn((o) => !o)} title="Rank the grid for what is already on this ticket"
-                style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 40, padding: '0 13px', borderRadius: P.r999, border: `1px solid ${rankOn ? P.accentBorder : P.hairline2}`, background: rankOn ? P.accentSoft : P.surface, color: rankOn ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+                style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 40, padding: '0 13px', borderRadius: P.r999, border: `1px solid ${rankOn ? P.ink : P.hairline2}`, background: rankOn ? P.ink : P.surface, color: rankOn ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
                 <Icon name="sparkle" size={13} stroke={2} />For this ticket
               </button>}
               <span style={{ flex: '0 0 auto', width: 1, height: 22, background: P.hairline2, margin: '0 1px' }} />
@@ -766,7 +766,7 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
               </div>
               <p style={{ margin: '0 0 10px', fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>The party checks out on <b style={{ color: P.ink2 }}>one ticket</b> by default. Open a separate one only when a guest is buying for themselves — it becomes their own transaction, with their own purchase limit and points.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: activeTicket === 0 ? P.accentSoft : P.surface, border: `1px solid ${activeTicket === 0 ? P.accentBorder : P.hairline}`, borderRadius: P.r10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: activeTicket === 0 ? P.surface3 : P.surface, border: `1px solid ${activeTicket === 0 ? P.ink : P.hairline}`, borderRadius: P.r10 }}>
                   <Avatar name={customer.name} size={24} crown={customer.member} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{customer.name.split(' ')[0]}</span>
@@ -781,7 +781,7 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
                 const owns = hasTicket && hasTicket(gn);
                 const idx = tickets.findIndex((x) => x.person && x.person.name === gn);
                 return (
-                  <div key={gn + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: owns && activeTicket === idx ? P.accentSoft : P.surface, border: `1px solid ${owns ? activeTicket === idx ? P.accentBorder : P.hairline2 : P.hairline}`, borderRadius: P.r10 }}>
+                  <div key={gn + i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', background: owns && activeTicket === idx ? P.surface3 : P.surface, border: `1px solid ${owns ? activeTicket === idx ? P.ink : P.hairline2 : P.hairline}`, borderRadius: P.r10 }}>
                       <Avatar name={gn} size={24} />
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{gn}</span>
@@ -861,11 +861,11 @@ function BrandFilter({ products, brands, setBrands }) {
     <div ref={ref} style={{ position: 'relative', flex: '0 0 auto' }}>
       {/* scroller holds the controls; popover lives OUTSIDE it so it isn't clipped */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, overflowX: 'auto', paddingBottom: 1 }}>
-        <button onClick={() => open ? setOpen(false) : openMenu()} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: P.r999, border: `1px solid ${open || brands.size ? P.accentBorder : P.hairline2}`, background: brands.size ? P.accentSoft : P.surface, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+        <button onClick={() => open ? setOpen(false) : openMenu()} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: P.r999, border: `1px solid ${open || brands.size ? P.hairline3 : P.hairline2}`, background: brands.size ? P.highlightSoft : P.surface, color: brands.size ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
           <Icon name="tag" size={12.5} stroke={1.9} />Brands{brands.size > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: P.accentInk, background: P.accent, padding: '0 6px', borderRadius: 99, fontFamily: P.fontMono }}>{brands.size}</span>}<Icon name="chevron-down" size={12} stroke={2.2} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
         </button>
         {sel.map((b) =>
-        <button key={b} onClick={() => toggle(b)} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: P.r999, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, color: P.ink, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+        <button key={b} onClick={() => toggle(b)} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: P.r999, border: `1px solid ${P.hairline3}`, background: P.highlightSoft, color: P.ink, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
             {b}<Icon name="x" size={11} stroke={2.2} color={P.inkMute} />
           </button>)}
         {brands.size > 0 && <button onClick={() => setBrands(new Set())} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: 'transparent', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="x" size={12} stroke={2} />Clear all</button>}
@@ -877,7 +877,7 @@ function BrandFilter({ products, brands, setBrands }) {
           <Field icon="search" placeholder="Search brands…" size="sm" value={q} autoFocus onChange={(e) => setQ(e.target.value)} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 188, overflowY: 'auto', margin: '8px 0' }}>
             {shown.map((b) => {const on = brands.has(b);return (
-                <button key={b} onClick={() => toggle(b)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', background: on ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                <button key={b} onClick={() => toggle(b)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', background: on ? P.surface3 : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                 <Check on={on} onChange={() => toggle(b)} size={16} />
                 <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b}</span>
                 <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{cnt(b)}</span>
@@ -945,7 +945,7 @@ function CustomerSearch({ onSelect, onNewCheckIn, activeName }) {
             {results.map((m) => {
             const isActive = m.name === activeName;
             return (
-              <button key={m.id} onClick={() => pick(m)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 9px', background: isActive ? P.accentSoft : P.surface, border: `1px solid ${isActive ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+              <button key={m.id} onClick={() => pick(m)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 9px', background: isActive ? P.surface3 : P.surface, border: `1px solid ${isActive ? P.ink : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                   <Avatar name={m.name} size={30} crown={m.member} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{m.name}<VisitPill visit={m.visits} /></div>
@@ -984,7 +984,7 @@ function WaitRow({ c, active, onPick }) {
   const P = useP();
   const claimed = !!c.claimedBy;
   return (
-    <button onClick={onPick} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 9px', background: active ? P.accentSoft : P.surface, border: `1px solid ${active ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, width: '100%' }}>
+    <button onClick={onPick} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 9px', background: active ? P.surface3 : P.surface, border: `1px solid ${active ? P.ink : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <Avatar name={c.name} size={30} crown={c.member} />
         {(c.guests || []).slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -9, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={22} /></span>)}
@@ -1016,7 +1016,7 @@ function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
       {checkins.map((c) => {
         const claimed = !!c.claimedBy;const active = c.name === activeName;
         return (
-          <div key={c.id} style={{ flex: '0 0 auto', width: 188, border: `1px solid ${active ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, overflow: 'hidden', background: P.surface }}>
+          <div key={c.id} style={{ flex: '0 0 auto', width: 188, border: `1px solid ${active ? P.ink : P.hairline2}`, borderRadius: P.r12, overflow: 'hidden', background: P.surface }}>
             <div style={{ padding: '7px 10px 6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <div style={{ position: 'relative', flex: '0 0 auto' }}>

@@ -56,7 +56,7 @@ window.MembersScreen = function MembersScreen() {
   if (sel) return <MemberDetailPage m={sel} onBack={() => setSel(null)} />;
   const FRow = ({ label, k, opts }) => <div style={{ marginBottom: 12 }}>
     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>{label}</div>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{opts.map((o) => {const on = f[k] === o;return <button key={o} onClick={() => setF1(k, o)} style={{ padding: '5px 11px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.accentText : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{o}</button>;})}</div>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{opts.map((o) => {const on = f[k] === o;return <button key={o} onClick={() => setF1(k, o)} style={{ padding: '5px 11px', borderRadius: 99, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{o}</button>;})}</div>
   </div>;
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -542,7 +542,7 @@ function CashDrawerSettings({ onClose }) {
           <div style={lbl}>Common amounts</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {[150, 200, 300, 400, 500].map((x) => {const on = n === x;
-              return <button key={x} onClick={() => setVal(String(x))} style={{ padding: '6px 13px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.accentText : P.ink2, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontMono }}>{money(x)}</button>;})}
+              return <button key={x} onClick={() => setVal(String(x))} style={{ padding: '6px 13px', borderRadius: 99, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontMono }}>{money(x)}</button>;})}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.infoSoft, borderRadius: P.r10 }}>

@@ -242,7 +242,7 @@
             return (
               <button key={c.line.id} onClick={() => setSelectedId(c.line.id)} aria-pressed={selected}
                 style={{ position: 'relative', textAlign: 'left', borderRadius: 10, padding: 12, cursor: 'pointer', fontFamily: P.fontSans,
-                  background: selected ? P.accentSoft : P.surface, border: `1px solid ${selected ? P.accent : isBest ? P.accentBorder : P.hairline2}` }}>
+                  background: selected ? P.surface3 : P.surface, border: `1px solid ${selected ? P.ink : isBest ? P.accentBorder : P.hairline2}` }}>
                 {isBest && <span style={{ position: 'absolute', top: -8, left: 8, display: 'inline-flex', alignItems: 'center', gap: 4, height: 18, padding: '0 6px', borderRadius: 99, background: P.accent, color: P.accentInk, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}><Icon name="sparkle" size={9} stroke={2.4} />best pair</span>}
                 <div style={{ fontSize: 12.5, color: P.ink, minHeight: 34 }}>{c.line.productName}</div>
                 <div style={{ fontFamily: P.fontMono, fontSize: 10, color: P.inkMute, marginTop: 4 }}>{c.line.sku}</div>
@@ -253,7 +253,7 @@
                   <Row label="Room left" value={`${roomLeft} units`} tone={roomLeft >= u.qty ? 'ok' : roomLeft <= 0 ? 'blocked' : 'warn'} />
                 </div>
                 {c.reasons.length > 0 && <div style={{ marginTop: 8, fontSize: 10, color: P.inkMute }}>{c.reasons.slice(0, 2).join(' · ')}</div>}
-                {selected && <span style={{ position: 'absolute', top: 8, right: 8, display: 'inline-flex', height: 20, width: 20, alignItems: 'center', justifyContent: 'center', borderRadius: 99, background: P.accent, color: P.accentInk }}><Icon name="check" size={12} stroke={3} /></span>}
+                {selected && <span style={{ position: 'absolute', top: 8, right: 8, display: 'inline-flex', height: 20, width: 20, alignItems: 'center', justifyContent: 'center', borderRadius: 99, background: P.ink, color: P.surface }}><Icon name="check" size={12} stroke={3} /></span>}
               </button>);
           })}
         </div>

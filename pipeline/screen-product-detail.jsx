@@ -69,12 +69,12 @@
             {suggestions.map((c) => (
               <button key={c.productId} onClick={() => setPicked(c.productId)}
                 style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans,
-                  background: picked === c.productId ? P.accentSoft : P.surface, border: `1px solid ${picked === c.productId ? P.accent : P.hairline2}` }}>
+                  background: picked === c.productId ? P.surface3 : P.surface, border: `1px solid ${picked === c.productId ? P.ink : P.hairline2}` }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, color: P.ink }}>{c.brandName} · {c.productName}</div>
                   <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 2, fontFamily: P.fontMono }}>{Math.round(c.confidence * 100)}% match</div>
                 </div>
-                {picked === c.productId && <Icon name="check" size={16} stroke={2.6} color={P.mode === 'dark' ? P.accent : P.accentBorder} />}
+                {picked === c.productId && <Icon name="check" size={16} stroke={2.6} color={P.ink} />}
               </button>))}
             {suggestions.length === 0 && <div style={{ fontSize: 12.5, color: P.inkMute }}>No confident wrapper suggestions — create a new one.</div>}
           </div>

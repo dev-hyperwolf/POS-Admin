@@ -134,7 +134,7 @@ function QueueFilters({ value, onChange, orders, open, onOpen, shown }) {
   <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>{label}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{opts(k).map((o) => {const on = value[k] === o;return (
-        <button key={o} onClick={() => onChange({ ...value, [k]: o })} style={{ minHeight: 40, padding: '0 13px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.accentText : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{o}</button>);})}
+        <button key={o} onClick={() => onChange({ ...value, [k]: o })} style={{ minHeight: 40, padding: '0 13px', borderRadius: 99, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{o}</button>);})}
       </div>
     </div>;
   return (
@@ -742,7 +742,7 @@ function DeliveryMap({ items, onStartSale, onOpen }) {
           </div>}
         {stops.map((o, i) => {const d = dlv[o.id] || {};const a = sel === o.id;const st = stageMeta(o.stage);const un = driverOf(o) === 'Unassigned';
           return (
-            <div key={o.id} onClick={() => setSel(o.id)} style={{ display: 'flex', gap: 11, padding: '11px 12px', background: a ? P.accentSoft : P.surface, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', transition: 'all .12s' }}>
+            <div key={o.id} onClick={() => setSel(o.id)} style={{ display: 'flex', gap: 11, padding: '11px 12px', background: a ? P.surface3 : P.surface, border: `1px solid ${a ? P.ink : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', transition: 'all .12s' }}>
               <span style={{ flex: '0 0 auto', width: 24, height: 24, borderRadius: 99, background: a ? P.accent : P.surface3, color: a ? P.accentInk : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 800, fontFamily: P.fontMono, alignSelf: 'flex-start', marginTop: 1 }}>{i + 1}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -860,7 +860,7 @@ function DateRange() {
         <div style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, width: 300, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, padding: 8, zIndex: 51, boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {presets.map((p) =>
-            <button key={p} onClick={() => {setLabel(p === 'Today' ? 'Jun 10' : p === 'Yesterday' ? 'Jun 9' : p);setOpen(false);}} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: label === p ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 600, color: P.ink }}>
+            <button key={p} onClick={() => {setLabel(p === 'Today' ? 'Jun 10' : p === 'Yesterday' ? 'Jun 9' : p);setOpen(false);}} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: label === p ? P.surface3 : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 600, color: P.ink }}>
                 {p}{label === p && <Icon name="check" size={14} stroke={2.4} color={P.ink} />}
               </button>
             )}
@@ -1271,7 +1271,7 @@ function SwapPanel({ P, fmt, line, draft, orderCtx, onSwap, onClose }) {
             return (
               <div key={i} onClick={() => {setPicked(on ? null : c.product.id);setAttested(false);}}
                 data-hw-i style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', cursor: 'pointer',
-                  background: on ? P.accentSoft : 'transparent',
+                  background: on ? P.surface3 : 'transparent', boxShadow: on ? `inset 3px 0 0 ${P.ink}` : 'none',
                   borderBottom: i < rows.length - 1 ? `1px solid ${P.hairline}` : 'none' }}>
                     <Thumb item={{ name: c.product.name, cat: c.product.cat || line.cat }} size={30} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -1447,13 +1447,13 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
         {/* categories (color-coded) + brand filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', paddingBottom: 1 }}>
           <div style={{ position: 'relative', flex: '0 0 auto' }}>
-            <button onClick={() => setBrandOpen((o) => !o)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: P.r999, border: `1px solid ${brands.size || brandOpen ? P.accentBorder : P.hairline2}`, background: brands.size ? P.accentSoft : P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="tag" size={12} stroke={1.9} />{brands.size ? `${brands.size} brand${brands.size > 1 ? 's' : ''}` : 'Brands'}<Icon name="chevron-down" size={11} stroke={2.2} /></button>
+            <button onClick={() => setBrandOpen((o) => !o)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: P.r999, border: `1px solid ${brands.size || brandOpen ? P.hairline3 : P.hairline2}`, background: brands.size ? P.highlightSoft : P.surface, color: brands.size ? P.ink : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}><Icon name="tag" size={12} stroke={1.9} />{brands.size ? `${brands.size} brand${brands.size > 1 ? 's' : ''}` : 'Brands'}<Icon name="chevron-down" size={11} stroke={2.2} /></button>
             {brandOpen && <>
               <div onClick={() => setBrandOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
               <div style={{ position: 'absolute', top: 'calc(100% + 5px)', left: 0, width: 220, maxHeight: 240, overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, boxShadow: P.shadowLg, padding: 6, zIndex: 61 }}>
                 {brands.size > 0 && <button onClick={() => setBrands(new Set())} style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '6px 8px', background: 'transparent', border: 'none', borderRadius: 7, color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, marginBottom: 2 }}><Icon name="x" size={11} stroke={2} />Clear all</button>}
                 {allBrands.map((b) => {const on = brands.has(b);return (
-                    <button key={b} onClick={() => toggleBrand(b)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 8px', background: on ? P.accentSoft : 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                    <button key={b} onClick={() => toggleBrand(b)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 8px', background: on ? P.surface3 : 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                     <Check on={on} onChange={() => toggleBrand(b)} size={15} />
                     <span style={{ flex: 1, fontSize: 11.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b}</span>
                     <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{all.filter((p) => p.brand === b).length}</span>
@@ -1471,7 +1471,7 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflowX: 'auto', paddingBottom: 1 }}>
           <span style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="sparkle" size={11} stroke={1.9} />Smart</span>
           {smartChips.map(([k, label]) => {const a = smart === k;return (
-              <button key={k} onClick={() => setSmart(a ? 'none' : k)} style={{ flex: '0 0 auto', padding: '5px 10px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: a ? P.ink : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{label}</button>);})}
+              <button key={k} onClick={() => setSmart(a ? 'none' : k)} style={{ flex: '0 0 auto', padding: '5px 10px', borderRadius: P.r999, border: `1px solid ${a ? P.ink : P.hairline2}`, background: a ? P.ink : P.surface, color: a ? P.surface : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{label}</button>);})}
         </div>
       </div>
       {/* results */}
@@ -3021,10 +3021,10 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                   // the dead commit button survived review twice.
                   <div key={i} data-hw-i={pickable ? 'return-line' : undefined} data-hw-line={i}
                   role={pickable ? 'button' : undefined} tabIndex={pickable ? 0 : undefined}
-                  style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', minHeight: 40, background: packed ? P.goodSoft : active ? P.accentSoft : P.surface2, border: `1.5px solid ${packed ? P.good : active ? P.accentBorder : P.hairline}`, borderRadius: P.r10, cursor: pickable ? 'pointer' : 'default' }} onClick={() => pickable && toggleItem(i)}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', minHeight: 40, background: packed ? P.goodSoft : active ? P.surface3 : P.surface2, border: `1.5px solid ${packed ? P.good : active ? P.ink : P.hairline}`, borderRadius: P.r10, cursor: pickable ? 'pointer' : 'default' }} onClick={() => pickable && toggleItem(i)}>
                     {packed && <Icon name="check-circle" size={16} stroke={2} color={P.good} style={{ flex: '0 0 auto' }} />}
                     {pickable &&
-                    <span style={{ flex: '0 0 auto', width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${active ? P.accentBorder : P.hairline3}`, background: active ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{active && <Icon name="check" size={11} stroke={3} color={P.accentInk} />}</span>}
+                    <span style={{ flex: '0 0 auto', width: 18, height: 18, borderRadius: 5, border: `1.5px solid ${active ? P.ink : P.hairline3}`, background: active ? P.ink : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{active && <Icon name="check" size={11} stroke={3} color={P.surface} />}</span>}
                     <Thumb item={{ name: l.name, cat: l.cat }} size={34} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{l.name}</div>
@@ -3193,7 +3193,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {reasons.map((r) => {
                     const a = reason === r;
-                    return <button key={r} onClick={() => setReason(r)} style={{ padding: '6px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: a ? P.ink : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{r}</button>;
+                    return <button key={r} onClick={() => setReason(r)} style={{ padding: '6px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.ink : P.hairline2}`, background: a ? P.ink : P.surface, color: a ? P.surface : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{r}</button>;
                   })}
                     </div>
                   </div>

@@ -86,7 +86,7 @@
               <li key={v.id}>
                 <button onClick={() => onSelect(v.id)}
                   style={{ width: '100%', textAlign: 'left', padding: 12, borderRadius: 10, cursor: 'pointer', fontFamily: P.fontSans,
-                    background: selected ? P.accentSoft : 'transparent', border: `1px solid ${selected ? P.accentBorder : 'transparent'}` }}>
+                    background: selected ? P.surface3 : 'transparent', border: `1px solid ${selected ? P.ink : 'transparent'}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontSize: 13.5, color: P.ink, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</span>
                     {v.alerts.length > 0 && <span style={{ fontSize: 11.5, background: warn.bg, color: warn.fg, padding: '2px 6px', borderRadius: 99, fontFamily: P.fontMono }}>{v.alerts.length}</span>}
@@ -300,7 +300,7 @@
             {SETTINGS_NAV.map((s) => (
               <li key={s.key}>
                 <span aria-disabled={!s.active} style={{ display: 'flex', alignItems: 'center', height: 36, padding: '0 12px', borderRadius: 8, fontSize: 13.5, cursor: s.active ? 'default' : 'not-allowed',
-                  background: s.active ? P.accentSoft : 'transparent', color: s.active ? accentInk : P.inkFaint, border: `1px solid ${s.active ? P.accentBorder : 'transparent'}` }}>{s.label}</span>
+                  background: s.active ? P.surface3 : 'transparent', color: s.active ? P.ink : P.inkFaint, border: `1px solid ${s.active ? P.ink : 'transparent'}` }}>{s.label}</span>
               </li>))}
           </ul>
         </aside>

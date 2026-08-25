@@ -63,8 +63,8 @@ const LIGHT = {
 
   // Cool workspace ramp — for dense data surfaces (kanban boards, wide tables)
   // that read muddy when every fill is warm paper. Cards stay `surface`.
-  canvas:    '#EDEFF3',
-  canvas2:   '#E1E6EC',
+  canvas:    '#F4F2EC',   // unified: was the cool ramp #EDEFF3 — now == bg
+  canvas2:   '#EEEBE2',   // unified: was the cool ramp #E1E6EC — now == bg2
 
   // Field
   field:'#FFFFFF', fieldBorder:'rgba(15,15,12,.18)',
@@ -119,8 +119,8 @@ const DARK = {
 
   hue:{ blue:'#8FC2FF', violet:'#B79CFF', teal:'#67D6C4', green:'#8FD68B', pink:'#F7A8C4' },
 
-  canvas:    '#0E1013',
-  canvas2:   '#171B21',
+  canvas:    '#0D0D0A',   // unified: was the cool ramp #0E1013 — now == bg
+  canvas2:   '#0A0A07',   // unified: was the cool ramp #171B21 — now == bg2
 
   field:'#15150F', fieldBorder:'rgba(245,243,234,.22)',
 

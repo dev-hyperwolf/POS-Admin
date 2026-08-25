@@ -49,9 +49,9 @@ function FeeCompare({ base, value, onChange }) {
       {FEE_OPTS.map((o) => {
         const a = value === o.id, f = feeAmt(base, o), tot = _c2(base + f);
         return (
-          <button key={o.id} onClick={() => onChange(o.id)} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', textAlign: 'left', background: a ? P.accentSoft : P.surface, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', fontFamily: P.fontSans }}>
+          <button key={o.id} onClick={() => onChange(o.id)} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', textAlign: 'left', background: a ? P.surface3 : P.surface, border: `1.5px solid ${a ? P.ink : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', fontFamily: P.fontSans }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <span style={{ width: 16, height: 16, borderRadius: 99, border: `2px solid ${a ? P.accent : P.hairline3}`, background: a ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>{a && <Icon name="check" size={9} stroke={3.4} color={P.accentInk} />}</span>
+              <span style={{ width: 16, height: 16, borderRadius: 99, border: `2px solid ${a ? P.ink : P.hairline3}`, background: a ? P.ink : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>{a && <Icon name="check" size={9} stroke={3.4} color={P.surface} />}</span>
               <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{o.label}</span>
             </div>
             <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.note}</div>
@@ -308,11 +308,11 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
               {creditsOpen && <div style={{ padding: '0 16px 15px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <Eyebrow style={{ marginBottom: 8 }}>Redeem points · cash off</Eyebrow>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{CASH_REWARDS.map((r) => { const a = reward === r.id, can = r.bday || points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.bday ? 'perk' : r.cost + 'p'}</span></button>; })}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{CASH_REWARDS.map((r) => { const a = reward === r.id, can = r.bday || points >= r.cost; return <button key={r.id} disabled={!can} onClick={() => setReward(a ? null : r.id)} style={{ padding: '10px 16px', background: a ? P.ink : P.surface2, border: `1.5px solid ${a ? P.ink : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: a ? P.surface : P.ink, cursor: can ? 'pointer' : 'not-allowed', opacity: can ? 1 : .5, fontFamily: P.fontSans }}>{r.label}<span style={{ fontSize: 10, color: a ? P.surface : P.inkMute, fontFamily: P.fontMono, marginLeft: 6 }}>{r.bday ? 'perk' : r.cost + 'p'}</span></button>; })}</div>
                 </div>
                 <div>
                   <Eyebrow style={{ marginBottom: 8 }}>Wallet credit</Eyebrow>
-                  {wallet0 > 0 ? <div style={{ display: 'flex', gap: 8 }}>{[0, 5, 10, wallet0].filter((v, i, a) => a.indexOf(v) === i && v <= wallet0).map((v) => { const a = walletAmt === v; return <button key={v} onClick={() => setWalletAmt(v)} style={{ flex: 1, padding: '11px 8px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>{v === 0 ? 'None' : v === wallet0 ? `Max ${_money(v)}` : _money(v)}</button>; })}</div>
+                  {wallet0 > 0 ? <div style={{ display: 'flex', gap: 8 }}>{[0, 5, 10, wallet0].filter((v, i, a) => a.indexOf(v) === i && v <= wallet0).map((v) => { const a = walletAmt === v; return <button key={v} onClick={() => setWalletAmt(v)} style={{ flex: 1, padding: '11px 8px', background: a ? P.ink : P.surface2, border: `1.5px solid ${a ? P.ink : P.hairline2}`, borderRadius: P.r10, fontSize: 13.5, fontWeight: 700, color: a ? P.surface : P.ink, cursor: 'pointer', fontFamily: P.fontMono }}>{v === 0 ? 'None' : v === wallet0 ? `Max ${_money(v)}` : _money(v)}</button>; })}</div>
                     : <div style={{ fontSize: 11.5, color: P.inkMute }}>No wallet balance on file.</div>}
                 </div>
               </div>}

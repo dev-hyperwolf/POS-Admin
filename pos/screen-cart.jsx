@@ -354,7 +354,7 @@ function DiscountApprovalModal({ P, amount, mode, subtotal, onClose, onApprove }
           <div style={lbl}>Approving manager</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {MANAGERS.map((m) => {const on = mgr === m;
-              return <button key={m} onClick={() => setMgr(m)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : P.surface, color: on ? P.accentText : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Avatar name={m} size={18} />{m}</button>;})}
+              return <button key={m} onClick={() => setMgr(m)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: 99, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Avatar name={m} size={18} />{m}</button>;})}
           </div>
         </div>
         <div>
@@ -366,7 +366,7 @@ function DiscountApprovalModal({ P, amount, mode, subtotal, onClose, onApprove }
           <div style={lbl}>Reason</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             {DISC_REASONS.map((r) => {const on = reason === r.k;
-              return <button key={r.k} onClick={() => setReason(r.k)} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '9px 10px', textAlign: 'left', background: on ? P.accentSoft : P.surface2, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans }}>
+              return <button key={r.k} onClick={() => setReason(r.k)} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, padding: '9px 10px', textAlign: 'left', background: on ? P.surface3 : P.surface2, border: `1px solid ${on ? P.ink : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans }}>
                 <span style={{ width: 13, height: 13, borderRadius: 99, border: `2px solid ${on ? P.accent : P.hairline3}`, background: on ? P.accent : 'transparent', flex: '0 0 auto', marginTop: 1 }} />
                 <span><span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{r.label}</span><span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, lineHeight: 1.4, marginTop: 1 }}>{r.d}</span></span>
               </button>;})}

@@ -36,7 +36,7 @@
             {['7d', '30d', '90d'].map((w) => (
               <button key={w} onClick={() => setWin(w)} aria-pressed={win === w}
                 style={{ height: 22, padding: '0 10px', borderRadius: 99, fontSize: 11.5, fontWeight: 600, fontFamily: P.fontMono, cursor: 'pointer', border: 'none',
-                  background: win === w ? P.accent : 'transparent', color: win === w ? P.accentInk : P.inkDim }}>{w}</button>))}
+                  background: win === w ? P.ink : 'transparent', color: win === w ? P.surface : P.inkDim }}>{w}</button>))}
           </div>
         </div>
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
@@ -236,10 +236,10 @@
               return (
                 <React.Fragment key={inv.id}>
                   <tr tabIndex={0} onClick={() => onSelect(inv.id)} aria-selected={isSelected} aria-expanded={isExpanded}
-                    style={{ cursor: 'pointer', background: isSelected ? P.accentSoft : idx % 2 === 1 ? P.surface2 : 'transparent', outline: isSelected ? `1px solid ${P.accentBorder}` : 'none' }}>
-                    <td style={{ ...td, width: 32 }}>
+                    style={{ cursor: 'pointer', background: isSelected ? P.surface3 : idx % 2 === 1 ? P.surface2 : 'transparent' }}>
+                    <td style={{ ...td, width: 32, borderLeft: `3px solid ${isSelected ? P.ink : 'transparent'}` }}>
                       <button onClick={(e) => { e.stopPropagation(); onToggleExpanded(inv.id); }} aria-label={isExpanded ? 'Collapse AI matches' : 'Show AI matches'} title={isExpanded ? 'Collapse AI matches' : 'Show AI matches'}
-                        style={{ display: 'inline-flex', height: 24, width: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', cursor: 'pointer', background: isExpanded ? P.accentSoft : 'transparent', color: isExpanded ? (P.mode === 'dark' ? P.accent : P.accentBorder) : P.inkMute }}>
+                        style={{ display: 'inline-flex', height: 24, width: 24, alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', cursor: 'pointer', background: isExpanded ? P.surface3 : 'transparent', color: isExpanded ? P.ink : P.inkMute }}>
                         <Icon name="chevron-down" size={14} stroke={2} style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
                       </button>
                     </td>
@@ -259,8 +259,8 @@
                     <td style={{ ...td, textAlign: 'right' }}><InvoiceRowActions inv={inv} isMapped={isMapped} /></td>
                   </tr>
                   {isExpanded && (
-                    <tr style={{ background: isSelected ? P.accentSoft : P.surface2 }}>
-                      <td colSpan={8} style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}` }}><MatchPreview invoice={inv} /></td>
+                    <tr style={{ background: isSelected ? P.surface3 : P.surface2 }}>
+                      <td colSpan={8} style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}`, borderLeft: `3px solid ${isSelected ? P.ink : 'transparent'}` }}><MatchPreview invoice={inv} /></td>
                     </tr>)}
                 </React.Fragment>);
             })}
