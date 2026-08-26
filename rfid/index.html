@@ -38,11 +38,15 @@
 <div id="root"></div>
 
 <!-- The stacking scale. MUST be first: `pos/tokens.jsx` exposes it as `P.z` and
-     `shared/hd-ui.jsx`'s ToastHost reads `P.z.toast` at first paint. Every other
-     entry page in the repo already loads this; rfid/index.html was the one that
-     did not, so the console rendered a blank #root the moment the shared layer
-     started reading the scale. Same class of omission as the app-switcher /
-     note-taker block at the bottom of this file. -->
+     `shared/hd-ui.jsx`'s ToastHost reads `P.z.toast` at first paint. Without it the
+     page rendered a blank #root the moment the shared layer started reading the scale.
+
+     An earlier version of this comment claimed "every other entry page already loads
+     this". That was false and never swept for: three rfid-direction-* prototypes and
+     three explorations/ pages were missing it too. tokens.jsx now falls back to a
+     default scale and warns, so a forgotten tag degrades instead of blanking the app.
+     Sweep with an actual <script src> match -- prose mentions of tokens.jsx produce
+     false positives, which is how two explorations/ pages were first miscounted. -->
 <script src="shared/hw-z.js"></script>
 <script src="shared/brands.js"></script>
 <script src="shared/app-nav.js"></script>

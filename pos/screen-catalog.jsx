@@ -1398,6 +1398,16 @@ function CustomAttributes() {
 // Weedmaps product match — confidence, fetched WM params + photo, manual mapping
 function WmMatchModal({ p, conf, onClose }) {
   const P = useP();const fmt = window.HW.fmt;
+  // ESCAPE CLOSES. The stacking change deliberately puts ambient chrome BELOW the
+  // scrim, and the argument for that was "you are not navigating apps mid-transaction,
+  // and Esc still closes". QA measured it: Esc did nothing, because this modal never
+  // had a key handler. The scrim click worked, so nobody was trapped -- but the escape
+  // hatch the decision leaned on did not exist. Now it does.
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const level = conf >= 0.85 ? { t: 'High confidence', c: P.good } : conf >= 0.6 ? { t: 'Medium confidence', c: P.warn } : conf > 0 ? { t: 'Low confidence — review', c: P.bad } : { t: 'No match found', c: P.inkMute };
   const cands = [
   { title: p.name, brand: p.brand, price: p.price, conf: conf },

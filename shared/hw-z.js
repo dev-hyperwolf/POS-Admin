@@ -36,6 +36,21 @@
   var Z = {
     content: 0,
     sticky: 10,           // in-page sticky headers / action bars
+                          //
+                          // NOTE on `Accept & post` (#/invoices/1), which the app
+                          // switcher still shaves. The first explanation was WRONG: it
+                          // said the sticky bar has no z-index so any positive-z fixed
+                          // element must win. QA walked the ancestor chain -- every one
+                          // is position:static / z-index:auto with no transform, filter,
+                          // opacity, isolation or contain -- so nothing creates a
+                          // stacking context and a z-index here WOULD apply.
+                          //
+                          // The conclusion survives for a different reason: the rects
+                          // genuinely overlap (button 1103/605/147/40 vs switcher
+                          // 1220/597/44/44), so raising the bar just swaps WHICH control
+                          // is dead -- verified by experiment, after which the switcher's
+                          // own centre returned the button. Only geometry fixes it, i.e.
+                          // the chrome gutter in audit sec 4.5.
     dropdown: 60,         // in-page popovers, select menus, filter panels
     chromeDock: 64,       // ambient chrome, bottom-left  (live pill + seam tray)
     chromeBar: 66,        // ambient chrome, right column (launcher buttons)
