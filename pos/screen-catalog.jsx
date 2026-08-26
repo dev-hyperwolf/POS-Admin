@@ -795,7 +795,17 @@ function ProductDetailPage({ p, onBack }) {
   const pkOn = onPickup ? 1 + h % 3 : 0;
   const dlOn = onDelivery ? 12 + h % 23 : 0;
   const mc = marginColor(P, p.margin);
-  const wmConf = p.wm.state === 'unlisted' ? 0 : p.wm.state === 'error' ? 0.46 : Math.min(0.99, 0.7 + h % 30 / 100);
+  // wmConf DELETED. It was `p.wm.state === 'error' ? 0.46 : 0.7 + charCodeSum(sku) % 30 / 100`
+  // — a match confidence for a match nothing had computed, printed on the button
+  // and again as the headline of WmMatchModal. The button now says what the
+  // ENGINE said, read off the mapping board, and says nothing at all when the
+  // board has not answered. See the block above WmMatchModal.
+  const wmRow = wmBoardRow(p.sku).row;
+  const wmBtnLabel = !wmRow ? 'Product match & mapping' :
+  wmRow.linked && wmRow.mapping ? `Linked · WM #${wmRow.mapping.wm_id}` :
+  wmRow.state === 'unlooked' ? 'Never looked · brand feed not pulled' :
+  wmRow.suggestion && wmRow.suggestion.decision ? `Engine says “${wmRow.suggestion.decision}” · ${wmScoreText(wmRow.suggestion.score)}` :
+  'Map to a Weedmaps product';
   const [wmMap, setWmMap] = React.useState(false);
   const eff = PROD_EFFECTS[p.strain] || ['Relaxed', 'Happy'];
   const terps = [PROD_TERPS[h % 6], PROD_TERPS[(h + 2) % 6], PROD_TERPS[(h + 4) % 6]];
@@ -1214,7 +1224,7 @@ function ProductDetailPage({ p, onBack }) {
                 </div>)}
                 <button onClick={() => setWmMap(true)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px', background: 'transparent', border: 'none', cursor: 'pointer', color: P.info, fontSize: 11.5, fontWeight: 700, fontFamily: P.fontSans }}>View all listings<Icon name="arrow-right" size={13} stroke={2.2} /></button>
               </div>
-              <button onClick={() => setWmMap(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '9px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700, color: P.ink2 }}><Icon name="link" size={14} stroke={1.9} />{wmConf ? `Match · ${Math.round(wmConf * 100)}% confidence` : 'Map to a Weedmaps product'}</button>
+              <button onClick={() => setWmMap(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '9px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700, color: P.ink2 }}><Icon name="link" size={14} stroke={1.9} />{wmBtnLabel}</button>
               <WmResyncButton p={p} />
             </div>
           </Card>
@@ -1233,7 +1243,7 @@ function ProductDetailPage({ p, onBack }) {
           </Card>
         </div>
       </div>
-      {wmMap && <WmMatchModal p={p} conf={wmConf} onClose={() => setWmMap(false)} />}
+      {wmMap && <WmMatchModal p={p} onClose={() => setWmMap(false)} />}
       {shellEdit && <window.ShellEditModal p={p} onClose={() => setShellEdit(false)} />}
     </div>);
 }
@@ -1395,8 +1405,130 @@ function CustomAttributes() {
   </Card>;
 }
 
-// Weedmaps product match — confidence, fetched WM params + photo, manual mapping
-function WmMatchModal({ p, conf, onClose }) {
+// ── Weedmaps product match & mapping ───────────────────────────────────────
+// EVERY NUMBER ON THIS MODAL USED TO BE MANUFACTURED. The headline confidence
+// was `p.wm.state === 'error' ? 0.46 : Math.min(0.99, 0.7 + charCodeSum(sku) % 30 / 100)`
+// and the three rival candidates under it were built out of our OWN product —
+// `${brand} ${cat} ${strain}` at `price + 2`, `${name} (1g)` at `price - 3` —
+// each with a confidence subtracted from that same fake number. Not one name,
+// brand, price or weight was ever compared with anything. The owner opened
+// STZ-IF-663744, where our row and the Weedmaps row are identical, and was told
+// "Low confidence — review · 46%". There was nothing to argue with, because
+// there was no matcher: 0.46 is a literal that means "p.wm.state is 'error'".
+//
+// A REAL MATCHER HAS EXISTED FOR WEEKS. wmdemo/mapping.py scores every SKU
+// against the cached Weedmaps feed, and POST /api/mapping/candidates serves the
+// ranked list WITH the losers and with the name of the guard that excluded each
+// one. shared/hw-live-mapping.js already wraps it. This modal renders that and
+// nothing else.
+//
+// THE THREE THINGS IT REFUSES TO DO
+//   1. No band, no colour, no "high / medium / low". T_AUTO and T_AI live in
+//      mapping.py:34-35 and are NOT served, so any band drawn here would be
+//      this file guessing at the engine's opinion and then printing the guess
+//      in the engine's voice. The engine states its verdict in a WORD; that
+//      word is quoted and nothing is derived from the number beside it.
+//   2. No price, brand or potency for a Weedmaps candidate. search_candidates
+//      returns wm_id, name, strain, category, weight, items_per_pack, score,
+//      the exclusion guard and the claim — and no price at all. The old modal
+//      printed "$42" anyway.
+//   3. No score when there is no answer. A request that is refused, gated or
+//      unreachable prints the route and the server's own reason. A 404 is not
+//      a 0%.
+//
+// TRANSPORT. Reads and writes both go through window.HW_LIVE.post — the one
+// POST path, one token, one same-origin rule (shared/hw-live.js:188). This is
+// the same call shared/hw-live-mapping.js makes; HW_MAPPING.candidates() is not
+// reused directly only because it resolves to undefined and paints its own
+// panel instead of returning the list. The WRITES are delegated to the seam
+// (HW_MAPPING.approve / unmap), because the seam owns the one question that
+// must always be asked: a second claim on a Weedmaps product comes back 409
+// with the incumbent SKU named, and it re-sends with force only after a human
+// has been shown that name and said yes.
+
+// The board's row for one SKU. NOTHING IS DECIDED HERE. The state word, the
+// engine verdict, the absence and the never-looked fact are all read off
+// shared/hw-live-mapping.js, which read them off the server. This only picks
+// the row out — and reports separately WHY there is no row, because "the seam
+// is not on this page", "the board could not load" and "the board loaded and
+// this SKU is not in it" are three different facts and only the last is about
+// the SKU.
+function wmBoardRow(sku) {
+  const M = window.HW_MAPPING;
+  const mirror = window.HW && window.HW.WM_MAPPING;
+  if (!M) return { status: 'absent', row: null, base: null, mirror: null };
+  const rows = Array.isArray(M.rows) ? M.rows : null;
+  let row = null;
+  if (rows) { for (const r of rows) { if (r && r.sku === sku) { row = r; break; } } }
+  return { status: M.status, base: M.base || null, row, mirror: mirror || null };
+}
+
+// The seam's own state words, copied deliberately rather than re-worded.
+// shared/hw-live-mapping.js:300 DECIDES the state; this only renders the label
+// it decided. A second vocabulary for one fact is how two screens come to
+// disagree about the same SKU.
+function wmSeamWord(state, P) {
+  return {
+    linked: { word: 'LINKED', c: P.good, bg: P.goodSoft },
+    ready: { word: 'READY · ONE CLICK', c: P.accentText, bg: P.highlightSoft },
+    review: { word: 'NEEDS REVIEW', c: P.warn, bg: P.warnSoft },
+    rejected: { word: 'REJECTED · STICKY', c: P.neutral, bg: P.neutralSoft },
+    absent: { word: 'NOT ON WEEDMAPS', c: P.warn, bg: P.warnSoft },
+    unlooked: { word: 'NEVER LOOKED', c: P.info, bg: P.infoSoft },
+    nomatch: { word: 'NO CONFIDENT MATCH', c: P.bad, bg: P.badSoft }
+  }[state] || { word: 'UNKNOWN STATE', c: P.inkMute, bg: P.surface3 };
+}
+
+// A score is a number or it is nothing, and no zero stands in for "not
+// computed" — the same rule the seam prints under (hw-live-mapping.js:284).
+function wmScoreText(s) {return s == null ? 'not scored' : Number(s).toFixed(3);}
+// Weight is printed EXACTLY as each side stores it and is never converted: the
+// 3.5g / 3.54g eighth-ounce quirk is a real difference an operator is checking
+// for, and normalising it here would hide the thing they came to see.
+function wmWeightText(w) {return !w || w.value == null ? '' : String(w.value) + String(w.unit == null ? '' : w.unit);}
+function wmCandLine(c) {
+  return ['#' + c.wm_id, c.category || 'no category', wmWeightText(c.weight) || 'no weight',
+  c.items_per_pack ? c.items_per_pack + '-pack' : null, c.strain || null].
+  filter(Boolean).join(' · ');
+}
+
+// One candidate row. The score is a number and a bar, and the bar is NEVER
+// coloured against a threshold — see refusal 1 above.
+function WmCandidate({ c, picked, onPick, onApprove, busy }) {
+  const P = useP();
+  const out = c.excluded != null;
+  const held = c.conflict_with == null || c.conflict_with === '' ? null : String(c.conflict_with);
+  const pct = c.score == null ? 0 : Math.max(2, Math.min(100, Math.round(c.score * 100)));
+  const holder = [c.holder_status, c.holder_tier == null ? null : 'tier ' + c.holder_tier,
+  c.holder_decided_by ? 'by ' + c.holder_decided_by : null].filter(Boolean).join(' · ');
+  return <div style={{ border: `1px solid ${picked ? P.ink : held ? P.warn : P.hairline2}`, borderRadius: P.r10, background: picked ? P.surface3 : P.surface, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+    <button onClick={onPick} style={{ display: 'flex', alignItems: 'baseline', gap: 8, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, minHeight: 0 }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: out ? 500 : 700, color: out ? P.inkMute : P.ink }}>{c.name || '(unnamed)'}</span>
+      {c.exact && <Pill kind="good">Exact</Pill>}
+      {held && <Pill kind="warn">Claimed by {held}</Pill>}
+    </button>
+    <div style={{ fontSize: 10, color: P.inkFaint, fontFamily: P.fontMono }}>{wmCandLine(c)}</div>
+    {/* Before the button, because it is the thing that decides whether pressing it is a good idea. */}
+    {held && <div style={{ fontSize: 10, lineHeight: 1.5, color: P.warn, background: P.warnSoft, borderRadius: P.r8, padding: '6px 8px' }}>
+      Already claimed by <b style={{ fontFamily: P.fontMono }}>{held}</b>{holder ? ` (${holder})` : ''}. Approving it here points <b>two of our SKUs</b> at one Weedmaps product — Weedmaps does not enforce a unique <b>external_id</b>, which is how duplicate listings get made. It is sometimes the right call, so the row is shown rather than hidden; the button sends <b>force</b> and asks you first.
+    </div>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+      <div style={{ flex: 1, height: 5, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}><div style={{ width: `${pct}%`, height: '100%', background: out ? P.inkFaint : P.ink2 }} /></div>
+      <span style={{ flex: '0 0 auto', fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: out ? P.inkMute : P.ink2 }}>{wmScoreText(c.score)}</span>
+      <PBtn variant={held || out ? 'secondary' : 'primary'} size="sm" disabled={busy} onClick={onApprove}>
+        {held ? 'Approve as a 2nd claim' : out ? 'Approve anyway' : 'Approve'}
+      </PBtn>
+    </div>
+    {/* WHY THE RUNNER-UP LOST, in the server's own vocabulary. An operator who cannot
+        see this cannot disagree with the machine — and this is exactly where they are
+        most likely to be right and it wrong. */}
+    {out && <div style={{ fontSize: 10, lineHeight: 1.5, color: P.warn }}>
+      Excluded by the <b>{c.excluded}</b> guard, so it scores 0 whatever it looks like. Approving it overrides that guard and records you as the reviewer.
+    </div>}
+  </div>;
+}
+
+function WmMatchModal({ p, onClose }) {
   const P = useP();const fmt = window.HW.fmt;
   // ESCAPE CLOSES. The stacking change deliberately puts ambient chrome BELOW the
   // scrim, and the argument for that was "you are not navigating apps mid-transaction,
@@ -1413,63 +1545,206 @@ function WmMatchModal({ p, conf, onClose }) {
   { title: p.name, brand: p.brand, price: p.price, conf: conf },
   { title: `${p.brand} ${p.cat} ${p.strain || ''}`.trim(), brand: p.brand, price: p.price + 2, conf: Math.max(0.2, conf - 0.18) },
   { title: `${p.name} (1g)`, brand: p.brand, price: Math.max(1, p.price - 3), conf: Math.max(0.15, conf - 0.31) }];
+  const post = window.HW_LIVE && typeof window.HW_LIVE.post === 'function' ? window.HW_LIVE.post : null;
+  const [tick, setTick] = React.useState(0);
+  const board = wmBoardRow(p.sku);
+  const row = board.row;
+  const settled = board.status === 'live' || board.status === 'unreachable' || board.status === 'no-write-path' || board.status === 'off' || board.status === 'absent';
+  // The seam repaints its own panel when the board lands but holds no React
+  // root, so nothing here would ever hear about it. Poll the getter until it
+  // settles, then stop — a spinner that never resolves is its own lie.
+  React.useEffect(() => {
+    if (settled) return undefined;
+    const id = setInterval(() => setTick((n) => n + 1), 600);
+    return () => clearInterval(id);
+  }, [settled, tick]);
+
   const [q, setQ] = React.useState('');
-  // THE SAME FABRICATED BATCH GENERATOR ran a second time in here — a second
-  // copy of `3 + charCodeSum(sku) % 21` lots, rendered as "Potency · per batch"
-  // on BOTH sides of the comparison, so an invented range was also presented as
-  // Weedmaps' own figure. Per-batch potency comes from real lots or from
-  // nowhere; the API serves no potency for a Weedmaps product at all.
-  const mLots = (batchRowsOf(p) || []).filter((b) => b.thc != null && b.qty > 0);
-  const mThcs = mLots.map((b) => b.thc);
-  const potency = mThcs.length ? (Math.min(...mThcs) === Math.max(...mThcs) ? `${mThcs[0]}% THC` : `${Math.min(...mThcs)}–${Math.max(...mThcs)}% THC`) : 'not recorded';
-  const [picked, setPicked] = React.useState(conf > 0 ? 0 : null);
+  const [run, setRun] = React.useState(0);
+  const [cand, setCand] = React.useState({ status: post ? 'pending' : 'no-transport' });
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState(null);
+  const [picked, setPicked] = React.useState(null);
+
+  // `q` is deliberately NOT a dependency: the list re-fetches when Search is
+  // pressed (run), not on every keystroke, so a half-typed strain name never
+  // becomes a request.
+  React.useEffect(() => {
+    if (!post) {setCand({ status: 'no-transport' });return undefined;}
+    let alive = true;
+    setCand({ status: 'pending' });
+    // include_excluded, explicitly: THE LOSERS ARE THE POINT. A ranked list
+    // with the guard-excluded rows quietly removed cannot be disagreed with.
+    post('/api/mapping/candidates', { sku: p.sku, query: q.trim() || null, limit: 12, include_excluded: true }).
+    then((r) => {
+      if (!alive) return;
+      if (!r.ok || !r.body || !Array.isArray(r.body.candidates)) {
+        setCand({ status: 'error', code: r.code, gated: !!r.gated, error: r.error || 'no candidates in the response' });
+      } else setCand({ status: 'live', body: r.body });
+    });
+    return () => {alive = false;};
+  }, [p.sku, run]);
+
+  const seam = window.HW_MAPPING;
+  const act = (fn, what) => {
+    if (!seam || typeof seam[fn] !== 'function') {
+      setMsg({ ok: false, t: 'shared/hw-live-mapping.js is not on this page, so there is no ' + fn + ' path to call.' });
+      return;
+    }
+    setBusy(true);setMsg(null);
+    Promise.resolve(fn === 'approve' ? seam.approve(p.sku, what) : seam.unmap(p.sku)).then((r) => {
+      setBusy(false);
+      if (r && r.ok) setMsg({ ok: true, t: fn === 'approve' ? `${p.sku} → WM #${what} — mapped, recorded as a manual override.` : `${p.sku} unlinked. The mapping row is kept as audit; the catalog link is cleared.` });else
+      setMsg({ ok: false, t: 'Refused' + (r && r.code ? ` (${r.code})` : '') + ': ' + (r && r.error || 'no reason given') });
+      setRun((n) => n + 1);setTick((n) => n + 1);
+      if (window.HW_LIVE && window.HW_LIVE.rerender) window.HW_LIVE.rerender();
+    });
+  };
+
+  // Potency comes from real lots or from nowhere. The API serves no potency for
+  // a Weedmaps product at all, which is why only our side of the table has one.
+  const mThcs = (batchRowsOf(p) || []).filter((b) => b.thc != null && b.qty > 0).map((b) => b.thc);
+  const potency = mThcs.length ? Math.min(...mThcs) === Math.max(...mThcs) ? `${mThcs[0]}% THC` : `${Math.min(...mThcs)}–${Math.max(...mThcs)}% THC` : 'not recorded';
+  const list = cand.status === 'live' ? cand.body.candidates : [];
+  const claimed = list.filter((c) => c.conflict_with != null && c.conflict_with !== '').length;
+  const linkedId = row && row.linked && row.mapping ? row.mapping.wm_id : null;
+  const shownId = picked != null ? picked : linkedId;
+  const shown = shownId == null ? null : list.filter((c) => c.wm_id === shownId)[0] || null;
+  const route = (board.base || '') + '/api/mapping/candidates';
+
+  const Row = ({ k, v, mono }) => <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, textAlign: 'right', minWidth: 0 }}>{v}</span></div>;
+
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
+    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(760px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: P.brand.weedmapsInk, background: P.brand.weedmaps, padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: P.brand.weedmapsInk }} />Weedmaps</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: P.info, background: P.infoSoft, padding: '3px 9px', borderRadius: 99 }}>Weedmaps</span>
         <span style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Product match & mapping</span>
         <div style={{ flex: 1 }} />
         <IconBtn icon="x" onClick={onClose} />
       </div>
+
       <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><span style={{ fontSize: 13.5, fontWeight: 700, color: level.c }}>{level.t}</span>{conf > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono }}>{Math.round(conf * 100)}%</span>}<span style={{ marginLeft: 'auto', fontSize: 11.5, color: P.inkMute }}>auto-matched on name + brand + category</span></div>
-          <div style={{ height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden', marginTop: 8 }}><div style={{ width: `${Math.round((conf || 0) * 100)}%`, height: '100%', background: level.c }} /></div>
-        </div>
+
+        {/* ── the engine's verdict, or the reason there isn't one ────────── */}
+        {board.status === 'absent' && <NotKnown icon="ban" title="The mapping board is not loaded on this page"
+        body={<>The score for a SKU is produced by <Mono>{'wmdemo/mapping.py'}</Mono> and reaches a screen through <Mono>shared/hw-live-mapping.js</Mono>, which is not present. Nothing here can state a confidence, and a number invented in its place is what this modal used to do.</>} />}
+        {board.status === 'off' && <NotKnown icon="eye-off" title="The mapping seam is switched off"
+        body={<>It was disabled with <Mono>?hwmap=off</Mono> or <Mono>HW_MAPPING.disable()</Mono>. Re-enable it with <Mono>HW_MAPPING.enable()</Mono> to see the engine's own verdict for <Mono>{p.sku}</Mono>.</>} />}
+        {(board.status === 'pending' || board.status === 'slow') && <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12, fontSize: 12.5, color: P.inkDim }}>
+          <Icon name="clock" size={15} stroke={1.9} color={P.inkMute} />Asking <Mono>{(board.base || '') + '/api/mapping/bulk'}</Mono> for the engine's verdict{board.status === 'slow' ? ' — this is taking longer than usual, nothing has been aborted.' : '…'}
+        </div>}
+        {board.status === 'unreachable' && <NotKnown icon="alert" title="The matcher did not answer"
+        body={<><Mono>{(board.base || '') + '/api/mapping/bulk'}</Mono> could not be read, so there is no score for <Mono>{p.sku}</Mono> and none will be shown. Open the mapping board for the server's own reason.</>} />}
+        {board.status === 'no-write-path' && <NotKnown icon="lock" title="No write path — the list read is a POST"
+        body={<><Mono>/api/mapping/bulk</Mono> and <Mono>/api/mapping/candidates</Mono> are reads served over POST, so they need <Mono>shared/hw-live.js</Mono> and its token. Without it nothing here can load, and an empty board is not a result.</>} />}
+        {board.status === 'live' && !row && <NotKnown icon="info" title="The mapping board loaded — and does not contain this SKU"
+        body={<>Every SKU the API's catalog holds is on that board. <Mono>{p.sku}</Mono> is not one of them, which is a fact about our catalogue, not about Weedmaps. It is the reason there is no score here, and it is not a low one.</>} />}
+
+        {row && <div style={{ padding: '12px 14px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12, display: 'flex', flexDirection: 'column', gap: 9 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', color: wmSeamWord(row.state, P).c, background: wmSeamWord(row.state, P).bg, padding: '3px 9px', borderRadius: 99 }}>{wmSeamWord(row.state, P).word}</span>
+            {row.suggestion ?
+            <span style={{ fontSize: 12.5, color: P.ink2 }}>Engine says <b style={{ color: P.ink }}>“{row.suggestion.decision}”</b></span> :
+            <span style={{ fontSize: 12.5, color: P.inkDim }}>The bulk read carried no engine verdict for this SKU.</span>}
+            <span style={{ marginLeft: 'auto', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: P.ink }}>{row.suggestion ? wmScoreText(row.suggestion.score) : '—'}</span>
+          </div>
+          {row.suggestion && row.suggestion.score != null && <div style={{ height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}><div style={{ width: `${Math.max(1, Math.min(100, Math.round(row.suggestion.score * 100)))}%`, height: '100%', background: P.ink2 }} /></div>}
+          {row.suggestion && row.suggestion.note && <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5 }}>“{row.suggestion.note}”{row.suggestion.wm_id ? <> · best candidate <Mono>{'#' + row.suggestion.wm_id}</Mono>{row.suggestion.wm_name ? ' — ' + row.suggestion.wm_name : ''}</> : null}</div>}
+          <div style={{ fontSize: 10, color: P.inkFaint, lineHeight: 1.5 }}>
+            The word is the engine's own and the number is its raw score, printed plainly. It is not a percentage and it carries no band: the thresholds it is judged against (<Mono>T_AUTO</Mono>, <Mono>T_AI</Mono>) live in the matcher and are not served, so nothing on this screen is entitled to colour it.
+          </div>
+        </div>}
+
+        {/* NEVER LOOKED is a different fact from NO CONFIDENT MATCH, with a
+            different next action — and it is the one this SKU is in. */}
+        {row && row.unlooked && <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: P.infoSoft, borderRadius: P.r12 }}>
+          <Icon name="info" size={15} stroke={1.9} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}>
+            <b style={{ color: P.ink2 }}>We have never looked for this product.</b> {row.unlooked.brand ? <>“{row.unlooked.brand}”</> : 'This SKU’s brand'}{row.unlooked.wm_brand_id == null ? <> has <b>no Weedmaps brand id</b> on our side at all, so there is no feed to pull yet</> : <> (Weedmaps brand {row.unlooked.wm_brand_id})</>} — feed status <Mono>{row.unlooked.brand_feed_status || row.unlooked.why || 'never'}</Mono>, {row.unlooked.brand_feed_size || 0} products pulled. The pool searched below is the {board.mirror && board.mirror.wmCached != null ? board.mirror.wmCached + ' ' : ''}Weedmaps products we already hold, and this SKU's own product is not among them — so it cannot appear here however you spell it, and a low score is a measurement against the wrong pool rather than a judgement about the match. The next move is on the <b>brand feed</b>, not on this row.
+          </div>
+        </div>}
+
+        {row && row.absence && <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: P.warnSoft, borderRadius: P.r12 }}>
+          <Icon name="alert" size={15} stroke={1.9} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}><b style={{ color: P.ink2 }}>Recorded as not on Weedmaps.</b> The absence ledger holds this SKU as <Mono>{row.absence.state}</Mono>{row.absence.last_checked_at ? <> as of {row.absence.last_checked_at}</> : null}. That is a claim about <b>their</b> catalogue, and it is the only thing here allowed to make it.</div>
+        </div>}
+
+        {/* ── the two sides ─────────────────────────────────────────────── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 13 }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 9 }}>Our product</div>
             <div style={{ display: 'flex', gap: 10 }}><Thumb item={p} size={54} /><div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{p.name}</div><div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.sku}</div></div></div>
-            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', p.brand], ['Category', p.cat], ['Price', fmt.money0(p.price)], ['Potency · per batch', potency]].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>
+              <Row k="Brand" v={p.brand} /><Row k="Category" v={p.cat} /><Row k="Price" v={fmt.money0(p.price)} /><Row k="Weight" v={p.wt || '—'} /><Row k="Potency · per batch" v={potency} />
+            </div>
           </div>
-          <div style={{ border: `1px solid ${picked != null ? P.ink : P.hairline2}`, borderRadius: P.r12, padding: 13, background: picked != null ? P.surface3 : P.surface }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.brand.weedmaps, marginBottom: 9 }}>Weedmaps product</div>
-            {picked != null ? <>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <div style={{ width: 54, height: 54, flex: '0 0 auto', borderRadius: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={20} stroke={1.7} color={P.inkMute} /></div>
-                <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{cands[picked].title}</div><div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
+          <div style={{ border: `1px solid ${shown || linkedId != null ? P.ink : P.hairline2}`, borderRadius: P.r12, padding: 13, background: shown || linkedId != null ? P.surface3 : P.surface }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.info, marginBottom: 9 }}>Weedmaps product</div>
+            {linkedId != null || shown ? <>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{shown ? shown.name : <span style={{ color: P.inkDim, fontWeight: 600 }}>name not in the list below</span>}</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{'#' + shownId}</div>
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>
+                {shown && <Row k="Category" v={shown.category || 'none'} />}
+                {shown && <Row k="Weight" v={wmWeightText(shown.weight) || 'none'} />}
+                {shown && shown.strain && <Row k="Strain" v={shown.strain} />}
+                {linkedId != null && row && row.mapping && <Row k="Link" v={`${row.mapping.status} · tier ${row.mapping.tier}${row.mapping.manual_override ? ' · manual' : ''}`} />}
+                {linkedId != null && row && row.mapping && row.mapping.decided_by && <Row k="Decided by" v={row.mapping.decided_by} mono />}
               </div>
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', cands[picked].brand], ['Category', p.cat], ['Price on WM', fmt.money0(cands[picked].price)], ['Potency · per batch', 'not served']].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
-            </> : <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.5, padding: '12px 0' }}><b style={{ color: P.ink2 }}>Unmapped — custom Weedmaps product.</b> This SKU shows on Weedmaps as its own standalone (custom) listing, not linked to a shared catalog product. Search below to link it to a Weedmaps product instead.</div>}
+              {/* The old modal printed a price and a brand here. The API returns neither. */}
+              <div style={{ fontSize: 10, color: P.inkFaint, lineHeight: 1.5, marginTop: 9 }}>Price, brand and potency are not served for a Weedmaps product — <Mono>search_candidates</Mono> returns id, name, strain, category, weight and pack size only. They are left blank rather than filled in.</div>
+            </> : <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.55, padding: '12px 0' }}><b style={{ color: P.ink2 }}>Not linked to a Weedmaps product.</b> Nothing has been mapped for this SKU, so there is no second side to compare. Pick a candidate below to see one.</div>}
           </div>
         </div>
+
+        {/* external_id is OUR stamp coming back at us — not evidence of a match. */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+          <Icon name="lock" size={13} stroke={1.9} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 2 }} />
+          <div style={{ minWidth: 0, fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}>
+            <span style={{ fontFamily: P.fontMono, color: P.ink }}>{p.wm.ext}</span> — the <b>external_id</b> we stamp on our own menu item. It is our SKU echoed back by Weedmaps and it is <b>not</b> a match signal: it says nothing about whether their catalogue holds this product, which is the question this screen answers.
+          </div>
+        </div>
+
+        {/* ── the ranked list, losers included ──────────────────────────── */}
         <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Map manually — search the Weedmaps catalog</div>
-          <div style={{ marginBottom: 10 }}><Field icon="search" placeholder="Search Weedmaps products…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {cands.map((c, i) => <button key={i} onClick={() => setPicked(i)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', background: picked === i ? P.surface3 : P.surface, border: `1px solid ${picked === i ? P.ink : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
-              <div style={{ width: 34, height: 34, flex: '0 0 auto', borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={15} stroke={1.7} color={P.inkFaint} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{c.title}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{c.brand} · {fmt.money0(c.price)}</div></div>
-              <span style={{ fontSize: 11.5, fontWeight: 800, color: c.conf >= 0.85 ? P.good : c.conf >= 0.6 ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{Math.round(c.conf * 100)}%</span>
-              {picked === i ? <Icon name="check-circle" size={17} stroke={2} color={P.good} /> : <span style={{ fontSize: 11.5, fontWeight: 700, color: P.info }}>Map</span>}
-            </button>)}
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Candidates · ranked by the engine</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}><Field icon="search" placeholder="Filter their catalog: name, strain, 3.5g…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => {if (e.key === 'Enter') setRun((n) => n + 1);}} /></div>
+            <PBtn variant="secondary" size="md" onClick={() => setRun((n) => n + 1)}>Search</PBtn>
           </div>
+
+          {cand.status === 'no-transport' && <NotKnown icon="ban" title="No transport — the candidate list is a POST"
+          body={<><Mono>POST /api/mapping/candidates</Mono> goes through <Mono>window.HW_LIVE.post</Mono>, and <Mono>shared/hw-live.js</Mono> is not loaded. There is no second fetch path here on purpose, so no list can be shown and none will be invented.</>} />}
+          {cand.status === 'pending' && <div style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: P.inkDim, padding: '10px 0' }}><Icon name="clock" size={15} stroke={1.9} color={P.inkMute} />Asking <Mono>{route}</Mono>…</div>}
+          {cand.status === 'error' && <NotKnown icon="alert" title={`No candidate list${cand.code ? ` — HTTP ${cand.code}` : ''}`}
+          body={<><Mono>{'POST ' + route}</Mono> answered: “{cand.error}”. {cand.gated ? 'This deployment is in public mode and every POST needs the write token — open the hw-live badge and paste it.' : 'That is the server’s own reason, not a score. Nothing about the match is known from it.'}</>} />}
+
+          {cand.status === 'live' && <>
+            <div style={{ fontSize: 10, color: P.inkFaint, marginBottom: 8 }}>
+              {list.length} shown of {cand.body.total} in their catalog{q.trim() ? ` matching “${q.trim()}”` : ''} · losers and guard-excluded rows included
+              {claimed ? <span style={{ color: P.warn, fontWeight: 700 }}> · {claimed} already claimed by another SKU of ours</span> : null}
+            </div>
+            {list.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {list.map((c) => <WmCandidate key={c.wm_id} c={c} busy={busy} picked={shownId === c.wm_id}
+              onPick={() => setPicked(c.wm_id)} onApprove={() => act('approve', c.wm_id)} />)}
+            </div> : <div style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.55, padding: '6px 0' }}>
+              {row && row.unlooked ?
+              'Nothing matches — and for this SKU that means nothing, because the pool searched does not contain its brand. This is not the absence ledger and it is not evidence.' :
+              'Nothing in the cached Weedmaps feed matches that search. That is not proof they do not carry it — the absence ledger is the only thing here allowed to say that.'}
+            </div>}
+          </>}
         </div>
+
+        {msg && <div style={{ display: 'flex', gap: 10, padding: '11px 13px', borderRadius: P.r10, background: msg.ok ? P.goodSoft : P.badSoft, fontSize: 11.5, lineHeight: 1.55, color: P.inkDim }}>
+          <Icon name={msg.ok ? 'check-circle' : 'alert'} size={15} stroke={1.9} color={msg.ok ? P.good : P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ minWidth: 0 }}>{msg.t}</div>
+        </div>}
       </div>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 18px', borderTop: `1px solid ${P.hairline2}`, background: P.surface2 }}>
-        <span style={{ fontSize: 11.5, color: P.inkDim, flex: 1 }}>Mapping links our SKU to a shared Weedmaps product via <b style={{ color: P.ink2 }}>external_id</b>. <b style={{ color: P.ink2 }}>Unmapping</b> makes it a custom, Weedmaps-native product with its own listing.</span>
-        {picked != null && <PBtn variant="ghost" size="sm" onClick={() => setPicked(null)}>Unmap · use custom product</PBtn>}
-        <PBtn variant="accent" size="md" icon="check" onClick={onClose}>Confirm match</PBtn>
+        <span style={{ fontSize: 11.5, color: P.inkDim, flex: 1, lineHeight: 1.5 }}>Approving writes the mapping server-side and records you as the reviewer — there is no “confirm” step on this screen that does anything on its own.</span>
+        {linkedId != null && <PBtn variant="ghost" size="sm" disabled={busy} onClick={() => act('unmap')}>Unlink</PBtn>}
+        {window.HW_MAPPING && <PBtn variant="secondary" size="sm" icon="external" onClick={() => {onClose();window.HW_MAPPING.open();}}>Mapping board</PBtn>}
+        <PBtn variant="secondary" size="md" onClick={onClose}>Close</PBtn>
       </div>
     </div>
   </div>;
