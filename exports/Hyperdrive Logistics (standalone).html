@@ -390,5 +390,83 @@ document.addEventListener('DOMContentLoaded', async function() {
   <script type="__bundler/template">
 "<!DOCTYPE html>\n<html lang=\"en\"><head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Hyperdrive Logistics — layout directions<\u002Ftitle>\n<style>html,body{margin:0;background:#0a0a07}a{color:#3F73D6}a:hover{color:#2C5BB8}<\u002Fstyle>\n<\u002Fhead>\n<body>\n\n<div id=\"root\"><\u002Fdiv>\n\n<script src=\"05f4791a-516d-4b17-ae29-dd2d27d976b9\" integrity=\"sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L\" crossorigin=\"anonymous\"><\u002Fscript>\n<script src=\"34e5132d-6e42-4aa6-94a1-86caa0cfa5d2\" integrity=\"sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm\" crossorigin=\"anonymous\"><\u002Fscript>\n<script src=\"8c155557-97df-40e7-9a5c-ffd9bd359e96\" integrity=\"sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y\" crossorigin=\"anonymous\"><\u002Fscript>\n\n<script type=\"text/babel\" src=\"f0868f5c-0c02-4cc1-b424-03e45ddbe14e\"><\u002Fscript>\n<script type=\"text/babel\" src=\"125ee206-5c7b-4135-83e5-cc50a1085824\"><\u002Fscript>\n<script type=\"text/babel\" src=\"bd833d79-6368-44fb-b135-0626eb94f45d\"><\u002Fscript>\n<script type=\"text/babel\" src=\"79d01081-a7e4-4b85-9f43-1dd030cbc75f\"><\u002Fscript>\n<script type=\"text/babel\" src=\"ec49561a-33b6-461b-8b58-c6413ecff18d\"><\u002Fscript>\n<script type=\"text/babel\" src=\"41e24b0e-e2bd-4fdc-81a3-d9f021a7896f\"><\u002Fscript>\n<script type=\"text/babel\" src=\"dfea8319-f3fb-4a89-9ba0-221545d4ce79\"><\u002Fscript>\n<script type=\"text/babel\" src=\"6a07763d-0338-4610-be94-7ff9d95aaed7\"><\u002Fscript>\n<script type=\"text/babel\" src=\"543a828e-401d-4fe1-8a09-0f05e5b9362a\"><\u002Fscript>\n<script type=\"text/babel\" src=\"4ae70805-068d-4902-8511-c0e50a93f0c2\"><\u002Fscript>\n<script type=\"text/babel\" src=\"d0034750-a72b-4239-a713-57933663b8e1\"><\u002Fscript>\n\n<script type=\"text/babel\">\nReactDOM.createRoot(document.getElementById('root')).render(<window.LogisticsApp />);\n<\u002Fscript>\n\n\n<\u002Fbody><\u002Fhtml>"
   </script>
+<!-- HW-STALE-BANNER:start — hand-added marker, not from the bundler. Delete this block (to the matching :end) on regeneration. -->
+
+<script>
+/* Staleness marker for an offline snapshot. Added by hand on 2026-08-26; the
+   bundler that produced this file knows nothing about it. See the fencing
+   comments above and below. */
+(function () {
+  var LIVE_HREF = "../Hyperdrive%20Logistics.html";
+  var LIVE_NAME = "Hyperdrive Logistics.html";
+  var SNAPSHOT  = "2 August 2026";
+
+  var bar = document.createElement('div');
+  bar.id = '__hw_stale_banner';
+  bar.setAttribute('role', 'status');
+
+  var text = document.createElement('span');
+  text.textContent =
+    'Offline snapshot · ' + SNAPSHOT + ' · NOT CURRENT — the design system and these screens have changed since. ';
+  var link = document.createElement('a');
+  link.href = LIVE_HREF;
+  link.textContent = 'Open the live ' + LIVE_NAME;
+  bar.appendChild(text);
+  bar.appendChild(link);
+
+  /* Paint from the app's own tokens once they exist; CSS system colours before
+     that. No colour literal is written here. */
+  function tokens() {
+    try {
+      var m = 'light';
+      try { m = localStorage.getItem('hw-pos-theme') || 'light'; } catch (e) {}
+      var T = window.THEMES && window.THEMES[m];
+      if (T && T.warn) return T;
+    } catch (e) {}
+    return null;
+  }
+
+  function paint() {
+    var T = tokens();
+    var bg   = T ? T.warnSoft  : 'Canvas';
+    var fg   = T ? T.ink       : 'CanvasText';
+    var edge = T ? T.warn      : 'CanvasText';
+    var acc  = T ? T.warn      : 'LinkText';
+    bar.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:2147483647',
+      'display:flex', 'gap:8px', 'align-items:center', 'justify-content:center',
+      'flex-wrap:wrap',
+      'padding:5px 12px',
+      'font:600 11.5px/1.35 "JetBrains Mono","SF Mono",ui-monospace,monospace',
+      'letter-spacing:.02em',
+      'background:' + bg, 'color:' + fg,
+      'border-bottom:1px solid ' + edge,
+      'box-shadow:0 1px 0 ' + edge,
+      'text-align:center'
+    ].join(';');
+    link.style.cssText = 'color:' + acc + ';text-decoration:underline;text-underline-offset:2px';
+  }
+
+  /* The bundler replaces document.documentElement wholesale when it renders, so
+     a static element in the shell would be discarded. The observer is on
+     `document` (which is never replaced), and re-attaches the bar afterwards. */
+  function mount() {
+    var host = document.body || document.documentElement;
+    if (!host) return;
+    if (bar.parentNode !== host) { host.appendChild(bar); paint(); }
+  }
+
+  paint();
+  mount();
+  try {
+    new MutationObserver(function () { mount(); paint(); })
+      .observe(document, { childList: true, subtree: true });
+  } catch (e) {}
+  /* Belt and braces: the theme can change after mount, and an app that clobbers
+     body children would otherwise drop the bar between mutations. */
+  setInterval(function () { mount(); paint(); }, 2000);
+})();
+</script>
+<!-- HW-STALE-BANNER:end -->
 </body>
 </html>

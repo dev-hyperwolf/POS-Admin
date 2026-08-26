@@ -174,7 +174,7 @@
 
   <div class="split"></div>
 
-  <p class="ey">Offline builds <em>self-contained copies for sharing — regenerated from the live app, never edited</em></p>
+  <p class="ey">Offline builds <em>snapshots from 2 August 2026 — NOT current, the design system and these screens have changed since</em></p>
   <div class="rows">
     <a class="row" href="exports/Hyperwolf%20POS%20(standalone).html"><span class="rk"></span><span class="rn">POS</span><span class="rd">standalone</span></a>
     <a class="row" href="exports/Promotions%20Suite%20(standalone).html"><span class="rk"></span><span class="rn">Promotions Suite</span><span class="rd">standalone</span></a>
@@ -188,11 +188,32 @@
     <p><b>How this project is laid out.</b> Every live app is one HTML file at the root; its screens live in a folder of the same name — <code>pos/</code>, <code>pweb/</code> + <code>promo/</code>, <code>athome/</code>, <code>delivery/</code>, <code>logistics/</code>, <code>mobile/</code>, <code>terminals/</code>. Shared across all of them: <code>pos/tokens.jsx</code> (theme), <code>pos/icons.jsx</code>, <code>pos/atoms.jsx</code>, and <code>shared/app-nav.js</code> — the single nav list every left rail renders. Add an app there once and it appears in every rail.</p>
   </div>
 
-  <footer>Start here. Every staff app shares one design system, one dataset and one rail.</footer>
+  <footer>Start here. Every staff app shares one design system, one dataset and one rail.<span data-hw-build style="display:none"></span></footer>
 </div>
+<!-- The stacking scale. MUST be first: every floating layer on this page reads it,
+     and the plain-JS chrome mounts before any text/babel module has run. -->
+<script src="shared/hw-z.js"></script>
 <script src="shared/tour-steps.js"></script>
 <script src="shared/tour.js"></script>
 <script src="shared/notes.js"></script>
 <script src="build-stamp.js" defer></script>
+<script>
+// The hub is the one page with no app switcher, so the build line -- which now
+// lives in that menu everywhere else -- has nowhere to go. It renders here, IN
+// FLOW inside the footer, not pinned to a corner. build-stamp.js owns the
+// resolution; this only displays what it published.
+(function () {
+  var el = document.querySelector('[data-hw-build]');
+  if (!el) { return; }
+  function paint(i) {
+    if (!i || !i.sha) { return; }
+    el.textContent = '  \u00b7  ' + i.host + ' \u00b7 ' + i.branch + ' @ ' + String(i.sha).slice(0, 7);
+    el.title = i.title || '';
+    el.style.display = 'inline';
+  }
+  if (window.HW_BUILD) { paint(window.HW_BUILD); }
+  window.addEventListener('hw:build', function (e) { paint(e.detail || window.HW_BUILD); });
+})();
+</script>
 </body>
 </html>

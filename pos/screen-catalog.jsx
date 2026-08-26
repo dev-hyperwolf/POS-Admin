@@ -448,7 +448,7 @@ function WmDot({ wm, onClick }) {
 }
 function WmChip({ wm }) {
   const P = useP();const m = wmStateMeta(wm.state, P);
-  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 99, background: 'rgba(0,0,0,.6)', color: '#fff', fontSize: 10, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.04em' }}><span style={{ width: 6, height: 6, borderRadius: 99, background: m.c }} />WM</span>;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 99, background: P.imgScrim, color: P.brand.weedmapsInk, fontSize: 10, fontWeight: 800, fontFamily: P.fontMono, letterSpacing: '.04em' }}><span style={{ width: 6, height: 6, borderRadius: 99, background: m.c }} />WM</span>;
 }
 
 // ── Product detail — dedicated full page (Overview + inventory + compliance + Weedmaps)
@@ -1186,7 +1186,7 @@ function ProductDetailPage({ p, onBack }) {
           {/* Weedmaps sync */}
           <Card padding={0}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: P.brand.weedmapsInk, background: P.brand.weedmaps, padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: P.brand.weedmapsInk }} />Weedmaps</span>
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: m.c }}><span style={{ width: 8, height: 8, borderRadius: 99, background: m.c }} />{m.label}</span>
             </div>
             <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 12 }} data-tour="wm-card">
@@ -1416,7 +1416,7 @@ function WmMatchModal({ p, conf, onClose }) {
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: P.brand.weedmapsInk, background: P.brand.weedmaps, padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: P.brand.weedmapsInk }} />Weedmaps</span>
         <span style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Product match & mapping</span>
         <div style={{ flex: 1 }} />
         <IconBtn icon="x" onClick={onClose} />
@@ -1433,7 +1433,7 @@ function WmMatchModal({ p, conf, onClose }) {
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', p.brand], ['Category', p.cat], ['Price', fmt.money0(p.price)], ['Potency · per batch', potency]].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
           </div>
           <div style={{ border: `1px solid ${picked != null ? P.ink : P.hairline2}`, borderRadius: P.r12, padding: 13, background: picked != null ? P.surface3 : P.surface }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#1F5FC0', marginBottom: 9 }}>Weedmaps product</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.brand.weedmaps, marginBottom: 9 }}>Weedmaps product</div>
             {picked != null ? <>
               <div style={{ display: 'flex', gap: 10 }}>
                 <div style={{ width: 54, height: 54, flex: '0 0 auto', borderRadius: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={20} stroke={1.7} color={P.inkMute} /></div>

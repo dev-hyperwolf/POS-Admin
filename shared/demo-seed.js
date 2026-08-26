@@ -264,10 +264,11 @@
 
     var wrap = document.createElement('div');
     wrap.setAttribute('data-hw-seed', '');
-    wrap.style.cssText = 'position:fixed;right:74px;bottom:16px;z-index:2147483000;font-family:' + MONO;
+    wrap.setAttribute('data-hw-chrome', 'demo-seed');
+    wrap.style.cssText = 'position:fixed;right:74px;bottom:16px;z-index:var(--hwz-chromeBar);font-family:' + MONO;
 
     var menu = document.createElement('div');
-    menu.style.cssText = 'position:absolute;right:0;bottom:52px;width:290px;max-height:74vh;overflow:auto;'
+    menu.style.cssText = 'position:absolute;z-index:var(--hwz-chromeMenu);right:0;bottom:52px;width:290px;max-height:74vh;overflow:auto;'
       + 'background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;'
       + 'box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);'
       + 'pointer-events:none;transition:opacity .14s,transform .14s';

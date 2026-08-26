@@ -136,12 +136,15 @@
   };
 
   // Card section header — 15px/600 with an optional right slot.
+  // The title is a real <h2>. Every page has exactly one <h1> (RfidPageHead)
+  // and these screens are long; a screen reader's heading list is the only
+  // outline they have. Styled to 15/600 with margin:0, so nothing moves.
   window.CardHead = function CardHead({ title, sub, right, style }) {
     const P = useP();
     return (
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12, ...style }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>{title}</div>
+          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>{title}</h2>
           {sub && <div style={{ fontSize: 12.5, color: P.inkMute, marginTop: 3, lineHeight: 1.45 }}>{sub}</div>}
         </div>
         {right && <div style={{ flex: '0 0 auto' }}>{right}</div>}
@@ -273,6 +276,44 @@
 
   /* ══════════════════════ CONTROLS ══════════════════════ */
 
+  // Text for assistive tech only. Not `display:none` — that would remove it from
+  // the accessibility tree, which is the one place it is meant to exist.
+  window.SrOnly = function SrOnly({ children, live, as }) {
+    const Tag = as || 'span';
+    return <Tag aria-live={live} style={{ position: 'absolute', width: 1, height: 1, margin: -1, padding: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0, fontSize: 'inherit', fontWeight: 'inherit' }}>{children}</Tag>;
+  };
+
+  // A horizontally scrollable well for a wide table.
+  //
+  // A bare `overflow-x:auto` div is a keyboard trap in reverse: Chrome does not
+  // put scroll containers in the tab order, so every column past the fold is
+  // unreachable without a mouse. `tabIndex=0` + a name is the standard fix —
+  // the container becomes one focusable stop that arrow keys then scroll.
+  // `overflow-y: visible` is deliberately NOT set: a scroll container may not
+  // mix visible and auto, and setting it would silently produce a second
+  // vertical scroller.
+  window.ScrollX = function ScrollX({ label, children, style }) {
+    return (
+      <div role="region" aria-label={label} tabIndex={0} style={{ overflowX: 'auto', ...style }}>
+        {children}
+      </div>);
+  };
+
+  // Checkbox with a name. The shared `Check` atom takes no props beyond
+  // on/onChange/size, so a row-selection checkbox built from it announces as
+  // "checkbox, not checked" and nothing else — on #/counts/:id that is eleven
+  // identical unnamed controls gating a write-off decision. Same pixels, same
+  // stopPropagation, plus the label it always needed.
+  window.RfidCheck = function RfidCheck({ on, onChange, size = 20, label }) {
+    const P = useP();
+    return (
+      <button data-hw-i type="button" role="checkbox" aria-checked={!!on} aria-label={label}
+        onClick={(e) => { e.stopPropagation(); onChange(!on); }}
+        style={{ width: size, height: size, borderRadius: 6, border: `1.5px solid ${on ? P.ink : P.hairline3}`, background: on ? P.ink : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flex: '0 0 auto', transition: 'all .12s' }}>
+        {on && <Icon name="check" size={size * 0.66} stroke={3} color={P.surface} />}
+      </button>);
+  };
+
   // Single-select chip row. Selected is INK, never accent (design-system rule 0).
   window.ChipFilter = function ChipFilter({ value, onChange, options, ariaLabel }) {
     const P = useP();
@@ -349,6 +390,41 @@
 
   /* ══════════════════════ DECISION UI ══════════════════════ */
 
+  // Focus management for the two overlays in this module (ReasonModal and the
+  // ⌘K palette). Escape already closed them; what was missing is the rest of
+  // the contract — focus enters the dialog, Tab cannot leave it while it is
+  // open, and focus returns to whatever opened it. Without the last part,
+  // dismissing the approve-kit modal drops the caret back at the top of the
+  // document, which on these screens is 30 tab stops from the button you
+  // pressed.
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  window.useDialogFocus = function useDialogFocus(open, onClose) {
+    const ref = React.useRef(null);
+    React.useEffect(() => {
+      if (!open) return;
+      const opener = document.activeElement;
+      const node = ref.current;
+      const first = node && node.querySelector(FOCUSABLE);
+      if (first) first.focus();
+      const h = (e) => {
+        if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+        if (e.key !== 'Tab' || !node) return;
+        const items = Array.prototype.filter.call(node.querySelectorAll(FOCUSABLE), (el) => el.offsetParent !== null);
+        if (!items.length) return;
+        const a = items[0], z = items[items.length - 1];
+        const inside = node.contains(document.activeElement);
+        if (e.shiftKey && (!inside || document.activeElement === a)) { e.preventDefault(); z.focus(); }
+        else if (!e.shiftKey && (!inside || document.activeElement === z)) { e.preventDefault(); a.focus(); }
+      };
+      document.addEventListener('keydown', h, true);
+      return () => {
+        document.removeEventListener('keydown', h, true);
+        if (opener && opener.focus && document.contains(opener)) opener.focus();
+      };
+    }, [open, onClose]);
+    return ref;
+  };
+
   // The provenance tag that makes the two surfaces legibly one system: this
   // figure came off that device, held by that person, at that minute.
   window.FromDevice = function FromDevice({ who, when, device, label = 'asserted by' }) {
@@ -373,22 +449,18 @@
     const P = useP();
     const [reason, setReason] = React.useState('');
     React.useEffect(() => { if (open) setReason(''); }, [open]);
-    React.useEffect(() => {
-      if (!open) return;
-      const h = (e) => e.key === 'Escape' && onClose();
-      document.addEventListener('keydown', h);
-      return () => document.removeEventListener('keydown', h);
-    }, [open, onClose]);
+    const dialogRef = window.useDialogFocus(open, onClose);
+    const titleId = React.useId ? React.useId() : 'rfid-reason-title';
     if (!open) return null;
     const ok = reason.trim().length >= minLength;
     const c = HD().tone(P, tone);
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 320, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '14vh' }}>
         <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: P.scrim, animation: 'fade .16s ease' }} />
-        <div role="dialog" aria-modal="true" style={{ position: 'relative', width: 520, maxWidth: '92vw', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} style={{ position: 'relative', width: 520, maxWidth: '92vw', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', gap: 9 }}>
             <span style={{ color: c.fg, display: 'inline-flex' }}><Icon name="flag" size={16} stroke={2} /></span>
-            <span style={{ fontSize: 15, fontWeight: 600, color: P.ink }}>{title}</span>
+            <span id={titleId} style={{ fontSize: 15, fontWeight: 600, color: P.ink }}>{title}</span>
           </div>
           <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.55 }}>{body}</div>

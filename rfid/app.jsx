@@ -54,8 +54,13 @@
       const m = item.match.replace(/^#/, '');
       return route === m || route.startsWith(m + '/');
     };
+    // hairline3, not hairline2, on the one edge that separates two grounds.
+    // Since canvas was unified with bg, bg2 sits 1.02:1 from bg in dark — the
+    // fill carries no separation at all and the border is the whole boundary.
+    // hairline2 measured 1.41:1 against bg there; hairline3 is 2.07:1, which is
+    // the most the token set can give this edge.
     return (
-      <aside style={{ width: collapsed ? 64 : 208, flex: `0 0 ${collapsed ? 64 : 208}px`, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${P.hairline2}`, background: P.bg2, transition: 'width .18s ease' }}>
+      <aside aria-label="RFID module" style={{ width: collapsed ? 64 : 208, flex: `0 0 ${collapsed ? 64 : 208}px`, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${P.hairline3}`, background: P.bg2, transition: 'width .18s ease' }}>
         <div style={{ height: 56, display: 'flex', alignItems: 'center', gap: 8, padding: '0 14px', borderBottom: `1px solid ${P.hairline2}` }}>
           {/* Ink plate, not accent: the rail already owns one accent mark, and
               the accent budget on every view belongs to its primary action. */}
@@ -64,7 +69,7 @@
           </div>
           {!collapsed && <span style={{ fontSize: 16, fontWeight: 600, color: P.ink, letterSpacing: '-.01em' }}>RFID</span>}
         </div>
-        <nav style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+        <nav aria-label="RFID sections" style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
           {NAV_GROUPS.map((group) => (
             <div key={group.label} style={{ marginBottom: 8 }}>
               {!collapsed && <div style={{ padding: '8px 12px 4px', fontSize: 11.5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.04em', color: P.inkMute }}>{group.label}</div>}
@@ -74,7 +79,9 @@
                   const color = active ? P.ink : HD.hueColor(P, item.hue);
                   return (
                     <li key={item.label}>
-                      <button onClick={() => navigate(item.href)} title={item.label}
+                      {/* aria-current, not just a surface plate: "which page am
+                          I on" was previously carried by colour alone. */}
+                      <button onClick={() => navigate(item.href)} title={item.label} aria-current={active ? 'page' : undefined}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', height: 34, borderRadius: 8, fontSize: 13.5, textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans, width: '100%',
                           background: active ? P.surface : 'transparent', boxShadow: active ? P.shadowSm : 'none', color: active ? P.ink : P.inkDim, border: `1px solid ${active ? P.hairline2 : 'transparent'}` }}
                         onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.surface3; }}
@@ -117,6 +124,18 @@
       </button>);
   }
 
+  function SkipLink() {
+    const P = useP();
+    const [shown, setShown] = React.useState(false);
+    const off = { position: 'absolute', width: 1, height: 1, margin: -1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' };
+    const on = { position: 'fixed', top: 10, left: 10, zIndex: 400, height: 34, padding: '0 14px', display: 'inline-flex', alignItems: 'center',
+      background: P.surface, color: P.ink, border: `1px solid ${P.hairline3}`, borderRadius: P.r8, boxShadow: P.shadowMd, fontSize: 13, fontFamily: P.fontSans, cursor: 'pointer' };
+    return (
+      <button type="button" onFocus={() => setShown(true)} onBlur={() => setShown(false)}
+        onClick={() => { const m = document.getElementById('rfid-main'); if (m) { m.focus(); m.scrollTop = 0; } }}
+        style={shown ? on : off}>Skip to content</button>);
+  }
+
   function SearchPalette({ open, onClose, navigate }) {
     const P = useP();
     const [q, setQ] = React.useState('');
@@ -130,14 +149,19 @@
       ]), []);
     const filtered = items.filter((i) => i.label.toLowerCase().includes(q.trim().toLowerCase()));
     React.useEffect(() => { if (open) setQ(''); }, [open]);
+    // The palette had no Escape at all — only ⌘K toggled it, so a keyboard user
+    // who opened it could not close it without tabbing to a result. The hook
+    // adds Escape, the tab loop and focus restore.
+    const dialogRef = window.useDialogFocus(open, onClose);
     if (!open) return null;
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '12vh' }}>
         <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: P.scrim }} />
-        <div style={{ position: 'relative', width: 520, maxWidth: '92vw', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Search the RFID console" style={{ position: 'relative', width: 520, maxWidth: '92vw', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, overflow: 'hidden' }}>
           <div style={{ padding: 10, borderBottom: `1px solid ${P.hairline2}` }}>
-            <Field icon="search" size="sm" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask anything — a kit, a count, a screen…" />
+            <Field icon="search" size="sm" autoFocus aria-label="Search kits, counts and screens" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask anything — a kit, a count, a screen…" />
           </div>
+          <window.SrOnly live="polite">{filtered.length} result{filtered.length === 1 ? '' : 's'}</window.SrOnly>
           <div style={{ maxHeight: 320, overflowY: 'auto', padding: 6 }}>
             {filtered.length === 0 && <div style={{ padding: 16, fontSize: 12.5, color: P.inkMute, textAlign: 'center' }}>No matches.</div>}
             {filtered.map((i) => (
@@ -160,23 +184,35 @@
     const entityMeta = HD.ENTITIES.find((e) => e.id === entity);
     return (
       <header style={{ height: 56, flex: '0 0 56px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
-        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: P.inkDim, whiteSpace: 'nowrap' }}>
+        {/* Below roughly 810px the three topbar groups no longer fit: measured at
+            700px the header is 418px wide, the nowrap breadcrumb held 174px and
+            the right-hand cluster 170px, leaving the search box an 18px box that
+            its own contents then overflowed straight across the entity switcher.
+            Nothing here shrank because nothing was allowed to. Now the breadcrumb
+            and the search label clip, the right cluster never shrinks, and the
+            groups squeeze instead of overlapping. */}
+        <nav aria-label="Breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: P.inkDim, whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden' }}>
           {crumbs.map((c, i) => (
             <React.Fragment key={c + i}>
               {i > 0 && <Icon name="chevron-right" size={13} stroke={2} style={{ opacity: .5 }} />}
               <span style={{ color: i === crumbs.length - 1 ? P.ink : P.inkDim }}>{c}</span>
             </React.Fragment>))}
         </nav>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', maxWidth: 420, minWidth: 0, margin: '0 auto' }}>
+        {/* `flex: 1` is `1 1 0%`: a zero basis contributes nothing to the shrink
+            calculation, so the nowrap breadcrumb kept its full width and the
+            search collapsed to an 18px sliver. `1 1 auto` makes the two share
+            the squeeze; above ~810px nothing changes, because the search still
+            grows to its 420px cap either way. */}
+        <div style={{ flex: '1 1 auto', display: 'flex', justifyContent: 'center', maxWidth: 420, minWidth: 0, margin: '0 auto' }}>
           <button type="button" onClick={onSearch} aria-label="Open search (⌘K)"
-            style={{ position: 'relative', width: '100%', height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left' }}>
+            style={{ position: 'relative', width: '100%', minWidth: 0, height: 34, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: 8, fontSize: 13.5, color: P.inkMute, cursor: 'pointer', fontFamily: P.fontSans, textAlign: 'left', overflow: 'hidden' }}>
             <Icon name="search" size={14} stroke={1.9} />
-            <span style={{ flex: 1 }}>Ask anything</span>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Ask anything</span>
             <Icon name="sparkle" size={11} stroke={2} color={HD.hueColor(P, 'violet')} />
             <kbd style={{ fontSize: 10, fontFamily: P.fontMono, color: P.inkMute, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: 4, padding: '1px 5px' }}>⌘K</kbd>
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '0 0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 10px', borderRadius: 8, border: `1px solid ${P.hairline2}`, background: P.surface }}>
             <span style={{ width: 8, height: 8, borderRadius: 99, background: HD.hueColor(P, entityMeta && entityMeta.hue) }} />
             <select aria-label="Entity" value={entity} onChange={(e) => setEntity(e.target.value)}
@@ -233,15 +269,20 @@
     else if (path === '/devices') screen = <ScreenDevices {...ctx} />;
     else if (path === '/audit') screen = <ScreenAudit {...ctx} />;
     else if (path === '/settings') screen = <ScreenSettings {...ctx} />;
-    else screen = <div style={{ padding: 20 }}><EmptyState icon="layout" title="No such screen" body="That route is not part of the RFID console." action={<PBtn size="sm" variant="secondary" onClick={() => navigate('#/kits')}>Back to kit verification</PBtn>} /></div>;
+    else screen = <div style={{ padding: 20 }}><window.SrOnly as="h1">No such screen</window.SrOnly><EmptyState icon="layout" title="No such screen" body="That route is not part of the RFID console." action={<PBtn size="sm" variant="secondary" onClick={() => navigate('#/kits')}>Back to kit verification</PBtn>} /></div>;
 
     return (
       <div style={{ display: 'flex', height: '100%', background: P.bg, color: P.ink }}>
+        {/* Measured: 32 tab stops sit between the top of the document and the
+            first control on any screen — 18 in the cross-app rail, 8 in the
+            module sidebar, 6 in the topbar — and they are the same 32 on every
+            route. Off-screen until focused, then a normal button. */}
+        <SkipLink />
         <window.HWRail active="rfid" />
         <ModuleSidebar route={path} navigate={navigate} collapsed={collapsed} setCollapsed={setCollapsed} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <Topbar route={route} entity={entity} setEntity={setEntity} onSearch={() => setSearchOpen(true)} />
-          <main id="rfid-main" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>{screen}</main>
+          <main id="rfid-main" tabIndex={-1} style={{ flex: 1, minHeight: 0, overflowY: 'auto', outline: 'none' }}>{screen}</main>
         </div>
         <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} />
         <ToastHost />

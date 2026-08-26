@@ -101,7 +101,7 @@
             : <Icon name="chevron-down" size={12} stroke={2} style={{ opacity: .6 }} />}
         </button>
         {open && (
-          <div style={{ position: 'absolute', zIndex: 60, top: 36, [align]: 0, minWidth: 210, maxHeight: 320, overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, boxShadow: P.shadowLg, padding: 4 }}>
+          <div style={{ position: 'absolute', zIndex: P.z.dropdown, top: 36, [align]: 0, minWidth: 210, maxHeight: 320, overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, boxShadow: P.shadowLg, padding: 4 }}>
             <div style={{ padding: '6px 8px', fontSize: 10, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>{label}</span>
               {active && <button onClick={() => onChange([])} style={{ background: 'none', border: 'none', color: P.inkDim, fontSize: 10, textTransform: 'none', letterSpacing: 0, textDecoration: 'underline', cursor: 'pointer', fontFamily: P.fontSans }}>Clear</button>}
@@ -134,7 +134,7 @@
     if (!open) return null;
     const isBottom = side === 'bottom';
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', justifyContent: isBottom ? 'center' : 'flex-end', alignItems: isBottom ? 'flex-end' : 'stretch' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: P.z.modal, display: 'flex', justifyContent: isBottom ? 'center' : 'flex-end', alignItems: isBottom ? 'flex-end' : 'stretch' }}>
         <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: P.scrim, animation: 'fade .16s ease' }} />
         <div style={{ position: 'relative', width: isBottom ? '100%' : width, maxWidth: '100%', maxHeight: isBottom ? '85vh' : '100%', background: P.surface, borderLeft: isBottom ? 'none' : `1px solid ${P.hairline2}`, borderTop: isBottom ? `1px solid ${P.hairline2}` : 'none', boxShadow: P.shadowLg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {children}
@@ -155,11 +155,11 @@
       return () => { delete window.hdToast; };
     }, []);
     return (
-      <div style={{ position: 'fixed', right: 16, bottom: 72, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+      <div data-hw-chrome="toast" style={{ position: 'fixed', right: 16, bottom: 72, zIndex: P.z.toast, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', pointerEvents: 'none' }}>
         {items.map((t) => {
           const c = HD().tone(P, t.tone || 'neutral');
           return (
-            <div key={t.id} style={{ minWidth: 260, maxWidth: 380, background: P.surface, border: `1px solid ${P.hairline2}`, borderLeft: `3px solid ${c.fg}`, borderRadius: P.r10, boxShadow: P.shadowMd, padding: '10px 12px', animation: 'fade .16s ease' }}>
+            <div key={t.id} style={{ pointerEvents: 'auto', minWidth: 260, maxWidth: 380, background: P.surface, border: `1px solid ${P.hairline2}`, borderLeft: `3px solid ${c.fg}`, borderRadius: P.r10, boxShadow: P.shadowMd, padding: '10px 12px', animation: 'fade .16s ease' }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: P.ink }}>{t.title}</div>
               {t.description && <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 2 }}>{t.description}</div>}
               {t.action && <button onClick={() => { t.action.onClick?.(); setItems((prev) => prev.filter((x) => x.id !== t.id)); }} style={{ marginTop: 7, background: 'none', border: 'none', padding: 0, color: P.ink, fontSize: 12.5, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', fontFamily: P.fontSans }}>{t.action.label}</button>}

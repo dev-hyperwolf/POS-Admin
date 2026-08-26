@@ -109,8 +109,9 @@
         if (D._root && D._root.parentNode) { return D._root; }
         var r = document.createElement('div');
         r.id = 'hw-seam-dock';
+        r.setAttribute('data-hw-chrome', 'seam-dock');
         r.style.cssText = 'position:fixed;left:' + D.LEFT + 'px;bottom:' + D.BOTTOM +
-          'px;z-index:2147482003;display:flex;flex-direction:column;align-items:flex-start;' +
+          'px;z-index:var(--hwz-chromeDock);display:flex;flex-direction:column;align-items:flex-start;' +
           'gap:8px;max-width:calc(100vw - ' + (D.LEFT + 16) + 'px);pointer-events:none';
         document.body.appendChild(r);
         D._root = r;
@@ -1607,6 +1608,10 @@
     var sub = _status !== 'live' ? base.replace(/^https?:\/\//, '')
             : (short ? short + ' unlinked' : '');
 
+    // The dock's collapsed summary pill speaks for all seven seams, so each
+    // reports its own tone and status rather than the pill guessing from the
+    // DOM. Worst tone wins; see shared/hw-seam-dock.js tone().
+    if (D.report) { D.report(SEAM_ID, dot, _status, label); }
     _el.innerHTML = pillHTML(P, 'data-hwm', dot, label, sub,
       label + ' · ' + detail + ' — click for the mapping board');
 

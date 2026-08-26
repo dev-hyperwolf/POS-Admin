@@ -131,15 +131,24 @@
   };
 
   // 64px list row — the handheld's only list primitive.
+  //
+  // A row with an onClick renders as a <button>, not a <div>. On the floor this
+  // is a touch target and the distinction is invisible; but this device is
+  // rendered inside a desktop console at #/handheld, where a div with a click
+  // handler is simply not reachable — the pull-list and straggler-chase toggles
+  // were mouse-only. `aria-pressed` carries the checked-off state, which was
+  // previously line-through and 60% opacity only.
   window.HHRow = function HHRow({ lead, title, sub, value, valueSub, tone, onClick, done, style }) {
     const P = useP();
     const c = tone ? HD().tone(P, tone) : null;
+    const Tag = onClick ? 'button' : 'div';
     return (
-      <div onClick={onClick} style={{
+      <Tag onClick={onClick} type={onClick ? 'button' : undefined} aria-pressed={onClick ? !!done : undefined} style={{
         minHeight: 64, display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px',
         background: done ? P.surface2 : P.surface, border: `1px solid ${P.hairline2}`,
         borderLeft: c ? `4px solid ${c.fg}` : `1px solid ${P.hairline2}`,
-        borderRadius: P.r12, cursor: onClick ? 'pointer' : 'default', opacity: done ? .6 : 1, flex: '0 0 auto', ...style,
+        borderRadius: P.r12, cursor: onClick ? 'pointer' : 'default', opacity: done ? .6 : 1, flex: '0 0 auto',
+        textAlign: 'left', width: onClick ? '100%' : undefined, fontFamily: P.fontSans, ...style,
       }}>
         {lead}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -151,7 +160,7 @@
             <div style={{ fontSize: 19, fontWeight: 600, color: c ? c.fg : P.ink, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', lineHeight: 1.1 }}>{value}</div>
             {valueSub && <div style={{ fontSize: 10.5, color: P.inkMute, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', marginTop: 1 }}>{valueSub}</div>}
           </div>)}
-      </div>);
+      </Tag>);
   };
 
   // Round tick lead used by the pull list and the straggler chase.

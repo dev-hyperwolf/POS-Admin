@@ -206,7 +206,7 @@
     var all = document.querySelectorAll('div,main,section,aside,ul,tbody');
     for (var i = 0; i < all.length; i++) {
       var e = all[i];
-      if (e.closest('[data-hw-notes]')) continue;
+      if (e.closest('[data-hw-notes]') || e.closest('[data-hw-chrome]')) continue;
       if (e.scrollHeight - e.clientHeight < 40 || e.clientHeight < 200) continue;
       var a = e.clientWidth * e.clientHeight;
       if (a > bestArea) { bestArea = a; best = e; }
@@ -245,7 +245,15 @@
       var els = document.querySelectorAll(a.elTag && /^[a-z0-9]+$/.test(a.elTag) ? a.elTag : '*');
       for (var i = 0; i < els.length; i++) {
         var e = els[i];
-        if (e.closest('[data-hw-notes]')) continue;
+        // FLOATING CHROME IS NOT AN ANCHOR. This scan keeps every visible exact
+        // text match and takes the SMALLEST by area -- and the seam pills, the
+        // tour card, the switcher menu and the demo menu are all small. A pin
+        // left on the words `Check-in`, `Live data`, `Home`, `POS` or `Export`
+        // would win that sort against the page element it was actually left on
+        // and migrate onto ambient chrome, silently relocating an external
+        // stakeholder's feedback. Every chrome root carries data-hw-chrome so
+        // one guard covers all eleven layers, including any added later.
+        if (e.closest('[data-hw-notes]') || e.closest('[data-hw-chrome]')) continue;
         if ((e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 80).toLowerCase() !== want) continue;
         var r = e.getBoundingClientRect();
         if (r.width < 1 || r.height < 1) continue;
@@ -263,13 +271,18 @@
   // ── chrome ─────────────────────────────────────────────────────────────────
   var root = document.createElement('div');
   root.setAttribute('data-hw-notes', '');
+  root.setAttribute('data-hw-chrome', 'notes');
   var style = document.createElement('style');
   document.head.appendChild(style);
 
   function css(P) {
     var acc = accText(P);
     return [
-      '[data-hw-notes]{position:fixed;inset:0;z-index:2147480000;pointer-events:none;font-family:' + P.fontSans + '}',
+      // z from the scale in pos/tokens.jsx, via the CSS custom properties it
+      // publishes. Annotation sits ABOVE modals (notePin 500 vs modal 310) on
+      // purpose: a pin left on a modal that falls behind the modal is
+      // unreachable feedback. Never write a number here.
+      '[data-hw-notes]{position:fixed;inset:0;z-index:var(--hwz-notePin);pointer-events:none;font-family:' + P.fontSans + '}',
       '[data-hw-notes] *{box-sizing:border-box}',
       '[data-hw-notes] button{font-family:inherit;cursor:pointer}',
       '.hwn-l{position:absolute;inset:0;pointer-events:none}',
@@ -285,8 +298,8 @@
       '.hwn-conn{position:fixed;right:70px;bottom:129px;padding:3px 7px;border-radius:7px;background:' + P.surface + ';border:1px solid ' + P.hairline + ';font-family:' + P.fontMono + ';font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:' + P.inkMute + ';pointer-events:none;white-space:nowrap}',
       '.hwn-mode{position:fixed;left:50%;top:14px;transform:translateX(-50%);padding:7px 13px;border-radius:99px;background:' + P.accent + ';color:' + P.accentInk + ';font-size:12px;font-weight:650;box-shadow:0 8px 22px ' + P.scrim + ';pointer-events:none}',
       '.hwn-mode b{font-family:' + P.fontMono + ';font-weight:700}',
-      '.hwn-pop{position:fixed;width:294px;background:' + P.surface + ';border:1px solid ' + P.hairline2 + ';border-radius:14px;box-shadow:0 22px 54px ' + P.scrim + ';pointer-events:auto;overflow:hidden}',
-      '.hwn-panel{position:fixed;top:0;bottom:0;width:376px;background:' + P.surface + ';border-left:1px solid ' + P.hairline2 + ';border-right:1px solid ' + P.hairline2 + ';box-shadow:0 0 60px ' + P.scrim + ';pointer-events:auto;display:flex;flex-direction:column}',
+      '.hwn-pop{position:fixed;z-index:var(--hwz-notePop);width:294px;background:' + P.surface + ';border:1px solid ' + P.hairline2 + ';border-radius:14px;box-shadow:0 22px 54px ' + P.scrim + ';pointer-events:auto;overflow:hidden}',
+      '.hwn-panel{position:fixed;z-index:var(--hwz-notePanel);top:0;bottom:0;width:376px;background:' + P.surface + ';border-left:1px solid ' + P.hairline2 + ';border-right:1px solid ' + P.hairline2 + ';box-shadow:0 0 60px ' + P.scrim + ';pointer-events:auto;display:flex;flex-direction:column}',
       '.hwn-hd{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid ' + P.hairline + ';background:' + P.surface2 + '}',
       '.hwn-ey{font-family:' + P.fontMono + ';font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:' + P.inkMute + '}',
       '.hwn-ttl{font-size:13.5px;font-weight:680;color:' + P.ink + '}',
@@ -338,7 +351,14 @@
       .sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); });
   }
   function panelSide() {
-    return /driver app/i.test(document.title) || /scan/i.test(route()) ? 'left' : 'right';
+    // MATCH ON THE FILENAME, NOT THE TITLE. This tested
+    // /driver app/i.test(document.title) and the Driver App's title is
+    // "Hyperwolf Driver + POS", so it never matched and the panel opened over
+    // the phone frame it was written to avoid. FILE is the same value pins are
+    // keyed against (n.page), so it cannot drift from the page identity the
+    // notes data already uses -- and unlike the title, nothing edits it for
+    // copy reasons.
+    return /driver app/i.test(FILE) || /scan/i.test(route()) ? 'left' : 'right';
   }
 
   // Is the user typing inside the notes UI right now?

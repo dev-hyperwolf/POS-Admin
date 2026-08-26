@@ -30,10 +30,16 @@
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
-        {/* The device stage. bg2 + an explicit hairline, never a ground-colour
-            trick — since canvas was unified with bg, a panel that relied on the
-            ramp to look raised now disappears in dark mode. */}
-        <div style={{ background: P.bg2, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        {/* The device stage. NOT bg2 any more.
+            bg2 was the honest choice while it was a distinct ground, but the
+            ramps were unified: measured in dark, bg2 is 1.02:1 against bg —
+            the fill contributes nothing at all — and its hairline2 edge is
+            1.41:1, which is why this was the module's weakest separation.
+            surface3 (the "well" token) + hairline3 measures 1.28:1 fill and
+            2.87:1 edge in dark, and 1.75:1 edge in light. That is the strongest
+            combination the token set can express for a recessed panel, and it
+            still reads as a well rather than a card. */}
+        <div style={{ background: P.surface3, border: `1px solid ${P.hairline3}`, borderRadius: P.r14, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, alignSelf: 'stretch' }}>
             <MicroLabel>Zebra TC22R · what the floor sees</MicroLabel>
             <span style={{ flex: 1 }} />
@@ -42,6 +48,10 @@
           <window.TCDevice scanning={scanning} onTrigger={() => setScreen(set.order[Math.min(set.order.length - 1, idx + 1)])}>
             {set.screens[cur].render({ go })}
           </window.TCDevice>
+          {/* Pressing a screen-index button swapped the device viewport and
+              announced nothing — the only feedback was the button's own
+              aria-pressed, which does not say what is now on the device. */}
+          <window.SrOnly live="polite">Handheld screen {idx + 1} of {set.order.length}: {set.screens[cur].label}</window.SrOnly>
           <div style={{ alignSelf: 'stretch', fontSize: 11.5, color: P.inkMute, textAlign: 'center', lineHeight: 1.45 }}>
             5″ Android · integrated UHF · the same web UI, in a WebView shell.
             The side triggers step this prototype forward.
@@ -180,7 +190,7 @@
         <div style={{ padding: '16px 16px 12px' }}>
           <CardHead title="Decision rights" sub="Which surface is allowed to do what, and why it sits there. The screens in this module enforce this table; nothing may contradict it." style={{ marginBottom: 0 }} />
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <window.ScrollX label="Decision rights table">
           <HDTable>
             <thead><tr style={{ background: P.surface2 }}>
               <TH width={290}>Decision</TH><TH width={150}>Owned by</TH><TH>Why it sits there</TH>
@@ -194,7 +204,7 @@
                 </TR>))}
             </tbody>
           </HDTable>
-        </div>
+        </window.ScrollX>
       </Card>);
   }
 

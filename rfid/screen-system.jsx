@@ -201,7 +201,7 @@
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, maxWidth: 420, minWidth: 240 }}>
-            <Field icon="search" size="sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search actions, subjects, actors…" />
+            <Field icon="search" size="sm" aria-label="Search audit events" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search actions, subjects, actors…" />
           </div>
           <MultiSelectFilter label="Action" value={actions} onChange={setActions} options={allActions.map((a) => ({ id: a, label: a }))} />
           {(q.trim() || actions.length) ? <button onClick={() => { setQ(''); setActions([]); }} style={{ background: 'none', border: 'none', padding: 0, marginLeft: 4, fontSize: 12.5, color: P.inkDim, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer', fontFamily: P.fontSans }}>Clear all</button> : null}
@@ -210,7 +210,7 @@
         <Card padding={0}>
           {rows.length === 0
             ? <EmptyState icon="activity" title="No events match." body="Nothing in the last 24 hours matches those filters." action={<PBtn size="sm" variant="secondary" onClick={() => { setQ(''); setActions([]); }}>Clear all</PBtn>} />
-            : <div style={{ overflowX: 'auto' }}>
+            : <window.ScrollX label="Audit events table">
               <HDTable>
                 <thead><tr style={{ background: P.surface2 }}>
                   <TH width={140}>When</TH><TH width={120}>Actor</TH><TH width={250}>Action</TH><TH width={210}>Subject</TH><TH>Detail</TH>
@@ -237,7 +237,7 @@
                   })}
                 </tbody>
               </HDTable>
-            </div>}
+            </window.ScrollX>}
         </Card>
       </div>);
   };
@@ -317,7 +317,7 @@
                 right={dec.gate != null ? <HDPill size="sm" tone="warn" label="overridden" /> : <HDPill size="sm" tone="ok" icon={false} label="default" />} />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, alignItems: 'end' }}>
                 <FormRow label="Gate (dBm)" hint="Range −80 to −40. Lower is looser: it accepts weaker reads and asserts more locations.">
-                  <Field size="md" mono value={draft} onChange={(e) => setDraft(e.target.value.replace(/[^0-9-]/g, ''))} placeholder="-62" />
+                  <Field size="md" mono aria-label="Confidence gate in dBm" value={draft} onChange={(e) => setDraft(e.target.value.replace(/[^0-9-]/g, ''))} placeholder="-62" />
                 </FormRow>
                 <div>
                   <MicroLabel>Currently in force</MicroLabel>

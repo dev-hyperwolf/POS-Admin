@@ -131,6 +131,36 @@ const DARK = {
 
 // Shared (mode-independent) tokens
 const SHARED = {
+  // The stacking scale. The literal lives in shared/hw-z.js -- a PLAIN script, so
+  // the chrome in shared/*.js (parsed and mounted before this Babel module ever
+  // runs) and dashboard.html (which carries the chrome but never loads this
+  // file) read the same numbers rather than a second copy that can drift. It
+  // publishes window.HW_Z and the matching --hwz-* custom properties; screens
+  // read it as P.z. Load shared/hw-z.js FIRST on any page carrying chrome.
+  // A MISSING hw-z.js MUST NOT BLANK THE PAGE. This was `window.HW_Z` bare, so any
+  // entry page that forgot the script got P.z === undefined, and the first consumer to
+  // read P.z.toast threw during render -- #root with zero children on every route. It
+  // happened to rfid/index.html and to all three rfid-direction-* prototypes, and it
+  // presents as a blank page with one console error, which is the hardest failure to
+  // attribute to a missing <script>.
+  //
+  // Falling back keeps the layering sane and says why on the console. hw-z.js remains
+  // the source of truth; this is a seatbelt, not a second copy to maintain.
+  z: window.HW_Z || (function () {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[tokens] shared/hw-z.js was not loaded — using fallback z-scale. Add <script src="shared/hw-z.js"></script> before this file.');
+    }
+    return { content: 0, sticky: 10, dropdown: 60, chromeDock: 64, chromeBar: 66,
+      chromeMenu: 68, scrim: 300, modal: 310, modalPop: 320, toast: 400,
+      notePin: 500, notePop: 510, notePanel: 520, tourMask: 600, tourCard: 610 };
+  })(),
+  // Third-party brand marks. Not part of the palette and not themeable — a
+  // brand's colour is the brand's, in both modes — but it still may not be a
+  // literal in a screen file.
+  brand:{ weedmaps:'#1F5FC0', weedmapsInk:'#FFFFFF' },
+  // Scrim for a chip sitting ON a product image, where neither mode's ink is
+  // legible against unknown pixels.
+  imgScrim:'rgba(0,0,0,.60)',
   // Radius by ROLE. 8 controls · 12 cards · 20 sheets · 999 pills.
   // r6 / r16 / r24 are deprecated — kept so old call sites don't break.
   r6:6, r8:8, r10:10, r12:12, r14:14, r16:16, r20:20, r24:24, r999:999,

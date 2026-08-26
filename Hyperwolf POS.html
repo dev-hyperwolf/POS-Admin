@@ -44,6 +44,14 @@
      has landed long before pos/data.jsx runs and no re-render is ever needed.
      Inert unless the page is served from a loopback origin — the GitHub Pages
      demo never fetches anything. See shared/hw-live.README.md. -->
+<!-- The ONE bottom-left chrome column. Must load BEFORE hw-live.js and the six
+     seam files: each of them still carries the old inline dock() as a fallback
+     and the first loader wins, so loading this first is what makes the tray
+     shape single-sourced. shared/hw-seam-dock.js explains the rest. -->
+<!-- The stacking scale. MUST be first: every floating layer on this page reads it,
+     and the plain-JS chrome mounts before any text/babel module has run. -->
+<script src="shared/hw-z.js"></script>
+<script src="shared/hw-seam-dock.js"></script>
 <script src="shared/hw-live.js"></script>
 <!-- The sub-category -> Weedmaps node mapping board, live from /api/taxonomy.
      Same loopback gate as hw-live.js, so the GitHub Pages demo never fetches. -->

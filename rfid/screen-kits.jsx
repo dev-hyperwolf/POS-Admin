@@ -47,7 +47,7 @@
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, maxWidth: 420, minWidth: 240 }}>
-            <Field icon="search" size="sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by kit ID, run or destination…" />
+            <Field icon="search" size="sm" aria-label="Search kit sessions" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by kit ID, run or destination…" />
           </div>
           <ChipFilter ariaLabel="Status" value={status} onChange={setStatus} options={[
             { id: 'all', label: 'All', count: D.KITS.length },
@@ -59,7 +59,7 @@
         <Card padding={0}>
           {rows.length === 0
             ? <EmptyState icon="box" title="No kit sessions match." body="Nothing matches that search. Clear it to see every session from the last 48 hours." action={<PBtn size="sm" variant="secondary" onClick={() => { setQ(''); setStatus('all'); }}>Clear</PBtn>} />
-            : <div style={{ overflowX: 'auto' }}>
+            : <window.ScrollX label="Kit sessions table">
               <HDTable>
                 <thead><tr style={{ background: P.surface2 }}>
                   <TH>Kit</TH><TH>Destination</TH><TH align="right">Boxes</TH><TH align="right">Planned</TH>
@@ -94,7 +94,7 @@
                   })}
                 </tbody>
               </HDTable>
-            </div>}
+            </window.ScrollX>}
         </Card>
       </div>);
   };
@@ -157,7 +157,7 @@
               const meta = window.RFID_DATA.SKU_MAP.get(i.sku);
               return (
                 <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', borderTop: ix === 0 ? 'none' : `1px solid ${P.hairline}` }}>
-                  <Check size={18} on={on} onChange={(v) => setDone((d) => ({ ...d, [key]: v }))} />
+                  <window.RfidCheck size={18} label={`Confirm move: ${i.qty} of ${i.sku} from box ${g.fromBox} to box ${i.toBox}`} on={on} onChange={(v) => setDone((d) => ({ ...d, [key]: v }))} />
                   <span style={{ fontFamily: P.fontMono, fontSize: 15, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: on ? P.inkMute : P.ink, minWidth: 34 }}>{i.qty}×</span>
                   <div style={{ flex: 1, minWidth: 0, textDecoration: on ? 'line-through' : 'none', opacity: on ? .55 : 1 }}>
                     <div style={{ fontFamily: P.fontMono, fontSize: 12.5, color: P.ink, fontVariantNumeric: 'tabular-nums' }}>{i.sku}</div>
@@ -205,6 +205,11 @@
     if (!kit) {
       return (
         <div style={{ padding: 20 }}>
+          {/* These three whole-page empty states are the only routes with no
+              RfidPageHead, so they were the only ones with no <h1> at all. An
+              off-screen one restores the document outline without adding a
+              title to a screen that is deliberately titleless. */}
+          <window.SrOnly as="h1">Session detail not seeded</window.SrOnly>
           <EmptyState icon="box" title="Session detail not seeded"
             body="Only the live session KIT-2026-0824-03 carries a full reconciliation in this prototype. The other rows are list fixtures."
             action={<PBtn size="sm" variant="secondary" onClick={() => navigate('#/kits/KIT-2026-0824-03')}>Open KIT-2026-0824-03</PBtn>} />
@@ -284,7 +289,7 @@
                     { id: 'all', label: 'All', count: kit.lines.length },
                   ]} />
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                <window.ScrollX label="Reconciled lines table">
                   <HDTable>
                     <thead><tr style={{ background: P.surface2 }}>
                       <TH width={64}>Box</TH><TH>SKU</TH><TH align="right" width={82}>Planned</TH>
@@ -303,7 +308,7 @@
                         </TR>))}
                     </tbody>
                   </HDTable>
-                </div>
+                </window.ScrollX>
               </Card>
 
               <Card>
@@ -320,7 +325,7 @@
                     right={<HDPill size="sm" tone={S.missingUnits ? 'blocked' : 'ok'} icon={false} style={monoStyle(P)} label={`${S.missingUnits} units`} />}
                     style={{ marginBottom: 0 }} />
                 </div>
-                <div style={{ overflowX: 'auto' }}>
+                <window.ScrollX label="Unresolved units table">
                   <HDTable>
                     <thead><tr style={{ background: P.surface2 }}>
                       <TH width={64}>Box</TH><TH>SKU</TH><TH align="right" width={72}>Missing</TH><TH>Most likely cause</TH>
@@ -335,7 +340,7 @@
                         </TR>))}
                     </tbody>
                   </HDTable>
-                </div>
+                </window.ScrollX>
               </Card>
             </div>
 

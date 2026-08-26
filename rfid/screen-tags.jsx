@@ -15,8 +15,11 @@
 
   function ZplBlock() {
     const P = useP();
+    // `white-space: pre` + `overflow-x: auto` + no tab stop meant the right half
+    // of every ZPL line was mouse-only. Same fix as the tables.
     return (
-      <pre style={{ margin: 0, padding: '11px 13px', background: P.surface3, borderRadius: P.r8, border: `1px solid ${P.hairline2}`,
+      <pre role="region" aria-label="ZPL label template" tabIndex={0}
+        style={{ margin: 0, padding: '11px 13px', background: P.surface3, borderRadius: P.r8, border: `1px solid ${P.hairline2}`,
         fontFamily: P.fontMono, fontSize: 11.5, lineHeight: 1.65, color: P.ink2, overflowX: 'auto', whiteSpace: 'pre' }}>
         {window.RFID_DATA.ZPL_SAMPLE}
       </pre>);
@@ -155,7 +158,7 @@
             <div>
               <CardHead title="Bindings created" sub="EPC ↔ retail ID, 1:1 in both directions. The EPC carries no product meaning — the SKU lives in the registry, so a re-SKU never means re-tagging a physical unit." />
               <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, overflow: 'hidden' }}>
-                <div style={{ overflowX: 'auto' }}>
+                <window.ScrollX label="Bound tags table">
                   <HDTable>
                     <thead><tr style={{ background: P.surface2 }}>
                       <TH>EPC</TH><TH>Retail ID</TH><TH>State</TH>
@@ -169,7 +172,7 @@
                         </TR>))}
                     </tbody>
                   </HDTable>
-                </div>
+                </window.ScrollX>
                 <div style={{ padding: '9px 12px', background: P.surface2, borderTop: `1px solid ${P.hairline2}`, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>
                   showing {D.LAST_RUN_TAGS.length} of {run.commissioned}
                 </div>
@@ -226,10 +229,10 @@
                   <RfidSelect label="SKU" value={sku} onChange={setSku} options={D.SKUS.map((s) => ({ id: s.sku, label: `${s.sku} — ${s.name}` }))} />
                 </FormRow>
                 <FormRow label="METRC package" hint="The package these units were split from.">
-                  <Field size="md" mono value={pkg} onChange={(e) => setPkg(e.target.value)} placeholder="1A40…" />
+                  <Field size="md" mono aria-label="METRC source package" value={pkg} onChange={(e) => setPkg(e.target.value)} placeholder="1A40…" />
                 </FormRow>
                 <FormRow label="Quantity" hint={<React.Fragment>Retail IDs <Mono color={P.inkMute}>R-{sku}-09120</Mono> … will be drawn in order.</React.Fragment>}>
-                  <Field size="md" mono value={qty} onChange={(e) => setQty(e.target.value.replace(/[^0-9]/g, ''))} placeholder="200" />
+                  <Field size="md" mono aria-label="Number of tags to commission" value={qty} onChange={(e) => setQty(e.target.value.replace(/[^0-9]/g, ''))} placeholder="200" />
                 </FormRow>
                 <FormRow label="Tag material" hint="No on-metal stock was purchased. The option exists in the schema; the support does not.">
                   <div style={{ display: 'inline-flex', alignItems: 'center', borderRadius: P.r8, border: `1px solid ${P.hairline2}`, padding: 2, gap: 2 }}>
@@ -243,7 +246,7 @@
                 {/* Ink-filled, not the accent Switch — the accent budget on this
                     view belongs to Commission & print. */}
                 <div onClick={() => setDryRun((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: P.ink2, cursor: 'pointer', userSelect: 'none' }}>
-                  <Check size={18} on={dryRun} onChange={setDryRun} />
+                  <window.RfidCheck size={18} label="Dry run — bind, don’t print" on={dryRun} onChange={setDryRun} />
                   <span>Dry run — bind, don’t print</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -316,7 +319,7 @@
           <div style={{ padding: '16px 16px 12px' }}>
             <CardHead title="Recent runs" sub="Every run writes an audit event, whether it succeeded or was refused. Open one for its bindings — or for the collision that stopped it." style={{ marginBottom: 0 }} />
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <window.ScrollX label="Commissioning runs table">
             <HDTable>
               <thead><tr style={{ background: P.surface2 }}>
                 <TH>Run</TH><TH>SKU</TH><TH>Package</TH><TH align="right">Requested</TH>
@@ -338,7 +341,7 @@
                   </TR>))}
               </tbody>
             </HDTable>
-          </div>
+          </window.ScrollX>
         </Card>
 
         <RunSheet run={openRun} onClose={() => setOpenRun(null)} />
@@ -379,7 +382,7 @@
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, maxWidth: 420, minWidth: 240 }}>
-            <Field icon="search" size="sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by EPC, retail ID, SKU or package…" />
+            <Field icon="search" size="sm" aria-label="Search the tag registry" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by EPC, retail ID, SKU or package…" />
           </div>
           <MultiSelectFilter label="State" value={states} onChange={setStates} options={D.STATES.map((s) => ({ id: s, label: s }))} />
           <MultiSelectFilter label="SKU" value={skus} onChange={setSkus} options={D.SKUS.map((s) => ({ id: s.sku, label: s.sku }))} />
@@ -389,7 +392,7 @@
         <Card padding={0}>
           {rows.length === 0
             ? <EmptyState icon="barcode" title="No bindings match." body="Nothing in the registry matches those filters." action={<PBtn size="sm" variant="secondary" onClick={() => { setQ(''); setStates([]); setSkus([]); }}>Clear all</PBtn>} />
-            : <div style={{ overflowX: 'auto' }}>
+            : <window.ScrollX label="Tag registry table">
               <HDTable>
                 <thead><tr style={{ background: P.surface2 }}>
                   <TH>EPC</TH><TH>Retail ID</TH><TH>SKU</TH><TH>METRC package</TH><TH>State</TH><TH>Material</TH><TH align="right">Registered</TH>
@@ -407,7 +410,7 @@
                     </TR>))}
                 </tbody>
               </HDTable>
-            </div>}
+            </window.ScrollX>}
         </Card>
 
         <div style={{ fontSize: 12.5, color: P.inkMute, lineHeight: 1.5, maxWidth: 780 }}>

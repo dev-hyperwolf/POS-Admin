@@ -40,7 +40,7 @@
           options={[{ id: 'all', label: 'All rooms', count: D.COUNTS.length }].concat(rooms.map((r) => ({ id: r, label: r, count: D.COUNTS.filter((c) => c.room === r).length })))} />
 
         <Card padding={0}>
-          <div style={{ overflowX: 'auto' }}>
+          <window.ScrollX label="Cycle counts table">
             <HDTable>
               <thead><tr style={{ background: P.surface2 }}>
                 <TH>Count</TH><TH>Room</TH><TH align="right">Expected</TH><TH align="right">Found</TH>
@@ -66,7 +66,7 @@
                 })}
               </tbody>
             </HDTable>
-          </div>
+          </window.ScrollX>
         </Card>
       </div>);
   };
@@ -79,7 +79,7 @@
     const [sel, setSel] = React.useState({});
     const [modal, setModal] = React.useState(false);
     if (!c) {
-      return <div style={{ padding: 20 }}><EmptyState icon="scan" title="No such count" body="That cycle count is not in the last seven days." action={<PBtn size="sm" variant="secondary" onClick={() => navigate('#/counts')}>Back to cycle counts</PBtn>} /></div>;
+      return <div style={{ padding: 20 }}><window.SrOnly as="h1">No such count</window.SrOnly><EmptyState icon="scan" title="No such count" body="That cycle count is not in the last seven days." action={<PBtn size="sm" variant="secondary" onClick={() => navigate('#/counts')}>Back to cycle counts</PBtn>} /></div>;
     }
     const pass = c.verdict === 'PASS';
     let cum = 0;
@@ -123,7 +123,7 @@
               <Card>
                 <CardHead title="Coverage by pass" sub="Each pass only ever adds. Overlap between passes costs walking time, never accuracy — the same EPC read twice is one unit." />
                 <div style={{ marginBottom: 16 }}><CoverageBar pct={c.coveragePct} height={12} /></div>
-                <div style={{ overflowX: 'auto' }}>
+                <window.ScrollX label="Coverage by pass table">
                   <HDTable>
                     <thead><tr style={{ background: P.surface2 }}>
                       <TH width={72}>Pass</TH><TH align="right">Reads</TH><TH align="right">Newly seen</TH>
@@ -140,7 +140,7 @@
                         </TR>))}
                     </tbody>
                   </HDTable>
-                </div>
+                </window.ScrollX>
                 <div style={{ marginTop: 12, fontSize: 12.5, color: P.inkDim, lineHeight: 1.5 }}>
                   The last pass added <span style={{ fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', color: P.ink }}>{passRows[passRows.length - 1].newlySeen}</span> units.
                   {passRows[passRows.length - 1].newlySeen / c.expected < 0.03
@@ -163,7 +163,7 @@
                 {c.stragglers.length === 0
                   ? <EmptyState compact icon="check-circle" title="Everything on the list was found." body="100% coverage. No second pass needed." />
                   : <React.Fragment>
-                    <div style={{ overflowX: 'auto' }}>
+                    <window.ScrollX label="Stragglers table">
                       <HDTable>
                         <thead><tr style={{ background: P.surface2 }}>
                           <TH width={44}></TH><TH>EPC</TH><TH>SKU</TH><TH width={92}>Shelf</TH><TH>Likely cause</TH><TH align="right">Last seen</TH><TH width={110}>State</TH>
@@ -173,7 +173,7 @@
                             const isClosed = !!dec.stragglersClosed[s.epc];
                             return (
                               <TR key={s.epc} style={isClosed ? { opacity: .55 } : undefined}>
-                                <TD>{!isClosed && <Check size={17} on={!!sel[s.epc]} onChange={(v) => setSel((x) => ({ ...x, [s.epc]: v }))} />}</TD>
+                                <TD>{!isClosed && <window.RfidCheck size={17} label={`Select straggler ${D.shortEpc(s.epc)} — ${s.sku}`} on={!!sel[s.epc]} onChange={(v) => setSel((x) => ({ ...x, [s.epc]: v }))} />}</TD>
                                 <TD><EpcChip value={s.epc} muted={isClosed} /></TD>
                                 <TD><SkuToken sku={s.sku} withName /></TD>
                                 <TD mono>{s.shelf}</TD>
@@ -184,7 +184,7 @@
                           })}
                         </tbody>
                       </HDTable>
-                    </div>
+                    </window.ScrollX>
                     <div style={{ padding: '12px 16px 16px' }}>
                       <Callout tone="warn" icon="alert" title="Every tag in this estate is paper">
                         No on-metal stock was purchased. Straggler logic reads a <span style={{ fontFamily: P.fontMono }}>tag_material</span> column that only ever holds <span style={{ fontFamily: P.fontMono }}>paper</span> today — treat on-metal as unsupported, not as a setting.

@@ -53,12 +53,12 @@
   // ── DOM ───────────────────────────────────────────────────────────────────
   var css = document.createElement('style');
   css.textContent = [
-    '#hwt-w{position:fixed;inset:0;z-index:2147481000;pointer-events:none;font-family:Inter,-apple-system,system-ui,sans-serif}',
+    '#hwt-w{position:fixed;inset:0;z-index:var(--hwz-tourMask);pointer-events:none;font-family:Inter,-apple-system,system-ui,sans-serif}',
     '#hwt-w.on{pointer-events:none}',
     '.hwt-m{position:fixed;background:rgba(12,11,7,.62);pointer-events:auto;transition:all .26s cubic-bezier(.4,0,.2,1)}',
     '#hwt-ring{position:fixed;border:2px solid #FFD100;border-radius:12px;pointer-events:none;box-shadow:0 0 0 3px rgba(255,209,0,.22),0 8px 34px rgba(0,0,0,.35);transition:all .26s cubic-bezier(.4,0,.2,1)}',
     '#hwt-ring.none{opacity:0}',
-    '#hwt-c{position:fixed;width:352px;max-width:calc(100vw - 28px);background:#15140f;border:1px solid #3d3930;border-radius:16px;box-shadow:0 26px 64px rgba(0,0,0,.5);color:#e9e6dd;pointer-events:auto;transition:transform .26s cubic-bezier(.4,0,.2,1),top .26s cubic-bezier(.4,0,.2,1),left .26s cubic-bezier(.4,0,.2,1);overflow:hidden}',
+    '#hwt-c{position:fixed;z-index:var(--hwz-tourCard);width:352px;max-width:calc(100vw - 28px);background:#15140f;border:1px solid #3d3930;border-radius:16px;box-shadow:0 26px 64px rgba(0,0,0,.5);color:#e9e6dd;pointer-events:auto;transition:transform .26s cubic-bezier(.4,0,.2,1),top .26s cubic-bezier(.4,0,.2,1),left .26s cubic-bezier(.4,0,.2,1);overflow:hidden}',
     '#hwt-c .hd{display:flex;align-items:center;gap:9px;padding:13px 16px 0}',
     '#hwt-c .ey{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#FFD100}',
     '#hwt-c .ct{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;color:#7a7568;margin-left:auto}',
@@ -79,7 +79,7 @@
     '#hwt-c button.gh{background:transparent;color:#8a8578}#hwt-c button.gh:hover{color:#e9e6dd}',
     '#hwt-c button.se{background:#2a2820;color:#e9e6dd}#hwt-c button.se:hover{background:#37342a}',
     '#hwt-c button.pr{background:#FFD100;color:#1a1400}#hwt-c button.pr:hover{background:#ffdb35}',
-    '#hwt-launch{position:fixed;right:16px;bottom:68px;z-index:2147480500;width:44px;height:44px;border-radius:13px;border:1px solid #3d3930;background:#15140f;color:#FFD100;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}',
+    '#hwt-launch{position:fixed;right:16px;bottom:68px;z-index:var(--hwz-chromeBar);width:44px;height:44px;border-radius:13px;border:1px solid #3d3930;background:#15140f;color:#FFD100;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:0;transition:transform .12s}',
     '#hwt-launch:hover{transform:scale(1.06)}',
     '#hwt-launch .pip{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:99px;background:#FFD100;border:2px solid #15140f}',
     '@media(max-width:560px){#hwt-c{width:calc(100vw - 24px)}}',
@@ -88,12 +88,14 @@
 
   var wrap = document.createElement('div');
   wrap.id = 'hwt-w';
+  wrap.setAttribute('data-hw-chrome', 'tour');
   wrap.innerHTML = '<div class="hwt-m" data-m="t"></div><div class="hwt-m" data-m="b"></div>' +
     '<div class="hwt-m" data-m="l"></div><div class="hwt-m" data-m="r"></div><div id="hwt-ring"></div><div id="hwt-c"></div>';
   var card = null, ring = null, masks = {};
 
   var launch = document.createElement('button');
   launch.id = 'hwt-launch';
+  launch.setAttribute('data-hw-chrome', 'tour-launch');
   launch.title = 'Guided walkthrough';
   launch.innerHTML = '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.2a2.9 2.9 0 1 1 3.6 3.1c-.6.2-.9.7-.9 1.3v.5"/><path d="M12 17.4h.01"/></svg>';
   launch.onclick = function () { start(0); };

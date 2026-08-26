@@ -150,8 +150,9 @@
         r.id = 'hw-seam-dock';
         // pointer-events:none here and auto on each pill and panel: the empty
         // gutter beside a short pill must not swallow a click meant for the app.
+        r.setAttribute('data-hw-chrome', 'seam-dock');
         r.style.cssText = 'position:fixed;left:' + D.LEFT + 'px;bottom:' + D.BOTTOM +
-          'px;z-index:2147482003;display:flex;flex-direction:column;align-items:flex-start;' +
+          'px;z-index:var(--hwz-chromeDock);display:flex;flex-direction:column;align-items:flex-start;' +
           'gap:8px;max-width:calc(100vw - ' + (D.LEFT + 16) + 'px);pointer-events:none';
         document.body.appendChild(r);
         D._root = r;
@@ -1344,6 +1345,10 @@
     var sub = _status !== 'live' ? base.replace(/^https?:\/\//, '')
             : (needs ? needs + ' need a human' : '');
 
+    // The dock's collapsed summary pill speaks for all seven seams, so each
+    // reports its own tone and status rather than the pill guessing from the
+    // DOM. Worst tone wins; see shared/hw-seam-dock.js tone().
+    if (D.report) { D.report(SEAM_ID, dot, _status, label); }
     _el.innerHTML = pillHTML(P, 'data-hwc', dot, label, sub,
       label + ' · ' + detail + ' — click for the room, the orders and the matcher');
 

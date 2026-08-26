@@ -24,10 +24,15 @@
 
   var wrap = document.createElement('div');
   wrap.setAttribute('data-hw-switcher', '');
-  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483000;font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace';
+  // data-hw-chrome is what keeps an annotation pin off this menu: notes.js
+  // locate() re-finds a pin by matching its text across the whole document and
+  // taking the SMALLEST visible match, and these rows -- `Home`, `POS`,
+  // `Export` -- are small. See shared/notes.js locate().
+  wrap.setAttribute('data-hw-chrome', 'app-switcher');
+  wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:var(--hwz-chromeBar);font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace';
 
   var menu = document.createElement('div');
-  menu.style.cssText = 'position:absolute;right:0;bottom:52px;width:222px;max-height:70vh;overflow:auto;background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .14s,transform .14s';
+  menu.style.cssText = 'position:absolute;z-index:var(--hwz-chromeMenu);right:0;bottom:52px;width:222px;max-height:70vh;overflow:auto;background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .14s,transform .14s';
   var head = document.createElement('div');
   head.textContent = 'Hyperwolf apps';
   head.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#726d61;padding:8px 10px 7px';
@@ -36,7 +41,7 @@
     var cur = here === a[0].toLowerCase();
     var el = document.createElement('a');
     el.href = a[0]; el.textContent = a[1];
-    el.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;text-decoration:none;font-size:12.5px;font-weight:600;font-family:Inter,-apple-system,sans-serif;color:' + (cur ? '#15140f' : '#e9e6dd') + ';background:' + (cur ? '#FFD100' : 'transparent') + ';cursor:pointer';
+    el.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;text-decoration:none;font-size:12.5px;font-weight:600;font-family:Inter,-apple-system,sans-serif;color:' + (cur ? '#15140f' : '#e9e6dd') + ';background:' + (cur ? '#e9e6dd' : 'transparent') + ';cursor:pointer';
     var dot = document.createElement('span');
     dot.style.cssText = 'width:6px;height:6px;border-radius:9px;flex:0 0 auto;background:' + (cur ? '#15140f' : '#5a5648');
     el.insertBefore(dot, el.firstChild);
@@ -44,6 +49,30 @@
     if (cur) el.onclick = function (e) { e.preventDefault(); close(); };
     menu.appendChild(el);
   });
+
+  // ── which build am I looking at ───────────────────────────────────────────
+  // This used to be a 169x23 pill pinned at right:8/bottom:8 by build-stamp.js,
+  // at the SAME z-index as this button and appended after its fetch resolved --
+  // so DOM order made it win the hit test and it killed the bottom 15px of both
+  // this button and "+ Demo data" (34% of a 44px target). The information is
+  // worth one row in a menu somebody opens when they ask "what am I looking
+  // at"; it was never worth permanent screen space on every page.
+  // build-stamp.js still owns the whole resolution chain and publishes the
+  // answer on window.HW_BUILD + a `hw:build` event, so drift stays detectable.
+  var buildRow = document.createElement('div');
+  buildRow.setAttribute('data-hw-build', '');
+  buildRow.style.cssText = 'display:none;margin:6px 4px 2px;padding:8px 6px 2px;border-top:1px solid #3d3930;' +
+    'font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:.02em;' +
+    'color:#726d61;user-select:text;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  menu.appendChild(buildRow);
+  function paintBuild(info) {
+    if (!info || !info.sha) { return; }
+    buildRow.textContent = info.host + ' \u00b7 ' + info.branch + ' @ ' + String(info.sha).slice(0, 7);
+    buildRow.title = info.title || '';
+    buildRow.style.display = 'block';
+  }
+  if (window.HW_BUILD) { paintBuild(window.HW_BUILD); }
+  window.addEventListener('hw:build', function (e) { paintBuild(e.detail || window.HW_BUILD); });
 
   var btn = document.createElement('button');
   btn.setAttribute('aria-label', 'Switch app');

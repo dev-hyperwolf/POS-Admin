@@ -40,6 +40,9 @@
 </template>
 <div id="root"></div>
 
+<!-- The stacking scale. MUST be first: every floating layer on this page reads it,
+     and the plain-JS chrome mounts before any text/babel module has run. -->
+<script src="shared/hw-z.js"></script>
 <script src="shared/brands.js"></script>
 <script src="shared/app-nav.js"></script>
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>

@@ -7,6 +7,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<!-- The stacking scale. MUST be first: every floating layer on this page reads it,
+     and the plain-JS chrome mounts before any text/babel module has run. -->
+<script src="shared/hw-z.js"></script>
 <script>
 /* ── Theme ──────────────────────────────────────────────────────────────────
    `hw-pos-theme` in localStorage is the platform-wide key that pos/tokens.jsx

@@ -12,42 +12,50 @@
  *   2. GitHub API for the head of `main` — the fallback for GitHub Pages, which
  *      serves `main` verbatim with no build step, so the head of main IS what is
  *      being served. Unauthenticated and rate-limited; failure is silent by design.
- *   3. Nothing. The badge does not render. A missing stamp must never break a page.
+ *   3. Nothing. Nothing is published and no consumer shows a line. A missing
+ *      stamp must never break a page.
  *
- * Chrome, not a console screen: it styles itself rather than reading pos/tokens.jsx,
- * the same precedent as shared/app-switcher.js and shared/tour.js. No hex literals.
+ * IT NO LONGER DRAWS ANYTHING. The floating badge was the worst-behaved layer on
+ * the page: pinned at right:8/bottom:8 (8px further out than every other piece of
+ * chrome), 169x23, at the SAME z-index as the app switcher and "+ Demo data", and
+ * appended after its fetch resolved -- so DOM order made it win every tie and it
+ * ate the bottom 15px of both buttons, 34% of a 44px target. Measured, not
+ * guessed: docs/FLOATING-UI-AUDIT.md 3.2.
+ *
+ * So this file now RESOLVES and PUBLISHES, and something else displays:
+ *   - window.HW_BUILD = { host, branch, sha, builtAt, source, title }
+ *   - a `hw:build` CustomEvent on window, for anything that mounted first.
+ * shared/app-switcher.js renders it as the last row of its menu, and the hub
+ * (Hyperwolf.html, the one page with no switcher) renders it in its own footer.
+ * Every resolution branch below is unchanged; only the destination moved.
  */
 (function () {
   'use strict';
   var REPO = 'dev-hyperwolf/POS-Admin';
 
-  function render(info) {
-    if (!info || !info.sha) return;
-    var el = document.createElement('div');
-    el.setAttribute('data-build-stamp', '');
-    el.style.cssText = [
-      'position:fixed', 'right:8px', 'bottom:8px', 'z-index:2147483000',
-      'font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace',
-      'padding:3px 8px', 'border-radius:999px',
-      'background:rgba(0,0,0,.62)', 'color:rgba(255,255,255,.88)',
-      'border:1px solid rgba(255,255,255,.16)',
-      'pointer-events:auto', 'user-select:text', 'letter-spacing:.02em',
-    ].join(';');
+  function publish(info) {
+    if (!info || !info.sha) { return; }
     var host = location.hostname.indexOf('onrender') > -1 ? 'render'
              : location.hostname.indexOf('github.io') > -1 ? 'pages'
              : 'local';
-    el.textContent = host + ' · ' + info.branch + ' @ ' + String(info.sha).slice(0, 7);
-    el.title = 'Serving ' + info.branch + ' @ ' + info.sha
-             + (info.builtAt ? '\nbuilt ' + info.builtAt : '')
-             + '\nSource: ' + (info.source || 'unknown');
-    (document.body || document.documentElement).appendChild(el);
+    var out = {
+      host: host, branch: info.branch, sha: String(info.sha),
+      builtAt: info.builtAt || null, source: info.source || 'unknown',
+      // Same string the old badge carried as its tooltip, so the drift it was
+      // built to expose is still one hover away from whoever is looking.
+      title: 'Serving ' + info.branch + ' @ ' + info.sha
+           + (info.builtAt ? '\nbuilt ' + info.builtAt : '')
+           + '\nSource: ' + (info.source || 'unknown'),
+    };
+    window.HW_BUILD = out;
+    try { window.dispatchEvent(new CustomEvent('hw:build', { detail: out })); } catch (e) {}
   }
 
   function fromApi() {
     fetch('https://api.github.com/repos/' + REPO + '/commits/main')
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        if (j && j.sha) render({ branch: 'main', sha: j.sha, builtAt: j.commit && j.commit.author && j.commit.author.date, source: 'github api (head of main)' });
+        if (j && j.sha) publish({ branch: 'main', sha: j.sha, builtAt: j.commit && j.commit.author && j.commit.author.date, source: 'github api (head of main)' });
       })
       .catch(function () { /* silent: a stamp is never worth an error */ });
   }
@@ -56,7 +64,7 @@
     fetch('./build-info.json', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
-        if (j && j.sha) { j.source = j.source || 'build-info.json (deploy-time)'; render(j); }
+        if (j && j.sha) { j.source = j.source || 'build-info.json (deploy-time)'; publish(j); }
         else fromApi();
       })
       .catch(fromApi);

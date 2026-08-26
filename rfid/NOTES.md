@@ -66,9 +66,13 @@ turns from `REVIEW` to `APPROVED BY THE DESK`. `#/settings → Reset decisions` 
 - **No `canvas` / `canvas2`.** Since the ramps were unified, `canvas === bg` and `canvas2 === bg2`
   — and in dark mode `bg2` is *darker* than `bg`, so anything that leaned on the old cool ramp to
   read "raised" now collapses. Structure here comes from `surface`/`surface2`/`surface3`, a
-  `hairline`/`hairline2` border, or `shadowSm`. Root is `bg`; the sidebar and the device stage are
-  `bg2` **with an explicit hairline**. `Card elevation="sunken"` is avoided because the shared
-  atom resolves it to `canvas2`.
+  `hairline`/`hairline2` border, or `shadowSm`. Root is `bg`; the sidebar is `bg2` with a
+  `hairline3` edge and the device stage is `surface3` + `hairline3`. `Card elevation="sunken"` is
+  avoided because the shared atom resolves it to `canvas2`. **Measured, dark mode:** `bg2` is
+  1.02:1 against `bg` — a `bg2` fill carries no separation at all, so on those two surfaces the
+  border is doing 100% of the work and has to be `hairline3` (2.07:1) rather than `hairline2`
+  (1.41:1). `surface3` + `hairline3` is the strongest recessed panel the token set can express:
+  1.28:1 fill, 2.87:1 edge.
 - **Accent at most once per view**, never for selection. Selection is `background: P.ink,
   color: P.surface` everywhere — chips, box cards, the handheld screen index, the material
   toggle. The module mark in the sidebar is ink, not accent, so the rail keeps the only accent
@@ -113,9 +117,11 @@ turns from `REVIEW` to `APPROVED BY THE DESK`. `#/settings → Reset decisions` 
   it properly means re-running `reconcileKit` with the new gate — cheap to add (the function is
   already exported and pure), deliberately not done because it would make the seeded audit-log
   figures disagree with the recomputed ones.
-- **`Card elevation="raised"`** is unused here; the device stage on `#/handheld` uses `bg2` +
-  hairline. In a very dark room that stage is a subtle recess. It is correct, not invisible, but
-  it is the weakest surface separation in the module.
+- **`Card elevation="raised"`** is unused here. The device stage on `#/handheld` was `bg2` +
+  `hairline2`, which measured 1.02:1 fill / 1.41:1 edge against `bg` in dark — effectively no
+  panel at all. It is now `surface3` + `hairline3` (1.28:1 / 2.87:1). Even so, no combination of
+  tokens reaches the 3:1 WCAG 1.4.11 bar for a boundary in dark; the ramps are simply that close
+  together at the bottom. This is the best available, not a pass.
 - **Two multi-word pill labels stay sans** — "7 lines need a decision", "Request rescan of 2" —
   because they are sentences with a count in them, not values. Defensible, but it is a judgement
   call someone may want reversed.

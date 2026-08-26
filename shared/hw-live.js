@@ -1078,7 +1078,7 @@
     return W.THEMES[mode === 'dark' ? 'dark' : 'light'] || W.THEMES.light;
   }
 
-  var _badge = null, _panelOpen = false;
+  var _badge = null, _panelEl = null, _panelOpen = false;
 
   function line(P, k, v, tone) {
     return '<div style="display:flex;gap:10px;justify-content:space-between;padding:3px 0">' +
@@ -1377,17 +1377,34 @@
     var P = palette();
     if (!P) { return; }   // no tokens on the page -> no badge, and no hex here
 
+    // MOUNTED INTO THE SEAM DOCK, NOT INTO A CORNER OF ITS OWN. This pill used
+    // to pin itself at left:RAIL_W+12 / bottom:14 with the six seam pills
+    // stacked above it -- seven independent bottom-left elements needing
+    // ~1,906px to lay out on one row, so they wrapped and took the bottom 126px
+    // of the content column with them. It is now the seventh ROW of the dock's
+    // tray, and its panel lives in the dock's panel slot, so the whole column
+    // collapses to one summary pill. Loaded without a dock it keeps its corner.
+    var D = W.HW_SEAM_DOCK;
     if (!_badge) {
       _badge = document.createElement('div');
       _badge.id = 'hw-live-badge';
-      document.body.appendChild(_badge);
+      _panelEl = document.createElement('div');
+      _panelEl.id = 'hw-live-panel';
+      _panelEl.setAttribute('role', 'dialog');
+      _panelEl.setAttribute('aria-label', 'Live data seam');
+      if (D && D.tray()) { D.tray().appendChild(_badge); D.slot().appendChild(_panelEl); }
+      else {
+        _badge.setAttribute('data-hw-chrome', 'hw-live');
+        _panelEl.setAttribute('data-hw-chrome', 'hw-live');
+        document.body.appendChild(_badge); document.body.appendChild(_panelEl);
+      }
       // A form control inside the panel must not close the panel it lives in,
       // so the toggle stops at anything interactive.
       var formish = function (el) {
         var t = el && el.tagName;
         return t === 'INPUT' || t === 'SELECT' || t === 'TEXTAREA' || t === 'OPTION';
       };
-      _badge.addEventListener('click', function (e) {
+      var onClick = function (e) {
         var act = e.target && e.target.getAttribute && e.target.getAttribute('data-hwl');
         if (act === 'refresh') { e.stopPropagation(); W.HW_LIVE.refresh(); return; }
         if (act === 'advance') { e.stopPropagation(); advanceFromPanel(); return; }
@@ -1396,11 +1413,13 @@
         if (formish(e.target)) { return; }
         _panelOpen = !_panelOpen;
         paintBadge();
-      });
+      };
+      _badge.addEventListener('click', onClick);
+      _panelEl.addEventListener('click', onClick);
       // The pill advertises itself as a button (role + tabindex + the focus ring
       // tokens.jsx injects for [data-hw-i]). A control that takes focus and then
       // ignores Enter is worse than one that never took focus at all.
-      _badge.addEventListener('keydown', function (e) {
+      var onKey = function (e) {
         // Space is a character in the order-id box, not a toggle. Enter there
         // submits, which is what a one-field form is expected to do.
         if (formish(e.target)) {
@@ -1421,7 +1440,9 @@
         if (act === 'cleartoken') { W.HW_LIVE.clearToken(); return; }
         _panelOpen = !_panelOpen;
         paintBadge();
-      });
+      };
+      _badge.addEventListener('keydown', onKey);
+      _panelEl.addEventListener('keydown', onKey);
     }
 
     var live = _status === 'live';
@@ -1445,19 +1466,38 @@
     // pointer-events:none on the wrapper so the empty gutter to the right of a
     // short pill does not swallow clicks meant for the screen underneath.
     dockSync();
-    _badge.style.cssText = 'position:fixed;left:' + (RAIL_W + 12) + 'px;bottom:14px;z-index:' +
-      (_panelOpen ? 2147482005 : 2147482000) + ';' +
-      'pointer-events:none;font-family:' + P.fontSans +
-      ';max-width:min(360px,calc(100vw - ' + (RAIL_W + 28) + 'px));';
+    // The dock's summary pill is what stays on screen when the tray is
+    // collapsed, so this is the wording it leads with.
+    if (D && D.report) { D.report('hw-live', dot, _status, label); }
 
-    var html = '';
-    if (_panelOpen) {
-      html += '<div style="background:' + P.surface + ';border:1px solid ' + P.hairline2 + ';border-radius:' + P.r12 + 'px;' +
-        'box-shadow:' + P.shadowLg + ';padding:13px;margin-bottom:8px;max-height:60vh;overflow:auto;pointer-events:auto">' + panelHTML(P) +
+    var LEFT = D ? D.LEFT : (RAIL_W + 12);
+    if (D) {
+      // A row in the dock's tray. The dock owns position and z; this owns
+      // nothing but its own contents.
+      _badge.style.cssText = 'display:flex;pointer-events:none;font-family:' + P.fontSans;
+      _panelEl.style.cssText = 'display:' + (_panelOpen ? 'block' : 'none') +
+        ';max-width:100%;pointer-events:none;font-family:' + P.fontSans;
+    } else {
+      _badge.style.cssText = 'position:fixed;left:' + LEFT + 'px;bottom:14px;' +
+        'z-index:var(--hwz-chromeDock);pointer-events:none;font-family:' + P.fontSans +
+        ';max-width:min(360px,calc(100vw - ' + (RAIL_W + 28) + 'px));';
+      _panelEl.style.cssText = 'position:fixed;left:' + LEFT + 'px;bottom:52px;' +
+        'z-index:var(--hwz-chromeDock);display:' + (_panelOpen ? 'block' : 'none') +
+        ';pointer-events:none;font-family:' + P.fontSans;
+    }
+
+    // Capped in BOTH dimensions and scrolling inside itself, matching the seam
+    // panels' own cap (hw-live-identity.js panelCSS) so one open panel can never
+    // grow over the working area again.
+    _panelEl.innerHTML = !_panelOpen ? '' :
+      '<div style="width:min(400px,calc(100vw - ' + (LEFT + 16) + 'px));background:' + P.surface +
+        ';border:1px solid ' + P.hairline2 + ';border-radius:' + P.r12 + 'px;' +
+        'box-shadow:' + P.shadowLg + ';padding:13px;max-height:min(46vh,380px);overflow:auto;pointer-events:auto">' + panelHTML(P) +
         '<button data-hwl="refresh" style="margin-top:11px;width:100%;min-height:' + P.ctrlH.sm + 'px;border-radius:' + P.r8 + 'px;' +
         'border:1px solid ' + P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink2 + ';font-family:' + P.fontSans + ';' +
         'font-size:' + P.type.meta + 'px;font-weight:600;cursor:pointer">Re-fetch /api/state</button></div>';
-    }
+
+    var html = '';
     html += '<div role="button" tabindex="0" data-hw-i title="' + esc(label + ' — click for detail') + '" ' +
       'style="display:inline-flex;align-items:center;gap:8px;min-height:' + P.ctrlH.xs + 'px;padding:0 12px;' +
       'border-radius:' + P.r999 + 'px;background:' + P.surface + ';border:1px solid ' + P.hairline2 + ';' +

@@ -163,8 +163,9 @@
         r.id = 'hw-seam-dock';
         // pointer-events:none here and auto on each pill and panel: the empty
         // gutter beside a short pill must not swallow a click meant for the app.
+        r.setAttribute('data-hw-chrome', 'seam-dock');
         r.style.cssText = 'position:fixed;left:' + D.LEFT + 'px;bottom:' + D.BOTTOM +
-          'px;z-index:2147482003;display:flex;flex-direction:column;align-items:flex-start;' +
+          'px;z-index:var(--hwz-chromeDock);display:flex;flex-direction:column;align-items:flex-start;' +
           'gap:8px;max-width:calc(100vw - ' + (D.LEFT + 16) + 'px);pointer-events:none';
         document.body.appendChild(r);
         D._root = r;
@@ -772,7 +773,9 @@
         : { top: 34, right: 20, bottom: 160, width: 'min(400px, 94vw)' };
 
       var style = {
-        position: 'fixed', zIndex: 82, boxSizing: 'border-box',
+        // Owned by the order-details sheet it renders inside, so it takes the
+        // scale's modal-popover rung rather than a number of its own.
+        position: 'fixed', zIndex: (P.z ? P.z.modalPop : 320), boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column', gap: 9,
         background: P.surface, border: '1px solid ' + P.hairline2,
         borderRadius: P.r12, boxShadow: P.shadowLg, padding: 13,
@@ -958,6 +961,10 @@
     if (box) { _scroll = box.scrollTop; }
 
     var b = pillBits(P);
+    // The dock's collapsed summary pill speaks for all seven seams, so each
+    // reports its own tone and status rather than the pill guessing from the
+    // DOM. Worst tone wins; see shared/hw-seam-dock.js tone().
+    if (D.report) { D.report(SEAM_ID, b.dot, _status, b.label); }
     _el.innerHTML = pillHTML(P, 'data-hwl', b.dot, b.label, b.sub,
       b.label + ' · ' + b.detail + ' — click for the source');
 

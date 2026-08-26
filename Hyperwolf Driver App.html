@@ -37,6 +37,9 @@
 </template>
 <div id="root"></div>
 
+<!-- The stacking scale. MUST be first: every floating layer on this page reads it,
+     and the plain-JS chrome mounts before any text/babel module has run. -->
+<script src="shared/hw-z.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from

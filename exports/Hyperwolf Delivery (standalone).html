@@ -392,5 +392,83 @@ document.addEventListener('DOMContentLoaded', async function() {
   <script type="__bundler/template">
 "<!DOCTYPE html>\n<html lang=\"en\"><head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>Hyperwolf — Delivery<\u002Ftitle>\n<style>html,body{margin:0;height:100%}#root{min-height:100vh}<\u002Fstyle>\n<\u002Fhead>\n<body>\n\n<div id=\"root\"><\u002Fdiv>\n\n<script src=\"0581b0bb-dcb8-4221-8808-1d8be3000da3\" integrity=\"sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L\" crossorigin=\"anonymous\"><\u002Fscript>\n<script src=\"7e30657c-e03d-47e4-bdcd-9c86b721a2c1\" integrity=\"sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm\" crossorigin=\"anonymous\"><\u002Fscript>\n<script src=\"47a77ddf-d187-48fc-adaf-bc5f4dce2fc8\" integrity=\"sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y\" crossorigin=\"anonymous\"><\u002Fscript>\n\n<script type=\"text/babel\" src=\"4ced0e92-5173-4b79-8661-230b33b13a98\"><\u002Fscript>\n<script type=\"text/babel\" src=\"14f02596-6d34-4f22-aea0-dce15cfd85a9\"><\u002Fscript>\n<script type=\"text/babel\" src=\"3c28d170-ad59-4746-9335-3cf95bd312c0\"><\u002Fscript>\n<script type=\"text/babel\" src=\"c6b24c87-a652-4f65-a194-ee08eea44196\"><\u002Fscript>\n<script type=\"text/babel\" src=\"aeda0215-154a-48c2-930a-2e6b0fd36484\"><\u002Fscript>\n<script type=\"text/babel\" src=\"1b9e3dd5-554e-40a5-847b-de90185f329b\"><\u002Fscript>\n<script type=\"text/babel\" src=\"6b900f32-0b56-411f-b1a6-8bec41dd5890\"><\u002Fscript>\n<script type=\"text/babel\" src=\"f7d8f3e1-e60f-4d39-889e-b94e6e1e25cc\"><\u002Fscript>\n<script src=\"a0299b9b-5a1f-4f63-a28a-7b17831530cf\"><\u002Fscript>\n\n\n<\u002Fbody><\u002Fhtml>"
   </script>
+<!-- HW-STALE-BANNER:start — hand-added marker, not from the bundler. Delete this block (to the matching :end) on regeneration. -->
+
+<script>
+/* Staleness marker for an offline snapshot. Added by hand on 2026-08-26; the
+   bundler that produced this file knows nothing about it. See the fencing
+   comments above and below. */
+(function () {
+  var LIVE_HREF = "../Hyperwolf%20Delivery.html";
+  var LIVE_NAME = "Hyperwolf Delivery.html";
+  var SNAPSHOT  = "2 August 2026";
+
+  var bar = document.createElement('div');
+  bar.id = '__hw_stale_banner';
+  bar.setAttribute('role', 'status');
+
+  var text = document.createElement('span');
+  text.textContent =
+    'Offline snapshot · ' + SNAPSHOT + ' · NOT CURRENT — the design system and these screens have changed since. ';
+  var link = document.createElement('a');
+  link.href = LIVE_HREF;
+  link.textContent = 'Open the live ' + LIVE_NAME;
+  bar.appendChild(text);
+  bar.appendChild(link);
+
+  /* Paint from the app's own tokens once they exist; CSS system colours before
+     that. No colour literal is written here. */
+  function tokens() {
+    try {
+      var m = 'light';
+      try { m = localStorage.getItem('hw-pos-theme') || 'light'; } catch (e) {}
+      var T = window.THEMES && window.THEMES[m];
+      if (T && T.warn) return T;
+    } catch (e) {}
+    return null;
+  }
+
+  function paint() {
+    var T = tokens();
+    var bg   = T ? T.warnSoft  : 'Canvas';
+    var fg   = T ? T.ink       : 'CanvasText';
+    var edge = T ? T.warn      : 'CanvasText';
+    var acc  = T ? T.warn      : 'LinkText';
+    bar.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:2147483647',
+      'display:flex', 'gap:8px', 'align-items:center', 'justify-content:center',
+      'flex-wrap:wrap',
+      'padding:5px 12px',
+      'font:600 11.5px/1.35 "JetBrains Mono","SF Mono",ui-monospace,monospace',
+      'letter-spacing:.02em',
+      'background:' + bg, 'color:' + fg,
+      'border-bottom:1px solid ' + edge,
+      'box-shadow:0 1px 0 ' + edge,
+      'text-align:center'
+    ].join(';');
+    link.style.cssText = 'color:' + acc + ';text-decoration:underline;text-underline-offset:2px';
+  }
+
+  /* The bundler replaces document.documentElement wholesale when it renders, so
+     a static element in the shell would be discarded. The observer is on
+     `document` (which is never replaced), and re-attaches the bar afterwards. */
+  function mount() {
+    var host = document.body || document.documentElement;
+    if (!host) return;
+    if (bar.parentNode !== host) { host.appendChild(bar); paint(); }
+  }
+
+  paint();
+  mount();
+  try {
+    new MutationObserver(function () { mount(); paint(); })
+      .observe(document, { childList: true, subtree: true });
+  } catch (e) {}
+  /* Belt and braces: the theme can change after mount, and an app that clobbers
+     body children would otherwise drop the bar between mutations. */
+  setInterval(function () { mount(); paint(); }, 2000);
+})();
+</script>
+<!-- HW-STALE-BANNER:end -->
 </body>
 </html>
