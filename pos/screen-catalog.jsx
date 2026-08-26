@@ -106,6 +106,36 @@ window.CatalogScreen = function CatalogScreen() {
           <PBtn variant="accent" icon="plus" size="md" onClick={() => setAddOpen(true)}>Add Product</PBtn>
         </div>} />
 
+      {/* Screen-level orientation for the dev team. Consequence, not
+          mechanism -- what these numbers let you conclude, and what they do
+          not. Per-row explanation lives on the row itself. */}
+      <DevNote id="catalog-matching" tone="warn"
+               title="What a Weedmaps match score does and does not tell you">
+        <DevNoteP>
+          A score is a measurement <b>against the pool we have pulled</b>, not a
+          judgement about whether Weedmaps carries the product. Weedmaps serves
+          products per brand (<DevNoteMono>brands/&#123;id&#125;/products</DevNoteMono>) and caps a page at
+          20 items, so a brand whose feed has not been pulled contributes
+          nothing to the pool. A SKU scored against an empty pool returns a
+          confident <DevNoteMono>0.000</DevNoteMono>, which reads exactly like "Weedmaps does
+          not have this" and is not the same claim.
+        </DevNoteP>
+        <DevNoteP>
+          Three states must never render the same: <b>never looked</b> (no feed
+          pulled), <b>looked and the brand feed is empty</b> (a correct binding
+          that still yields no candidates -- Dr. Kerklaan, id 10245, is real),
+          and <b>looked and matched nothing</b>. Only the third is evidence.
+          Only the third belongs on a brand-request list.
+        </DevNoteP>
+        <DevNoteP>
+          If a row looks obviously right and scores low, the usual cause is the
+          candidate was never fetched. <b>Look again</b> re-pulls that one brand
+          on demand (<DevNoteMono>POST /api/mapping/look-again</DevNoteMono>, accepts a brand
+          or a sku, ignores the 20h freshness TTL because a human asking is new
+          information).
+        </DevNoteP>
+      </DevNote>
+
       {/* Insights header — 3 space treatments (Ribbon / Compact / Hidden) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 11 }}>
         <Eyebrow>Insights</Eyebrow>

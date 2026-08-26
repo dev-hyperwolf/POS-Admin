@@ -55,6 +55,36 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
           <PBtn variant="accent" icon="plus" size="md" onClick={onStartSale}>New Sale</PBtn>
         </div>} />
       {wmMapOpen && <WmStatusMapModal onClose={() => setWmMapOpen(false)} />}
+      {/* Dev orientation: the two things about this queue that are not
+          visible from the rows themselves. */}
+      <DevNote id="orders-gates-and-queue" tone="gap"
+               title="Status pushes retry forever; a stuck oldest row blocks the ones behind it">
+        <DevNoteP>
+          Every stage change queues an outbound push to Weedmaps. Those pushes
+          are retried by a background loop, not by your click &mdash; so a push
+          that failed is not lost, and you do not need to tap another stage to
+          make it move. Weedmaps answers 403 on a large share of pushes today;
+          403 is treated as a statement about the <b>integration</b>, not about
+          the order, so it stays pending and is retried. 400/404/409/410/422 are
+          permanent and leave the pool until a human requeues them.
+        </DevNoteP>
+        <DevNoteP>
+          <b>The known hole:</b> the drain selects the oldest pending rows by id,
+          so while the head keeps failing, the rows behind it are never
+          attempted. The queue looks tended and is not. The fix is a per-row
+          <DevNoteMono>next_attempt_at</DevNoteMono> in <DevNoteMono>wm_status_queue</DevNoteMono> so a
+          backed-off row drops out of the selection &mdash; not yet built. The
+          loop refuses to hide it: a stalled pass logs how many rows are stuck
+          behind the head.
+        </DevNoteP>
+        <DevNoteP>
+          Verification gates are enforced server-side, not here: pickup handoff
+          is blocked, discounts and promos are gated, and delivery dispatch is
+          gated. In-store ID scan counts as document-backed verification, so a
+          customer verified at the counter is <b>not</b> sent through Didit
+          again.
+        </DevNoteP>
+      </DevNote>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
         <Seg value={tab} onChange={setTab} size="lg" options={[
@@ -665,6 +695,7 @@ function DeliveryList({ items, onStartSale }) {
 // ── Delivery · MAP view — schematic dispatch map + stop list ───────────────
 function DeliveryMap({ items, onStartSale, onOpen }) {
   const P = useP();
+  useHolds();
   const dlv = window.HW.DELIVERY;
   const [sel, setSel] = React.useState(items[0]?.id || null);
   const [assign, setAssign] = React.useState(null);
@@ -740,7 +771,7 @@ function DeliveryMap({ items, onStartSale, onOpen }) {
             <Icon name="route" size={13} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
             <span>Ordered nearest-first · {items.length} stop{items.length === 1 ? '' : 's'} · {totalMi.toFixed(1)} mi total. Distance only — this does not know traffic, ETA windows or who is driving.</span>
           </div>}
-        {stops.map((o, i) => {const d = dlv[o.id] || {};const a = sel === o.id;const st = stageMeta(o.stage);const un = driverOf(o) === 'Unassigned';
+        {stops.map((o, i) => {const d = dlv[o.id] || {};const a = sel === o.id;const st = stageMeta(o.stage);const un = driverOf(o) === 'Unassigned';const ds = dispatchStateOf(o);
           return (
             <div key={o.id} onClick={() => setSel(o.id)} style={{ display: 'flex', gap: 11, padding: '11px 12px', background: a ? P.surface3 : P.surface, border: `1px solid ${a ? P.ink : P.hairline2}`, borderRadius: P.r12, cursor: 'pointer', transition: 'all .12s' }}>
               <span style={{ flex: '0 0 auto', width: 24, height: 24, borderRadius: 99, background: a ? P.accent : P.surface3, color: a ? P.accentInk : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 800, fontFamily: P.fontMono, alignSelf: 'flex-start', marginTop: 1 }}>{i + 1}</span>
@@ -757,8 +788,14 @@ function DeliveryMap({ items, onStartSale, onOpen }) {
                 </div>
                 {a &&
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10 }}>
-                    <PBtn variant={un ? 'accent' : 'soft'} size="xs" icon="user-check" full title={un ? 'Assign a driver to this stop' : 'Move this stop to another driver'}
-                  onClick={(e) => {e.stopPropagation();setAssign(o);}}>{un ? 'Assign driver' : driverOf(o)}</PBtn>
+                    {/* Same rule as the dispatch table: a live stop gets the
+                        gate verdict, a mock stop gets the local roster. */}
+                    <PBtn variant={ds.kind === 'held' ? 'accent' : ds.kind === 'mock' && un ? 'accent' : 'soft'} size="xs"
+                  icon={ds.kind === 'mock' ? 'user-check' : 'shield'} full
+                  title={ds.kind === 'mock' ? un ? 'Assign a driver to this demo stop (local only)' : 'Move this stop to another driver' : 'What the API says about this stop'}
+                  onClick={(e) => {e.stopPropagation();setAssign(o);}}>{
+                  ds.kind === 'mock' ? un ? 'Assign driver' : driverOf(o) :
+                  ds.kind === 'held' ? ds.hold.releasable ? 'Release & dispatch' : 'Held · ' + (ds.hold.block_code || ds.hold.held_for) : ds.text}</PBtn>
                     <PBtn variant="secondary" size="xs" icon="phone" title="Show the phone number on file"
                   onClick={(e) => {e.stopPropagation();setCall((c) => c === o.id ? null : o.id);}} />
                     <PBtn variant="secondary" size="xs" icon="arrow-right" title="Start a sale" onClick={(e) => {e.stopPropagation();onStartSale && onStartSale();}} />
@@ -921,13 +958,140 @@ function shortDriver(name) {
 function driverOf(o) {
   return o.driver || (window.HW.DELIVERY[o.id] || {}).driver || 'Unassigned';
 }
+
+// ── THE BOARD IS NOT THE DISPATCHER ────────────────────────────────────────
+//
+// Everything above this line writes to window.HW and stops there. That is the
+// correct behaviour for a MOCK order — pos/data.jsx's ORD-002xx rows exist
+// nowhere else, so a local write is the whole truth about them.
+//
+// It is a LIE about a live one. When shared/hw-live.js is up it replaces
+// HW.ORDERS with the API's own rows (`_live: true`, id = wm_order_id), and on
+// that data:
+//
+//   · There is NO route that binds a driver to an existing order. POST
+//     /api/driver is roster CRUD, not an assignment. A driver is bound in
+//     exactly two places, both server-side: engine.ingest_order() at ingest,
+//     and engine.release_hold() at release ("Route now, at release, for the
+//     same reason ingest routes at ingest", wmdemo/engine.py:2548).
+//   · Every delivery order on the live board reads "Unassigned" — and the
+//     reason is never "a dispatcher has not got to it yet". Verified against
+//     the deployment 2026-08-26: GET /api/state returned 10 delivery orders,
+//     all with driver_id null; GET /api/orders/held returned all 10 of them,
+//     held at GATE 3, each with a block code and a remedy.
+//
+// So the board rendered a verification hold as an empty driver slot and put an
+// "Assign" button next to it. Pressing it moved a name in this browser, told
+// the operator it had worked, and left an order the server will refuse to
+// dispatch. That is the worst control on a screen: a success that is not one.
+//
+// WHAT THIS SEAM DOES. It reads the API's own answer to "why has this stop got
+// nobody on it" from GET /api/orders/held (read-only by construction — see
+// engine.held_orders: "Nothing here binds a driver") and renders it. The one
+// action that really dispatches — POST /api/order/release-hold — goes through
+// W.HW_LIVE.post, the shared write path, so the token, the same-origin rule and
+// the server's own error text stay in exactly one place.
+//
+// WHY A `fetch` FOR THE READ AND NOT HW_LIVE.post. /api/orders/held is a GET,
+// and must be: do_POST's public-mode guard 403s an unauthenticated POST, and a
+// read-only board must not 403 on its own data (wmdemo/server.py:1376).
+// HW_LIVE publishes no GET helper, so the read is a plain fetch off
+// HW_LIVE.base — the same shape every sibling seam uses. Every WRITE still
+// goes through HW_LIVE.post.
+//
+// FOUR STATES, AND THE THIRD IS NOT THE FOURTH.
+//   'off'      no live seam — a mock board. There is no server to ask.
+//   'loading'  asked, no answer yet.
+//   'live'     answered. In the map ⇒ held. Absent from the map ⇒ not held.
+//   'error'    the feed did not answer. The hold state is NOT KNOWN, and is
+//              rendered as not-known — never as "Unassigned", which would be a
+//              claim that the order is merely waiting for a dispatcher.
+const HOLDS = { state: 'off', by: {}, error: null, at: 0, seq: 0 };
+const _holdSubs = new Set();
+function holdsPing() {HOLDS.seq++;_holdSubs.forEach((f) => {try {f(HOLDS.seq);} catch (e) {}});}
+function holdsBase() {
+  const L = window.HW_LIVE;
+  return L && L.__armed && L.orders && L.orders.live ? L.base || '' : null;
+}
+function loadHolds(force) {
+  const base = holdsBase();
+  if (base == null) {
+    if (HOLDS.state !== 'off') {HOLDS.state = 'off';HOLDS.by = {};HOLDS.error = null;holdsPing();}
+    return;
+  }
+  if (!force && (HOLDS.state === 'loading' ||
+  HOLDS.state === 'live' && Date.now() - HOLDS.at < 15000)) return;
+  HOLDS.state = 'loading';holdsPing();
+  fetch(base + '/api/orders/held', { credentials: 'omit', cache: 'no-store' }).
+  then((r) => r.ok ? r.json() : r.json().then(
+  (j) => Promise.reject(new Error(j && (j.error || j.why) || 'HTTP ' + r.status)),
+  () => Promise.reject(new Error('HTTP ' + r.status)))).
+  then((j) => {
+    const by = {};
+    ((j && j.held) || []).forEach((h) => {by[String(h.order)] = h;});
+    HOLDS.by = by;HOLDS.error = null;HOLDS.state = 'live';HOLDS.at = Date.now();holdsPing();
+  }).
+  catch((e) => {
+    // Reported, never swallowed into an empty map: an empty map means
+    // "nothing is held", which is a different fact from "we could not ask".
+    HOLDS.by = {};HOLDS.error = e && e.message || 'the hold feed did not answer';
+    HOLDS.state = 'error';HOLDS.at = Date.now();holdsPing();
+  });
+}
+function useHolds() {
+  const [, bump] = React.useState(0);
+  React.useEffect(() => {
+    _holdSubs.add(bump);loadHolds();
+    return () => {_holdSubs.delete(bump);};
+  }, []);
+  return HOLDS;
+}
+// True only for a row the API served. A mock row is not "not held" — it has no
+// server to be held by.
+function isLiveOrder(o) {return !!(o && o._live);}
+// The ONE place that decides what a delivery row's driver slot may say.
+function dispatchStateOf(o) {
+  if (!isLiveOrder(o)) return { kind: 'mock', text: driverOf(o) };
+  if (HOLDS.state === 'live') {
+    const h = HOLDS.by[String(o.id)];
+    // `held_for` is why it WAS held; `block_code` is why it still is. A hold
+    // the gate no longer blocks must not keep wearing the old block's name —
+    // "Held · never_checked" on an order the API reports releasable is a
+    // sentence about a check that has since happened.
+    if (h) return { kind: 'held', hold: h,
+      text: h.releasable ? 'Held · releasable now' :
+      'Held · ' + (h.block_code || h.held_for || 'verification') };
+    const d = (window.HW.DELIVERY[o.id] || {}).driver;
+    return d && d !== 'Unassigned' ?
+    { kind: 'bound', text: d } :
+    { kind: 'none', text: 'No driver bound' };
+  }
+  return { kind: 'unknown',
+    text: HOLDS.state === 'loading' ? 'Checking the gate…' : 'Hold state not known' };
+}
+function DispatchCell({ o }) {
+  useHolds();
+  const s = dispatchStateOf(o);
+  if (s.kind === 'mock') {const un = s.text === 'Unassigned';return <Pill kind={un ? 'warn' : 'neutral'} dot>{s.text}</Pill>;}
+  if (s.kind === 'held') return <Pill kind={s.hold.releasable ? 'warn' : 'bad'} dot>{s.text}</Pill>;
+  if (s.kind === 'unknown') return <Pill kind="ghost" dot>{s.text}</Pill>;
+  return <Pill kind="neutral" dot>{s.text}</Pill>;
+}
+
 // Re-routing moves the load as well as the label: the previous driver gives the
 // stop back. Without that, capacity is decoration and a driver can be filled
 // past `cap` by moving the same order back and forth.
+//
+// ⚠️ NULL IS NOT ZERO. On live data hw-live.js sets stops and cap to null on
+// every driver, deliberately: "The API models a driver as a POOL MEMBER WITH A
+// KIT, not a routed vehicle: there is no stop list and no vehicle capacity
+// anywhere in /api/state" (shared/hw-live.js:648). `drv.stops += 1` turned that
+// not-known into a 1, and the load meter then drew a bar off it. A number we
+// were never given stays not-given.
 function assignDriverTo(o, drv) {
   const before = window.HW.DRIVERS.find((x) => shortDriver(x.name) === driverOf(o));
-  if (before && before.stops > 0) before.stops -= 1;
-  drv.stops += 1;
+  if (before && typeof before.stops === 'number' && before.stops > 0) before.stops -= 1;
+  if (typeof drv.stops === 'number') drv.stops += 1;
   return window.HW.updateOrder(o.id, { driver: shortDriver(drv.name) });
 }
 function stopsFor(driverName, orders) {
@@ -935,18 +1099,170 @@ function stopsFor(driverName, orders) {
   return orders.filter((o) => driverOf(o) === s);
 }
 
-// Pick a driver. Refusals are shown, never hidden: an offline or full driver
-// stays on the list with the reason next to them, because "why can't I give
-// this to Aaron" is the question a disabled row has to answer.
+// ── Sheet chrome, shared by both sheets below ─────────────────────────────
+function SheetShell({ icon, title, sub, onClose, children }) {
+  const P = useP();
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
+          <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={16} stroke={2} color={P.accent} /></span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{sub}</span>
+          </span>
+          <IconBtn icon="x" size={17} label="Close" onClick={onClose} />
+        </div>
+        <div style={{ padding: '12px 18px 16px', display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 500, overflowY: 'auto' }}>{children}</div>
+      </div>
+    </div>);
+
+}
+function Note({ tone, children }) {
+  const P = useP();
+  const c = { bad: P.bad, warn: P.warn, good: P.good, info: P.info }[tone] || P.inkMute;
+  return <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '11px 12px', background: P.surface2, border: `1px solid ${c}44`, borderRadius: P.r10 }}>
+    <span style={{ flex: '0 0 auto', width: 6, alignSelf: 'stretch', borderRadius: 99, background: c }} />
+    <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5, minWidth: 0 }}>{children}</div>
+  </div>;
+}
+
+// ── THE LIVE STOP. What the API says, and the only thing that really moves ──
+//
+// No roster here, because there is nothing to pick from: no route reassigns a
+// driver on an existing order. The gate verdict is the API's own sentence,
+// printed verbatim, and the button posts POST /api/order/release-hold —
+// engine.release_hold(), which RE-ASKS the gate server-side, routes a driver
+// and dispatches. The server's answer is what gets rendered; this component
+// computes nothing and congratulates nobody.
+function LiveDispatchSheet({ o, onClose }) {
+  const P = useP();
+  const holds = useHolds();
+  const d = window.HW.DELIVERY[o.id] || {};
+  const st = dispatchStateOf(o);
+  const h = st.kind === 'held' ? st.hold : null;
+  const [busy, setBusy] = React.useState(false);
+  const [res, setRes] = React.useState(null);
+  const L = window.HW_LIVE;
+
+  const release = () => {
+    if (!L || typeof L.post !== 'function') {
+      setRes({ tone: 'bad', head: 'No write path',
+        body: 'This control posts through HW_LIVE.post and shared/hw-live.js has not armed on this page. Nothing was sent.' });
+      return;
+    }
+    setBusy(true);setRes(null);
+    L.post('/api/order/release-hold', { wm_order_id: String(o.id) }).then((r) => {
+      setBusy(false);
+      const b = r.body || {};
+      if (r.gated) {
+        setRes({ tone: 'warn', head: 'Refused before it reached the route',
+          body: 'This deployment is read-only without a write token, so the release was never attempted. ' + (r.hint || '') });
+        return;
+      }
+      if (!r.ok && !b.outcome) {
+        setRes({ tone: 'bad', head: 'The request failed',
+          body: r.error || b.why || b.error || ('HTTP ' + r.code + ' with no reason in the body.') });
+        return;
+      }
+      // From here every word is the server's. `released: false` is not an
+      // error and is not a success — it is the gate's answer, and it says why.
+      // release_hold() leaves `reason` null on success, so the pieces are
+      // joined only where they exist rather than padded into a sentence of
+      // ours.
+      //
+      // `counted` IS NOT A PASS/FAIL. It is `first` from
+      // store.count_order_fulfilled: false on an idempotent re-release (already
+      // credited) and false again when the order carries no identity (nothing
+      // to credit). Printing one sentence for both would state the wrong fact
+      // half the time, so the count itself is printed and the two cases are
+      // told apart by whether there is a count at all.
+      const ledger = b.fulfilled_count == null ?
+      'fulfilled ledger untouched — this order resolves to no identity' :
+      'fulfilled count now ' + b.fulfilled_count +
+      (b.counted ? ' (credited by this release)' : ' (already counted; this release added nothing)');
+      const parts = [b.reason || b.note || null,
+      b.driver ? 'driver bound by the server: ' + b.driver : null,
+      b.released ? ledger : null].
+      filter(Boolean);
+      setRes({ tone: b.released ? 'good' : 'warn',
+        head: b.released ? 'Released and dispatched' : 'Not released — ' + (b.outcome || 'refused'),
+        body: parts.join(' · '), raw: b });
+      loadHolds(true);
+      if (L.refresh) {try {L.refresh();} catch (e) {}}
+    });
+  };
+
+  return (
+    <SheetShell icon="truck" onClose={onClose}
+    title={res && res.raw && res.raw.released ? 'Released and dispatched' :
+    h ? 'Held at the verification gate' : 'Dispatch — nothing on this screen can move this stop'}
+    sub={`#${o.id} · ${o.name} · ${d.zone || 'no region on the order'}`}>
+
+      {holds.state === 'loading' && <Note tone="info">Asking the API which orders are held…</Note>}
+
+      {holds.state === 'error' &&
+      <Note tone="bad"><b>The hold feed did not answer.</b> {holds.error} — so whether this
+        order is held is <b>not known</b>. It is not "unassigned", and it is not "clear";
+        nobody has been able to look. Reload the board before acting on it.</Note>}
+
+      {h &&
+      <>
+        <Note tone={h.releasable ? 'warn' : 'bad'}>
+          <b>{h.releasable ? 'The gate no longer blocks this order.' : 'BLOCKED · ' + (h.block_code || h.held_for)}</b>
+          <div style={{ marginTop: 4 }}>{h.reason}</div>
+          {h.remedy && <div style={{ marginTop: 6, color: P.ink }}><b>Remedy:</b> {h.remedy}</div>}
+        </Note>
+        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, lineHeight: 1.6 }}>
+          held for {h.held_for} · gate {h.gate} · review {h.review_state_known ? h.review_state || 'not in the queue' : 'unknown'} · identity {h.identity_id == null ? 'none resolved' : '#' + h.identity_id}
+        </div>
+        <Note tone="info">A held order has <b>no driver because it cannot have one</b>. The
+          API binds a driver at ingest and again at release (engine.release_hold), and there
+          is no route that assigns one to an existing order — so this board has no way to
+          give this stop to anybody, and no button here pretends otherwise.</Note>
+      </>}
+
+      {!h && holds.state === 'live' &&
+      <Note tone="info">This order is <b>not in a verification hold</b>. The API reports its
+        driver as <b>{(d.driver && d.driver !== 'Unassigned') ? d.driver : 'none bound'}</b>.
+        There is no route that reassigns a driver on an existing order, so there is nothing
+        this screen can change about it.</Note>}
+
+      {res &&
+      <Note tone={res.tone}><b>{res.head}</b>{res.body ? <div style={{ marginTop: 4 }}>{res.body}</div> : null}</Note>}
+
+      {h &&
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 2 }}>
+        <div style={{ flex: 1, fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>
+          Release re-asks the gate on the server. If it still blocks, nothing is dispatched
+          and the refusal is printed here.
+        </div>
+        <PBtn variant="accent" size="md" icon="check" busy={busy} disabled={busy}
+        onClick={release}>{busy ? 'Releasing…' : 'Release & dispatch'}</PBtn>
+      </div>}
+    </SheetShell>);
+
+}
+
+// Pick a driver — MOCK ROWS ONLY. Refusals are shown, never hidden: an offline
+// or full driver stays on the list with the reason next to them, because "why
+// can't I give this to Aaron" is the question a disabled row has to answer.
 function AssignDriverSheet({ o, onClose }) {
   const P = useP();
+  // A live order has no assignment route anywhere in the API. Offering a
+  // roster for it is the falsehood this split exists to end.
+  if (isLiveOrder(o)) return <LiveDispatchSheet o={o} onClose={onClose} />;
   const d = window.HW.DELIVERY[o.id] || {};
   const cur = driverOf(o);
   const rank = (x) => (d.zone && x.region === d.zone ? 0 : 1);
   const list = window.HW.DRIVERS.slice().sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+  // `stops`/`cap` are null when the API supplied the roster — not zero. A
+  // `null >= null` capacity test is silently false, which let an unknown load
+  // read as room to spare. Unknown is now said out loud instead.
+  const loadKnown = (x) => typeof x.stops === 'number' && typeof x.cap === 'number';
   const refuse = (x) =>
   x.status === 'offline' ? `${x.name.split(' ')[0]} is off shift` :
-  x.stops >= x.cap ? `At capacity · ${x.stops}/${x.cap} stops` :
+  loadKnown(x) && x.stops >= x.cap ? `At capacity · ${x.stops}/${x.cap} stops` :
   shortDriver(x.name) === cur ? 'Already has this stop' : null;
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
@@ -960,6 +1276,10 @@ function AssignDriverSheet({ o, onClose }) {
           <IconBtn icon="x" size={17} label="Close" onClick={onClose} />
         </div>
         <div style={{ padding: '12px 18px 16px', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 440, overflowY: 'auto' }}>
+          {holdsBase() != null &&
+          <Note tone="warn">This is a <b>demo record</b>. #{o.id} exists in this browser only —
+            it is not in the API, so this assignment is local to this tab and reaches no
+            server. The Weedmaps rows on the same board behave differently, and say so.</Note>}
           {d.zone && <Eyebrow>{d.zone} first · then the rest of the fleet</Eyebrow>}
           {list.map((x) => {
             const no = refuse(x);
@@ -969,10 +1289,14 @@ function AssignDriverSheet({ o, onClose }) {
                 <Avatar name={x.name} size={30} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{x.name}<Pill kind={x.status === 'on-route' ? 'good' : x.status === 'idle' ? 'warn' : 'neutral'} dot sm>{x.status}</Pill></div>
-                  <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={11} />{x.region} · {x.stops}/{x.cap} stops</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="pin" size={11} />{x.region} · {loadKnown(x) ? `${x.stops}/${x.cap} stops` : 'load not served by the API'}</div>
                   {no && <div style={{ fontSize: 10, fontWeight: 600, color: P.bad, marginTop: 3 }}>{no}</div>}
                 </div>
-                <div style={{ width: 66, flex: '0 0 auto' }}><BarMeter value={x.cap ? x.stops / x.cap : 0} color={col} height={6} /></div>
+                {/* An empty meter reads as "no load". Where the load is not
+                    known, no meter is drawn at all. */}
+                <div style={{ width: 66, flex: '0 0 auto' }}>{loadKnown(x) ?
+                  <BarMeter value={x.cap ? x.stops / x.cap : 0} color={col} height={6} /> :
+                  <span style={{ fontSize: 10, color: P.inkFaint, fontFamily: P.fontMono }}>load n/k</span>}</div>
                 <PBtn variant="accent" size="md" icon="user-check" disabled={!!no} title={no || `Give this stop to ${x.name}`}
                 onClick={() => {assignDriverTo(o, x);onClose();}}>{cur === 'Unassigned' ? 'Assign' : 'Move here'}</PBtn>
               </div>);
@@ -997,7 +1321,7 @@ function DriverRouteSheet({ d, orders, onClose }) {
           <Avatar name={d.name} size={32} />
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{d.name}’s route</span>
-            <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{d.region} · {stops.length} stop{stops.length === 1 ? '' : 's'} in the queue · {miles.toFixed(1)} mi · next ETA {d.eta}</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{d.region} · {stops.length} stop{stops.length === 1 ? '' : 's'} in the queue · {miles.toFixed(1)} mi · next ETA {d.eta && d.eta !== '—' ? d.eta : 'not served'}</span>
           </span>
           <IconBtn icon="x" size={17} label="Close" onClick={onClose} />
         </div>
@@ -1005,7 +1329,15 @@ function DriverRouteSheet({ d, orders, onClose }) {
           {stops.length === 0 ?
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '12px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
               <Icon name="info" size={15} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
-              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Nothing in today’s queue is assigned to {d.name.split(' ')[0]}. Assign a stop from Dispatch or the Unassigned list and it appears here. The {d.stops}/{d.cap} on the card counts the whole shift, not just what the board is holding right now.</div>
+              {/* The old copy told the operator to "assign a stop from
+                  Dispatch" — an instruction with no action behind it once the
+                  board is live, and a shift-total sentence about two numbers
+                  the API does not serve. Both are conditional now. */}
+              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Nothing in today’s queue is assigned to {d.name.split(' ')[0]}. {holdsBase() != null ?
+                'The API binds a driver at ingest and at release — there is no route that assigns one from this screen, so a stop appears here only once the server has routed it.' :
+                'Assign a stop from Dispatch or the Unassigned list and it appears here.'} {typeof d.stops === 'number' && typeof d.cap === 'number' ?
+                `The ${d.stops}/${d.cap} on the card counts the whole shift, not just what the board is holding right now.` :
+                'The card shows no stop count because /api/state carries none — a driver there is a pool member with a kit, not a routed vehicle.'}</div>
             </div> :
           stops.map((o, i) => {const dd = dlv[o.id] || {};const st = stageMeta(o.stage);return (
               <div key={o.id} style={{ display: 'flex', gap: 11, padding: '10px 12px', border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
@@ -1028,14 +1360,38 @@ function DriverRouteSheet({ d, orders, onClose }) {
 // Delivery · DISPATCH — dense filterable table (scales to a big fleet)
 function DispatchView({ items, onStartSale, onOpen }) {
   const P = useP();const dlv = window.HW.DELIVERY;
+  // Subscribes this render to the hold feed: the action column below calls
+  // dispatchStateOf() outside any child component, so without this the buttons
+  // would keep the label the feed had when the view first mounted.
+  const holds = useHolds();
   const [region, setRegion] = React.useState('All');
   const [unOnly, setUnOnly] = React.useState(false);
   const [assign, setAssign] = React.useState(null);
   const rows = items.filter((o) => {const d = dlv[o.id] || {};const un = driverOf(o) === 'Unassigned';return (region === 'All' || d.zone === region) && (!unOnly || un);});
+  const liveRows = items.filter(isLiveOrder);
+  const heldRows = holds.state === 'live' ? liveRows.filter((o) => HOLDS.by[String(o.id)]) : [];
   const Chip = ({ active, onClick, children }) => <button onClick={onClick} style={{ flex: '0 0 auto', padding: '6px 12px', borderRadius: P.r999, border: `1px solid ${active ? P.ink : P.hairline2}`, background: active ? P.ink : P.surface, color: active ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{children}</button>;
   return (
     <div style={{ marginTop: 4 }}>
       <FleetBar P={P} />
+      {/* WHAT THIS BOARD CAN AND CANNOT DO, said once at the top rather than
+          implied by a row of buttons. */}
+      {holdsBase() != null &&
+      <div style={{ marginBottom: 12 }}>
+        {holds.state === 'error' ?
+        <Note tone="bad"><b>The hold feed did not answer</b> ({holds.error}). Every live row
+          below is showing <b>hold state not known</b> — not "unassigned". Reload before
+          acting on this board.</Note> :
+        holds.state === 'loading' ?
+        <Note tone="info">Asking the API which of these orders are held…</Note> :
+        <Note tone={heldRows.length ? 'warn' : 'info'}>
+          <b>{heldRows.length} of {liveRows.length} live delivery orders are held at the
+          verification gate</b>, which is why they have no driver. This board does not assign
+          drivers: the API binds one at ingest and again at release, and has no route that
+          reassigns one. The only dispatch action here is <b>Release &amp; dispatch</b> on a
+          held order, and the server re-asks the gate before it moves anything.
+        </Note>}
+      </div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 }}>
         <span style={{ flex: '0 0 auto', fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}>Region</span>
         <Chip active={region === 'All'} onClick={() => setRegion('All')}>All</Chip>
@@ -1049,15 +1405,28 @@ function DispatchView({ items, onStartSale, onOpen }) {
       { label: 'Customer', render: (o) => <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><Avatar name={o.name} size={26} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap' }}>{o.name}</span></div> },
       { label: 'Source', width: 108, render: (o) => o.source === 'Weedmaps' ? <WmOrderTag /> : <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>In-house</span> },
       { label: 'Region', render: (o) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: P.ink2 }}><Icon name="pin" size={12} color={P.inkMute} />{dlv[o.id]?.zone || '—'}</span> },
-      { label: 'Driver', render: (o) => {const dr = driverOf(o);const un = dr === 'Unassigned';return <Pill kind={un ? 'warn' : 'neutral'} dot>{dr}</Pill>;} },
+      // "Unassigned" was the WRONG WORD for every live row on this board: not
+      // one of them is waiting for a dispatcher, they are held at GATE 3. The
+      // cell now prints what the API says — including "not known" when the
+      // hold feed could not be asked.
+      { label: 'Driver', render: (o) => <DispatchCell o={o} /> },
       { label: 'ETA window', width: 116, render: (o) => <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.ink2 }}>{dlv[o.id]?.win || '—'}</span> },
       { label: 'Total', align: 'right', width: 80, render: (o) => <span style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{window.HW.fmt.money(o.total)}</span> },
-      { label: '', align: 'right', width: 96, render: (o) => {const un = driverOf(o) === 'Unassigned';return (
+      // THE BUTTON MUST NAME WHAT IT ACTUALLY DOES. On a live row it opens the
+      // gate verdict and the one real action (release-hold); on a mock row it
+      // opens the local roster. Same sheet component, two honest labels.
+      { label: '', align: 'right', width: 112, render: (o) => {const st = dispatchStateOf(o);return (
           // stopPropagation, or the row's onRowClick opens the order modal on
           // top of the sheet — the fall-through that made this control DO THE
           // WRONG THING rather than nothing.
-          <PBtn variant={un ? 'accent' : 'soft'} size="xs" icon="user-check" title={un ? 'Assign a driver to this stop' : 'Move this stop to another driver'}
-          onClick={(e) => {e.stopPropagation();setAssign(o);}}>{un ? 'Assign' : 'Re-route'}</PBtn>);} }]}
+          <PBtn variant={st.kind === 'held' ? 'accent' : 'soft'} size="xs"
+          icon={st.kind === 'mock' ? 'user-check' : 'shield'}
+          title={st.kind === 'mock' ? 'Assign a driver to this demo stop (local only)' :
+          st.kind === 'held' ? 'Why this stop is held, and the one action that dispatches it' :
+          'What the API says about this stop'}
+          onClick={(e) => {e.stopPropagation();setAssign(o);}}>{
+          st.kind === 'mock' ? driverOf(o) === 'Unassigned' ? 'Assign' : 'Re-route' :
+          st.kind === 'held' ? st.hold.releasable ? 'Release' : 'Held — why' : 'Details'}</PBtn>);} }]}
 
       rows={rows} />
       {assign && <AssignDriverSheet o={assign} onClose={() => setAssign(null)} />}
@@ -1106,15 +1475,20 @@ function RegionsView({ items, onStartSale, onOpen }) {
 // Delivery · DRIVERS — fleet roster + unassigned queue
 function DriversView({ items, onStartSale }) {
   const P = useP();const D = window.HW.DRIVERS;const dlv = window.HW.DELIVERY;
+  const holds = useHolds();
   const [route, setRoute] = React.useState(null);
   const [assign, setAssign] = React.useState(null);
-  const unassigned = items.filter((o) => driverOf(o) === 'Unassigned');
+  // "Unassigned" is a claim about a dispatcher's inbox. Held is a claim about a
+  // customer's ID. They were being counted as the same pile.
+  const noDriver = items.filter((o) => driverOf(o) === 'Unassigned');
+  const held = noDriver.filter((o) => dispatchStateOf(o).kind === 'held');
+  const unassigned = noDriver.filter((o) => dispatchStateOf(o).kind !== 'held');
   return (
     <div style={{ marginTop: 4, display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14, alignItems: 'start' }}>
       <div>
         <FleetBar P={P} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))', gap: 10 }}>
-          {D.map((d) => {const pct = d.cap ? d.stops / d.cap : 0;const col = d.status === 'on-route' ? P.good : d.status === 'idle' ? P.warn : P.inkFaint;return (
+          {D.map((d) => {const known = typeof d.stops === 'number' && typeof d.cap === 'number';const pct = known && d.cap ? d.stops / d.cap : 0;const col = d.status === 'on-route' ? P.good : d.status === 'idle' ? P.warn : P.inkFaint;return (
               <div key={d.id} style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, padding: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Avatar name={d.name} size={34} />
@@ -1124,27 +1498,49 @@ function DriversView({ items, onStartSale }) {
                 </div>
                 <Pill kind={d.status === 'on-route' ? 'good' : d.status === 'idle' ? 'warn' : 'neutral'} dot>{d.status}</Pill>
               </div>
+              {/* A meter at zero reads as "carrying nothing". When the API
+                  serves no stop count and no capacity, nothing is drawn. */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-                <div style={{ flex: 1 }}><BarMeter value={pct} color={col} height={6} /></div>
-                <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: P.ink2, fontWeight: 600 }}>{d.stops}/{d.cap}</span>
+                {known ? <>
+                  <div style={{ flex: 1 }}><BarMeter value={pct} color={col} height={6} /></div>
+                  <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: P.ink2, fontWeight: 600 }}>{d.stops}/{d.cap}</span>
+                </> : <span style={{ flex: 1, fontSize: 11, color: P.inkFaint, fontFamily: P.fontMono }}>stops / capacity not served by the API</span>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 }}>
-                <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>ETA next {d.eta}</span>
+                <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>ETA next {d.eta && d.eta !== '—' ? d.eta : 'not served'}</span>
                 <PBtn variant="soft" size="xs" icon="route" title={`See what ${d.name.split(' ')[0]} is carrying`} onClick={() => setRoute(d)}>Route</PBtn>
               </div>
             </div>);})}
         </div>
       </div>
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r14, background: P.surface, padding: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><Icon name="user-off" size={15} color={P.warn} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Unassigned</span><Pill kind="warn">{unassigned.length}</Pill></div>
+        {/* HELD FIRST, AND SEPARATELY. A held order is not waiting for this
+            panel — it is waiting for a person's ID. Filing it under
+            "Unassigned" told the operator to do the one thing that cannot
+            work. */}
+        {held.length > 0 &&
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}><Icon name="shield" size={15} color={P.bad} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Held at the gate</span><Pill kind="bad">{held.length}</Pill></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {held.map((o) => {const h = HOLDS.by[String(o.id)] || {};return (
+                <div key={o.id} style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: '10px 11px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</span><span style={{ fontFamily: P.fontMono, fontWeight: 700, fontSize: 12.5, color: P.ink, flex: '0 0 auto' }}>{window.HW.fmt.money(o.total)}</span></div>
+                <div style={{ fontSize: 11.5, color: P.inkDim, margin: '3px 0 8px', fontFamily: P.fontMono }}>#{o.id} · {h.block_code || h.held_for || 'verification'}{h.releasable ? ' · releasable now' : ''}</div>
+                <PBtn variant={h.releasable ? 'accent' : 'soft'} size="xs" icon="shield" full onClick={() => setAssign(o)}>{h.releasable ? 'Release & dispatch' : 'Held — why'}</PBtn>
+              </div>);})}
+          </div>
+        </div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}><Icon name="user-off" size={15} color={P.warn} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{holdsBase() != null ? 'No driver bound' : 'Unassigned'}</span><Pill kind="warn">{unassigned.length}</Pill></div>
+        {holds.state === 'error' &&
+        <div style={{ marginBottom: 8 }}><Note tone="bad">The hold feed did not answer ({holds.error}), so which of these are held is <b>not known</b>.</Note></div>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {unassigned.map((o) => {const d = dlv[o.id] || {};return (
               <div key={o.id} style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: '10px 11px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.name}</span><span style={{ fontFamily: P.fontMono, fontWeight: 700, fontSize: 12.5, color: P.ink, flex: '0 0 auto' }}>{window.HW.fmt.money(o.total)}</span></div>
               <div style={{ fontSize: 11.5, color: P.inkDim, margin: '3px 0 9px', fontFamily: P.fontMono }}>{d.zone} · {d.win}</div>
-              <PBtn variant="accent" size="xs" icon="user-check" full onClick={() => setAssign(o)}>Assign driver</PBtn>
+              <PBtn variant={isLiveOrder(o) ? 'soft' : 'accent'} size="xs" icon={isLiveOrder(o) ? 'shield' : 'user-check'} full onClick={() => setAssign(o)}>{isLiveOrder(o) ? 'Details' : 'Assign driver'}</PBtn>
             </div>);})}
-          {unassigned.length === 0 && <div style={{ padding: '20px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12.5 }}>All orders assigned</div>}
+          {unassigned.length === 0 && <div style={{ padding: '20px 8px', textAlign: 'center', color: P.inkFaint, fontSize: 12.5 }}>{held.length ? 'Nothing else is waiting on a driver.' : 'All orders assigned'}</div>}
         </div>
       </div>
       {route && <DriverRouteSheet d={route} orders={items} onClose={() => setRoute(null)} />}
@@ -2351,8 +2747,22 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   // So: an EDITED order's own lines win, then what Weedmaps actually sent,
   // then the money record. The demo basket is last and is now only ever
   // reached by mock data, which is the only thing it was ever true for.
-  const _liveLines = (window.HW_LINES && typeof window.HW_LINES.get === 'function')
-    ? window.HW_LINES.get(o.id) : null;
+  //
+  // THE ID HAS TO BE AN API ID BEFORE IT IS WORTH ASKING ABOUT. This board
+  // holds two populations at once: the API's rows (`_live`, id = the real
+  // wm_order_id, e.g. 12005695) and pos/data.jsx's demo rows (ORD-00216..237).
+  // Asking the route about a demo id is not a lookup that fails, it is a
+  // question about an order that never existed — verified against the
+  // deployment 2026-08-26:
+  //   GET /api/order/lines?wm_order_id=12005695 -> found:true, 1 line
+  //   GET /api/order/lines?wm_order_id=00224    -> found:false,
+  //       "order 00224 is not in this database at all — no orders row and no
+  //        webhook event. Check the id."
+  // That last sentence is addressed to somebody who mistyped an id, and it was
+  // being produced for every demo row on the board. A demo row's cart is the
+  // money record, and always was.
+  const _liveLines = isLiveOrder(o) && window.HW_LINES && typeof window.HW_LINES.get === 'function' ?
+  window.HW_LINES.get(o.id) : null;
   // .found lives on .data, not the top level, and the first call returns
   // state:'loading' while it fetches. Checking .found here made this branch
   // INERT once already: it always fell through to the invented cart and looked
