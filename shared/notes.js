@@ -12,6 +12,18 @@
 
   var K_PASS = 'hw-notes-passcode', K_AUTHOR = 'hw-notes-author';
   var K_CACHE = 'hw-notes-cache', K_QUEUE = 'hw-notes-queue';
+  // Per-note reply drafts, kept OUTSIDE the DOM.
+  //
+  // render()'s capture-and-restore only works when the textarea still exists after the
+  // repaint. The hashchange handler sets openThread = null and then renders, so the box
+  // is gone and there is nothing to restore into -- measured on the live site: a typed
+  // reply survived blur-then-tick and a resize, and was destroyed by a hashchange.
+  // POS never changes the hash, but the RFID console, the pipeline and Engage all do,
+  // so navigating mid-reply lost the text on exactly the consoles under review.
+  //
+  // Holding drafts here makes the DOM disposable: close the thread, navigate away, come
+  // back, and the reply is still there.
+  var drafts = {};
   var LIVE = NOTES_API.indexOf('__') !== 0;
   var FILE = decodeURIComponent((location.pathname.split('/').pop() || 'index.html'));
 
@@ -466,7 +478,7 @@
       ((n.replies || []).length ? '<div class="hwn-rep">' + n.replies.map(function (r) {
         return '<div><div class="hwn-meta">' + esc(r.author) + ' · ' + rel(r.createdAt) + '</div><div class="hwn-txt">' + esc(r.body) + '</div></div>';
       }).join('') + '</div>' : '') +
-      '<textarea class="hwn-ta" data-reply-body placeholder="Reply…" style="min-height:56px"></textarea>' +
+      '<textarea class="hwn-ta" data-reply-body data-reply-for="' + n.id + '" placeholder="Reply…" style="min-height:56px">' + esc(drafts[n.id] || '') + '</textarea>' +
       '<div class="hwn-row" style="justify-content:space-between">' +
       '<div class="hwn-row">' + (mine ? '<button class="hwn-b sm" data-edit="' + n.id + '">Edit</button><button class="hwn-b sm dan" data-del="' + n.id + '">Delete</button>' : '') + '</div>' +
       '<div class="hwn-row"><button class="hwn-b sm" data-resolve="' + n.id + '">' + (n.status === 'resolved' ? 'Reopen' : 'Resolve') + '</button>' +
@@ -571,7 +583,7 @@
       var rb = root.querySelector('[data-reply-body]');
       if (!rb || !rb.value.trim()) { rb && rb.focus(); return; }
       if (!ensureIdentity()) return;
-      reply(rid, rb.value.trim()); return;
+      reply(rid, rb.value.trim()); delete drafts[rid]; return;
     }
     if (q('[data-edit]')) {
       var eid = q('[data-edit]').getAttribute('data-edit');
@@ -680,6 +692,14 @@
     if (LIVE) { if (pass()) pull(); startPoll(); }
     setInterval(tick, 350);
     addEventListener('resize', render);
+    // Keep the draft store current. Delegated, so it survives every repaint.
+    root.addEventListener('input', function (e) {
+      var t = e.target;
+      if (t && t.hasAttribute && t.hasAttribute('data-reply-body')) {
+        var id = t.getAttribute('data-reply-for');
+        if (id) drafts[id] = t.value;
+      }
+    });
     addEventListener('hashchange', function () { openThread = null; render(); });
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') pull(); });
     addEventListener('scroll', tick, true);
