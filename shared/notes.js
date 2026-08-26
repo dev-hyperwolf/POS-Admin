@@ -62,10 +62,24 @@
 
   function author() { return ls(K_AUTHOR, ''); }
   function pass() { return ls(K_PASS, ''); }
-  function route() { return location.hash || ''; }
+  function route() {
+    if (location.hash) return location.hash;
+    // POS selects its screens with a persisted key and never touches location.hash
+    // (shared/app-nav.js go(), pos/app.jsx). Without this every POS screen looks like
+    // the same route, so a note left on Catalog surfaces on Home -- reported by Anish
+    // as "a comment on an inner tab displays on the front screen".
+    try { var p = localStorage.getItem('hw-pos-route'); if (p) return '#/' + p; } catch (e) {}
+    return '';
+  }
   function normRoute(r) { return (r || '').replace(/^#/, '').replace(/\/$/, '') || '/'; }
   function onThisPage(n) { return n.page === FILE; }
-  function onThisRoute(n) { return onThisPage(n) && normRoute(n.route) === normRoute(route()); }
+  function onThisRoute(n) {
+    if (!onThisPage(n)) return false;
+    // Legacy notes recorded before route detection carry no route. Show those on every
+    // route of their page rather than hiding feedback somebody already left.
+    if (n.route === undefined || n.route === null || n.route === '') return true;
+    return normRoute(n.route) === normRoute(route());
+  }
   function uid() { return 'l-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function rel(iso) {
     var s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -127,7 +141,14 @@
       merge(r.notes); render();
     }).catch(function () { connected = false; stale = true; render(); });
   }
-  function startPoll() { stopPoll(); polling = setInterval(function () { if (document.visibilityState === 'visible') pull(); }, 15000); }
+  function startPoll() {
+    stopPoll();
+    // Skip the poll entirely while the user is typing. Restoring the draft (see render)
+    // already prevents data loss; this also stops the panel repainting under the cursor.
+    polling = setInterval(function () {
+      if (document.visibilityState === 'visible' && !typing()) pull();
+    }, 15000);
+  }
   function stopPoll() { if (polling) clearInterval(polling), polling = null; }
 
   // ── writes ─────────────────────────────────────────────────────────────────
@@ -320,7 +341,28 @@
     return /driver app/i.test(document.title) || /scan/i.test(route()) ? 'left' : 'right';
   }
 
+  // Is the user typing inside the notes UI right now?
+  function typing() {
+    var a = document.activeElement;
+    return !!(a && root.contains(a) && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT'));
+  }
+
   function render() {
+    // PRESERVE IN-PROGRESS TEXT. render() replaces the whole subtree, and it runs on a
+    // 15s poll, on resize, on hashchange and on visibilitychange -- so a reply typed
+    // slowly was being destroyed mid-sentence. Reported by Anish as "the text gets
+    // removed automatically before I can finish". The composer echoed pending.body and
+    // survived; the reply box held its text only in the DOM and did not.
+    var live = root.querySelector('textarea[data-reply-body], textarea[data-body]');
+    var keep = null;
+    if (live && live.value) {
+      keep = {
+        sel: live.hasAttribute('data-reply-body') ? 'textarea[data-reply-body]' : 'textarea[data-body]',
+        value: live.value,
+        start: live.selectionStart, end: live.selectionEnd,
+        focused: document.activeElement === live
+      };
+    }
     var P = palette();
     style.textContent = css(P);
     var openCount = notes.filter(function (n) { return onThisPage(n) && n.status === 'open'; }).length;
@@ -354,6 +396,16 @@
     if (panelOpen) h.push(panel(P));
 
     root.innerHTML = h.join('');
+    if (keep) {
+      var back = root.querySelector(keep.sel);
+      if (back) {
+        back.value = keep.value;
+        if (keep.focused) {
+          back.focus();
+          try { back.setSelectionRange(keep.start, keep.end); } catch (e) {}
+        }
+      }
+    }
     document.documentElement.classList.toggle('hwn-mode-on', noteMode);
   }
 
@@ -581,9 +633,18 @@
   // ── lifecycle ──────────────────────────────────────────────────────────────
   var lastMode = mode(), lastSig = '';
   function tick() {
-    if (mode() !== lastMode) { lastMode = mode(); render(); return; }
+    // THIS is the 3-5 second wipe. tick runs every 350ms, and `sig` includes
+    // Math.round(scrollY) -- so a ONE PIXEL scroll re-renders the whole panel and
+    // destroys a reply in progress. The 15s poll was the obvious suspect and the wrong
+    // one; this fires forty times more often.
+    //
+    // While someone is typing we never re-render. Pins still track their anchors via
+    // the repositioning branch below, which only touches style.left/top and cannot
+    // disturb a textarea.
+    var typingNow = typing();
+    if (mode() !== lastMode) { lastMode = mode(); if (!typingNow) { render(); return; } }
     var sig = normRoute(route()) + '|' + innerWidth + '|' + Math.round(scrollY);
-    if (sig !== lastSig) { lastSig = sig; render(); }
+    if (sig !== lastSig && !typingNow) { lastSig = sig; render(); }
     else if (pinList().length) {
       // pins track their anchors as the page scrolls internally
       var layer = root.querySelector('[data-layer]');
