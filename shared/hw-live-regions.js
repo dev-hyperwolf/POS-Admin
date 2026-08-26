@@ -67,6 +67,15 @@
   // rest reuse it, so there is exactly ONE tray and exactly ONE open panel
   // however many seams ship. Do not "improve" this copy alone — it is a shared
   // contract, and a divergent copy is a second tray.
+  // ⚠️ ONE OF SIX. This dock() fallback is duplicated verbatim in all six
+  // shared/hw-live-*.js seams (lines, checkin, mapping, identity, taxonomy,
+  // regions), and shared/hw-seam-dock.js is the real implementation this defers to.
+  //
+  // They are code-identical but NOT byte-identical — two of them are missing a
+  // comment block the other four carry. That is the shape that bites: an edit lands
+  // in five of six and the sixth silently keeps the old behaviour, with nothing to
+  // flag it. If you change this function, change it in all six, or collapse them
+  // into a shared helper and delete these.
   function dock() {
     if (W.HW_SEAM_DOCK) { return W.HW_SEAM_DOCK; }
     if (!document.body) { return null; }

@@ -21,6 +21,11 @@
   // POS never changes the hash, but the RFID console, the pipeline and Engage all do,
   // so navigating mid-reply lost the text on exactly the consoles under review.
   //
+  // WHY THIS WON'T REPRODUCE ON POS: POS selects screens through localStorage
+  // ('hw-pos-route') and never touches location.hash, so hashchange never fires there.
+  // Test this on POS and you will conclude it is fine. Reproduce it on the RFID
+  // console, the pipeline or Engage, which are hash-routed.
+  //
   // Holding drafts here makes the DOM disposable: close the thread, navigate away, come
   // back, and the reply is still there.
   var drafts = {};
