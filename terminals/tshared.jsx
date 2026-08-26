@@ -119,7 +119,7 @@ window.TSelect = function TSelect({ value, placeholder = 'Select…', options, o
             </div>}
             {shown.length === 0 && <div style={{ padding: '10px', fontSize: 12.5, color: P.inkMute, textAlign: 'center' }}>No matches</div>}
             {shown.map((o) => {const a = o.value === value;return (
-                <button key={o.value} onClick={() => {onChange(o.value);setOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 10px', background: a ? P.accentSoft : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                <button key={o.value} onClick={() => {onChange(o.value);setOpen(false);}} style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 10px', background: a ? P.surface3 : 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.label}</span>
                   {o.sub && <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: o.mono ? P.fontMono : P.fontSans, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.sub}</span>}
@@ -169,7 +169,7 @@ window.AddTerminal = function AddTerminal({ onClose }) {
   const KindCard = ({ k, icon, title, desc, detected }) => {
     const a = kind === k;
     return (
-      <button onClick={() => setKind(k)} style={{ flex: 1, textAlign: 'left', padding: '18px 18px 16px', background: a ? P.accentSoft : P.surface2, border: `1.5px solid ${a ? P.accentBorder : P.hairline2}`, borderRadius: P.r14, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10, transition: 'all .12s' }}>
+      <button onClick={() => setKind(k)} style={{ flex: 1, textAlign: 'left', padding: '18px 18px 16px', background: a ? P.surface3 : P.surface2, border: `1.5px solid ${a ? P.ink : P.hairline2}`, borderRadius: P.r14, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 10, transition: 'all .12s' }}>
         <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <TypeGlyph kind={k} size={38} />
           {a && <Icon name="check-circle" size={20} color={P.ink} />}

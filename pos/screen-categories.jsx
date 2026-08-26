@@ -353,7 +353,7 @@ function NodePicker({ nodes, mock, sub, replacing, onPick, onClose, anchor = 'ri
         </div>
         <Field icon="search" placeholder="Search the full path, or type a node id…" value={q} onChange={(e) => setQ(e.target.value)} size="sm" />
         {allow && <button data-hw-i onClick={() => setOnlyAllowed((v) => !v)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
-          <span style={{ width: 16, height: 16, borderRadius: 5, flex: '0 0 auto', border: `1.5px solid ${onlyAllowed ? P.accentBorder : P.hairline3}`, background: onlyAllowed ? P.accent : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{onlyAllowed && <Icon name="check" size={11} stroke={3} color={P.accentInk} />}</span>
+          <span style={{ width: 16, height: 16, borderRadius: 5, flex: '0 0 auto', border: `1.5px solid ${onlyAllowed ? P.ink : P.hairline3}`, background: onlyAllowed ? P.ink : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{onlyAllowed && <Icon name="check" size={11} stroke={3} color={P.surface} />}</span>
           <span style={{ fontSize: P.type.meta, color: P.ink2 }}>Only {allow.join(' / ')} — the roots our “{sub.parent}” belongs under</span>
         </button>}
       </div>

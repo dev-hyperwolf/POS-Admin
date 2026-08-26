@@ -4,7 +4,10 @@ const useP = window.useP;
 // Card. Elevation is a ROLE, not a decoration:
 //   flat   border, no shadow      in-page cards, rows, panels   (default)
 //   raised shadow, no border      popovers, sheets, dragged things
-//   sunken canvas2 fill, no border wells, empty states
+//   sunken canvas2 fill + hairline  wells, empty states
+// The hairline is load-bearing, not decoration: canvas2 == bg2, so a sunken
+// well dropped straight onto the page background is a 9/765 delta in dark
+// mode and disappears. The border is what makes it read as recessed there.
 // A card never has both a border and a shadow.
 window.Card = function Card({ children, padding, density = 'default', elevation = 'flat', radius, style, onClick, hover: hoverable, ...rest }) {
   const P = useP();
@@ -14,7 +17,7 @@ window.Card = function Card({ children, padding, density = 'default', elevation 
   const E = {
     flat: { background: P.surface, border: `1px solid ${lift ? P.hairline3 : P.hairline2}`, boxShadow: lift ? P.shadowMd : 'none' },
     raised: { background: P.surface, border: '1px solid transparent', boxShadow: lift ? P.shadowLg : P.shadowMd },
-    sunken: { background: P.canvas2, border: '1px solid transparent', boxShadow: 'none' }
+    sunken: { background: P.canvas2, border: `1px solid ${P.hairline}`, boxShadow: 'none' }
   }[elevation] || {};
   return (
     <div onClick={onClick}
@@ -290,9 +293,9 @@ window.DataTable = function DataTable({ columns, rows, dense, onRowClick, sticky
         {rows.map((row, ri) => {const k = rowKey ? rowKey(row) : ri;const sel = selectedKeys && selectedKeys.has(k);return (
             <tr key={k} data-hw-i={onRowClick ? '' : undefined} tabIndex={onRowClick ? 0 : undefined} role={onRowClick ? 'button' : undefined}
             onKeyDown={onRowClick ? (e) => {if (e.key === 'Enter' || e.key === ' ') {e.preventDefault();onRowClick(row);}} : undefined}
-            onClick={onRowClick ? () => onRowClick(row) : undefined} style={{ cursor: onRowClick ? 'pointer' : 'default', background: sel ? P.accentSoft : 'transparent', transition: 'background .1s' }}
+            onClick={onRowClick ? () => onRowClick(row) : undefined} style={{ cursor: onRowClick ? 'pointer' : 'default', background: sel ? P.surface3 : 'transparent', transition: 'background .1s' }}
             onMouseEnter={(e) => !sel && (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => !sel && (e.currentTarget.style.background = 'transparent')}>
-            {columns.map((c, ci) => <td key={ci} style={{ textAlign: c.align || 'left', padding: dense ? '9px 12px' : '13px 16px', borderTop: `1px solid ${P.hairline}`, color: P.ink, verticalAlign: 'middle' }}>{c.render ? c.render(row) : row[c.key]}</td>)}
+            {columns.map((c, ci) => <td key={ci} style={{ textAlign: c.align || 'left', padding: dense ? '9px 12px' : '13px 16px', borderTop: `1px solid ${P.hairline}`, borderLeft: ci === 0 && selectedKeys ? `3px solid ${sel ? P.ink : 'transparent'}` : undefined, color: P.ink, verticalAlign: 'middle' }}>{c.render ? c.render(row) : row[c.key]}</td>)}
           </tr>);})}
       </tbody>
     </table>

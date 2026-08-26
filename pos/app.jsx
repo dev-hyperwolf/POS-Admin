@@ -43,6 +43,7 @@ function App() {
     <ErrorState title="The Brands screen did not load"
       body="pos/screen-brands.jsx defines window.BrandsScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   if (route === 'members') screen = <MembersScreen />;else
+  if (route === 'merch') screen = <window.MerchScreen />;else
   if (route === 'settings') screen = <SettingsScreen />;else
   screen = <RegisterScreen />;
 

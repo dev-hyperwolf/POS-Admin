@@ -1,3 +1,27 @@
+/* ═══ THIS HARNESS IS WORTH SOMETHING ONLY WHERE IT IMITATES THE BROWSER ═══
+ *
+ * Every place it quietly does NOT is a place where a green suite means nothing.
+ * Four found so far, and two were invisible until another team's code sat
+ * beside ours in a merge:
+ *
+ *   · IT GIVES EACH FILE ITS OWN SCOPE (the IIFE below). The browser does not:
+ *     with no `data-presets`, Babel compiles every top-level `const` to a global
+ *     and the LAST script wins. That hid a live bug where pos/data.jsx and
+ *     pos/screen-orders.jsx both declared `STAGES`, so setStage() returned null
+ *     on every call while the UI reported success. STILL PRESENT — every suite
+ *     depends on it. test/global-collisions.test.mjs covers the specific hole by
+ *     reading the PAGES instead.
+ *   · NO `fetch` — jsdom has none, and the live seams call it at load.
+ *   · ReactDOM WAS THE FROZEN MODULE NAMESPACE, so code that patches
+ *     createRoot (as the live seams do) threw. The browser's UMD global is
+ *     writable.
+ *   · TEARDOWN RACED QUEUED MICROTASKS, failing whole FILES whose every
+ *     assertion had passed.
+ *
+ * The IIFE that hid STAGES and the sealed ReactDOM are the same bug wearing
+ * different clothes. Before trusting this harness on anything load-order or
+ * lifecycle shaped, check it is not lying to you about the browser.
+ */
 /* ── DRIVE A REAL POS SCREEN, HEADLESSLY ─────────────────────────────────────
  *
  * Why this exists, in the owner's words: "they just dont even work. You should
@@ -160,6 +184,17 @@ export async function boot(which = 'pos', opts = {}) {
    * failed FILE even though every assertion in it passed. Six files failed that
    * way on the merged tree, and guarding fetch alone did not fix it because the
    * retry is scheduled, not fetched. */
+  /* ⚠️ A ONE-SHOT TIMER FORGETS ITSELF WHEN IT FIRES.
+   *
+   * The first version of this retained EVERY id for the life of the harness, in
+   * a Set that only close() ever emptied. A page that schedules timers in a
+   * loop — which a render loop does — therefore grew that Set without bound,
+   * and the harness turned a page-level bug into a memory leak of its own. That
+   * is the harness making things worse rather than observing them, and across
+   * many concurrent runs it is the difference between one slow test and a
+   * machine in trouble.
+   *
+   * setInterval entries stay until cleared, because they genuinely repeat. */
   const harnessTimers = new Set();
   for (const kind of ['setTimeout', 'setInterval']) {
     const orig = window[kind].bind(window);
@@ -178,9 +213,15 @@ export async function boot(which = 'pos', opts = {}) {
       //
       // Intervals stay tracked: they genuinely repeat, and cancelling them at
       // close() is the reason this tracker exists.
+      //
+      // MERGE NOTE: both branches fixed this same leak independently. This keeps
+      // BOTH guards -- `if (entry)` (feat) for a timer that fires before the
+      // assignment lands, and the `typeof fn === 'function'` check (main) because
+      // setTimeout legally accepts a string. Dropping either re-opens a hole the
+      // other branch had already closed.
       let entry;
       const wrapped = isOneShot
-        ? (...a) => { if (entry) harnessTimers.delete(entry); return fn(...a); }
+        ? (...a) => { if (entry) harnessTimers.delete(entry); return typeof fn === 'function' ? fn(...a) : undefined; }
         : fn;
       const id = orig(wrapped, ms, ...rest);
       entry = [isOneShot ? 'clearTimeout' : 'clearInterval', id];
@@ -238,7 +279,18 @@ export async function boot(which = 'pos', opts = {}) {
   window.ReactDOM = { ...ReactDOM };
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
   window.scrollTo = () => {};
-  window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+  /* rAF GOES THROUGH THE TRACKED window.setTimeout, DELIBERATELY.
+   *
+   * A bare `setTimeout` here resolves to NODE's global, not window's, so every
+   * animation frame bypassed the tracker: never cancelled at teardown, so a
+   * callback could fire into a destroyed document.
+   *
+   * The other session flagged the sharper version of this while auditing the
+   * leak I introduced — with the tracker's original never-delete behaviour, an
+   * animating page added a RETAINED ENTRY PER FRAME. That is the difference
+   * between a slow leak and a machine in trouble. One-shots now release
+   * themselves when they fire, so routing rAF here is safe as well as correct. */
+  window.requestAnimationFrame = (cb) => window.setTimeout(cb, 0);
 
   for (const src of scriptsFor(entry)) {
     try {

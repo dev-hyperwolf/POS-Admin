@@ -112,7 +112,7 @@
               return (
                 <button key={o.id} onClick={() => toggle(o.id)} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 7, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12.5, color: P.ink, fontFamily: P.fontSans, textAlign: 'left' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = P.surface3)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
-                  <span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 4, border: `1px solid ${checked ? P.accentBorder : P.hairline3}`, background: checked ? P.accent : 'transparent', color: P.accentInk, flex: '0 0 auto' }}>
+                  <span style={{ display: 'inline-flex', width: 16, height: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 4, border: `1px solid ${checked ? P.ink : P.hairline3}`, background: checked ? P.ink : 'transparent', color: P.surface, flex: '0 0 auto' }}>
                     {checked && <Icon name="check" size={11} stroke={3} />}
                   </span>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.label}</span>
@@ -184,7 +184,7 @@
   window.TR = function TR({ children, onClick, style }) {
     const P = useP();
     return <tr onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', ...style }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>{children}</tr>;
+      onMouseEnter={(e) => (e.currentTarget.style.background = (style && style.background && style.background !== 'transparent') ? style.background : P.surface2)} onMouseLeave={(e) => (e.currentTarget.style.background = (style && style.background) || 'transparent')}>{children}</tr>;
   };
   window.SortableTH = function SortableTH({ label, k, sort, onSort, align }) {
     const active = sort.key === k;

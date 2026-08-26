@@ -138,10 +138,10 @@
             return (
               <button key={b.brand} onClick={() => onBrandClick(b.brand)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', fontSize: 12.5, padding: '4px 6px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: P.fontSans,
-                  background: isActive ? P.accentSoft : 'transparent', color: isActive ? P.ink : P.ink2 }}>
+                  background: isActive ? P.ink : 'transparent', color: isActive ? P.surface : P.ink2 }}>
                 <span style={{ height: 8, width: 8, borderRadius: 99, background: ring[i % ring.length], flex: '0 0 auto' }} />
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.brand}</span>
-                <span style={{ fontFamily: P.fontMono, color: P.inkMute }}>{HD.formatPercent(pct, 0)}</span>
+                <span style={{ fontFamily: P.fontMono, color: isActive ? P.surface : P.inkMute, opacity: isActive ? .8 : 1 }}>{HD.formatPercent(pct, 0)}</span>
               </button>);
           })}
         </div>
@@ -156,7 +156,6 @@
     const [brandFilter, setBrandFilter] = React.useState(null);
     const [slowOnly, setSlowOnly] = React.useState(false);
     const [sort, setSort] = React.useState({ key: 'sellThrough', dir: 'desc' });
-    const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     const warn = HD.tone(P, 'warn');
 
     const baseSkus = React.useMemo(() => B.BUYER_SKUS.filter((s) => {
@@ -260,7 +259,7 @@
               <Icon name="filter" size={13} stroke={2} color={P.inkMute} />
               <span style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Active</span>
               {activeFilterChips.map((c) => (
-                <button key={c.label} onClick={c.clear} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 99, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans }}>
+                <button key={c.label} onClick={c.clear} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 99, background: P.highlightSoft, color: P.ink, border: `1px solid ${P.hairline3}`, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans }}>
                   {c.label}<Icon name="x" size={11} stroke={2.4} />
                 </button>))}
             </div>)}
@@ -367,8 +366,8 @@
                   const margin = b.revenueCents === 0 ? 0 : (b.revenueCents - b.costCents) / b.revenueCents;
                   const contribution = totalBrandProfit === 0 ? 0 : b.profitCents / totalBrandProfit;
                   return (
-                    <TR key={b.brand} onClick={() => setBrandFilter((cur) => (cur === b.brand ? null : b.brand))} style={{ background: brandFilter === b.brand ? P.accentSoft : 'transparent' }}>
-                      <TD>{b.brand}</TD>
+                    <TR key={b.brand} onClick={() => setBrandFilter((cur) => (cur === b.brand ? null : b.brand))} style={{ background: brandFilter === b.brand ? P.surface3 : 'transparent' }}>
+                      <TD style={{ borderLeft: `3px solid ${brandFilter === b.brand ? P.ink : 'transparent'}` }}>{b.brand}</TD>
                       <TD align="right" mono style={{ color: P.ink2 }}>{b.skuCount}</TD>
                       <TD align="right" mono style={{ color: P.ink2 }}>{HD.formatCurrency(b.costCents / 100, { showCents: false })}</TD>
                       <TD align="right" mono>{HD.formatCurrency(b.revenueCents / 100, { showCents: false })}</TD>

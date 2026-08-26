@@ -54,7 +54,6 @@
     const [q, setQ] = React.useState('');
     const [status, setStatus] = React.useState('all');
     const [selected, setSelected] = React.useState(null);
-    const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     const rows = D.MESSAGES.filter((m) => {
       if (status !== 'all' && m.status !== status) return false;
       const s = q.trim().toLowerCase();
@@ -81,7 +80,7 @@
               {['all', 'delivered', 'sent', 'queued', 'held', 'failed', 'blocked'].map((s) => (
                 <button key={s} onClick={() => setStatus(s)}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 26, padding: '0 10px', borderRadius: 99, fontSize: 11.5, cursor: 'pointer', fontFamily: P.fontSans,
-                    background: status === s ? P.accentSoft : P.surface, color: status === s ? accentInk : P.inkMute, border: `1px solid ${status === s ? P.accentBorder : P.hairline2}` }}>
+                    background: status === s ? P.ink : 'transparent', color: status === s ? P.surface : P.inkMute, border: `1px solid ${status === s ? P.ink : P.hairline2}` }}>
                   {s}{s !== 'all' && counts[s] ? <span style={{ fontFamily: P.fontMono, opacity: .7 }}>{counts[s]}</span> : null}
                 </button>))}
             </div>

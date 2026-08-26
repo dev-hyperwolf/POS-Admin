@@ -1,0 +1,82 @@
+# Keep Render in step with GitHub Pages.
+#
+# WHY THIS EXISTS: Render is connected to dev-hyperwolf/wm-integration, not to this
+# repo. It pulls this repo at BUILD time (see wm-integration/render.yaml), so it has no
+# visibility into commits here and will never rebuild on its own. Pages updates the
+# instant you push; Render keeps serving whatever it last cloned.
+#
+# That is how the two hosts drifted for six days in August 2026 -- silently, because
+# nothing on either page said which build it was showing. This closes the loop.
+#
+# IT DOES NOT JUST FIRE AND HOPE. Firing a webhook and reporting success would be a
+# check that looks like it covers something and does not. After triggering, this polls
+# Render's own build-info.json until it reports THIS commit, and fails if it never does.
+
+name: Sync Render to main
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # so you can re-sync by hand without an empty commit
+
+concurrency:
+  group: render-sync        # a burst of pushes should produce one final correct deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the deploy hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::RENDER_DEPLOY_HOOK_URL is not set. Render will NOT be updated"
+            echo "::error::and this repo's two hosts will drift. Add it under"
+            echo "::error::Settings > Secrets and variables > Actions. Get the URL from"
+            echo "::error::the Render dashboard: service > Settings > Deploy Hook."
+            exit 1
+          fi
+
+      - name: Trigger the Render deploy
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          code=$(curl -sS -o /tmp/hook.out -w '%{http_code}' -X POST "$HOOK")
+          echo "hook responded $code"
+          cat /tmp/hook.out || true
+          # 2xx only. A 401/404 means the hook was rotated or the service was replaced.
+          case "$code" in 2*) ;; *) echo "::error::deploy hook returned $code"; exit 1;; esac
+
+      - name: Wait until Render actually serves this commit
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          # Render stops the old instance before starting the new one (the service has a
+          # disk), so a 502 window here is expected, not a failure.
+          for i in $(seq 1 60); do
+            live=$(curl -sS -m 15 https://hyperwolf-wm-demo.onrender.com/build-info.json 2>/dev/null \
+                   | sed -n 's/.*"sha":"\([^"]*\)".*/\1/p')
+            if [ "$live" = "$SHA" ]; then
+              echo "Render is serving $SHA"
+              exit 0
+            fi
+            echo "attempt $i: render at ${live:-unreachable}, want $SHA"
+            sleep 15
+          done
+          echo "::error::Render did not reach $SHA within 15 minutes."
+          echo "::error::Check the Render dashboard for a failed build. The hosts are OUT OF SYNC."
+          exit 1
+
+      - name: Confirm the two hosts agree
+        run: |
+          # The real assertion: same bytes, both hosts. Hashing one representative file
+          # is enough to catch a stale clone, which is the failure mode that actually
+          # happens here.
+          pages=$(curl -sS -m 20 "https://dev-hyperwolf.github.io/POS-Admin/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
+          render=$(curl -sS -m 20 "https://hyperwolf-wm-demo.onrender.com/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
+          echo "pages  $pages"
+          echo "render $render"
+          [ "$pages" = "$render" ] || { echo "::error::hosts serve different bytes"; exit 1; }
+          echo "Both hosts serve identical bytes."

@@ -154,7 +154,7 @@ function SaleDetail({ s, onClose, onFlash }) {
         </> : <>
           <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.5, marginBottom: 10 }}>Choose how many of each line is coming back. Returning every line refunds the whole sale.</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {lines.map((l, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', background: retQty(i) ? P.accentSoft : P.surface2, border: `1px solid ${retQty(i) ? P.accentBorder : P.hairline2}`, borderRadius: P.r10 }}>
+            {lines.map((l, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', background: retQty(i) ? P.surface3 : P.surface2, border: `1px solid ${retQty(i) ? P.ink : P.hairline2}`, borderRadius: P.r10 }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 12.5, color: P.ink, fontWeight: 600 }}>{l[0]}</span>
                 <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{l[1]} sold · {money(l[2] / l[1])} each</span>
@@ -166,7 +166,7 @@ function SaleDetail({ s, onClose, onFlash }) {
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>Reason</div>
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{REASONS.map((r) => {
               const on = reason === r;
-              return <button key={r} onClick={() => setReason(r)} style={{ padding: '5px 10px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : 'transparent', color: on ? (P.accentText) : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{r}</button>;
+              return <button key={r} onClick={() => setReason(r)} style={{ padding: '5px 10px', borderRadius: 99, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : 'transparent', color: on ? P.surface : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{r}</button>;
             })}</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 10, borderTop: `1px solid ${P.hairline}`, fontSize: 15, fontWeight: 800, color: anyRet ? P.ink : P.inkMute }}><span>Refund</span><span style={{ fontFamily: P.fontMono }}>{money(retTotal)}</span></div>
@@ -212,7 +212,7 @@ window.OpenTickets = function OpenTickets() {
   const reset = () => { setQ(''); setRange('today'); setTender('All'); setStaff('All'); };
   const sum = done.reduce((a, s) => a + saleTotal(s), 0);
 
-  const chip = (on, label, onClick, key) => <button key={key} onClick={onClick} style={{ padding: '4px 9px', borderRadius: 99, border: `1px solid ${on ? P.accentBorder : P.hairline2}`, background: on ? P.accentSoft : 'transparent', color: on ? (P.accentText) : P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{label}</button>;
+  const chip = (on, label, onClick, key) => <button key={key} onClick={onClick} style={{ padding: '4px 9px', borderRadius: 99, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : 'transparent', color: on ? P.surface : P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>{label}</button>;
 
   return <div style={{ position: 'relative' }}>
     <IconBtn icon="receipt" badge={String(SALES_HELD.length)} badgeColor={P.warn} title={`Sales — ${SALES_HELD.length} on hold · look up any completed sale`} onClick={() => setOpen((o) => !o)} data-tour="sales-panel" />

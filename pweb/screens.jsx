@@ -283,7 +283,7 @@ function Builder({ promo, onSave, onCancel, onDelete }){
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}><div><div style={{ fontSize: 13.5, fontWeight:600, color:P.ink }}>Stackable</div><div style={{ fontSize:11.5, color:P.inkDim }}>Can combine with other active promos</div></div><Switch on={d.stackable} onChange={v=>up({stackable:v})}/></div>
               <Row>
-                <Fld label="Priority" hint="1 = highest"><Field mono value={d.priority} onChange={e=>up({priority:Number(e.target.value)||1})}/></Fld>
+                <Fld label="Priority" hint="1 = highest · Suite convention"><Field mono value={d.priority} onChange={e=>up({priority:Number(e.target.value)||1})}/></Fld>
                 <Fld label="Redemption cap" hint="blank = unlimited"><Field mono placeholder="∞" value={d.cap||''} onChange={e=>up({cap:Number(e.target.value)||null})}/></Fld>
               </Row>
             </div>

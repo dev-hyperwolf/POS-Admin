@@ -19,7 +19,7 @@
       <div role="button" tabIndex={0} draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={onClick}
         onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && onClick) { e.preventDefault(); onClick(); } }}
         onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-        style={{ position: 'relative', overflow: 'hidden', flex: '0 0 auto', background: h ? P.canvas : P.surface, border: `1px solid ${h ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 12, cursor: 'grab', boxShadow: P.shadowSm, opacity: dragging ? .4 : 1, transform: dragging ? 'scale(.98)' : 'none', transition: 'background .12s, border-color .12s' }}>
+        style={{ position: 'relative', overflow: 'hidden', flex: '0 0 auto', background: h ? P.surface2 : P.surface, border: `1px solid ${h ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 12, cursor: 'grab', boxShadow: P.shadowSm, opacity: dragging ? .4 : 1, transform: dragging ? 'scale(.98)' : 'none', transition: 'background .12s, border-color .12s' }}>
         <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 3, background: accent }} />
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ height: 40, width: 40, borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto', color: P.inkMute }}>
@@ -60,7 +60,7 @@
     return (
       <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); onDrop(status); }}
-        style={{ display: 'flex', flexDirection: 'column', width: 280, flex: '0 0 280px', borderRadius: P.r14, overflow: 'hidden', background: over ? P.accentSoft : P.canvas, border: `1px solid ${over ? P.accentBorder : P.hairline2}`, height: '100%', transition: 'background .12s, border-color .12s' }}>
+        style={{ display: 'flex', flexDirection: 'column', width: 280, flex: '0 0 280px', borderRadius: P.r14, overflow: 'hidden', background: over ? P.accentSoft : P.bg2, border: `1px solid ${over ? P.accentBorder : P.hairline2}`, height: '100%', transition: 'background .12s, border-color .12s' }}>
         <div style={{ padding: 12, borderBottom: `1px solid ${P.hairline2}`, borderTop: `3px solid ${dot}`, position: 'sticky', top: 0, background: over ? P.accentSoft : P.surface, zIndex: 2 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 8, height: 8, borderRadius: 99, background: dot, flex: '0 0 auto' }} />

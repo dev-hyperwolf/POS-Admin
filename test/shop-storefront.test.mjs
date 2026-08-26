@@ -264,18 +264,28 @@ test('the On Sale rail is the real markdown set, not a curated list', async () =
   });
 });
 
-test('the brand spotlight offers a discount the catalogue actually carries', async () => {
+/* WAS: "the brand spotlight offers a discount the catalogue actually carries".
+ *
+ * The spotlight no longer derives anything — it renders what marketing picked,
+ * or the house card. So the assertion below now guards the OPERATOR AUDIT that
+ * inherited the derivation (`markdownAudit`), which is the only place the
+ * deepest-markdown-per-brand computation still lives. The arithmetic it protects
+ * is unchanged, line for line; only the caller moved.
+ *
+ * test/shop-merch-surfaces.test.mjs holds the other half: that no shopper-facing
+ * screen renders this. */
+test('the markdown audit names a discount the catalogue actually carries', async () => {
   await withApp('shop', async (app) => {
     const W = app.window;
     await app.mount('ShopApp');
     const D = W.SHOPDATA;
-    const sp = D.brandSpotlight();
-    assert.notEqual(sp, null, 'no spotlight was produced');
+    const sp = D.markdownAudit();
+    assert.notEqual(sp, null, 'no audit result was produced');
     const pct = +(sp.offer.match(/(\d+)%/) || [])[1];
     const deepest = Math.max(...D.allProducts()
       .filter((p) => p.brand === sp.brand && p.was != null && p.was > p.price)
       .map((p) => Math.round(((p.was - p.price) / p.was) * 100)));
-    assert.equal(pct, deepest, 'the spotlight advertises a markdown that brand does not have');
+    assert.equal(pct, deepest, 'the audit names a markdown that brand does not have');
   });
 });
 

@@ -104,8 +104,8 @@
                     <li key={item.label}>
                       <button onClick={() => navigate(item.href)} title={collapsed ? item.label : undefined}
                         style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: collapsed ? 0 : '0 12px', justifyContent: collapsed ? 'center' : 'flex-start', height: 34, borderRadius: 8, fontSize: 13.5, textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
-                          background: active ? P.surface2 : 'transparent', color: active ? P.ink : P.inkDim, border: 'none', borderLeft: `2px solid ${active ? P.accent : 'transparent'}` }}
-                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.surface2; }}
+                          background: active ? P.surface : 'transparent', boxShadow: active ? P.shadowSm : 'none', color: active ? P.ink : P.inkDim, border: 'none', borderLeft: `2px solid ${active ? P.accent : 'transparent'}` }}
+                        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = P.surface3; }}
                         onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}>
                         <Icon name={item.icon} size={16} stroke={1.8} color={color} />
                         {!collapsed && <>

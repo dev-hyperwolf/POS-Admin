@@ -1,3 +1,19 @@
+/* 🔴 THIS FILE SORTS priority ASCENDING — LOWER WINS. That is the Promotions
+ * Suite's convention: the editor is labelled "1 = highest" (screens.jsx:286)
+ * and every record here uses 1..5. It is correct and its data agrees with it.
+ *
+ * THE COMMERCE ENGINE USES THE OPPOSITE CONVENTION. hyperwolf-commerce-logic
+ * sorts `(b.priority ?? 0) - (a.priority ?? 0)` — HIGHER wins — and its shipped
+ * rules use 5 / 10 / 20 / 30.
+ *
+ * ⚠️ SO NEVER HAND A PROMO'S `priority` STRAIGHT TO A RULE, OR THE REVERSE. It
+ * ranks every contested slot exactly backwards, and it LOOKS right, because a
+ * ranked list is still a list — nothing throws, and no test notices unless it
+ * asserts the ORDER.
+ * Convert explicitly: `fromSuitePriority()` / `toSuitePriority()` in the
+ * engine's src/core/rules/priority.ts, which exist so that crossing this
+ * boundary is a decision somebody made rather than a number that lined up.
+ */
 // ── Preview → "Live control" — backend board that sets what each surface shows
 const useP = window.useP;
 const { useState } = React;

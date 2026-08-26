@@ -9,8 +9,13 @@
     { id: 'orders', label: 'Orders', icon: 'board', pos: 'orders', badge: 4 },
     { id: 'catalog', label: 'Catalog', icon: 'package', pos: 'catalog' },
     { id: 'batches', label: 'Batches', icon: 'box', href: 'METRC Batch Pipeline.html' },
+    // Catalog -> Batches -> RFID is the physical-goods run of the rail: an operator
+    // going from "batch approved for sale" to "tag it, pack it, verify the kit" travels
+    // one item down. Everything below is commerce, which needs the goods to exist first.
+    { id: 'rfid', label: 'RFID', icon: 'scan', href: 'rfid/index.html' },
     { id: 'promos', label: 'Promos', icon: 'tag', href: 'Promotions Suite.html' },
     { id: 'swapupsell', label: 'Swap & Upsell', icon: 'swap', href: 'Swap and Upsell Engine.html' },
+    { id: 'merch', label: 'Merch', icon: 'layout-template', pos: 'merch' },
     { id: 'members', label: 'Members', icon: 'users', pos: 'members' },
     { id: 'terminals', label: 'Terminals', icon: 'card', href: 'POS Terminal Configuration.html' },
     { id: 'delivery', label: 'Delivery', icon: 'pin', href: 'Hyperwolf Delivery.html' },

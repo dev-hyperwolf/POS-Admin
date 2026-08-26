@@ -38,7 +38,7 @@
     const P = useP(), HD = window.HD;
     const active = hasActiveFilters(filters);
     return (
-      <div style={{ padding: '12px 20px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface2 }}>
+      <div style={{ padding: '12px 20px', borderTop: `1px solid ${P.hairline}`, borderBottom: `1px solid ${P.hairline2}`, background: P.surface2 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Field icon="search" size="sm" value={query} onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search by SKU, product, METRC, HUID, or brand…" aria-label="Search batches" type="search" />

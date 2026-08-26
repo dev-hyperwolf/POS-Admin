@@ -55,7 +55,6 @@
     React.useEffect(() => setPage(1), [query, segment]);
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 24 }}>
@@ -83,7 +82,7 @@
               {[{ value: '', label: 'All' }, ...D.RFM_SEGMENTS.map((s) => ({ value: s, label: s.replace(/_/g, ' ') }))].map((o) => (
                 <button key={o.value} onClick={() => setSegment(o.value)} role="radio" aria-checked={segment === o.value}
                   style={{ height: 26, padding: '0 10px', borderRadius: 99, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans,
-                    background: segment === o.value ? P.accentSoft : P.surface, color: segment === o.value ? accentInk : P.inkDim, border: `1px solid ${segment === o.value ? P.accentBorder : P.hairline2}` }}>{o.label}</button>))}
+                    background: segment === o.value ? P.ink : 'transparent', color: segment === o.value ? P.surface : P.inkDim, border: `1px solid ${segment === o.value ? P.ink : P.hairline2}` }}>{o.label}</button>))}
             </div>
           </div>
           {rows.length === 0

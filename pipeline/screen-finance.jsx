@@ -191,8 +191,8 @@
             {AP_FILTERS.map((f) => (
               <button key={f.value} onClick={() => setFilter(f.value)}
                 style={{ height: 32, padding: '0 12px', borderRadius: 99, fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: P.fontSans,
-                  background: filter === f.value ? P.accentSoft : 'transparent', color: filter === f.value ? accentInk : P.inkDim, border: `1px solid ${filter === f.value ? P.accentBorder : P.hairline2}` }}>
-                {f.label}<span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{counts[f.value]}</span>
+                  background: filter === f.value ? P.ink : 'transparent', color: filter === f.value ? P.surface : P.inkDim, border: `1px solid ${filter === f.value ? P.ink : P.hairline2}` }}>
+                {f.label}<span style={{ fontSize: 11.5, color: filter === f.value ? P.surface : P.inkMute, opacity: filter === f.value ? .8 : 1, fontFamily: P.fontMono }}>{counts[f.value]}</span>
               </button>))}
           </div>
           <div style={{ marginLeft: 'auto', width: 320 }}>
@@ -381,14 +381,14 @@
             {SOURCE_FILTERS.map((f) => (
               <button key={f.value} onClick={() => setSource(f.value)}
                 style={{ height: 32, padding: '0 12px', borderRadius: 99, fontSize: 13.5, cursor: 'pointer', fontFamily: P.fontSans,
-                  background: source === f.value ? P.accentSoft : 'transparent', color: source === f.value ? accentInk : P.inkDim, border: `1px solid ${source === f.value ? P.accentBorder : P.hairline2}` }}>{f.label}</button>))}
+                  background: source === f.value ? P.ink : 'transparent', color: source === f.value ? P.surface : P.inkDim, border: `1px solid ${source === f.value ? P.ink : P.hairline2}` }}>{f.label}</button>))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
               {STATUS_FILTERS.map((f) => (
                 <button key={f.value} onClick={() => setStatus(f.value)}
                   style={{ height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans,
-                    background: status === f.value ? P.surface3 : 'transparent', color: status === f.value ? P.ink : P.inkMute, border: `1px solid ${status === f.value ? P.hairline3 : P.hairline2}` }}>{f.label}</button>))}
+                    background: status === f.value ? P.ink : 'transparent', color: status === f.value ? P.surface : P.inkDim, border: `1px solid ${status === f.value ? P.ink : P.hairline2}` }}>{f.label}</button>))}
               <span style={{ height: 20, width: 1, background: P.hairline2, margin: '0 4px' }} />
               <MultiSelectFilter label="Brand / Vendor" options={vendorOptions.map((v) => ({ id: v, label: v }))} value={vendor} onChange={setVendor} />
             </div>
@@ -566,7 +566,7 @@
                             const checked = selected.has(li.id);
                             return (
                               <li key={li.id} style={{ borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer', background: checked ? P.accentSoft : 'transparent' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer', background: checked ? P.surface3 : 'transparent', borderLeft: `3px solid ${checked ? P.ink : 'transparent'}` }}>
                                   <Check on={checked} onChange={() => toggleLine(li.id)} size={18} />
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13.5, color: P.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{li.productName}</div>

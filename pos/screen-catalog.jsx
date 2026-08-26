@@ -137,7 +137,7 @@ window.CatalogScreen = function CatalogScreen() {
           map(([k, label, ic]) => {
             const a = smart === k;
             const n = all.filter((p) => (cat === 'All' || p.cat === cat) && SMART[k](p)).length;
-            return <button key={k} onClick={() => setSmart(a ? 'none' : k)} disabled={n === 0} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: n === 0 ? P.inkFaint : a ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: n === 0 ? 'default' : 'pointer', opacity: n === 0 ? .5 : 1, fontFamily: P.fontSans, whiteSpace: 'nowrap', transition: 'all .12s' }}>
+            return <button key={k} onClick={() => setSmart(a ? 'none' : k)} disabled={n === 0} style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.ink : P.hairline2}`, background: a ? P.ink : P.surface, color: n === 0 ? P.inkFaint : a ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: n === 0 ? 'default' : 'pointer', opacity: n === 0 ? .5 : 1, fontFamily: P.fontSans, whiteSpace: 'nowrap', transition: 'all .12s' }}>
               <Icon name={ic} size={12.5} stroke={1.9} />{label}<span style={{ fontSize: 10, fontFamily: P.fontMono, opacity: .7 }}>{n}</span>
             </button>;
           })}
@@ -282,7 +282,7 @@ function MarginFilter({ value, onChange, rows, all }) {
   const active = value > 0;
   return (
     <div style={{ position: 'relative', flex: '0 0 auto' }}>
-      <button onClick={() => setOpen((o) => !o)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r10, border: `1px solid ${active || open ? P.accentBorder : P.hairline2}`, background: active ? P.accentSoft : P.surface, color: P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+      <button onClick={() => setOpen((o) => !o)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 11px', borderRadius: P.r10, border: `1px solid ${active || open ? P.hairline3 : P.hairline2}`, background: active ? P.highlightSoft : P.surface, color: active ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
         <Icon name="percent" size={13} stroke={1.9} />Margin{active ? ` ≥${value}%` : ''}<Icon name="chevron-down" size={12} stroke={2.2} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
       </button>
       {open && <>
@@ -296,7 +296,7 @@ function MarginFilter({ value, onChange, rows, all }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '11px 0 12px' }}>
             {presets.map((p) => {
               const a = value === p;
-              return <button key={p} onClick={() => onChange(p)} style={{ padding: '5px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.accentBorder : P.hairline2}`, background: a ? P.accentSoft : P.surface, color: a ? P.ink : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{p === 0 ? 'All' : `≥${p}%`}</button>;
+              return <button key={p} onClick={() => onChange(p)} style={{ padding: '5px 11px', borderRadius: P.r999, border: `1px solid ${a ? P.ink : P.hairline2}`, background: a ? P.ink : P.surface, color: a ? P.surface : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{p === 0 ? 'All' : `≥${p}%`}</button>;
             })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${P.hairline}`, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>
@@ -1432,7 +1432,7 @@ function WmMatchModal({ p, conf, onClose }) {
             <div style={{ display: 'flex', gap: 10 }}><Thumb item={p} size={54} /><div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{p.name}</div><div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.sku}</div></div></div>
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', p.brand], ['Category', p.cat], ['Price', fmt.money0(p.price)], ['Potency · per batch', potency]].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
           </div>
-          <div style={{ border: `1px solid ${picked != null ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 13, background: picked != null ? P.accentSoft : P.surface }}>
+          <div style={{ border: `1px solid ${picked != null ? P.ink : P.hairline2}`, borderRadius: P.r12, padding: 13, background: picked != null ? P.surface3 : P.surface }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: '#1F5FC0', marginBottom: 9 }}>Weedmaps product</div>
             {picked != null ? <>
               <div style={{ display: 'flex', gap: 10 }}>
@@ -1447,7 +1447,7 @@ function WmMatchModal({ p, conf, onClose }) {
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 8 }}>Map manually — search the Weedmaps catalog</div>
           <div style={{ marginBottom: 10 }}><Field icon="search" placeholder="Search Weedmaps products…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {cands.map((c, i) => <button key={i} onClick={() => setPicked(i)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', background: picked === i ? P.accentSoft : P.surface, border: `1px solid ${picked === i ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+            {cands.map((c, i) => <button key={i} onClick={() => setPicked(i)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', background: picked === i ? P.surface3 : P.surface, border: `1px solid ${picked === i ? P.ink : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
               <div style={{ width: 34, height: 34, flex: '0 0 auto', borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={15} stroke={1.7} color={P.inkFaint} /></div>
               <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{c.title}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{c.brand} · {fmt.money0(c.price)}</div></div>
               <span style={{ fontSize: 11.5, fontWeight: 800, color: c.conf >= 0.85 ? P.good : c.conf >= 0.6 ? P.warn : P.inkDim, fontFamily: P.fontMono }}>{Math.round(c.conf * 100)}%</span>

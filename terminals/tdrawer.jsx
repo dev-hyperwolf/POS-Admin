@@ -39,7 +39,7 @@ function DenomCounter({ q, set }) {
             <div key={k} style={{ display: 'grid', gridTemplateColumns: '1fr 64px 74px', alignItems: 'center', gap: 10, padding: '5px 0' }}>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{d.l}{d.u && <span style={{ color: P.inkMute, fontWeight: 400, fontSize: 11.5 }}> · {d.u}</span>}</span>
               <input value={q[k] || ''} onChange={(e) => set(k, e.target.value)} placeholder="0" inputMode="numeric"
-                style={{ width: '100%', padding: '7px 8px', textAlign: 'center', fontFamily: P.fontMono, fontWeight: 600, fontSize: 13.5, background: active ? P.accentSoft : P.field, border: `1px solid ${active ? P.accentBorder : P.fieldBorder}`, borderRadius: P.r8, color: P.ink, outline: 'none' }} />
+                style={{ width: '100%', padding: '7px 8px', textAlign: 'center', fontFamily: P.fontMono, fontWeight: 600, fontSize: 13.5, background: active ? P.surface3 : P.field, border: `1px solid ${active ? P.ink : P.fieldBorder}`, borderRadius: P.r8, color: P.ink, outline: 'none' }} />
               <span style={{ fontFamily: P.fontMono, fontSize: 12.5, fontWeight: active ? 700 : 400, color: active ? P.ink : P.inkFaint, textAlign: 'right' }}>{money(st)}</span>
             </div>);})}
       </div>
@@ -354,9 +354,9 @@ window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {DESTS.map((d) => {const on = dest === d.v;return (
                 <button key={d.v} onClick={() => setDest(d.v)} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans,
-                  background: on ? P.accentSoft : P.surface, border: `1.5px solid ${on ? P.accentBorder : P.hairline2}`, borderRadius: P.r10 }}>
-                  <span style={{ width: 15, height: 15, borderRadius: 99, flex: '0 0 auto', border: `2px solid ${on ? P.accent : P.hairline3}`, background: on ? P.accent : 'transparent' }} />
-                  <Icon name={d.icon} size={17} color={on ? (P.accentText) : P.inkMute} />
+                  background: on ? P.surface3 : P.surface, border: `1.5px solid ${on ? P.ink : P.hairline2}`, borderRadius: P.r10 }}>
+                  <span style={{ width: 15, height: 15, borderRadius: 99, flex: '0 0 auto', border: `2px solid ${on ? P.ink : P.hairline3}`, background: on ? P.ink : 'transparent' }} />
+                  <Icon name={d.icon} size={17} color={on ? P.ink : P.inkMute} />
                   <span style={{ flex: 1, minWidth: 0 }}><span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>{d.label}</span>
                     <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, marginTop: 1 }}>{d.sub}</span></span>
                 </button>);})}

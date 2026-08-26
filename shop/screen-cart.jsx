@@ -102,6 +102,225 @@ function scartExpressNote(sku, qty) {
     : `Arrives tomorrow — today’s van is carrying ${units}.`;
 }
 
+
+// ── THE UPSELL ENGINE, ON THE STOREFRONT ───────────────────────────────────
+//
+// 🔴 THE OFFERS ARE THE ENGINE'S. THIS FILE RANKS NOTHING AND PRICES NOTHING.
+//
+// `HWCommerce.getUpsells(ctx, surface, …)` decides what to show, in what order,
+// and how many. It is handed the SAME context `SHOP.totals()` is priced from —
+// `SHOP.context()`, which carries the per-line lanes and the operator's lane
+// economics — and the SAME rule set, `SHOP.engineOptions().rules`. Both of those
+// matter: an unlock card derived from a rule that is not pricing this cart is a
+// promise the summary underneath it will not keep.
+//
+// What this file adds on top is ONE thing the engine cannot know, below.
+
+/**
+ * Offers the customer has waved away this visit.
+ *
+ * "A dismissed offer does not come back for that visit" — so this is module
+ * scope, not component state: the cart and the checkout are two screens reading
+ * one engine, and a dismissal that only lived in the cart's `useState` came
+ * straight back the moment the customer pressed Checkout. It is handed to
+ * `getUpsells` as `dismissed`, which suppresses while BUILDING rather than
+ * after slicing, so dismissing a card backfills the rail instead of shrinking it.
+ */
+const SCART_DISMISSED = new Set();
+function scartDismiss(id) { if (id) { SCART_DISMISSED.add(id); window.SHOP.toast('Okay — we won’t show that again.'); } }
+function scartDismissed(id) { return SCART_DISMISSED.has(id); }
+
+/**
+ * 🔴 THE ONE THING THE ENGINE IS WRONG ABOUT HERE, AND WHY.
+ *
+ * "An offer must never be for something undeliverable in the customer's lane."
+ * The engine enforces exactly that — `respectLaneAvailability` checks
+ * `unitsAvailable(snapshot, id, lane)` before it will build a card. But the
+ * snapshot it is checking comes from `HWSwap.buildContext`, which says, in its
+ * own comment, that this estate has ONE stock figure per product and reports it
+ * for both lanes: `availability[id] = { express: qty, scheduled: qty }`.
+ *
+ * `qty` is WAREHOUSE on-hand. Express is the driver's kit. So the engine will
+ * happily offer an express shopper a sku with 200 in the warehouse and none on
+ * today's van — an offer that, taken, becomes a ~90-minute promise nobody can
+ * keep. That is the same falsehood `shopAdd` and "Move to Express" already
+ * refuse, and it is refused here from the same authority: `expressHeadroom`.
+ *
+ * Scheduled IS served from the warehouse, so the engine's answer stands there.
+ */
+function scartDeliverable(sku, quantity, lane) {
+  const D = window.SHOPDATA;
+  if (!D) return false;
+  if (lane !== 'express') return true;
+  if (typeof D.expressHeadroom !== 'function') return false;
+  return D.expressHeadroom(sku) >= Math.max(1, quantity || 1);
+}
+
+/**
+ * The engine's config with one surface's slot count widened.
+ *
+ * Same shape the adapter's `recommendations()` uses. Override the SLOT, never
+ * the ranking: how many cards a surface holds is a layout fact, which of them
+ * wins is the engine's judgement and not this file's.
+ */
+function scartConfig(surface, slots) {
+  const E = window.HWCommerce;
+  if (!E || !E.defaultConfig || !slots) return undefined;
+  return Object.assign({}, E.defaultConfig, {
+    upsell: Object.assign({}, E.defaultConfig.upsell, {
+      slotsBySurface: Object.assign({}, E.defaultConfig.upsell.slotsBySurface, { [surface]: slots }),
+    }),
+  });
+}
+
+/**
+ * Everything to render on one upsell surface, joined back to the estate's own
+ * catalogue row so a card can draw a Thumb and a price the rest of the shop
+ * agrees with.
+ *
+ * Returns `[]` — never a fallback list of our own — when the engine is absent.
+ * A hand-rolled "same brand" rail that appears when the engine is down is a
+ * second recommender nobody is measuring, and it looks identical to the real one.
+ */
+function scartOffers(surface, opts) {
+  const E = window.HWCommerce, SHOP = window.SHOP, D = window.SHOPDATA;
+  if (!E || typeof E.getUpsells !== 'function' || !SHOP || !D) return [];
+  const ctx = SHOP.context();
+  if (!ctx) return [];
+  const o = opts || {};
+  const cfg = scartConfig(surface, o.slots);
+  let offers;
+  try {
+    offers = E.getUpsells(ctx, surface, Object.assign({
+      rules: SHOP.engineOptions().rules,
+      dismissed: Array.from(SCART_DISMISSED),
+    }, cfg ? { config: cfg } : {}, o.lane ? { lane: o.lane } : {})) || [];
+  } catch (err) { return []; }
+  return offers
+    .map((offer) => ({ offer, product: D.productBySku(offer.product.id) }))
+    .filter((x) => x.product && scartDeliverable(x.product.sku, x.offer.quantity, x.offer.lane));
+}
+
+/**
+ * Does taking this offer carry its lane over the lane minimum?
+ *
+ * 🔴 THE THRESHOLD IS THE ENGINE'S, AND IT IS THE SAME OBJECT THE BAR DREW.
+ *
+ * `lane` here is one entry of `SHOP.totals().lanes` — the very record
+ * `ShopLaneProgress` renders three lines above this card. So the badge and the
+ * bar cannot disagree: there is no second reading of the minimum, and there is
+ * no $50 typed anywhere. The minimum is operator-controlled (`HW.laneSettings`,
+ * applied to the context in shop/data.jsx), and a literal here would silently
+ * contradict the progress bar the moment an operator moved it — which is the
+ * two-money-authorities bug this project has already shipped and reverted.
+ *
+ * The arithmetic is one comparison in the engine's own cents: the offer clears
+ * the shortfall, therefore the lane clears its minimum. It is only true because
+ * `scartDeliverable` has already refused any offer the lane cannot take whole.
+ */
+function scartMeetsMinimum(offer, laneTotals) {
+  if (!laneTotals || laneTotals.minimumMet) return false;
+  if (offer.lane !== laneTotals.lane) return false;
+  return offer.product.price * Math.max(1, offer.quantity || 1) >= laneTotals.shortfallCents;
+}
+
+/**
+ * "Spend $X more for free delivery" — the threshold upsell the Figma draws, read
+ * off the promotion that actually grants it.
+ *
+ * This is NOT the lane minimum. `free-express-over-100` waives a $2 fee at a
+ * $100 express subtotal; the express MINIMUM is a different number, set by the
+ * operator, and the progress bar owns it. Two different thresholds, two
+ * different sentences — never merged, and neither one typed here.
+ *
+ * ⚠️ WHY THIS DOES NOT COME OUT OF `getUpsells`. It cannot, and correctly so:
+ * `offerFromRule` refuses any card whose ask costs more than
+ * `maxSpendToRewardRatio × reward`, and a free-delivery reward is worth the
+ * lane's fee. Asking a customer to spend $37 to save $2 is exactly the card the
+ * engine is right to suppress. But the PROGRESS is still worth stating, which is
+ * what `promotionProgress` exists for — so this reads the rule's own gap.
+ *
+ * ⚠️ AND WHY IT FILTERS FIRST. `evaluateRule` answers "is this rule satisfied",
+ * not "may this customer have it". WELCOME20 is first-order-only and Marcus has
+ * two orders behind him: its order-count condition is `unreachable`, but its
+ * $60 subtotal condition still reports a perfectly closable spend gap. Rendering
+ * that gap would advertise a $20 discount this cart can never earn. So: live,
+ * on-channel, still available to this customer, its code actually applied — and
+ * for an AND rule, exactly ONE unmet condition, because closing one gap of two
+ * satisfies nothing.
+ */
+/** What a rule is actually worth here, in cents, or null when the engine cannot
+ *  say. Used to refuse advertising a reward of nothing. */
+function scartRewardCents(rule, ctx, E) {
+  try {
+    if (typeof E.rewardValueCents === 'function') return E.rewardValueCents(rule, ctx);
+    const rw = rule && rule.reward;
+    if (!rw) return null;
+    if (typeof rw.amountCents === 'number') return rw.amountCents;
+    if (typeof rw.percent === 'number' && ctx.cart) {
+      // A percentage of nothing is nothing, which is the case that matters.
+      const sub = (ctx.cart.lines || []).reduce((n, l) => n + (l.unitPriceCents || 0) * (l.quantity || 0), 0);
+      return Math.round(sub * (rw.percent / 100));
+    }
+    return null;                         // unknown shape — do not refuse on a guess
+  } catch (err) { return null; }
+}
+
+function scartSavings() {
+  const E = window.HWCommerce, SHOP = window.SHOP;
+  if (!E || typeof E.evaluateRule !== 'function' || !SHOP) return [];
+  const ctx = SHOP.context();
+  if (!ctx) return [];
+  const codes = new Set((ctx.cart && ctx.cart.appliedCodes) || []);
+  const out = [];
+  for (const rule of SHOP.engineOptions().rules || []) {
+    const id = 'savings:' + rule.id;
+    if (scartDismissed(id)) continue;
+    if (rule.code && !codes.has(rule.code)) continue;
+    try {
+      if (!E.isRuleActive(rule, ctx.now)) continue;
+      if (!E.isRuleOnChannel(rule, ctx)) continue;
+      /* 🔴 THIS LINE WAS LITERALLY `if (false) continue;` — a dead gate.
+       *
+       * The engine's own gate list (offerFromRule) runs isRuleOnChannel AND
+       * isRuleAvailableToCustomer. Without the second one this line advertised
+       * members-only and audience-restricted rewards to everybody, and the
+       * shopper could not have claimed a single one of them. */
+      if (typeof E.isRuleAvailableToCustomer === 'function'
+        && !E.isRuleAvailableToCustomer(rule, ctx)) continue;
+    } catch (err) { continue; }
+    let r;
+    try { r = E.evaluateRule(rule, ctx); } catch (err) { continue; }
+    if (r.satisfied) continue;
+    const unmet = r.conditions.filter((c) => !c.satisfied);
+    if (rule.combiner !== 'OR' && unmet.length !== 1) continue;
+    /* THE ENGINE CHECKS TWO MORE THINGS BEFORE IT WILL OFFER A RULE, and this
+     * reimplementation omitted both:
+     *
+     *  · A REWARD WORTH NOTHING IS NOT AN OFFER. offerFromRule refuses when
+     *    rewardValueCents <= 0. Without it the cart told a shopper to spend
+     *    more to unlock $0.00.
+     *  · ADVICE THAT CANNOT BE TAKEN IS NOT ADVICE. A gap is only closable in a
+     *    lane the cart can actually reach; the engine picks a product for the
+     *    gap and re-evaluates. A spend gap in a lane the van cannot serve reads
+     *    as "add $12 more" against an impossibility.
+     *
+     * ⚠️ THIS WHOLE FUNCTION IS A REIMPLEMENTATION OF offerFromRule, WHICH IS
+     * WHY IT DRIFTED. `getUpsells` IS exported on window.HWCommerce and is the
+     * right long-term home for this line — replacing it is a bigger change than
+     * this fix and belongs with someone who can re-verify the cart UI against
+     * it. Recorded rather than silently left. */
+    const spend = r.closableGaps.filter((g) => g.kind === 'spend')
+      .sort((a, b) => a.amountCents - b.amountCents)[0];
+    if (!spend) continue;
+    const worth = scartRewardCents(rule, ctx, E);
+    if (worth != null && worth <= 0) continue;
+    if (spend.lane && ctx.lanes && !ctx.lanes[spend.lane]) continue;
+    out.push({ id, rule, gap: spend, rewardCents: worth });
+  }
+  return out.sort((a, b) => a.gap.amountCents - b.gap.amountCents);
+}
+
 // ── Pieces shared with the checkout ────────────────────────────────────────
 
 /**
@@ -304,13 +523,132 @@ window.ShopOrderSummary = function ShopOrderSummary({ totals }) {
 
 // Shared with shop/screen-checkout.jsx, which must not grow its own copies.
 window.SHOPCART_UI = { meta: scartMeta, arrival: scartArrival, tomorrow: scartTomorrow,
-  laneLines: scartLaneLines, count: scartCount, expressNote: scartExpressNote };
+  laneLines: scartLaneLines, count: scartCount, expressNote: scartExpressNote,
+  // The upsell seam. shop/screen-checkout.jsx renders the SAME rail on its own
+  // engine surface and shares this one dismissal set — a card waved away in the
+  // cart must not reappear one screen later, which is what "for that visit"
+  // means when the visit crosses two screens.
+  offers: scartOffers, savings: scartSavings, deliverable: scartDeliverable,
+  meetsMinimum: scartMeetsMinimum, dismiss: scartDismiss, dismissed: scartDismissed,
+  DISMISSED: SCART_DISMISSED };
+
+/**
+ * One offer, as the engine wrote it.
+ *
+ * `headline`, `subline` and `reason` are the ENGINE'S COPY and are printed
+ * verbatim — a rewrite here would be a second voice describing a promotion the
+ * merchandiser authored once, and the two would drift on the first edit. The
+ * only sentence this component owns is the lane one, because the lane promise is
+ * the estate's, not the engine's.
+ */
+window.ShopOfferCard = function ShopOfferCard({ entry, laneTotals, onChange }) {
+  const P = scUseP();
+  const SHOP = window.SHOP;
+  const o = entry.offer, p = entry.product;
+  const meta = scartMeta(o.lane);
+  const unlocks = o.kind === 'unlock_promotion';
+  const meets = scartMeetsMinimum(o, laneTotals);
+  return <Card data-hw="upsell-offer" data-hw-offer={o.id} density="compact"
+    style={{ flex: '1 1 240px', minWidth: 220, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <Thumb item={p} size={44} radius={P.r10} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: P.type.strong, fontWeight: 700, color: unlocks ? P.good : P.ink, lineHeight: 1.3 }}>
+          {o.headline}
+        </div>
+        <div style={{ fontSize: P.type.meta, color: P.inkDim, marginTop: 3, lineHeight: 1.45 }}>{o.subline}</div>
+      </div>
+      {/* 40×40 by construction — the dismiss is a real touch target, not a
+          6px glyph in a corner. */}
+      <IconBtn icon="x" size={15} label={`Dismiss ${o.headline}`}
+        onClick={() => { scartDismiss(o.id); onChange && onChange(); }} />
+    </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {o.reason && <Pill kind={unlocks ? 'good' : 'neutral'} size="sm" icon={unlocks ? 'tag' : 'sparkle'}>{o.reason}</Pill>}
+      {/* 🔴 The lane minimum, from the same lane record the progress bar drew. */}
+      {meets && <Pill kind="good" size="sm" icon="check">Meets the {meta.label} minimum</Pill>}
+    </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <Pill kind="ghost" size="sm" icon={meta.icon}>{meta.label}</Pill>
+      <div style={{ flex: 1 }} />
+      <PBtn size="md" variant="secondary" icon="plus" onClick={() => {
+        // The lane is the engine's, and `shopAdd` is still the authority on
+        // whether it can be honoured — `scartDeliverable` has already made sure
+        // it can, so this lands whole rather than spilling into tomorrow.
+        SHOP.add(p.sku, o.quantity, o.lane);
+        SHOP.toast(`${p.name} added · ${meta.label}`);
+        onChange && onChange();
+      }}>Add</PBtn>
+    </div>
+  </Card>;
+};
+
+/**
+ * ADD TO YOUR ORDER — one engine surface, drawn.
+ *
+ * Renders nothing at all when the engine returns nothing. An empty rail with a
+ * heading over it is a surface reporting that it has no opinion, and on a cart
+ * page that reads as something broken.
+ */
+window.ShopUpsellRail = function ShopUpsellRail({ surface, title, totals, slots, onChange }) {
+  const P = scUseP();
+  const entries = scartOffers(surface, { slots });
+  if (!entries.length) return null;
+  const laneOf = (id) => (totals && totals.lanes.find((l) => l.lane === id)) || null;
+  return <div data-hw="upsell-rail" data-hw-surface={surface} style={{ marginBottom: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <Icon name="sparkle" size={14} stroke={2} color={P.inkMute} />
+      <Eyebrow>{title}</Eyebrow>
+    </div>
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'stretch' }}>
+      {entries.map((e) => <ShopOfferCard key={e.offer.id} entry={e}
+        laneTotals={laneOf(e.offer.lane)} onChange={onChange} />)}
+    </div>
+  </div>;
+};
+
+/**
+ * "Add $37.50 more · Free Express delivery over $100."
+ *
+ * The threshold upsell as a SAVINGS LINE, which is the surface the engine names
+ * for it (`cart_savings_line`) and the shape the frame draws: a sentence beside
+ * the money, not a card. Every figure is `gap.amountCents`, straight off the
+ * rule's own unmet condition — see `scartSavings` for what is filtered out
+ * before anything reaches here, and why.
+ */
+window.ShopSavingsLines = function ShopSavingsLines({ onChange }) {
+  const P = scUseP();
+  const SHOP = window.SHOP;
+  const rows = scartSavings();
+  if (!rows.length) return null;
+  return <Card data-hw="savings-lines" density="compact">
+    <Eyebrow>Almost unlocked</Eyebrow>
+    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {rows.map((r) => <div key={r.id} data-hw="savings-line" data-hw-rule={r.rule.id}
+        style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Icon name="gift" size={15} stroke={1.9} color={P.good} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: P.type.body, fontWeight: 600, color: P.ink }}>
+            Add {SHOP.money(r.gap.amountCents)} more
+          </div>
+          <div style={{ fontSize: P.type.meta, color: P.inkDim, marginTop: 2, lineHeight: 1.45 }}>{r.rule.name}</div>
+        </div>
+        <IconBtn icon="x" size={15} label={`Dismiss ${r.rule.name}`}
+          onClick={() => { scartDismiss(r.id); onChange && onChange(); }} />
+      </div>)}
+    </div>
+  </Card>;
+};
 
 // ── The screen ─────────────────────────────────────────────────────────────
 
 window.ShopCartScreen = function ShopCartScreen() {
   const P = scUseP();
   const SHOP = window.useShop();
+  // Dismissing an offer changes no cart line, so nothing in `SHOP` has to move
+  // for the rail to be right afterwards. This is how that write reaches the
+  // screen — the same reason the checkout keeps a bump for SCO_STATE.
+  const [, bump] = React.useReducer((x) => x + 1, 0);
   const totals = SHOP.totals();
 
   // `totals()` returns null when the engine has not loaded. An honest dead end
@@ -339,8 +677,13 @@ window.ShopCartScreen = function ShopCartScreen() {
       : <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap', marginTop: 20 }}>
         <div style={{ flex: '1 1 520px', minWidth: 300 }}>
           {totals.lanes.map((l) => <ShopCartLane key={l.lane} lane={l} />)}
+          {/* The engine's cart surface, under the lanes it is reasoning about. */}
+          <ShopUpsellRail surface="cart_add_to_order" title="Add to your order"
+            totals={totals} onChange={bump} />
         </div>
         <div style={{ flex: '0 1 320px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Thresholds sit with the money they change, above the summary. */}
+          <ShopSavingsLines onChange={bump} />
           <ShopPromoCard totals={totals} />
           <ShopOrderSummary totals={totals} />
           <PBtn full variant="accent" size="xl" iconRight="chevron-right" onClick={() => SHOP.go('checkout')}>

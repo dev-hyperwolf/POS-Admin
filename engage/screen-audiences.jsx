@@ -17,7 +17,6 @@
 
   function ChipGroup({ label, options, active, onToggle }) {
     const P = useP();
-    const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>{label}</span>
@@ -26,7 +25,7 @@
           return (
             <button key={o.value} onClick={() => onToggle(o.value)}
               style={{ height: 24, padding: '0 9px', borderRadius: 99, fontSize: 11.5, cursor: 'pointer', fontFamily: P.fontSans,
-                background: on ? P.accentSoft : P.surface, color: on ? accentInk : P.inkMute, border: `1px solid ${on ? P.accentBorder : P.hairline2}` }}>{o.label}</button>);
+                background: on ? P.ink : 'transparent', color: on ? P.surface : P.inkMute, border: `1px solid ${on ? P.ink : P.hairline2}` }}>{o.label}</button>);
         })}
       </div>);
   }
@@ -39,7 +38,6 @@
     const [statusF, setStatusF] = React.useState(new Set());
     const [sort, setSort] = React.useState({ key: 'lastRefresh', dir: 'desc' });
     const [selected, setSelected] = React.useState(new Set());
-    const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
 
     const toggleIn = (setter) => (v) => setter((cur) => { const n = new Set(cur); n.has(v) ? n.delete(v) : n.add(v); return n; });
 
@@ -98,7 +96,7 @@
         </Card>
 
         {selected.size > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, border: `1px solid ${P.accentBorder}`, background: P.accentSoft, padding: '8px 12px', fontSize: 13.5 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, border: `1px solid ${P.hairline3}`, background: P.highlightSoft, padding: '8px 12px', fontSize: 13.5 }}>
             <span style={{ fontWeight: 500, color: P.ink }}>{selected.size} selected</span>
             <div style={{ display: 'flex', gap: 8 }}>
               <PBtn size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</PBtn>
@@ -113,7 +111,7 @@
                 <TH width={36}>
                   <button onClick={() => setSelected(allSelected ? new Set() : new Set(visible.map((r) => r.id)))} aria-label={allSelected ? 'Deselect all' : 'Select all'}
                     style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-                    <Icon name={allSelected ? 'check-circle' : 'box'} size={14} stroke={2} color={allSelected ? P.accent : P.inkMute} />
+                    <Icon name={allSelected ? 'check-circle' : 'box'} size={14} stroke={2} color={allSelected ? P.ink : P.inkMute} />
                   </button>
                 </TH>
                 <SortableHead label="Name" k="name" sort={sort} onSort={onSort} />
@@ -130,11 +128,11 @@
                     const [srcLabel, srcTone] = SOURCE_LABEL[a.source] || [a.source, 'neutral'];
                     const isSel = selected.has(a.id);
                     return (
-                      <TR key={a.id} style={{ background: isSel ? P.accentSoft : 'transparent' }}>
-                        <TD>
+                      <TR key={a.id} style={{ background: isSel ? P.surface3 : 'transparent' }}>
+                        <TD style={{ borderLeft: `3px solid ${isSel ? P.ink : 'transparent'}` }}>
                           <button onClick={() => setSelected((cur) => { const n = new Set(cur); n.has(a.id) ? n.delete(a.id) : n.add(a.id); return n; })} aria-label={`Select ${a.name}`}
                             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
-                            <Icon name={isSel ? 'check-circle' : 'box'} size={14} stroke={2} color={isSel ? P.accent : P.inkMute} />
+                            <Icon name={isSel ? 'check-circle' : 'box'} size={14} stroke={2} color={isSel ? P.ink : P.inkMute} />
                           </button>
                         </TD>
                         <TD>

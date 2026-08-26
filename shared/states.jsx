@@ -72,7 +72,7 @@ window.ErrorState = function ErrorState({ title = 'That didn’t load', body, de
         {detail && <window.PBtn variant="ghost" size="sm" onClick={() => setShowDetail((v) => !v)}>{showDetail ? 'Hide details' : 'Details'}</window.PBtn>}
       </div>
       {detail && showDetail &&
-      <div style={{ marginTop: 10, maxWidth: 460, padding: '9px 11px', background: P.canvas2, borderRadius: P.r8,
+      <div style={{ marginTop: 10, maxWidth: 460, padding: '9px 11px', background: P.canvas2, border: `1px solid ${P.hairline}`, borderRadius: P.r8,
         fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim, textAlign: 'left', lineHeight: 1.5, wordBreak: 'break-word' }}>{detail}</div>}
     </div>);
 

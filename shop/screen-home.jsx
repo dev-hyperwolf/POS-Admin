@@ -65,6 +65,55 @@ function ReorderCard({ order, usual }) {
 
 }
 
+/* ── A SPONSORED CARD IN THE REORDER ROW ────────────────────────────────────
+ *
+ * 🔴 THE TWO RULES LIVE IN THE DATA, NOT IN THIS FILE.
+ * `HWMerch.surfaceById('home_reorder')` carries `neverFirst` and `mustLabel`;
+ * `SHOPDATA.reorderRow()` reads both and hands back entries already placed and
+ * already labelled. This component renders `entry.sponsorLabel` when it is
+ * there and nothing when it is not — so flipping `mustLabel` in the surface data
+ * genuinely changes what a shopper sees, instead of this screen quietly
+ * hard-coding the owner's decision into JSX where nobody will find it again.
+ *
+ * The label is not decoration. Index 0 of this row wears "Your usual", and the
+ * row's whole credibility comes from being the customer's own history — an
+ * unmarked advert sitting in it spends that credibility without asking.
+ */
+function SponsoredReorderCard({ entry }) {
+  const P = useP();
+  const S = window.useShop();
+  const it = entry.item || {};
+  const title = it.headline || it.label || it.brand || 'From our partners';
+  const go = () => {
+    if (it.brand) S.setQuery(it.brand);
+    else if (it.sku) S.setQuery(it.sku);
+    S.setCategory('All');
+    S.go('shop');
+  };
+  return (
+    <div style={{ flex: '0 0 auto', width: 380, maxWidth: '86vw', background: P.rail, borderRadius: P.r12, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, scrollSnapAlign: 'start', border: `1px solid ${P.railHair}` }}>
+      {entry.sponsorLabel &&
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: P.railInk }}>
+        <Icon name="megaphone" size={13} stroke={2.1} />
+        <span style={{ fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', fontFamily: P.fontMono }}>
+          {entry.sponsorLabel}
+        </span>
+      </div>}
+
+      <div style={{ fontSize: P.type.h2, fontWeight: 700, color: P.railBright, lineHeight: 1.15 }}>{title}</div>
+
+      {it.offer &&
+      <div style={{ fontSize: P.type.strong, fontWeight: 600, color: P.accent }}>{it.offer}</div>}
+      {it.kicker &&
+      <div style={{ fontSize: P.type.meta, fontWeight: 600, letterSpacing: '.10em', textTransform: 'uppercase', color: P.railInk, fontFamily: P.fontMono }}>{it.kicker}</div>}
+
+      <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+        <PBtn variant="secondary" size="md" iconRight="chevron-right" onClick={go}>Take a look</PBtn>
+      </div>
+    </div>);
+
+}
+
 function CategoryTile({ cat }) {
   const P = useP();
   const S = window.useShop();
@@ -89,7 +138,10 @@ window.ShopHomeScreen = function ShopHomeScreen() {
   const P = useP();
   const S = window.useShop();
   const D = window.SHOPDATA;
-  const orders = D.pastOrders();
+  // The row is assembled in the data layer: the customer's own past orders, plus
+  // any sponsored card marketing scheduled, placed under the surface's own
+  // neverFirst/mustLabel rules. This screen never decides where an advert goes.
+  const row = D.reorderRow();
   const eta = D.expressEtaMinutes();
   const cust = D.CUSTOMER;
 
@@ -107,10 +159,12 @@ window.ShopHomeScreen = function ShopHomeScreen() {
 
       <section>
         <Eyebrow style={{ marginBottom: 12 }}>Reorder</Eyebrow>
-        {orders.length === 0 ?
+        {row.length === 0 ?
           <EmptyState icon="refresh" title="No past orders yet" body="Your reorder shortcuts appear here after your first delivery." /> :
           <div style={{ display: 'flex', gap: 16, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 6 }}>
-            {orders.map((o, i) => <ReorderCard key={o.id} order={o} usual={i === 0} />)}
+            {row.map((e) => e.kind === 'sponsored' ?
+              <SponsoredReorderCard key={e.key} entry={e} /> :
+              <ReorderCard key={e.key} order={e.order} usual={e.usual} />)}
           </div>}
       </section>
 

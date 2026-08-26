@@ -192,7 +192,7 @@
     return (
       <select value={value ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
         style={{ height: 28, padding: '0 10px', borderRadius: 99, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans,
-          background: value ? P.accentSoft : P.surface, color: value ? accentInk : P.inkDim, border: `1px solid ${value ? P.accentBorder : P.hairline2}` }}>
+          background: value ? P.highlightSoft : P.surface, color: value ? P.ink : P.inkDim, border: `1px solid ${value ? P.hairline3 : P.hairline2}` }}>
         <option value="">{label}: all</option>
         {options.map((o) => <option key={o} value={o}>{label}: {renderLabel ? renderLabel(o) : o}</option>)}
       </select>);
@@ -267,7 +267,6 @@
     if (typeFilter) activeChips.push({ label: `Type: ${TYPE_LABEL[typeFilter]}`, clear: () => setTypeFilter(null) });
     if (nearExpiryOnly) activeChips.push({ label: 'Near-expiry batch', clear: () => setNearExpiryOnly(false) });
     const warn = HD.tone(P, 'warn');
-    const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', padding: 20, gap: 20 }}>
@@ -300,7 +299,7 @@
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingTop: 4 }}>
               <span style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>Active</span>
               {activeChips.map((c) => (
-                <button key={c.label} onClick={c.clear} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 99, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans }}>
+                <button key={c.label} onClick={c.clear} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 24, padding: '0 8px', borderRadius: 99, background: P.highlightSoft, color: P.ink, border: `1px solid ${P.hairline3}`, fontSize: 12.5, cursor: 'pointer', fontFamily: P.fontSans }}>
                   {c.label}<Icon name="x" size={11} stroke={2.4} />
                 </button>))}
             </div>)}
