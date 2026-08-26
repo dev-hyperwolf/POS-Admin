@@ -106,6 +106,36 @@ window.CatalogScreen = function CatalogScreen() {
           <PBtn variant="accent" icon="plus" size="md" onClick={() => setAddOpen(true)}>Add Product</PBtn>
         </div>} />
 
+      {/* Screen-level orientation for the dev team. Consequence, not
+          mechanism -- what these numbers let you conclude, and what they do
+          not. Per-row explanation lives on the row itself. */}
+      <DevNote id="catalog-matching" tone="warn"
+               title="What a Weedmaps match score does and does not tell you">
+        <DevNoteP>
+          A score is a measurement <b>against the pool we have pulled</b>, not a
+          judgement about whether Weedmaps carries the product. Weedmaps serves
+          products per brand (<DevNoteMono>brands/&#123;id&#125;/products</DevNoteMono>) and caps a page at
+          20 items, so a brand whose feed has not been pulled contributes
+          nothing to the pool. A SKU scored against an empty pool returns a
+          confident <DevNoteMono>0.000</DevNoteMono>, which reads exactly like "Weedmaps does
+          not have this" and is not the same claim.
+        </DevNoteP>
+        <DevNoteP>
+          Three states must never render the same: <b>never looked</b> (no feed
+          pulled), <b>looked and the brand feed is empty</b> (a correct binding
+          that still yields no candidates -- Dr. Kerklaan, id 10245, is real),
+          and <b>looked and matched nothing</b>. Only the third is evidence.
+          Only the third belongs on a brand-request list.
+        </DevNoteP>
+        <DevNoteP>
+          If a row looks obviously right and scores low, the usual cause is the
+          candidate was never fetched. <b>Look again</b> re-pulls that one brand
+          on demand (<DevNoteMono>POST /api/mapping/look-again</DevNoteMono>, accepts a brand
+          or a sku, ignores the 20h freshness TTL because a human asking is new
+          information).
+        </DevNoteP>
+      </DevNote>
+
       {/* Insights header — 3 space treatments (Ribbon / Compact / Hidden) */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 11 }}>
         <Eyebrow>Insights</Eyebrow>
@@ -436,6 +466,69 @@ function listingsSub(wm) {
   const l = wm.listings;
   return l.length === 2 ? 'Pickup · Delivery' : l[0] === 'pickup' ? 'Pickup only' : 'Delivery only';
 }
+
+// ── Listing coverage and driver kits — what /api/state really knows ────────
+// The two counters that used to sit in the rail card were
+// `pkOn = 1 + charCodeSum(sku) % 3` out of a hardcoded 3, and
+// `dlOn = 12 + charCodeSum(sku) % 23` out of a hardcoded 34, drawn as
+// progress bars captioned "store listings" and "one pin per city" beside the
+// real external_id and the real last-sync time. There is no set of 3 store
+// listings and no set of 34 city pins anywhere in this estate. /api/state
+// serves a `region_menus` table and it holds exactly TWO Weedmaps listings
+// today, each fed by all four regions.
+//
+// The fact is split across two payloads and so is the code that reads it:
+//   WHICH LISTINGS EXIST, their mode, and the regions feeding each —
+//     `region_menus`, read by shared/hw-live-regions.js and mirrored onto
+//     window.HW.WM_REGION_MENUS (that file has said since it was written that
+//     no screen reads the mirror; this is the screen that now does).
+//   WHETHER THIS SKU IS ON ONE — `menu_state`, read by shared/hw-live.js,
+//     which collapses the rows to p.wm.listings = ['pickup'|'delivery'].
+//
+// That collapse is this counter's limit and it is reported rather than papered
+// over. hw-live.js recognises only the two listing ids in state.wmids, so a
+// THIRD listing an operator maps would be known to EXIST and its membership
+// would be genuinely unknowable here. Such a listing is listed as unreportable
+// and kept out of the denominator — counting it as a miss would be inventing a
+// negative exactly the way the old counter invented a positive.
+function wmListingCoverage(p) {
+  const reg = window.HW && window.HW.WM_REGION_MENUS;
+  const all = reg && Array.isArray(reg.listings) ? reg.listings : null;
+  if (!all || !all.length) return null;     // the registry never reached this page
+  const on = p && p.wm && Array.isArray(p.wm.listings) ? p.wm.listings : [];
+  const rows = all.map((l) => {
+    // `role` is the pin's CONFIGURED role (hw-live-regions.js:308), read off
+    // the same state.wmids hw-live.js used to build p.wm.listings — so the two
+    // halves are joined on one fact, not on a second copy of it.
+    const key = l.role === 'storefront' ? 'pickup' : l.role === 'delivery' ? 'delivery' : null;
+    return { id: l.wm_menu_id, role: l.role, mode: l.mode,
+      regions: Array.isArray(l.regions) ? l.regions : [],
+      published: key ? on.indexOf(key) >= 0 : null };   // null => not reportable
+  });
+  const known = rows.filter((r) => r.published !== null);
+  return { rows, known: known.length, unknown: rows.length - known.length,
+    on: known.filter((r) => r.published).length };
+}
+
+// On-shift driver kits carrying this SKU. `kits` and `on_shift` are both in
+// /api/state and shared/hw-live.js already joins them onto window.HW.DRIVERS
+// as `kit` (that driver's SKU list) and `status` ('offline' when off shift).
+// The bundled demo drivers (pos/data.jsx:112) carry no kit field at all, which
+// is why the test is the PRESENCE of the array and not its length: "no driver
+// carries this" and "nobody ever said what the drivers carry" are different
+// facts, and only the first is about the SKU.
+function kitCoverage(sku) {
+  const all = (window.HW && window.HW.DRIVERS) || [];
+  const known = all.filter((d) => d && Array.isArray(d.kit));
+  if (!known.length) return null;
+  const onShift = known.filter((d) => d.status !== 'offline');
+  const carrying = onShift.filter((d) => d.kit.indexOf(sku) >= 0);
+  const regions = [];
+  carrying.forEach((d) => {if (d.region && regions.indexOf(d.region) < 0) regions.push(d.region);});
+  return { fleet: known.length, onShift: onShift.length,
+    carrying: carrying.length, regions: regions.sort() };
+}
+
 function WmDot({ wm, onClick }) {
   const P = useP();const m = wmStateMeta(wm.state, P);
   return <button onClick={(e) => {e.stopPropagation();onClick && onClick();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontFamily: P.fontSans }}>
@@ -454,7 +547,6 @@ function WmChip({ wm }) {
 // ── Product detail — dedicated full page (Overview + inventory + compliance + Weedmaps)
 const PROD_SUBCAT = { Flower: 'Hybrid Flowers', Vapes: 'All-In-One Vapes', 'Pre-Rolls': 'Infused Pre-Rolls', Concentrates: 'Live Resin', Edibles: 'Gummies', Wellness: 'Tinctures' };
 const PROD_EFFECTS = { Indica: ['Relaxed', 'Sleepy', 'Calm'], Sativa: ['Energetic', 'Uplifted', 'Focused'], Hybrid: ['Balanced', 'Happy', 'Creative'] };
-const PROD_TERPS = ['Myrcene', 'Limonene', 'Caryophyllene', 'Pinene', 'Linalool', 'Terpinolene'];
 // PROD_STORES DELETED — four hardcoded store names that no live region
 // matches. Regions now come from /api/state.stock via stockByLocation().
 const SUBCATS = { Flower: ['Sativa Flowers', 'Indica Flowers', 'Hybrid Flowers', 'Premium Flower', 'Budget Friendly Flower', 'Smaller Bud Flower', '5g-28g'], Vapes: ['Vapes', 'Batteries', 'Solventless Rosin Vapes', 'Live Resin Vape', 'All-In-One Vapes', 'Pod System Vapes', 'Premium Oil Vapes', 'Cured Resin Vapes'], 'Pre-Rolls': ['Prerolls', 'Single Pre-Roll', 'Single Infused Pre-Roll', 'Infused Pre-Roll Pack', 'Pre-Roll Pack'], Concentrates: ['Solventless Rosin / Hash', 'Hash', 'Sugar', 'Budder / Badder', 'Diamonds / Sauce', 'Live Resin'], Edibles: ['Gummies', 'Baked Goods', 'Drinks', 'High Dose Edibles', 'Micro Dose Edibles', 'Chocolates'], Wellness: ['Tinctures', 'Topicals', 'Capsules'], Deals: ['Hyper Deals', 'Clearance'], Accessories: ['Accessories'] };
@@ -785,15 +877,26 @@ function ProductDetailPage({ p, onBack }) {
   const P = useP();
   const fmt = window.HW.fmt;
   const m = wmStateMeta(p.wm.state, P);
-  const h = p.sku.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   // units30 / rev30 DELETED: /api/state.orders carries no line items, so
   // per-SKU sales are not derivable from anything served. See the rail card.
-  const onPickup = (p.wm.listings || []).includes('pickup');
-  const onDelivery = (p.wm.listings || []).includes('delivery');
-  const kits = 1 + h % 4;
-  const pkTot = 3,dlTot = 34;
-  const pkOn = onPickup ? 1 + h % 3 : 0;
-  const dlOn = onDelivery ? 12 + h % 23 : 0;
+  //
+  // charCodeSum(p.sku) IS GONE FROM THIS COMPONENT. The last four things it
+  // fed were the two Weedmaps listing counters (now wmListingCoverage /
+  // kitCoverage, read off /api/state), the seed of the terpene profile — the
+  // API holds no terpene data for any SKU, so the editor now opens on its own
+  // empty state — and a retail-price override that fired on one SKU in four
+  // and printed an OVERRIDDEN badge over a markdown nobody had made.
+  const cov = wmListingCoverage(p);   // null => listing registry never reached this page
+  const kit = kitCoverage(p.sku);     // null => nothing ever said what the drivers carry
+  // The delivery listing's mode is `kits`: catalog.union_menu_skus() publishes
+  // the union of the ON-SHIFT driver kits to it. So the listing row and the kit
+  // count are two views of one thing, and when they disagree the listing is
+  // simply behind the kits. Both halves are facts this screen already holds, so
+  // saying so costs nothing and asserts nothing new.
+  const dlRow = cov ? cov.rows.filter((r) => r.role === 'delivery')[0] : null;
+  const kitDrift = !kit || !dlRow || dlRow.mode !== 'kits' || dlRow.published === null ? null :
+  dlRow.published && !kit.carrying ? 'Published to the delivery listing, but no on-shift kit carries it — that listing publishes the union of the on-shift kits, so it is behind them.' :
+  !dlRow.published && kit.carrying ? 'Carried in an on-shift kit but not published to the delivery listing — the last push has not caught up.' : null;
   const mc = marginColor(P, p.margin);
   // wmConf DELETED. It was `p.wm.state === 'error' ? 0.46 : 0.7 + charCodeSum(sku) % 30 / 100`
   // — a match confidence for a match nothing had computed, printed on the button
@@ -808,7 +911,6 @@ function ProductDetailPage({ p, onBack }) {
   'Map to a Weedmaps product';
   const [wmMap, setWmMap] = React.useState(false);
   const eff = PROD_EFFECTS[p.strain] || ['Relaxed', 'Happy'];
-  const terps = [PROD_TERPS[h % 6], PROD_TERPS[(h + 2) % 6], PROD_TERPS[(h + 4) % 6]];
   // DELETED, all of it manufactured from charCodeSum(p.sku):
   //   cbd     — the API has no CBD column on a batch and serves cbd:null.
   //   metrc   — a state traceability tag, invented. See the note above.
@@ -830,7 +932,11 @@ function ProductDetailPage({ p, onBack }) {
   const shellName = `${p.brand} — ${p.name}`;
   const shellId = 'SH-' + p.sku;
   const shellPrice = p.price;
-  const [posPrice, setPosPrice] = React.useState(h % 4 === 0 ? Math.max(1, shellPrice - Math.max(1, Math.round(shellPrice * 0.1))) : shellPrice);
+  // Opens SYNCED FROM SHELL, always. There is no per-SKU POS price override in
+  // /api/state — the old initial state gave one to every fourth SKU by hash and
+  // badged it OVERRIDDEN. The Override price button below still works; it just
+  // no longer starts pressed on somebody else's behalf.
+  const [posPrice, setPosPrice] = React.useState(shellPrice);
   const priceOverridden = posPrice !== shellPrice;
 
   const Fld = ({ label, value, mono, wide, color, locked, hint, onEditLocked, onChange, onCommit, right, placeholder }) =>
@@ -877,17 +983,12 @@ function ProductDetailPage({ p, onBack }) {
       </div>
       <div style={{ padding: 16, display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: '13px 14px' }}>{children}</div>
     </Card>;
-  // terpene profile + reported effects (deterministic)
-  const TERP_INFO = { Myrcene: ['Earthy · musky', '#8A5CD6'], Limonene: ['Citrus · zesty', '#D9A21C'], Caryophyllene: ['Peppery · spicy', '#D2483F'], Pinene: ['Pine · herbal', '#3DA35D'], Linalool: ['Floral · lavender', '#8E7BE0'], Terpinolene: ['Fruity · fresh', '#21A89B'] };
-  // Terpenes: we do NOT collect percentages or mg — qualitative aroma + dominance only.
-  const TERP_RANK = ['Dominant', 'Secondary', 'Present'];
-  const terpProfile = terps.map((t, i) => ({ name: t, rank: TERP_RANK[i] || 'Present', note: TERP_INFO[t][0], color: TERP_INFO[t][1] }));
-  const rankTone = (r) => r === 'Dominant' ? { c: P.accentText, bg: P.accentSoft } : r === 'Secondary' ? { c: P.ink2, bg: P.surface3 } : { c: P.inkMute, bg: P.surface3 };
-  const TerpRow = ({ t }) => {const rt = rankTone(t.rank);return <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-    <span style={{ width: 9, height: 9, borderRadius: 3, background: t.color, flex: '0 0 auto' }} />
-    <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t.name}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>{t.note}</div></div>
-    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: rt.c, background: rt.bg, borderRadius: 6, padding: '3px 8px' }}>{t.rank}</span>
-  </div>;};
+  // The terpene PROFILE for a SKU is not held by this system: the product blob
+  // carries name, category, genetics, strain, price, weight, thc, cbd and tags
+  // and nothing else, and no batch column records terpenes either. So there is
+  // no seed to give TerpeneEditor and it opens on its own "No terpenes added."
+  // TERP_INFO / TERP_RANK / TerpRow went with the seed — nothing rendered
+  // TerpRow, and the editor keeps its own aroma table (TERP_INFO_M).
   // Inventory and lots now come from `inv` / `bRows` above. The whole
   // synthetic batch generator is gone: batchCount = 3 + h % 21, METRC tag,
   // COA verdict, expiry and CBD were all charCodeSum arithmetic, and the
@@ -1082,7 +1183,7 @@ function ProductDetailPage({ p, onBack }) {
               Per-batch potency needs batch records, and this screen has none — see <b style={{ color: P.ink2 }}>Batches</b> below. Catalogue-level THC for this SKU: <b style={{ color: P.ink2 }}>{p.thc == null ? 'not recorded either' : p.thc + '%'}</b>.
             </div>}
             <div style={{ gridColumn: '1/-1' }}><AiEffects product={p} /></div>
-            <div style={{ gridColumn: '1/-1' }}><TerpeneEditor initial={terpProfile} /></div>
+            <div style={{ gridColumn: '1/-1' }}><TerpeneEditor initial={[]} /></div>
           </Sec>
 
           <GeneticsSection />
@@ -1211,17 +1312,58 @@ function ProductDetailPage({ p, onBack }) {
                 <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>external_id</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {[{ ic: 'shop', c: P.warn, label: 'Pickup listings', on: pkOn, total: pkTot, live: onPickup, sub: onPickup ? 'store listings' : 'not listed', note: '2–3 store listings' }, { ic: 'truck', c: P.info, label: 'Delivery pins', on: dlOn, total: dlTot, live: onDelivery, sub: onDelivery ? `live in ${kits} on-shift kit${kits > 1 ? 's' : ''}` : 'not listed', note: 'one pin per city' }].map((r) =>
-                <div key={r.label} style={{ padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+                {/* LISTING COVERAGE. Denominator = the listings that really
+                    exist (region_menus); numerator = the ones this SKU is
+                    published to (menu_state). See wmListingCoverage. */}
+                {cov ?
+                <div style={{ padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Icon name={r.ic} size={14} color={r.live ? r.c : P.inkFaint} />
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, flex: 1 }}>{r.label}</span>
-                    <span style={{ fontSize: 11.5, fontFamily: P.fontMono, fontWeight: 700, color: r.live ? P.ink2 : P.inkFaint }}>{r.on}<span style={{ color: P.inkFaint, fontWeight: 500 }}> / {r.total}</span></span>
-                    {r.live ? <Pill kind="good" dot>Live</Pill> : <Pill kind="neutral" dot>Off</Pill>}
+                    <Icon name="globe" size={14} color={cov.on ? P.info : P.inkFaint} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, flex: 1 }}>Weedmaps listings</span>
+                    {cov.known ?
+                    <span style={{ fontSize: 11.5, fontFamily: P.fontMono, fontWeight: 700, color: cov.on ? P.ink2 : P.inkFaint }}>{cov.on}<span style={{ color: P.inkFaint, fontWeight: 500 }}> / {cov.known}</span></span> :
+                    <span style={{ fontSize: 11, color: P.inkMute }}>not reportable</span>}
+                    {cov.on ? <Pill kind="good" dot>Live</Pill> : <Pill kind="neutral" dot>Off</Pill>}
                   </div>
-                  <div style={{ height: 5, borderRadius: 99, background: P.surface3, overflow: 'hidden', marginTop: 7 }}><div style={{ width: `${Math.round(r.on / r.total * 100)}%`, height: '100%', background: r.live ? r.c : P.inkFaint }} /></div>
-                  <div style={{ fontSize: 10, color: P.inkMute, marginTop: 5, display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{r.sub}</span><span>{r.note}</span></div>
-                </div>)}
+                  {cov.known > 0 &&
+                  <div style={{ height: 5, borderRadius: 99, background: P.surface3, overflow: 'hidden', marginTop: 7 }}><div style={{ width: `${Math.round(cov.on / cov.known * 100)}%`, height: '100%', background: cov.on ? P.info : P.inkFaint }} /></div>}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+                    {cov.rows.map((r) =>
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'baseline', gap: 7, fontSize: 10.5 }}>
+                      <span style={{ fontFamily: P.fontMono, color: P.inkMute, flex: '0 0 auto' }}>{r.id}</span>
+                      <span style={{ color: P.ink2, fontWeight: 700, flex: 1, minWidth: 0 }}>{r.role === 'storefront' ? 'Storefront' : r.role === 'delivery' ? 'Delivery' : 'Unrecognised pin'}
+                        <span style={{ color: P.inkMute, fontWeight: 400 }}> · {r.mode || 'no mode'} · {r.regions.length} region{r.regions.length === 1 ? '' : 's'}</span></span>
+                      <span style={{ flex: '0 0 auto', fontWeight: 700, color: r.published === null ? P.inkMute : r.published ? P.good : P.inkFaint }}>{r.published === null ? 'not reportable' : r.published ? 'published' : 'not published'}</span>
+                    </div>)}
+                  </div>
+                  <div style={{ fontSize: 10, color: P.inkMute, marginTop: 7, lineHeight: 1.5 }}>
+                    <Mono>region_menus</Mono> + <Mono>menu_state</Mono>, both from <Mono>/api/state</Mono>.
+                    {cov.unknown > 0 && <> {cov.unknown} mapped listing{cov.unknown === 1 ? '' : 's'} {cov.unknown === 1 ? 'is' : 'are'} not one of the two ids the live seam reads, so membership {cov.unknown === 1 ? 'there' : 'on those'} is not known and {cov.unknown === 1 ? 'it is' : 'they are'} kept out of the count above.</>}
+                  </div>
+                </div> :
+                <NotKnown icon="globe" title="Listing coverage — not known"
+                  body={<>Which Weedmaps listings exist, and which regions feed each, is the <Mono>region_menus</Mono> table in <Mono>/api/state</Mono>. Nothing has handed it to this page{fromApi ? '' : ', and this page is not reading the API at all'}, so the share of listings carrying <Mono>{p.sku}</Mono> cannot be worked out. What used to stand here — <Mono>1 / 3</Mono> store listings and <Mono>23 / 34</Mono> delivery pins — was arithmetic on the SKU string over two totals nothing has ever reported.</>} />}
+
+                {/* DRIVER KITS. A real fraction: /api/state.kits joined to
+                    /api/state.on_shift, both already on window.HW.DRIVERS. */}
+                {kit ?
+                <div style={{ padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon name="truck" size={14} color={kit.carrying ? P.info : P.inkFaint} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, flex: 1 }}>On-shift driver kits</span>
+                    <span style={{ fontSize: 11.5, fontFamily: P.fontMono, fontWeight: 700, color: kit.carrying ? P.ink2 : P.inkFaint }}>{kit.carrying}<span style={{ color: P.inkFaint, fontWeight: 500 }}> / {kit.onShift}</span></span>
+                    {kit.carrying ? <Pill kind="good" dot>Carried</Pill> : <Pill kind="neutral" dot>Not carried</Pill>}
+                  </div>
+                  {kit.onShift > 0 &&
+                  <div style={{ height: 5, borderRadius: 99, background: P.surface3, overflow: 'hidden', marginTop: 7 }}><div style={{ width: `${Math.round(kit.carrying / kit.onShift * 100)}%`, height: '100%', background: kit.carrying ? P.info : P.inkFaint }} /></div>}
+                  <div style={{ fontSize: 10, color: P.inkMute, marginTop: 5, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                    <span>{kit.onShift === 0 ? 'no driver is on shift' : kit.regions.length ? kit.regions.join(' · ') : 'in no on-shift kit'}</span>
+                    <span>{kit.fleet} driver{kit.fleet === 1 ? '' : 's'} in the fleet</span>
+                  </div>
+                  {kitDrift && <div style={{ fontSize: 10, color: P.inkDim, marginTop: 6, lineHeight: 1.5 }}>{kitDrift}</div>}
+                </div> :
+                <NotKnown icon="truck" title="Driver kits — not known"
+                  body={<>What each driver physically carries is <Mono>kits</Mono> in <Mono>/api/state</Mono>, joined to <Mono>on_shift</Mono>. No driver on this page has a kit attached{fromApi ? '' : ' — this page is on the bundled demo fleet, which has none'}, so the number of on-shift kits holding <Mono>{p.sku}</Mono> is not known. The line that used to read “live in N on-shift kits” took N from the SKU string.</>} />}
                 <button onClick={() => setWmMap(true)} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px', background: 'transparent', border: 'none', cursor: 'pointer', color: P.info, fontSize: 11.5, fontWeight: 700, fontFamily: P.fontSans }}>View all listings<Icon name="arrow-right" size={13} stroke={2.2} /></button>
               </div>
               <button onClick={() => setWmMap(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, width: '100%', padding: '9px 12px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700, color: P.ink2 }}><Icon name="link" size={14} stroke={1.9} />{wmBtnLabel}</button>
