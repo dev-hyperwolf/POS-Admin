@@ -822,6 +822,39 @@ function NameCheckCard({ live, tax, cats, nodes }) {
   </Card>;
 }
 
+// ── the exact set the matcher compares on ───────────────────────────────────
+// GET /api/mapping/known-categories (wmdemo/server.py:572) serves
+// `sorted(set(CATEGORY_MAP.values()))` — the EXACT strings mapping.py:221 tests
+// `wm_cat != our_cat` against. Until that route existed this screen tested
+// against Weedmaps' root NAMES, which are a superset, and had to print a caveat
+// saying so. It does not any more: the real set is fetched and the comparison
+// is the same one the matcher makes.
+//
+// A plain GET, the way hw-live-taxonomy.js reads /api/taxonomy — writes go
+// through HW_LIVE.post, reads do not. It never aborts and it never invents a
+// list: if the route does not answer, the card falls back to the roots-superset
+// check AND says out loud that it is the weaker one. A silent downgrade from an
+// exact check to an approximate one is how a screen starts lying.
+function useKnownCategories(base, live) {
+  const [st, setSt] = React.useState({ status: 'idle', list: null, source: null, err: null });
+  React.useEffect(() => {
+    if (!live || base == null) { setSt({ status: 'idle', list: null, source: null, err: null }); return; }
+    let dead = false;
+    setSt({ status: 'pending', list: null, source: null, err: null });
+    fetch(base + '/api/mapping/known-categories', { credentials: 'omit', cache: 'no-store' })
+      .then((r) => {if (!r.ok) {throw new Error('HTTP ' + r.status);}return r.json();})
+      .then((j) => {
+        if (dead) { return; }
+        // A payload with no categories array is not this route answering.
+        if (!j || !Array.isArray(j.categories)) { throw new Error('no `categories` array in the response'); }
+        setSt({ status: 'live', list: j.categories, source: j.source || null, err: null });
+      })
+      .catch((e) => {if (!dead) {setSt({ status: 'error', list: null, source: null, err: e && e.message ? e.message : 'unknown' });}});
+    return () => {dead = true;};
+  }, [base, live]);
+  return st;
+}
+
 // ── the category_shutout trap ───────────────────────────────────────────────
 // mapping.py:220 drops every Weedmaps candidate whose category does not EQUAL
 // ours, before any scoring happens. A shutout is therefore NOT "Weedmaps does
@@ -829,16 +862,31 @@ function NameCheckCard({ live, tax, cats, nodes }) {
 // brand asking them to create a product Weedmaps already sells.
 function ShutoutCard({ live, tax, cats, nodes }) {
   const P = useP();
+  const known = useKnownCategories(tax.base, live);
   if (!live) { return null; }
-  const roots = uniq(nodes.map((n) => rootOf(n.path))).filter((r) => r && r !== '?');
+  const exact = known.status === 'live' && known.list;
+  // EXACT when the route answered: mapping.py:221 is `wm_cat != our_cat`, a
+  // case-sensitive string compare, so this is one too — no lowercasing and no
+  // punctuation stripped, because the matcher does neither.
+  const against = exact ? known.list : uniq(nodes.map((n) => rootOf(n.path))).filter((r) => r && r !== '?');
   const cov = tax.coverage || {};
   const ours = uniq(cats.map((c) => c.name).concat((cov.blocked_skus || []).map((b) => b.category)));
-  const shut = ours.filter((n) => roots.indexOf(n) < 0);
+  // AN EMPTY COMPARISON SET IS NOT A VERDICT. Without the exact route the
+  // fallback compares against node paths — and when the taxonomy has never been
+  // seeded there are none, at which point `indexOf < 0` is true for every name
+  // and the card would report ALL of them shut out. "Flower is definitely shut
+  // out" is a false claim that costs a person an afternoon. So with nothing to
+  // compare against, the check is NOT RUN and says so.
+  const canCheck = against.length > 0;
+  const shut = canCheck ? ours.filter((n) => against.indexOf(n) < 0) : [];
   return <Card padding={0}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}`, background: shut.length ? P.warnSoft : P.surface2 }}>
       <Icon name="ban" size={15} stroke={2} color={shut.length ? P.warn : P.inkMute} />
       <span style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>Category shutout — the matcher never even compares</span>
-      {shut.length ? <Pill kind="warn" size="sm">{shut.length}</Pill> : <Pill kind="neutral" size="sm">none found</Pill>}
+      {!canCheck ? <Pill kind="neutral" size="sm">not checked</Pill> : shut.length ? <Pill kind="warn" size="sm">{shut.length}</Pill> : <Pill kind="neutral" size="sm">none found</Pill>}
+      {/* Only ONE of these ever shows, and never alongside "not checked" —
+          calling a check APPROXIMATE when no check ran is its own small lie. */}
+      {exact ? <Pill kind="good" size="sm" dot>EXACT</Pill> : known.status === 'pending' ? <Pill kind="neutral" size="sm">asking…</Pill> : canCheck ? <Pill kind="warn" size="sm">APPROXIMATE</Pill> : null}
     </div>
     <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.55 }}>
@@ -847,10 +895,18 @@ function ShutoutCard({ live, tax, cats, nodes }) {
       {shut.length > 0 && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {shut.map((n) => <span key={n} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: P.type.body, fontWeight: 600, color: P.ink, background: P.surface, border: `1px solid ${P.warn}`, borderRadius: P.r999, padding: '5px 12px', fontFamily: P.fontMono }}>{n}</span>)}
       </div>}
+      {exact ?
       <div style={{ fontSize: P.type.meta, color: P.inkDim, lineHeight: 1.55 }}>
-        {shut.length ? 'These category strings are not any of Weedmaps’ ' + roots.length + ' root names (' + roots.join(', ') + '), so nothing under them can ever match — every candidate is excluded before it is compared.' : 'Every category string in use is also a Weedmaps root name.'}
-        {' '}What this screen <b>cannot</b> tell you: the exact list mapping.py compares against is <span style={{ fontFamily: P.fontMono }}>CATEGORY_MAP</span>’s values, and no route serves it. So the check runs against Weedmaps’ own root names, which are a superset — a name that is <i>not</i> a root is definitely shut out; a name that <i>is</i> a root may still be.
-      </div>
+        {shut.length === 0 ? 'Every category string in use is one of the ' + against.length + ' the matcher compares on (' + against.join(', ') + ').' :
+          (shut.length === 1 ? 'That category string is not one of the ' : 'Those ' + shut.length + ' category strings are not among the ') + against.length + ' the matcher compares on (' + against.join(', ') + '), so nothing under ' + (shut.length === 1 ? 'it' : 'them') + ' can ever match — every candidate is excluded before it is compared.'}
+        {' '}That list is <span style={{ fontFamily: P.fontMono }}>CATEGORY_MAP</span>’s own values, read live from <span style={{ fontFamily: P.fontMono }}>{(tax.base || '') + '/api/mapping/known-categories'}</span>{known.source ? ' (' + known.source + ')' : ''} — the same strings <span style={{ fontFamily: P.fontMono }}>mapping.py:221</span> tests, compared the same case-sensitive way. This is the exact check, not an approximation of it.
+      </div> :
+      <div style={{ fontSize: P.type.meta, color: P.warn, lineHeight: 1.55 }}>
+        <b>{canCheck ? 'Approximate check.' : 'Not checked.'}</b> {known.status === 'pending' ? 'Waiting on ' : 'Could not read '}<span style={{ fontFamily: P.fontMono }}>{(tax.base || '') + '/api/mapping/known-categories'}</span>{known.status === 'error' ? ' (' + known.err + ')' : ''}, which serves the exact set the matcher compares on.
+        {canCheck ?
+          <span> Until it answers, the check above runs against Weedmaps’ own {against.length} root names, which are a <b>superset</b>: a name that is <i>not</i> a root is definitely shut out; a name that <i>is</i> a root may still be. {shut.length ? 'The ' + plural(shut.length, 'name') + ' above ' + (shut.length === 1 ? 'is' : 'are') + ' therefore certain; there may be more.' : 'So this card is not claiming there are none.'}</span> :
+          <span> The weaker fallback — Weedmaps’ own root names — is not available either: this board holds no node paths at all, so there is nothing to compare our category strings against. <b>No shutout check has been run</b>, and the empty list above is not a claim that there are none.</span>}
+      </div>}
     </div>
   </Card>;
 }
