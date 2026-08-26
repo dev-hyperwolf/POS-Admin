@@ -72,11 +72,24 @@ jobs:
       - name: Confirm the two hosts agree
         run: |
           # The real assertion: same bytes, both hosts. Hashing one representative file
-          # is enough to catch a stale clone, which is the failure mode that actually
-          # happens here.
-          pages=$(curl -sS -m 20 "https://dev-hyperwolf.github.io/POS-Admin/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
-          render=$(curl -sS -m 20 "https://hyperwolf-wm-demo.onrender.com/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
-          echo "pages  $pages"
-          echo "render $render"
-          [ "$pages" = "$render" ] || { echo "::error::hosts serve different bytes"; exit 1; }
-          echo "Both hosts serve identical bytes."
+          # is enough to catch a stale clone, which is the failure mode that happens here.
+          #
+          # POLL, do not compare once. This step used to fire a single comparison the
+          # moment Render finished -- but GitHub Pages publishes on its OWN schedule and
+          # is often still building then, so a correct deploy reported "hosts serve
+          # different bytes". It did exactly that on 2026-08-26. A check that cries wolf
+          # gets ignored, which is worse than not having it.
+          for i in $(seq 1 40); do
+            pages=$(curl -sS -m 20 "https://dev-hyperwolf.github.io/POS-Admin/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
+            render=$(curl -sS -m 20 "https://hyperwolf-wm-demo.onrender.com/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
+            if [ "$pages" = "$render" ]; then
+              echo "Both hosts serve identical bytes ($pages)."
+              exit 0
+            fi
+            echo "attempt $i: pages=${pages:0:12} render=${render:0:12} -- waiting for Pages to publish"
+            sleep 15
+          done
+          echo "::error::hosts still serve different bytes after 10 minutes."
+          echo "::error::pages=$pages"
+          echo "::error::render=$render"
+          exit 1
