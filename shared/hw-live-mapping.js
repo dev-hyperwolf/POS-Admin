@@ -34,10 +34,33 @@
 //   NO MATCH  — nothing scored well enough. NOT the same as "Weedmaps does not
 //               have it": we have not proved absence, and this panel refuses to
 //               say we have.
+//   NEVER LOOKED — the SKU's BRAND feed has never been pulled, so the candidate
+//               pool it was scored against was EMPTY. This is a THIRD state and
+//               it is the one this panel used to lie about: with no pool, the
+//               engine returns its lowest score and the row rendered as "NO
+//               CONFIDENT MATCH ... best 0.000", which reads as "we looked and
+//               found nothing". We did not look. 108 of the 149 SKUs on the
+//               deployed instance are in exactly this state (GET
+//               /api/mapping/unlooked, 2026-08-26) and every one of them was
+//               drawn as a scoring failure. The next action is not on this row
+//               and not on this SKU: it is pulling ONE brand feed, which clears
+//               every SKU under that brand at once. So the state carries the
+//               brand and the panel groups the work by brand, because 108 rows
+//               of "nothing matched" is 22 brands of "we never asked".
 //   ABSENT    — the absence ledger says Weedmaps genuinely does not carry it,
 //               confirmed across two DISTINCT catalogue pulls
 //               (wmdemo/mapping.py:562-588). This is not our work at all — it
 //               is a sentence to send the brand.
+//
+// THE CLAIM IS DRAWN WHERE THE CHOICE IS MADE. Any candidate a different SKU
+// already holds live comes back from /api/mapping/candidates carrying
+// `conflict_with` and the holder's tier/status/decided_by. Those are rendered
+// on the row, naming the incumbent SKU — because approve() refuses a second
+// live claim with a 409, and until this was drawn the operator met that refusal
+// at the last click for a reason that was knowable before they picked. The row
+// is NOT hidden and NOT re-ranked: a many-to-one is legitimate (approve takes
+// force:true) and filtering the row would remove the fact the operator needs.
+// Detect and surface; the machine never picks the winner.
 //
 // PUBLIC SURFACE: window.HW_MAPPING = { status, rows, counts, absences,
 //   refresh(), candidates(), approve(), reject(), unmap(), rescore(), pull(),
@@ -213,6 +236,13 @@
   var _menuBySku = null, _stateErr = null;   // GET  /api/state  -> menu + events
   var _verdicts = null, _evHorizon = null, _evCount = 0;
   var _absBySku = null, _absErr = null, _absNote = null, _absCount = null, _absConfirmed = null;
+  // GET /api/mapping/unlooked -- the third state. Kept in its own slot and
+  // NEVER folded into _absBySku: the absence ledger is a claim about THEIR
+  // catalogue and this is a fact about OUR pipeline. One is a sentence to
+  // send a brand, the other is a job on our side; merging them is how the
+  // 108 came to be drawn as 138 scoring failures in the first place.
+  var _unlBySku = null, _unlBrands = null, _unlErr = null, _unlNote = null, _unlCount = null;
+  var _bulkRun = null;                        // {done,total,ok,refused,notes} while a bulk approve runs
   var _wmids = null;
   var _hw = null;
   var _open = false, _busy = false, _why = false;
@@ -273,10 +303,16 @@
     if (st === 'review')   { return { fg: P.warn,    bg: P.warnSoft,    word: 'NEEDS REVIEW' }; }
     if (st === 'rejected') { return { fg: P.neutral, bg: P.neutralSoft, word: 'REJECTED · STICKY' }; }
     if (st === 'absent')   { return { fg: P.warn,    bg: P.warnSoft,    word: 'NOT ON WEEDMAPS' }; }
+    // NEVER LOOKED is drawn in `info`, which no other state on this board uses.
+    // It must not share the red of NO CONFIDENT MATCH (that says we looked) nor
+    // the amber of NOT ON WEEDMAPS (that says they do not have it). It is
+    // neither: it is unstarted work of ours, and the only state here whose next
+    // action is on a BRAND rather than on the row.
+    if (st === 'unlooked')  { return { fg: P.info,    bg: P.infoSoft,    word: 'NEVER LOOKED' }; }
     return { fg: P.bad, bg: P.badSoft, word: 'NO CONFIDENT MATCH' };
   }
 
-  var ORDER = { ready: 0, review: 1, rejected: 2, nomatch: 3, absent: 4, linked: 5 };
+  var ORDER = { ready: 0, review: 1, rejected: 2, nomatch: 3, unlooked: 4, absent: 5, linked: 6 };
 
   // ── the derived board ────────────────────────────────────────────────────
   // ONE place where a state is decided, and every input to it is something the
@@ -291,6 +327,7 @@
       var sug = r.suggestion || null;
       var dec = sug && sug.decision;
       var abs = _absBySku ? _absBySku[r.sku] : null;
+      var unl = _unlBySku ? _unlBySku[r.sku] : null;
       var v = _verdicts ? _verdicts[r.sku] : null;
       var rejected = !linked && !!(v && v.action === 'rejected');
 
@@ -301,6 +338,15 @@
       else if (r.queued) { st = 'review'; }
       else if (dec === 'exact' || dec === 'auto') { st = 'ready'; }
       else if (dec === 'ai') { st = 'review'; }
+      // UNLOOKED DISPLACES NOMATCH AND NOTHING ELSE, and the order is the whole
+      // point. A SKU whose brand feed was never pulled can still have scored
+      // against the feeds we DO hold -- if the engine came back confident, the
+      // operator has a button to press and READY is the true state. What is
+      // never true is calling it a scoring failure when the pool was empty. So
+      // this sits immediately above nomatch and takes only the rows that would
+      // otherwise have landed there. The brand fact is still drawn on the other
+      // states, as a note, by rowHTML().
+      else if (unl) { st = 'unlooked'; }
       else { st = 'nomatch'; }
 
       // Publication is a SEPARATE fact from linkage and is read from a
@@ -325,7 +371,7 @@
         state: st, mapping: m, linked: linked, suggestion: sug,
         queued: !!r.queued, queueReason: r.queue_reason,
         wmProductId: r.wm_product_id,
-        absence: abs || null, verdict: v || null,
+        absence: abs || null, unlooked: unl || null, verdict: v || null,
         listings: mrows.length, pushed: pushed, accepted: accepted,
         lastPush: lastPush, driftIds: driftIds
       };
@@ -334,7 +380,7 @@
 
   function counts() {
     var c = { total: 0, linked: 0, ready: 0, review: 0, rejected: 0, nomatch: 0,
-              absent: 0, accepted: 0, drift: 0, neverPushed: 0 };
+              unlooked: 0, absent: 0, accepted: 0, drift: 0, neverPushed: 0 };
     rows().forEach(function (x) {
       c.total++; c[x.state]++;
       if (x.linked) {
@@ -426,6 +472,38 @@
     });
   }
 
+  // THE THIRD STATE, AND WHY IT IS THE ONLY READ HERE THAT IS NOT A POST.
+  // /api/mapping/unlooked is served on GET and ONLY on GET (wmdemo/server.py:
+  // 1194) -- the server made that choice deliberately so a public deployment,
+  // where do_POST refuses anything without the write token, can still show what
+  // it has not looked at. Routing it through W.HW_LIVE.post would 404 it. So it
+  // goes out as a plain same-origin fetch, exactly like /api/state does, and it
+  // is the one thing on this board that still answers when the token is missing.
+  //
+  // Its failure is NOT allowed to look like an empty result. _unlBySku stays
+  // null on a failure and rows() then leaves every SKU in nomatch, which is the
+  // old lie -- so the panel says out loud that it could not ask, rather than
+  // letting 108 rows quietly re-acquire a word that is false.
+  function loadUnlooked() {
+    return fetch(base + '/api/mapping/unlooked', { credentials: 'omit', cache: 'no-store' })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('HTTP ' + res.status); }
+        return res.json();
+      })
+      .then(function (j) {
+        if (!j || !Array.isArray(j.skus)) { throw new Error('not this API'); }
+        var by = {};
+        j.skus.forEach(function (r) { if (r && r.sku) { by[r.sku] = r; } });
+        _unlBySku = by; _unlErr = null;
+        _unlBrands = Array.isArray(j.brands) ? j.brands : null;
+        _unlCount = j.count; _unlNote = j.note || null;
+      })
+      .catch(function (e) {
+        _unlBySku = null; _unlBrands = null; _unlCount = null; _unlNote = null;
+        _unlErr = (e && e.message) || 'unreachable';
+      });
+  }
+
   // /api/state carries two facts nothing else serves: menu_state (did we ever
   // push this SKU, and did Weedmaps hand back an item id) and the event log —
   // the ONLY place a human rejection is visible to a client. It is a ~100KB read
@@ -499,11 +577,11 @@
       if (!_settled) { _status = 'slow'; paint(); }
     }, TIMEOUT_MS);
     _busy = true; paint();
-    // Three independent reads, settled independently. A failed absence report
+    // Four independent reads, settled independently. A failed absence report
     // must not blank the board, and a failed board must not be disguised by a
     // good absence report — each one's failure is shown where that data was
     // going to be.
-    return Promise.all([loadBulk(), loadState(), loadAbsences()]).then(function (r) {
+    return Promise.all([loadBulk(), loadState(), loadAbsences(), loadUnlooked()]).then(function (r) {
       clearTimeout(timer);
       _settled = true; _busy = false;
       _status = r[0] ? 'live'
@@ -552,7 +630,11 @@
         _msgOk = false;
         _msg = 'Refused' + (r.code ? ' (' + r.code + ')' : '') + ': ' + (r.error || 'no reason given');
         paint();
-        return { ok: false };
+        // The code and the body ride out with the failure. approve() needs both
+        // to tell a claim conflict (409, and the server names the holder) from
+        // every other refusal — returning a bare {ok:false} threw away the one
+        // thing that makes the next press possible.
+        return { ok: false, code: r.code, body: r.body, error: r.error };
       }
       _msgOk = true; _msg = said;
       return load().then(function () {
@@ -566,9 +648,35 @@
     });
   }
 
-  function approve(sku, wmId) {
-    return write('/api/mapping/approve', { sku: sku, wm_id: Number(wmId) },
-                 sku + ' → WM #' + wmId + ' (manual override, tier 0)');
+  // `force` is the many-to-one override wmdemo/server.py:1259 reads. It is NEVER
+  // sent on its own initiative: it is passed only after a person has been shown
+  // the incumbent SKU by name and said yes. Two ways in, and both of them ask —
+  //   1. the candidate row was labelled CLAIMED, and onClick() confirms first;
+  //   2. the row was NOT labelled (the list was fetched before the claim
+  //      existed) and the server refuses with 409. The refusal carries
+  //      `conflict_with` and `retry_with:{force:true}`, so the same question is
+  //      asked at that point rather than leaving the operator at a dead end.
+  function approve(sku, wmId, force) {
+    var body = { sku: sku, wm_id: Number(wmId) };
+    if (force) { body.force = true; }
+    return write('/api/mapping/approve', body,
+                 sku + ' → WM #' + wmId +
+                 (force ? ' (FORCED second claim, manual override, tier 0)'
+                        : ' (manual override, tier 0)'))
+      .then(function (res) {
+        if (force || res.ok || res.code !== 409) { return res; }
+        var holder = res.body && res.body.conflict_with;
+        if (!holder) { return res; }
+        if (!W.confirm('WM #' + wmId + ' is already claimed by ' + holder + '.\n\n' +
+                       'This screen did not know that when it drew the list — the claim was made ' +
+                       'after it was fetched.\n\nApprove anyway? ' + sku + ' and ' + holder +
+                       ' would then BOTH point at WM #' + wmId + '. Weedmaps does not enforce a ' +
+                       'unique external_id, so this is how duplicate listings get made. It is ' +
+                       'sometimes right — but it is your call, not the machine’s.')) {
+          return res;
+        }
+        return approve(sku, wmId, true);
+      });
   }
   function reject(sku, reason) {
     return write('/api/mapping/reject', { sku: sku, reason: reason || 'no_match' },
@@ -584,6 +692,94 @@
     // partner API. The label says which one it is.
     return write('/api/mapping/pull', {}, 'brand feed re-pulled');
   }
+  // ── the bulk path ────────────────────────────────────────────────────────
+  // THE ROWS THIS IS ALLOWED TO TOUCH, and the reason the list is derived here
+  // rather than passed in: READY means the SERVER's own verdict was `exact` or
+  // `auto` on this load (rows() reads suggestion.decision, which is
+  // wmdemo/mapping.py decide()'s word). This function therefore approves
+  // nothing the engine did not already say it was confident about — it is a
+  // batch of the one-click buttons that are already on those rows, not a
+  // lowered bar. It cannot approve a REVIEW row, a queued row or a claimed one.
+  function readyRows() {
+    return rows().filter(function (x) {
+      return x.state === 'ready' && x.suggestion && x.suggestion.wm_id != null;
+    });
+  }
+
+  // Sequential, spaced, and it NEVER sends force. Three separate decisions:
+  //
+  //   Sequential — each approve is a write against one sqlite file and the
+  //   claim check is read-then-write; firing N of them at once is how two rows
+  //   both pass the check and both claim one WM product. The server's own
+  //   nightly loop is sequential for the same reason.
+  //
+  //   Spaced — 120ms between writes. This is a real partner-backed service on
+  //   a container that idles out; a burst of 40 writes is the shape that gets
+  //   a client throttled.
+  //
+  //   Never force — a 409 means another SKU already holds that WM product.
+  //   approve(force) exists and is deliberately NOT reachable from here: a
+  //   many-to-one is a judgement about two of OUR products being duplicates,
+  //   and a batch button is exactly where nobody is looking. Refusals are
+  //   COUNTED AND NAMED, and the row keeps its own single-approve button where
+  //   the conflict is drawn and the question is asked.
+  function approveAllReady() {
+    var list = readyRows();
+    if (!list.length) { return Promise.resolve({ ok: 0, refused: 0 }); }
+    if (!W.confirm('Approve ' + list.length + ' mapping(s) the engine is already confident about?\n\n' +
+                   'These are the rows marked READY — the server\u2019s own verdict on this load was ' +
+                   '\u201cexact\u201d or \u201cauto\u201d, and each one already has a single Approve ' +
+                   'button on it. This presses them one at a time.\n\n' +
+                   'It sends NO force flag: any Weedmaps product another SKU already claims will be ' +
+                   'refused and listed for you, not overwritten. Nothing in the review queue, nothing ' +
+                   'rejected and nothing unmatched is touched.')) {
+      return Promise.resolve({ ok: 0, refused: 0, cancelled: true });
+    }
+    _bulkRun = { done: 0, total: list.length, ok: 0, refused: 0, notes: [] };
+    _busy = true; _msg = null; paint();
+
+    var i = 0;
+    function step() {
+      if (i >= list.length) { return Promise.resolve(); }
+      var x = list[i++];
+      return post('/api/mapping/approve', { sku: x.sku, wm_id: Number(x.suggestion.wm_id) })
+        .then(function (r) {
+          _bulkRun.done++;
+          if (r.ok) { _bulkRun.ok++; }
+          else {
+            _bulkRun.refused++;
+            var holder = r.body && r.body.conflict_with;
+            _bulkRun.notes.push(x.sku + ' → #' + x.suggestion.wm_id + ': ' +
+              (holder ? 'already claimed by ' + holder + ' — approve it on the row if you mean to double up'
+                      : (r.error || ('refused' + (r.code ? ' (' + r.code + ')' : '')))));
+          }
+          paint();
+          return new Promise(function (res) { setTimeout(res, 120); }).then(step);
+        });
+    }
+
+    return step().then(function () {
+      var run = _bulkRun;
+      _bulkRun = null;
+      return load().then(function () {
+        _busy = false;
+        _msgOk = run.refused === 0;
+        _msg = 'Approved ' + run.ok + ' of ' + run.total +
+          (run.refused ? ' · ' + run.refused + ' refused: ' + run.notes.join(' · ')
+                       : ' · none refused') +
+          '. Each is a manual override at tier 0, recorded against you.';
+        paint();
+        return { ok: run.ok, refused: run.refused, notes: run.notes };
+      });
+    }).catch(function (e) {
+      _bulkRun = null; _busy = false; _msgOk = false;
+      _msg = 'Bulk approve stopped: ' + (e && e.message ? e.message : 'unknown') +
+             '. Everything already approved stayed approved — press Re-read the board.';
+      paint();
+      return { ok: 0, refused: 0 };
+    });
+  }
+
   // Read-only: rescore never writes a mapping (wmdemo/mapping.py:1038-1040).
   function rescore(sku) {
     _busy = true; _msg = null; paint();
@@ -621,6 +817,12 @@
       rows: rows(),
       counts: counts(),
       absences: _absBySku ? Object.keys(_absBySku).map(function (k) { return _absBySku[k]; }) : null,
+      // The third state, mirrored too — a POS screen reading WM_MAPPING must be
+      // able to tell "we looked and found nothing" from "we never looked", or
+      // it reproduces this panel's own bug one layer up.
+      unlooked: _unlBySku ? Object.keys(_unlBySku).map(function (k) { return _unlBySku[k]; }) : null,
+      unlookedBrands: _unlBrands,
+      unlookedError: _unlErr,
       wmCached: _bulk.wm_cached == null ? null : _bulk.wm_cached,
       eventHorizon: _evHorizon,
       source: base + '/api/mapping/bulk'
@@ -653,9 +855,9 @@
       P.type.meta + 'px;padding:0 8px;';
   }
 
-  function btn(P, attr, act, sku, label, wm) {
+  function btn(P, attr, act, sku, label, wm, extra) {
     return '<button ' + attr + '="' + act + '" data-sku="' + esc(sku) + '"' +
-      (wm == null ? '' : ' data-wm="' + esc(wm) + '"') + ' style="' + ctlCSS(P) +
+      (wm == null ? '' : ' data-wm="' + esc(wm) + '"') + (extra || '') + ' style="' + ctlCSS(P) +
       'height:28px;cursor:pointer;font-family:' + P.fontSans + ';font-weight:600">' +
       esc(label) + '</button>';
   }
@@ -665,21 +867,117 @@
       esc(s) + '</span>';
   }
 
+  // ── the claim, drawn where the choice is made ────────────────────────────
+  // /api/mapping/candidates has always returned `conflict_with` plus
+  // `holder_tier`, `holder_status` and `holder_decided_by` on any candidate a
+  // different SKU already holds live (wmdemo/mapping.py:2124-2127). NOTHING
+  // RENDERED THEM. So a claimed row looked exactly like a free one — same
+  // weight, same colour, `excluded: null` — the operator picked it, pressed
+  // Approve, and was refused at the last click with a 409 for a reason that was
+  // fully knowable before they clicked. Two QA probes walked into that and read
+  // it as a product bug.
+  //
+  // THE ROW IS NOT HIDDEN AND NOT RE-RANKED, and that is deliberate on both
+  // sides of the wire (mapping.py:2100-2105). A many-to-one is a real thing an
+  // operator may legitimately want — approve() takes force:true for exactly
+  // that — and filtering the row out removes the one fact they need to make
+  // the call. These are duplicates in OUR OWN catalogue; a machine that quietly
+  // picks a winner hides that from the only person who can fix it. Detect and
+  // surface, never decide.
+  // The brand, named the way the SERVER named it and never invented. The
+  // unlooked report carries `wm_brand_id` (which may be null when we could not
+  // resolve one at all) and `brand`, our own vendor name. A null brand id is a
+  // DIFFERENT problem from an unpulled feed — nobody can pull a feed for a
+  // brand we have not identified — and the two are worded apart.
+  function brandPhrase(u) {
+    if (!u) { return 'this SKU\u2019s brand feed'; }
+    var ours = u.brand ? '\u201c' + u.brand + '\u201d' : 'this SKU\u2019s brand';
+    if (u.wm_brand_id == null) {
+      return ours + ', which has NO Weedmaps brand id on our side at all, so there is no feed to pull yet';
+    }
+    return ours + ' (Weedmaps brand ' + u.wm_brand_id + ')';
+  }
+
+  // How many of OUR SKUs sit behind the same unpulled feed. Counted from the
+  // brand rollup the server sent, not re-derived from the rows: the rollup is
+  // the report's own arithmetic and a second count here could disagree with the
+  // number printed at the top of the same panel.
+  function unlookedSiblings(u) {
+    if (!u || !_unlBrands) { return 1; }
+    for (var i = 0; i < _unlBrands.length; i++) {
+      var b = _unlBrands[i];
+      if (b && b.wm_brand_id === u.wm_brand_id) { return b.skus; }
+    }
+    return 1;
+  }
+
+  // NAMING A BRAND WE HAVE NEVER PULLED. The server's rollup carries `name`
+  // from wm_brand_feeds — WEEDMAPS' name for the brand — and for a feed that
+  // was never pulled there is no such row, so it is null. Falling back to OUR
+  // vendor name off the SKU rows is more useful than printing a bare id, but
+  // the two are NOT the same fact and the label says which one it is: our name
+  // is what we would search Weedmaps FOR, not what Weedmaps calls it.
+  function unlookedBrandLabel(b) {
+    if (!b) { return 'unknown brand'; }
+    if (b.name) { return b.name + ' (WM brand ' + b.wm_brand_id + ')'; }
+    if (b.wm_brand_id == null) {
+      return 'no Weedmaps brand id on our side — cannot be pulled at all yet';
+    }
+    var ours = null;
+    if (_unlBySku) {
+      var keys = Object.keys(_unlBySku);
+      for (var i = 0; i < keys.length && !ours; i++) {
+        var r = _unlBySku[keys[i]];
+        if (r && r.wm_brand_id === b.wm_brand_id && r.brand) { ours = r.brand; }
+      }
+    }
+    return (ours ? 'our “' + ours + '”' : 'brand') + ' → WM brand ' + b.wm_brand_id;
+  }
+
+  var claimOf = function (c) {
+    return c && c.conflict_with != null && c.conflict_with !== '' ? String(c.conflict_with) : null;
+  };
+
+  // The holder's own row, in the server's words. Every field is printed only
+  // when the server sent it — a missing tier is not drawn as tier 0.
+  function holderBits(c) {
+    var bits = [];
+    if (c.holder_status) { bits.push(String(c.holder_status)); }
+    if (c.holder_tier != null) { bits.push('tier ' + c.holder_tier); }
+    if (c.holder_decided_by) { bits.push('by ' + c.holder_decided_by); }
+    return bits.join(' · ');
+  }
+
+  function claimHTML(P, c, held) {
+    var bits = holderBits(c);
+    return '<div data-hwm-claim="' + esc(c.wm_id) + '" style="font-size:' + P.type.micro +
+      'px;color:' + P.warn + ';line-height:1.45;margin:0 0 4px;padding:4px 7px;border-radius:' +
+      P.r8 + 'px;background:' + P.warnSoft + '">Already claimed by <b style="font-family:' +
+      ff(P.fontMono) + '">' + esc(held) + '</b>' + (bits ? ' (' + esc(bits) + ')' : '') +
+      '. Approving it here points <b>two of our SKUs</b> at one Weedmaps product. Weedmaps does not ' +
+      'enforce a unique external_id, so that is how duplicate listings get made — but it is ' +
+      'sometimes the right call, so the row is shown rather than hidden. The button sends ' +
+      '<b>force</b> and asks you first.</div>';
+  }
+
   // One candidate. The score is printed as a number AND drawn as a bar, and the
   // bar is NEVER coloured by a threshold of ours — T_AUTO and T_AI are not
   // served, so a green bar here would be this file guessing at the engine's
   // opinion. The engine's opinion is the word above the list.
   function candHTML(P, c, rank, ourSku) {
     var out = c.excluded != null;
+    var held = claimOf(c);
     var pct = c.score == null ? 0 : Math.max(2, Math.min(100, Math.round(c.score * 100)));
-    var h = '<div style="border-top:1px solid ' + P.hairline + ';padding:7px 0">';
+    var h = '<div data-hwm-cand="' + esc(c.wm_id) + '" style="border-top:1px solid ' +
+      (held ? P.warn : P.hairline) + ';padding:7px 0">';
     h += '<div style="display:flex;gap:7px;align-items:baseline">' +
       '<span style="font-family:' + ff(P.fontMono) + ';font-size:' + P.type.micro + 'px;color:' +
       P.inkFaint + ';flex:0 0 auto">' + rank + '</span>' +
       '<span style="flex:1 1 auto;min-width:0;font-size:' + P.type.body + 'px;font-weight:' +
       (out ? '500' : '700') + ';color:' + (out ? P.inkMute : P.ink) + '">' + esc(c.name || '(unnamed)') +
       '</span>' +
-      (c.exact ? chip(P, { fg: P.good, bg: P.goodSoft }, 'EXACT') : '') + '</div>';
+      (c.exact ? chip(P, { fg: P.good, bg: P.goodSoft }, 'EXACT') : '') +
+      (held ? chip(P, { fg: P.warn, bg: P.warnSoft }, 'CLAIMED BY ' + held) : '') + '</div>';
 
     h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint + ';font-family:' +
       ff(P.fontMono) + ';margin:1px 0 4px">#' + esc(c.wm_id) + ' · ' + esc(c.category || 'no category') +
@@ -687,13 +985,19 @@
       (c.items_per_pack ? ' · ' + esc(c.items_per_pack) + '-pack' : '') +
       (c.strain ? ' · ' + esc(c.strain) : '') + '</div>';
 
+    // Before the button, because it is the thing that decides whether pressing
+    // it is a good idea.
+    if (held) { h += claimHTML(P, c, held); }
+
     h += '<div style="display:flex;gap:7px;align-items:center">' +
       '<div style="flex:1 1 auto;height:4px;border-radius:' + P.r999 + 'px;background:' +
       P.hairline + ';overflow:hidden"><div style="width:' + pct + '%;height:100%;background:' +
       (out ? P.inkFaint : P.ink2) + '"></div></div>' +
       '<span style="flex:0 0 auto;font-family:' + ff(P.fontMono) + ';font-size:' + P.type.micro +
       'px;color:' + (out ? P.inkMute : P.ink2) + '">' + esc(scoreText(c.score)) + '</span>' +
-      btn(P, 'data-hwm', 'approve', ourSku, out ? 'Approve anyway' : 'Approve', c.wm_id) + '</div>';
+      btn(P, 'data-hwm', 'approve', ourSku,
+          held ? 'Approve as a 2nd claim' : out ? 'Approve anyway' : 'Approve', c.wm_id,
+          held ? ' data-holder="' + esc(held) + '"' : '') + '</div>';
 
     if (out) {
       // WHY THE RUNNER-UP LOST, in the server's own vocabulary. An operator who
@@ -730,6 +1034,23 @@
         'The bulk read carried no engine verdict for this SKU. Re-score to ask for one.</div>';
     }
 
+    // WHAT THE SEARCH BOX IS ACTUALLY SEARCHING. On an unlooked SKU the pool is
+    // every brand feed we HAVE pulled, and this SKU's brand is not one of them —
+    // so an operator can search all day and never see their own product. Saying
+    // so here is the difference between a search that found nothing and a search
+    // that was never given anything to find.
+    if (x.unlooked) {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info + ';line-height:1.45;' +
+        'margin-top:6px;padding:5px 7px;border-radius:' + P.r8 + 'px;background:' + P.infoSoft + '">' +
+        esc('The search below looks at the ' +
+            (_bulk && _bulk.wm_cached != null ? _bulk.wm_cached + ' cached Weedmaps products'
+                                              : 'cached Weedmaps products') +
+            ' we already hold. ' + brandPhrase(x.unlooked) + ' is NOT among them, so this SKU\u2019s ' +
+            'own product cannot appear here however you spell it. You can still bind it to a product ' +
+            'from another brand deliberately — that is a real decision and the button is live — but ' +
+            'an empty result here is not evidence of anything.') + '</div>';
+    }
+
     h += '<div style="display:flex;gap:6px;margin:7px 0 3px">' +
       '<input data-hwm-q value="' + esc(_candQuery) + '" placeholder="filter their catalog: name, strain, 3.5g…" ' +
       'style="' + ctlCSS(P) + 'height:28px;flex:1 1 auto;min-width:0;font-family:' + P.fontSans + '">' +
@@ -744,14 +1065,24 @@
         'No candidate list: ' + esc(_candErr) + '</div>';
     } else if (_cands) {
       var list = _cands.candidates || [];
+      var claimed = list.filter(function (c) { return claimOf(c); }).length;
       h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint + ';margin-top:4px">' +
         esc(list.length) + ' shown of ' + esc(_cands.total) + ' in their catalog' +
         (_candQuery ? ' matching “' + esc(_candQuery) + '”' : '') +
-        ' · ranked by the engine, losers included</div>';
+        ' · ranked by the engine, losers included' +
+        // Counted, not filtered. The count is here so an operator scanning the
+        // list knows to expect the labels below; the rows themselves stay in
+        // their engine-given order.
+        (claimed ? '<span style="color:' + P.warn + ';font-weight:700"> · ' + esc(claimed) +
+          ' already claimed by another SKU of ours</span>' : '') + '</div>';
       if (!list.length) {
         h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.45;padding:6px 0">' +
-          'Nothing in the Weedmaps brand feed matches that search. That is not proof they do not ' +
-          'carry it — see the absence ledger, which is the only thing here allowed to say that.</div>';
+          esc(x.unlooked
+            ? 'Nothing matches — and for this SKU that means nothing, because the pool searched does ' +
+              'not contain its brand. This is not the absence ledger and it is not evidence.'
+            : 'Nothing in the Weedmaps brand feed matches that search. That is not proof they do not ' +
+              'carry it — see the absence ledger, which is the only thing here allowed to say that.') +
+          '</div>';
       }
       list.forEach(function (c, i) { h += candHTML(P, c, i + 1, x.sku); });
     }
@@ -803,10 +1134,37 @@
       says = 'Weedmaps does not carry this. Confirmed across ' + x.absence.checks +
         ' distinct catalogue pulls, first seen ' + x.absence.days_absent + ' days ago. ' +
         'THIS IS NOT OUR WORK — it is a line in a message to the brand.';
+    } else if (x.state === 'unlooked') {
+      // THE SENTENCE THIS WHOLE STATE EXISTS FOR. It must not contain the word
+      // "score" as a verdict: the score is real but it is the score of an empty
+      // pool, and quoting it as evidence is the falsehood being removed.
+      says = 'WE HAVE NOT LOOKED. Weedmaps serves products per BRAND, and ' +
+        brandPhrase(x.unlooked) + ' has never been pulled' +
+        (x.unlooked.brand_feed_status ? ' (feed status “' + x.unlooked.brand_feed_status + '”' +
+          (x.unlooked.brand_feed_size != null ? ', ' + x.unlooked.brand_feed_size +
+            ' products cached' : '') + ')' : '') +
+        '. So this SKU was scored against a candidate pool that does not contain ' +
+        'its brand at all' +
+        (x.suggestion && x.suggestion.score != null
+          ? ' — the ' + scoreText(x.suggestion.score) + ' below is the score of that empty pool, not a judgement on this product'
+          : '') +
+        '. Nothing can be concluded here until that one feed is pulled.';
+      colour = P.info;
     } else {
+      // "A REAL MISS" IS A CLAIM, AND IT HAS A PRECONDITION. It is only true
+      // because /api/mapping/unlooked answered and did NOT list this SKU. When
+      // that read failed, _unlBySku is null, every unlooked SKU falls back into
+      // this branch, and asserting the feed was pulled would put the original
+      // falsehood back on the screen in stronger words. So the sentence is
+      // conditioned on the read, and says "cannot tell" when it cannot tell.
       says = 'Nothing in their catalog scored well enough' +
         (x.suggestion && x.suggestion.score != null ? ' (best ' + scoreText(x.suggestion.score) + ')' : '') +
-        '. That is not the same as Weedmaps not having it — see below.';
+        '. ' + (_unlBySku
+          ? 'Their brand feed WAS pulled and this SKU is not on the never-looked list, so this is a ' +
+            'real miss — still not the same as Weedmaps not having it. See below.'
+          : 'WHETHER WE EVER PULLED THIS BRAND\u2019S FEED IS UNKNOWN on this load — ' +
+            '/api/mapping/unlooked did not answer, and it is the only thing that knows. This word ' +
+            'may be wrong: an empty candidate pool scores exactly like a bad match.');
     }
     h += '<div style="font-size:' + P.type.meta + 'px;line-height:1.45;margin-top:5px;color:' +
       colour + '">' + esc(says) + '</div>';
@@ -843,9 +1201,33 @@
         ' look(s) — not yet enough to tell a brand anything.</div>';
     }
     if (x.state === 'nomatch' && !x.absence) {
-      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkDim + ';line-height:1.4;margin-top:4px">' +
-        'The absence ledger has NO entry for this SKU, so nobody has established that Weedmaps ' +
-        'lacks it. That entry is written by the nightly pass, across two distinct feed pulls.</div>';
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + (_unlBySku ? P.inkDim : P.bad) +
+        ';line-height:1.4;margin-top:4px">' + esc(
+          'The absence ledger has NO entry for this SKU, so nobody has established that Weedmaps ' +
+          'lacks it. That entry is written by the nightly pass, across two distinct feed pulls.' +
+          (_unlBySku ? '' : ' And the never-looked report is down, so this row\u2019s state is the ' +
+            'panel\u2019s fallback, not a verdict.')) + '</div>';
+    }
+    // THE WORK IS ON THE BRAND, NOT ON THE ROW — said on the row, because the
+    // row is where the operator is standing when they need to know that
+    // clicking Candidates here will not help them.
+    if (x.state === 'unlooked') {
+      var sibs = unlookedSiblings(x.unlooked);
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info +
+        ';line-height:1.45;margin-top:4px;padding:5px 7px;border-radius:' + P.r8 +
+        'px;background:' + P.infoSoft + '">Next action is <b>not on this row</b>: pull ' +
+        esc(brandPhrase(x.unlooked)) + '. That clears ' +
+        esc(sibs > 1 ? 'all ' + sibs + ' of our SKUs under it' : 'this SKU') +
+        ' in one go. Nothing on this panel pulls a brand feed — brand→Weedmaps-brand binding is ' +
+        'the upstream screen, and this board will not pretend a Candidates search substitutes for it. ' +
+        'The search below is still open, and it looks at the feeds we DO hold.</div>';
+    } else if (x.unlooked) {
+      // Not the state, but still true and still load-bearing: the pool this row
+      // was scored against was missing its own brand.
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info + ';line-height:1.4;margin-top:4px">' +
+        esc('Its brand feed has still never been pulled (' + brandPhrase(x.unlooked) +
+            '), so whatever is above was decided without a single product from this SKU\u2019s own brand in the pool.') +
+        '</div>';
     }
 
     // Controls.
@@ -870,6 +1252,9 @@
       ['linked', 'Linked ' + c.linked],
       ['rejected', 'Rejected ' + c.rejected],
       ['nomatch', 'No match ' + c.nomatch],
+      // '?' not '0'. A zero here would be the same lie in miniature: on a failed
+      // read the count is UNKNOWN, and 0 reads as "none".
+      ['unlooked', 'Never looked ' + (_unlErr ? '?' : c.unlooked)],
       ['absent', 'Not on WM ' + c.absent]
     ];
     return '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px">' +
@@ -881,6 +1266,50 @@
           ';background:' + (on ? P.ink : P.surface2) + ';color:' + (on ? P.surface : P.ink2) + '">' +
           esc(d[1]) + '</button>';
       }).join('') + '</div>';
+  }
+
+  // THE BULK BAR IS NEVER SILENT. A button that only appears when there is
+  // work is indistinguishable, on the day there is none, from a feature that
+  // was never built — and this board's whole failure mode is a state you cannot
+  // tell from another state. So: the button when there are READY rows, and the
+  // reason there is no button when there are not, with the numbers that make it
+  // checkable.
+  function bulkBar(P, c) {
+    var n = readyRows().length;
+    if (_bulkRun) {
+      return '<div style="border:1px solid ' + P.accentText + ';background:' + P.highlightSoft +
+        ';border-radius:' + P.r8 + 'px;padding:8px 9px;margin-bottom:9px;font-size:' + P.type.meta +
+        'px;color:' + P.accentText + ';line-height:1.45;font-family:' + ff(P.fontMono) + '">' +
+        esc('Approving ' + _bulkRun.done + ' of ' + _bulkRun.total + '… ' + _bulkRun.ok +
+            ' approved, ' + _bulkRun.refused + ' refused. One write at a time, 120ms apart, no force.') +
+        '</div>';
+    }
+    if (n) {
+      return '<div style="border:1px solid ' + P.accentText + ';background:' + P.highlightSoft +
+        ';border-radius:' + P.r8 + 'px;padding:8px 9px;margin-bottom:9px">' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<button data-hwm="bulk" style="' + ctlCSS(P) + 'height:32px;cursor:pointer;font-weight:800;' +
+        'font-family:' + P.fontSans + ';border-color:' + P.accentText + ';color:' + P.accentText + '">' +
+        esc('Approve all ' + n + ' the engine is confident about') + '</button>' +
+        '<span style="font-size:' + P.type.micro + 'px;color:' + P.accentText + '">' +
+        esc('one click instead of ' + n) + '</span></div>' +
+        '<div style="font-size:' + P.type.micro + 'px;color:' + P.accentText +
+        ';line-height:1.45;margin-top:5px">Only the READY rows — the server\u2019s own verdict on ' +
+        'this load was “exact” or “auto”. One write at a time, 120ms apart, and <b>no force flag</b>: ' +
+        'a Weedmaps product another SKU already claims is refused and named, never overwritten. ' +
+        'Review, rejected and never-looked rows are untouched.</div></div>';
+    }
+    if (!c.total || c.total === c.linked) { return ''; }
+    return '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkDim + ';line-height:1.45;' +
+      'margin-bottom:9px">' + esc(
+        'No bulk approve is offered: 0 of the ' + (c.total - c.linked) + ' unlinked SKUs are READY, ' +
+        'so there is nothing a batch could press. ' +
+        (c.unlooked
+          ? c.unlooked + ' of them were never looked at, and no amount of re-scoring creates a ' +
+            'candidate for a brand feed that was never pulled. The button returns by itself the ' +
+            'moment those feeds land and the engine starts coming back confident.'
+          : 'The engine is not confident about any of them, so every one is a human decision.')) +
+      '</div>';
   }
 
   function panelHTML(P) {
@@ -943,7 +1372,45 @@
             'Weedmaps for a missing category id, so "linked" above is not by itself "live".') +
       '</div></div>';
 
+    // THE RE-FRAME. Directly under the headline, because the headline number is
+    // the one the owner is looking at and 108 of its 142 have a cause that is
+    // not "the matcher is bad".
+    if (_unlErr) {
+      h += '<div style="border:1px solid ' + P.bad + ';background:' + P.badSoft + ';border-radius:' +
+        P.r8 + 'px;padding:8px 9px;margin-bottom:9px;font-size:' + P.type.meta +
+        'px;color:' + P.bad + ';line-height:1.45">' + esc(
+          'THE NEVER-LOOKED REPORT DID NOT ANSWER (' + _unlErr + '). GET ' + base +
+          '/api/mapping/unlooked is the only thing that can tell an unpulled brand feed from a ' +
+          'real scoring miss, so every row below that would carry NEVER LOOKED is showing NO ' +
+          'CONFIDENT MATCH instead. That word is not trustworthy on this load — it is a missing ' +
+          'answer being drawn as a negative one.') + '</div>';
+    } else if (c.unlooked) {
+      var brands = (_unlBrands || []).slice().sort(function (a, b) { return b.skus - a.skus; });
+      h += '<div style="border:1px solid ' + P.info + ';background:' + P.infoSoft + ';border-radius:' +
+        P.r8 + 'px;padding:8px 9px;margin-bottom:9px">' +
+        '<div style="font-size:' + P.type.strong + 'px;font-weight:800;color:' + P.info + '">' +
+        esc(c.unlooked) + ' of the ' + esc(c.total) + ' were never looked at</div>' +
+        '<div style="font-size:' + P.type.meta + 'px;color:' + P.info + ';line-height:1.45;margin-top:2px">' +
+        esc('Weedmaps serves products per BRAND. ' + brands.length + ' brand feed(s) behind these SKUs ' +
+            'have never been pulled, so those SKUs were scored against a pool that does not contain ' +
+            'their own brand. A 0.000 there is an EMPTY POOL, not a bad product and not a bad matcher. ' +
+            'This is ' + brands.length + ' pulls of work, not ' + c.unlooked + ' rows of it.') + '</div>';
+      // The rollup, because the unit of work is a brand. Top 8 by SKU count —
+      // enough to see where the mass is, and the filter chip shows the rest.
+      h += '<div style="margin-top:6px;font-family:' + ff(P.fontMono) + ';font-size:' + P.type.micro +
+        'px;color:' + P.info + ';line-height:1.6">' +
+        brands.slice(0, 8).map(function (b) {
+          return esc(unlookedBrandLabel(b) +
+                     '  ·  ' + b.skus + ' sku(s)  ·  feed ' + (b.why || 'never'));
+        }).join('<br>') +
+        (brands.length > 8 ? '<br>' + esc('+ ' + (brands.length - 8) + ' more brand(s)') : '') +
+        '</div>';
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info + ';line-height:1.4;margin-top:5px">' +
+        esc(_unlNote || '') + '</div></div>';
+    }
+
     h += filterBar(P, c);
+    h += bulkBar(P, c);
 
     if (_msg) {
       h += '<div style="margin-bottom:8px;font-size:' + P.type.meta + 'px;line-height:1.45;font-family:' +
@@ -964,7 +1431,10 @@
     }
     if (!list.length) {
       h += '<div style="font-size:' + P.type.body + 'px;color:' + P.ink2 + ';line-height:1.5">' +
-        esc(c.total ? 'No product is in that state right now.'
+        esc(_filter === 'unlooked' && _unlErr
+          ? 'This filter cannot be answered on this load: GET /api/mapping/unlooked failed (' +
+            _unlErr + '). Empty here means UNKNOWN, not zero.'
+          : c.total ? 'No product is in that state right now.'
           : 'The API served an empty catalog, so there is nothing to map.') + '</div>';
     }
     list.forEach(function (x) { h += rowHTML(P, x); });
@@ -996,6 +1466,34 @@
         (_stateErr || 'unknown') + '), and that event log is the only client-visible trace of one. ' +
         'Any SKU a person rejected is therefore drawn as "no confident match" — the state is ' +
         'missing, not empty.');
+    }
+
+    if (_unlErr) {
+      w_('THE THIRD STATE IS MISSING ON THIS LOAD. GET ' + base + '/api/mapping/unlooked did not ' +
+        'answer (' + _unlErr + '), and it is the ONLY route that distinguishes a SKU whose brand ' +
+        'feed was never pulled from one the matcher genuinely failed on. Every such row is showing ' +
+        'NO CONFIDENT MATCH right now, which on the deployed catalogue would be wrong about 108 of ' +
+        '138 rows. Treat that word as unavailable, not as a verdict.');
+    } else {
+      w_('NEVER LOOKED IS A SERVED FACT, NOT AN INFERENCE. GET /api/mapping/unlooked returns the ' +
+        'SKUs the server has parked in its `not_looked_at` absence state, with the brand id and the ' +
+        'brand feed\u2019s own status on each one (wmdemo/mapping.py:1477 unlooked_report). ' +
+        (_unlCount || 0) + ' SKU(s) across ' + ((_unlBrands || []).length) + ' brand(s) on this ' +
+        'load. Nothing here re-derives it and nothing here guesses a brand: a SKU with no Weedmaps ' +
+        'brand id is worded as a different problem, because it is one.');
+      w_('WHY 0.000 WAS NEVER A SCORE. Weedmaps serves products per brand — GET ' +
+        '/partners/brands/{id}/products — so a SKU whose brand feed has not been pulled is scored ' +
+        'against a pool containing none of its brand\u2019s products. The engine returns its floor, ' +
+        'and this panel used to print that floor as \u201cnothing scored well enough\u201d. It was ' +
+        'the panel that was wrong, not the matcher. THE FIX IS NOT TO UNSCOPE THE PULL: an unscoped ' +
+        'cold boot fetches every brand\u2019s entire catalogue (~18,000 products over ~911 requests, ' +
+        'measured on the deployed instance) and repeats it every time the container wakes. The unit ' +
+        'of work is one brand feed, which is why this board counts brands and not rows.');
+      w_('WHAT THIS PANEL STILL CANNOT DO ABOUT IT: pull a brand feed. There is no route on ' +
+        '/api/mapping/* that binds one of our brands to a Weedmaps brand id, and "Re-pull feed ' +
+        '(fixture)" re-reads the QA fixture — it does not widen the brand scope. So NEVER LOOKED is ' +
+        'reported here and cleared elsewhere, and this board does not offer a button that would ' +
+        'look like it fixed it.');
     }
 
     if (_absErr) {
@@ -1149,6 +1647,7 @@
     if (act === 'why') { e.stopPropagation(); _why = !_why; paint(); return; }
     if (act === 'refresh') { e.stopPropagation(); load(); return; }
     if (act === 'pull') { e.stopPropagation(); pull(); return; }
+    if (act === 'bulk') { e.stopPropagation(); approveAllReady(); return; }
     if (act === 'filter') {
       e.stopPropagation();
       _filter = t.getAttribute('data-f') || 'all';
@@ -1166,7 +1665,22 @@
     if (act === 'rescore') { e.stopPropagation(); if (sku) { rescore(sku); } return; }
     if (act === 'approve') {
       e.stopPropagation();
-      approve(sku, t.getAttribute('data-wm'));
+      var wm = t.getAttribute('data-wm');
+      // data-holder is present only on a row the server told us is already
+      // claimed. The row said so before the press; this asks once more and
+      // names the incumbent, then sends force — which is the human making a
+      // many-to-one deliberately, not this file deciding one is fine.
+      var holder = t.getAttribute && t.getAttribute('data-holder');
+      if (holder) {
+        if (!W.confirm('WM #' + wm + ' is already claimed by ' + holder + '.\n\n' +
+                       'Approve anyway? ' + sku + ' and ' + holder + ' would then BOTH point at ' +
+                       'WM #' + wm + '. Weedmaps does not enforce a unique external_id, so this is ' +
+                       'how duplicate listings get made — and it is sometimes exactly what you ' +
+                       'want. Nothing is sent unless you press OK.')) { return; }
+        approve(sku, wm, true);
+        return;
+      }
+      approve(sku, wm);
       return;
     }
     if (act === 'unmap') {
@@ -1211,8 +1725,11 @@
       _status = 'pending'; paint();
       return load();
     },
+    get unlooked() { return _unlBySku; },
+    get unlookedBrands() { return _unlBrands; },
     candidates: loadCandidates,
     approve: approve,
+    approveAllReady: approveAllReady,
     reject: reject,
     unmap: unmap,
     rescore: rescore,

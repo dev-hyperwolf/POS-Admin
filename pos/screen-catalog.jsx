@@ -190,6 +190,88 @@ function bulkBtn(P) {return { display: 'inline-flex', alignItems: 'center', gap:
 // Profit-margin color: higher = healthier
 function marginColor(P, m) {return m >= 0.55 ? P.good : m >= 0.42 ? P.mode === 'light' ? '#B07A12' : P.warn : P.bad;}
 
+// ── WHAT THIS SCREEN IS ACTUALLY TOLD ──────────────────────────────────────
+// One source, and only one: shared/hw-live.js reads GET /api/state and hands
+// every product `_live:true` plus `_stockByRegion` = { <region-slug>:
+// { qty, reserved } } straight off /api/state.stock. Nothing else on this page
+// has a source, and nothing here is allowed to invent one.
+//
+// Verified against https://hyperwolf-wm-demo.onrender.com/api/state on
+// 2026-08-26 (GET, read-only):
+//   stock        3 regions, 19 cells; 10 of 149 SKUs have ANY stock row at all.
+//   reserved     unexpired soft reservations per cell. A real hold.
+//   batches      the key IS served — and it is an EMPTY ARRAY (0 rows), and
+//                hw-live.js never attaches it to a product, so this page has
+//                never been handed a lot for any SKU.
+//   orders       carry NO line items, so per-SKU units sold, revenue, velocity
+//                and last-sold are not derivable from anything served.
+//
+// The batches TABLE (wm-demo/wmdemo/catalog.py) is region / sku / batch_id /
+// thc_pct / qty / received_at. There is NO METRC tag column, NO COA result, NO
+// expiration date and NO CBD anywhere in the API. Those four are UNKNOWABLE
+// here and must never be printed: a fabricated METRC tag under a heading that
+// says "traceability" is this system asserting a regulatory fact it does not
+// have, and somebody can read it off the screen and put it in a document.
+const REGION_LABEL_OVERRIDE = { 'west-la': 'West LA' };
+function regionLabelOf(slug) {
+  return REGION_LABEL_OVERRIDE[slug] || String(slug).split(/[-_]/).filter(Boolean).
+  map((w) => w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1)).join(' ');
+}
+
+// Per-region stock, or null when the API never told us the split.
+// null ("we were never told") and all-zeroes ("the answer is none") are
+// different facts with different consequences, so they render differently.
+function stockByLocation(p) {
+  const by = p && p._stockByRegion;
+  if (!by || typeof by !== 'object') return null;
+  const slugs = Object.keys(by);
+  if (!slugs.length) return null;
+  const rows = slugs.sort().map((slug) => {
+    const cell = by[slug] || {};
+    const onHand = Number(cell.qty) || 0;
+    const onHold = Number(cell.reserved) || 0;
+    return { slug, s: regionLabelOf(slug), onHand, onHold, avail: Math.max(0, onHand - onHold) };
+  });
+  return { rows,
+    totOnHand: rows.reduce((a, x) => a + x.onHand, 0),
+    totHold: rows.reduce((a, x) => a + x.onHold, 0),
+    totAvail: rows.reduce((a, x) => a + x.avail, 0) };
+}
+
+// Batch lots. THREE outcomes, and they are not the same fact:
+//   undefined  nobody ever handed this screen batch rows        -> "not known"
+//   []         the API holds no lots for this SKU               -> "none"
+//   [rows]     real lots — and ONLY the five fields it really has.
+function batchRowsOf(p) {
+  const b = p && p._batches;
+  if (!Array.isArray(b)) return undefined;
+  return b.filter((r) => r && (r.sku == null || String(r.sku) === p.sku)).map((r) => ({
+    id: String(r.batch_id == null ? '' : r.batch_id),
+    slug: r.region == null ? null : String(r.region),
+    qty: Number(r.qty) || 0,
+    thc: r.thc_pct == null ? null : Number(r.thc_pct),
+    received: r.received_at == null ? null : Number(r.received_at) }));
+}
+function receivedLabel(epochSeconds) {
+  if (!epochSeconds) return null;
+  const d = new Date(epochSeconds * 1000);
+  return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// The ONLY way this screen may answer a question it cannot answer: say so out
+// loud, and name what is missing. Never a zero, never a dash, never a default.
+function NotKnown({ title, body, icon }) {
+  const P = useP();
+  return <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: P.surface2, border: `1px dashed ${P.hairline2}`, borderRadius: P.r10 }}>
+    <Icon name={icon || 'info'} size={15} stroke={1.9} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink2 }}>{title}</div>
+      <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55, marginTop: 3 }}>{body}</div>
+    </div>
+  </div>;
+}
+function Mono({ children }) {const P = useP();return <span style={{ fontFamily: P.fontMono, color: P.ink2 }}>{children}</span>;}
+
 // ── Margin tool — filter the catalog by profit margin ──────────────────────
 function MarginFilter({ value, onChange, rows, all }) {
   const P = useP();
@@ -256,7 +338,10 @@ function MetricRibbon({ active, inactive, lowStock }) {
           served by the API; saying so beats naming a product. */}
       <Item icon="star" label="Most sold" value="not tracked" sub="no sales data in the API" />
       <Div />
-      <Item icon="chart-line" label="Top revenue" value="$4,210" delta={12} deltaKind="good" />
+      {/* Same defect as "Most sold" one cell to the left, which a previous
+          pass fixed and this one kept: $4,210 / +12% was a literal, sitting in
+          the same row as active/inactive/lowStock, which ARE computed. */}
+      <Item icon="chart-line" label="Top revenue" value="not tracked" sub="no sales data in the API" />
       <Div />
       <Item icon="arrow-down" label="Least sold" value="not tracked" sub="no sales data in the API" />
       <Div />
@@ -286,7 +371,7 @@ function MetricCompact({ active, inactive, lowStock }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 18 }}>
       <Chip label="Most sold" value="—" sub="not tracked" />
-      <Chip label="Top revenue" value="$4,210" delta={12} deltaKind="good" />
+      <Chip label="Top revenue" value="—" sub="not tracked" />
       <Chip label="Least sold" value="—" sub="not tracked" />
       <Chip label="Active" value={active} sub="live" />
       <Chip label="Low stock" value={lowStock} sub="< 10 left" />
@@ -304,7 +389,7 @@ function MetricLine({ active, inactive, lowStock, total }) {
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>{dot(P.inkFaint)}{inactive} inactive</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>{dot(P.warn)}{lowStock} low stock</span>
       <span style={{ color: P.inkMute }}>·</span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}><Icon name="star" size={12} color={P.warn} />Top seller <b style={{ color: P.ink2 }}>Blueberry Pancakes</b></span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}><Icon name="star" size={12} color={P.warn} />Top seller <b style={{ color: P.ink2 }}>not tracked</b></span>
       <span style={{ marginLeft: 'auto', color: P.inkMute, whiteSpace: 'nowrap' }}>{total} SKUs</span>
     </div>);
 
@@ -370,7 +455,8 @@ function WmChip({ wm }) {
 const PROD_SUBCAT = { Flower: 'Hybrid Flowers', Vapes: 'All-In-One Vapes', 'Pre-Rolls': 'Infused Pre-Rolls', Concentrates: 'Live Resin', Edibles: 'Gummies', Wellness: 'Tinctures' };
 const PROD_EFFECTS = { Indica: ['Relaxed', 'Sleepy', 'Calm'], Sativa: ['Energetic', 'Uplifted', 'Focused'], Hybrid: ['Balanced', 'Happy', 'Creative'] };
 const PROD_TERPS = ['Myrcene', 'Limonene', 'Caryophyllene', 'Pinene', 'Linalool', 'Terpinolene'];
-const PROD_STORES = ['Lake Elsinore', 'Corona', 'Long Beach', 'West Hollywood'];
+// PROD_STORES DELETED — four hardcoded store names that no live region
+// matches. Regions now come from /api/state.stock via stockByLocation().
 const SUBCATS = { Flower: ['Sativa Flowers', 'Indica Flowers', 'Hybrid Flowers', 'Premium Flower', 'Budget Friendly Flower', 'Smaller Bud Flower', '5g-28g'], Vapes: ['Vapes', 'Batteries', 'Solventless Rosin Vapes', 'Live Resin Vape', 'All-In-One Vapes', 'Pod System Vapes', 'Premium Oil Vapes', 'Cured Resin Vapes'], 'Pre-Rolls': ['Prerolls', 'Single Pre-Roll', 'Single Infused Pre-Roll', 'Infused Pre-Roll Pack', 'Pre-Roll Pack'], Concentrates: ['Solventless Rosin / Hash', 'Hash', 'Sugar', 'Budder / Badder', 'Diamonds / Sauce', 'Live Resin'], Edibles: ['Gummies', 'Baked Goods', 'Drinks', 'High Dose Edibles', 'Micro Dose Edibles', 'Chocolates'], Wellness: ['Tinctures', 'Topicals', 'Capsules'], Deals: ['Hyper Deals', 'Clearance'], Accessories: ['Accessories'] };
 
 // Storefront meta is AI-drafted per product (title, description, slug, keywords).
@@ -458,34 +544,41 @@ function AiEffects({ product }) {
   </div>;
 }
 
-// Re-sync to Weedmaps — shows the push actually happening (comment: "show me what happens").
+// Weedmaps push. THIS SCREEN CANNOT PUSH, AND NOW SAYS SO.
+// What used to be here: a setInterval walking four step labels 520ms apart,
+// then a green panel reading "Synced just now. Price, availability & the menu
+// item were pushed to Weedmaps. Pickup · Delivery listings live." Not one
+// network call was made — not by that button, not by anything it invoked. The
+// claim was manufactured by a timer.
+// What is actually true: publishing is server-side and whole-menu
+// (POST /api/sync in wm-demo/wmdemo/server.py, token-gated). There is no
+// per-product push route in the API at all, and this build wires none. So the
+// control explains the real state instead of performing a fake one.
 function WmResyncButton({ p }) {
   const P = useP();
-  const label = p.wm.state === 'unlisted' ? 'Push to Weedmaps' : p.wm.state === 'error' ? 'Retry sync' : 'Re-sync';
-  const STEPS = ['Authenticating with Weedmaps', 'Pushing catalog fields & price', 'Updating availability · Pickup + Delivery', 'Confirming menu item'];
-  const [st, setSt] = React.useState('idle'); // idle | syncing | done
-  const [step, setStep] = React.useState(0);
-  const run = () => {
-    if (st === 'syncing') return;
-    setSt('syncing');setStep(0);
-    let i = 0;const t = setInterval(() => {i++;if (i >= STEPS.length) {clearInterval(t);setSt('done');} else setStep(i);}, 520);
-  };
-  const listings = (p.wm.listings || []).includes('delivery') && (p.wm.listings || []).includes('pickup') ? 'Pickup · Delivery' : (p.wm.listings || [])[0] === 'delivery' ? 'Delivery' : 'Pickup';
+  const [why, setWhy] = React.useState(false);
+  const L = window.HW_LIVE;
+  const live = !!p._live;
+  const writes = L && typeof L.writes === 'string' ? L.writes : 'unknown';
+  const hasToken = !!(L && L.hasToken && L.hasToken());
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-    <div style={{ display: 'flex', gap: 8 }}>
-      <PBtn variant={st === 'done' ? 'secondary' : p.wm.state === 'unlisted' ? 'accent' : 'secondary'} size="sm" full onClick={run} disabled={st === 'syncing'}
-      icon={st === 'done' ? 'check-circle' : 'refresh'}>{st === 'syncing' ? 'Syncing…' : st === 'done' ? 'Synced' : label}</PBtn>
-      {p.wm.state === 'error' && st === 'idle' && <PBtn variant="secondary" size="sm" icon="tag">Fix</PBtn>}
+    <PBtn variant="secondary" size="sm" full icon="info" onClick={() => setWhy((v) => !v)}>
+      {why ? 'Hide push status' : 'Push to Weedmaps…'}
+    </PBtn>
+    <div style={{ display: 'flex', gap: 9, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+      <Icon name="shield" size={15} stroke={1.9} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+      <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}>
+        <b style={{ color: P.ink2 }}>Nothing on this screen has contacted Weedmaps.</b> The state above is whatever the catalogue was loaded with — it is not the result of a push from here.
+      </div>
     </div>
-    {st === 'syncing' && <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
-      {STEPS.map((s, i) => {const done = i < step,cur = i === step;return <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: cur ? P.ink : done ? P.ink2 : P.inkMute }}>
-        {done ? <Icon name="check-circle" size={13} stroke={2} color={P.good} /> : cur ? <Icon name="refresh" size={13} stroke={2} color="#1F5FC0" style={{ animation: 'hwspin .8s linear infinite' }} /> : <span style={{ width: 13, height: 13, borderRadius: 99, border: `1.5px solid ${P.hairline3}` }} />}
-        {s}{cur ? '…' : ''}
-      </div>;})}
-    </div>}
-    {st === 'done' && <div style={{ display: 'flex', gap: 9, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
-      <Icon name="check-circle" size={15} stroke={2} color={P.good} style={{ flex: '0 0 auto', marginTop: 1 }} />
-      <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b style={{ color: P.ink }}>Synced just now.</b> Price, availability &amp; the menu item were pushed to Weedmaps. {listings} listing{listings.includes('·') ? 's' : ''} live · <button onClick={() => setSt('idle')} style={{ background: 'none', border: 'none', padding: 0, color: P.info, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5 }}>sync again</button></div>
+    {why && <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '11px 12px', background: P.surface2, border: `1px dashed ${P.hairline2}`, borderRadius: P.r10, fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}>
+      <div>Publishing runs server-side and covers the <b style={{ color: P.ink2 }}>whole menu</b> — <span style={{ fontFamily: P.fontMono, color: P.ink2 }}>POST /api/sync</span>. The API exposes no per-product push, so there is nothing this button could call for <span style={{ fontFamily: P.fontMono, color: P.ink2 }}>{p.sku}</span> alone.</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontFamily: P.fontMono, color: P.ink2 }}>
+        <span>catalogue source · {live ? 'live API' : 'local demo data (not the API)'}</span>
+        <span>write access · {live ? writes : 'n/a'}{live && !hasToken ? ' · no token set' : ''}</span>
+        <span>last push recorded by the API · {p.wm.last}</span>
+      </div>
+      {p.wm.issue && <div style={{ color: P.ink2 }}>{p.wm.issue}</div>}
     </div>}
   </div>;
 }
@@ -501,9 +594,9 @@ function StorefrontContent({ p }) {
   /concentrate|wax|resin|badder/.test(cat) ? 'Portion a small amount with a dab tool onto a heated surface — a little goes a long way. Refrigerate for a longer shelf life.' :
   'Grind, pack, and enjoy. Store in an airtight container out of direct light to preserve the terpenes.';
   const faqs = [
-  { q: 'Is this product lab tested?', a: 'Yes — every batch ships with a Certificate of Analysis (COA) for potency and contaminant screening. Potency varies slightly by batch; see the Batches list for the exact numbers on the lot you receive.' },
+  { q: 'Is this product lab tested?', a: 'Every batch is lab tested for potency and contaminants before it is released for sale. Ask for the Certificate of Analysis (COA) for the lot you receive — that document, not this listing, is the record of the result.' },
   { q: 'How should I store it?', a: directions },
-  { q: 'Will the potency match what’s on the menu?', a: 'The online menu reflects the current active batch. Because THC/CBD is a per-batch value, the COA on your specific unit is the source of truth.' },
+  { q: 'Will the potency match what’s on the menu?', a: 'Not exactly. THC and CBD are per-batch values, so the COA on your specific unit is the source of truth — the menu figure is the catalogue’s, not your lot’s.' },
   { q: 'Is it available for delivery?', a: (p.wm.listings || []).includes('delivery') ? 'Yes — it’s live on the Weedmaps delivery listing whenever an on-shift driver in your region carries it.' : 'This item is currently pickup-only. Check back as driver kits change.' }];
 
   const [open, setOpen] = React.useState(0);
@@ -640,38 +733,46 @@ function StorefrontContent({ p }) {
   </Card>;
 }
 
-// Inventory by location — expandable store rows revealing the batches held there (comment: show batches in this table)
-function InventoryByLocation({ stores, batches, totals }) {
+// Inventory by location — one row per region the API actually reports stock
+// for, expandable to the lots recorded THERE.
+// What used to be here: four hardcoded store names, each given p.qty times one
+// of [1, .42, .68, .25], an "on hold" of that times one of [.12,.05,.18,.08],
+// and the batch list dealt round-robin across the four so every store showed
+// lots it had never received. Every figure was arithmetic on p.qty.
+function InventoryByLocation({ inv, batches }) {
   const P = useP();
   const [exp, setExp] = React.useState(null);
-  const byStore = {};stores.forEach((s) => byStore[s.s] = []);
-  batches.forEach((b, i) => byStore[stores[i % stores.length].s].push(b));
+  const lotsKnown = batches !== undefined;
+  const byRegion = {};
+  (batches || []).forEach((b) => {if (b.slug) {(byRegion[b.slug] = byRegion[b.slug] || []).push(b);}});
+  const stores = inv.rows, totals = inv;
   const gc = '1.7fr .8fr .8fr .8fr 20px';
   return <div style={{ gridColumn: '1/-1', border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
     <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, padding: '8px 13px', background: P.surface2, fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>
       <span>Location</span><span style={{ textAlign: 'right' }}>In region</span><span style={{ textAlign: 'right' }}>On hold</span><span style={{ textAlign: 'right' }}>Available</span><span />
     </div>
-    {stores.map((st) => {const bs = byStore[st.s] || [];const open = exp === st.s;return <div key={st.s} style={{ borderTop: `1px solid ${P.hairline}` }}>
-      <div onClick={() => setExp(open ? null : st.s)} style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, alignItems: 'center', padding: '10px 13px', cursor: 'pointer' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}><Icon name="shop" size={14} color={P.inkMute} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{st.s}{st.mine && <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 500 }}> · this store</span>}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{bs.length} lot{bs.length !== 1 ? 's' : ''}</span></span>
+    {stores.map((st) => {const bs = byRegion[st.slug] || [];const open = exp === st.slug;return <div key={st.slug} style={{ borderTop: `1px solid ${P.hairline}` }}>
+      <div onClick={() => setExp(open ? null : st.slug)} style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, alignItems: 'center', padding: '10px 13px', cursor: 'pointer' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}><Icon name="shop" size={14} color={P.inkMute} /><span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{st.s}</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{lotsKnown ? bs.length + ' lot' + (bs.length !== 1 ? 's' : '') : 'lots not known'}</span></span>
         <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 600, color: P.ink2 }}>{st.onHand}</span>
         <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 600, color: st.onHold ? P.warn : P.inkFaint }}>{st.onHold}</span>
         <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: st.avail === 0 ? P.bad : st.avail < 10 ? P.warn : P.good }}>{st.avail}</span>
         <Icon name="chevron-down" size={14} stroke={2.2} color={P.inkMute} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
       </div>
       {open && <div style={{ padding: '2px 13px 11px 36px', display: 'flex', flexDirection: 'column', gap: 6, background: P.surface2 }}>
-        {bs.length === 0 ? <span style={{ fontSize: 11.5, color: P.inkMute }}>No batches at this location.</span> : bs.map((b) => <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, flexWrap: 'wrap' }}>
+        {!lotsKnown ? <span style={{ fontSize: 11.5, color: P.inkMute }}>Which lots sit here was never reported to this screen — see Batches below.</span> :
+        bs.length === 0 ? <span style={{ fontSize: 11.5, color: P.inkMute }}>No lots recorded at this location.</span> :
+        bs.map((b) => <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11.5, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{b.id}</span>
-          <span style={{ fontFamily: P.fontMono, color: P.inkMute, flex: 1, minWidth: 80, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.metrc}</span>
-          <span style={{ fontFamily: P.fontMono, color: P.ink2 }}>{b.thc}% THC</span>
-          <span style={{ fontFamily: P.fontMono, color: P.inkDim }}>exp {b.exp}</span>
+          <span style={{ flex: 1, minWidth: 40 }} />
+          {b.thc != null && <span style={{ fontFamily: P.fontMono, color: P.ink2 }}>{b.thc}% THC</span>}
+          {receivedLabel(b.received) && <span style={{ fontFamily: P.fontMono, color: P.inkDim }}>rec. {receivedLabel(b.received)}</span>}
           <span style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{b.qty}u</span>
-          {b.coa === 'Passed' ? <Pill kind="good" dot>COA</Pill> : <Pill kind="warn" dot>Pending</Pill>}
         </div>)}
       </div>}
     </div>;})}
     <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, padding: '10px 13px', borderTop: `2px solid ${P.hairline2}`, background: P.surface2 }}>
-      <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>All stores</span>
+      <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>All regions</span>
       <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: P.ink }}>{totals.totOnHand}</span>
       <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 700, color: P.warn }}>{totals.totHold}</span>
       <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 13.5, fontWeight: 800, color: P.good }}>{totals.totAvail}</span>
@@ -685,7 +786,8 @@ function ProductDetailPage({ p, onBack }) {
   const fmt = window.HW.fmt;
   const m = wmStateMeta(p.wm.state, P);
   const h = p.sku.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const units30 = 40 + h % 180;const rev30 = units30 * p.price;
+  // units30 / rev30 DELETED: /api/state.orders carries no line items, so
+  // per-SKU sales are not derivable from anything served. See the rail card.
   const onPickup = (p.wm.listings || []).includes('pickup');
   const onDelivery = (p.wm.listings || []).includes('delivery');
   const kits = 1 + h % 4;
@@ -697,13 +799,20 @@ function ProductDetailPage({ p, onBack }) {
   const [wmMap, setWmMap] = React.useState(false);
   const eff = PROD_EFFECTS[p.strain] || ['Relaxed', 'Happy'];
   const terps = [PROD_TERPS[h % 6], PROD_TERPS[(h + 2) % 6], PROD_TERPS[(h + 4) % 6]];
-  const cbd = h % 4 === 0 ? +(0.4 + h % 2).toFixed(1) : 0.1;
-  const metrc = '1A4FF01' + String(100000 + h * 37 % 899999) + '000' + String(1000 + h * 7 % 8999);
-  const batch = 'B-' + p.sku.slice(0, 4) + '-' + (2400 + h % 120);
-  const received = ['Jun 2, 2026', 'Jun 9, 2026', 'May 28, 2026', 'Jun 14, 2026'][h % 4];
-  const upc = String(8_10000_00000 + h * 131 % 89999999999);
-  const stores = PROD_STORES.map((s, i) => ({ s, qty: i === 0 ? p.qty : Math.max(0, Math.round(p.qty * [1, .42, .68, .25][i])) }));
-  const totalStock = stores.reduce((a, s) => a + s.qty, 0);
+  // DELETED, all of it manufactured from charCodeSum(p.sku):
+  //   cbd     — the API has no CBD column on a batch and serves cbd:null.
+  //   metrc   — a state traceability tag, invented. See the note above.
+  //   batch   — a lot id for a lot that does not exist.
+  //   received— a receiving date for that same non-existent lot.
+  //   upc     — a barcode. Not served for any SKU.
+  //   stores / totalStock — p.qty times [1,.42,.68,.25] over four hardcoded
+  //             store names. Replaced by `inv`, read from /api/state.stock.
+  const inv = stockByLocation(p);   // null  => per-region split not held
+  const bRows = batchRowsOf(p);     // undefined => lots never reported
+  // `_live` is set by shared/hw-live.js only when /api/state actually answered.
+  // Without it the rows are the bundled demo catalogue, and saying "the API
+  // reports no stock row" would itself be a claim we cannot make.
+  const fromApi = !!p._live;
   const perGram = p.wt && /g$/.test(p.wt) ? p.price / (parseFloat(p.wt) || 1) : null;
   const packN = ((p.wt || '').match(/^(\d+)\s*x/i) || [])[1] || '1';
   const weightOnly = (p.wt || '').replace(/^\d+\s*x\s*/i, '').trim() || '—';
@@ -769,24 +878,24 @@ function ProductDetailPage({ p, onBack }) {
     <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t.name}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>{t.note}</div></div>
     <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: rt.c, background: rt.bg, borderRadius: 6, padding: '3px 8px' }}>{t.rank}</span>
   </div>;};
-  // inventory per store — on hand / on hold / available
-  const storeInv = PROD_STORES.map((s, i) => {const onHand = i === 0 ? p.qty : Math.max(0, Math.round(p.qty * [1, .42, .68, .25][i]));const onHold = Math.round(onHand * [0.12, 0.05, 0.18, 0.08][i]);return { s, onHand, onHold, avail: onHand - onHold, mine: i === 0 };});
-  const totOnHand = storeInv.reduce((a, x) => a + x.onHand, 0),totHold = storeInv.reduce((a, x) => a + x.onHold, 0),totAvail = totOnHand - totHold;
-  // batches — a SKU can carry many; this list scales to 20+
-  const batchCount = 3 + h % 21;
-  const batches = Array.from({ length: batchCount }).map((_, i) => {const bh = h + i * 97;return { id: 'B-' + p.sku.slice(0, 4) + '-' + (2400 + (h + i * 13) % 140), metrc: '1A4FF01' + String(100000 + bh * 37 % 899999) + String(1000 + bh * 7 % 8999), qty: 8 + bh % 80, exp: ['Jun 2', 'Jun 9', 'May 28', 'Jun 14'][bh % 4] + ', 2027', coa: bh % 9 === 0 ? 'Pending' : 'Passed', thc: +(19 + bh % 110 / 10).toFixed(1), cbd: +(bh % 13 / 10).toFixed(1) };});
-  const thcVals = batches.map((b) => b.thc);
-  const thcLo = Math.min(...thcVals),thcHi = Math.max(...thcVals);
-  const thcAvg = +(thcVals.reduce((a, b) => a + b, 0) / thcVals.length).toFixed(1);
+  // Inventory and lots now come from `inv` / `bRows` above. The whole
+  // synthetic batch generator is gone: batchCount = 3 + h % 21, METRC tag,
+  // COA verdict, expiry and CBD were all charCodeSum arithmetic, and the
+  // auditor predicted 13 lots, B-STZ--2508 and 1A4FF011298966656 for
+  // STZ-IF-663744 from the SKU string alone.
+  // THC low / high / avg are per-batch rollups, so they exist only when real
+  // lots exist. The average is qty-weighted, which is what its label claims.
+  const thcLots = (bRows || []).filter((b) => b.thc != null && b.qty > 0);
+  const thcLo = thcLots.length ? Math.min(...thcLots.map((b) => b.thc)) : null;
+  const thcHi = thcLots.length ? Math.max(...thcLots.map((b) => b.thc)) : null;
+  const thcWt = thcLots.reduce((a, b) => a + b.qty, 0);
+  const thcAvg = thcWt ? +(thcLots.reduce((a, b) => a + b.thc * b.qty, 0) / thcWt).toFixed(1) : null;
   const [cat, setCat] = React.useState(p.cat);
   const [subcat, setSubcat] = React.useState((SUBCATS[p.cat] || ['—'])[0]);
   const [ptype, setPtype] = React.useState(p.strain ? 'Cannabis' : 'Accessory');
   const [strainType, setStrainType] = React.useState(p.strain || 'Hybrid');
   const [unit, setUnit] = React.useState(/mg/.test(p.wt || '') ? 'each' : 'gram');
   const [netW, setNetW] = React.useState(weightOnly === '—' ? '' : weightOnly.replace(/[^0-9.]/g, ''));
-  const [thcLoV, setThcLoV] = React.useState(String(thcLo));
-  const [thcHiV, setThcHiV] = React.useState(String(thcHi));
-  const [thcAvgV, setThcAvgV] = React.useState(String(thcAvg));
   const wUnitSuffix = { gram: 'g', mg: 'mg', oz: 'oz', ml: 'ml', each: '', pack: '' }[unit] || '';
   const KIT_BY_CAT = { Flower: 'Flower Box 1', 'Pre-Rolls': 'Pre-roll Box 1', Vapes: 'Vape Box 1', Edibles: 'Edible Box', Concentrates: 'Concentrate bin 1', Wellness: 'Cooler', Deals: 'Cooler', Accessories: 'Cooler' };
   const [kitBox, setKitBox] = React.useState(KIT_BY_CAT[p.cat] || 'Cooler');
@@ -838,43 +947,69 @@ function ProductDetailPage({ p, onBack }) {
   <button onClick={(e) => {e.preventDefault();draftMeta(field);}} disabled={!!metaBusy[field]} title="Re-draft this field with AI"
     style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.inkDim, fontSize: 11.5, fontWeight: 700, cursor: metaBusy[field] ? 'default' : 'pointer', fontFamily: P.fontSans }}>
     <Icon name="refresh" size={11} stroke={2.2} style={{ animation: metaBusy[field] ? 'hwspin 0.8s linear infinite' : 'none' }} />{metaBusy[field] ? 'Drafting' : 'Redraft'}</button>;
+  // THE WORST THING THIS FILE EVER DID lived here. It printed a METRC
+  // traceability tag, a COA Passed/Pending verdict, an expiry date and a THC
+  // and CBD potency for every one of `3 + charCodeSum(sku) % 21` lots that do
+  // not exist, under a heading that said "traceability". METRC is the state
+  // cannabis traceability system; a tag read off this screen could end up in a
+  // regulatory document. None of those four fields exists in the API in any
+  // form — there is no column for them — so this panel renders the five fields
+  // that are real and names the four that are not.
+  const MISSING_NOTE = <>METRC tag, COA result, expiration date and CBD are <b>not held by this system</b>. A batch record here is lot id, region, units, THC % and date received — the API has no field for the other four. Read a traceability tag from METRC and a lab result from the COA itself; neither can be confirmed from this screen.</>;
   const BatchPanel = () => {
     const [bq, setBq] = React.useState('');const [showAll, setShowAll] = React.useState(false);
-    const filtered = batches.filter((b) => !bq || b.id.toLowerCase().includes(bq.toLowerCase()) || b.metrc.includes(bq));
+    if (bRows === undefined) {
+      return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <NotKnown icon="shield" title="Batch lots — not known"
+          body={<>Nothing has told this screen which lots <Mono>{p.sku}</Mono> is in. <Mono>GET /api/state</Mono> does carry a <b>batches</b> array, but the live seam (<Mono>shared/hw-live.js</Mono>) never attaches it to a product{fromApi ? '' : ', and this page is not reading the API at all'} — so no lot has ever reached this page. That is <b>not</b> the same statement as “this SKU has no lots”.</>} />
+        <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}>{MISSING_NOTE}</div>
+      </div>;
+    }
+    if (!bRows.length) {
+      return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <NotKnown icon="shield" title="No batch lots recorded"
+          body={<>The inventory API holds no batch rows for <Mono>{p.sku}</Mono>. Stock for this SKU is accounted for as a plain per-region total, not by lot.</>} />
+        <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}>{MISSING_NOTE}</div>
+      </div>;
+    }
+    const filtered = bRows.filter((b) => !bq || b.id.toLowerCase().includes(bq.toLowerCase()));
     const shown = showAll ? filtered : filtered.slice(0, 5);
-    const totalUnits = batches.reduce((a, b) => a + b.qty, 0);const thcs = batches.map((b) => b.thc);const potency = `${Math.min(...thcs)}–${Math.max(...thcs)}% THC`;const gc = '1.05fr 1.7fr .55fr .55fr .55fr .95fr .82fr';
-    return <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r12, overflow: 'hidden' }}>
+    const totalUnits = bRows.reduce((a, b) => a + b.qty, 0);
+    const potency = thcLo == null ? 'THC not recorded' : thcLo === thcHi ? `${thcLo}% THC` : `${thcLo}–${thcHi}% THC`;
+    const gc = '1.2fr 1fr .6fr .6fr 1fr';
+    return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface2, borderBottom: `1px solid ${P.hairline}`, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>Batches</span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, background: P.surface3, padding: '2px 8px', borderRadius: 99 }}>{batches.length}</span>
-        <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{totalUnits} units · {potency} · FIFO</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, background: P.surface3, padding: '2px 8px', borderRadius: 99 }}>{bRows.length}</span>
+        <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{totalUnits} units · {potency} · FIFO by date received</span>
         <div style={{ flex: 1 }} />
-        <div style={{ width: 186 }}><Field icon="search" placeholder="Batch or METRC…" value={bq} onChange={(e) => setBq(e.target.value)} size="sm" mono /></div>
+        <div style={{ width: 186 }}><Field icon="search" placeholder="Batch id…" value={bq} onChange={(e) => setBq(e.target.value)} size="sm" mono /></div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: gc, gap: '0 22px', padding: '9px 14px', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, borderBottom: `1px solid ${P.hairline}` }}>
-        <span>Batch</span><span>METRC tag</span><span style={{ textAlign: 'right' }}>Units</span><span style={{ textAlign: 'right' }}>THC</span><span style={{ textAlign: 'right' }}>CBD</span><span>Expires</span><span>COA</span>
+        <span>Batch</span><span>Region</span><span style={{ textAlign: 'right' }}>Units</span><span style={{ textAlign: 'right' }}>THC</span><span>Received</span>
       </div>
       <div style={{ maxHeight: showAll ? 340 : 'none', overflowY: showAll ? 'auto' : 'visible' }}>
-        {shown.map((b, i) => <div key={b.id + i} style={{ display: 'grid', gridTemplateColumns: gc, gap: '0 22px', alignItems: 'center', padding: '11px 14px', borderTop: i ? `1px solid ${P.hairline}` : 'none', background: i % 2 ? P.surface2 : 'transparent' }}>
+        {shown.map((b, i) => <div key={b.id + '|' + b.slug + '|' + i} style={{ display: 'grid', gridTemplateColumns: gc, gap: '0 22px', alignItems: 'center', padding: '11px 14px', borderTop: i ? `1px solid ${P.hairline}` : 'none', background: i % 2 ? P.surface2 : 'transparent' }}>
           <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink }}>{b.id}</span>
-          <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{b.metrc}</span>
+          <span style={{ fontSize: 11.5, color: P.ink2 }}>{b.slug ? regionLabelOf(b.slug) : <span style={{ color: P.inkMute }}>not recorded</span>}</span>
           <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 600, color: P.ink2 }}>{b.qty}</span>
-          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 600, color: P.ink }}>{b.thc}%</span>
-          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12.5, color: P.inkDim }}>{b.cbd}%</span>
-          <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{b.exp}</span>
-          <span>{b.coa === 'Passed' ? <Pill kind="good" dot>Passed</Pill> : <Pill kind="warn" dot>Pending</Pill>}</span>
+          <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 12.5, fontWeight: 600, color: b.thc == null ? P.inkMute : P.ink }}>{b.thc == null ? 'n/r' : b.thc + '%'}</span>
+          <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{receivedLabel(b.received) || 'not recorded'}</span>
         </div>)}
         {filtered.length === 0 && <div style={{ padding: '20px', textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No batches match.</div>}
       </div>
       {filtered.length > 5 && <button onClick={() => setShowAll((v) => !v)} style={{ width: '100%', padding: '10px', background: P.surface2, border: 'none', borderTop: `1px solid ${P.hairline}`, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 600, color: P.info }}>{showAll ? 'Show less' : `View all ${filtered.length} batches`}</button>}
+      </div>
+      <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}>{MISSING_NOTE}</div>
     </div>;
   };
-  const activity = [
-  { who: 'Manisha Saini', role: 'Manager', action: 'Deactivated Weedmaps delivery listing', time: 'Today · 2:14 PM', icon: 'eye-off' },
-  { who: 'Product shell', role: 'Sync', action: 'Synced name, brand & pricing from product shell', time: 'Today · 9:02 AM', icon: 'refresh' },
-  { who: 'Weedmaps', role: 'Channel', action: p.wm.state === 'error' ? 'Push rejected — category not mapped to a taxonomy node' : 'Pushed catalog update to Weedmaps', time: 'Jun 14 · 4:35 PM', icon: 'link', accent: p.wm.state === 'error' },
-  { who: 'Devon Pierce', role: 'Budtender', action: `Received batch ${batches[0].id} · +${batches[0].qty} units`, time: 'Jun 14 · 4:33 PM', icon: 'package' },
-  { who: 'Carla Mendes', role: 'Manager', action: 'Activated product', time: 'Jun 12 · 10:10 AM', icon: 'check-circle' }];
+  // The activity log was five invented entries — three of them named staff
+  // ("Manisha Saini deactivated the Weedmaps delivery listing, today 2:14 PM")
+  // and one receiving a lot that does not exist. An audit trail is exactly the
+  // thing nobody should have to guess about. /api/state DOES carry an `events`
+  // feed, but the live seam does not expose it and it is not per-SKU, so this
+  // screen has no per-product history from any source.
 
 
   return (
@@ -910,12 +1045,12 @@ function ProductDetailPage({ p, onBack }) {
             <button onClick={(e) => {e.preventDefault();saveName();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: 'none', background: P.accent, color: P.accentInk, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="check" size={11} stroke={2.6} />Save name</button> :
             <span title="Variation field — editable here" style={{ display: 'inline-flex', flex: '0 0 auto', color: P.inkFaint }}><Icon name="pencil" size={12} stroke={1.9} /></span>} />
             <Fld label="Brand" value={p.brand} locked onEditLocked={() => setShellEdit(true)} />
-            <Fld label="Supplier / vendor" value={p.brand + ' Distribution'} locked hint="Licensed distributor this SKU is received from — read from the brand record." />
+            <Fld label="Supplier / vendor" value="Not recorded" locked hint="The API serves no distributor for this SKU. What used to render here was the brand name with the word 'Distribution' stuck on the end — a licence-holder invented by string concatenation." />
             <FldSelect label="Category" value={cat} options={window.HW.CATS} onChange={(v) => {setCat(v);setSubcat((SUBCATS[v] || ['—'])[0]);}} colorFor={(v) => window.HW.CAT_COLOR[v]} />
             <FldSelect label="Subcategory" value={subcat} options={SUBCATS[cat] || ['—']} onChange={setSubcat} colorFor={() => window.HW.CAT_COLOR[cat]} />
             <FldSelect label="Product type" value={ptype} options={['Cannabis', 'Accessory', 'Wellness', 'CBD']} onChange={setPtype} tint />
             <Fld label="SKU" value={p.sku} mono locked />
-            <Fld label="Barcode / UPC" value={upc} mono locked />
+            <Fld label="Barcode / UPC" value="Not recorded" locked hint="No barcode is served for this SKU. The 12-digit number that used to sit here was arithmetic on the SKU string, not a UPC." />
             <FldSelect label="Delivery kit box type" value={kitBox} options={['Flower Box 1', 'Flower Box 2', 'Pre-roll Box 1', 'Pre-roll Box 2', 'Vape Box 1', 'Vape Box 2', 'Edible Box', 'Edible Bin', 'Concentrate bin 1', 'Concentrate bin 2', 'Cooler']} onChange={setKitBox} tint />
           </Sec>
 
@@ -927,9 +1062,15 @@ function ProductDetailPage({ p, onBack }) {
             <FldSelect label="Strain type" value={strainType} options={['Indica', 'Sativa', 'Hybrid', 'CBD', 'N/A']} onChange={setStrainType} tint />
             <FldNum label="Net weight" value={netW} onChange={setNetW} decimals suffix={wUnitSuffix} />
             <FldSelect label="Unit" value={unit} options={['gram', 'each', 'mg', 'oz', 'ml', 'pack']} onChange={setUnit} tint />
-            <Fld label="THC · low" value={thcLo + '%'} mono locked hint="Lowest THC across in-stock batches. Rolled up from each batch — set on the batch, not here." />
-            <Fld label="THC · high" value={thcHi + '%'} mono locked hint="Highest THC across in-stock batches. Rolled up from each batch — set on the batch, not here." />
-            <Fld label="THC · avg" value={thcAvg + '%'} mono locked color={P.accentText} hint="Weighted average across in-stock batches. Recomputes as batches arrive and sell through." />
+            {/* Per-batch rollups. They exist only when real lots do; they used
+                to be Math.min/max over a batch list generated from the SKU. */}
+            <Fld label="THC · low" value={thcLo == null ? 'Not recorded' : thcLo + '%'} mono={thcLo != null} locked color={thcLo == null ? P.inkMute : undefined} hint="Lowest THC across in-stock lots. Rolled up from the batch records — set on the batch, not here." />
+            <Fld label="THC · high" value={thcHi == null ? 'Not recorded' : thcHi + '%'} mono={thcHi != null} locked color={thcHi == null ? P.inkMute : undefined} hint="Highest THC across in-stock lots." />
+            <Fld label="THC · avg" value={thcAvg == null ? 'Not recorded' : thcAvg + '%'} mono={thcAvg != null} locked color={thcAvg == null ? P.inkMute : P.accentText} hint="Units-weighted average across in-stock lots." />
+            {thcLo == null &&
+            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="info" size={13} color={P.inkMute} />
+              Per-batch potency needs batch records, and this screen has none — see <b style={{ color: P.ink2 }}>Batches</b> below. Catalogue-level THC for this SKU: <b style={{ color: P.ink2 }}>{p.thc == null ? 'not recorded either' : p.thc + '%'}</b>.
+            </div>}
             <div style={{ gridColumn: '1/-1' }}><AiEffects product={p} /></div>
             <div style={{ gridColumn: '1/-1' }}><TerpeneEditor initial={terpProfile} /></div>
           </Sec>
@@ -966,13 +1107,19 @@ function ProductDetailPage({ p, onBack }) {
             <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="lock" size={12} stroke={1.9} color={P.inkMute} />Retail price, wholesale cost and tax come from the <b style={{ color: P.ink2 }}>product shell</b>. Override the retail price here only when this store must deviate from shell pricing; margin is derived from the effective price.</div>
           </Sec>
 
-          <Sec icon="package" title="Inventory by location" sub={`${totAvail} available · ${totHold} on hold · ${totOnHand} in region`} cols={1}>
-            <InventoryByLocation stores={storeInv} batches={batches} totals={{ totOnHand, totHold, totAvail }} />
-            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="info" size={13} color={P.info} /><b style={{ color: P.ink2 }}>On hold</b> = reserved for open &amp; prepaid orders. <b style={{ color: P.ink2 }}>Available</b> = in region minus on hold. Expand a location to see the batches held there.</div>
-            <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="info" size={13} color={P.info} /><b style={{ color: P.ink2 }}>On hold</b> = reserved for open &amp; prepaid orders. <b style={{ color: P.ink2 }}>Available</b> = in region minus on hold.</div>
+          <Sec icon="package" title="Inventory by region" sub={inv ? `${inv.totAvail} available · ${inv.totHold} on hold · ${inv.totOnHand} on hand` : 'Per-region split not held'} cols={1}>
+            {inv ?
+            <><InventoryByLocation inv={inv} batches={bRows} />
+              <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}><Icon name="info" size={13} color={P.info} style={{ flex: '0 0 auto', marginTop: 2 }} /><span>Read from <b style={{ color: P.ink2 }}>/api/state.stock</b>, one row per region the API reports for this SKU. <b style={{ color: P.ink2 }}>On hold</b> is that cell's unexpired soft reservations — a real hold placed by a real cart, not an estimate. <b style={{ color: P.ink2 }}>Available</b> = on hand minus on hold.</span></div></> :
+
+            <NotKnown icon="package" title="Per-region inventory — not known"
+              body={<>{fromApi ?
+                <>The API returns no stock row for <Mono>{p.sku}</Mono> in any region, so this screen does not know where its units sit or how many are on hold.</> :
+                <>This page is running on the bundled demo catalogue, not <Mono>/api/state</Mono>, and that catalogue carries no per-region stock at all — so where this SKU's units sit, and how many are on hold, is not known here.</>}{' '}
+                {p.qty == null ? <>No unit count is available for it either.</> : <>The catalogue's own total for this SKU is <b>{p.qty}</b> units — a single figure with no regional split and no reservation count behind it.</>}</>} />}
           </Sec>
 
-          <Sec icon="shield" title="Batches & traceability" sub="Per-batch METRC tags, potency and expiration" cols={1}>
+          <Sec icon="shield" title="Batches" sub="Lot records held by the inventory API — see the note on what it does not hold" cols={1}>
             <BatchPanel />
           </Sec>
 
@@ -1005,19 +1152,11 @@ function ProductDetailPage({ p, onBack }) {
           <Card padding={0}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: `1px solid ${P.hairline}` }}>
               <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="clock" size={15} stroke={1.9} /></span>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Activity log</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Who changed what, and when</div></div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Activity log</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Who changed what, and when — where it is recorded</div></div>
             </div>
             <div style={{ padding: '14px 16px' }}>
-              {activity.map((e, i) => <div key={i} style={{ display: 'flex', gap: 12 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: '0 0 auto' }}>
-                  <span style={{ width: 28, height: 28, borderRadius: 99, background: e.accent ? P.badSoft : P.surface3, color: e.accent ? P.bad : P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${e.accent ? P.bad : P.hairline2}` }}><Icon name={e.icon} size={13} stroke={1.9} /></span>
-                  {i < activity.length - 1 && <span style={{ width: 1.5, flex: 1, minHeight: 16, background: P.hairline2 }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0, paddingBottom: i < activity.length - 1 ? 14 : 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.35 }}>{e.action}</div>
-                  <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 2 }}><span style={{ fontWeight: 700, color: P.ink2 }}>{e.who}</span> · {e.role} · <span style={{ fontFamily: P.fontMono }}>{e.time}</span></div>
-                </div>
-              </div>)}
+              <NotKnown icon="clock" title="No change history for this product"
+                body={<>Nobody has told this screen who changed <Mono>{p.sku}</Mono>, or when. <Mono>/api/state</Mono> carries a workspace-wide <b>events</b> feed, but it is not per-product and the live seam does not expose it here. The entries that used to fill this card — named staff, timestamps, a received lot — were written into the file, not recorded by anything.</>} />
             </div>
           </Card>
         </div>
@@ -1028,10 +1167,17 @@ function ProductDetailPage({ p, onBack }) {
           <Card padding={0}>
             <div style={{ padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>At a glance</div></div>
             <div style={{ padding: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
-              {[['Price', fmt.money0(p.price), p.was ? P.bad : P.ink, p.was ? `was ${fmt.money0(p.was)}` : 'retail'], ['Margin', `${Math.round(p.margin * 100)}%`, mc, `wholesale ${fmt.money(p.cost)}`], ['On hand', totOnHand, totOnHand === 0 ? P.bad : totOnHand < 10 ? P.warn : P.ink, 'all stores'], ['Available', totAvail, totAvail === 0 ? P.bad : totAvail < 10 ? P.warn : P.good, `${totHold} on hold`]].map(([k, v, c, s]) =>
+              {[
+              ['Price', fmt.money0(p.price), p.was ? P.bad : P.ink, p.was ? `was ${fmt.money0(p.was)}` : 'retail'],
+              ['Margin', `${Math.round(p.margin * 100)}%`, mc, `wholesale ${fmt.money(p.cost)}`],
+              inv ? ['On hand', inv.totOnHand, inv.totOnHand === 0 ? P.bad : inv.totOnHand < 10 ? P.warn : P.ink, `${inv.rows.length} region${inv.rows.length === 1 ? '' : 's'}`] :
+              ['On hand', p.qty == null ? 'not known' : p.qty, P.inkMute, p.qty == null ? 'no figure served' : 'catalogue total · no split'],
+              inv ? ['Available', inv.totAvail, inv.totAvail === 0 ? P.bad : inv.totAvail < 10 ? P.warn : P.good, `${inv.totHold} on hold`] :
+              ['Available', 'not known', P.inkMute, 'holds not reported']].
+              map(([k, v, c, s]) =>
               <div key={k} style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderLeft: `3px solid ${c}`, borderRadius: P.r10, padding: '10px 12px' }}>
                   <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: c, fontFamily: P.fontMono, marginTop: 2 }}>{v}</div>
+                  <div style={{ fontSize: typeof v === 'string' && v.length > 6 ? 12.5 : 16, fontWeight: 700, color: c, fontFamily: P.fontMono, marginTop: 2 }}>{v}</div>
                   <div style={{ fontSize: 10, color: P.inkDim }}>{s}</div>
                 </div>)}
             </div>
@@ -1076,13 +1222,13 @@ function ProductDetailPage({ p, onBack }) {
           {/* Performance */}
           <Card padding={0}>
             <div style={{ padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Last 30 days</div></div>
-            <div style={{ padding: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
-              {[['Units sold', units30, 'all channels'], ['Revenue', fmt.money0(rev30), 'gross'], ['Velocity', `${(units30 / 30).toFixed(1)}/day`, 'avg'], ['Last sold', ['Today', 'Yesterday', '2d ago'][h % 3], '']].map(([k, v, s]) =>
-              <div key={k} style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>{k}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 2 }}>{v}</div>
-                  {s && <div style={{ fontSize: 10, color: P.inkDim }}>{s}</div>}
-                </div>)}
+            {/* units sold = 40 + charCodeSum(sku) % 180, revenue = that times
+                the price, velocity = that over 30, last sold = a three-item
+                array indexed by the same hash. All four printed as measured
+                sales, in the same rail as the price and margin, which are real. */}
+            <div style={{ padding: 15 }}>
+              <NotKnown icon="chart-line" title="Per-product sales are not tracked here"
+                body={<>Orders reach this screen without line items, so units sold, revenue, velocity and last-sold cannot be worked out for <Mono>{p.sku}</Mono> from anything available here. The POS sales report is the place to read them.</>} />
             </div>
           </Card>
         </div>
@@ -1258,9 +1404,14 @@ function WmMatchModal({ p, conf, onClose }) {
   { title: `${p.brand} ${p.cat} ${p.strain || ''}`.trim(), brand: p.brand, price: p.price + 2, conf: Math.max(0.2, conf - 0.18) },
   { title: `${p.name} (1g)`, brand: p.brand, price: Math.max(1, p.price - 3), conf: Math.max(0.15, conf - 0.31) }];
   const [q, setQ] = React.useState('');
-  const mh = p.sku.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const mThcs = Array.from({ length: 3 + mh % 21 }).map((_, i) => +(19 + (mh + i * 97) % 110 / 10).toFixed(1));
-  const potency = `${Math.min(...mThcs)}–${Math.max(...mThcs)}% THC`;
+  // THE SAME FABRICATED BATCH GENERATOR ran a second time in here — a second
+  // copy of `3 + charCodeSum(sku) % 21` lots, rendered as "Potency · per batch"
+  // on BOTH sides of the comparison, so an invented range was also presented as
+  // Weedmaps' own figure. Per-batch potency comes from real lots or from
+  // nowhere; the API serves no potency for a Weedmaps product at all.
+  const mLots = (batchRowsOf(p) || []).filter((b) => b.thc != null && b.qty > 0);
+  const mThcs = mLots.map((b) => b.thc);
+  const potency = mThcs.length ? (Math.min(...mThcs) === Math.max(...mThcs) ? `${mThcs[0]}% THC` : `${Math.min(...mThcs)}–${Math.max(...mThcs)}% THC`) : 'not recorded';
   const [picked, setPicked] = React.useState(conf > 0 ? 0 : null);
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
@@ -1288,7 +1439,7 @@ function WmMatchModal({ p, conf, onClose }) {
                 <div style={{ width: 54, height: 54, flex: '0 0 auto', borderRadius: 10, background: P.surface3, border: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={20} stroke={1.7} color={P.inkMute} /></div>
                 <div style={{ minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{cands[picked].title}</div><div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
               </div>
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', cands[picked].brand], ['Category', p.cat], ['Price on WM', fmt.money0(cands[picked].price)], ['Potency · per batch', potency]].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11.5 }}>{[['Brand', cands[picked].brand], ['Category', p.cat], ['Price on WM', fmt.money0(cands[picked].price)], ['Potency · per batch', 'not served']].map(([k, v]) => <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600 }}>{v}</span></div>)}</div>
             </> : <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.5, padding: '12px 0' }}><b style={{ color: P.ink2 }}>Unmapped — custom Weedmaps product.</b> This SKU shows on Weedmaps as its own standalone (custom) listing, not linked to a shared catalog product. Search below to link it to a Weedmaps product instead.</div>}
           </div>
         </div>
