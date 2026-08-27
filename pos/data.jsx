@@ -450,6 +450,27 @@ function settledCheckIns() { return CHECKIN_LOG.slice(); }
 // HW.memberById(null) into startSaleFor (screen-orders.jsx:186). Closing it
 // needs a customer id on the API's check-in row; it cannot be closed in this
 // file. Reported rather than papered over with a name match.
+// WHICH LINE-ITEM SOURCE AN ORDER SHEET IS ACTUALLY SHOWING.
+// The sheet picks one of three legs for its product table, and the Weedmaps
+// lines panel used to INFER that choice from its own cache — which it cannot
+// do, because the sheet's selector has legs the panel never sees. The panel
+// then stated the sheet's behaviour confidently and was wrong for demo orders,
+// for orders whose lineItems array is empty, and for edited orders. Being
+// confidently wrong about a sibling component is worse than the bug that
+// produced it, so the guess is replaced by one function both sides call.
+//   'edited' — a human edited this order; o.lines wins over everything
+//   'weedmaps' — the live seam answered with real Weedmaps line items
+//   'mock'   — neither; the sheet is drawing the bundled demo cart
+// Returns null for no order at all, which is not the same as 'mock'.
+function orderLineSource(o) {
+  if (!o) return null;
+  if (o.lines && o.lines.length) return 'edited';
+  var L = o._live && window.HW_LINES && typeof window.HW_LINES.get === 'function' ?
+          window.HW_LINES.get(o.id) : null;
+  if (L && L.state === 'live' && (L.lines || []).length) return 'weedmaps';
+  return 'mock';
+}
+
 function openCheckInFor(person) {
   if (!person || !person.id) return null;
   return CHECKINS.find((c) => c.memberId === person.id) || null;
@@ -693,6 +714,7 @@ window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, 
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
   addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
   CHECKIN_OUTCOMES, CHECKIN_LOG, settleCheckIn, settledCheckIns, checkinOutcomeCounts, openCheckInFor,
+  orderLineSource,
   STAGES: ORDER_STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
   addSubRecord, subRecords, allSubRecords,
   LANE_DEFAULTS, laneSettings, setLaneSettings, resetLaneSettings, laneSettingsAreDefault,

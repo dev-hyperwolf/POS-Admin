@@ -2194,6 +2194,20 @@ function FindCustomerSheet({ contact, onClose, onPick }) {
 }
 
 function WmOrderBlock({ o, wm, onLog }) {
+  // What the low-risk note may honestly claim. `wm.checks` holds the per-field
+  // states and `wm.flags` the fraud signals; anything not in {matched, verified,
+  // ok, n/a} is unresolved, and an unresolved check is NOT a passed one.
+  const _chk = (wm && wm.checks) || {};
+  const _settled = (v) => v === 'matched' || v === 'verified' || v === 'ok' || v === 'n/a';
+  const _open = Object.keys(_chk).filter((k) => !_settled(_chk[k]));
+  const _sig = (wm && wm.flags && wm.flags.length) || 0;
+  const lowRiskLine =
+    _sig === 0 && _open.length === 0 ?
+      'Low risk — every check on this order came back clear, so this is a routine release' :
+    _sig > 0 ?
+      `Low risk overall, but ${_sig} fraud signal${_sig > 1 ? 's' : ''} on this order ${_sig > 1 ? 'have' : 'has'} not been resolved — read ${_sig > 1 ? 'them' : 'it'} before releasing` :
+      `Low risk overall, but ${_open.length} check${_open.length > 1 ? 's' : ''} (${_open.join(', ')}) ${_open.length > 1 ? 'are' : 'is'} not settled — that is unverified, not passed`;
+
   const P = useP();
   const map = window.HW.WM_STATUS_MAP;
   const cur = map[o.stage] || map.verify;
@@ -2447,11 +2461,17 @@ function WmOrderBlock({ o, wm, onLog }) {
       {gate && verify === 'pending' &&
         <div style={{ marginTop: 9, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', background: P.badSoft, borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, color: P.bad }}><Icon name="truck" size={14} stroke={2} />Do not dispatch — high-risk delivery must be verified first.</div>}
       {/* Low risk is a shorter review, not a completed one — said here rather
-                 than by silently pre-approving the order. */}
+                 than by silently pre-approving the order.
+                 THIS SENTENCE USED TO READ "every signal on this order matched".
+                 It rendered on `wm.level === 'low'` alone, inspecting none of the
+                 signals it described — so a live order showed it directly beneath
+                 Government ID: Pending, Name: Partial, Phone: Unverified AND a
+                 fraud signal. It told an operator every check passed on an order
+                 where none had. It now states only what it can see. */}
       {verify === 'pending' && wm.level === 'low' && !gate &&
         <div style={{ marginTop: 9, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.goodSoft, borderRadius: P.r10 }}>
         <Icon name="check-circle" size={14} stroke={2} color={P.good} style={{ flex: '0 0 auto', marginTop: 1 }} />
-        <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Low risk — every signal on this order matched, so this is a routine release. It still has to be released: the order stays in Verification Pending until somebody does it.</span>
+        <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>{lowRiskLine}. It still has to be released: the order stays in Verification Pending until somebody does it.</span>
       </div>}
       {verify === 'pending' ?
         <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
@@ -2939,8 +2959,14 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
     unresolved: !l.resolved,
     unresolvedWhy: l.unresolved_reason || null
   })) : null;
-  const baseItems = (o.lines && o.lines.length ? o.lines
-                     : _liveBase ? _liveBase
+  // The winning leg is named by window.HW.orderLineSource(o) — ONE definition,
+  // called by this sheet and by the Weedmaps lines panel, so the panel no longer
+  // infers what this component chose. Kept as a read of the same predicate
+  // rather than a second copy of the condition: two copies that agree today are
+  // a scheduled outage.
+  const lineSource = window.HW.orderLineSource(o);
+  const baseItems = (lineSource === 'edited' ? o.lines
+                     : lineSource === 'weedmaps' && _liveBase ? _liveBase
                      : money.lines).map((l) => ({ ...l }));
 
   // ── Order metadata ──
