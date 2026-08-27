@@ -7,7 +7,12 @@
 //
 // WHAT IT REPLACES, AND WHY THAT IS THE WHOLE POINT
 // -------------------------------------------------
-// pos/screen-orders.jsx:1486 builds the order detail sheet's product table from
+// (LINE REFERENCE STALE AS OF 2026-08-26: screen-orders.jsx:1486 is now a
+// closing div, and baseItems has moved to ~2942 and become a three-way
+// selector -- the order's own edited lines, then this seam, then the mock. So
+// the migration described below is roughly two-thirds done, not untouched.
+// The original text is kept because it explains WHY the seam exists.)
+// pos/screen-orders.jsx once built the order detail sheet's product table from
 // a hardcoded literal:
 //
 //   const baseItems = [
@@ -710,38 +715,72 @@
       // The red line, FIRST. Which of the two tables on this screen to trust is
       // the most important sentence here, and a warning that needs scrolling to
       // reach is a warning that does not exist.
-      // CONDITIONAL, and it was not. This banner rendered on EVERY pass with no
-      // check on whether lines had arrived, so the panel could not tell "still
-      // mock" from "now live" -- the absence-versus-unknown rule, inside the
-      // component whose entire job is to enforce it. A developer reading it
-      // while the payload was resolving perfectly was being told the opposite.
+      // FOUR STATES, NOT TWO. The previous cut replaced an unconditional
+      // banner with `if (!d)`, which is one condition too few in BOTH
+      // directions -- and the correct tri-state was sitting one line above it,
+      // in the status dot: `d ? P.good : err ? P.bad : P.inkFaint`. The dot was
+      // ternary and the banner was binary, in the same component.
       //
-      // The line reference was stale too (screen-orders.jsx:1486 is now a
-      // closing div) and the instruction was already half-done: baseItems is a
-      // three-way fallback that PREFERS real data --
-      //   o.lines -> _liveBase (this seam) -> money.lines (the mock)
-      // so what remains is the last leg, not the whole job.
-      if (!d) {
+      //   WHILE LOADING  `loading` is `!!_inflight || (!d && !err)`, so during
+      //     the fetch !d is TRUE and the red banner rendered directly above
+      //     this panel's own "Reading the retained Weedmaps payload..." note.
+      //     It asserted a fallback that had not happened and might not.
+      //   ON found:false  the route answers 200 with counts and lines:[] (I
+      //     checked: order_lines('999999999') returns both), so it PASSES the
+      //     j.counts/Array.isArray(j.lines) validation, lands in _lines, and
+      //     `d` is truthy -- so the GREEN "live payload" banner rendered over
+      //     an order that is not in the database at all.
+      //
+      // So the binary gate was wrong while loading AND wrong on a miss: it
+      // claimed mock before knowing, and claimed live when there was none.
+      // That is this file's own rule broken twice in the fix for breaking it
+      // once -- and the file says the rule at :512, about its own callers:
+      // "`state` is what a caller must branch on -- never `lines.length`".
+      //
+      // WHAT THIS BANNER MAY NOT SAY. It used to end "the sheet behind this
+      // panel prefers them". IT CANNOT KNOW THAT. screen-orders.jsx:2942
+      // selects `o.lines -> _liveBase -> money.lines`, gated by isLiveOrder(o)
+      // and requiring state==='live' && lines.length, so on a demo order, an
+      // order with an empty lineItems array, or an edited order where o.lines
+      // wins, the sheet never consulted this seam at all. The panel was
+      // INFERRING the sheet's choice from its own cache and stating the guess
+      // as fact. It now reports only what it holds, and says plainly that the
+      // sheet's choice is not visible from here.
+      var banner = null;
+      if (loading) {
+        banner = null;                       // say nothing until there is something to say
+      } else if (err) {
+        banner = ['bad', 'NO PAYLOAD READ: ',
+                  'this panel could not read the Weedmaps payload for this ' +
+                  'order, so nothing below is from Weedmaps. The reason is ' +
+                  'printed underneath.'];
+      } else if (d && !d.found) {
+        banner = ['bad', 'ORDER NOT FOUND: ',
+                  'Weedmaps line items were looked for and this order is not ' +
+                  'in the database. Nothing below is a real order line. This ' +
+                  'is a definite answer, not a failure to read.'];
+      } else if (d && !(d.lines && d.lines.length)) {
+        banner = ['warn', 'FOUND, NO LINES: ',
+                  'the order exists and its payload carries no line items. ' +
+                  'That is different from not having looked, and different ' +
+                  'from failing to read.'];
+      } else if (d) {
+        banner = ['good', 'LIVE PAYLOAD: ',
+                  'the rows below came from the Weedmaps order payload, not ' +
+                  'from mock data. Whether the sheet behind this panel is ' +
+                  'using them is decided in screen-orders.jsx and is not ' +
+                  'visible from here.'];
+      }
+      if (banner) {
+        var _tone = banner[0] === 'good' ? [P.good, P.goodSoft]
+                  : banner[0] === 'warn' ? [P.warn, P.warnSoft]
+                  : [P.bad, P.badSoft];
         head.push(h('div', { key: 'mock', style: {
-          fontSize: P.type.micro, lineHeight: 1.55, color: P.bad,
-          background: P.badSoft, border: '1px solid ' + P.bad,
+          fontSize: P.type.micro, lineHeight: 1.55, color: _tone[0],
+          background: _tone[1], border: '1px solid ' + _tone[0],
           borderRadius: P.r8, padding: '7px 9px'
         } },
-          h('span', { style: { fontWeight: 700 } }, 'MOCK ROWS BELOW: '),
-          'this panel has no Weedmaps payload for this order, so the product ' +
-          'table in the sheet behind it is falling through to its mock rows, ' +
-          'and every total, tax and change figure there is arithmetic over ' +
-          'those. Nothing below is a real order line.'));
-      } else {
-        head.push(h('div', { key: 'mock', style: {
-          fontSize: P.type.micro, lineHeight: 1.55, color: P.good,
-          background: P.goodSoft, border: '1px solid ' + P.good,
-          borderRadius: P.r8, padding: '7px 9px'
-        } },
-          h('span', { style: { fontWeight: 700 } }, 'LIVE PAYLOAD: '),
-          'these rows came from the Weedmaps order payload, not from mock ' +
-          'data. The sheet behind this panel prefers them (baseItems: ' +
-          'o.lines, then this seam, then mock).'));
+          h('span', { style: { fontWeight: 700 } }, banner[1]), banner[2]));
       }
 
       var body = [];
@@ -879,10 +918,15 @@
     // The one-line version of the claim, always visible. The paragraph that
     // proves it is in WHY below -- shortened presentation, not shortened
     // content: no word of it has been deleted.
-    p += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.bad +
-         ';background:' + P.badSoft + ';border:1px solid ' + P.bad + ';border-radius:' +
-         P.r8 + 'px;padding:8px 9px;margin-bottom:8px"><b>Still mock:</b> the order detail ' +
-         'sheet draws its own hardcoded product table, not these lines.</div>';
+    // A THIRD SURFACE carried the same claim. The review found two; this one
+    // makes three, and it is the shortest and so the easiest to miss. Same
+    // correction: this seam cannot see which leg screen-orders.jsx took, so it
+    // states what it holds and stops there.
+    p += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.ink2 +
+         ';background:' + P.surface3 + ';border:1px solid ' + P.hairline2 + ';border-radius:' +
+         P.r8 + 'px;padding:8px 9px;margin-bottom:8px">The order detail sheet chooses ' +
+         'between its own edited lines, these Weedmaps lines, and a hardcoded ' +
+         'mock. Which one it took is decided there, not here.</div>';
 
     p += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.7">' +
          'status <b>' + esc(_status) + '</b> · cached ' + cached + ' · failed ' + failed +
@@ -922,15 +966,22 @@
          '→ wmdemo/order_lines.py, which reads the retained Weedmaps webhook payload ' +
          '(wm_order_events.raw_payload) and joins each line to the sku we resolved it ' +
          'to and the FIFO batch commit actually took.</div>';
+    // THE SECOND WRITER. The panel above was corrected and this was not, so
+    // this surface went on shipping all three original falsehoods verbatim and
+    // unconditionally: a stale line number (screen-orders.jsx:1486 is now a
+    // closing div), "still mock" asserted with no check on whether a payload
+    // had arrived, and "the migration is one line" for a migration that is
+    // already two-thirds done. Fixing one of two rendered surfaces is not
+    // fixing the message.
     w += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.ink2 +
-         ';line-height:1.6;margin-bottom:8px"><b>Still mock, in full:</b> the order ' +
-         'detail sheet\'s own product table is a hardcoded literal at ' +
-         'pos/screen-orders.jsx:1486, and the item subtotal, the proportional ' +
-         'discount split, the three CA tax lines, the grand total, the cash change ' +
-         'and the packing checklist are all arithmetic over it. This seam does not ' +
-         'own that file; it renders the truth beside it and names the lie. The ' +
-         'migration is one line: <span style="font-family:' + ff(P.fontMono) +
-         '">window.HW.orderLines(o.id)</span>.</div>';
+         ';line-height:1.6;margin-bottom:8px"><b>What the sheet uses:</b> the ' +
+         'order detail sheet picks its product table in this order — the ' +
+         'order\'s own edited lines, then this seam\'s Weedmaps payload, then ' +
+         'a hardcoded mock (screen-orders.jsx, baseItems). Its item subtotal, ' +
+         'discount split, CA tax lines, grand total, cash change and packing ' +
+         'checklist are all arithmetic over whichever one won. This seam does ' +
+         'not own that file and cannot see which leg it took — it shows what ' +
+         'Weedmaps actually returned, beside it.</div>';
     w += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkMute +
          ';line-height:1.5">Turn this seam off with <span style="font-family:' +
          ff(P.fontMono) + '">?hwlines=off</span>.</div>';
