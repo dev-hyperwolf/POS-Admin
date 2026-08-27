@@ -1,0 +1,50 @@
+{
+ "captured_from": "wmdemo.checkin_api._doc_expiry_view, 2026-08-27",
+ "contract_states": [
+  "not_supplied",
+  "valid",
+  "expired",
+  "unreadable"
+ ],
+ "expiry_key_canonical": "doc_expires_at",
+ "expiry_keys": [
+  "doc_expires_at",
+  "expires_at",
+  "doc_expires"
+ ],
+ "now": 1787847427.3427799,
+ "views": {
+  "expired": {
+   "days_left": -89.7,
+   "expired": true,
+   "expires_at": 1780099200.0,
+   "expires_on": "2026-05-30",
+   "state": "expired",
+   "why": "the document scanned for this check-in EXPIRED on 2026-05-30. An expired document does not prove identity today. Shown, not enforced \u2014 nothing here refuses a sale."
+  },
+  "not_supplied": {
+   "days_left": null,
+   "expired": null,
+   "expires_at": null,
+   "expires_on": null,
+   "state": "not_supplied",
+   "why": "no document expiry was recorded with this check-in. Any verification it produces is bounded only by the unknown-expiry cap, not by the licence \u2014 that is 'we were never told', not 'valid forever'."
+  },
+  "unreadable": {
+   "days_left": null,
+   "expired": null,
+   "expires_at": "not-a-date",
+   "expires_on": null,
+   "state": "unreadable",
+   "why": "the expiry ON RECORD for this check-in is 'not-a-date', which cannot be read as a date. An expiry WAS supplied \u2014 this is not the 'never told' case. Re-scan the document."
+  },
+  "valid": {
+   "days_left": 1790.3,
+   "expired": false,
+   "expires_at": 1942531200.0,
+   "expires_on": "2031-07-23",
+   "state": "valid",
+   "why": "the scanned document is valid until 2031-07-23"
+  }
+ }
+}

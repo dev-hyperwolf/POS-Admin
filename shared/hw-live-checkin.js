@@ -315,7 +315,12 @@
   var _el = null, _panel = null, _scroll = 0, _tab = 'room';
   var _root = null, _rootEl = null;
   var _liveBinds = {};        // wm_order_id -> the design's bind shape, live only
-  var _newRow = { first_name: '', last_name: '', phone: '', dob: '' };
+  // `doc_expires_at` is the CANONICAL spelling and the only one this seam ever
+  // sends. See expiryOf() for why it is not three fields.
+  var _blankRow = function () {
+    return { first_name: '', last_name: '', phone: '', dob: '', doc_expires_at: '' };
+  };
+  var _newRow = _blankRow();
 
   // ── helpers ──────────────────────────────────────────────────────────────
   function esc(s) {
@@ -325,6 +330,152 @@
   }
 
   function num(v) { var n = Number(v); return isFinite(n) ? n : null; }
+
+  // "" and whitespace are an untouched form field, exactly as checkin_api._opt
+  // reads them on the other end of this wire. A number is never blank.
+  function opt(v) {
+    if (v == null) { return null; }
+    if (typeof v === 'number') { return isFinite(v) ? v : null; }
+    var s = String(v).trim();
+    return s === '' ? null : s;
+  }
+
+  // ── the document expiry ──────────────────────────────────────────────────
+  //
+  // THE VALUE WE SEND, AND UNDER WHICH NAME.
+  //
+  // /api/checkin accepts a document expiry under three spellings — the API's
+  // own `doc_expires_at`, the identity ledger's `expires_at`, and the
+  // scanner's `doc_expires` (checkin_api._EXPIRY_KEYS) — and REFUSES outright
+  // a body carrying two of them with different dates. That refusal is right:
+  // choosing between two disagreeing compliance dates by key order is not a
+  // decision a wire adapter may make. So this seam sends exactly ONE key, the
+  // canonical `doc_expires_at`, whichever word the caller reached for.
+  //
+  // WHERE THE VALUE COMES FROM. pos/verification.jsx's IdScanPanel puts the
+  // expiry on the document object as `doc.expires` (read at verification.jsx:63,
+  // written from DEMO_IDS at :493), formatted YYYY-MM-DD — which IS one of
+  // store._EXPIRY_FORMATS, so the server reads the scanner's own string with
+  // no translation on either side. A caller who already flattened the scan can
+  // pass any of the three spellings on the row instead.
+  //
+  // SENT VERBATIM. NEVER REFORMATTED, NEVER RE-READ.
+  // HWExpiry.parseExpiry (verification.jsx:55) is more permissive than the
+  // server: it also takes MM/DD/YYYY and then falls back to `new Date(s)`.
+  // Normalising through it before posting would look like a kindness and is
+  // the one thing this function must not do — it would decide, in a screen,
+  // whether 03/04/2027 is March or April, and post a compliance date nobody
+  // printed on the document. A date the server cannot read comes back as an
+  // `unreadable` refusal that names the value and asks for a re-scan, and
+  // act() puts that sentence on the panel. A stated refusal beats a quiet
+  // guess, and "we were told something we cannot read" is a different fact
+  // from "we were never told" — which is the whole reason this route was fixed.
+  // AND IT DOES NOT CHOOSE BETWEEN TWO DATES. That is the same rule again.
+  //
+  // An earlier cut of this took the first non-blank spelling and sent only
+  // that. It looked harmless — a screen holds one scan — but create() is
+  // public (HW_CHECKIN.create), and a caller arriving with
+  // doc_expires_at='2027-09-14' AND expires_at='2025-01-02' would have had the
+  // 2027 date stored silently. That is a compliance date decided by KEY ORDER,
+  // which is precisely what checkin_api refuses to do and says so in the
+  // refusal text — and by forwarding only the winner this seam would have
+  // ensured the server never saw the disagreement it is built to catch.
+  //
+  // So: gather every non-blank spelling. All agreeing (one distinct value) is
+  // a careful caller, not a conflict — normalise it to the canonical name and
+  // send one key. Two that DISAGREE are forwarded UNDER THE CALLER'S OWN KEYS,
+  // untouched, so the server's own conflict check fires and its own sentence
+  // reaches the counter. This seam does not resolve the disagreement and does
+  // not invent a local refusal for it either; the policy lives in one place.
+  function expirySourcesOf(b) {
+    if (!b) { return []; }
+    var out = [], seen = {};
+    ['doc_expires_at', 'expires_at', 'doc_expires'].forEach(function (k) {
+      var v = opt(b[k]);
+      if (v != null) { out.push({ key: k, value: v }); seen[k] = true; }
+    });
+    // The scanner's word, from the scanned document itself. `doc_expires` is
+    // the spelling checkin_api documents for exactly this shape — but only if
+    // the row did not already carry that key, so one source cannot be filed
+    // twice under one name.
+    var d = b.doc || null;
+    if (d && !seen.doc_expires) {
+      var dv = opt(d.expires);
+      if (dv != null) { out.push({ key: 'doc_expires', value: dv }); }
+    }
+    return out;
+  }
+
+  // FIVE ANSWERS, BECAUSE THE SERVER HAS FOUR AND MAY ALSO NOT SPEAK.
+  //
+  // checkin_api._doc_expiry_view publishes four named states — not_supplied /
+  // valid / expired / unreadable — with different `state` strings AND
+  // different sentences, precisely so that "licence good until 2031" and
+  // "nobody recorded an expiry" cannot come out as the same pixels. Rendering
+  // them apart is this seam's whole job here; it invents none of them and
+  // re-derives none of them, because the server owns the clock that decided.
+  //
+  // THE FIFTH STATE IS OURS AND IS NOT ONE OF THE SERVER'S FOUR.
+  // A board from a server that predates the expiry work carries no
+  // `doc_expiry` block at all — test/fixtures/checkin-board.json is exactly
+  // such a capture. Defaulting that to `not_supplied` would make this screen
+  // say, in the server's own words, that "no document expiry was recorded with
+  // this check-in" about a server that was never asked the question. That is
+  // the same laundering of an absence into an answer that the route was fixed
+  // for, committed one layer further out. `not_published` names who did not
+  // speak, and its remedy is an upgrade, not a re-scan and not a new licence.
+  var DOC_EXPIRY_LABEL = {
+    valid: 'valid',
+    expired: 'EXPIRED',
+    not_supplied: 'no expiry recorded',
+    unreadable: 'unreadable — re-scan',
+    not_published: 'this server does not report it'
+  };
+
+  // THREE PROBLEMS, THREE REMEDIES, AND COLOUR IS NOT WHAT SEPARATES THEM.
+  //
+  // `expired` is red because a customer has to go and get a new licence.
+  // `unreadable` and `not_supplied` are both amber because both are ours to
+  // fix at the counter — but they are NOT the same amber row: their words
+  // differ ("unreadable — re-scan" against "no expiry recorded") and their
+  // sentences differ, which is what a colour-blind associate, a greyscale
+  // screen and a photocopied shift report all still have. Colour is the
+  // fastest of the three signals and the only one that can be lost, so it is
+  // never asked to be the only one.
+  function docTone(P, de) {
+    if (de.state === 'expired') { return { ink: P.bad, soft: P.badSoft }; }
+    if (de.state === 'valid') { return { ink: P.good, soft: P.goodSoft }; }
+    // `not_published` is the server not answering, not a document problem, and
+    // it must not sit in the same amber lane as a person who needs a re-scan.
+    if (de.state === 'not_published') { return { ink: P.inkMute, soft: P.surface3 }; }
+    return { ink: P.warn, soft: P.warnSoft };
+  }
+
+  function docExpiryOf(p) {
+    var v = p && p.doc_expiry;
+    if (!v || typeof v !== 'object' || opt(v.state) == null) {
+      return {
+        state: 'not_published', served: false, expiresOn: null, daysLeft: null,
+        label: DOC_EXPIRY_LABEL.not_published,
+        why: 'this board carried no `doc_expiry` for this person, so nothing '
+           + 'on this screen knows whether their document is still valid. That '
+           + 'is /api/checkin/board not reporting it — NOT "no expiry was '
+           + 'recorded". Those are different facts and this one is fixed by '
+           + 'upgrading the server, not by re-scanning anybody.'
+      };
+    }
+    var s = String(v.state);
+    return {
+      state: s, served: true,
+      expiresOn: opt(v.expires_on),
+      daysLeft: num(v.days_left),
+      // A state the contract does not know is printed as its own raw key with
+      // `unrecognised` attached, never folded into the nearest of the four.
+      label: DOC_EXPIRY_LABEL[s] || (s + ' — unrecognised state'),
+      why: opt(v.why) || ('the board reported doc_expiry.state=' + s
+                        + ' with no sentence attached.')
+    };
+  }
 
   // The design's own wait format ('0h 2m 11s'). screen-orders.jsx and
   // screen-register.jsx both strip a leading '0h ' off it, so producing the
@@ -652,16 +803,69 @@
       function (j) { return j.why || 'left'; }).then(after);
   }
 
+  // THE ARRIVAL, INCLUDING THE DOCUMENT'S OWN EXPIRY.
+  //
+  // This posted five fields and none of them was the expiry, so the value the
+  // route now stores could never arrive from the counter and the server-side
+  // fix was inert from this side. An in-store scan waives the remote ID check
+  // on that person's later delivery orders, so a check-in with no end date
+  // buys a permanent waiver with one counter visit — the expiry is the thing
+  // that bounds it, and this is the only moment the document is in the room.
   function create(row) {
     var b = row || _newRow;
-    return act('/api/checkin', {
+    var body = {
       first_name: b.first_name, last_name: b.last_name,
       phone: b.phone, dob: b.dob,
       location_id: counter || b.location_id || null
-    }, function (j) {
+    };
+
+    // OMITTED, NOT SENT AS NULL, when there is none. checkin_api._expiry_from_body
+    // reads an absent key and a blank one identically — "we were never told",
+    // which is a real answer that verify_gate's unknown-expiry cap is built
+    // for — so the two are equivalent on the wire. An omitted key is still the
+    // better of the two here: it cannot be misread by the next person as a
+    // value this seam checked and cleared.
+    var src = expirySourcesOf(b);
+    var distinct = [];
+    src.forEach(function (s) {
+      if (distinct.indexOf(String(s.value)) < 0) { distinct.push(String(s.value)); }
+    });
+    if (distinct.length === 1) {
+      // One date, however many words the caller had for it. Canonical name.
+      body.doc_expires_at = src[0].value;
+    } else if (distinct.length > 1) {
+      // TWO DATES. Not ours to reconcile — forwarded under the caller's own
+      // keys so checkin_api's conflict refusal fires and quotes both back.
+      src.forEach(function (s) { body[s.key] = s.value; });
+    }
+
+    // A HASH IF THE CALLER HAS ONE. NEVER A DOCUMENT NUMBER, AND NEVER ONE WE
+    // MADE UP.
+    //
+    // The route refuses a raw document value outright (gov_id, dl_number,
+    // barcode, pdf417, …) and takes only `gov_id_hash` as already computed by
+    // engine._gov_id_hash, so that the hash stamped by the learning loop and
+    // the hash scanned tomorrow live in one namespace. NOTHING IN POS-Admin
+    // COMPUTES THAT HASH — a grep of shared/ and pos/ finds no hasher at all —
+    // and the scanner does not supply one either: IdScanPanel emits `doc.num`
+    // as a MASKED display fragment ('••••4821', verification.jsx:493), which
+    // is a piece of a document number, not a hash of one. Passing it here
+    // would be both of the things the route forbids at once: a raw document
+    // value, and a "hash" in a namespace the identity ledger has never seen,
+    // which would sit as the highest-weighted signal in the matcher and match
+    // nobody, forever, silently. So this forwards a hash only when a caller
+    // that genuinely has one hands it over, and manufactures nothing.
+    var gov = opt(b.gov_id_hash);
+    if (gov != null) { body.gov_id_hash = gov; }
+
+    // The server's own sentence is already the description: on success `why`
+    // carries the doc_expiry sentence, and on an already-lapsed document it
+    // carries the ATTENTION line asking for a current one. Neither is
+    // paraphrased here.
+    return act('/api/checkin', body, function (j) {
       return (j.checkin && j.checkin.id ? j.checkin.id + ' — ' : '') + (j.why || 'checked in');
     }).then(function (r) {
-      if (r.ok) { _newRow = { first_name: '', last_name: '', phone: '', dob: '' }; }
+      if (r.ok) { _newRow = _blankRow(); }
       return after(r);
     });
   }
@@ -840,6 +1044,13 @@
       phone: p.phone || null,
       dob: p.dob || null,
       govIdShort: p.gov_id_hash_short || null,
+      // THE DOCUMENT HASH ALONE CANNOT SAY WHETHER THE DOCUMENT IS STILL GOOD.
+      // `govIdShort` says only that A document was scanned, so an expired
+      // licence and a 2031 passport arrived at this row as the same eight
+      // characters. This carries the board's four named states plus the
+      // sentence attached to each — see docExpiryOf, which also keeps a board
+      // that never reported one apart from a board that reported "none".
+      docExpiry: docExpiryOf(p),
       identityId: p.identity_id == null ? null : p.identity_id,
       // THE LADDER'S ANSWER, kept apart from the row's own column. `identityId`
       // is what the checkins row literally says; `resolvedIdentityId` is who
@@ -1237,10 +1448,18 @@
       (p.location_id ? ' · ' + esc(p.location_id) : ' · counter not stamped') + '</div>';
 
     // Only what the row actually carries. An absent field says it is absent.
+    var de = docExpiryOf(p);
     var facts = [
       ['phone', p.phone || 'none on the row'],
       ['dob', p.dob || 'none on the row'],
       ['gov id', p.gov_id_hash_short ? p.gov_id_hash_short + '…' : 'no document hash'],
+      // DIRECTLY UNDER THE HASH, because the hash is what used to be read as
+      // the answer. The label is never the bare date: a date on its own is a
+      // string an eye slides over, and "2026-05-30" and "2031-07-23" differ by
+      // one glyph in a mono column nobody is asked to read. The STATE leads and
+      // the date follows it.
+      ['document', de.label + (de.expiresOn ? ' · ' + de.expiresOn : ''),
+       docTone(P, de).ink],
       ['identity', p.identity_id == null ? 'not resolved' : '#' + p.identity_id],
       ['claimed by', p.claimed_by || 'nobody'],
       ['holding', (p.holds_wm_order_ids || []).length ? p.holds_wm_order_ids.join(', ') : 'no bag']
@@ -1249,9 +1468,28 @@
       P.type.micro + 'px;margin-bottom:6px">';
     facts.forEach(function (f) {
       h += '<span style="color:' + P.inkMute + '">' + esc(f[0]) + '</span>' +
-        '<span style="color:' + P.ink2 + ';font-family:' + ff(P.fontMono) + '">' + esc(f[1]) + '</span>';
+        '<span style="color:' + (f[2] || P.ink2) + ';font-family:' + ff(P.fontMono) +
+        (f[2] ? ';font-weight:700' : '') + '">' + esc(f[1]) + '</span>';
     });
     h += '</div>';
+
+    // AND THE SENTENCE, NOT ONLY THE WORD.
+    //
+    // The state string alone is a label an associate has to have been taught.
+    // The server sends a sentence with each state saying what it means and
+    // what to do about it — "that is 'we were never told', not 'valid
+    // forever'", "the remedy is a re-scan" — and the three problems have three
+    // different remedies. Dropping the sentence to save four lines would leave
+    // three amber rows on one screen that a human has no way to tell apart.
+    //
+    // A VALID DOCUMENT GETS NO SENTENCE. It is the one state with nothing to
+    // do about it, and printing a line for it would put a paragraph under
+    // every person in the room and train the eye to skip all four.
+    if (de.state !== 'valid') {
+      h += '<div style="font-size:' + P.type.micro + 'px;line-height:1.45;padding:5px 7px;' +
+        'border-radius:' + P.r8 + 'px;margin-bottom:6px;background:' + docTone(P, de).soft +
+        ';color:' + docTone(P, de).ink + '">' + esc(de.why) + '</div>';
+    }
 
     h += btn(P, 'match', 'Match against waiting orders', 'data-cid="' + esc(p.id) + '"') +
       btn(P, 'claim', 'Claim…', 'data-cid="' + esc(p.id) + '"') +
@@ -1433,13 +1671,101 @@
       inputHTML(P, 'first_name', 'First name', _newRow.first_name) +
       inputHTML(P, 'last_name', 'Surname', _newRow.last_name) +
       inputHTML(P, 'phone', 'Phone', _newRow.phone) +
-      inputHTML(P, 'dob', 'DOB (YYYY-MM-DD)', _newRow.dob) + '</div>';
+      inputHTML(P, 'dob', 'DOB (YYYY-MM-DD)', _newRow.dob) +
+      // THE ONE FIELD THAT MAKES THE SERVER-SIDE FIX REACHABLE FROM A SCREEN.
+      // This form is the only caller of create() that exists in this repo —
+      // no scanner is wired to it — so without a field here the expiry the
+      // route now stores could still never arrive from a counter. It spans
+      // both columns because it is the field on this form with a compliance
+      // consequence, and it should not read as the fifth of five equals.
+      '<div style="grid-column:1/-1">' +
+      inputHTML(P, 'doc_expires_at', 'Document expiry (YYYY-MM-DD)', _newRow.doc_expires_at) +
+      '</div></div>';
     h += btn(P, 'create', 'Check in' + (counter ? ' at ' + counter : ''));
     h += note(P, 'The API refuses a row with no surname, phone, document hash or identity — such a ' +
       'row could never be matched to anything but would still be counted as a person standing at ' +
       'the counter. It also refuses a raw document number outright; only a hash the identity ' +
       'layer computed is accepted. Try it: the refusal sentence is what appears above.');
+    h += note(P, 'The document expiry is sent as typed, under the canonical name `doc_expires_at`, ' +
+      'and is never re-read on this side — a screen must not decide whether 03/04/2027 is March ' +
+      'or April. A date the server cannot read comes back refused and NAMED, with a re-scan as ' +
+      'the remedy, because "we were told something we cannot read" and "we were never told" are ' +
+      'different facts. Leave it blank and the row is created with no expiry: that is the second ' +
+      'of those two, and the verification it produces is bounded only by the unknown-expiry cap.');
+    h += note(P, 'An expiry already in the past does NOT refuse the check-in and does not refuse a ' +
+      'sale. The row is created, the date is stored as read, and the answer above carries the ' +
+      'server\'s ATTENTION line asking for a current document. The refusal that matters already ' +
+      'lives one layer down, where verify_gate turns down this person\'s later delivery orders.');
     return h;
+  }
+
+  // THE THREE DOCUMENT NUMBERS, COUNTED APART AND PRINTED APART.
+  //
+  // The board publishes `doc_expired`, `doc_expiry_not_supplied` and
+  // `doc_expiry_unreadable` as three separate counts, deliberately: one
+  // combined "documents needing attention" figure would be actionable for
+  // none of them, because the remedies are a customer buying a new licence, a
+  // process gap at the counter, and a re-scan of a document already in the
+  // room. Summing them here would undo that on the way to the screen and is
+  // the exact collapse the counts were split to prevent.
+  //
+  // A COUNT THE BOARD DID NOT SEND IS NOT A ZERO. `pc.doc_expired || 0` would
+  // print a confident "0 expired" for a server that never counted — the same
+  // shape as the counter that incremented both `status_unknown` and `counted`.
+  // Absent, the whole line is replaced by one that says the board did not
+  // report these numbers.
+  function docCountsHTML(P, pc) {
+    var served = pc && (pc.doc_expired != null || pc.doc_expiry_not_supplied != null
+                     || pc.doc_expiry_unreadable != null);
+    if (!served) {
+      return '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkMute +
+        ';line-height:1.5;margin-bottom:8px">This board reported no document-expiry counts, ' +
+        'so this screen cannot say how many people in the room hold a lapsed, an unreadable or ' +
+        'an unrecorded document. That is the board not reporting them — not three zeroes.</div>';
+    }
+    var ex = num(pc.doc_expired), ns = num(pc.doc_expiry_not_supplied),
+        ur = num(pc.doc_expiry_unreadable);
+    // Each figure keeps its own word, and a figure the board omitted while
+    // sending the others says so on its own rather than borrowing a zero.
+    var part = function (n, one, many, none) {
+      if (n == null) { return null; }
+      return n === 0 ? none : n + ' ' + (n === 1 ? one : many);
+    };
+    var bits = [
+      [part(ex, 'expired document', 'expired documents', 'no expired documents'),
+       ex ? P.bad : P.inkMute],
+      [part(ns, 'with no expiry recorded', 'with no expiry recorded',
+            'none missing an expiry'), ns ? P.warn : P.inkMute],
+      [part(ur, 'unreadable expiry', 'unreadable expiries', 'none unreadable'),
+       ur ? P.warn : P.inkMute]
+    ].filter(function (b) { return b[0] != null; });
+
+    var h = '<div style="font-size:' + P.type.meta + 'px;line-height:1.5;margin-bottom:8px;color:' +
+      P.ink2 + '">Documents in the room: ' +
+      bits.map(function (b) {
+        return '<b style="color:' + b[1] + '">' + esc(b[0]) + '</b>';
+      }).join(' · ') + '.';
+    // A PARTIAL ANSWER SAYS IT IS PARTIAL. All three counts arrive together
+    // from the real route, so a board sending two of them is one this screen
+    // does not recognise — and the unguarded render is the one that reads
+    // best: two confident figures and a silence, which an eye takes for "the
+    // third is fine". Naming the gap is the only thing that stops that.
+    var missing = [];
+    if (ex == null) { missing.push('expired'); }
+    if (ns == null) { missing.push('no-expiry-recorded'); }
+    if (ur == null) { missing.push('unreadable'); }
+    if (missing.length) {
+      h += ' <span style="color:' + P.warn + '">This board did not report the ' +
+        esc(missing.join(' or the ')) + ' count' + (missing.length > 1 ? 's' : '') +
+        ', so nothing above speaks for ' + (missing.length > 1 ? 'those' : 'that') +
+        '.</span>';
+    }
+    if ((ex || 0) + (ns || 0) + (ur || 0) > 0) {
+      h += ' <span style="color:' + P.inkMute + '">Three different problems with three ' +
+        'different remedies — a new licence, a scan nobody recorded, and a re-scan — so they ' +
+        'are never added together.</span>';
+    }
+    return h + '</div>';
   }
 
   function panelHTML(P) {
@@ -1468,6 +1794,8 @@
       esc(oc.bound || 0) + ' bound, ' + esc(oc.unclaimed || 0) + ' somebody-is-here, ' +
       esc(oc.awaiting_arrival || 0) + ' awaiting arrival, ' + esc(oc.no_show || 0) + ' no-show.' +
       (counter ? ' Counter filter: ' + esc(counter) + '.' : ' All counters.') + '</div>';
+
+    h += docCountsHTML(P, pc);
 
     if (_msg) {
       h += '<div style="font-size:' + P.type.meta + 'px;line-height:1.45;padding:7px 9px;' +
