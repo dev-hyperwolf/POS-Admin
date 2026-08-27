@@ -423,7 +423,10 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
   const [st, setSt] = React.useState(value && value.scannedAt ? 'done' : 'idle'); // idle | scanning | done
   // Which path the next simulated scan takes. Explicit rather than random:
   // a demo you cannot steer is a demo you cannot test a specific flow on.
-  const [mode, setMode] = React.useState('new'); // new | returning
+  // `mode` is gone with the toggle it drove. The simulator alternates
+  // internally now (see scan()), so both the new and the returning path
+  // still get exercised without asking the operator to classify a guest
+  // the scan has not read yet.
 
   // A returning scan resolves to a REAL existing customer record, so the
   // "the barcode finds their account" path is genuinely exercised rather than
@@ -434,11 +437,32 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
     return M.length ? M[_demoIdx++ % M.length] : null;
   };
 
+  // THE SCAN DECIDES. It does not ask.
+  //
+  // This used to be steered by a "New customer / Returning" segmented control
+  // sitting next to the Scan button, and that is backwards in the way that
+  // matters: at a real counter nobody KNOWS whether the person is returning
+  // until the barcode is read. Asking the operator to declare it first makes
+  // them do the machine's job, and in the Add-member flow it was incoherent
+  // as well -- you are adding a member, so "Returning" contradicts the screen
+  // it is on.
+  //
+  // The steering existed for a good reason ("a demo you cannot steer is a demo
+  // you cannot test a specific flow on") and that reason is preserved: the
+  // simulator still alternates so BOTH paths get exercised. What changed is
+  // that the alternation is now an implementation detail of the fake scanner
+  // rather than a question put to the user.
+  //
+  // WHAT A REAL SCAN DOES, and what this now mimics: the PDF417 barcode yields
+  // a name and date of birth. Those are matched against the customer book.
+  // Match -> returning, and we say who. No match -> new, and the record is
+  // pre-filled from the document. Either way the operator is TOLD, never asked.
   const scan = () => {
     setSt('scanning');
     setTimeout(() => {
       let doc;
-      if (mode === 'returning') {
+      const _tryReturning = (_demoIdx % 2) === 1;   // alternate, so both paths run
+      if (_tryReturning) {
         const m = pickReturning();
         if (m) {
           doc = { type: 'CA DL', num: '••••' + String(1000 + (_demoIdx * 37) % 9000), expires: '2029-04-11',
@@ -497,10 +521,9 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
       {st === 'scanning' ? 'Reading barcode…' : 'Scan the guest’s ID or passport'}<DemoMark />
     </div>
     <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 3, lineHeight: 1.45 }}>
-      No scanner is wired to this build. This simulates the read so the flows that depend on it can be tested — a real barcode supplies name, date of birth and expiry.
+      No scanner is wired to this build. This simulates the read so the flows that depend on it can be tested — a real barcode supplies name, date of birth and expiry. The scan decides whether this is a new or a returning guest; you are not asked.
     </div>
     <div style={{ marginTop: 9, display: 'flex', gap: 7, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
-      <Seg size="sm" value={mode} onChange={setMode} options={[{ value: 'new', label: 'New customer' }, { value: 'returning', label: 'Returning' }]} />
       <PBtn variant="accent" size="sm" icon="scan" disabled={st === 'scanning'} onClick={scan}>{st === 'scanning' ? 'Scanning…' : 'Scan ID'}</PBtn>
     </div>
   </div>;
