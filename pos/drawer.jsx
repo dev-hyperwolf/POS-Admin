@@ -153,7 +153,18 @@ function CloseRegisterModal({ onClose }) {
   const variance = +(counted - expected).toFixed(2);
   const vc = !started ? P.inkMute : variance === 0 ? P.good : Math.abs(variance) < 5 ? P.warn : P.bad;
   return <RegModal title="Close register" sub="Count the drawer to reconcile" icon="cash" onClose={onClose}
-  footer={<><PBtn variant="accent" size="md" icon="check" full disabled={counted <= 0} onClick={() => {window.POS.closeRegister(counted);onClose();}}>Close &amp; reconcile</PBtn><PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn></>}>
+  /* THE REASON GOES IN THE LABEL, NOT A TOOLTIP. OpenRegisterModal above
+     already does this — it reads "Count the drawer" until something has been
+     counted. This carried its explanation in a `title` attribute instead, and
+     a title is unreachable here twice over: a DISABLED control does not fire
+     the hover events that raise a native tooltip, and this is a TOUCH
+     terminal, where there is no hover at all. So at end of shift an associate
+     met a grey button with no stated reason and nothing to tap to find one.
+     The house rule is already written down in
+     test/register-control-honesty.test.mjs — "a disabled Charge card says WHY,
+     on the screen". The title is kept for a pointer, but it is no longer the
+     only place the answer lives. */
+  footer={<><PBtn variant="accent" size="md" icon="check" full disabled={counted <= 0} title={counted <= 0 ? `Count the drawer first — nothing has been entered, and ${money(expected)} is expected in it.` : `Close the register on a counted ${money(counted)}`} onClick={() => {window.POS.closeRegister(counted);onClose();}}>{counted <= 0 ? `Count the drawer — ${money(expected)} expected` : 'Close & reconcile'}</PBtn><PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn></>}>
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
       {[['Starting cash balance', money(sess.float || 0)], ['Cash sales', money(cashSales)], ['Expected in drawer', money(expected)]].map(([k, v], i) => <div key={k} style={{ gridColumn: i === 2 ? '1/-1' : 'auto', display: 'flex', justifyContent: 'space-between', padding: '9px 12px', background: i === 2 ? P.surface3 : P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}><span style={{ fontSize: 11.5, color: P.inkDim }}>{k}</span><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{v}</span></div>)}
     </div>
