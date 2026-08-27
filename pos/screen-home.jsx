@@ -11,7 +11,7 @@ window.HomeScreen = function HomeScreen({ onNav }) {
   // ── live operational signals ──
   const orders = HW.ORDERS || [];
   const openStages = ['verify', 'pack', 'packing', 'ready'];
-  const stageMeta = { verify: { label: 'Verification', c: P.warn }, pack: { label: 'To pack', c: P.info }, packing: { label: 'Packing', c: P.info }, ready: { label: 'Ready', c: P.good } };
+  const stageMeta = { verify: { label: 'Incoming', c: P.warn }, pack: { label: 'To pack', c: P.info }, packing: { label: 'Packing', c: P.info }, ready: { label: 'Ready', c: P.good } };
   const byStage = openStages.map((s) => ({ s, ...stageMeta[s], n: orders.filter((o) => o.stage === s).length }));
   const openTotal = orders.filter((o) => openStages.includes(o.stage)).length;
   const wmVerify = orders.filter((o) => o.source === 'Weedmaps' && o.stage === 'verify').length;
@@ -75,7 +75,7 @@ window.HomeScreen = function HomeScreen({ onNav }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, marginBottom: 20 }}>
         <Quick icon="register" label="New sale" sub="Open the register" to="register" accent />
         <Quick icon="user-plus" label="Check in customer" sub={checkins ? `${checkins} waiting` : 'Start a check-in'} to="register" />
-        <Quick icon="board" label="Order queue" sub={`${openTotal} open · ${wmVerify} to verify`} to="orders" />
+        <Quick icon="board" label="Order queue" sub={`${openTotal} open · ${wmVerify} incoming`} to="orders" />
         <Quick icon="package" label="Catalog" sub={`${outStock + lowStock} stock alerts`} to="catalog" />
       </div>
 

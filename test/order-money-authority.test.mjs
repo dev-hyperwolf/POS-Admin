@@ -170,14 +170,14 @@ test('OrderDetails: a promo typed into an open edit does not move the committed 
 
 /* ── 4. a non-Weedmaps order stuck in verify has a release control ───────── */
 
-test('OrderDetails: a non-Weedmaps order in Verification Pending can actually be released', async () => {
+test('OrderDetails: a non-Weedmaps order in Incoming can actually be released', async () => {
   await withPanels(async (app, open) => {
     const W = await open('ORD-00224');
     assert.notEqual(W.HW.orderById('ORD-00224').source, 'Weedmaps', 'fixture drift: this must not be a WM order');
     assert.equal(W.HW.orderById('ORD-00224').stage, 'verify', 'fixture drift');
 
     assert.ok(app.click('Verify & release'),
-      'a non-Weedmaps order sitting in Verification Pending has no release control anywhere — ' +
+      'a non-Weedmaps order sitting in Incoming has no release control anywhere — ' +
       `buttons on screen: ${app.buttons().join(' | ')}`);
     await app.settle();
 
@@ -209,7 +209,7 @@ test('WmOrderBlock: a low-risk order in verify shows the control instead of clai
     assert.equal(W.HW.orderById('ORD-00231').stage, 'verify', 'fixture drift');
 
     assert.doesNotMatch(app.text(), /Verified — cleared for fulfillment/,
-      'the copy says the order is released while the board still has it in Verification Pending');
+      'the copy says the order is released while the board still has it in Incoming');
     assert.ok(app.click('Verify & release'),
       'a low-risk order pre-approves itself, so the row that calls doVerify never renders and ' +
       `nothing can release it. Buttons: ${app.buttons().join(' | ')}`);

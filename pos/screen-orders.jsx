@@ -2,7 +2,7 @@
 const useP = window.useP;
 
 const STAGES = [
-{ id: 'verify', label: 'Verification Pending', color: (P) => P.neutral },
+{ id: 'verify', label: 'Incoming', color: (P) => P.neutral },  // stage ID stays 'verify': see data.jsx ORDER_STAGES
 { id: 'pack', label: 'Need to Pack', color: (P) => '#C24EA8' },
 { id: 'packing', label: 'Packing in Progress', color: (P) => P.info },
 { id: 'ready', label: 'Ready for Pickup', color: (P) => P.good },
@@ -2216,7 +2216,7 @@ function WmOrderBlock({ o, wm, onLog }) {
   // component depend on push/pushState/acked/railTo/wmTone/pushLine.
   // The useState initialiser is MAIN'S, deliberately: mine keyed off wm.level,
   // so a LOW-RISK order rendered 'Verified — cleared for fulfillment' while it
-  // sat unreleased in Verification Pending, and the pending action row is the
+  // sat unreleased in Incoming, and the pending action row is the
   // only caller of doVerify, so nothing could then release it. Main's keys off
   // o.stage, which is the fact. Low risk shortens a review; it does not perform
   // one. Both sides were fixing a rendered falsehood; main's was the right fix.
@@ -2251,7 +2251,7 @@ function WmOrderBlock({ o, wm, onLog }) {
         : ('Queued for Weedmaps, not yet acknowledged' + (push.attempts ? ' (' + push.attempts + ' attempt(s))' : '') + '. The customer has not been told.');
   // 🔴 THE STAGE IS THE TRUTH, NOT THE RISK SCORE. This initialised to
   // 'approved' whenever `wm.level === 'low'`, so a low-risk order sitting in
-  // Verification Pending rendered "Verified — cleared for fulfillment" while
+  // Incoming rendered "Verified — cleared for fulfillment" while
   // the board showed it unreleased — and because the pending action row is the
   // only thing that calls doVerify, nothing could ever release it. Two stories
   // about one order, and the copy was the wrong one.
@@ -2471,7 +2471,7 @@ function WmOrderBlock({ o, wm, onLog }) {
       {verify === 'pending' && wm.level === 'low' && !gate &&
         <div style={{ marginTop: 9, display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.goodSoft, borderRadius: P.r10 }}>
         <Icon name="check-circle" size={14} stroke={2} color={P.good} style={{ flex: '0 0 auto', marginTop: 1 }} />
-        <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>{lowRiskLine}. It still has to be released: the order stays in Verification Pending until somebody does it.</span>
+        <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>{lowRiskLine}. It still has to be released: the order stays in Incoming until somebody does it.</span>
       </div>}
       {verify === 'pending' ?
         <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
@@ -3416,7 +3416,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   // ⚠️ NAME A PANEL THAT EXISTS. This sent every unverified order to "the
   // Weedmaps block above", which only renders when HW.WM_ORDER has an entry —
   // so on a Stilo or Web order it pointed the operator at nothing.
-  o.stage === 'verify' ? `This order has not been verified yet, so packing it will not move it out of Verification Pending — release it in the ${wm ? 'Weedmaps block' : 'Verification block'} at the top of this order first.` :
+  o.stage === 'verify' ? `This order has not been verified yet, so packing it will not move it out of Incoming — release it in the ${wm ? 'Weedmaps block' : 'Verification block'} at the top of this order first.` :
   o.stage === 'ready' ? 'This order is already Ready for Pickup — a re-scan re-reserves the stock and leaves the stage alone.' :
   packedUnits === 0 ? 'Nothing has been scanned yet, so Done will leave this order exactly where it is.' :
   null;

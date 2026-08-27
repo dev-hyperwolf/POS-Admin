@@ -105,7 +105,7 @@
         { title: 'Taking payment', ey: 'Concept',
           body: 'Cash, card, or a split. The card leg runs on the reader <b>assigned to this station</b> in Terminal Configuration — readers are static to a counter on purpose, so settlements always reconcile back to the same place.' },
         { text: 'Orders', tag: 'button', scope: 'aside', place: 'right', before: go('Orders', { tag: 'button', scope: 'aside' }), wait: 550,
-          title: 'The order queue', body: 'Verification → to pack → packing → ready. In-store sales and channel orders (including Weedmaps) all land in the same queue, because fulfilment does not care where demand came from.' },
+          title: 'The order queue', body: 'Incoming → to pack → packing → ready. In-store sales and channel orders (including Weedmaps) all land in the same queue, because fulfilment does not care where demand came from.' },
         { text: 'Catalog', tag: 'button', scope: 'aside', place: 'right', before: go('Catalog', { tag: 'button', scope: 'aside' }), wait: 600,
           title: 'The single source of truth', body: 'Every product lives here once. Weedmaps, the delivery menu and the driver app are all <b>projections</b> of this record — change a price here and it pushes to both Weedmaps listings in under a second.',
           act: 'Never sell around a wrong stock count. It oversells the Weedmaps pickup listing too.' },

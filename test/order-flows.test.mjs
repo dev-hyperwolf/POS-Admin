@@ -140,7 +140,7 @@ test('OrderDetails: Save changes says why it is disabled instead of just greying
 
 /* ── 4. "Verify & release" leaves 'verify' ───────────────────────────────── */
 
-test('WmOrderBlock: Verify & release moves the order out of Verification Pending', async () => {
+test('WmOrderBlock: Verify & release moves the order out of Incoming', async () => {
   await withApp('pos', async (app) => {
     const W = await openDetails(app, 'ORD-00232');
     assert.equal(W.HW.orderById('ORD-00232').stage, 'verify', 'fixture drift');
@@ -164,9 +164,13 @@ test('WmOrderBlock: Hold and Reject leave the stage alone and say where the orde
     const W = await openDetails(app, 'ORD-00237');
     assert.ok(app.click('Hold'), 'no Hold button');
     await app.settle();
+    // The STAGE ID is 'verify' and stays that way — only the operator-facing
+    // label became "Incoming". Asserting both on purpose: the id is the contract
+    // shared with wmdemo/fulfillment.py, the label is product copy that has now
+    // changed once and may change again.
     assert.equal(W.HW.orderById('ORD-00237').stage, 'verify',
-      'an order on hold must stay in Verification Pending');
-    assert.match(app.text(), /Stays in Verification Pending/,
+      'an order on hold must stay in the verify stage');
+    assert.match(app.text(), /Stays in Incoming/,
       'a decision that moves nothing on the board has to say so');
   });
 
