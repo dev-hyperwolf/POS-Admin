@@ -391,33 +391,118 @@ window.CustomerPeek = function CustomerPeek({ member, contact, idv, onClose }) {
 };
 
 // ── ID scan + photo (the in-store event that does the heavy lifting) ────────
+//
+// THIS IS A SIMULATED SCANNER AND IT SAYS SO ON SCREEN. No PDF417 reader is
+// wired to this build. It exists so the flows that DEPEND on a scan — building
+// a party, onboarding a first-timer, locating a returning customer — can be
+// exercised end to end before the real module lands.
+//
+// WHY IT IS LABELLED RATHER THAN SILENT. The panel it replaces returned ONE
+// hardcoded human on every scan (Jordan A. Vasquez, CA DL ••••4821, DOB
+// 09/02/1988) with no indication it was invented, so a party of two was
+// impossible and every "captured" ID was the same fabricated person wearing a
+// green tick. A simulated capture presented as a real government-ID check is
+// the one thing this screen must never do — the tick is a compliance claim.
+// Simulated results carry `simulated: true` and every surface that renders a
+// scan result shows the DEMO mark.
+//
+// The pool cycles rather than randomises, so repeated scans give DIFFERENT
+// people in a repeatable order — which is what makes a party testable.
+const DEMO_IDS = [
+  { name: 'Marcus Webb',      dob: '03/11/1994', type: 'CA DL',    num: '••••4821', expires: '2029-04-11' },
+  { name: 'Priya Raman',      dob: '11/02/1991', type: 'CA DL',    num: '••••7730', expires: '2027-11-02' },
+  { name: 'Tomas Alvarez',    dob: '07/24/1988', type: 'Passport', num: '••••2264', expires: '2031-07-23' },
+  { name: 'Ruth Okonjo',      dob: '01/09/1997', type: 'CA DL',    num: '••••5518', expires: '2028-01-09' },
+  { name: 'Danny Fitzgerald', dob: '05/30/1985', type: 'NV DL',    num: '••••9012', expires: '2026-05-30' },
+  { name: 'Aiko Tanaka',      dob: '09/17/1999', type: 'Passport', num: '••••4407', expires: '2032-09-16' },
+];
+let _demoIdx = 0;
+
 window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
   const P = useP();
   const [st, setSt] = React.useState(value && value.scannedAt ? 'done' : 'idle'); // idle | scanning | done
+  // Which path the next simulated scan takes. Explicit rather than random:
+  // a demo you cannot steer is a demo you cannot test a specific flow on.
+  const [mode, setMode] = React.useState('new'); // new | returning
+
+  // A returning scan resolves to a REAL existing customer record, so the
+  // "the barcode finds their account" path is genuinely exercised rather than
+  // mimed. Falls back to the new-customer path when the book is empty, and
+  // says so rather than inventing a match.
+  const pickReturning = () => {
+    const M = (window.HW && window.HW.MEMBERS) || [];
+    return M.length ? M[_demoIdx++ % M.length] : null;
+  };
+
   const scan = () => {
     setSt('scanning');
     setTimeout(() => {
-      const doc = { type: 'CA DL', num: '••••4821', expires: '2029-04-11', scannedAt: 'Just now', by: 'Priya Nair', where: 'Front Counter 1', photo: true, name: 'Jordan A. Vasquez', dob: '09/02/1988' };
-      setSt('done');onChange && onChange(doc);
-      onLog && onLog({ who: 'Priya Nair', role: 'You', action: 'Scanned & photographed government ID · CA DL ••••4821', time: 'just now', icon: 'scan' });
-    }, 900);
+      let doc;
+      if (mode === 'returning') {
+        const m = pickReturning();
+        if (m) {
+          doc = { type: 'CA DL', num: '••••' + String(1000 + (_demoIdx * 37) % 9000), expires: '2029-04-11',
+                  scannedAt: 'Just now', by: 'Manisha Saini', where: 'Front Counter 1', photo: true,
+                  name: m.name, dob: m.dob || '', memberId: m.id, returning: true, simulated: true };
+        }
+      }
+      if (!doc) {
+        const d = DEMO_IDS[_demoIdx++ % DEMO_IDS.length];
+        doc = { type: d.type, num: d.num, expires: d.expires, scannedAt: 'Just now',
+                by: 'Manisha Saini', where: 'Front Counter 1', photo: true,
+                name: d.name, dob: d.dob, returning: false, simulated: true };
+      }
+      setSt('done');
+      onChange && onChange(doc);
+      onLog && onLog({ who: 'Manisha Saini', role: 'You',
+        action: 'SIMULATED ID scan · ' + doc.type + ' ' + doc.num + (doc.returning ? ' · matched an existing customer' : ' · new customer'),
+        time: 'just now', icon: 'scan' });
+    }, 700);
   };
+
+  const DemoMark = () =>
+    <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.08em', color: P.warn,
+      background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: 4, padding: '1px 5px', flex: '0 0 auto' }}>DEMO</span>;
+
   if (st === 'done') {
-    const d = (value && value.scannedAt ? value : null) || { type: 'CA DL', num: '••••4821', expires: '2029-04-11', by: 'Priya Nair', where: 'Front Counter 1' };
-    return <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', background: P.goodSoft, border: `1px solid ${P.good}44`, borderRadius: P.r10 }}>
-      <span style={{ width: 44, height: 30, borderRadius: 5, background: P.surface, border: `1px solid ${P.good}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="user" size={15} color={P.good} /></span>
+    const d = (value && value.scannedAt) ? value : null;
+    if (!d) {
+      // We were told a scan finished but handed nothing to show. Say that,
+      // rather than redrawing the old panel's hardcoded card as if it were read.
+      return <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface2, border: `1px dashed ${P.hairline2}`, borderRadius: P.r10 }}>
+        <Icon name="alert" size={15} color={P.inkMute} />
+        <span style={{ flex: 1, fontSize: 11.5, color: P.ink2 }}>A scan completed but no document reached this panel — nothing is recorded.</span>
+        <PBtn variant="ghost" size="xs" icon="refresh" onClick={() => setSt('idle')}>Scan again</PBtn>
+      </div>;
+    }
+    return <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', background: d.returning ? P.goodSoft : P.infoSoft, border: `1px solid ${(d.returning ? P.good : P.info)}44`, borderRadius: P.r10 }}>
+      <span style={{ width: 44, height: 30, borderRadius: 5, background: P.surface, border: `1px solid ${(d.returning ? P.good : P.info)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
+        <Icon name={d.returning ? 'user-check' : 'user-plus'} size={15} color={d.returning ? P.good : P.info} />
+      </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>ID scanned &amp; photo captured</div>
-        <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{d.type} {d.num} · expires {d.expires} · age 21+ ✓</div>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {d.name || 'Name not read'}{d.simulated && <DemoMark />}
+        </div>
+        <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>
+          {d.returning ? 'Existing customer · account found' : 'New customer · from the document'} · {d.type} {d.num} · expires {d.expires}
+        </div>
       </div>
       <PBtn variant="ghost" size="xs" icon="refresh" onClick={() => setSt('idle')}>Re-scan</PBtn>
     </div>;
   }
+
   return <div style={{ padding: '13px', background: P.surface2, border: `1px dashed ${P.hairline2}`, borderRadius: P.r10, textAlign: 'center' }}>
     <Icon name="scan" size={22} color={P.inkMute} />
-    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, marginTop: 6 }}>{st === 'scanning' ? 'Reading barcode…' : 'Scan the customer’s ID'}</div>
-    <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 3, lineHeight: 1.45 }}>Reads the PDF417 barcode for name, DOB and expiry, and stores a photo of the document.</div>
-    <div style={{ marginTop: 9 }}><PBtn variant="accent" size="sm" icon="scan" disabled={st === 'scanning'} onClick={scan}>{st === 'scanning' ? 'Scanning…' : 'Scan ID & capture photo'}</PBtn></div>
+    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+      {st === 'scanning' ? 'Reading barcode…' : 'Scan the guest’s ID or passport'}<DemoMark />
+    </div>
+    <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 3, lineHeight: 1.45 }}>
+      No scanner is wired to this build. This simulates the read so the flows that depend on it can be tested — a real barcode supplies name, date of birth and expiry.
+    </div>
+    <div style={{ marginTop: 9, display: 'flex', gap: 7, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+      <Seg size="sm" value={mode} onChange={setMode} options={[{ value: 'new', label: 'New customer' }, { value: 'returning', label: 'Returning' }]} />
+      <PBtn variant="accent" size="sm" icon="scan" disabled={st === 'scanning'} onClick={scan}>{st === 'scanning' ? 'Scanning…' : 'Scan ID'}</PBtn>
+    </div>
   </div>;
 };
 

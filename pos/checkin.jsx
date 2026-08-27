@@ -46,7 +46,27 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
   // Scanning the ID IS the data entry — the PDF417 barcode carries the legal
   // name, DOB and expiry, so nobody retypes them. Phone is the only thing a
   // human might add, and it is optional.
-  const onScan = (d) => setNf((p) => ({ ...p, doc: d, name: d && d.name || p.name || 'Jordan A. Vasquez', dob: d && d.dob || p.dob || '09/02/1988' }));
+  // THE SCAN IS THE SOURCE OF TRUTH, and the two outcomes are different acts.
+  //
+  // A RETURNING guest's barcode resolves to a customer we already hold, so it
+  // LINKS them straight into the party — no onboarding form, no second record.
+  // That is the whole point of scanning a returning customer, and it is the
+  // path that stops one human accumulating four profiles.
+  //
+  // A FIRST-TIMER's document fills the form and nothing else does. The old
+  // version fell back to `p.name` and then to a hardcoded 'Jordan A. Vasquez' /
+  // '09/02/1988' when the read produced no name — so a scan that failed to
+  // parse silently inherited whatever name was already in the box, or an
+  // invented one, and still rendered a green "ID captured" pill. A fabricated
+  // identity under a compliance tick is the one thing this flow must never do.
+  // A read with no name now writes no name, and the form stays blocked.
+  const onScan = (d) => {
+    if (d && d.returning && d.memberId) {
+      const m = window.HW.memberById(d.memberId);
+      if (m) { linkMember(m); setAdding(false); setNf({ name: '', dob: '', phone: '', doc: null }); return; }
+    }
+    setNf((p) => ({ ...p, doc: d, name: d && d.name || '', dob: d && d.dob || '' }));
+  };
   const bad = list.filter((g) => guestStatus(g) === 'incomplete').length;
 
   const StatusPill = ({ g }) => {

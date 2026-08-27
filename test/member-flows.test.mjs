@@ -186,8 +186,14 @@ test('...and a completed form creates the member', async () => {
     app.click('Add Member');
     await app.settle();
 
-    assert.ok(app.click('Scan ID & capture photo'), 'no scan button');
-    await new Promise((r) => setTimeout(r, 1100));   // the scanner fakes 900ms of work
+    // The scan button's label is product copy and has changed once already
+    // ("Scan ID & capture photo" -> "Scan ID" when the panel gained a
+    // new/returning mode toggle). This asserts the FLOW, not the wording, so it
+    // finds the button by its stable prefix rather than an exact sentence.
+    const scanBtn = btn(app, /^Scan ID/);
+    assert.ok(scanBtn, 'no scan button');
+    scanBtn.click();
+    await new Promise((r) => setTimeout(r, 1100));   // the simulated scanner takes 700ms
     setValue(app, byPlaceholder(app, '(951) 555-0100'), '(951) 555-0123');
     await app.settle();
     setValue(app, byPlaceholder(app, 'Jane Doe'), 'Rosa Probe');
