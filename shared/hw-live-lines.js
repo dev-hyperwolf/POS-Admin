@@ -388,10 +388,20 @@
   // server.py dispatches to it. Any other failure is reported as itself.
   function failReason(e) {
     if (e && e.code === 404) {
-      return 'GET ' + base + ROUTE + ' returned 404. wmdemo/order_lines.py ' +
-             'exists and works, but no route in wmdemo/server.py serves it yet ' +
-             '— so the real line items cannot be read. The wiring snippet is in ' +
-             'this change\'s handover note.';
+      // WAS: "no route in server.py serves it yet". That stopped being true --
+      // wmdemo/server.py:1632 dispatches /api/order/lines to
+      // order_lines.order_lines(). A 404 now means something else, and saying
+      // the old thing sent a developer looking for work that was already done.
+      //
+      // The remaining honest cause is the HOST. This page is often served from
+      // GitHub Pages (dev-hyperwolf.github.io), which is static and has no API
+      // at all, so the 404 is the seam truthfully reporting the URL it tried --
+      // not evidence that line items are unreadable anywhere.
+      return 'GET ' + base + ROUTE + ' returned 404. The route DOES exist ' +
+             '(wmdemo/server.py serves /api/order/lines), so this is almost ' +
+             'always the HOST: this page is not being served beside a wmdemo ' +
+             'API. On GitHub Pages there is no API at all. Open the demo on ' +
+             'the wmdemo server and this panel fills in.';
     }
     if (e && e.code) { return 'GET ' + ROUTE + ' returned HTTP ' + e.code + '.'; }
     return 'GET ' + base + ROUTE + ' did not answer (' +
@@ -689,17 +699,39 @@
       // The red line, FIRST. Which of the two tables on this screen to trust is
       // the most important sentence here, and a warning that needs scrolling to
       // reach is a warning that does not exist.
-      head.push(h('div', { key: 'mock', style: {
-        fontSize: P.type.micro, lineHeight: 1.55, color: P.bad,
-        background: P.badSoft, border: '1px solid ' + P.bad,
-        borderRadius: P.r8, padding: '7px 9px'
-      } },
-        h('span', { style: { fontWeight: 700 } }, 'STILL MOCK: '),
-        'the product table inside the sheet behind this panel is a hardcoded ' +
-        'literal (pos/screen-orders.jsx:1486 — Cake Crasher / Blueberry Pancakes / ' +
-        'Doubleshot Edible, sliced to the item count), and every total, tax and ' +
-        'change figure on that sheet is arithmetic over it. This seam does not ' +
-        'own that file. Replace baseItems with window.HW.orderLines(o.id).'));
+      // CONDITIONAL, and it was not. This banner rendered on EVERY pass with no
+      // check on whether lines had arrived, so the panel could not tell "still
+      // mock" from "now live" -- the absence-versus-unknown rule, inside the
+      // component whose entire job is to enforce it. A developer reading it
+      // while the payload was resolving perfectly was being told the opposite.
+      //
+      // The line reference was stale too (screen-orders.jsx:1486 is now a
+      // closing div) and the instruction was already half-done: baseItems is a
+      // three-way fallback that PREFERS real data --
+      //   o.lines -> _liveBase (this seam) -> money.lines (the mock)
+      // so what remains is the last leg, not the whole job.
+      if (!d) {
+        head.push(h('div', { key: 'mock', style: {
+          fontSize: P.type.micro, lineHeight: 1.55, color: P.bad,
+          background: P.badSoft, border: '1px solid ' + P.bad,
+          borderRadius: P.r8, padding: '7px 9px'
+        } },
+          h('span', { style: { fontWeight: 700 } }, 'MOCK ROWS BELOW: '),
+          'this panel has no Weedmaps payload for this order, so the product ' +
+          'table in the sheet behind it is falling through to its mock rows, ' +
+          'and every total, tax and change figure there is arithmetic over ' +
+          'those. Nothing below is a real order line.'));
+      } else {
+        head.push(h('div', { key: 'mock', style: {
+          fontSize: P.type.micro, lineHeight: 1.55, color: P.good,
+          background: P.goodSoft, border: '1px solid ' + P.good,
+          borderRadius: P.r8, padding: '7px 9px'
+        } },
+          h('span', { style: { fontWeight: 700 } }, 'LIVE PAYLOAD: '),
+          'these rows came from the Weedmaps order payload, not from mock ' +
+          'data. The sheet behind this panel prefers them (baseItems: ' +
+          'o.lines, then this seam, then mock).'));
+      }
 
       var body = [];
 
