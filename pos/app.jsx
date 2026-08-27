@@ -32,6 +32,26 @@ const useP = window.useP,useTheme = window.useTheme;
   NAV.all = NAV.items.concat([NAV.settings]);
 })();
 
+// ── Category map tab registration (pos/screen-category-map.jsx) ───────────
+// Same rule as Brands below: MUTATE window.HW_NAV.items IN PLACE. Reassigning
+// window.HW_NAV would leave shared/app-rail.jsx and shared/app-switcher.js
+// pointing at the old object.
+//
+// A FIRST-CLASS RAIL ITEM, deliberately. The sub-category board
+// (pos/screen-categories.jsx) is reachable only through Catalog -> a secondary
+// "Categories" button, two levels down, and the owner's report was literally "I
+// dont see where I can visualize or map the categories". A screen nobody can
+// find is the same defect as a screen that was never built.
+(function () {
+  var NAV = window.HW_NAV;
+  if (!NAV || !Array.isArray(NAV.items)) { return; }
+  if (NAV.items.some(function (i) { return i.id === 'category-map'; })) { return; }
+  var at = NAV.items.findIndex(function (i) { return i.id === 'brands'; });
+  NAV.items.splice(at < 0 ? NAV.items.length : at + 1, 0,
+    { id: 'category-map', label: 'Category map', icon: 'grid', pos: 'category-map' });
+  NAV.all = NAV.items.concat([NAV.settings]);
+})();
+
 // ── Publish gate tab registration (pos/screen-publish-gate.jsx) ───────────
 // Same rule as Brands directly above: MUTATE window.HW_NAV.items IN PLACE.
 // Reassigning window.HW_NAV would leave shared/app-rail.jsx and
@@ -70,6 +90,11 @@ function App() {
   if (route === 'brands') screen = window.BrandsScreen ? <window.BrandsScreen /> :
     <ErrorState title="The Brands screen did not load"
       body="pos/screen-brands.jsx defines window.BrandsScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
+  // Guarded the same way Brands is, and for the same reason: a dropped script
+  // tag must name the missing file rather than white-screening the whole app.
+  if (route === 'category-map') screen = window.CategoryMapScreen ? <window.CategoryMapScreen /> :
+    <ErrorState title="The Category map screen did not load"
+      body="pos/screen-category-map.jsx defines window.CategoryMapScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   // Guarded the same way Brands is, and for the same reason: a dropped script
   // tag must name the missing file rather than white-screening the whole app.
   if (route === 'publish-gate') screen = window.PublishGateScreen ? <window.PublishGateScreen /> :

@@ -73,10 +73,15 @@
   var W = window;
   if (W.HW_MAPPING && W.HW_MAPPING.__armed) { return; }   // idempotent
 
-  // 9s, not 6s. The list read is POST /api/mapping/bulk with rescore_all, which
-  // scores every SKU against every cached WM product server-side; measured 1.4s
-  // warm against the deployed instance, and a cold container there takes tens of
-  // seconds to answer its first request. The timer only changes the LABEL — see
+  // 9s, not 6s. The list read is POST /api/mapping/bulk with rescore_all.
+  // IT NO LONGER SCORES EVERY SKU AGAINST EVERY CACHED WM PRODUCT. It did, and
+  // that is what took the demo down on 2026-08-26: 148 SKUs x 17,749 mirrored
+  // products = 2.6M comparisons in one request, 82.8s over HTTP, the worker held
+  // and the instance restarted for exceeding its memory limit. The server now
+  // scores each SKU against ITS OWN BRAND's catalogue and caches the pass on the
+  // mirror version: measured 3.7s cold and 0.05s warm at 17,749 products. The
+  // timeout stays at 9s because a genuinely cold container still takes seconds to
+  // answer its first request at all, and the timer only changes the LABEL — see
   // load(): nothing is ever aborted.
   var TIMEOUT_MS = 9000;
   var OFF_KEY = 'hw-mapping-off';
@@ -319,10 +324,14 @@
     // neither: it is unstarted work of ours, and the only state here whose next
     // action is on a BRAND rather than on the row.
     if (st === 'unlooked')  { return { fg: P.info,    bg: P.infoSoft,    word: 'NEVER LOOKED' }; }
+    // NOT SCORED shares NEVER LOOKED's ink on purpose: both mean unstarted
+    // work of ours, and neither is a judgement on the product. It must never
+    // borrow the red of NO CONFIDENT MATCH, which asserts that we looked.
+    if (st === 'unscored')  { return { fg: P.info,    bg: P.infoSoft,    word: 'NOT SCORED YET' }; }
     return { fg: P.bad, bg: P.badSoft, word: 'NO CONFIDENT MATCH' };
   }
 
-  var ORDER = { ready: 0, review: 1, rejected: 2, nomatch: 3, unlooked: 4, absent: 5, linked: 6 };
+  var ORDER = { ready: 0, review: 1, rejected: 2, nomatch: 3, unscored: 4, unlooked: 5, absent: 6, linked: 7 };
 
   // ── the derived board ────────────────────────────────────────────────────
   // ONE place where a state is decided, and every input to it is something the
@@ -357,6 +366,17 @@
       // otherwise have landed there. The brand fact is still drawn on the other
       // states, as a note, by rowHTML().
       else if (unl) { st = 'unlooked'; }
+      // UNSCORED DISPLACES NOMATCH, and this is the whole reason the server
+      // grew `suggestion_status`. NO CONFIDENT MATCH is a CLAIM: it says the
+      // engine looked at this SKU and was not persuaded. When the bulk pass
+      // was cut short by its time budget, nobody looked -- `suggestion` is
+      // null for exactly the same reason it is null when the engine rejects,
+      // and every row the pass never reached rendered in red as a verdict the
+      // engine never gave. That is the estate's recurring defect ("we scored
+      // 40 of 17,749" reading as "no match found") in its purest form, and it
+      // is the one thing the server cannot fix on its own.
+      else if (r.suggestion_status && r.suggestion_status !== 'scored' &&
+               r.suggestion_status !== 'queue_only') { st = 'unscored'; }
       else { st = 'nomatch'; }
 
       // Publication is a SEPARATE fact from linkage and is read from a
@@ -379,6 +399,7 @@
       return {
         sku: r.sku, name: r.name, category: r.category, weight: r.weight,
         state: st, mapping: m, linked: linked, suggestion: sug,
+        suggestionStatus: r.suggestion_status || null,
         queued: !!r.queued, queueReason: r.queue_reason,
         wmProductId: r.wm_product_id,
         absence: abs || null, unlooked: unl || null, verdict: v || null,
@@ -390,7 +411,8 @@
 
   function counts() {
     var c = { total: 0, linked: 0, ready: 0, review: 0, rejected: 0, nomatch: 0,
-              unlooked: 0, absent: 0, accepted: 0, drift: 0, neverPushed: 0 };
+              unscored: 0, unlooked: 0, absent: 0, accepted: 0, drift: 0,
+              neverPushed: 0 };
     rows().forEach(function (x) {
       c.total++; c[x.state]++;
       if (x.linked) {
@@ -450,8 +472,15 @@
     // reports suggestions for SKUs already sitting in the review queue, so a
     // catalogue the nightly job has never touched — the deployed one, today —
     // renders 39 rows of "unmapped" with no candidate on any of them, and the
-    // screen is a list of problems with no button. It costs one pass of the
-    // matcher over the cached feed, measured at 1.4s for 39 x 96.
+    // screen is a list of problems with no button.
+    //
+    // WHAT IT COSTS IS NOW THE SERVER'S PROBLEM AND THE SERVER SAYS SO. The
+    // pass is brand-scoped and cached on the mirror version; the response
+    // carries a `suggestions` block naming the mode, the cache age and how
+    // many SKUs it actually reached, and every row carries `suggestion_status`.
+    // This client asks for the whole thing and NEVER assumes it got it —
+    // rows() reads suggestion_status, and a row the server did not score is
+    // NOT SCORED YET, never NO CONFIDENT MATCH.
     return post('/api/mapping/bulk', { rescore_all: true }).then(function (r) {
       if (!r.ok || !r.body || !Array.isArray(r.body.rows)) {
         _bulk = null;
@@ -853,6 +882,41 @@
       'letter-spacing:.06em">' + esc(text) + '</span>';
   }
 
+  // THE SERVER'S OWN ACCOUNT OF ITS SCORING PASS, quoted, never inferred.
+  // /api/mapping/bulk returns a `suggestions` block naming the mode it ran in,
+  // whether the answer came from its cache and how old that is, and how many
+  // of the SKUs it actually reached. Every sentence on this panel about the
+  // freshness or completeness of a verdict is built HERE, from those fields,
+  // so there is exactly one place to check when the wording and the payload
+  // disagree. An older server that does not send the block gets an honest "it
+  // did not say", not a cheerful default.
+  function passSentence() {
+    var sg = _bulk && _bulk.suggestions;
+    if (!sg) { return 'The server did not report how its scoring pass ran.'; }
+    if (sg.rescored === false) {
+      return 'This read did not re-score: suggestions shown come from the open review queue only.';
+    }
+    var bits = [];
+    bits.push(sg.brand_scoped
+      ? 'The pass scored each SKU against its own brand\u2019s catalogue' +
+        (sg.wm_candidates != null ? ' out of ' + sg.wm_candidates + ' mirrored products' : '')
+      : 'The pass scored every SKU against the whole mirror' +
+        (sg.wm_candidates != null ? ' (' + sg.wm_candidates + ' products)' : ''));
+    if (sg.complete === false) {
+      bits.push('IT DID NOT FINISH: ' + sg.scored + ' of ' + sg.requested +
+                ' SKUs were scored before it hit its ' + sg.budget_s +
+                's budget (' + (sg.stopped_reason || 'stopped') + ')');
+    } else if (sg.scored != null) {
+      bits.push('all ' + sg.scored + ' of ' + sg.requested + ' SKUs were scored');
+    }
+    if (sg.cached) {
+      bits.push('this answer came from the server\u2019s cache, ' +
+                Math.round(Number(sg.cache_age_s || 0)) + 's old, and is recomputed ' +
+                'the moment the mirror or the catalogue changes');
+    }
+    return bits.join('; ') + '.';
+  }
+
   function note(P, s) {
     return '<div style="display:flex;gap:7px;font-size:' + P.type.meta + 'px;color:' + P.inkDim +
       ';line-height:1.45;margin-bottom:5px"><span style="color:' + P.inkFaint + '">·</span><span>' +
@@ -1210,6 +1274,18 @@
         'Absence ledger: ' + esc(x.absence.state) + ' after ' + esc(x.absence.checks) +
         ' look(s) — not yet enough to tell a brand anything.</div>';
     }
+    // NO VERDICT IS NOT A NEGATIVE VERDICT, said on the row, because the row is
+    // where the operator decides. Drawn in `info` like NEVER LOOKED and never
+    // in the red of NO CONFIDENT MATCH.
+    if (x.state === 'unscored') {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info +
+        ';line-height:1.45;margin-top:4px;padding:5px 7px;border-radius:' + P.r8 +
+        'px;background:' + P.infoSoft + '">' + esc(
+          'The server\u2019s scoring pass stopped before it reached this SKU (' +
+          x.suggestionStatus + '), so there is NO verdict here \u2014 not a negative one. ' +
+          passSentence() + ' Nothing about this product has been ruled out. Press ' +
+          'Candidates to score this one SKU on its own.') + '</div>';
+    }
     if (x.state === 'nomatch' && !x.absence) {
       h += '<div style="font-size:' + P.type.micro + 'px;color:' + (_unlBySku ? P.inkDim : P.bad) +
         ';line-height:1.4;margin-top:4px">' + esc(
@@ -1267,6 +1343,10 @@
       ['unlooked', 'Never looked ' + (_unlErr ? '?' : c.unlooked)],
       ['absent', 'Not on WM ' + c.absent]
     ];
+    // Conditional, unlike every other chip: NOT SCORED is a state the server
+    // only produces when its bulk pass ran out of time budget, which should
+    // never happen. A permanent 0 chip would train the eye to skip it.
+    if (c.unscored) { defs.splice(5, 0, ['unscored', 'Not scored ' + c.unscored]); }
     return '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px">' +
       defs.map(function (d) {
         var on = _filter === d[0];
@@ -1329,8 +1409,9 @@
         : _status === 'pending' ? 'Asking ' + base + '/api/mapping/bulk…'
         : _status === 'slow' ? 'Still waiting on ' + base + '/api/mapping/bulk after ' +
           TIMEOUT_MS + 'ms. The request was NOT aborted — it will land and this board will fill ' +
-          'in. It scores every SKU against every cached Weedmaps product, and a cold server ' +
-          'takes tens of seconds to answer its first request at all.'
+          'in. The scoring pass behind it is brand-scoped and cached on the mirror version ' +
+          '(measured 3.7s cold, 0.05s warm against 17,749 mirrored products), so this wait is ' +
+          'a cold container, not the pass.'
         : _status === 'no-write-path' ? 'shared/hw-live.js is not loaded on this page. Every ' +
           'request here — including the list itself, which the API serves over POST — goes ' +
           'through its write path so the token and the same-origin rule live in one place. ' +
@@ -1345,7 +1426,25 @@
     var h = '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;margin-bottom:9px">' +
       'Live from ' + mono(P, base + '/api/mapping', P.inkDim) + '. ' +
       (_bulk.wm_cached == null ? 'Their catalog size was not reported by this read.'
-        : 'Their brand feed holds ' + _bulk.wm_cached + ' products.') + '</div>';
+        : 'Their brand feed holds ' + _bulk.wm_cached + ' products.') + ' ' +
+      esc(passSentence()) + '</div>';
+
+    // A PASS THAT DID NOT FINISH GETS A BANNER. Every state word below it --
+    // READY, NEEDS REVIEW, NO CONFIDENT MATCH -- is derived from verdicts the
+    // engine gave, and on a truncated pass some of those verdicts do not
+    // exist. Saying so once, loudly, at the top is the difference between a
+    // board that is incomplete and a board that is WRONG.
+    var _sg = _bulk.suggestions;
+    if (_sg && _sg.rescored !== false && _sg.complete === false) {
+      h += '<div style="border:1px solid ' + P.warn + ';background:' + P.warnSoft +
+        ';border-radius:' + P.r8 + 'px;padding:8px 9px;margin-bottom:9px;font-size:' +
+        P.type.meta + 'px;color:' + P.warn + ';line-height:1.45"><b>This board is ' +
+        'incomplete.</b> ' + esc('The server scored ' + _sg.scored + ' of ' +
+        _sg.requested + ' SKUs and stopped (' + (_sg.stopped_reason || 'stopped') +
+        '). The ' + Math.max(0, (_sg.requested || 0) - (_sg.scored || 0)) +
+        ' it never reached are marked NOT SCORED YET and carry no verdict at ' +
+        'all \u2014 they are not "no match".') + '</div>';
+    }
 
     // THE HEADLINE — the owner's actual question, answered in three lines,
     // because "verified on Weedmaps" is three separate facts and only one of
@@ -1521,11 +1620,15 @@
       'not served, so every verdict word on this board — exact, auto, ai, reject, queued — is the ' +
       'server\'s own, and the score bars are drawn in ink, never in a green this file decided.');
 
-    w_('The list read is POST /api/mapping/bulk with rescore_all, which scores every SKU against ' +
-      'every cached WM product on the server. It is the reason a SKU the nightly job has never ' +
-      'touched still shows a candidate. It also means this panel re-reads /api/state, which ' +
-      'hw-live.js is already polling: one duplicated ~100KB read per refresh, for the push record ' +
-      'and the event log, neither of which any other endpoint serves.');
+    w_('The list read is POST /api/mapping/bulk with rescore_all. It is the reason a SKU the ' +
+      'nightly job has never touched still shows a candidate. ' + passSentence() + ' Until ' +
+      '2026-08-27 that pass scored every SKU against every cached WM product — 2.6 million ' +
+      'comparisons in one request once the mirror reached 17,749 rows — which is what was ' +
+      'timing this panel out and restarting the instance. It now scores each SKU against its ' +
+      'own brand\u2019s catalogue, exactly as the nightly job does, and any row it did not ' +
+      'reach is drawn as NOT SCORED YET rather than as a verdict. This panel also re-reads ' +
+      '/api/state, which hw-live.js is already polling: one duplicated ~100KB read per refresh, ' +
+      'for the push record and the event log, neither of which any other endpoint serves.');
 
     w_('Still mock on this panel: nothing. Every row, score, id and verdict is served. What is ' +
       'NOT here: SKU→sub-category assignment (no HTTP route), and any way to make Weedmaps ' +

@@ -270,7 +270,6 @@ function MemberDetailPage({ m, onBack }) {
   // died there, while the header went on showing them until you navigated away.
   const saveEdits = () => {window.HW.updateMember(m.id, form);setEditing(false);};
   const idv = (window.HW.IDV || {})[m.id] || null;
-  const h = m.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
   // Was derived from the id's last character, which is why "Unlink Weedmaps
   // identity" had nothing to write to. HW.wmLinked keeps the derivation as the
   // seed and lets a real write win.
@@ -278,10 +277,27 @@ function MemberDetailPage({ m, onBack }) {
   const [allHist, setAllHist] = React.useState(false);
   const [unlinkAsk, setUnlinkAsk] = React.useState(false);
   const tier = m.member || m.group === 'VIP' ? 'VIP' : 'Member';
-  const since = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][h % 6] + ' 2024';
-  const lifetime = m.visits * (38 + h % 64);
+  // ── MONEY IS NOT A FUNCTION OF HOW A CUSTOMER ID SPELLS ─────────────────
+  // `since`, `lifetime`, spend, AOV and the whole order history were derived
+  // from `h` — a character-code sum of m.id. That is the deleted char-hash
+  // confidence score, still alive and now denominated in dollars: an operator
+  // reads a lifetime spend and an average order value to decide whether to
+  // comp, upgrade, or move someone up the queue. A number that measures nothing
+  // is worse than a blank here, because a blank prompts a question.
+  //
+  // What is REAL: HW.ORDERS. Spend and AOV come from the orders this customer
+  // actually has, and 'not recorded' is what shows when there are none — the
+  // treatment screen-brands.jsx uses for exactly this.
+  const myOrders = (window.HW.ORDERS || []).filter((o) => o.name === m.name);
+  const lifetime = myOrders.reduce((a, o) => a + (+o.total || 0), 0);
+  const hasSpend = myOrders.length > 0;
+  // 'Member since Mar 2024' was the same fiction wearing a date. There is no
+  // created-at on a member record, so there is nothing to say.
+  const since = m.createdAt || null;
   const nextTier = 2000;const prog = Math.min(1, m.points / nextTier);
-  const fav = window.HW.favCategory && window.HW.favCategory(m) || ['Flower', 'Vapes', 'Edibles', 'Pre-Rolls'][h % 4];
+  // favCategory reads real purchase history. When it has none the answer is
+  // "we do not know", not a category picked out of a list by `h % 4`.
+  const fav = window.HW.favCategory && window.HW.favCategory(m) || null;
   // 'View all' was inert because the list stopped at six and there was nothing
   // else to show. The generator now runs the customer's whole visit count —
   // dates walk backwards a fortnight at a time past the six hand-written ones —
@@ -294,32 +310,84 @@ function MemberDetailPage({ m, onBack }) {
     d.setDate(d.getDate() - (i - 5) * 14);
     return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   };
-  const histAll = Array.from({ length: Math.max(1, m.visits) }).map((_, i) => {const hh = h + i * 53;return { id: 'ORD-' + String(230 - i * 4).padStart(5, '0'), date: histDate(i), items: 1 + hh % 4, total: 24 + hh % 78, channel: hh % 3 === 0 ? 'Delivery' : 'Pickup', wm: linked && i % 3 === 0, status: 'Completed' };});
+  // The order history is the REAL order list for this customer, PLUS clearly
+  // marked simulated rows when the demo needs depth. It used to be generated
+  // entirely from `h + i * 53` — ids, dates, item counts and totals invented
+  // per visit, with no DEMO mark anywhere on it. The generator now lives in
+  // shared/demo-seed.js, every row it produces carries `simulated: true`, and
+  // NONE of them reach spend or AOV.
+  const realHist = myOrders.map((o) => ({ id: o.id, date: histDate(0), items: o.items, total: o.total,
+    channel: o.channel === 'Delivery' ? 'Delivery' : 'Pickup', wm: o.source === 'Weedmaps', status: 'Completed' }));
+  const simHist = window.HWSeed && window.HWSeed.memberHistory ? window.HWSeed.memberHistory(m, realHist.length) : [];
+  const histAll = realHist.concat(simHist);
   const hist = allHist ? histAll : histAll.slice(0, 6);
   const activityBase = [
-  linked ? { icon: 'link', accent: true, t: `Merged from Weedmaps order WM-${88000 + h % 900}`, s: 'System · Jun 2, 2026' } : null,
-  { icon: 'star', t: `Redeemed ${200 + h % 400} points · $10 off`, s: 'May 21, 2026' },
-  { icon: 'wallet', t: `Wallet credit ${fmt.money(5 + h % 20)} · service recovery`, s: 'May 8, 2026' },
-  { icon: 'user-plus', t: 'Member created', s: since }].
+  since ? { icon: 'user-plus', t: 'Member created', s: since } : null].
   filter(Boolean);
   // Verification actions taken on this profile land in the feed immediately.
   const [logged, setLogged] = React.useState([]);
   const onLog = (e) => setLogged((l) => [{ icon: e.icon || 'shield', accent: true, t: e.action, s: `${e.who} · ${e.time}` }, ...l]);
   const activity = [...notes.map((n) => ({ icon: 'note', t: n.text, s: `${n.by} · ${n.at}` })), ...logged, ...activityBase];
-  const kfmt = { visits: m.visits, points: m.points.toLocaleString(), wallet: fmt.money(m.wallet), spend: fmt.money0(lifetime), aov: fmt.money(m.visits ? lifetime / m.visits : 0) };
-  const pick = (arr) => arr[h % arr.length];
-  const dob = pick(['04/14/1991', '09/02/1988', '12/21/1995', '06/30/1983', '02/11/1979']);
-  const idNum = 'CA D' + (1700000 + h * 53129).toString().slice(0, 7);
-  const idExp = pick(['08 / 2027', '03 / 2026', '11 / 2028', '05 / 2027']);
-  const gender = pick(['Female', 'Male', 'Non-binary', 'Female', 'Male']);
+  const kfmt = { visits: m.visits, points: m.points.toLocaleString(), wallet: fmt.money(m.wallet),
+    spend: hasSpend ? fmt.money0(lifetime) : 'not recorded',
+    aov: hasSpend ? fmt.money(lifetime / myOrders.length) : 'not recorded' };
+  // ── THE COMPLIANCE CARD MAY NOT INVENT A DOCUMENT ───────────────────────
+  // Same defect as the money above, on a surface where it is worse: the
+  // licence number was `'CA D' + (1700000 + h * 53129)`, the date of birth and
+  // the expiry were picked out of a list by `h % n`, and the medical card —
+  // MMIC number, recommending physician, issue and expiry — was generated the
+  // same way and rendered under a green "Medical card · Active / Tax-exempt"
+  // header. Those are the fabricated-METRC-id class of claim, on the one card
+  // an operator opens to answer a regulator.
+  //
+  // What is REAL is the IDV ledger: doc.num, doc.type and doc.expires are
+  // written by an actual scan. Everything else says so.
+  const NR = 'not recorded';
+  const idDoc = idv && idv.doc || null;
+  const idNum = idDoc && idDoc.num ? (idDoc.type ? idDoc.type + ' ' + idDoc.num : idDoc.num) : NR;
+  const idExp = idDoc && idDoc.expires ? idDoc.expires : NR;
+  // No surface in this estate stores a date of birth or a gender on the member
+  // record — the scan reads a DOB but nothing persists it yet.
+  const dob = NR;
+  const gender = NR;
   const isMed = m.type === 'MedicinalUser';
-  const mmic = 'MMIC-' + (25800 + h * 137).toString().slice(0, 5);
-  const medMd = pick(['Dr. A. Okafor', 'Dr. L. Brandt', 'Dr. S. Patel', 'Dr. R. Nguyen']);
-  const medIssued = pick(['Jan 2026', 'Nov 2025', 'Mar 2026', 'Aug 2025']);
-  const medExp = pick(['12 / 2026', '06 / 2027', '09 / 2026']);
-  const addr = pick([{ street: '418 Mission Trail', city: 'Wildomar', zip: '92595' }, { street: '92 Diamond Dr', city: 'Lake Elsinore', zip: '92530' }, { street: '5571 Grand Ave', city: 'Lakeland Village', zip: '92530' }, { street: '210 Riverside Dr', city: 'Temescal', zip: '92883' }]);
-  const idPhotos = [{ id: 'front', label: 'License · front', hue: 210, glyph: 'card' }, { id: 'selfie', label: 'Selfie match', hue: 150, glyph: 'user' }].concat(isMed ? [{ id: 'med', label: 'Medical card', hue: 90, glyph: 'shield' }] : []);
-  const KV = ({ k, v, mono }) => <div style={{ padding: '2px 0' }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 2 }}>{k}</div><div style={{ fontSize: 12.5, color: P.ink2, fontWeight: 600, fontFamily: mono === false ? P.fontSans : P.fontMono, lineHeight: 1.3, wordBreak: 'break-word' }}>{v}</div></div>;
+  // A medical card is a document with a number, a physician and an expiry. We
+  // hold none of them, so the block says that rather than printing four.
+  const mmic = NR, medMd = NR, medIssued = NR, medExp = NR;
+  // THE ADDRESS WAS THE ONE SURVIVOR OF THE CHAR-HASH PURGE, AND THAT MADE IT
+  // WORSE. `pick([...])` chose a street out of a list of four by `h % 4` — the
+  // same character-code sum that used to denominate lifetime spend. Sitting in
+  // a grid where the four fields above it now honestly read 'not recorded', the
+  // one populated value read as the one fact that IS on the licence: an
+  // operator answering "what address is on his ID" read out a string derived
+  // from how the customer id happens to spell, and a driver was dispatched to
+  // it. The ID address is a COMPLIANCE field — it comes off the scanned
+  // document or it does not exist.
+  const idAddr = idDoc && idDoc.address || null;
+  const addrText = idAddr ? `${idAddr.street}, ${idAddr.city}, ${idAddr.state || 'CA'} ${idAddr.zip}` : NR;
+  // A PHOTO TILE IS A CLAIM THAT THE PHOTO WAS TAKEN.
+  // This was a constant list computed from nothing but `m.type`, so a customer
+  // whose ladder says "Nobody has seen a document yet" still got a captioned
+  // "License · front" and a "Selfie match" tile, and a Medicinal customer got a
+  // "Medical card" tile ten lines above the block saying no medical card is
+  // held. The card contradicted itself inside one viewport and the picture won.
+  // 'Selfie match' was the worst of the three: it names a biometric comparison
+  // result, and nothing in this estate performs one.
+  //
+  // Tiles are now derived from the evidence: front only when the ledger holds a
+  // document photo, and the medical tile only when a medical card record
+  // exists — which is never, today. No images ⇒ one honest empty block.
+  const idPhotos = idDoc && idDoc.photo ? [{ id: 'front', label: 'License · front', hue: 210, glyph: 'card', simulated: !!idDoc.simulated }] : [];
+  // THE SCANNER'S DEMO MARK AND THE CARD'S MARK READ THE SAME FIELD.
+  // Every document this build can produce carries `simulated: true`
+  // (verification.jsx stamps it on both branches and shows a DEMO chip beside
+  // the name at capture), and addCheckIn writes that same object straight into
+  // IDV. `doc.simulated` was never read here, so the mark was present in the
+  // data and dropped in transit between the scanner and the compliance card —
+  // the lesson was applied to the money (the simulated order rows below) and
+  // not to the document. Same chip, both surfaces.
+  const DemoChip = () => <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.08em', color: P.warn, background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: 4, padding: '1px 5px', flex: '0 0 auto' }}>DEMO</span>;
+  const KV = ({ k, v, mono, mark }) => <div style={{ padding: '2px 0' }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 2 }}>{k}</div><div style={{ fontSize: 12.5, color: P.ink2, fontWeight: 600, fontFamily: mono === false ? P.fontSans : P.fontMono, lineHeight: 1.3, wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>{v}{mark ? <DemoChip /> : null}</div></div>;
 
   const lblU = { fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute };
   const inp = (extra) => ({ padding: '8px 11px', border: `1px solid ${P.fieldBorder || P.hairline2}`, borderRadius: P.r10, background: P.field || P.surface, color: P.ink, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, outline: 'none', width: '100%', boxSizing: 'border-box', ...extra });
@@ -363,13 +431,13 @@ function MemberDetailPage({ m, onBack }) {
             <HField icon="phone" label="Phone" editing={editing} value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} mono />
             <HField icon="mail" label="Email" editing={editing} value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} />
             <HField icon="user" label="Member ID" value={m.id} mono />
-            <HField icon="calendar" label="Member since" value={since} />
+            <HField icon="calendar" label="Member since" value={since || 'not recorded'} />
           </div>
           {/* At a glance — the four numbers that decide how you treat this
               customer. They belong beside the name, not in a right rail you
               have to look for. */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(124px,1fr))', gap: 9, marginTop: 15, paddingTop: 15, borderTop: `1px solid ${P.hairline}` }}>
-            {[['Visits', kfmt.visits, P.ink, '', 'user-check'], ['Avg order', kfmt.aov, P.ink, 'per visit', 'receipt'], ['Points', kfmt.points, m.points > 1000 ? P.good : P.ink, 'available', 'star'], ['Wallet', kfmt.wallet, m.wallet > 0 ? P.good : P.inkMute, 'balance', 'wallet'], ['Lifetime', kfmt.spend, P.ink, 'spend', 'trending-up']].map(([k, v, c, s, ic]) =>
+            {[['Visits', kfmt.visits, P.ink, '', 'user-check'], ['Avg order', kfmt.aov, hasSpend ? P.ink : P.inkMute, hasSpend ? 'per recorded order' : '', 'receipt'], ['Points', kfmt.points, m.points > 1000 ? P.good : P.ink, 'available', 'star'], ['Wallet', kfmt.wallet, m.wallet > 0 ? P.good : P.inkMute, 'balance', 'wallet'], ['Lifetime', kfmt.spend, hasSpend ? P.ink : P.inkMute, hasSpend ? 'spend on record' : '', 'trending-up']].map(([k, v, c, s, ic]) =>
             <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, padding: '9px 12px' }}>
                 <span style={{ width: 28, height: 28, borderRadius: 8, background: P.surface3, color: c, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={ic} size={14} stroke={1.9} /></span>
                 <div style={{ minWidth: 0 }}>
@@ -387,28 +455,32 @@ function MemberDetailPage({ m, onBack }) {
             {/* Assurance + phone confirmation live HERE — people look for the SMS
                 step under identity, not in a right rail below the fold. */}
             <window.MemberVerificationCard m={m} idv={idv} onLog={onLog} />
+            {idPhotos.length > 0 ?
             <div style={{ display: 'flex', gap: 11, flexWrap: 'wrap' }}>
               {idPhotos.map((p2) => <div key={p2.id} style={{ position: 'relative', width: 236, height: 148, borderRadius: P.r12, overflow: 'hidden', border: `1px solid ${P.hairline2}`, background: `linear-gradient(140deg, hsl(${p2.hue} 36% ${P.mode === 'dark' ? '26%' : '78%'}), hsl(${(p2.hue + 30) % 360} 32% ${P.mode === 'dark' ? '18%' : '66%'}))` }}>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.mode === 'dark' ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.85)' }}>{p2.id === 'selfie' ? <Avatar name={m.name} size={68} /> : <Icon name={p2.glyph} size={48} stroke={1.4} />}</div>
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '8px 11px', background: 'linear-gradient(transparent, rgba(0,0,0,.55))', fontSize: 11.5, fontWeight: 700, color: '#fff' }}>{p2.label}</div>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.mode === 'dark' ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.85)' }}><Icon name={p2.glyph} size={48} stroke={1.4} /></div>
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '8px 11px', background: 'linear-gradient(transparent, rgba(0,0,0,.55))', fontSize: 11.5, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>{p2.label}{p2.simulated && <DemoChip />}</div>
               </div>)}
-            </div>
+            </div> :
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '12px 14px', border: `1px dashed ${P.hairline2}`, borderRadius: P.r12, background: P.surface2 }}>
+              <Icon name="card" size={15} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+              <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b>No document image is held for this customer.</b> Nothing has been photographed at a counter or a door. A tile here would be a claim that a picture exists.</span>
+            </div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '10px 16px' }}>
-              <KV k="ID / License #" v={idNum} />
+              <KV k="ID / License #" v={idNum} mark={idDoc && idDoc.simulated} />
               <KV k="Date of birth" v={dob} />
-              <KV k="ID expiration" v={idExp} />
+              <KV k="ID expiration" v={idExp} mark={idDoc && idDoc.simulated} />
               <KV k="Gender" v={gender} mono={false} />
-              <KV k="Address" v={`${addr.street}, ${addr.city}, CA ${addr.zip}`} mono={false} />
+              <KV k="Address" v={addrText} mono={false} mark={!!(idAddr && idDoc && idDoc.simulated)} />
             </div>
-            <window.DeliveryAddressBook m={m} idAddr={addr} />
-            {isMed ? <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 14px', background: P.goodSoft, borderRadius: P.r12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="shield" size={14} stroke={1.9} color={P.good} /><span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.good }}>Medical card · Active</span><span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 600, color: P.good }}><Icon name="check-circle" size={12} stroke={2} />Tax-exempt</span></div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: '10px 16px' }}>
-                <KV k="MMIC #" v={mmic} />
-                <KV k="Expires" v={medExp} />
-                <KV k="Recommending MD" v={medMd} mono={false} />
-                <KV k="Issued" v={medIssued} />
-              </div>
+            <window.DeliveryAddressBook m={m} idAddr={idAddr} />
+            {/* "Medical card · Active · Tax-exempt" is a TAX position. It was
+                rendered in the good tone over four generated values. The record
+                says the customer is Medicinal; it does not hold their card, and
+                those are different facts. */}
+            {isMed ? <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 14px', background: P.warnSoft, borderRadius: P.r12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="shield" size={14} stroke={1.9} color={P.warn} /><span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: P.warn }}>Medical customer · card not on file</span></div>
+              <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This customer is recorded as Medicinal, but no MMIC number, recommending physician or expiry is held. <b>The tax exemption cannot be claimed from a customer type alone</b> — the card has to be captured.</div>
             </div> : <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: P.inkMute }}><Icon name="user" size={13} color={P.inkMute} />Adult-use customer — no medical card on file.</div>}
           </div>
         </Sec>
@@ -416,7 +488,7 @@ function MemberDetailPage({ m, onBack }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 16, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-          <Sec icon="star" title="Loyalty" sub={`${tier} tier · favorite category ${fav}`}>
+          <Sec icon="star" title="Loyalty" sub={`${tier} tier · ${fav ? 'favorite category ' + fav : 'no purchase history to draw a favorite category from'}`}>
             <div style={{ padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}><span style={{ fontSize: 30, fontWeight: 800, color: P.ink, fontFamily: P.fontMono }}>{m.points.toLocaleString()}</span><span style={{ fontSize: 12.5, color: P.inkDim }}>points available</span></div>
               <div style={{ height: 8, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}><span style={{ display: 'block', width: `${Math.round(prog * 100)}%`, height: '100%', background: P.accent }} /></div>
@@ -424,13 +496,28 @@ function MemberDetailPage({ m, onBack }) {
             </div>
           </Sec>
 
-          <Sec icon="receipt" title="Order history" sub={`${m.visits} lifetime orders · showing ${hist.length}`}
+          {/* The subtitle used to claim `${m.visits} lifetime orders` beside a
+              list generated from a character hash. It names what is on the
+              list, and says plainly when the list and the visit count
+              disagree — which is a real fact about the data, not a gap to
+              paper over. */}
+          {/* The subtitle used to claim `${m.visits} lifetime orders` over a
+              list generated from a character hash. It now counts the two kinds
+              of row separately, because they are different claims. */}
+          <Sec icon="receipt" title="Order history" sub={`${realHist.length} on record${simHist.length ? ` + ${simHist.length} SIMULATED` : ''} · showing ${hist.length}`}
           right={histAll.length > 6 ? <PBtn variant="ghost" size="sm" icon={allHist ? 'chevron-up' : 'list'} onClick={() => setAllHist((v) => !v)}>{allHist ? 'Show recent' : `View all ${histAll.length}`}</PBtn> :
           <span style={{ fontSize: 11.5, color: P.inkMute }}>All {histAll.length} shown</span>}>
             <div>
+              {hist.length === 0 &&
+              <div style={{ padding: '16px', fontSize: 12.5, color: P.inkMute, lineHeight: 1.5 }}>No order is recorded against this customer. Nothing is being withheld — there is nothing to show.</div>}
+              {simHist.length > 0 &&
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 16px', background: P.warnSoft, borderBottom: `1px solid ${P.hairline}` }}>
+                <Icon name="alert" size={13} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}><b>{simHist.length} of these rows are simulated.</b> This customer's record claims {m.visits} visit{m.visits === 1 ? '' : 's'} and the order board holds {realHist.length}; the difference is filled from demo data and marked below. Lifetime spend and average order use the {realHist.length} real order{realHist.length === 1 ? '' : 's'} only.</span>
+              </div>}
               {hist.map((o, i) => <div key={o.id} onClick={() => setOpenOrder(o)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderTop: i ? `1px solid ${P.hairline}` : 'none', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                 <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink2, background: P.surface3, padding: '2px 7px', borderRadius: 6 }}>#{o.id}</span>
-                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{o.items} item{o.items > 1 ? 's' : ''} · {o.channel}{o.wm && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '1px 6px', borderRadius: 99 }}>WM</span>}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.date}</div></div>
+                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{o.items} item{o.items > 1 ? 's' : ''} · {o.channel}{o.wm && <span style={{ marginLeft: 7, fontSize: 10, fontWeight: 800, color: P.brand.weedmapsInk, background: P.brand.weedmaps, padding: '1px 6px', borderRadius: 99 }}>WM</span>}{o.simulated && <span style={{ marginLeft: 7 }}><DemoChip /></span>}</div><div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.date}</div></div>
                 <span style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{fmt.money(o.total)}</span>
                 <Pill kind="good" dot>{o.status}</Pill>
                 <Icon name="chevron-right" size={15} stroke={2} color={P.inkFaint} />
@@ -460,7 +547,7 @@ function MemberDetailPage({ m, onBack }) {
             <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {linked ? <>
                 <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This profile was merged from a Weedmaps order. Order history &amp; loyalty are unified.</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}><Icon name="link" size={14} color={P.inkMute} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Merged from</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>WM-{88000 + h % 900}</div></div><span style={{ fontSize: 11.5, color: P.inkMute }}>Jun 2</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}><Icon name="link" size={14} color={P.inkMute} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Merged from</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{m.wmOrderId || 'order id not recorded'}</div></div><span style={{ fontSize: 11.5, color: P.inkMute }}>{m.wmMergedAt || ''}</span></div>
                 {unlinkAsk ?
                 <div style={{ padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, marginBottom: 5 }}>Unlink {m.name.split(' ')[0]} from Weedmaps?</div>
@@ -479,9 +566,14 @@ function MemberDetailPage({ m, onBack }) {
           <Card padding={0}>
             <div style={{ padding: '12px 15px', borderBottom: `1px solid ${P.hairline}` }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Preferences</div></div>
             <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 9, fontSize: 12.5 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: P.inkDim }}>Favorite category</span><span style={{ fontWeight: 600, color: P.ink }}>{fav}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: P.inkDim }}>SMS marketing</span><span style={{ fontWeight: 600, color: h % 2 ? P.good : P.inkMute }}>{h % 2 ? 'Opted in' : 'Off'}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: P.inkDim }}>Email marketing</span><span style={{ fontWeight: 600, color: h % 3 ? P.good : P.inkMute }}>{h % 3 ? 'Opted in' : 'Off'}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: P.inkDim }}>Favorite category</span><span style={{ fontWeight: 600, color: fav ? P.ink : P.inkMute }}>{fav || 'not recorded'}</span></div>
+              {/* A marketing consent is a legal record. `h % 2 ? 'Opted in' :
+                  'Off'` made it a function of how the customer id spells, and
+                  "we hold no consent" rendered identically to "they said no" —
+                  which are the two states that decide whether a message may be
+                  sent at all. */}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: P.inkDim }}>SMS marketing</span><span style={{ fontWeight: 600, color: P.inkMute }}>no consent recorded</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: P.inkDim }}>Email marketing</span><span style={{ fontWeight: 600, color: P.inkMute }}>no consent recorded</span></div>
             </div>
           </Card>
         </div>

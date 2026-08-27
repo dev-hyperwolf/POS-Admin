@@ -237,10 +237,56 @@
     };
   }
 
+  // ── SIMULATED order history, and it says SIMULATED ──────────────────────
+  //
+  // The member profile used to generate its whole order history — ids, dates,
+  // item counts and TOTALS — from a character-code sum of the customer id, with
+  // no mark of any kind, and then denominated lifetime spend and average order
+  // value in dollars off the same number. An operator reads those two figures
+  // to decide whether to comp, upgrade, or move somebody up the queue, so a
+  // quantity that measures how a customer's id happens to spell is worse than a
+  // blank: a blank prompts a question.
+  //
+  // The demo still wants plausible depth, so it lives HERE, carries
+  // `simulated: true`, and every surface that renders one of these rows shows
+  // the DEMO mark — the same contract IdScanPanel works to. Real money is
+  // computed only from real orders and never from these.
+  var HIST_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  /**
+   * Rows to pad a member's history out to the visit count their record claims.
+   * @param {object} m      the member record
+   * @param {number} have   how many REAL orders the caller already holds
+   * @returns {Array} simulated rows, newest first, each `simulated: true`
+   */
+  function memberHistory(m, have) {
+    if (!m || !m.visits) { return []; }
+    var n = Math.max(0, m.visits - (have || 0));
+    if (!n) { return []; }
+    // Deterministic so the same profile looks the same twice — a demo that
+    // reshuffles on every render cannot be pointed at in a conversation.
+    var seed = String(m.id).split('').reduce(function (a, c) { return a + c.charCodeAt(0); }, 0);
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var hh = seed + i * 53;
+      var d = new Date(2026, 3, 12);
+      d.setDate(d.getDate() - (i + 1) * 14);
+      out.push({
+        id: 'DEMO-' + String(900 - i * 4).padStart(4, '0'),
+        date: HIST_MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear(),
+        items: 1 + hh % 4, total: 24 + hh % 78,
+        channel: hh % 3 === 0 ? 'Delivery' : 'Pickup',
+        wm: false, status: 'Completed', simulated: true,
+      });
+    }
+    return out;
+  }
+
   window.HWSeed = {
     weedmapsOrder: weedmapsOrder,
     product: product,
     customer: customer,
+    memberHistory: memberHistory,
     WM_PRESETS: WM_PRESETS,
     presets: Object.keys(WM_PRESETS),
   };

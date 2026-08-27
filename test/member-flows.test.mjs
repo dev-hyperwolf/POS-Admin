@@ -41,20 +41,82 @@ function openMember(app, name) {
   row.dispatchEvent(new app.window.MouseEvent('click', { bubbles: true, cancelable: true }));
 }
 
-/** New check-in → New → name → Create customer. Leaves the modal on its
- *  footer, one click from "Check in". */
+/** A CIField is a labelled input with no placeholder, so it can only be found
+ *  by the label sitting immediately above it. */
+function fieldByLabel(app, label) {
+  const wrap = [...app.document.querySelectorAll('div')].find((d) => {
+    const lab = d.firstElementChild;
+    return lab && (lab.textContent || '').trim().toLowerCase().startsWith(label.toLowerCase()) &&
+      d.querySelector(':scope > input');
+  });
+  return wrap && wrap.querySelector(':scope > input');
+}
+
+/** The simulated ID read resolves on a 700ms timer inside IdScanPanel. */
+const afterScan = (app) => new Promise((r) => setTimeout(r, 900));
+
+/** New check-in → SCAN → (form opens pre-filled) → name → Create customer.
+ *  Leaves the modal on its footer, one click from "Check in".
+ *
+ *  ⚠️ THIS HELPER CHANGED, AND THE CHANGE IS THE POINT. It used to click a
+ *  "New" button beside the search box and type into a BLANK form. That button
+ *  is gone: it asked the operator to declare "this person is new" at the one
+ *  moment they cannot know it — the same defect as the New/Returning toggle the
+ *  owner deleted — and it captured no verification, so the customer it created
+ *  was tier 0 and would later be sent through a remote ID check they had
+ *  already earned their way out of at the counter. The scan decides, opens the
+ *  form pre-filled from the barcode, and attaches the document. The name is
+ *  still typed here only because this test needs a known probe name. */
 async function newCustomerCheckIn(app, name) {
   assert.ok(app.click('New check-in'), 'the New check-in tile did not exist');
   await app.settle();
-  assert.ok(app.click('New'), 'no New (customer) button inside the check-in modal');
+  assert.ok(app.click('Scan ID'), 'no ID scanner in the check-in modal — the scan IS the way in');
+  await afterScan(app);
   await app.settle();
-  // "Full name" in the check-in modal is a CIField — labelled, no placeholder.
-  const field = inputs(app).find((i) => !i.getAttribute('placeholder') && i.value === '');
+  const field = fieldByLabel(app, 'Full name');
+  assert.ok(field, 'the scan did not open the new-customer form pre-filled');
+  assert.notEqual(field.value.trim(), '',
+    'the barcode carries the legal name — an empty box means the pre-fill was dropped');
   setValue(app, field, name);
   await app.settle();
   assert.ok(app.click('Create customer'), 'no Create customer button');
   await app.settle();
 }
+
+/* THE BUYER IS HELD TO THE SAME BAR AS THEIR FRIEND.
+ * "Create customer" was gated on a non-empty name alone, while a GUEST could
+ * not join the party without a scanned document — so the person whose age
+ * actually has to be verified for the sale cleared a weaker check than the
+ * person standing behind them. */
+test('Check-in: the primary customer cannot be created from a typed name alone', async () => {
+  await withApp('pos', async (app) => {
+    await app.mount('MembersScreen');
+    assert.ok(app.click('New check-in'), 'the New check-in tile did not exist');
+    await app.settle();
+    assert.equal(app.buttons().filter((b) => b === 'New').length, 0,
+      'the pre-emptive "New" button is back — it asks a question the scan answers');
+    // Reach the manual form the only way it is now reachable: a search that
+    // matches nobody.
+    // The modal's own field. Three inputs on this page contain a search
+    // placeholder — the check-in strip's 'Search customer by e-mail or phone'
+    // and the members table's 'Search by name, email, phone…' both match
+    // shorter fragments and would be typed into instead.
+    assert.ok(app.type('by name, e-mail or phone', 'Zzz Nobody Probe'), 'no manual search field');
+    await app.settle();
+    assert.ok(app.click('Enter manually'), 'a search with no match must still offer a manual path');
+    await app.settle();
+    const field = fieldByLabel(app, 'Full name');
+    assert.ok(field, 'no Full name field in the manual form');
+    setValue(app, field, 'Zzz Nobody Probe');
+    await app.settle();
+    const create = [...app.document.querySelectorAll('button')]
+      .find((b) => (b.textContent || '').trim() === 'Create customer');
+    assert.ok(create, 'no Create customer button');
+    assert.ok(create.disabled, 'a typed name with no document must NOT create the buyer');
+    assert.match(app.text(), /Scan the ID first/,
+      'a disabled button with no stated reason makes the operator guess the blocker');
+  });
+});
 
 /* ── 1. check-in creates a check-in ──────────────────────────────────────── */
 

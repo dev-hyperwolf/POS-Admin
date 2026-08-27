@@ -371,15 +371,32 @@ function creditWallet(id, amount, reason) {
 function addCheckIn(p) {
   const c = p && p.customer;
   if (!c) return null;
+  // `p.type == null` means UNCHANGED — use what the record says. It used to be
+  // `p.type || member.type`, and the only caller always passed a non-empty
+  // 'AdultUse' default, so the `||` never fell through and every resumed
+  // Medicinal patient was silently re-designated Adult Use (different purchase
+  // limits, different tax). A caller that means "unchanged" can now say so.
+  const wantType = p && p.type != null ? p.type : null;
+  const wantDelivery = p && p.delivery != null ? p.delivery : null;
   let member = c.id && MEMBERS.find((x) => x.id === c.id);
-  if (!member) member = addMember({ name: c.name, email: c.email, phone: c.phone, type: p.type || c.type, group: c.group, member: c.member });
+  if (!member) member = addMember({ name: c.name, email: c.email, phone: c.phone, type: wantType || c.type, group: c.group, member: c.member, delivery: wantDelivery || c.delivery });
   const rec = {
     id: _hwId('c'), memberId: member.id, name: member.name,
-    group: member.group, type: p.type || member.type, delivery: p.delivery || 'Pick-up',
+    group: member.group, type: wantType || member.type, delivery: wantDelivery || member.delivery || 'Pick-up',
     wait: '0h 0m 00s', waitSec: 0, claimedBy: null, member: !!member.member,
     visit: (member.visits || 0) + 1, guests: (p.guests || []).slice(),
   };
   CHECKINS.push(rec);
+  // THE SCAN HAS TO REACH THE LEDGER.
+  // A counter scan captured a document and then the record was created without
+  // it, so the person who had just handed over a physical ID looked
+  // UNVERIFIED — tier 0 — and their first delivery order sent them through the
+  // remote check the policy card promises they will never see. The document
+  // now writes a real IDV entry, which is what makes tier 1 true.
+  const doc = c.doc || null;
+  if (doc && doc.scannedAt && !IDV[member.id]) {
+    IDV[member.id] = { doc: doc, phone: member.phone ? { value: member.phone, smsVerified: false } : null, remoteId: null };
+  }
   _hwNotify();
   return rec;
 }

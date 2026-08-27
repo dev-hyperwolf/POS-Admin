@@ -179,7 +179,9 @@ window.ReceiptActions = function ReceiptActions({ sale, compact }) {
       {emailing && (
         <div style={{ display: 'flex', gap: 8, marginTop: 9, alignItems: 'center' }}>
           <div style={{ flex: 1 }}><Field icon="user" size="sm" placeholder="name@email.com" value={addr} onChange={(e) => setAddr(e.target.value)} /></div>
-          <PBtn variant="accent" size="sm" icon="arrow-right" disabled={!/.+@.+\..+/.test(addr)} onClick={() => { flash('Receipt emailed to ' + addr); setEmailing(false); }}>Send</PBtn>
+          <PBtn variant="accent" size="sm" icon="arrow-right" disabled={!/.+@.+\..+/.test(addr)}
+          title={/.+@.+\..+/.test(addr) ? `Email the receipt to ${addr}` : addr.trim() ? `“${addr.trim()}” is not a complete e-mail address` : 'Type the customer’s e-mail address first'}
+          onClick={() => { flash('Receipt emailed to ' + addr); setEmailing(false); }}>Send</PBtn>
         </div>
       )}
       {sale?.email && !emailing && <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 7 }}>On file: {sale.email}</div>}
@@ -237,6 +239,29 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
     setStage('terminal');
   };
   const canPrimary = method === 'card' ? true : method === 'cash' ? cashNum >= balance : method === 'split' ? (cashNum > 0 && cashNum < balance) : false;
+
+  /* WHY THE TENDER BUTTON IS GREY, IN A SENTENCE.
+   *
+   * `canPrimary` above encodes three different refusals and the button said
+   * none of them — it simply went flat. The split case is the one that strands
+   * an operator mid-shift: type the FULL balance into the split pad and the
+   * condition `cashNum < balance` fails, so the button dies with the number
+   * that killed it sitting right there looking correct. There is nothing on
+   * the screen to read, and the way out (go back and choose Cash) is not
+   * guessable from anything shown.
+   *
+   * Same `title`-carries-the-reason pattern as the discount card in
+   * pos/screen-cart.jsx and the address form in pos/customer-extras.jsx. */
+  const primaryWhy =
+  method === 'cash' ? (
+    canPrimary ? `Take ${_money(balance)} in cash and complete the sale` :
+    cashNum <= 0 ? `Enter the cash the customer handed over — ${_money(balance)} is due` :
+    `Tendered ${_money(cashNum)} of ${_money(balance)} — ${_money(_c2(balance - cashNum))} still short`) :
+  method === 'split' ? (
+    canPrimary ? `Cash ${_money(cashNum)} taken, ${_money(cardCharged)} to the card` :
+    cashNum <= 0 ? 'Enter the cash portion first — the card takes whatever is left' :
+    `${_money(cashNum)} covers the whole ${_money(balance)} balance, so nothing is left for the card. Cancel and choose Cash instead.`) :
+  `Send ${_money(cardCharged)} to the card terminal`;
 
   const methods = [['cash', 'Cash', 'cash', 'No fee'], ['card', 'Card', 'card', '+ processing fee'], ['split', 'Split', 'split', 'Cash first, then card']];
 
@@ -376,9 +401,18 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
 
                 <div style={{ display: 'flex', gap: 10, padding: '14px 22px', borderTop: `1px solid ${P.hairline2}`, flex: '0 0 auto', background: P.surface }}>
                   <PBtn variant="secondary" size="lg" onClick={closeDrawer}>Cancel</PBtn>
-                  <div style={{ flex: 1 }} />
-                  <PBtn variant="accent" size="lg" icon={method === 'cash' ? 'check' : 'card'} disabled={!canPrimary} onClick={drawerPrimary}>
-                    {method === 'cash' ? `Complete · ${_money(balance)}` : method === 'split' ? `Charge card · ${_money(cardCharged)}` : `Charge card · ${_money(cardCharged)}`}
+                  {/* The refusal, printed — not only in the tooltip. A POS is a
+                      touch screen; hover text is not reachable there, so a grey
+                      button with its reason only in `title` is still a dead end
+                      for the person actually standing at the till. */}
+                  {!canPrimary && <span style={{ flex: 1, minWidth: 0, alignSelf: 'center', fontSize: 11.5, color: P.inkDim, lineHeight: 1.4 }}>{primaryWhy}</span>}
+                  <div style={{ flex: canPrimary ? 1 : '0 0 auto' }} />
+                  {/* The `split` and `card` branches of this label were written
+                      as two arms of a ternary and produced BYTE-IDENTICAL text
+                      — a distinction presented in the source that never existed
+                      on screen. Collapsed to the one string it always was. */}
+                  <PBtn variant="accent" size="lg" icon={method === 'cash' ? 'check' : 'card'} disabled={!canPrimary} title={primaryWhy} onClick={drawerPrimary}>
+                    {method === 'cash' ? `Complete · ${_money(balance)}` : `Charge card · ${_money(cardCharged)}`}
                   </PBtn>
                 </div>
               </div>

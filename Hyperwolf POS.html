@@ -137,6 +137,15 @@
      shared atoms and the DevNote atoms — never a per-screen Mono, which threw
      "Mono is not defined" and blanked a screen. -->
 <script type="text/babel" src="pos/screen-city-listing.jsx"></script>
+<!-- Category map: our nine TOP-LEVEL categories -> Weedmaps' nodes, with ids.
+     A different question from pos/screen-categories.jsx, which is the
+     SUB-CATEGORY board. This one is the name lookup engine.py:862 actually
+     performs at publish time, and the reason a SKU can go live on Weedmaps
+     carrying no category at all.
+     Loads after pos/atoms.jsx and pos/dev-note.jsx because it renders with the
+     shared atoms and the DevNote atoms - never a per-screen Mono, which threw
+     "Mono is not defined" and blanked a screen. -->
+<script type="text/babel" src="pos/screen-category-map.jsx"></script>
 <script type="text/babel" src="pos/app.jsx"></script>
 <script src="shared/app-switcher.js"></script>
 <script src="shared/tour-steps.js"></script>

@@ -636,6 +636,25 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
   const chipLifetime = Math.round((customer.visits || 0) * 58 + (customer.points || 0) * 0.42);
   const chipAov = chipLifetime / Math.max(1, customer.visits || 1);
 
+  /* ⚠️ THE SECOND "Clear" ON THE SCREEN — AND THE EXPENSIVE ONE.
+   *
+   * `onClear` here is RegisterScreen's `openVisit(null, [])`: it throws away
+   * the ENTIRE tickets array and starts a new, empty, person-less one. Every
+   * ticket the party has open, and everything on them, goes.
+   *
+   * The cart pane (pos/screen-cart.jsx) has its own button, and it read
+   * exactly the same: the word "Clear", an x icon, 11.5px inkDim. That one
+   * only empties the ticket in front of you. Two identical-looking controls,
+   * on screen together for every sale, one of which costs a party of tickets.
+   * Neither stated its consequence; both do now.
+   *
+   * The tooltip is the honest minimum, not the whole fix — the labels
+   * themselves still both say "Clear", which is a copy decision for the owner.
+   */
+  const clearTitle = tickets.length > 1 ?
+  `End this visit — closes all ${tickets.length} tickets in this party and discards what is on them. To empty just this ticket, use Clear in the cart.` :
+  'End this visit — closes the ticket and discards what is on it. To empty the ticket but keep the customer checked in, use Clear in the cart.';
+
   const Avatars = ({ solo }) =>
   <div style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
       <Avatar name={customer.name} size={32} crown={customer.member} />
@@ -657,7 +676,7 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
       <button onClick={() => setOpen((o) => !o)} title="Manage check-in party" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '6px 9px', background: open ? P.accent : P.surface, color: open ? P.accentInk : P.ink2, border: `1px solid ${open ? P.accentBorder : P.hairline2}`, borderRadius: P.r999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
         <Icon name="users" size={13} stroke={2} />Party
       </button>
-      <IconBtn icon="x" size={13} style={{ width: 26, height: 26 }} onClick={onClear} />
+      <IconBtn icon="x" size={13} style={{ width: 26, height: 26 }} title={clearTitle} label="End this visit" onClick={onClear} />
     </div>;
 
   const Stat = ({ k, v, color }) =>
@@ -738,7 +757,7 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
           <button onClick={() => setOpen((o) => !o)} title="Manage the party · open a separate ticket" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px 9px', background: open ? P.accent : P.surface, color: open ? P.accentInk : P.ink2, border: `1px solid ${open ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, minHeight: 30 }}>
             <Icon name="users" size={13} stroke={2} />Party{guests.length > 0 ? ` ${1 + guests.length}` : ''}
           </button>
-          <button onClick={onClear} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '5px 9px', background: 'transparent', color: P.inkMute, border: 'none', borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+          <button onClick={onClear} title={clearTitle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '5px 9px', background: 'transparent', color: P.inkMute, border: 'none', borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
             <Icon name="x" size={12} stroke={2.2} />Clear
           </button>
         </div>

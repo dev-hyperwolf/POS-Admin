@@ -9,6 +9,23 @@ const STAGES = [
 { id: 'done', label: 'Completed', color: (P) => P.inkMute }];
 
 
+// ── ONE BAND TABLE FOR THIS FILE ────────────────────────────────────────────
+// data.jsx:257-260 is the authority: >=90 auto-bind, 60-89 bind-and-confirm,
+// <60 no owner. Three surfaces in this file each had their OWN threshold and
+// they disagreed about the same number: MatchLane coloured on the real bands,
+// MatchSheet promoted a candidate at 40 (accent border, 2px accent ring, gold
+// Bind button — the vocabulary this product reserves for "this is the one")
+// while colouring the bar and the number at 50, under a header line telling the
+// operator that anything under 60 failed the auto-bind. So a 45 got the gold
+// button on a match the system had rejected, painted calm grey, and in a room
+// of four people at a counter the fastest action is tapping the gold button.
+// Colour, emphasis and the stated floor now come from here.
+const MATCH_BANDS = { auto: 90, confirm: 60 };
+const matchTone = (P, s) => s == null ? P.inkMute : s >= MATCH_BANDS.auto ? P.good : s >= MATCH_BANDS.confirm ? P.warn : P.inkMute;
+// Promotion is a recommendation. Only a score the engine would actually act on
+// earns it — never "the best of a bad set".
+const matchPromoted = (s) => s != null && s >= MATCH_BANDS.confirm;
+
 window.OrdersScreen = function OrdersScreen({ onStartSale }) {
   const P = useP();
   const [tab, setTab] = React.useState('pickup');
@@ -26,10 +43,26 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
   // this shift). bindOf() reads the engine's answer unless a human changed it.
   const [binds, setBinds] = React.useState({});
   const [matching, setMatching] = React.useState(null); // order awaiting a manual match
+  // Order awaiting a SCAN. Opens the check-in modal (which leads with the ID
+  // scanner) and binds this order to the check-in the scan produces.
+  const [scanBindFor, setScanBindFor] = React.useState(null);
   const bindOf = (o) => binds[o.id] || window.HW.bindFor(o);
   const setBind = (id, b) => setBinds((prev) => ({ ...prev, [id]: b }));
-  const confirmBind = (o) => setBind(o.id, { ...bindOf(o), state: 'auto', conf: 100, confirmedBy: 'Manisha Saini' });
-  const bindTo = (o, checkinId, guest) => setBind(o.id, { state: 'auto', conf: 100, checkinId, guest, signals: ['handle'], boundBy: 'Manisha Saini' });
+  // ── A HUMAN BIND HAS NO CONFIDENCE ──────────────────────────────────────
+  // Both of these used to write `conf: 100`, and bindTo also wrote
+  // `signals: ['handle']`. The mono slot in BindStrip is where the MATCHER's
+  // computed score lives, so "the engine scored this at 100" and "a person
+  // pointed at someone" rendered as the same bold green 100 with a check mark —
+  // two different claims, identical pixels, and an audit of a mis-bind could
+  // not tell which had happened. Worse, `signals: ['handle']` renders as
+  // "handle already merged" (data.jsx SIGNAL_LABEL), asserting a merge that
+  // never took place.
+  //
+  // `state: 'manual'` is its own state. It carries no conf and no signals, and
+  // BindStrip renders it as who decided it, not as a number. This file already
+  // won this argument once, in MatchSheet: "`5` IS NOT A SCORE".
+  const confirmBind = (o) => setBind(o.id, { ...bindOf(o), state: 'manual', conf: null, signals: [], confirmedBy: 'Manisha Saini', boundAt: 'just now' });
+  const bindTo = (o, checkinId, guest) => setBind(o.id, { state: 'manual', conf: null, checkinId, guest, signals: [], boundBy: 'Manisha Saini', boundAt: 'just now' });
   const orders = window.HW.ORDERS;
   // Reads the live check-in store — a new check-in has to appear in the strip
   // above, not just close its modal.
@@ -163,7 +196,7 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
       <>
           {unowned.length > 0 && <UnownedBanner items={unowned} onResolve={() => setMatching(unowned[0])} />}
           <div style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: 'minmax(286px, 1fr)', gap: 14, overflowX: 'auto', paddingBottom: 8, marginTop: 4 }}>
-            {unowned.length > 0 && <MatchLane items={unowned} bindOf={bindOf} onBind={bindTo} onMatch={setMatching} onOpen={setDetail} />}
+            {unowned.length > 0 && <MatchLane items={unowned} bindOf={bindOf} onBind={bindTo} onMatch={setMatching} onScanBind={setScanBindFor} onOpen={setDetail} />}
             {STAGES.map((st) => {
             const items = owned.filter((o) => o.stage === st.id);
             return <Column key={st.id} stage={st} items={items} onStartSale={onStartSale} onOpen={setDetail} bindOf={bindOf} onConfirm={confirmBind} onMatch={setMatching} />;
@@ -175,7 +208,30 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
       view === 'drivers' ? <DriversView items={visible} onStartSale={onStartSale} onOpen={setDetail} /> :
       <DispatchView items={visible} onStartSale={onStartSale} onOpen={setDetail} />}
 
-      {matching && <MatchSheet o={matching} bind={bindOf(matching)} onBind={(cid, guest) => {bindTo(matching, cid, guest);setMatching(null);}} onClose={() => setMatching(null)} />}
+      {matching && <MatchSheet o={matching} bind={bindOf(matching)}
+        onBind={(cid, guest) => {bindTo(matching, cid, guest);setMatching(null);}}
+        /* "Check in & bind" now CHECKS SOMEBODY IN. It used to call
+           onBind(null, m.name) — no addCheckIn, so the person never reached the
+           floor board, checkinId stayed null, and the strip read "guest in a's
+           party" for a customer the row beside it called "not in the store". */
+        onCheckInBind={(m) => {
+          const ci = window.HW.addCheckIn({ customer: m, guests: [], type: null, delivery: null });
+          if (ci) bindTo(matching, ci.id);
+          setMatching(null);
+        }}
+        onClose={() => setMatching(null)} />}
+
+      {/* SCAN → CHECK IN → BIND, from the Needs-match lane. The modal leads
+          with window.IdScanPanel, so the scan identifies the person AND
+          captures the document, and the order is bound to the check-in it
+          creates. */}
+      {scanBindFor && <CheckInModal onClose={() => setScanBindFor(null)} onCheckIn={(p) => {
+        const ci = window.HW.addCheckIn(p);
+        const o = scanBindFor;
+        setScanBindFor(null);
+        if (ci) bindTo(o, ci.id);
+        if (p.start && ci) {window.HW.startSaleFor(window.HW.memberById(ci.memberId), ci.guests);onStartSale && onStartSale();}
+      }} />}
 
       {/* The payload was being thrown away: the check-in was never created, and
           "check in & start sale" opened the register on whoever it seeds itself
@@ -387,8 +443,25 @@ function BindStrip({ bind, o, onConfirm, onMatch }) {
       </div>);
   }
 
-  const tone = bind.state === 'auto' ? P.good : bind.state === 'confirm' ? P.warn : P.bad;
-  const soft = bind.state === 'auto' ? P.goodSoft : bind.state === 'confirm' ? P.warnSoft : P.badSoft;
+  // A HUMAN BIND IS ITS OWN STATE — see confirmBind/bindTo at the top of this
+  // file. It is owned (so the card can move, green), but it carries no score
+  // and gets no auto check-circle.
+  const human = bind.state === 'manual';
+  const tone = bind.state === 'auto' || human ? P.good : bind.state === 'confirm' ? P.warn : P.bad;
+  const soft = bind.state === 'auto' || human ? P.goodSoft : bind.state === 'confirm' ? P.warnSoft : P.badSoft;
+  const byWhom = bind.confirmedBy || bind.boundBy;
+  // `ci ? ci.name.split(' ')[0] : 'a'` used to sit here — a two-character
+  // grammatical filler that turned "no check-in exists" into "some party", in
+  // green, with a 100 and a check mark, for someone the row above described as
+  // NOT in the store. A missing check-in reaches the render as its own branch.
+  const secondary =
+    bind.state === 'none' ? bind.why :
+    bind.guest ? ci ? `guest in ${ci.name.split(' ')[0]}’s party${sig ? ' · ' + sig : ''}` :
+      'bound to a guest who is not checked in — nobody by this name is on the floor board' :
+    !ci ? (human ? `${bind.confirmedBy ? 'confirmed' : 'bound'} by ${byWhom || 'a person'}${bind.boundAt ? ' · ' + bind.boundAt : ''} — not checked in` :
+           'bound to a customer who is not checked in') :
+    human ? `${bind.confirmedBy ? 'confirmed' : 'bound'} by ${byWhom || 'a person'}${bind.boundAt ? ' · ' + bind.boundAt : ''} · in store ${ci.wait.replace(/^0h /, '')}` :
+    `${sig || 'no signal recorded'} · in store ${ci.wait.replace(/^0h /, '')}`;
   return (
     <div style={{ marginTop: 9 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', background: soft, border: `1px solid ${tone}55`, borderRadius: P.r10 }}>
@@ -399,11 +472,16 @@ function BindStrip({ bind, o, onConfirm, onMatch }) {
             {bind.state === 'none' ? 'No owner' : who}{bind.state === 'confirm' ? ' ?' : ''}
           </span>
           <span style={{ display: 'block', fontSize: 10, color: P.inkDim, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {bind.state === 'none' ? bind.why : bind.guest ? `guest in ${ci ? ci.name.split(' ')[0] : 'a'}’s party · ${sig}` : `${sig} · in store ${ci ? ci.wait.replace(/^0h /, '') : ''}`}
+            {secondary}
           </span>
         </span>
-        <span style={{ fontSize: 11.5, fontWeight: 800, color: tone, fontFamily: P.fontMono, flex: '0 0 auto' }}>{bind.conf}</span>
+        {/* The mono slot is the MATCHER's score. A human decision does not go
+            in it, and neither does a blank: an unscored bind says so. */}
+        <span style={{ fontSize: human ? 9.5 : 11.5, fontWeight: 800, color: human ? P.inkDim : tone, fontFamily: P.fontMono, flex: '0 0 auto' }}>
+          {human ? 'by hand' : bind.conf == null ? 'not scored' : bind.conf + '%'}
+        </span>
         {bind.state === 'auto' && <Icon name="check-circle" size={13} stroke={2.2} color={P.good} />}
+        {human && <Icon name="user-check" size={13} stroke={2.2} color={P.good} />}
       </div>
       {bind.state === 'confirm' &&
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }} onClick={stop}>
@@ -422,7 +500,7 @@ function BindStrip({ bind, o, onConfirm, onMatch }) {
 }
 
 // The lane. Not a stage — a holding pen with candidates resolvable in one tap.
-function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
+function MatchLane({ items, bindOf, onBind, onMatch, onScanBind, onOpen }) {
   const P = useP();
   const sum = items.reduce((s, o) => s + o.total, 0);
   return (
@@ -458,14 +536,26 @@ function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
               {cands.length > 0 ? <>
                 <Eyebrow style={{ margin: '10px 0 5px' }}>Best candidates</Eyebrow>
                 {cands.map((c, i) =>
-              <div key={c.checkinId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 7px', marginBottom: 5, background: i === 0 ? P.surface : P.surface2, border: `1px solid ${i === 0 ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, boxShadow: i === 0 ? `0 0 0 2px ${P.accentSoft}` : 'none' }}>
+              <div key={c.checkinId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 7px', marginBottom: 5, background: matchPromoted(c.conf) && i === 0 ? P.surface : P.surface2, border: `1px solid ${matchPromoted(c.conf) && i === 0 ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, boxShadow: matchPromoted(c.conf) && i === 0 ? `0 0 0 2px ${P.accentSoft}` : 'none' }}>
                     <Avatar name={c.ci.name} size={24} crown={c.ci.member} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.ci.name}</span>
                       <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>in store {c.ci.wait.replace(/^0h /, '')} · no order yet</span>
                     </span>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: c.conf >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono }}>{c.conf}</span>
-                    <PBtn variant={i === 0 ? 'accent' : 'secondary'} size="xs" onClick={() => onBind(o, c.checkinId)}>Bind</PBtn>
+                    {/* A BARE INTEGER MEASURES NOTHING, and `>= 50 ? warn :
+                        inkMute` inverted the ranking on top of that: 52 — the
+                        STRONGEST candidate — was painted amber, the colour this
+                        screen uses for problems, while the weaker 38 sat calm
+                        and grey. The accent border and the accent Bind button
+                        on i === 0 pointed the other way, and the eye follows
+                        the amber. Colour now follows the real band
+                        (>=90 / 60-89 / <60, data.jsx:257-260) so it agrees with
+                        the rank order, and a null conf says "not scored"
+                        instead of rendering an empty span the operator reads as
+                        zero. Same treatment as line 2134's `Math.round(conf *
+                        100)%`. */}
+                    <span style={{ fontSize: c.conf == null ? 9.5 : 11.5, fontWeight: 800, color: matchTone(P, c.conf), fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{c.conf == null ? 'not scored' : c.conf + '% match'}</span>
+                    <PBtn variant={matchPromoted(c.conf) && i === 0 ? 'accent' : 'secondary'} size="xs" onClick={() => onBind(o, c.checkinId)}>Bind</PBtn>
                   </div>
               )}
               </> :
@@ -473,20 +563,23 @@ function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
                 <Icon name="info" size={12} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
                 <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>{bind.boardWhy || 'Nobody in the room is a plausible match — search the customer book or check them in from the order.'}</span>
               </div>}
-              {/* ONE ACTION, AND IT NAMES THE SCAN.
-                  These were TWO buttons -- "Search" and "Check in & bind" --
-                  wired to the SAME handler, onMatch(o). Identical behaviour
-                  presented as a choice, so an operator picked between two
-                  things that did one thing.
-                  It also led with Search, which is backwards at a counter: the
-                  guest is standing there holding the document, the in-store ID
-                  scan happens every time, and the barcode carries the name and
-                  date of birth that identify them. Scanning binds the order to
-                  a real person AND captures the verification in one step;
-                  typing a name does neither. The check-in modal this opens now
-                  leads with the scanner, so the button says so. */}
+              {/* TWO ACTIONS, AND EACH ONE OPENS WHAT ITS LABEL SAYS.
+                  v1 had two buttons — "Search" and "Check in & bind" — wired to
+                  the SAME handler: identical behaviour presented as a choice.
+                  v2 deleted one and renamed the survivor "Scan ID & bind", with
+                  a scan icon, still calling onMatch(o) — which opens MatchSheet,
+                  a Seg and a search box with no scanner anywhere in it. That was
+                  worse: the label described an intention while the code did
+                  something else, so an operator tapped it with the guest
+                  standing there holding the document and got a text field, and
+                  the correct action (scan, which identifies AND captures the
+                  verification in one step) was unreachable from this lane.
+                  The scan button now opens the check-in modal — which leads with
+                  window.IdScanPanel — and binds this order to the check-in it
+                  creates. The search button says it is a search. */}
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                <PBtn variant="soft" size="xs" icon="scan" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Scan ID &amp; bind</PBtn>
+                <PBtn variant="accent" size="xs" icon="scan" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onScanBind && onScanBind(o)}>Scan ID &amp; check in</PBtn>
+                <PBtn variant="soft" size="xs" icon="search" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Match to a person</PBtn>
               </div>
               </div>
             </div>);
@@ -521,7 +614,7 @@ function UnownedBanner({ items, onResolve }) {
 
 // Manual mapping — the fallback when the engine can't decide. Bind to someone
 // in the room, to any customer in the book, or check the person in from here.
-function MatchSheet({ o, bind, onBind, onClose }) {
+function MatchSheet({ o, bind, onBind, onCheckInBind, onClose }) {
   const P = useP();
   const [q, setQ] = React.useState('');
   const [tabv, setTabv] = React.useState('room');
@@ -545,7 +638,7 @@ function MatchSheet({ o, bind, onBind, onClose }) {
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(640px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
-          <span style={{ width: 30, height: 30, borderRadius: 8, background: '#1F5FC0', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="link" size={15} stroke={2} color="#fff" /></span>
+          <span style={{ width: 30, height: 30, borderRadius: 8, background: P.brand.weedmaps, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="link" size={15} stroke={2} color={P.brand.weedmapsInk} /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink }}>Who is this order for?</span>
             <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>#{o.id} · {o.name} · {o.items} item{o.items > 1 ? 's' : ''} · {window.HW.fmt.money(o.total)}</span>
@@ -556,7 +649,15 @@ function MatchSheet({ o, bind, onBind, onClose }) {
         <div style={{ display: 'flex', gap: 9, padding: '12px 18px 0', alignItems: 'center' }}>
           <Seg value={tabv} onChange={setTabv} size="sm" options={[{ value: 'room', label: 'In the store', icon: 'users', count: checkins.length }, { value: 'book', label: 'All customers', icon: 'search' }]} />
           <div style={{ flex: 1 }} />
-          {bind.why && <span style={{ fontSize: 11.5, color: P.bad, fontFamily: P.fontMono }}>{bind.conf} · auto-match failed</span>}
+          {/* The number needs a unit and a scale, like every other one on this
+              screen. A bare "18" beside "auto-match failed" tells the operator
+              nothing about what was measured or what good looks like. */}
+          {/* "not scored · below the 60% auto-bind floor" states a comparison
+               against a floor for a number that was never computed. Unscored is
+               a different fact and a different next action. */}
+          {bind.why && <span style={{ fontSize: 11.5, color: P.bad, fontFamily: P.fontMono }}>{bind.conf == null ?
+            'not scored — nobody in the room has been compared to this order' :
+            `best match ${bind.conf}% · below the ${MATCH_BANDS.confirm}% auto-bind floor`}</span>}
         </div>
 
         <div style={{ padding: '12px 18px 16px', display: 'flex', flexDirection: 'column', gap: 9, maxHeight: 420, overflowY: 'auto' }}>
@@ -569,7 +670,7 @@ function MatchSheet({ o, bind, onBind, onClose }) {
 
           {tabv === 'room' ? <>
             <Eyebrow>{anyScored ? 'People in the store \u00b7 ranked by match' : 'People in the store \u00b7 NOT ranked \u2014 nobody has been scored against this order'}</Eyebrow>
-            {inRoom.map((ci) => {const s = scored(ci);const top = s >= 40;
+            {inRoom.map((ci) => {const s = scored(ci);const top = matchPromoted(s);
               return (
                 <div key={ci.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: P.surface, border: `1px solid ${top ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, boxShadow: top ? `0 0 0 2px ${P.accentSoft}` : 'none' }}>
                   <Avatar name={ci.name} size={30} crown={ci.member} />
@@ -579,8 +680,8 @@ function MatchSheet({ o, bind, onBind, onClose }) {
                   </span>
                   {/* A bar IS the claim that a confidence was computed. Drawing
                       one for an unscored person is the same lie as the number. */}
-                  <span style={{ width: 64 }}>{s == null ? null : <BarMeter value={s / 100} color={s >= 50 ? P.warn : P.neutral} height={4} />}</span>
-                  <span style={{ fontSize: s == null ? 9.5 : 11.5, fontWeight: 800, color: s == null ? P.inkMute : s >= 50 ? P.warn : P.inkMute, fontFamily: P.fontMono, width: s == null ? 62 : 22, textAlign: 'right' }}>{s == null ? 'not scored' : s}</span>
+                  <span style={{ width: 64 }}>{s == null ? null : <BarMeter value={s / 100} color={matchTone(P, s)} height={4} />}</span>
+                  <span style={{ fontSize: s == null ? 9.5 : 11.5, fontWeight: 800, color: matchTone(P, s), fontFamily: P.fontMono, width: s == null ? 62 : 34, textAlign: 'right' }}>{s == null ? 'not scored' : s + '%'}</span>
                   <PBtn variant={top ? 'accent' : 'secondary'} size="xs" onClick={() => onBind(ci.id)}>Bind</PBtn>
                 </div>);
             })}
@@ -603,7 +704,14 @@ function MatchSheet({ o, bind, onBind, onClose }) {
                   <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: P.ink }}>{m.name}</span>
                   <span style={{ display: 'block', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{m.phone} · {m.points} pts · not in the store</span>
                 </span>
-                <PBtn variant="secondary" size="xs" icon="user-check" onClick={() => onBind(null, m.name)}>Check in &amp; bind</PBtn>
+                {/* This said "Check in" and checked NOBODY in: it called
+                    onBind(null, m.name), never window.HW.addCheckIn, so the
+                    person was bound to an order while absent from the floor
+                    board — the waiting strip and the order queue disagreeing
+                    about who is in the store, with neither saying so — and the
+                    null checkinId then made the strip read "guest in a's
+                    party". It creates the check-in now. */}
+                <PBtn variant="secondary" size="xs" icon="user-check" onClick={() => onCheckInBind ? onCheckInBind(m) : onBind(null, m.name)}>Check in &amp; bind</PBtn>
               </div>
             )}
             {book.length === 0 && <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No customer matches “{q}”</div>}
@@ -667,7 +775,7 @@ function WmStatusMapModal({ onClose }) {
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 95, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fade .15s ease' }}>
     <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(680px, 96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: P.brand.weedmapsInk, background: P.brand.weedmaps, padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: P.brand.weedmapsInk }} />Weedmaps</span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Order status mapping</div><div style={{ fontSize: 11.5, color: P.inkDim }}>How our fulfillment stages map to Weedmaps statuses — and what the customer sees</div></div>
         <IconBtn icon="x" size={18} onClick={onClose} />
       </div>
@@ -682,12 +790,12 @@ function WmStatusMapModal({ onClose }) {
           </div>
           {rows.map((r, i) => <div key={i} style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, alignItems: 'center', padding: '11px 14px', borderTop: `1px solid ${P.hairline}` }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: P.ink }}><span style={{ width: 8, height: 8, borderRadius: 99, background: r.color, flex: '0 0 auto' }} />{r.our}</span>
-            <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#1F5FC0' }}>{r.wm || '—'}</span>
+            <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.info }}>{r.wm || '—'}</span>
             <span style={{ fontSize: 12.5, color: toneC(r.tone) }}>{r.cust || '—'}</span>
           </div>)}
           <div style={{ display: 'grid', gridTemplateColumns: gc, gap: 10, alignItems: 'center', padding: '11px 14px', borderTop: `1px solid ${P.hairline}`, background: P.badSoft }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: P.ink }}><span style={{ width: 8, height: 8, borderRadius: 99, background: P.bad, flex: '0 0 auto' }} />Canceled / rejected</span>
-            <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: '#1F5FC0' }}>{map.canceled.wm}</span>
+            <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.info }}>{map.canceled.wm}</span>
             <span style={{ fontSize: 12.5, color: P.bad }}>{map.canceled.cust}</span>
           </div>
         </div>
@@ -1198,9 +1306,18 @@ window.QueueHealthStrip = function QueueHealthStrip() {
   const deferred = q.deferred || 0;
   const ready = q.ready_now || 0;
   const held = Math.max(0, undelivered - deferred - ready);
+  // THE VALIDATOR SKIPPED THESE TWO. loadQueueBoard throws when undelivered /
+  // deferred / ready_now are missing, on the stated grounds that "rendering
+  // zeros here would invent the one fact this strip is for" — and then `sent`
+  // and `failed` were rendered as `|| 0` from the same unvalidated payload. A
+  // board that stops emitting `failed` produced a green "0 permanently failed",
+  // a claim the server never made, wearing the good tone. Not reported is not
+  // zero.
+  const sentTxt = typeof q.sent === 'number' ? q.sent + ' delivered' : 'deliveries not reported by the board';
+  const failedTxt = typeof q.failed === 'number' ? q.failed + ' permanently failed' : 'failures not reported by the board';
   if (!undelivered) {
     return <div style={box}>{head}<Pill kind="good" dot>Nothing waiting to reach Weedmaps</Pill>
-      <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{q.sent || 0} delivered · {q.failed || 0} permanently failed</span>
+      <span style={{ fontSize: 11.5, color: typeof q.sent === 'number' && typeof q.failed === 'number' ? P.inkDim : P.warn, fontFamily: P.fontMono }}>{sentTxt} · {failedTxt}</span>
     </div>;
   }
   return <div style={box}>{head}
@@ -1211,7 +1328,8 @@ window.QueueHealthStrip = function QueueHealthStrip() {
         alarm, so it is neutral — the alarm is `failed`. */}
     <Pill kind="neutral" dot>{deferred} waiting out a retry backoff</Pill>
     {held > 0 && <Pill kind="neutral" dot>{held} behind an older push for the same order, or in flight</Pill>}
-    {(q.failed || 0) > 0 && <Pill kind="bad" dot>{q.failed} permanently failed</Pill>}
+    {typeof q.failed !== 'number' ? <Pill kind="warn" dot>failures not reported by the board</Pill> :
+     q.failed > 0 ? <Pill kind="bad" dot>{q.failed} permanently failed</Pill> : null}
     <div style={{ flex: 1 }} />
     <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>retried by the server, not by your click</span>
   </div>;
@@ -2104,7 +2222,7 @@ function PayPart({ pt, P, fmt, single }) {
 // ── Weedmaps order block — status mapping · fraud verification · identity merge
 function WmOrderTag() {
   const P = useP();
-  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, letterSpacing: '.02em' }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: P.brand.weedmapsInk, background: P.brand.weedmaps, padding: '2px 8px', borderRadius: 99, letterSpacing: '.02em' }}><span style={{ width: 6, height: 6, borderRadius: 2, background: P.brand.weedmapsInk }} />Weedmaps</span>;
 }
 function WmCheckRow({ label, state }) {
   const P = useP();
@@ -2339,10 +2457,11 @@ function WmOrderBlock({ o, wm, onLog }) {
   // ANY Weedmaps order, pickup or delivery — WM never passes us a document. The
   // phone-binding SMS is delivery-only, because that is the one question a
   // remote order raises. Either way the control is hoisted out of the fold.
+  const idvDoc = idv && idv.doc || null;
   const remoteUp = idvA.tier === 0;
   const smsUp = isDel && idvA.tier === 1;
   const verifyUp = remoteUp || smsUp;
-  return <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 13, border: `1px solid ${gate && verify === 'pending' ? P.bad : '#1F5FC0'}`, borderRadius: P.r14, background: P.mode === 'dark' ? 'rgba(31,95,192,.08)' : 'rgba(31,95,192,.05)' }}>
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 13, border: `1px solid ${gate && verify === 'pending' ? P.bad : P.brand.weedmaps}`, borderRadius: P.r14, background: P.brand.weedmaps + (P.mode === 'dark' ? '14' : '0D') }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
       <WmOrderTag />
       <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{wm.wmId} · Payment collected on handover</span>
@@ -2353,7 +2472,20 @@ function WmOrderBlock({ o, wm, onLog }) {
     <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
       {[[verify === 'approved' ? 'check-circle' : verify === 'hold' ? 'clock' : 'shield', verify === 'approved' ? 'Verified' : verify === 'hold' ? 'On hold' : verify === 'canceled' ? 'Rejected' : 'Needs verification', verify === 'approved' ? P.good : verify === 'hold' ? P.warn : verify === 'canceled' ? P.bad : gate ? P.bad : P.warn],
       ['user-check', merge === 'merged' ? 'Customer merged' : wm.match === 'existing' ? 'Match to confirm' : wm.match === 'ambiguous' ? 'Two possible matches' : 'New customer', merge === 'merged' ? P.good : wm.match === 'new' ? P.ink2 : P.warn],
-      [isDel ? 'truck' : 'shop', isDel ? idvA.tier >= 2 ? 'Delivery cleared' : 'ID check pending' : 'ID checked at the counter', isDel ? idvA.tier >= 2 ? P.good : P.warn : P.ink2]].map(([ic, lb, c]) =>
+      /* THE PICKUP ARM HAD NO BRANCH AT ALL. It was the constant string 'ID
+         checked at the counter' — a PAST-TENSE COMPLIANCE CLAIM rendered for
+         every Weedmaps pickup order, including one where `idv` is null because
+         wm.match === 'new', i.e. a person nobody has ever seen. The card then
+         contradicted itself in the same viewport: remoteUp is `idvA.tier === 0`,
+         so RemoteIdPanel rendered four lines below saying nobody has ever held
+         this person's ID. The information to branch on was already computed one
+         line above and used four lines below. Past tense only when there is a
+         scannedAt to point at. */
+      [isDel ? 'truck' : 'shop',
+       isDel ? idvA.tier >= 2 ? 'Delivery cleared' : 'ID check pending' :
+       idvA.tier >= 1 ? idvDoc && idvDoc.scannedAt ? 'ID checked at the counter · ' + idvDoc.scannedAt : 'ID on file' :
+       'ID not yet checked',
+       isDel ? idvA.tier >= 2 ? P.good : P.warn : idvA.tier >= 1 ? P.good : P.warn]].map(([ic, lb, c]) =>
       <span key={lb} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99, background: c + '14', color: c, fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap' }}><Icon name={ic} size={12} stroke={2.2} />{lb}</span>)}
     </div>
     {/* Phone confirmation / remote ID check — the one action staff need to reach
@@ -2388,7 +2520,7 @@ function WmOrderBlock({ o, wm, onLog }) {
           the live seam supplies push evidence (absent on mock data, so the
           mock demo is unchanged) an unacknowledged status says so here. */}
       {[['Our stage', stageMeta(o.stage).label, P.ink],
-        ['Weedmaps status', push && !acked ? 'NOT SENT — ' + cur.wm : cur.wm, push && !acked ? P.bad : '#1F5FC0'],
+        ['Weedmaps status', push && !acked ? 'NOT SENT — ' + cur.wm : cur.wm, push && !acked ? P.bad : P.info],
         ['Customer sees', push && !acked ? 'nothing yet — never delivered' : cur.cust, push && !acked ? P.bad : (cur.tone === 'good' ? P.good : cur.tone === 'bad' ? P.bad : P.ink2)]].map(([k, v, c], i) =>
       <React.Fragment key={k}>
         {i > 0 && <div style={{ display: 'flex', alignItems: 'center', padding: '0 2px', color: P.inkFaint }}><Icon name="chevron-right" size={15} stroke={2.2} /></div>}
@@ -2401,7 +2533,7 @@ function WmOrderBlock({ o, wm, onLog }) {
     {/* WM status progression — reference, not a decision. Folded by default. */}
     <Fold id="wm-status" icon="link" title="Weedmaps order status" status={cur.wm.replace(/_/g, ' ')} tone={wmTone}>
       <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="link" size={12} color="#1F5FC0" /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>What the customer sees</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>on weedmaps.com</span></div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}><Icon name="link" size={12} color={P.info} /><span style={{ fontSize: 11.5, fontWeight: 700, color: P.ink }}>What the customer sees</span><span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>on weedmaps.com</span></div>
       {pushLine && <div style={{ padding: '9px 12px', background: acked ? P.surface : P.surface3, borderBottom: `1px solid ${P.hairline}`, display: 'flex', gap: 7, alignItems: 'flex-start' }}>
         <Icon name={acked ? 'check' : 'alert'} size={12} color={acked ? P.good : pushState === 'failed' ? P.bad : P.warn || P.inkDim} />
         <span style={{ fontSize: 11.5, fontWeight: 600, color: acked ? P.ink : P.bad, lineHeight: 1.35 }}>{pushLine}</span>
@@ -2411,7 +2543,7 @@ function WmOrderBlock({ o, wm, onLog }) {
           {window.HW.WM_STATUS_ORDER.map((ws, i) => {const ci = railTo == null ? -1 : window.HW.WM_STATUS_ORDER.indexOf(railTo);const active = i === ci;const done = i < ci;return <React.Fragment key={ws}>
             {i > 0 && <div style={{ flex: 1, height: 2, background: i <= ci ? P.good : P.hairline2, marginTop: 9 }} />}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: '0 0 auto', width: 76 }}>
-              <span style={{ width: 20, height: 20, borderRadius: 99, background: active ? '#1F5FC0' : done ? P.good : P.surface3, color: active || done ? '#fff' : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', border: active || done ? 'none' : `1px solid ${P.hairline2}`, boxShadow: active ? '0 0 0 3px rgba(31,95,192,.18)' : 'none' }}>{done ? <Icon name="check" size={12} stroke={2.6} /> : <span style={{ fontSize: 10, fontWeight: 800, fontFamily: P.fontMono }}>{i + 1}</span>}</span>
+              <span style={{ width: 20, height: 20, borderRadius: 99, background: active ? P.brand.weedmaps : done ? P.good : P.surface3, color: active || done ? P.brand.weedmapsInk : P.inkMute, display: 'flex', alignItems: 'center', justifyContent: 'center', border: active || done ? 'none' : `1px solid ${P.hairline2}`, boxShadow: active ? '0 0 0 3px ' + P.brand.weedmaps + '2E' : 'none' }}>{done ? <Icon name="check" size={12} stroke={2.6} /> : <span style={{ fontSize: 10, fontWeight: 800, fontFamily: P.fontMono }}>{i + 1}</span>}</span>
               <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.02em', color: active ? P.ink : P.inkMute, textAlign: 'center', lineHeight: 1.2, fontFamily: P.fontMono }}>{ws.replace(/_/g, ' ')}</span>
             </div>
           </React.Fragment>;})}

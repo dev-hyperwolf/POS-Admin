@@ -375,7 +375,14 @@ test('View all expands the order history it was hiding', async () => {
     fire(app, rows[i]);
     await app.settle();
 
-    const shown = () => Number(app.text().match(/lifetime orders · showing (\d+)/)[1]);
+    // THE SUBTITLE CHANGED, AND THE CHANGE IS THE POINT. It used to read
+    // "{m.visits} lifetime orders · showing N" over a list whose ids, dates,
+    // item counts and TOTALS were generated from a character-code sum of the
+    // customer id — the deleted char-hash confidence score, re-denominated in
+    // dollars and feeding lifetime spend and average order value. Real orders
+    // and simulated ones are counted separately now, because they are different
+    // claims, and only the real ones reach the money.
+    const shown = () => Number(app.text().match(/· showing (\d+)/)[1]);
     assert.equal(shown(), 6, 'the history is not truncated, so View all has no job');
     assert.ok(app.click((t) => t.startsWith('View all')), 'no View all button');
     await app.settle();
@@ -383,6 +390,40 @@ test('View all expands the order history it was hiding', async () => {
     assert.ok(app.click('Show recent'), 'there is no way back to the short list');
     await app.settle();
     assert.equal(shown(), 6, 'the list will not collapse again');
+  });
+});
+
+/* A GENERATED ORDER IS NOT A RECORDED ONE, AND IT MAY NOT BE MONEY.
+ * m5 (Joseph Levi) claims 8 visits; the order board holds none for him. The
+ * profile used to answer that gap with eight invented orders and a lifetime
+ * spend computed from the same hash, unmarked. */
+test('a simulated order history is MARKED, and never becomes lifetime spend', async () => {
+  await withApp('pos', async (app) => {
+    await app.mount('MembersScreen');
+    const HW = app.window.HW;
+    const i = HW.MEMBERS.findIndex((m) => m.visits > 6);
+    const who = HW.MEMBERS[i];
+    const real = (HW.ORDERS || []).filter((o) => o.name === who.name);
+    assert.equal(real.length, 0, 'this test needs a member the order board holds nothing for');
+
+    const rows = [...app.window.document.querySelectorAll('button[aria-label="chevron-right"]')];
+    fire(app, rows[i]);
+    await app.settle();
+    const t = app.text();
+
+    assert.match(t, /0 on record \+ \d+ SIMULATED/,
+      'real and generated rows must be counted separately, not merged into one total');
+    assert.match(t, /DEMO/, 'a generated order row must carry the DEMO mark');
+    assert.match(t, /rows are simulated/, 'the section must say the depth is demo data');
+    // The two tiles that decide how a customer gets treated. With no order on
+    // the board there is nothing to average and nothing to total, and the hash
+    // that used to answer both is gone.
+    assert.match(t, /Avg order\s*not recorded/,
+      'average order must say "not recorded", not a figure derived from the customer id');
+    assert.match(t, /Lifetime\s*not recorded/,
+      'lifetime spend must say "not recorded", not a figure derived from the customer id');
+    assert.match(t, /Member since\s*not recorded/,
+      '"Member since" was the same fiction wearing a date');
   });
 });
 
@@ -446,5 +487,55 @@ test('the custom date range refuses instead of eating what you type', async () =
     assert.equal(boxes.length, 2, 'the custom range inputs are gone');
     assert.equal(boxes.filter((i) => i.disabled).length, 2, 'they still accept input they cannot use');
     assert.ok(app.text().includes('Custom ranges need order timestamps'), 'nothing says why they are off');
+  });
+});
+
+/* THE COMPLIANCE CARD IS WHERE A FABRICATED FACT COSTS THE MOST.
+ * Licence number, date of birth, ID expiry, gender, the whole medical card
+ * (MMIC #, recommending physician, issue and expiry, under a green "Active ·
+ * Tax-exempt" header) and both marketing-consent rows were all derived from the
+ * same character-code sum of the customer id. Those are the fabricated-METRC-id
+ * class of claim, on the one card an operator opens to answer a regulator. */
+test('the identity card shows the real document, or says it has none', async () => {
+  await withApp('pos', async (app) => {
+    await app.mount('MembersScreen');
+    const HW = app.window.HW;
+    // m5: MedicinalUser, and IDV holds no document at all.
+    const i = HW.MEMBERS.findIndex((m) => m.id === 'm5');
+    const rows = [...app.window.document.querySelectorAll('button[aria-label="chevron-right"]')];
+    fire(app, rows[i]);
+    await app.settle();
+    const t = app.text();
+
+    assert.doesNotMatch(t, /CA D\d{7}/,
+      'a driver licence number was generated from the customer id');
+    assert.doesNotMatch(t, /MMIC-\d+/,
+      'a medical card number was generated from the customer id');
+    assert.doesNotMatch(t, /Medical card · Active/,
+      'a tax exemption was asserted from a customer TYPE, with no card on file');
+    assert.match(t, /card not on file/,
+      '"recorded as Medicinal" and "we hold their card" are different facts');
+    assert.doesNotMatch(t, /Opted in/,
+      'a marketing consent was a function of how the customer id spells');
+    assert.match(t, /no consent recorded/,
+      '"we hold no consent" and "they said no" are the two states that decide whether a ' +
+      'message may be sent at all, and they rendered identically');
+  });
+});
+
+test('a member with a REAL scanned document still shows it', async () => {
+  await withApp('pos', async (app) => {
+    await app.mount('MembersScreen');
+    const HW = app.window.HW;
+    // m1 carries a genuine IDV doc record written by a counter scan.
+    const doc = HW.IDV.m1.doc;
+    const i = HW.MEMBERS.findIndex((m) => m.id === 'm1');
+    const rows = [...app.window.document.querySelectorAll('button[aria-label="chevron-right"]')];
+    fire(app, rows[i]);
+    await app.settle();
+    const t = app.text();
+
+    assert.ok(t.includes(doc.num), 'the real licence number from the IDV ledger is missing');
+    assert.ok(t.includes(doc.expires), 'the real expiry from the IDV ledger is missing');
   });
 });

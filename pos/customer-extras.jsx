@@ -132,24 +132,36 @@ window.AddNoteModal = function AddNoteModal({ member, onClose, onSave }) {
 // Delivery addresses are a separate, many-per-customer list the customer owns.
 // Each one carries its own zone verdict, because a customer can legitimately
 // have one address we serve and another we do not.
-function seedAddresses(m, idAddr) {
-  const h = m.id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const pool = [
-  { label: 'Home', street: '418 Mission Trail', city: 'Wildomar', zip: '92595', region: 'RC7 · Wildomar', zone: 'in' },
-  { label: 'Work', street: '2100 Main St, Suite 4', city: 'Lake Elsinore', zip: '92530', region: 'RC2 · Lake Elsinore', zone: 'in' },
-  { label: "Mom's", street: '77 Cottonwood Ln', city: 'Murrieta', zip: '92562', region: 'RC1 · Temecula', zone: 'buffer' },
-  { label: 'Old place', street: '910 Sierra Way', city: 'Hemet', zip: '92544', region: 'RC9 · Hemet', zone: 'out' }];
-  const n = 1 + h % 3;
-  const list = pool.slice(0, n).map((a, i) => ({ ...a, id: 'ad' + i, def: i === 0, lastUsed: ['2 days ago', 'Jun 2, 2026', 'May 11, 2026'][i] || '—', orders: Math.max(1, (h + i * 7) % 9) }));
-  const sameAsId = idAddr && list[0] && list[0].street === idAddr.street;
-  return { list, sameAsId };
+// A DELIVERY ADDRESS IS A ROUTING INSTRUCTION, AND THIS ONE WAS INVENTED.
+// The book was built from the same character-code sum of m.id that used to
+// denominate lifetime spend: HOW MANY addresses (`1 + h % 3`), sliced out of a
+// hardcoded pool of four, each stamped with an order count (`(h + i*7) % 9`)
+// and a hardcoded last-used date. Every row then rendered with a green
+// check-circle and "Routes to this region and can order delivery." — for a
+// customer whose record holds no address at all.
+//
+// It is worse than a fabricated compliance field because it is actionable in
+// the next sixty seconds: an operator taking a delivery order reads
+// "Home · Default · In zone · 418 Mission Trail · 6 orders · last used 2 days
+// ago" and dispatches a driver to a door nobody ever gave us. The order count
+// and the last-used date are exactly what make it believable — they say other
+// people have already delivered here.
+//
+// There is no endpoint that returns a customer's saved addresses, so the book
+// starts EMPTY and says so. `m.addresses` is the seam a real one plugs into.
+// The one address this build can legitimately hold is the one an operator
+// types into the form below, and that one carries a real ZIP-derived zone.
+function seedAddresses(m) {
+  const stored = m && Array.isArray(m.addresses) ? m.addresses : [];
+  const list = stored.map((a, i) => Object.assign({}, a, { id: a.id || 'ad' + i, def: a.def != null ? a.def : i === 0 }));
+  return { list };
 }
 // Kept per member so an address the operator adds is still there next time they
 // open the profile — a "saved" address that only lived in component state was
 // indistinguishable from one that was never saved.
 const ADDR_BOOK = {};
-function addressesFor(m, idAddr) {
-  if (!ADDR_BOOK[m.id]) ADDR_BOOK[m.id] = seedAddresses(m, idAddr).list;
+function addressesFor(m) {
+  if (!ADDR_BOOK[m.id]) ADDR_BOOK[m.id] = seedAddresses(m).list;
   return ADDR_BOOK[m.id];
 }
 // The ZIP is what decides the region and therefore the zone — the panel says so,
@@ -166,7 +178,7 @@ const ZIP_ZONE = {
 function zoneForZip(zip) {return ZIP_ZONE[String(zip || '').trim()] || { region: 'No region covers this ZIP', zone: 'out' };}
 window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
   const P = useP();
-  const [list, setList] = React.useState(() => addressesFor(m, idAddr));
+  const [list, setList] = React.useState(() => addressesFor(m));
   const [adding, setAdding] = React.useState(false);
   const [nf, setNf] = React.useState({ label: '', street: '', city: '', zip: '' });
   const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v }));
@@ -183,7 +195,7 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
     if (!addrOk) return;
     const z = zoneForZip(nf.zip);
     const rec = { id: 'ad-' + Date.now().toString(36), label: nf.label.trim(), street: nf.street.trim(), city: nf.city.trim(), zip: nf.zip.trim(),
-      region: z.region, zone: z.zone, def: list.length === 0, lastUsed: 'Never', orders: 0 };
+      region: z.region, zone: z.zone, def: list.length === 0, lastUsed: null, orders: 0, addedHere: true };
     commit(list.concat([rec]));
     setNf({ label: '', street: '', city: '', zip: '' });
     setAdding(false);
@@ -202,6 +214,11 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
       <div style={{ flex: 1 }} />
       <PBtn variant="secondary" size="xs" icon="plus" onClick={() => setAdding(true)}>Add address</PBtn>
     </div>
+    {list.length === 0 && !adding &&
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '12px 13px' }}>
+      <Icon name="truck" size={14} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+      <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b>No delivery address is on file for this customer.</b> Nothing is being withheld — no address has ever been saved against this record, so there is no zone verdict to give. Add one above and its ZIP decides the region.</span>
+    </div>}
     {list.map((a, i) => {const z = ZONE[a.zone];
       return <div key={a.id} style={{ display: 'flex', gap: 11, padding: '12px 13px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
         <span style={{ width: 26, height: 26, borderRadius: 8, background: z.c + '18', color: z.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={z.icon} size={13} stroke={2.2} /></span>
@@ -212,7 +229,13 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: z.c }}>{z.label}</span>
           </div>
           <div style={{ fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, marginTop: 2 }}>{a.street}, {a.city}, CA {a.zip}</div>
-          <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 3, lineHeight: 1.45 }}>{a.region} · {a.orders} order{a.orders === 1 ? '' : 's'} · last used {a.lastUsed}</div>
+          {/* AN ORDER COUNT AND A LAST-USED DATE ARE MEASUREMENTS, and nothing
+               measures them here. They used to be generated beside the address
+               and they were the two things that made an invented address
+               believable — they say other people have already delivered here.
+               An address the operator typed a moment ago has no delivery
+               history, and that is what it now says. */}
+          <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 3, lineHeight: 1.45 }}>{a.region} · {a.orders == null ? 'delivery history not recorded' : a.orders === 0 ? 'no delivery to this address yet' : `${a.orders} order${a.orders === 1 ? '' : 's'}`}{a.lastUsed ? ` · last used ${a.lastUsed}` : ''}</div>
           <div style={{ fontSize: 11.5, color: z.c, marginTop: 3, lineHeight: 1.45 }}>{z.note}</div>
         </div>
         {!a.def && <button onClick={() => setDefault(a.id)} style={{ flex: '0 0 auto', alignSelf: 'flex-start', padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>Make default</button>}
@@ -227,7 +250,9 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
     <div style={{ display: 'flex', gap: 8, padding: '11px 13px', borderTop: `1px solid ${P.hairline}`, background: P.infoSoft }}>
       <Icon name="info" size={13} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
       <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
-        The <b>ID address</b> above is the compliance record — it is read from the scanned document, is never edited by staff, and is never used for routing. Delivery addresses are separate, the customer can hold as many as they like, and each is zone-checked on its own.
+        {idAddr ?
+        <>The <b>ID address</b> above is the compliance record — it is read from the scanned document, is never edited by staff, and is never used for routing. Delivery addresses are separate, the customer can hold as many as they like, and each is zone-checked on its own.</> :
+        <>No <b>ID address</b> has been read off a document for this customer, which is why the field above says <i>not recorded</i> rather than showing one. A delivery address is a separate thing the customer gives us; it is zone-checked on its own and is never a substitute for the compliance record.</>}
       </div>
     </div>
   </div>;

@@ -38,15 +38,50 @@ const TIERS = {
 };
 
 // Derive everything from the events. Order of checks matters.
+// EXPIRY IS A DATE. NOTHING WAS COMPARING IT TO TODAY.
+// The tier-0 expired branch below was gated on a boolean `doc.expired` that
+// NOTHING in this estate ever sets — every producer emits an expiry DATE
+// (`expires: '2026-05-30'`), so the branch was unreachable and an expired
+// driving licence rendered as literally the same pixels as a 2032 passport:
+// green "ID on file", Create customer enabled, "this customer starts at
+// ID-on-file". The honest branch costs one date comparison; the dishonest one
+// was free. An explicit `doc.expired` flag is still honoured if a real
+// provider ever sends one.
+//
+// Unparseable is NOT expired. A date we cannot read is unknown, and unknown
+// must not wear the good tone either — `docExpiryUnknown` is its own state.
+function parseExpiry(x) {
+  if (!x) return null;
+  const s = String(x).trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s);
+  if (m) return new Date(+m[3], +m[1] - 1, +m[2]);
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+// A document is expired at the END of its expiry day, not the start of it.
+function isExpiredDoc(doc, now) {
+  if (!doc) return false;
+  if (doc.expired === true) return true;
+  const d = parseExpiry(doc.expires);
+  if (!d) return false;
+  const t = now || new Date();
+  return d.getTime() < new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime();
+}
+window.HWExpiry = { parseExpiry, isExpiredDoc };
+
 function assurance(v) {
   if (!v) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, blocker: 'No ID has been seen yet.', next: 'Scan their ID at the counter, or send a remote ID-check link.' };
   const doc = v.doc,ph = v.phone || {},pa = v.remoteId || v.persona;
   const docOk = !!(doc && doc.scannedAt && doc.photo);
-  const docExpired = !!(doc && doc.expired);
+  const docExpired = isExpiredDoc(doc);
   const remoteOk = !!(pa && pa.status === 'passed');
   const phoneOk = !!ph.smsVerified;
 
-  if (docExpired) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, expired: true, blocker: 'The ID we have on file has expired.', next: 'Re-scan a current ID — the account and history are kept.' };
+  if (docExpired) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, expired: true,
+    blocker: 'The ID we have on file expired' + (doc && doc.expires ? ' on ' + doc.expires : '') + '.',
+    next: 'Re-scan a current ID — the account and history are kept.' };
   if (!docOk && !remoteOk) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, blocker: 'No ID has been seen yet.', next: 'Scan their ID at the counter, or send a remote ID-check link.' };
   if (!phoneOk) return { tier: 1, ...TIERS[1], canStore: true, canDelivery: false,
     blocker: 'Phone not confirmed — we can’t tie a remote order back to this person.',
@@ -128,16 +163,39 @@ window.SmsVerifyPanel = function SmsVerifyPanel({ phone, state, sentAt, attempts
   // Staff choose what the customer receives: a 6-digit code to read back, or a
   // one-tap magic link. Both bind the same phone to the same account.
   const [mode, setMode] = React.useState('link');
+  // A RECEIPT WE DID NOT RECEIVE CANNOT BE A FALLBACK VALUE.
+  // This used to seed `{ at: sentAt || '2 min ago', status: 'delivered',
+  // receipt: 'carrier ack 1.4s' }` whenever no attempts were passed — and NO
+  // call site passes attempts, so the fabricated row rendered on every real
+  // render, and the header pill read a green "Delivered" off it. For m5
+  // (phone: { smsVerified:false }, no sentAt at all) the screen claimed a
+  // verification SMS was delivered two minutes ago and the carrier acknowledged
+  // in 1.4s. Nothing was ever sent. An operator reading "Delivered" concludes
+  // the customer is ignoring the code and does not resend — the one action that
+  // would unblock the delivery.
+  // Nothing sent renders as NO log and NO status pill. Same seed shape as
+  // RemoteIdPanel below, which got this right first.
   const [log, setLog] = React.useState(attempts && attempts.length ? attempts :
-  [{ at: sentAt || '2 min ago', by: 'System · auto', status: 'delivered', receipt: 'carrier ack 1.4s', kind: 'link' }]);
+  sentAt ? [{ at: sentAt, by: 'System · auto', status: 'sent', receipt: 'no carrier receipt recorded', kind: 'link' }] : []);
   React.useEffect(() => {if (secs <= 0) return;const t = setTimeout(() => setSecs(secs - 1), 1000);return () => clearTimeout(t);}, [secs]);
 
   const resend = () => {
     setSecs(30);
+    const first = log.length === 0;
     const kind = mode === 'link' ? 'link' : 'code';
     setLog((l) => [{ at: 'Just now', by: 'Manisha Saini · manual', status: 'sent', receipt: 'awaiting carrier ack', kind }, ...l]);
-    onLog && onLog({ who: 'Manisha Saini', role: 'You', action: `Resent verification ${kind} by SMS to ` + phone, time: 'just now', icon: 'phone' });
-    setTimeout(() => setLog((l) => l.map((x, i) => i === 0 ? { ...x, status: 'delivered', receipt: 'carrier ack 0.9s' } : x)), 1600);
+    onLog && onLog({ who: 'Manisha Saini', role: 'You', action: `${first ? 'Sent' : 'Resent'} the verification ${kind} by SMS to ` + phone, time: 'just now', icon: 'phone' });
+    // A CARRIER RECEIPT IS A THIRD PARTY'S STATEMENT ABOUT A MESSAGE WE NEVER
+    // HANDED THEM. Round 1 deleted the fabricated SEED; the same claim was
+    // still being written 1.6 seconds after the click by a
+    // `setTimeout(... status: 'delivered', receipt: 'carrier ack 0.9s')`, which
+    // made it look EARNED rather than defaulted and therefore carried more
+    // authority than the row that was removed. Nothing is sent from this panel
+    // — there is no endpoint and no send path anywhere in it — so the row stays
+    // at 'sent · awaiting carrier ack', which is exactly the state a real
+    // unwired build is in. The operator who taps Resend and does NOT see a
+    // green Delivered keeps resending and keeps looking at the number, which
+    // are the two things that actually unblock the order.
   };
   const verify = () => {setSt('verified');onVerified && onVerified();onLog && onLog({ who: phone, role: 'Customer', action: 'Confirmed phone by SMS code — account bound, delivery unlocked', time: 'just now', icon: 'check-circle' });};
 
@@ -176,8 +234,15 @@ window.SmsVerifyPanel = function SmsVerifyPanel({ phone, state, sentAt, attempts
 
     {/* Send / resend is always available — it is the whole point of the panel. */}
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 9 }}>
+      {/* "RESEND" IS A CLAIM THAT A FIRST MESSAGE WENT OUT.
+           The log block below was fixed to say nothing was sent; this control —
+           the loudest element on the panel — went on offering to send it AGAIN,
+           so the two halves of one panel disagreed about the same fact. An
+           operator reads the button, concludes a code is already sitting on the
+           customer's phone, and treats a delivery blocked on a message nobody
+           sent as a customer who is ignoring one. Same branch, same state. */}
       <PBtn variant="accent" size="sm" icon={secs > 0 ? 'clock' : 'phone'} disabled={secs > 0} onClick={resend}>
-        {secs > 0 ? `Resend in ${secs}s` : `Resend ${mode === 'link' ? 'link' : 'code'} by SMS`}
+        {secs > 0 ? `${log.length > 1 ? 'Resend' : 'Send'} in ${secs}s` : `${log.length ? 'Resend' : 'Send'} ${mode === 'link' ? 'link' : 'code'} by SMS`}
       </PBtn>
       {mode === 'code' && <>
         <div style={{ flex: '1 1 96px', minWidth: 92 }}><Field mono value={code} onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))} placeholder="000000" size="sm" /></div>
@@ -186,7 +251,12 @@ window.SmsVerifyPanel = function SmsVerifyPanel({ phone, state, sentAt, attempts
       {mode === 'link' && <span style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: P.inkDim, lineHeight: 1.4 }}>They tap the link and it confirms itself — nothing to read back.</span>}
     </div>
 
-    {/* Send log — every attempt, who triggered it, and the carrier receipt */}
+    {/* Send log — every attempt, who triggered it, and the carrier receipt.
+        NO ATTEMPTS ⇒ NO LOG AND NO STATUS PILL. An empty log used to be
+        impossible because one was manufactured; now "nothing has been sent"
+        is a state of its own and says so, rather than wearing a green
+        Delivered nobody earned. */}
+    {log.length > 0 ?
     <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r8, overflow: 'hidden', marginBottom: 9 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: P.surface2, borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>Send log</span>
@@ -204,7 +274,11 @@ window.SmsVerifyPanel = function SmsVerifyPanel({ phone, state, sentAt, attempts
           <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: c, flex: '0 0 auto' }}>{m.label}</span>
           <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, flex: '0 0 auto' }}>{a.receipt}</span>
         </div>;})}
-    </div>
+    </div> :
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: P.surface, border: `1px dashed ${P.hairline2}`, borderRadius: P.r8, marginBottom: 9 }}>
+      <Icon name="clock" size={12} color={P.inkMute} style={{ flex: '0 0 auto' }} />
+      <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>Nothing has been sent to this number yet — there is no send log and no carrier receipt to read.</span>
+    </div>}
 
     {last.status === 'failed' &&
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, fontSize: 11.5, fontWeight: 600, color: P.bad }}>
@@ -242,8 +316,12 @@ window.RemoteIdPanel = function RemoteIdPanel({ phone, remoteId, onLog, onDoor, 
   const [secs, setSecs] = React.useState(0);
   const [copied, setCopied] = React.useState(false);
   const link = p0.link || 'hyprwlf.co/id/Q7m2';
+  // Gating on p0.sentAt was already right — but the row it seeded still claimed
+  // a carrier acknowledgement and its latency, neither of which the seed
+  // carries. "We know it was sent" and "the carrier confirmed delivery in 1.2s"
+  // are different claims; only the first one is in the data.
   const [log, setLog] = React.useState(p0.attempts && p0.attempts.length ? p0.attempts :
-  p0.sentAt ? [{ at: p0.sentAt, by: (p0.by || 'System') + ' · SMS', status: 'delivered', receipt: 'carrier ack 1.2s' }] : []);
+  p0.sentAt ? [{ at: p0.sentAt, by: (p0.by || 'System') + ' · SMS', status: 'sent', receipt: 'no carrier receipt recorded' }] : []);
   React.useEffect(() => {if (secs <= 0) return;const t = setTimeout(() => setSecs(secs - 1), 1000);return () => clearTimeout(t);}, [secs]);
 
   const meta = RID_META[status] || RID_META.idle;
@@ -259,7 +337,10 @@ window.RemoteIdPanel = function RemoteIdPanel({ phone, remoteId, onLog, onDoor, 
     setSecs(30);setStatus('sent');
     setLog((l) => [{ at: 'Just now', by: 'Manisha Saini · manual', status: 'sent', receipt: 'awaiting carrier ack' }, ...l]);
     onLog && onLog({ who: 'Manisha Saini', role: 'You', action: `${first ? 'Sent' : 'Resent'} the remote ID-check link by SMS to ${phone}`, time: 'just now', icon: 'phone' });
-    setTimeout(() => setLog((l) => l.map((x, i) => i === 0 ? { ...x, status: 'delivered', receipt: 'carrier ack 0.8s' } : x)), 1500);
+    // Same fabrication as SmsVerifyPanel.resend, same removal. The seed was
+    // fixed in round 1 and the runtime timer that re-wrote 'delivered · carrier
+    // ack 0.8s' onto the row was left standing. No carrier is involved in this
+    // build, so no carrier acknowledgement is ever written.
   };
   const copy = () => {setCopied(true);setTimeout(() => setCopied(false), 1600);
     onLog && onLog({ who: 'Manisha Saini', role: 'You', action: 'Copied the ID-check link to read out over the phone', time: 'just now', icon: 'link' });};
@@ -432,10 +513,13 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
   // "the barcode finds their account" path is genuinely exercised rather than
   // mimed. Falls back to the new-customer path when the book is empty, and
   // says so rather than inventing a match.
-  const pickReturning = () => {
-    const M = (window.HW && window.HW.MEMBERS) || [];
-    return M.length ? M[_demoIdx++ % M.length] : null;
-  };
+  // THE BOOK IS READ ON EVERY SCAN. `pickReturning` used to fetch the book
+  // itself, and it was only called on the odd branch — so on the even path
+  // (which includes the FIRST scan of every session) nothing consulted
+  // anything, and `returning: false` was emitted anyway. Reading the book is
+  // now the caller's job, done once, unconditionally; this only chooses WHICH
+  // record to present.
+  const pickReturning = (M) => M && M.length ? M[_demoIdx++ % M.length] : null;
 
   // THE SCAN DECIDES. It does not ask.
   //
@@ -461,28 +545,70 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
     setSt('scanning');
     setTimeout(() => {
       let doc;
+      // THREE OUTCOMES, NOT TWO.
+      // The comment above pickReturning claimed it "says so rather than
+      // inventing a match" when the customer book is empty — but nothing said
+      // so: a null lookup fell straight through to the new-customer branch and
+      // emitted `returning:false`. "We consulted the book and this person is
+      // not in it" and "we could not consult the book" rendered identically,
+      // and the default was the one that looks like an answer. An operator told
+      // "New customer" onboards, and a person who already has an account
+      // collects a second profile — the exact failure checkin.jsx:53-54 says
+      // this flow exists to stop.
+      //
+      // AND THE READ HAPPENS ON BOTH BRANCHES.
+      // The three-state machinery above was real and correct, and it was
+      // BYPASSED BY CONSTRUCTION on half of all scans: the book was consulted
+      // only inside `if (_tryReturning)`, and `_demoIdx` starts at 0, so the
+      // first scan of every session skipped the lookup entirely and still
+      // emitted `returning: false` — "we consulted the book and this person is
+      // not in it" — plus `lookup: 'ok'`. With MEMBERS unloaded, scanning the
+      // SAME person twice gave "New customer · from the document" and then "the
+      // customer book was NOT available", two contradictory sentences about one
+      // unchanged state, and the answer-shaped one arrived first.
+      //
+      // The read is now unconditional and the READ decides. `_tryReturning`
+      // keeps the job it can honestly do: which of two available demo
+      // identities to present — never whether to perform a lookup.
+      // A ZERO-ROW BOOK IS NOT A MISS EITHER. `MEMBERS` missing and `MEMBERS`
+      // empty are indistinguishable at a counter — a dispensary customer book
+      // is never legitimately empty, so zero rows means it did not load, not
+      // that this person is a first-timer. Both are 'unavailable'.
+      const M = window.HW && window.HW.MEMBERS || null;
+      let lookup = M == null || M.length === 0 ? 'unavailable' : 'ok';
       const _tryReturning = (_demoIdx % 2) === 1;   // alternate, so both paths run
-      if (_tryReturning) {
-        const m = pickReturning();
+      if (lookup === 'ok' && _tryReturning) {
+        const m = pickReturning(M);
         if (m) {
           doc = { type: 'CA DL', num: '••••' + String(1000 + (_demoIdx * 37) % 9000), expires: '2029-04-11',
                   scannedAt: 'Just now', by: 'Manisha Saini', where: 'Front Counter 1', photo: true,
-                  name: m.name, dob: m.dob || '', memberId: m.id, returning: true, simulated: true };
+                  name: m.name, dob: m.dob || '', memberId: m.id, returning: true, lookup: 'ok', simulated: true };
         }
       }
       if (!doc) {
         const d = DEMO_IDS[_demoIdx++ % DEMO_IDS.length];
         doc = { type: d.type, num: d.num, expires: d.expires, scannedAt: 'Just now',
                 by: 'Manisha Saini', where: 'Front Counter 1', photo: true,
-                name: d.name, dob: d.dob, returning: false, simulated: true };
+                name: d.name, dob: d.dob,
+                // `returning: null` is NOT `false`. Null means unknown, and the
+                // result card gives it its own neutral face.
+                returning: lookup === 'unavailable' ? null : false, lookup, simulated: true };
       }
       setSt('done');
       onChange && onChange(doc);
       onLog && onLog({ who: 'Manisha Saini', role: 'You',
-        action: 'SIMULATED ID scan · ' + doc.type + ' ' + doc.num + (doc.returning ? ' · matched an existing customer' : ' · new customer'),
+        action: 'SIMULATED ID scan · ' + doc.type + ' ' + doc.num + (
+          doc.returning ? ' · matched an existing customer' :
+          doc.lookup === 'unavailable' ? ' · customer book unavailable, match not determined' :
+          ' · new customer'),
         time: 'just now', icon: 'scan' });
     }, 700);
   };
+
+  // Re-scan discards the document EVERYWHERE, not just in this panel's own
+  // state. The caller holds it (nf.doc); leaving it there is how a new name
+  // ends up wearing an old person's ID under a green compliance tick.
+  const rescan = () => { setSt('idle'); onChange && onChange(null); };
 
   const DemoMark = () =>
     <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.08em', color: P.warn,
@@ -496,22 +622,50 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
       return <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', background: P.surface2, border: `1px dashed ${P.hairline2}`, borderRadius: P.r10 }}>
         <Icon name="alert" size={15} color={P.inkMute} />
         <span style={{ flex: 1, fontSize: 11.5, color: P.ink2 }}>A scan completed but no document reached this panel — nothing is recorded.</span>
-        <PBtn variant="ghost" size="xs" icon="refresh" onClick={() => setSt('idle')}>Scan again</PBtn>
+        <PBtn variant="ghost" size="xs" icon="refresh" onClick={rescan}>Scan again</PBtn>
       </div>;
     }
-    return <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', background: d.returning ? P.goodSoft : P.infoSoft, border: `1px solid ${(d.returning ? P.good : P.info)}44`, borderRadius: P.r10 }}>
-      <span style={{ width: 44, height: 30, borderRadius: 5, background: P.surface, border: `1px solid ${(d.returning ? P.good : P.info)}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
-        <Icon name={d.returning ? 'user-check' : 'user-plus'} size={15} color={d.returning ? P.good : P.info} />
+    // THREE FACES, matching the three outcomes of the lookup.
+    //   returning === true   → an account was found, and we name it
+    //   returning === false  → the book was read and this person is not in it
+    //   returning == null    → the book could NOT be read. Neutral, and it says
+    //                          so, because "not in the book" and "no book" are
+    //                          different facts and only one of them licenses
+    //                          onboarding a new record.
+    // A FOURTH FACE: THE DOCUMENT IS EXPIRED.
+    // The card had three (returning / new / unknown) and an expired licence
+    // wore whichever one the lookup produced, differing from a valid document
+    // only by a date string in dim mono that nobody is asked to read. It is the
+    // one compliance claim in this product a regulator would ask about, and the
+    // honest branch costs a date comparison.
+    const expired = window.HWExpiry ? window.HWExpiry.isExpiredDoc(d) : false;
+    const unknownMatch = d.returning == null;
+    const tone = expired ? P.bad : d.returning ? P.good : unknownMatch ? P.warn : P.info;
+    const toneSoft = expired ? P.badSoft : d.returning ? P.goodSoft : unknownMatch ? P.warnSoft : P.infoSoft;
+    return <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px', background: toneSoft, border: `1px solid ${tone}44`, borderRadius: P.r10 }}>
+      <span style={{ width: 44, height: 30, borderRadius: 5, background: P.surface, border: `1px solid ${tone}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}>
+        <Icon name={expired ? 'x' : d.returning ? 'user-check' : unknownMatch ? 'alert' : 'user-plus'} size={15} color={tone} />
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>
           {d.name || 'Name not read'}{d.simulated && <DemoMark />}
         </div>
-        <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>
-          {d.returning ? 'Existing customer · account found' : 'New customer · from the document'} · {d.type} {d.num} · expires {d.expires}
+        <div style={{ fontSize: 11.5, color: expired ? P.bad : P.inkDim, fontFamily: P.fontMono }}>
+          {expired ? `This document EXPIRED on ${d.expires} — it cannot clear a check-in. Ask for a current ID.` :
+           d.returning ? 'Existing customer · account found' :
+           unknownMatch ? 'Document read · the customer book was NOT available, so we do not know whether they already have an account' :
+           'New customer · from the document'}{expired ? '' : ` · ${d.type} ${d.num} · expires ${d.expires}`}
         </div>
+        {expired && <div style={{ fontSize: 11.5, color: P.ink2, fontFamily: P.fontSans, marginTop: 2, lineHeight: 1.45 }}>{d.type} {d.num}{d.returning ? ' · this IS an existing customer — the account and its history are kept, only the document has to be replaced.' : ''}</div>}
       </div>
-      <PBtn variant="ghost" size="xs" icon="refresh" onClick={() => setSt('idle')}>Re-scan</PBtn>
+      {/* Re-scan clears the document UPWARD as well as locally. It used to call
+          setSt('idle') alone, so the caller's nf.doc still held the previous
+          person's document: scan Marcus Webb, press Re-scan, type another name
+          over the top, and 'Add to party' — gated on !nf.doc, still truthy —
+          committed a different human under a green "ID captured" pill. A
+          fabricated identity under a compliance tick is the one thing this flow
+          must never do. */}
+      <PBtn variant="ghost" size="xs" icon="refresh" onClick={rescan}>Re-scan</PBtn>
     </div>;
   }
 

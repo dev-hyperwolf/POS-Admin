@@ -550,6 +550,65 @@
     setTimeout(waitForHW, 150);
   }
 
+  // ── WHAT THE SHEET IS DRAWING — ONE DEFINITION, THREE SURFACES ───────────
+  // window.HW.orderLineSource(o) (pos/data.jsx:465, shipped in cc47fbc) is the
+  // estate's single answer to "which leg did the order sheet's product table
+  // take". THREE surfaces in this file report it — the in-sheet banner, that
+  // banner's error footnote, and the docked seam panel — and none of them may
+  // re-derive it. cc47fbc closed exactly that duplication BETWEEN this file and
+  // screen-orders.jsx; three private copies one scope down would reintroduce it
+  // with better manners. Hence one function, called three times.
+  //
+  // FOUR ANSWERS, NOT THREE. null is NOT 'mock':
+  //   'edited'   — a human edited this order; o.lines won over everything
+  //   'weedmaps' — the sheet is drawing the rows this panel is showing
+  //   'mock'     — the sheet is drawing the bundled demo cart
+  //   null       — NO ORDER WAS ASKED ABOUT. "Nothing was asked" and "asked,
+  //                and the answer is the demo cart" are different facts, and
+  //                collapsing them is the bug orderLineSource exists to stop.
+  // A fifth answer sits above all of those: orderLineSource may be ABSENT, and
+  // it will be — this file also loads on pages that do not carry pos/data.jsx.
+  // That is stated as itself, never as "the fact cannot be known", because the
+  // fix for it (serve this page beside data.jsx) is different from every other
+  // branch's.
+  function sheetLegSentence(ord) {
+    var fn = W.HW && typeof W.HW.orderLineSource === 'function' ? W.HW.orderLineSource : null;
+    if (!fn) {
+      return 'window.HW.orderLineSource is not loaded on this page, so what the ' +
+             'sheet is drawing is not known here.';
+    }
+    var src;
+    // orderLineSource reaches back into HW_LINES.get for its 'weedmaps' leg.
+    // A throw there must not take the panel's own banner down with it.
+    try { src = fn(ord); } catch (e) {
+      return 'window.HW.orderLineSource threw (' + ((e && e.message) || 'unknown') +
+             '), so what the sheet is drawing is not known here.';
+    }
+    // WORDING IS PART OF THE CONTRACT HERE. These sentences render on the
+    // in-sheet banner AND on the docked seam panel, and the docked panel is not
+    // behind any sheet — the first cut said "the sheet behind this panel",
+    // which was true on one surface and false on the other. One sentence used
+    // by two surfaces has to be true on both, or sharing it has merely moved
+    // the falsehood instead of removing it.
+    if (src === 'weedmaps') {
+      return 'The order sheet is drawing the Weedmaps payload lines — the ones this seam reads.';
+    }
+    if (src === 'edited') {
+      return 'The order sheet is drawing EDITED lines instead — a human edited this ' +
+             'order, and o.lines wins over the payload.';
+    }
+    if (src === 'mock') {
+      return 'The order sheet is drawing the bundled demo cart, not the Weedmaps payload.';
+    }
+    return 'No order reached this check, so what the sheet is drawing is not known here.';
+  }
+
+  function orderForId(id) {
+    if (!id) { return null; }
+    if (!(W.HW && typeof W.HW.orderById === 'function')) { return null; }
+    try { return W.HW.orderById(id); } catch (e) { return null; }
+  }
+
   // ── the in-sheet panel ───────────────────────────────────────────────────
   // window.OrderDetails is assigned onto window (screen-orders.jsx:1459), and
   // BOTH call sites resolve it late — screen-orders.jsx:99 as a bare global
@@ -701,11 +760,37 @@
       var err = _err[orderId];
       var loading = !!_inflight[orderId] || (!d && !err);
 
+      // ── ONE state. The dot and the banner BOTH switch on this. ───────────
+      // The previous cut widened the banner to four states and left the dot at
+      // three (`d ? P.good : err ? P.bad : P.inkFaint`). `d` is truthy on
+      // found:false — the route answers 200 with lines:[] and it passes
+      // validation — so the dot went GREEN beside a red "ORDER NOT FOUND"
+      // banner, and green again beside the amber "FOUND, NO LINES". The dot is
+      // the faster read and it was the wrong one. Two derivations of the same
+      // fact always drift; there is now exactly one.
+      var lstate = loading ? 'loading' :
+                   err ? 'err' :
+                   !d ? 'loading' :
+                   !d.found ? 'notfound' :
+                   !(d.lines && d.lines.length) ? 'empty' : 'live';
+      var DOT = { loading: P.inkFaint, err: P.bad, notfound: P.bad, empty: P.warn, live: P.good };
+
+      // WHAT THE SHEET IS DRAWING IS NO LONGER INVISIBLE FROM HERE.
+      // window.HW.orderLineSource(o) (pos/data.jsx) is the ONE definition both
+      // this panel and the sheet call. This file also loads on pages that do
+      // not carry data.jsx, so an absent function is its own stated answer —
+      // never a claim that the fact cannot be known.
+      var _ord = props && props.order ? props.order : orderForId(orderId);
+      // Delegates. This branch used to live here in full and the docked panel
+      // below carried a fourth, contradictory copy that still said the fact was
+      // unknowable. One definition, so a future edit cannot land in two of three.
+      function sheetSentence() { return sheetLegSentence(_ord); }
+
       var head = [];
       head.push(h('div', { key: 'h', style: { display: 'flex', alignItems: 'center', gap: 7 } },
         h('span', { style: {
           width: 7, height: 7, borderRadius: P.r999, flex: '0 0 auto',
-          background: d ? P.good : err ? P.bad : P.inkFaint
+          background: DOT[lstate] || P.inkFaint
         } }),
         h('span', { style: { fontSize: P.type.strong, fontWeight: 700, color: P.ink, flex: 1 } },
           'Line items · from the Weedmaps payload'),
@@ -737,39 +822,38 @@
       // once -- and the file says the rule at :512, about its own callers:
       // "`state` is what a caller must branch on -- never `lines.length`".
       //
-      // WHAT THIS BANNER MAY NOT SAY. It used to end "the sheet behind this
-      // panel prefers them". IT CANNOT KNOW THAT. screen-orders.jsx:2942
-      // selects `o.lines -> _liveBase -> money.lines`, gated by isLiveOrder(o)
-      // and requiring state==='live' && lines.length, so on a demo order, an
-      // order with an empty lineItems array, or an edited order where o.lines
-      // wins, the sheet never consulted this seam at all. The panel was
-      // INFERRING the sheet's choice from its own cache and stating the guess
-      // as fact. It now reports only what it holds, and says plainly that the
-      // sheet's choice is not visible from here.
+      // WHAT THIS BANNER USED TO GET WRONG. It once ended "the sheet behind
+      // this panel prefers them", INFERRING the sheet's choice from its own
+      // cache. The fix at the time was to disclaim the fact entirely ("not
+      // visible from here"). That disclaimer is now STALE: HW.orderLineSource
+      // publishes exactly this, screen-orders.jsx already consumes it, and a
+      // panel that sends the operator to read source code for an answer one
+      // function call away is refusing to say something it knows. The banner
+      // states the answer, and states its absence when the function is absent.
+      //
+      // NOTE the banner branches on `lstate`, not on `d` — see the dot above.
       var banner = null;
-      if (loading) {
+      if (lstate === 'loading') {
         banner = null;                       // say nothing until there is something to say
-      } else if (err) {
+      } else if (lstate === 'err') {
         banner = ['bad', 'NO PAYLOAD READ: ',
                   'this panel could not read the Weedmaps payload for this ' +
                   'order, so nothing below is from Weedmaps. The reason is ' +
                   'printed underneath.'];
-      } else if (d && !d.found) {
+      } else if (lstate === 'notfound') {
         banner = ['bad', 'ORDER NOT FOUND: ',
                   'Weedmaps line items were looked for and this order is not ' +
                   'in the database. Nothing below is a real order line. This ' +
                   'is a definite answer, not a failure to read.'];
-      } else if (d && !(d.lines && d.lines.length)) {
+      } else if (lstate === 'empty') {
         banner = ['warn', 'FOUND, NO LINES: ',
                   'the order exists and its payload carries no line items. ' +
                   'That is different from not having looked, and different ' +
                   'from failing to read.'];
-      } else if (d) {
+      } else {
         banner = ['good', 'LIVE PAYLOAD: ',
                   'the rows below came from the Weedmaps order payload, not ' +
-                  'from mock data. Whether the sheet behind this panel is ' +
-                  'using them is decided in screen-orders.jsx and is not ' +
-                  'visible from here.'];
+                  'from mock data. ' + sheetSentence()];
       }
       if (banner) {
         var _tone = banner[0] === 'good' ? [P.good, P.goodSoft]
@@ -785,15 +869,23 @@
 
       var body = [];
 
-      if (loading) {
+      if (lstate === 'loading') {
         body.push(note(P, 'Reading the retained Weedmaps payload for order ' +
           orderId + ' — GET ' + ROUTE + '…', P.inkDim, P.surface2, 'load'));
-      } else if (err) {
+      } else if (lstate === 'err') {
         body.push(note(P, err, P.bad, P.badSoft, 'err'));
+        // This used to read "the sheet is still drawing its hardcoded mock
+        // products" — asserting the sheet's leg in the SAME component whose
+        // good branch disclaimed any knowledge of it, and asserting it wrongly
+        // whenever o.lines is non-empty (orderLineSource returns 'edited' and
+        // the sheet is drawing real, human-edited lines). The panel refused to
+        // state the sheet's choice when the news was good and stated it
+        // confidently when the news was bad, and the confident one was false.
+        // Same answer, same source, both branches.
         body.push(h('div', { key: 'errfoot', style: { fontSize: P.type.micro, color: P.inkMute, lineHeight: 1.5 } },
-          'Nothing below this panel changed: the sheet is still drawing its ' +
-          'hardcoded mock products. This panel refuses to guess what was on the order.'));
-      } else if (!d.found) {
+          'This panel has nothing to show and refuses to guess what was on the order. ' +
+          sheetSentence()));
+      } else if (lstate === 'notfound') {
         body.push(note(P, d.reason, P.warn, P.warnSoft, 'nf'));
         if (d.known_order) {
           body.push(h('div', { key: 'kn', style: { fontSize: P.type.meta, color: P.ink2, lineHeight: 1.6 } },
@@ -895,7 +987,11 @@
     function Wrapped(props) {
       return React.createElement(React.Fragment, null,
         React.createElement(OD, props),
-        React.createElement(_Panel, { orderId: props && props.o ? props.o.id : null }));
+        // `order` is passed so the panel can ask HW.orderLineSource what the
+        // sheet is actually drawing, rather than disclaiming a fact the estate
+        // now publishes. It falls back to HW.orderById when absent.
+        React.createElement(_Panel, { orderId: props && props.o ? props.o.id : null,
+                                      order: props && props.o ? props.o : null }));
     }
     Wrapped.__hwLines = true;
     Wrapped.displayName = 'HWLines(OrderDetails)';
@@ -918,15 +1014,32 @@
     // The one-line version of the claim, always visible. The paragraph that
     // proves it is in WHY below -- shortened presentation, not shortened
     // content: no word of it has been deleted.
+    //
     // A THIRD SURFACE carried the same claim. The review found two; this one
-    // makes three, and it is the shortest and so the easiest to miss. Same
-    // correction: this seam cannot see which leg screen-orders.jsx took, so it
-    // states what it holds and stops there.
+    // makes three, and it is the shortest and so the easiest to miss. It read
+    // "Which one it took is decided there, not here" -- TRUE WHEN WRITTEN and
+    // false from the moment cc47fbc published HW.orderLineSource. A disclaimer
+    // is not permanently safe just because it was honest once: it is a claim
+    // about the world like any other, and it goes stale like any other. That is
+    // this file's own thesis applied to this file.
+    //
+    // It reports the published leg for the last sheet this seam saw. This panel
+    // is not per-order, so "no sheet has been opened yet" is a REAL fourth
+    // answer here and is not dressed up as one of the three legs.
+    var _lastOrd = orderForId(_lastOrderId);
     p += '<div style="font-size:' + P.type.meta + 'px;line-height:1.55;color:' + P.ink2 +
          ';background:' + P.surface3 + ';border:1px solid ' + P.hairline2 + ';border-radius:' +
          P.r8 + 'px;padding:8px 9px;margin-bottom:8px">The order detail sheet chooses ' +
          'between its own edited lines, these Weedmaps lines, and a hardcoded ' +
-         'mock. Which one it took is decided there, not here.</div>';
+         'mock. ' + esc(
+           !_lastOrderId
+             ? 'No order sheet has been opened yet, so there is no leg to report — ' +
+               'which is not the same as the sheet drawing a mock.'
+             : _lastOrd
+               ? 'For order #' + _lastOrderId + ', the last sheet opened: ' + sheetLegSentence(_lastOrd)
+               : 'The last sheet opened (#' + _lastOrderId + ') is not in HW.ORDERS on ' +
+                 'this page, so its leg cannot be read from here.') +
+         '</div>';
 
     p += '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.7">' +
          'status <b>' + esc(_status) + '</b> · cached ' + cached + ' · failed ' + failed +
@@ -980,8 +1093,9 @@
          'a hardcoded mock (screen-orders.jsx, baseItems). Its item subtotal, ' +
          'discount split, CA tax lines, grand total, cash change and packing ' +
          'checklist are all arithmetic over whichever one won. This seam does ' +
-         'not own that file and cannot see which leg it took — it shows what ' +
-         'Weedmaps actually returned, beside it.</div>';
+         'not own that file, but it no longer has to guess which leg was taken: ' +
+         'window.HW.orderLineSource(o) publishes it, and the line above reports ' +
+         'that published answer for the last sheet opened.</div>';
     w += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkMute +
          ';line-height:1.5">Turn this seam off with <span style="font-family:' +
          ff(P.fontMono) + '">?hwlines=off</span>.</div>';
