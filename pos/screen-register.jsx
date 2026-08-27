@@ -296,6 +296,15 @@ window.RegisterScreen = function RegisterScreen() {
     // the panel prints "Payment due at pickup" over anything it reads as open.
     // The till took the money; the till says so.
     if (rec) HW.updateOrder(rec.id, { money: ticketMoney(rec, tkLines, ds, credits), paid: true });
+    // 🔴 THE SALE IS WHAT ENDS THE CHECK-IN, and nothing used to say so. onPaid
+    // marked the TICKET paid and never touched CHECKINS, so a served customer
+    // stayed on the board until somebody pressed the X meant for "this person is
+    // not here any more" -- after which a completed sale and a walk-out were
+    // recorded identically, because the only surviving fact was the missing row.
+    // Every tender path (single tender and pay-all) funnels through
+    // recordTicket, so settling here fires exactly once per sale, on all of them.
+    const ci = tk && tk.person ? HW.openCheckInFor(tk.person) : null;
+    if (ci && rec) HW.settleCheckIn(ci.id, 'served', { orderId: rec.id });
     return rec;
   };
   const recordSale = (sale) => recordTicket(tickets[active] || tickets[0], sale, sale && sale.credits);

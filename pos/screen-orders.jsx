@@ -283,7 +283,11 @@ function CheckInCard({ c, onStartSale }) {
   const [failed, setFailed] = React.useState('');
   const first = c.name.split(' ')[0];
   const remove = () => {
-    const gone = window.HW.removeCheckIn(c.id);
+    // The X means "this person is not here any more" (the note above), so the
+    // outcome is 'left' and is recorded as such. This used to call
+    // removeCheckIn, which splices the row and records nothing -- which is why
+    // a walk-out and a completed sale looked the same afterwards.
+    const gone = window.HW.settleCheckIn(c.id, 'left');
     setConfirm(false);
     if (!gone) setFailed('Already gone — somebody else cleared this check-in.');
   };

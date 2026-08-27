@@ -395,12 +395,73 @@ function addCheckIn(p) {
  * Returns the removed record, or null when the id is unknown — the caller can
  * then say so instead of reporting a removal that never happened.
  */
-function removeCheckIn(id) {
+// ── Leaving the queue ───────────────────────────────────────────────────────
+// A check-in used to leave BY VANISHING. removeCheckIn() spliced the row out and
+// a check-in record carried no status field at all, so "we sold to them" and
+// "they walked out" were the same event: the row was simply gone. Nothing could
+// tell throughput from abandonment, and nothing said so. A completed sale did
+// not even do that much -- onPaid (screen-register.jsx:310) marks the TICKET
+// paid and never touches CHECKINS, so a served customer stayed on the board
+// until a human pressed the X meant for "this person is not here any more".
+//
+// CHECKINS itself is unchanged, so every existing reader of it keeps working
+// byte for byte. A settled check-in moves to CHECKIN_LOG carrying WHY it left.
+const CHECKIN_OUTCOMES = ['served', 'left', 'merged', 'unspecified'];
+const CHECKIN_LOG = [];
+
+// Settle a check-in: it leaves the queue, and the reason leaves with it.
+// The outcome is REQUIRED and never inferred. An unrecognised outcome is
+// refused rather than coerced -- a wrong reason recorded confidently is worse
+// than a call that fails where you can see it.
+function settleCheckIn(id, outcome, meta) {
+  if (CHECKIN_OUTCOMES.indexOf(outcome) < 0) return null;
   const i = CHECKINS.findIndex((c) => c.id === id);
   if (i < 0) return null;
   const [rec] = CHECKINS.splice(i, 1);
+  const entry = Object.assign({}, rec, meta || {}, { outcome, settledAt: Date.now() });
+  CHECKIN_LOG.push(entry);
   _hwNotify();
-  return rec;
+  return entry;
+}
+
+// The pre-existing signature, kept for the one caller not yet wired
+// (screen-orders.jsx:286, currently held by another session). It records
+// 'unspecified' rather than guessing 'left': "nobody told us why this check-in
+// ended" is a different fact from "they walked out", and only the first is true
+// at that call site today. Once the caller names its outcome this stops
+// occurring -- and until then the log says plainly that we were not told.
+function removeCheckIn(id) { return settleCheckIn(id, 'unspecified'); }
+
+function settledCheckIns() { return CHECKIN_LOG.slice(); }
+
+// The OPEN check-in this person is the primary of, or null.
+// Matched on memberId ALONE. A name fallback would be a guess: two customers
+// share a name more often than anyone would like, and settling the wrong
+// person's check-in is a mistake nothing downstream could detect. A guest on
+// their own ticket carries no member record (startTicket builds one without an
+// id), so they correctly match nothing -- they are a guest on someone else's
+// check-in, not the primary of their own.
+//
+// ⚠️ THIS RETURNS NULL FOR EVERY CHECK-IN ON THE LIVE PATH, and that is not a
+// bug here. shared/hw-live-checkin.js:667 sets `memberId: null` on every row
+// because the API's checkins table carries no customer link at all. So on live
+// data a sale cannot settle its check-in, because nothing connects them --
+// and the same gap already breaks the claim flow upstream, which passes
+// HW.memberById(null) into startSaleFor (screen-orders.jsx:186). Closing it
+// needs a customer id on the API's check-in row; it cannot be closed in this
+// file. Reported rather than papered over with a name match.
+function openCheckInFor(person) {
+  if (!person || !person.id) return null;
+  return CHECKINS.find((c) => c.memberId === person.id) || null;
+}
+
+// Counts by outcome, or null when nothing has settled yet. An empty board and
+// "no check-in has ended yet" are different answers and must not both read 0.
+function checkinOutcomeCounts() {
+  if (!CHECKIN_LOG.length) return null;
+  const out = {};
+  CHECKIN_LOG.forEach((e) => { out[e.outcome] = (out[e.outcome] || 0) + 1; });
+  return out;
 }
 
 /**
@@ -631,6 +692,7 @@ window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, 
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
   addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
+  CHECKIN_OUTCOMES, CHECKIN_LOG, settleCheckIn, settledCheckIns, checkinOutcomeCounts, openCheckInFor,
   STAGES: ORDER_STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
   addSubRecord, subRecords, allSubRecords,
   LANE_DEFAULTS, laneSettings, setLaneSettings, resetLaneSettings, laneSettingsAreDefault,
