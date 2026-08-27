@@ -29,15 +29,26 @@
 // to the FIFO batch allocation commit actually took off the shelf. Nothing read
 // it until this file.
 //
-// ⚠️ THE ROUTE IS NOT WIRED YET — AND THIS FILE SAYS SO ON SCREEN
+// ✅ THE ROUTE IS WIRED (was not, 2026-08-19 → 2026-08-26)
 // ---------------------------------------------------------------
-// As of 2026-08-19 `grep -n order_lines wmdemo/server.py` returns NOTHING. The
-// module exists and works; no route serves it. GET /api/order/lines therefore
-// 404s today, and this seam renders that 404 as a NAMED REASON — "the module
-// exists, no route serves it" — never as an empty table and never as a fallback
-// to the mock rows dressed up as live. server.py is another unit's file; the
-// six-line snippet that wires it is in the handover note that ships with this
-// change, not applied here.
+// `grep -n order_lines wmdemo/server.py` now returns server.py:1632, which
+// dispatches GET /api/order/lines to order_lines.order_lines(). It answers,
+// including honest misses ("order 1 is not in this database at all — no orders
+// row and no webhook event. Check the id.").
+//
+// THIS PARAGRAPH USED TO SAY THE OPPOSITE, AND THAT IS THE POINT OF KEEPING
+// THE HISTORY. It read "the module exists; no route serves it", correctly and
+// with a date. The route was then wired and the comment was not updated, so
+// the next reader started from a false premise — and the on-screen copy that
+// repeated it told a developer to go and do work that was already done. A
+// dated comment is honest scoping, not immunity: it still has to be revisited
+// when the fact it records flips. This file exists to stop an absence being
+// mistaken for an answer; a stale header does exactly that to whoever opens it.
+//
+// What remains true, and is why the seam still matters: a 404 here is now
+// almost always the HOST — this page served somewhere with no wmdemo API
+// beside it, e.g. GitHub Pages, which is static. The seam names the reason
+// rather than rendering an empty table or letting mock rows pass as live.
 //
 // THE FALSEHOODS THIS FILE EXISTS TO NOT COMMIT
 // ---------------------------------------------
