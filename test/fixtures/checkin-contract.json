@@ -1,0 +1,68 @@
+{
+ "ok": true,
+ "signals": {
+  "gov_id": 100,
+  "code": 99,
+  "phone": 92,
+  "wm_acct": 88,
+  "name_dob": 84,
+  "name": 64,
+  "sole": 55,
+  "window": 15
+ },
+ "signal_labels": {
+  "gov_id": "government document matched",
+  "code": "pickup code the customer read out",
+  "phone": "phone number exact match",
+  "wm_acct": "same Weedmaps account",
+  "name_dob": "name and date of birth match",
+  "name": "name matches, no date of birth to corroborate",
+  "sole": "the only order waiting (circumstantial)",
+  "window": "arrived inside the expected window (circumstantial)"
+ },
+ "auto": 90,
+ "confirm": 60,
+ "corroboration_bonus": 4,
+ "ambiguity_penalty": 25,
+ "auto_margin": 20,
+ "circumstantial": [
+  "sole",
+  "window"
+ ],
+ "window_min_s": -300.0,
+ "window_max_s": 21600.0,
+ "no_show_after_s": 21600.0,
+ "no_show_cancel_reason": "CUSTOMER_NO_SHOW",
+ "checkin_states": [
+  "waiting",
+  "bound",
+  "served",
+  "left"
+ ],
+ "settable_states": [
+  "waiting",
+  "left"
+ ],
+ "bind_states": [
+  "auto",
+  "confirm",
+  "manual",
+  "rejected",
+  "released"
+ ],
+ "verdict_states": [
+  "auto",
+  "confirm",
+  "choose",
+  "none"
+ ],
+ "owner_states": [
+  "bound",
+  "unclaimed",
+  "awaiting_arrival",
+  "no_show"
+ ],
+ "scoring": "max(weight of matched signals), +4 if a second signal corroborates. NEVER a sum \u2014 summing name+sole+window reaches 134 and hands a stranger a bag.",
+ "auto_rule": "conf >= 90 AND at least 20 points clear of the runner-up",
+ "ambiguity_rule": "the same evidence on 2+ orders drops every one of them by 25 and caps them below AUTO"
+}

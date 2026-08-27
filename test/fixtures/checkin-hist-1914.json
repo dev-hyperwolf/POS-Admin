@@ -1,0 +1,252 @@
+{
+ "subject": {
+  "identity_id": 1914,
+  "pos_customer_id": "POS-C-1914",
+  "name": "Dana Whitfield",
+  "asked_by": "identity_id",
+  "asked_for": 1914,
+  "followed_merge": false,
+  "merge_chain": [],
+  "merge_note": null,
+  "accounts": [
+   "hw-pickup-1002"
+  ],
+  "accounts_source": "hw_identities.wm_ids \u2014 the binding ladder tier 4 actually matches on",
+  "scope": "all_bound_weedmaps_accounts",
+  "scope_note": "1 Weedmaps account(s) are bound to this person. Weedmaps lets one person sign up repeatedly under different emails, so reading only the account that placed an order under-reports what they bought.",
+  "shared_accounts": {},
+  "shared_accounts_note": null,
+  "ingest_log_only_accounts": [],
+  "ingest_log_note": null
+ },
+ "state": "history",
+ "state_code": "history",
+ "state_reason": "Dana Whitfield bought 2 products across 1 order on 1 bound Weedmaps account(s).",
+ "purchase_definition": "A purchase here is an order Weedmaps sent us a Create webhook for (`pending`) whose status is not a cancellation. It does NOT mean delivered: no order in this database carries status COMPLETE, so defining it that way would report 'nothing bought' for every customer. `counts.stages` is the breakdown.",
+ "counts": {
+  "accounts": 1,
+  "orders_seen": 1,
+  "purchase_orders": 1,
+  "cancelled_orders": 0,
+  "orders_status_unknown": 0,
+  "draft_only_carts": 0,
+  "orders_unreadable_payload": 0,
+  "orders_without_lines": 0,
+  "lines": 2,
+  "lines_resolved": 2,
+  "lines_unresolved": 0,
+  "units": 2,
+  "products": 2,
+  "products_unresolved": 0,
+  "products_without_brand": 0,
+  "products_without_category": 0,
+  "stages": {
+   "pack": 1
+  }
+ },
+ "window": {
+  "first_purchase_at": 1787768045.925631,
+  "last_purchase_at": 1787768045.925631,
+  "note": "the timestamp of the Weedmaps Create webhook \u2014 when the order was placed, not when it was handed over"
+ },
+ "items": [
+  {
+   "key": "sku:HW-GUM-100",
+   "key_source": "our sku",
+   "sku": "HW-GUM-100",
+   "resolved": true,
+   "unresolved_reason": null,
+   "name": "Hyperwolf Gummies 100mg",
+   "name_source": "catalogue",
+   "brand": "Hyperwolf",
+   "brand_known": true,
+   "brand_key": "hyperwolf",
+   "brand_source": "weedmaps line",
+   "brand_reason": null,
+   "category": "Edibles",
+   "category_known": true,
+   "category_reason": null,
+   "strain": null,
+   "unit_of_measure": {
+    "unit": "mg",
+    "value": "100"
+   },
+   "orders": 1,
+   "units": 1,
+   "order_ids": [
+    "97982786"
+   ],
+   "first_bought_at": 1787768045.925631,
+   "last_bought_at": 1787768045.925631
+  },
+  {
+   "key": "sku:HW-PR-1G",
+   "key_source": "our sku",
+   "sku": "HW-PR-1G",
+   "resolved": true,
+   "unresolved_reason": null,
+   "name": "Hyperwolf House Pre-Roll 1g",
+   "name_source": "catalogue",
+   "brand": "Hyperwolf",
+   "brand_known": true,
+   "brand_key": "hyperwolf",
+   "brand_source": "weedmaps line",
+   "brand_reason": null,
+   "category": "Pre Roll",
+   "category_known": true,
+   "category_reason": null,
+   "strain": null,
+   "unit_of_measure": {
+    "unit": "g",
+    "value": "1.0"
+   },
+   "orders": 1,
+   "units": 1,
+   "order_ids": [
+    "97982786"
+   ],
+   "first_bought_at": 1787768045.925631,
+   "last_bought_at": 1787768045.925631
+  }
+ ],
+ "items_truncated_to": null,
+ "by_category": {
+  "groups": [
+   {
+    "category": "Edibles",
+    "key": "Edibles",
+    "products": 1,
+    "orders": 1,
+    "units": 1,
+    "last_bought_at": 1787768045.925631,
+    "share_of_known_units": 0.5
+   },
+   {
+    "category": "Pre Roll",
+    "key": "Pre Roll",
+    "products": 1,
+    "orders": 1,
+    "units": 1,
+    "last_bought_at": 1787768045.925631,
+    "share_of_known_units": 0.5
+   }
+  ],
+  "unknown": {
+   "products": 0,
+   "orders": 0,
+   "units": 0,
+   "note": null
+  },
+  "covers_products": 2,
+  "of_products": 2
+ },
+ "by_brand": {
+  "groups": [
+   {
+    "brand": "Hyperwolf",
+    "key": "hyperwolf",
+    "products": 2,
+    "orders": 2,
+    "units": 2,
+    "last_bought_at": 1787768045.925631,
+    "share_of_known_units": 1.0
+   }
+  ],
+  "unknown": {
+   "products": 0,
+   "orders": 0,
+   "units": 0,
+   "note": null
+  },
+  "covers_products": 2,
+  "of_products": 2
+ },
+ "ranking_input": {
+  "basis": "category_affinity",
+  "basis_available": [
+   "category_affinity",
+   "brand_affinity",
+   "house_brand_default"
+  ],
+  "basis_is_default": false,
+  "basis_sentence": "Suggested from what this customer buys: 1 order, mostly Edibles. No product was bought twice, so this is a category match, not a repeat.",
+  "basis_contract": "Render `basis_sentence` verbatim next to the suggestions. A ranking from history and a ranking from the house-brand default must never render identically; `basis_is_default` is the flag that decides which one the operator is looking at.",
+  "state": "history",
+  "repeat_items": [],
+  "category_affinity": [
+   {
+    "category": "Edibles",
+    "key": "Edibles",
+    "products": 1,
+    "orders": 1,
+    "units": 1,
+    "last_bought_at": 1787768045.925631,
+    "share_of_known_units": 0.5
+   },
+   {
+    "category": "Pre Roll",
+    "key": "Pre Roll",
+    "products": 1,
+    "orders": 1,
+    "units": 1,
+    "last_bought_at": 1787768045.925631,
+    "share_of_known_units": 0.5
+   }
+  ],
+  "category_affinity_unknown": {
+   "products": 0,
+   "orders": 0,
+   "units": 0,
+   "note": null
+  },
+  "brand_affinity": [
+   {
+    "brand": "Hyperwolf",
+    "key": "hyperwolf",
+    "products": 2,
+    "orders": 2,
+    "units": 2,
+    "last_bought_at": 1787768045.925631,
+    "share_of_known_units": 1.0
+   }
+  ],
+  "brand_affinity_unbranded": {
+   "products": 0,
+   "orders": 0,
+   "units": 0,
+   "note": null
+  },
+  "house_brand_default": {
+   "brand": "Hyperwolf",
+   "brand_key": "hyperwolf",
+   "catalogue_products": 0,
+   "catalogue_total": 31,
+   "catalogue_unbranded": 31,
+   "basis": "the owner's stated rule \u2014 first-timers gravitate to the house brand. This is a business rule, not a fact measured from this customer's behaviour.",
+   "unbranded_note": "31 of the 31 catalogue products carry no brand_name at all. They are neither house brand nor another brand, so a house-brand-only ranking cannot see them; that is a coverage limit, not an empty result."
+  },
+  "coverage": {
+   "products": 2,
+   "with_category": 2,
+   "with_brand": 2,
+   "unresolved_products": 0,
+   "note": "a product with no category cannot be ranked by category affinity and a product with no brand cannot be ranked by brand affinity. These counts are what a ranking actually covers; they are not zero-filled."
+  }
+ },
+ "persona": {
+  "available": false,
+  "code": "no_cohort_model",
+  "reason": "There is no persona or cohort model in this estate, and nothing here estimates one. A persona built from what is available today would be a guess presented as a segmentation.",
+  "would_need": [
+   "A cohort definition somebody owns \u2014 what makes two customers 'similar' is a business decision (spend band? category mix? visit cadence? region?), not something to infer from a table.",
+   "Purchase history for enough customers to make a cohort mean anything. It exists: this module reads it. Nobody has ever aggregated it across people, and the aggregate is a second, larger read than this one.",
+   "A rule for the 33-of-149 unbranded and the uncategorised products, which would otherwise fall out of every cohort silently and make each cohort look tidier than it is.",
+   "A decision about cancelled orders and draft-only carts in a cohort \u2014 this module excludes both from purchases, and a cohort model that quietly includes them would disagree with this route about the same customer.",
+   "An honest label on the output: a cohort suggestion is not a personal one, and the UI contract in `ranking_input` (basis_is_default, basis_sentence) would need a third value rather than borrowing either existing one."
+  ],
+  "next_task": "PERSONA COHORTS \u2014 define the cohort key with the owner first, then aggregate this route across customers. Do not approximate it from a single customer's history."
+ },
+ "scan_method": "sqlite json_extract",
+ "truncated": null,
+ "read_ms": 58
+}

@@ -89,7 +89,7 @@
 //
 // PUBLIC SURFACE: window.HW_CHECKIN = { status, board, people, orders, contract,
 //   match(), candidates(), bind(), bindManual(), reject(), handoff(), claim(),
-//   leave(),
+//   unclaim(), leave(),
 //   create(), refresh(), open(), disable(), enable() }.
 // Turn it off: append `?hwcheckin=off`, or run `HW_CHECKIN.disable()`.
 // Point it at one counter: `?hwcounter=corona-counter`.
@@ -310,6 +310,7 @@
   var _candFail = {};         // wm_order_id -> why the candidate pull did not happen
   var _hw = null, _mockCheckins = null, _origCheckinById = null;
   var _origBindFor = null, _origVisitLabel = null;
+  var _origClaim = null, _origUnclaim = null, _histSub = false;
   var _open = false, _busy = false, _msg = null, _msgOk = false;
   var _el = null, _panel = null, _scroll = 0, _tab = 'room';
   var _root = null, _rootEl = null;
@@ -616,11 +617,31 @@
       function (j) { return j.why || ('handed off ' + oid); }).then(after);
   }
 
-  function claim(cid) {
-    var who = W.prompt('Which associate is taking this person?');
+  function claim(cid, who) {
+    // `who` is optional so the counter card can pass the associate it already
+    // knows. It is NOT defaulted: an unattended claim writes a name into the
+    // ledger against a decision nobody made, and this file does not default
+    // decided_by anywhere else either.
+    if (who == null) { who = W.prompt('Which associate is taking this person?'); }
     if (who == null || !String(who).trim()) { return Promise.resolve({ ok: false, why: 'cancelled at the prompt — nothing was sent' }); }
     return act('/api/checkin/state', { checkin_id: cid, claimed_by: String(who).trim() },
       function (j) { return j.why || 'claimed'; }).then(after);
+  }
+
+  // ONE CLICK RELEASES. The approved design's claimed pill is "✕ Unclaim" and
+  // it releases on a single press, so there is no name to collect and no prompt
+  // to cancel — the question "who is releasing this" has no answer the checkins
+  // table can hold (it has one claimed_by column and no ledger), and inventing
+  // a prompt for it would put a modal in front of the one action the design
+  // says costs one tap.
+  //
+  // `unclaim: true` is a WORD, not a blank field. checkin_api._opt turns both
+  // "" and null into "absent" on purpose, so `claimed_by: ''` cannot release
+  // anybody — see store.set_checkin_state's clear_claim. Sending the blank
+  // would silently do nothing and the pill would spring back on the next poll.
+  function unclaim(cid) {
+    return act('/api/checkin/state', { checkin_id: cid, unclaim: true },
+      function (j) { return j.why || 'released'; }).then(after);
   }
 
   function leave(cid) {
@@ -660,8 +681,144 @@
   // checkins table (store.py:199) has no customer type, no fulfilment method,
   // no visit count, no membership flag and no party — so this row asserts none
   // of them. `member:false` means no crown is drawn, not that we checked.
-  function toRow(p) {
+  // WHAT THE PILL IS ALLOWED TO SAY, AND WHY IT IS NOT "1st visit"
+  // ---------------------------------------------------------------
+  // The design's pill reads "1st visit / 2nd visit / 3rd visit". THERE IS STILL
+  // NO VISIT COUNT. The checkins table records arrivals and nothing else, it
+  // has only existed since 2026-08-19, and identity_id is NULL on every arrival
+  // nobody typed one into — so counting rows in it would call a customer of
+  // three years a first-timer, in the exact voice the design uses for a real
+  // first-timer. That is a worse falsehood than `visits unknown`, because it
+  // looks like an answer.
+  //
+  // WHAT DOES EXIST, as of purchase_history.py: how many orders this person has
+  // actually placed and not had cancelled, across EVERY Weedmaps account bound
+  // to them. That is a real number about a real person, and it is not a visit
+  // count — an order is not a walk-in. So the pill prints what it counted:
+  // "5 prior orders", never "5th visit". `label` is computed here, once,
+  // because two screens render this row and a second copy of this wording is
+  // how one of them starts saying "visit".
+  //
+  // The chain is board -> resolved_identity_id -> HW_HISTORY, and every link
+  // can honestly fail: no identity resolved, no bound account, no line data.
+  // Each of those lands on `visits unknown` with the route's own sentence
+  // carried on `why`, never on a zero and never on a 1.
+  // A CAP, FOR THE SAME REASON CAND_CAP EXISTS ABOVE.
+  //
+  // One history is one GET /api/customer/purchase-history, and that route reads
+  // and parses every retained Weedmaps payload for every account bound to the
+  // person — 508 ms for a one-order customer on the repo database, and it is
+  // 461 orders for some. This is a counter screen, not a batch job.
+  //
+  // AND THERE IS A LOOP UNDERNEATH IT. hw-live-history caches 100 entries and
+  // evicts LRU, and this file re-publishes on its `subscribe` callback. Past
+  // 100 resolved people, every publish would miss on the evicted ones, fetch
+  // them, evict the ones it just read, notify, publish, and go round again —
+  // an unbounded request loop kicked off by our own subscription. 40 is under
+  // that cap with room to spare. The board is sorted longest-wait-first, so the
+  // people this cuts off are the ones who just walked in.
+  var HIST_CAP = 40;
+
+  function historyOf(p, index) {
+    var rid = p.resolved_identity_id;
+    if (rid == null) {
+      return { known: false, priorOrders: null, label: 'visits unknown',
+               why: 'nobody in the identity ledger matches this arrival — no '
+                  + 'document, no phone and no name+dob link — so there is no '
+                  + 'history to read. Not "new": unresolved.',
+               state: 'no_identity', identityId: null, identitySource: null };
+    }
+    var base = { known: false, priorOrders: null, label: 'visits unknown',
+                 state: null, identityId: rid,
+                 identitySource: p.identity_source || null };
+    // The cap sits BELOW the no-identity branch on purpose: an unresolved
+    // person costs no request, so capping them would report "we did not look"
+    // about somebody there was nowhere to look for.
+    if (index != null && index >= HIST_CAP) {
+      base.state = 'not_read_cap';
+      base.why = 'this room has more than ' + HIST_CAP + ' people in it and '
+        + 'this seam reads the first ' + HIST_CAP + ' purchase histories, '
+        + 'longest wait first. Nothing was read for this person — which is not '
+        + 'the same as their having bought nothing. Open the check-in panel '
+        + 'for them.';
+      return base;
+    }
+    if (!W.HW_HISTORY || typeof W.HW_HISTORY.get !== 'function') {
+      base.why = 'the purchase-history seam (shared/hw-live-history.js) is not '
+               + 'on this page, so nothing was read.';
+      base.state = 'no_seam';
+      return base;
+    }
+    var d = W.HW_HISTORY.get(rid) || {};
+    base.state = d.state || null;
+    base.why = d.state_reason || '';
+
+    // A COUNT FOUR PEOPLE SHARE IS NOT THIS PERSON'S COUNT.
+    // purchase_history.py refuses outright when it is asked BY a Weedmaps id
+    // that sits on more than one live identity. Asked by IDENTITY it answers,
+    // correctly — the caller named the person — and the orders on a shared
+    // account are counted for each of them. Two of the six people on the live
+    // board resolve, by PHONE, to identities 242 and 246, which both carry wm
+    // customer 16665721 along with 261 and 262; every one of those four would
+    // get "461 prior orders" on their card. The route now says so in
+    // subject.shared_accounts, and this is the seam refusing to render it as a
+    // personal number. `visits unknown` was the honest answer before this fix
+    // and it is still the honest answer here.
+    // ABSENT IS NOT EMPTY. The key only exists on a purchase-history route
+    // that KNOWS about account sharing. An older route emits no such key, and
+    // reading it with `(d.subject || {}).shared_accounts` yields undefined —
+    // which falls straight through to the `history` branch below and prints
+    // the shared count as one person's. That is the exact "461 prior orders on
+    // four strangers' cards" hazard this block was written to close, reopened
+    // by the one response shape the block cannot see.
+    var _subj = d.subject;
+    var _told = !!_subj && Object.prototype.hasOwnProperty.call(
+      _subj, 'shared_accounts');
+    var shared = _told ? _subj.shared_accounts : undefined;
+    if (shared && Object.keys(shared).length) {
+      base.known = false;
+      base.priorOrders = null;
+      base.label = 'shared account';
+      base.state = 'shared_account';
+      base.why = (d.subject.shared_accounts_note || '')
+        + ' So no per-person order count can be shown for them.';
+      return base;
+    }
+
+    if (d.state === 'history' && !_told) {
+      // The route returned a count and said NOTHING about sharing, so we
+      // cannot tell whose count it is. `base` already reads 'visits unknown'.
+      base.why = 'this purchase-history route does not report account sharing, '
+               + 'so the count it returned cannot be shown as one person\'s.';
+      base.state = 'sharing_unknown';
+      return base;
+    }
+    if (d.state === 'history') {
+      var n = num((d.counts || {}).purchase_orders);
+      if (n == null) { return base; }          // a state with no count is not a count
+      base.known = true;
+      base.priorOrders = n;
+      base.label = n + (n === 1 ? ' prior order' : ' prior orders');
+      return base;
+    }
+    if (d.state === 'no_purchases') {
+      // A KNOWN person who has bought nothing. This is the one branch that may
+      // print a zero, because the route measured it — and it still does not say
+      // "1st visit", which would assert they are standing here for the first
+      // time. purchase_history.py refuses to collapse this with `unknown` and
+      // so does this.
+      base.known = true;
+      base.priorOrders = 0;
+      base.label = 'no prior orders';
+      return base;
+    }
+    return base;                               // loading | unknown | unavailable | off
+  }
+
+  function toRow(p, index) {
     var holds = p.holds_wm_order_ids || [];
+    var hist = historyOf(p, index);
+    var staleAfter = (_board && _board.stale && num(_board.stale.after_s)) || null;
     return {
       id: p.id,
       memberId: null,
@@ -681,6 +838,20 @@
       dob: p.dob || null,
       govIdShort: p.gov_id_hash_short || null,
       identityId: p.identity_id == null ? null : p.identity_id,
+      // THE LADDER'S ANSWER, kept apart from the row's own column. `identityId`
+      // is what the checkins row literally says; `resolvedIdentityId` is who
+      // checkin._ci_view reached and `identitySource` is how strong that link
+      // is. Collapsing them would let a phone-strength guess be read as a
+      // document a human scanned.
+      resolvedIdentityId: hist.identityId,
+      identitySource: hist.identitySource,
+      history: hist,
+      // A WAIT NOBODY CLOSED IS NOT A WAIT. `waitSec` stays exactly as
+      // measured; this flag is what lets a card stop drawing a queue timer over
+      // a row that has been 'waiting' since last week. The threshold is the
+      // board's, published, so the screen and the server cannot drift apart.
+      stale: !!p.stale,
+      staleAfterSec: staleAfter,
       locationId: p.location_id || null,
       state: p.state || null,
       holds: holds,
@@ -786,7 +957,7 @@
     // 1. The strip. CONTENTS replaced, array identity kept.
     if (Array.isArray(_hw.CHECKINS)) {
       if (_mockCheckins === null) { _mockCheckins = _hw.CHECKINS.slice(); }
-      var rows = people().map(toRow);
+      var rows = people().map(function (p, i) { return toRow(p, i); });
       _hw.CHECKINS.length = 0;
       rows.forEach(function (r) { _hw.CHECKINS.push(r); });
     }
@@ -870,6 +1041,51 @@
       source: base + '/api/checkin',
       counter: counter || null
     };
+
+    // 7. CLAIM AND RELEASE, POINTED AT THE SERVER.
+    //    pos/data.jsx's claimCheckin writes `claimedBy` on the mock row, which
+    //    is correct for the design build and useless here: publishToHW replaces
+    //    the CONTENTS of CHECKINS on every board read, so a claim held anywhere
+    //    but the checkins table survives until the next poll and then vanishes
+    //    — the associate watches their own claim undo itself. Overriding the
+    //    two handles (never reassigning window.HW) means the card presses one
+    //    button and both builds do the right thing.
+    if (typeof _hw.claimCheckin === 'function' && !_origClaim) {
+      _origClaim = _hw.claimCheckin;
+      _origUnclaim = _hw.unclaimCheckin;
+      _hw.claimCheckin = function (id, who) {
+        if (_status !== 'live') { return _origClaim.call(_hw, id, who); }
+        // `who` IS DELIBERATELY DROPPED ON THE LIVE PATH. The only name the
+        // register can supply is HW.STATS.associate.name — 'Manisha Saini',
+        // one of pos/data.jsx's invented people — because this POS has no
+        // sign-in and no session. Writing that into the checkins table would
+        // put a claim on a real customer in the name of somebody who does not
+        // exist, and it would look exactly like a real one. So the live claim
+        // asks, the same way bind() asks for decided_by and for the same
+        // reason.
+        return claim(id);
+      };
+      _hw.unclaimCheckin = function (id) {
+        if (_status !== 'live') { return _origUnclaim.call(_hw, id); }
+        return unclaim(id);
+      };
+    }
+
+    // 8. A HISTORY THAT LANDS LATER STILL HAS TO REACH THE SCREEN.
+    //    HW_HISTORY.get() is a lazy accessor: the first call returns
+    //    {state:'loading'} and starts the fetch. toRow() therefore builds the
+    //    first board with every pill reading `visits unknown`, and without this
+    //    subscription it would STAY that way — the counts arrive, nothing
+    //    re-reads them, and the screen quietly under-reports every customer it
+    //    can actually name. One subscription, installed once.
+    if (W.HW_HISTORY && typeof W.HW_HISTORY.subscribe === 'function' && !_histSub) {
+      _histSub = true;
+      try {
+        W.HW_HISTORY.subscribe(function () {
+          if (_status === 'live' && _board) { publishToHW(); rerenderIfMounted(); }
+        });
+      } catch (e) { _histSub = false; }
+    }
   }
 
   // When the API stops answering we have to put back what we replaced. The
@@ -1436,6 +1652,7 @@
     reject: reject,
     handoff: handoff,
     claim: claim,
+    unclaim: unclaim,
     leave: leave,
     create: create,
     refresh: function () {
