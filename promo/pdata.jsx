@@ -280,10 +280,13 @@ const PROMO_WM = {
   p9:{ state:'ended',      wm_id:'wm_promo_803' },
 };
 // promos that live ONLY on Weedmaps — no internal counterpart controlling them.
-const WM_ONLY_PROMOS = [
-  { wm_id:'wm_promo_777', name:'420 Flash — Flower', amount:'$10 off Flower', apply:'auto', overlap:true, seenDays:2, redemptions:610 },
-  { wm_id:'wm_promo_612', name:'WM Weekend Vape 15%', amount:'15% off Vapes', apply:'auto', overlap:false, seenDays:9, redemptions:284 },
-];
+// WM_ONLY_PROMOS WAS DELETED, 2026-08-27. It held two hand-written promos
+// carrying `amount:'$10 off Flower'`, `apply`, `overlap` and
+// `redemptions:610` — none of which Weedmaps publishes. The real shape is
+// ApplicableDiscountAttributes: eight fields, none required, NOT ONE of them
+// monetary. It was dead (destructured in pweb/weedmaps.jsx and never read),
+// which is exactly why it was dangerous: invented numbers sitting in a
+// fixture file are what the next person reaches for when they need a fixture.
 // the WM → Hyperwolf → driver → customer order flow (auto unless a human is needed)
 const WM_ORDER_FLOW = [
   { actor:'Weedmaps',  t:'Customer builds a cart',        d:'On the WM marketplace — Pickup or Delivery.' },
@@ -303,53 +306,102 @@ const WM_AUTOMATION = [
   { area:'Promotions',       how:'Internal promos push to WM; WM promos pull back every 60s.', auto:'Exact matches link automatically.', human:'Overlaps & WM-only promos need a decision.' },
 ];
 
-// every Weedmaps promotion + EVERY parameter WM exposes, plus its mapping to our promos.
+// ── Weedmaps promotions: what the published schema ACTUALLY gives us ────────
+// Source of truth: `ApplicableDiscountAttributes` in the Weedmaps OOS OpenAPI
+// spec (a copy sits at qa/wm_oos_openapi_2026-01.json in the wm-demo repo). It
+// declares EIGHT properties and carries NO `required` list, so every one of
+// them may be absent on any given discount:
+//
+//   auto_apply · code_name · description · end_date
+//   legal_disclaimer · prerequisite_customer_type · redemption_details · title
+//
+// NOT ONE OF THEM IS MONETARY. There is no amount, no percent, no discount
+// type, no scope, no target or exclusion list, no stacking rule, no priority,
+// no minimum spend, no usage limit, no redemption count, no revenue and no
+// cost. This array used to carry 25+ fields of exactly that kind — including
+// per-promo revenue and discount cost — under a comment calling it "every
+// parameter WM exposes". They were invented. The comment is why nobody looked.
+//
+// AND NO REAL WEEDMAPS DISCOUNT HAS EVER REACHED THIS CODEBASE. The
+// available_discounts endpoint has answered 200 {"data":[]} for every listing
+// anyone has ever polled. The rows below are SHAPE fixtures, not observations.
+//
+// `element` is deliberately kept as a raw WM JSON:API element, because we do
+// NOT know which shape Weedmaps sends: the spec read literally nests the
+// resource (data[i].data.attributes), while the JSON:API convention it claims
+// to follow does not (data[i].attributes). An empty array discriminates
+// nothing, so nobody can settle it by observation. Both candidate shapes are
+// seeded here so the screen is exercised against both, plus a sparse element
+// (nothing is required), an id-less one (`id` is optional too) and one that is
+// readable as neither. See wmUnwrapDiscount in pweb/weedmaps.jsx and
+// unwrap_discount_element in the sibling wmdemo/promos.py.
+//
+// Everything OUTSIDE `element` is ours, not Weedmaps': which listing we polled,
+// what our own mirror has seen, and what we chose to link it to.
 // mapping.state: mapped (linked to an internal promo) | standalone (intentionally WM-only) | unmapped (needs a decision)
 const WM_PROMOS = [
-  { wm_id:'wm_promo_915', name:'Wax Wednesday — 30% Concentrate', promo_type:'percentage', discount_value:30, discount_unit:'%', display:'30% off', apply:'automatic', code:null,
-    scope:'category', targets:['Concentrate'], excludes:[], min_spend:0, min_items:0, max_discount_cents:4000, stackable:false, priority:5,
-    channel:'both', customer_segment:'all', new_customer_only:false, first_order_only:false,
-    status:'live', start:'2026-06-01', end:null, recurrence:'every Wed', dayparts:'all day', usage_limit:null, per_customer_limit:null,
-    redemptions:1842, revenue_cents:3840000, discount_cost_cents:840000, created_source:'Hyperwolf → WM', external_id:'hyperwolf:promo:WAXWED', wm_menu_ids:['342170487','342170912'], last_synced:'1m ago', created_at:'2026-05-30', updated_at:'2026-07-14',
+  // FLAT shape — the JSON:API convention. All eight attributes present.
+  { row_id:'wmp-1', listing:'342170487', shape_seeded:'flat',
+    element: { type:'available_discount', id:'wm_promo_915', attributes:{
+      title:'Wax Wednesday — Concentrate Deal',
+      code_name:'WAXWED',
+      description:'Weekly concentrate promotion, applied in cart.',
+      auto_apply:true,
+      prerequisite_customer_type:'All customers',
+      end_date:null,
+      redemption_details:'Applied automatically at checkout. One per order.',
+      legal_disclaimer:'Valid at participating locations. Not valid with other offers.' } },
+    mirror:{ state:'live', firstSeen:'2026-05-30', lastSeen:'1m ago' },
     mapping:{ state:'mapped', internal:'Wax Wednesday', internal_id:'p_wax', confidence:1.0 } },
-  { wm_id:'wm_promo_902', name:'Corona Grand Opening 25%', promo_type:'percentage', discount_value:25, discount_unit:'%', display:'25% off', apply:'automatic', code:null,
-    scope:'storewide', targets:[], excludes:['Accessories'], min_spend:0, min_items:0, max_discount_cents:6000, stackable:false, priority:8,
-    channel:'both', customer_segment:'all', new_customer_only:false, first_order_only:false,
-    status:'live', start:'2026-07-06', end:'2026-07-20', recurrence:'none', dayparts:'all day', usage_limit:5000, per_customer_limit:1,
-    redemptions:980, revenue_cents:2610000, discount_cost_cents:610000, created_source:'Hyperwolf → WM', external_id:'hyperwolf:promo:CORONA25', wm_menu_ids:['342170487'], last_synced:'3m ago', created_at:'2026-07-01', updated_at:'2026-07-08',
-    mapping:{ state:'mapped', internal:'Corona Grand Opening', internal_id:'p_corona', confidence:1.0 } },
-  { wm_id:'wm_promo_881', name:'Welcome — $20 Off First Order', promo_type:'fixed', discount_value:20, discount_unit:'$', display:'$20 off', apply:'code', code:'WELCOME20',
-    scope:'storewide', targets:[], excludes:[], min_spend_cents:6000, min_items:0, max_discount_cents:2000, stackable:false, priority:10,
-    channel:'both', customer_segment:'new', new_customer_only:true, first_order_only:true,
-    status:'live', start:'2026-01-01', end:null, recurrence:'evergreen', dayparts:'all day', usage_limit:null, per_customer_limit:1,
-    redemptions:3120, revenue_cents:9654000, discount_cost_cents:2480000, created_source:'Hyperwolf → WM', external_id:'hyperwolf:promo:WELCOME20', wm_menu_ids:['342170487','342170912'], last_synced:'just now', created_at:'2025-12-20', updated_at:'2026-06-02',
+
+  // NESTED shape — the spec read literally. Same eight attributes, wrapped.
+  { row_id:'wmp-2', listing:'342170487', shape_seeded:'nested',
+    element: { jsonapi:{ version:'1.0' }, data:{ type:'available_discount', id:'wm_promo_881', attributes:{
+      title:'Welcome Offer — First Order',
+      code_name:'WELCOME20',
+      description:'Introductory offer for customers ordering for the first time.',
+      auto_apply:false,
+      prerequisite_customer_type:'First time customers',
+      end_date:'2026-12-31T23:59:59Z',
+      redemption_details:'Enter code WELCOME20 at checkout. One per customer.',
+      legal_disclaimer:'First-time customers only. Terms apply.' } } },
+    mirror:{ state:'live', firstSeen:'2025-12-20', lastSeen:'just now' },
     mapping:{ state:'mapped', internal:'Welcome — $20 Off First Order', internal_id:'p_welcome', confidence:1.0 } },
-  { wm_id:'wm_promo_519', name:'Stilo Supply — BOGO Carts', promo_type:'bogo', discount_value:50, discount_unit:'%', display:'B1G1 50% off', apply:'automatic', code:null,
-    scope:'brand', targets:['Stilo Supply'], excludes:[], min_spend:0, min_items:2, max_discount_cents:2500, stackable:false, priority:6,
-    channel:'both', customer_segment:'members', new_customer_only:false, first_order_only:false,
-    status:'live', start:'2026-06-28', end:'2026-07-31', recurrence:'none', dayparts:'all day', usage_limit:null, per_customer_limit:2,
-    redemptions:1204, revenue_cents:4180000, discount_cost_cents:990000, created_source:'Hyperwolf → WM', external_id:'hyperwolf:promo:STILOBOGO', wm_menu_ids:['342170487','342170912'], last_synced:'2m ago', created_at:'2026-06-25', updated_at:'2026-07-10',
-    mapping:{ state:'mapped', internal:'Stilo Supply — BOGO Carts', internal_id:'p_stilo', confidence:0.94 } },
-  { wm_id:'wm_promo_777', name:'420 Flash — Flower', promo_type:'fixed', discount_value:10, discount_unit:'$', display:'$10 off Flower', apply:'automatic', code:null,
-    scope:'category', targets:['Flower'], excludes:[], min_spend:0, min_items:0, max_discount_cents:1000, stackable:true, priority:3,
-    channel:'both', customer_segment:'all', new_customer_only:false, first_order_only:false,
-    status:'live', start:'2026-07-15', end:'2026-07-20', recurrence:'none', dayparts:'4:20pm–7:00pm', usage_limit:null, per_customer_limit:null,
-    redemptions:610, revenue_cents:1430000, discount_cost_cents:610000, created_source:'Weedmaps (native)', external_id:null, wm_menu_ids:['342170487','342170912'], last_synced:'5m ago', created_at:'2026-07-15', updated_at:'2026-07-15',
-    mapping:{ state:'unmapped', internal:null, internal_id:null, confidence:0, overlap:true, overlap_with:'Wax Wednesday' } },
-  { wm_id:'wm_promo_612', name:'WM Weekend Vape 15%', promo_type:'percentage', discount_value:15, discount_unit:'%', display:'15% off Vapes', apply:'automatic', code:null,
-    scope:'category', targets:['Vape'], excludes:[], min_spend:0, min_items:0, max_discount_cents:3000, stackable:false, priority:4,
-    channel:'delivery', customer_segment:'all', new_customer_only:false, first_order_only:false,
-    status:'live', start:'2026-07-01', end:null, recurrence:'every Sat/Sun', dayparts:'all day', usage_limit:null, per_customer_limit:null,
-    redemptions:284, revenue_cents:820000, discount_cost_cents:123000, created_source:'Weedmaps (native)', external_id:null, wm_menu_ids:['342170912'], last_synced:'8m ago', created_at:'2026-06-28', updated_at:'2026-07-05',
-    mapping:{ state:'standalone', internal:null, internal_id:null, confidence:0, note:'Kept WM-only on purpose — Weedmaps-exclusive weekend deal.' } },
-  { wm_id:'wm_promo_803', name:'Summer Kickoff $5', promo_type:'fixed', discount_value:5, discount_unit:'$', display:'$5 off', apply:'code', code:'SUMMER',
-    scope:'storewide', targets:[], excludes:[], min_spend_cents:4000, min_items:0, max_discount_cents:500, stackable:false, priority:2,
-    channel:'both', customer_segment:'all', new_customer_only:false, first_order_only:false,
-    status:'ended', start:'2026-06-01', end:'2026-06-30', recurrence:'none', dayparts:'all day', usage_limit:3000, per_customer_limit:1,
-    redemptions:1204, revenue_cents:3190000, discount_cost_cents:602000, created_source:'Hyperwolf → WM', external_id:'hyperwolf:promo:SUMMER', wm_menu_ids:['342170487'], last_synced:'1h ago', created_at:'2026-05-28', updated_at:'2026-07-01',
-    mapping:{ state:'unmapped', internal:null, internal_id:null, confidence:0, note:'Ended on WM but the internal promo it mirrored was deleted — orphaned link.' } },
+
+  // SPARSE — nothing in ApplicableDiscountAttributes is required. Only a title
+  // arrived. The other seven are absent, and absent is not "No" and not zero.
+  { row_id:'wmp-3', listing:'342170912', shape_seeded:'flat',
+    element: { type:'available_discount', id:'wm_promo_612', attributes:{
+      title:'Weekend Vape Deal' } },
+    mirror:{ state:'live', firstSeen:'2026-06-28', lastSeen:'8m ago' },
+    mapping:{ state:'standalone', internal:null, internal_id:null, confidence:0,
+      note:'Kept WM-only on purpose — Weedmaps-exclusive weekend deal.' } },
+
+  // NO id — `id` is optional on ApplicableDiscount, which requires only `type`
+  // and `attributes`. str(None) as a primary key collapses every id-less
+  // discount into one row; the sibling store keys these as NOID:<listing>:<code>.
+  { row_id:'wmp-4', listing:'342170487', shape_seeded:'flat',
+    element: { type:'available_discount', attributes:{
+      title:'420 Flash — Flower',
+      code_name:null,
+      description:'Limited-time flower promotion.',
+      auto_apply:true,
+      prerequisite_customer_type:'All customers',
+      end_date:'2026-07-20T19:00:00Z',
+      redemption_details:'Applied automatically during the promotional window.',
+      legal_disclaimer:null } },
+    mirror:{ state:'disappeared', firstSeen:'2026-07-15', lastSeen:'2026-07-20' },
+    mapping:{ state:'unmapped', internal:null, internal_id:null, confidence:0, overlap:true,
+      overlap_with:'Wax Wednesday' } },
+
+  // UNREADABLE as either candidate shape. The screen must say so, not blank out.
+  { row_id:'wmp-5', listing:'342170912', shape_seeded:'unreadable',
+    element: { unexpected:'payload' },
+    mirror:{ state:'live', firstSeen:'2026-08-19', lastSeen:'12m ago' },
+    mapping:{ state:'unmapped', internal:null, internal_id:null, confidence:0,
+      note:'Element matched neither candidate shape — parsed nothing, guessed nothing.' } },
 ];
 
 Object.assign(window, { pfmt, CATEGORIES, BRANDS, PRODUCTS, MEMBER_GROUPS, PRODUCT_TYPES, PLATFORMS,
   ENTITIES, REWARDS, RULE, paramDefault, paramText, ruleToPlain, PROMOS, OVERVIEW, METRIC_GROUPS,
-  WM_LISTINGS, WM_REGIONS, WM_STORE, WM_SYNC, PROMO_WM, WM_ONLY_PROMOS, WM_PROMOS, WM_ORDER_FLOW, WM_AUTOMATION });
+  WM_LISTINGS, WM_REGIONS, WM_STORE, WM_SYNC, PROMO_WM, WM_PROMOS, WM_ORDER_FLOW, WM_AUTOMATION });
