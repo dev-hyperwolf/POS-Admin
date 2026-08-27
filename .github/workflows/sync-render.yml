@@ -71,25 +71,86 @@ jobs:
 
       - name: Confirm the two hosts agree
         run: |
-          # The real assertion: same bytes, both hosts. Hashing one representative file
-          # is enough to catch a stale clone, which is the failure mode that happens here.
+          # ⚠️ THIS NO LONGER COMPARES BYTES, AND THAT IS DELIBERATE.
           #
-          # POLL, do not compare once. This step used to fire a single comparison the
-          # moment Render finished -- but GitHub Pages publishes on its OWN schedule and
-          # is often still building then, so a correct deploy reported "hosts serve
-          # different bytes". It did exactly that on 2026-08-26. A check that cries wolf
-          # gets ignored, which is worse than not having it.
+          # It used to shasum this page on both hosts and require equality. That
+          # stopped being the right question when Render started PRECOMPILING the
+          # JSX at deploy time (wm-integration/render.yaml): Render now serves
+          # plain <script src="build/pos/x.<hash>.js"> where Pages, which has no
+          # build step and serves main verbatim, still serves
+          # <script type="text/babel" src="pos/x.jsx">. The two hosts SHOULD
+          # differ in those bytes now, and a check that fails on every single
+          # deploy is a check everybody turns off.
+          #
+          # THE DRIFT QUESTION IS STILL ASKED, in two parts:
+          #   1. STRUCTURE — both hosts must load the same app sources, in the
+          #      same order. Render names each one in data-hw-src, Pages in the
+          #      src of its babel tag, so one extraction reads both. This catches
+          #      a stale clone that is missing a screen, which is the shape the
+          #      six-day drift in August actually had.
+          #   2. CONTENT — Render publishes build/precompiled-sources.txt, the
+          #      sha256 of every .jsx it compiled. We hash one of those files as
+          #      Pages serves it and require the sha to appear. That is a
+          #      STRONGER statement than the old byte compare: it says Render's
+          #      compiled output was built from the exact source Pages is serving.
+          #
+          # Still a poll, for the reason the old comment gave: Pages publishes on
+          # its own schedule and is often still building when Render finishes.
+          PAGES=https://dev-hyperwolf.github.io/POS-Admin
+          RENDER=https://hyperwolf-wm-demo.onrender.com
+          # The extractor lives in a quoted heredoc, not inline in a shell function.
+          # The inline version needed five levels of escaping to get a regex through
+          # YAML -> shell -> python, and produced a SyntaxError that made this step
+          # fail for a reason with nothing to do with drift. A red check that lies
+          # about WHY is barely better than a green one that lies about whether.
+          #
+          # EVERY LINE OF THE HEREDOC CARRIES THIS BLOCK'S INDENT ON PURPOSE. A `run:`
+          # block scalar strips exactly this much; a heredoc body written at column 0
+          # leaves the block and YAML reads `import re, sys` as a new top-level key,
+          # breaking the whole workflow file rather than just this step.
+          cat > /tmp/srclist.py <<'SRCLIST'
+          import re, sys
+          h = sys.stdin.read()
+          # Render, precompiled: the source path rides along on the compiled tag.
+          r = re.findall(r'data-hw-src="([^"]+)"', h)
+          # Pages -- and a Render build that could not precompile -- carry the real thing.
+          if not r:
+              r = re.findall(r'<script[^>]*type="text/babel"[^>]*src="([^"]+)"', h)
+          print(chr(10).join(r))
+          SRCLIST
+          extract() { python3 /tmp/srclist.py; }
           for i in $(seq 1 40); do
-            pages=$(curl -sS -m 20 "https://dev-hyperwolf.github.io/POS-Admin/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
-            render=$(curl -sS -m 20 "https://hyperwolf-wm-demo.onrender.com/Hyperwolf%20POS.html" | shasum -a 256 | cut -d' ' -f1)
-            if [ "$pages" = "$render" ]; then
-              echo "Both hosts serve identical bytes ($pages)."
-              exit 0
+            curl -sS -m 20 "$PAGES/Hyperwolf%20POS.html"  > /tmp/pages.html  || true
+            curl -sS -m 20 "$RENDER/Hyperwolf%20POS.html" > /tmp/render.html || true
+            extract < /tmp/pages.html  > /tmp/pages.list
+            extract < /tmp/render.html > /tmp/render.list
+            if [ -s /tmp/pages.list ] && cmp -s /tmp/pages.list /tmp/render.list; then
+              echo "Both hosts load the same $(wc -l < /tmp/pages.list) app sources, in the same order."
+              break
             fi
-            echo "attempt $i: pages=${pages:0:12} render=${render:0:12} -- waiting for Pages to publish"
+            echo "attempt $i: pages=$(wc -l < /tmp/pages.list) sources, render=$(wc -l < /tmp/render.list) -- waiting for Pages to publish"
             sleep 15
+            if [ "$i" = "40" ]; then
+              echo "::error::the two hosts do not load the same app sources after 10 minutes."
+              diff /tmp/pages.list /tmp/render.list || true
+              exit 1
+            fi
           done
-          echo "::error::hosts still serve different bytes after 10 minutes."
-          echo "::error::pages=$pages"
-          echo "::error::render=$render"
-          exit 1
+
+          # Content spot-check. Absent only when Render could not precompile --
+          # render.yaml says so out loud in that case and stamps it onto the page,
+          # so this reports rather than fails.
+          if curl -sSf -m 20 "$RENDER/build/precompiled-sources.txt" -o /tmp/sources.txt; then
+            want=$(curl -sS -m 20 "$PAGES/pos/data.jsx" | shasum -a 256 | cut -d" " -f1)
+            if grep -q "^$want  pos/data.jsx$" /tmp/sources.txt; then
+              echo "Render compiled pos/data.jsx from exactly the bytes Pages serves ($want)."
+            else
+              echo "::error::Render's build of pos/data.jsx does not match the copy Pages serves."
+              echo "::error::pages sha=$want"
+              grep " pos/data.jsx$" /tmp/sources.txt || echo "::error::render has no record of pos/data.jsx at all"
+              exit 1
+            fi
+          else
+            echo "::warning::Render is serving a NON-PRECOMPILED build (no build/precompiled-sources.txt)."
+            echo "::warning::The pages still transform their JSX in the browser. See the Render build log."
+          fi

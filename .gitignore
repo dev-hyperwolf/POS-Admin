@@ -33,3 +33,12 @@ probe/
 # mirrors 1:1 to GitHub Pages. Ignore the shape so a third does not.
 indow.*
 *,+[0-9]*p
+
+# ── Deploy-time precompiled JSX ───────────────────────────────────────────
+# tools/precompile.mjs writes build/** and rewrites the HTML entry points so
+# the deployed pages ship plain JS instead of running @babel/standalone in the
+# browser. NONE OF IT IS EVER COMMITTED, and that is the point: compiled output
+# that outlives its source is this project's favourite defect, and the only
+# way it cannot go stale is if it is never reused. It is produced from a fresh
+# clone inside the Render build (wm-integration/render.yaml) and dies with it.
+build/

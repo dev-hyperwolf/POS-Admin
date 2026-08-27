@@ -3,11 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Hyperwolf POS-Admin. The apps are browser-transformed JSX with no build step; this package.json exists only so the hand-written plain-JS in shared/ can be tested under node.",
+  "description": "Hyperwolf POS-Admin. The apps are JSX with no build step FOR DEVELOPMENT: locally and on GitHub Pages the browser still transforms them, so editing a .jsx and reloading is the whole loop. The DEPLOYED copy is precompiled — tools/precompile.mjs runs the same @babel/standalone transform at deploy time so the browser never loads a compiler. Nothing compiled is ever committed.",
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "precompile": "node tools/precompile.mjs",
+    "precompile:deploy": "HW_PRECOMPILE_IN_PLACE_OK=1 node tools/precompile.mjs --in-place && node tools/precompile-verify.mjs"
   },
   "devDependencies": {
+    "@babel/standalone": "7.29.0",
     "esbuild": "^0.24.2",
     "jsdom": "^26.1.0",
     "react": "^18.3.1",
