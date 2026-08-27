@@ -473,9 +473,20 @@ function MatchLane({ items, bindOf, onBind, onMatch, onOpen }) {
                 <Icon name="info" size={12} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
                 <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>{bind.boardWhy || 'Nobody in the room is a plausible match — search the customer book or check them in from the order.'}</span>
               </div>}
+              {/* ONE ACTION, AND IT NAMES THE SCAN.
+                  These were TWO buttons -- "Search" and "Check in & bind" --
+                  wired to the SAME handler, onMatch(o). Identical behaviour
+                  presented as a choice, so an operator picked between two
+                  things that did one thing.
+                  It also led with Search, which is backwards at a counter: the
+                  guest is standing there holding the document, the in-store ID
+                  scan happens every time, and the barcode carries the name and
+                  date of birth that identify them. Scanning binds the order to
+                  a real person AND captures the verification in one step;
+                  typing a name does neither. The check-in modal this opens now
+                  leads with the scanner, so the button says so. */}
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                <PBtn variant="secondary" size="xs" icon="search" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Search</PBtn>
-                <PBtn variant="soft" size="xs" icon="user-plus" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Check in &amp; bind</PBtn>
+                <PBtn variant="soft" size="xs" icon="scan" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onMatch(o)}>Scan ID &amp; bind</PBtn>
               </div>
               </div>
             </div>);

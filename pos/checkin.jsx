@@ -209,6 +209,38 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   const [newOpen, setNewOpen] = React.useState(false);
   const [nf, setNf] = React.useState({ name: '', phone: '', email: '', dob: '', gender: '', street: '', city: '', state: 'CA', zip: '' });
   const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v }));
+  // THE SCAN IS THE WAY IN. Everything below it is a fallback.
+  //
+  // This modal opened on a search box. That is backwards for a dispensary
+  // counter: the guest is standing there holding the document, an in-store ID
+  // scan happens 100% of the time at every store, and the PDF417 barcode
+  // already carries the legal name and date of birth. Typing a name to find
+  // someone whose ID you are about to scan anyway is the slow path presented
+  // as the main one -- and it captures no verification, so the same person
+  // would later be sent through Didit for a delivery they should never be
+  // asked to re-verify for.
+  //
+  // ONE SCAN DOES FOUR THINGS: identifies the guest (name + dob is tier 2 on
+  // the identity ladder), captures document-backed verification, fills the new
+  // -customer form if there is no match, and decides new-vs-returning without
+  // asking the operator a question they cannot answer yet.
+  const onCheckInScan = (d) => {
+    if (!d) return;
+    if (d.returning && d.memberId) {
+      const m = (window.HW.MEMBERS || []).find((x) => x.id === d.memberId);
+      if (m) { setCustomer(Object.assign({}, m, { doc: d })); setNewOpen(false); return; }
+    }
+    // No match: this is a new guest, and the barcode has already typed the
+    // form for us. Open it PRE-FILLED rather than blank -- re-typing what the
+    // scan just read is the waste the scanner exists to remove.
+    setNf((prev) => Object.assign({}, prev, {
+      name: d.name || prev.name,
+      dob: d.dob || prev.dob,
+      doc: d,
+    }));
+    setNewOpen(true);
+  };
+
   const createNew = () => {
     if (!nf.name.trim()) return;
     setCustomer({ id: 'new', name: nf.name.trim(), email: nf.email || '—', phone: nf.phone || '—', points: 0, type, member: false, gender: nf.gender, address: nf });
@@ -247,6 +279,21 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
               </div> :
 
             <>
+                {/* PRIMARY: the same scanner the member module uses. Not a
+                    different control, not a copy -- window.IdScanPanel, so the
+                    two flows cannot drift apart. */}
+                {window.IdScanPanel ?
+                  <div style={{ marginBottom: 11 }}>
+                    <window.IdScanPanel value={nf.doc} onChange={onCheckInScan} />
+                    <div style={{ fontSize: 11, color: P.inkDim, marginTop: 7, lineHeight: 1.45, textAlign: 'center' }}>
+                      Scanning identifies the guest and captures their ID in one step. A match resumes their record; no match starts a new one with the name and date of birth already filled.
+                    </div>
+                  </div> : null}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 0 10px' }}>
+                  <div style={{ flex: 1, height: 1, background: P.hairline2 }} />
+                  <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', color: P.inkMute }}>OR FIND THEM MANUALLY</span>
+                  <div style={{ flex: 1, height: 1, background: P.hairline2 }} />
+                </div>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 9 }}>
                   <Field icon="search" placeholder="Search by name, e-mail or phone" value={q} onChange={(e) => setQ(e.target.value)} size="md" />
                   <PBtn variant={newOpen ? 'accent' : 'soft'} size="md" icon="user-plus" onClick={() => setNewOpen((o) => !o)}>New</PBtn>
