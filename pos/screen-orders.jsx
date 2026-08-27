@@ -55,27 +55,59 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
           <PBtn variant="accent" icon="plus" size="md" onClick={onStartSale}>New Sale</PBtn>
         </div>} />
       {wmMapOpen && <WmStatusMapModal onClose={() => setWmMapOpen(false)} />}
-      {/* Dev orientation: the two things about this queue that are not
-          visible from the rows themselves. */}
+      {/* Dev orientation: what this queue does that is not visible from the
+          rows themselves — how retries are paced, what is deliberately
+          serialised, and where the gates actually live. */}
+      {/* TONE STAYS 'gap', AND THE TITLE NAMES WHICH GAP. The cross-order
+          stall this note used to be about IS fixed, and it was retoned to
+          'info' on that basis — which silently removed the KNOWN GAP badge
+          (dev-note.jsx renders it for tone='gap' only) from a note whose first
+          paragraph still promised the operator something that does not exist:
+          a way to requeue a permanently-failed push. There is no
+          /api/fulfillment/requeue route and no control on any screen;
+          fulfillment.requeue() has zero shipping callers. Until that is wired,
+          this screen keeps the one visual marker that says something here is
+          unfinished, and the sentence below says plainly what it costs. */}
       <DevNote id="orders-gates-and-queue" tone="gap"
-               title="Status pushes retry forever; a stuck oldest row blocks the ones behind it">
+               title="Status pushes retry forever and no longer block each other — but a permanently failed push cannot be requeued from any screen">
         <DevNoteP>
           Every stage change queues an outbound push to Weedmaps. Those pushes
           are retried by a background loop, not by your click &mdash; so a push
           that failed is not lost, and you do not need to tap another stage to
           make it move. Weedmaps answers 403 on a large share of pushes today;
           403 is treated as a statement about the <b>integration</b>, not about
-          the order, so it stays pending and is retried. 400/404/409/410/422 are
-          permanent and leave the pool until a human requeues them.
+          the order, so it stays pending and is retried.
         </DevNoteP>
         <DevNoteP>
-          <b>The known hole:</b> the drain selects the oldest pending rows by id,
-          so while the head keeps failing, the rows behind it are never
-          attempted. The queue looks tended and is not. The fix is a per-row
-          <DevNoteMono>next_attempt_at</DevNoteMono> in <DevNoteMono>wm_status_queue</DevNoteMono> so a
-          backed-off row drops out of the selection &mdash; not yet built. The
-          loop refuses to hide it: a stalled pass logs how many rows are stuck
-          behind the head.
+          <b>The gap:</b> 400/404/409/410/422 are treated as permanent and the
+          row leaves the retry pool. Putting one back is deliberately a human
+          decision &mdash; but there is <b>no button for it</b>. The server
+          function exists (<DevNoteMono>fulfillment.requeue()</DevNoteMono>) and
+          nothing calls it: no route, no control here. Today a permanently
+          failed push can only be revived by someone with direct database
+          access. If you are reading this because a status never reached
+          Weedmaps and the strip above shows it under <i>permanently failed</i>,
+          that is the reason, and it needs an engineer.
+        </DevNoteP>
+        <DevNoteP>
+          <b>One failing order no longer stalls the others.</b> A push that
+          fails sets a per-row <DevNoteMono>next_attempt_at</DevNoteMono> on its
+          <DevNoteMono>wm_status_queue</DevNoteMono> row (about 30s, doubling to
+          a hard 5-minute ceiling &mdash; each wait is shortened by up to 10% so
+          a batch that failed together does not come due together), so it drops
+          out of the next selection and the rows behind it get their turn.
+          Before this, the drain reclaimed the same oldest rows every pass and
+          everything behind the head was never attempted at all.
+        </DevNoteP>
+        <DevNoteP>
+          <b>Still true, and on purpose:</b> pushes for the <i>same</i> order are
+          serialised. A row is not attempted while an older undelivered row for
+          that order still exists, so an order whose first push is backed off
+          will not have its later status delivered early &mdash; otherwise
+          Weedmaps could accept <DevNoteMono>COMPLETE</DevNoteMono> and then
+          <DevNoteMono>IN_PROGRESS</DevNoteMono> and show &ldquo;Store is
+          preparing your order&rdquo; on an order the customer already collected.
+          So a stuck order still lags; the other orders no longer wait for it.
         </DevNoteP>
         <DevNoteP>
           Verification gates are enforced server-side, not here: pickup handoff
@@ -85,6 +117,13 @@ window.OrdersScreen = function OrdersScreen({ onStartSale }) {
           again.
         </DevNoteP>
       </DevNote>
+
+      {/* The queue's own health, from GET /api/fulfillment/board. Deliberately
+          ABOVE the tabs: it is a fact about every order on this screen, pickup
+          and delivery alike, and it is the only thing that distinguishes "the
+          drain has nothing to do" from "every push is sitting out a backoff".
+          Renders nothing at all when there is no live server to ask. */}
+      <QueueHealthStrip />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, flexWrap: 'wrap' }}>
         <Seg value={tab} onChange={setTab} size="lg" options={[
@@ -1046,6 +1085,122 @@ function useHolds() {
   }, []);
   return HOLDS;
 }
+
+// ── THE OUTBOUND STATUS QUEUE, ON A SCREEN ────────────────────────────────
+//
+// WHY THIS EXISTS AT ALL. wm_status_queue grew a per-row `next_attempt_at`, and
+// with it queue_summary() grew `deferred` (pending rows serving a backoff) and
+// `ready_now` (pending rows that are due AND not held behind an older push for
+// the same order). GET /api/fulfillment/board has served both since the day
+// they were written. NOTHING RENDERED EITHER ONE. `ready_now` had zero readers
+// anywhere in shipping code — not a route, not a loop, not a line of JSX.
+//
+// That is this repo's signature defect ("built, tested, never wired"), and the
+// number matters more than most: after the fix, the ordinary steady state of a
+// queue Weedmaps is refusing is a drain pass that attempts NOTHING, because
+// every row is waiting out its own backoff. On a screen — and in a log — that
+// is indistinguishable from an empty queue. `undelivered` alone cannot tell
+// the operator which one they are looking at. deferred + ready_now can.
+//
+// SAME FOUR STATES AS THE HOLD FEED ABOVE, for the same reason: 'error' is not
+// 'empty'. A queue we could not ask about must never render as a quiet queue —
+// that is precisely the "looks tended, is not" failure the drain loop and this
+// strip both exist to end. Read-only GET, off HW_LIVE.base, exactly like
+// /api/orders/held; every WRITE on this screen still goes through HW_LIVE.post.
+const QBOARD = { state: 'off', q: null, error: null, at: 0, seq: 0 };
+const _qboardSubs = new Set();
+function qboardPing() {QBOARD.seq++;_qboardSubs.forEach((f) => {try {f(QBOARD.seq);} catch (e) {}});}
+function loadQueueBoard(force) {
+  const base = holdsBase();
+  if (base == null) {
+    if (QBOARD.state !== 'off') {QBOARD.state = 'off';QBOARD.q = null;QBOARD.error = null;qboardPing();}
+    return;
+  }
+  if (!force && (QBOARD.state === 'loading' ||
+  QBOARD.state === 'live' && Date.now() - QBOARD.at < 15000)) return;
+  QBOARD.state = 'loading';qboardPing();
+  // limit=1 keeps the per-stage order LISTS down to one row each. The counts
+  // this strip reads are exact over the whole table regardless of the cut
+  // (fulfillment.board() counts separately from what it lists), so asking for
+  // the default 100 rows per stage would be a much larger payload for exactly
+  // the same four numbers.
+  fetch(base + '/api/fulfillment/board?limit=1', { credentials: 'omit', cache: 'no-store' }).
+  then((r) => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))).
+  then((j) => {
+    const q = j && j.queue;
+    if (!q || typeof q.undelivered !== 'number' || typeof q.deferred !== 'number' ||
+    typeof q.ready_now !== 'number') {
+      // A board that answered without the counts is a SHAPE change, not a
+      // healthy empty queue. Rendering zeros here would invent the one fact
+      // this strip is for.
+      throw new Error('the board answered without deferred/ready_now');
+    }
+    QBOARD.q = q;QBOARD.error = null;QBOARD.state = 'live';QBOARD.at = Date.now();qboardPing();
+  }).
+  catch((e) => {
+    QBOARD.q = null;QBOARD.error = e && e.message || 'the queue board did not answer';
+    QBOARD.state = 'error';QBOARD.at = Date.now();qboardPing();
+  });
+}
+function useQueueBoard() {
+  const [, bump] = React.useState(0);
+  React.useEffect(() => {
+    _qboardSubs.add(bump);loadQueueBoard();
+    // 20s: slower than the server's own 30s drain cadence would let a change
+    // sit on screen for a full pass, faster than that is polling for its own
+    // sake. loadQueueBoard's 15s freshness window is what actually rate-limits
+    // this, so a second mount does not double the request rate.
+    const t = setInterval(() => loadQueueBoard(), 20000);
+    return () => {_qboardSubs.delete(bump);clearInterval(t);};
+  }, []);
+  return QBOARD;
+}
+// The four numbers, in the one sentence an operator can act on. `held` is the
+// remainder deliberately — undelivered minus the two named buckets — so the
+// pills always add up to `undelivered` even if the server grows a fifth
+// category. A number this strip cannot explain shows up in `held` rather than
+// silently vanishing from the total.
+window.QueueHealthStrip = function QueueHealthStrip() {
+  const P = useP();
+  const B = useQueueBoard();
+  if (B.state === 'off') return null;          // mock board: no server to ask
+  const box = { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+    marginBottom: 14, padding: '9px 13px', background: P.surface,
+    border: `1px solid ${P.hairline2}`, borderRadius: P.r12 };
+  const head = <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>
+      <Icon name="send" size={13} stroke={2} />Weedmaps status queue</span>;
+  if (B.state === 'loading') {
+    return <div style={box}>{head}<Pill kind="ghost" dot>Asking the queue…</Pill></div>;
+  }
+  if (B.state === 'error') {
+    return <div style={box}>{head}
+      <Pill kind="bad" dot>Queue state not known</Pill>
+      <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{B.error}</span>
+    </div>;
+  }
+  const q = B.q || {};
+  const undelivered = q.undelivered || 0;
+  const deferred = q.deferred || 0;
+  const ready = q.ready_now || 0;
+  const held = Math.max(0, undelivered - deferred - ready);
+  if (!undelivered) {
+    return <div style={box}>{head}<Pill kind="good" dot>Nothing waiting to reach Weedmaps</Pill>
+      <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{q.sent || 0} delivered · {q.failed || 0} permanently failed</span>
+    </div>;
+  }
+  return <div style={box}>{head}
+    <Pill kind="warn" dot>{undelivered} push{undelivered === 1 ? '' : 'es'} not yet delivered</Pill>
+    <Pill kind={ready ? 'info' : 'neutral'} dot>{ready} ready now</Pill>
+    {/* The pill that stops "the queue attempted nothing" reading as "the
+        queue is empty". It is the normal picture during a 403 outage, not an
+        alarm, so it is neutral — the alarm is `failed`. */}
+    <Pill kind="neutral" dot>{deferred} waiting out a retry backoff</Pill>
+    {held > 0 && <Pill kind="neutral" dot>{held} behind an older push for the same order, or in flight</Pill>}
+    {(q.failed || 0) > 0 && <Pill kind="bad" dot>{q.failed} permanently failed</Pill>}
+    <div style={{ flex: 1 }} />
+    <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>retried by the server, not by your click</span>
+  </div>;
+};
 // True only for a row the API served. A mock row is not "not held" — it has no
 // server to be held by.
 function isLiveOrder(o) {return !!(o && o._live);}

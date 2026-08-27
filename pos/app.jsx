@@ -18,6 +18,34 @@ const useP = window.useP,useTheme = window.useTheme;
   NAV.all = NAV.items.concat([NAV.settings]);
 })();
 
+// ── Cities tab registration (pos/screen-city-listing.jsx) ────────────────
+// Same rule as Brands directly above: MUTATE window.HW_NAV.items IN PLACE.
+// Reassigning window.HW_NAV would leave shared/app-rail.jsx and
+// shared/app-switcher.js pointing at the old object.
+(function () {
+  var NAV = window.HW_NAV;
+  if (!NAV || !Array.isArray(NAV.items)) { return; }
+  if (NAV.items.some(function (i) { return i.id === 'cities'; })) { return; }
+  var at = NAV.items.findIndex(function (i) { return i.id === 'brands'; });
+  NAV.items.splice(at < 0 ? NAV.items.length : at + 1, 0,
+    { id: 'cities', label: 'Cities', icon: 'map-pin', pos: 'cities' });
+  NAV.all = NAV.items.concat([NAV.settings]);
+})();
+
+// ── Publish gate tab registration (pos/screen-publish-gate.jsx) ───────────
+// Same rule as Brands directly above: MUTATE window.HW_NAV.items IN PLACE.
+// Reassigning window.HW_NAV would leave shared/app-rail.jsx and
+// shared/app-switcher.js pointing at the old object.
+(function () {
+  var NAV = window.HW_NAV;
+  if (!NAV || !Array.isArray(NAV.items)) { return; }
+  if (NAV.items.some(function (i) { return i.id === 'publish-gate'; })) { return; }
+  var at = NAV.items.findIndex(function (i) { return i.id === 'brands'; });
+  NAV.items.splice(at < 0 ? NAV.items.length : at + 1, 0,
+    { id: 'publish-gate', label: 'Publish gate', icon: 'shield', pos: 'publish-gate' });
+  NAV.all = NAV.items.concat([NAV.settings]);
+})();
+
 const USER = { name: 'Manisha Saini', role: 'Floor Manager' };
 
 function App() {
@@ -42,6 +70,16 @@ function App() {
   if (route === 'brands') screen = window.BrandsScreen ? <window.BrandsScreen /> :
     <ErrorState title="The Brands screen did not load"
       body="pos/screen-brands.jsx defines window.BrandsScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
+  // Guarded the same way Brands is, and for the same reason: a dropped script
+  // tag must name the missing file rather than white-screening the whole app.
+  if (route === 'publish-gate') screen = window.PublishGateScreen ? <window.PublishGateScreen /> :
+    <ErrorState title="The Publish gate screen did not load"
+      body="pos/screen-publish-gate.jsx defines window.PublishGateScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
+  // Guarded the same way, and for the same reason: a dropped script tag must
+  // name the missing file rather than white-screening the whole app.
+  if (route === 'cities') screen = window.CityListingScreen ? <window.CityListingScreen /> :
+    <ErrorState title="The Cities screen did not load"
+      body="pos/screen-city-listing.jsx defines window.CityListingScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   if (route === 'members') screen = <MembersScreen />;else
   if (route === 'merch') screen = <window.MerchScreen />;else
   if (route === 'settings') screen = <SettingsScreen />;else

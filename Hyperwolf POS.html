@@ -131,6 +131,12 @@
 <!-- Brands: our brand DB <-> Weedmaps' brand DB. Upstream of product mapping,
      because Weedmaps serves products per brand. -->
 <script type="text/babel" src="pos/screen-brands.jsx"></script>
+<script type="text/babel" src="pos/screen-publish-gate.jsx"></script>
+<!-- Cities: our regions -> ONE Weedmaps listing per city, two rooms behind it.
+     Loads after pos/atoms.jsx and pos/dev-note.jsx because it renders with the
+     shared atoms and the DevNote atoms — never a per-screen Mono, which threw
+     "Mono is not defined" and blanked a screen. -->
+<script type="text/babel" src="pos/screen-city-listing.jsx"></script>
 <script type="text/babel" src="pos/app.jsx"></script>
 <script src="shared/app-switcher.js"></script>
 <script src="shared/tour-steps.js"></script>
