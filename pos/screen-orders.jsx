@@ -338,6 +338,56 @@ function CheckInCard({ c, onStartSale }) {
   const [confirm, setConfirm] = React.useState(false);
   const [failed, setFailed] = React.useState('');
   const first = c.name.split(' ')[0];
+  // ══ THE CLAIM HAS TO OUTLIVE THE POLL ══════════════════════════════════════
+  //
+  // This card's footer read "Claim & start sale" / "Claimed by X" and called
+  // onStartSale and NOTHING ELSE. `claimedBy` was a state this card could paint
+  // and no click here could ever produce: the label flipped only if some other
+  // surface had written the claim. And there was no way back — no Unclaim on
+  // this screen at all, so a person claimed by mistake stayed claimed.
+  //
+  // It is written through window.HW.claimCheckin / unclaimCheckin (pos/data.jsx),
+  // which shared/hw-live-checkin.js re-points at POST /api/checkin/state. That
+  // indirection is the whole point on the live board: publishToHW replaces the
+  // CONTENTS of HW.CHECKINS on every read, so a claim held in component state
+  // survives until the next poll and then vanishes — the associate watches their
+  // own claim undo itself with nothing on screen explaining why.
+  //
+  // Same handles, same refusal handling and same wording as the register strip
+  // (pos/screen-register.jsx). Deliberately not a second approach: two
+  // implementations of one behaviour is exactly the defect that let this
+  // screen's wait format drift away from the seam's.
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+  // The signed-in associate, or null. There is no auth on this POS: the only
+  // notion of "who is at this till" is HW.STATS.associate, real on the design
+  // build and pos/data.jsx's invented person on any other. Used for the word
+  // "You" and for the name a mock claim records — the live seam asks instead.
+  const me = (window.HW.STATS && window.HW.STATS.associate && window.HW.STATS.associate.name) || null;
+  // A REFUSAL IS AN ANSWER AND HAS TO BE VISIBLE. The server refuses a release
+  // by name — a person still holding a bag cannot be released. Dropping that on
+  // the floor makes the button look broken instead of guarded.
+  const run = (fn, then) => {
+    // A MISSING HANDLE IS A SENTENCE, NOT A STACK TRACE.
+    if (typeof fn !== 'function') {
+      setErr('claim/unclaim is not wired on this page (window.HW.claimCheckin '
+        + 'is missing), so nothing was recorded.');
+      return;
+    }
+    setBusy(true); setErr(null);
+    Promise.resolve(fn()).then((r) => {
+      if (r && r.ok === false) { setErr((r.why || 'refused') + ''); return; }
+      if (then) then();
+    }).catch((e) => setErr(String((e && e.message) || e)))
+      .then(() => setBusy(false));
+  };
+  // THE SALE ONLY STARTS IF THE CLAIM WAS RECORDED. The old button promised
+  // both and delivered only the sale; promising both and delivering only the
+  // sale when the server REFUSED the claim would be worse.
+  const claimAndStart = () => run(
+    window.HW.claimCheckin && (() => window.HW.claimCheckin(c.id, me)),
+    onStartSale);
+  const unclaim = () => run(window.HW.unclaimCheckin && (() => window.HW.unclaimCheckin(c.id)));
   const remove = () => {
     // The X means "this person is not here any more" (the note above), so the
     // outcome is 'left' and is recorded as such. This used to call
@@ -372,8 +422,17 @@ function CheckInCard({ c, onStartSale }) {
         </div>}
       {failed && <div style={{ margin: '0 13px 10px', fontSize: 10, fontWeight: 600, color: P.bad }}>{failed}</div>}
       <div style={{ padding: '0 13px 9px', display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 10px', fontSize: 11.5 }}>
-        {[['Type', c.type], ['Method', c.delivery], ['Wait', c.wait]].map(([k, v]) =>
-        <React.Fragment key={k}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink2, fontWeight: 600, textAlign: 'right', fontFamily: k === 'Wait' ? P.fontMono : P.fontSans }}>{v}</span></React.Fragment>
+        {/* THE WAIT, IN THE ONE FORMAT (shared/hw-wait.js). This printed `c.wait`
+            raw, which is the seam's '0h 2m 11s' shape — fine for a two-minute
+            wait and unreadable at '188h 12m 33s', which is what four check-ins
+            left in state `waiting` since 2026-08-19 actually rendered on the
+            live board. `stale` is the board's own flag with the board's own
+            published threshold; the elapsed number is NOT adjusted, because it
+            is the evidence that nobody closed the row. */}
+        {[['Type', c.type], ['Method', c.delivery],
+          ['Wait', window.HW_WAIT.shortWait(c.waitSec) + (c.stale ? ' · stale' : '')],
+          ...(claimed ? [['Claimed', me && c.claimedBy === me ? 'You' : c.claimedBy.split(' ')[0]]] : [])].map(([k, v]) =>
+        <React.Fragment key={k}><span style={{ color: P.inkMute }}>{k}</span><span title={k === 'Wait' && c.stale ? `waiting since ${new Date(Date.now() - c.waitSec * 1000).toLocaleString()} — past the board's ${Math.round((c.staleAfterSec || 0) / 3600)}h threshold, so this is a row nobody closed, not a customer at the counter` : ''} style={{ color: k === 'Wait' && c.stale ? P.inkFaint : P.ink2, fontWeight: 600, textAlign: 'right', fontFamily: k === 'Wait' ? P.fontMono : P.fontSans }}>{v}</span></React.Fragment>
         )}
       </div>
       {/* Party — add guest to this existing check-in */}
@@ -382,9 +441,25 @@ function CheckInCard({ c, onStartSale }) {
           <Icon name="user-plus" size={13} stroke={2} />{guests.length > 0 ? `Party of ${1 + guests.length} · edit` : 'Add guest to check-in'}
         </button>
       </div>
-      <button data-hw-i onClick={onStartSale} style={{ width: '100%', padding: '10px', background: claimed ? P.surface3 : P.ink, color: claimed ? P.ink : P.surface, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: '0 0 11px 11px' }}>
-        {claimed ? <><Icon name="check" size={14} stroke={2.5} />Claimed by {c.claimedBy.split(' ')[0]}</> : <>Claim & start sale<Icon name="arrow-right" size={14} stroke={2.2} /></>}
-      </button>
+      {err && <div role="alert" style={{ margin: '0 13px 9px', fontSize: 10.5, color: P.bad, background: P.badSoft, borderRadius: P.r10, padding: '6px 9px', fontFamily: P.fontMono, lineHeight: 1.4 }}>{err}</div>}
+      {/* UNCLAIM REPLACES THE CLAIM, exactly as on the register strip: a card
+          that is NOT claimed offers one control that takes the customer, and a
+          card that IS claimed offers the sale plus a one-press release. No
+          confirmation on the release — the register's approved design says that
+          action costs one tap, and putting a modal in front of it here would
+          make the same button behave differently on two screens. */}
+      {claimed ?
+      <div style={{ display: 'flex', borderTop: `1px solid ${P.hairline}` }}>
+          <button data-hw-i disabled={busy} onClick={onStartSale} title={`Open ${first}'s sale`} style={{ flex: 1, minHeight: P.ctrlH.md, padding: '10px', background: P.ink, color: P.surface, border: 'none', fontSize: 12.5, fontWeight: 700, cursor: busy ? 'progress' : 'pointer', opacity: busy ? 0.6 : 1, fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: '0 0 0 11px' }}>
+            Start sale<Icon name="arrow-right" size={14} stroke={2.2} />
+          </button>
+          <button disabled={busy} onClick={unclaim} title={`Release ${c.claimedBy} from this customer`} style={{ flex: '0 0 auto', minHeight: P.ctrlH.md, padding: '10px 13px', background: P.surface3, color: P.inkMute, border: 'none', borderLeft: `1px solid ${P.hairline}`, fontSize: 12.5, fontWeight: 700, cursor: busy ? 'progress' : 'pointer', opacity: busy ? 0.6 : 1, fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: '0 0 11px 0' }}>
+            <Icon name="x" size={13} stroke={2.3} />Unclaim
+          </button>
+        </div> :
+      <button data-hw-i disabled={busy} onClick={claimAndStart} title={`Take ${first} and open their sale`} style={{ width: '100%', minHeight: P.ctrlH.md, padding: '10px', background: P.ink, color: P.surface, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 12.5, fontWeight: 700, cursor: busy ? 'progress' : 'pointer', opacity: busy ? 0.6 : 1, fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: '0 0 11px 11px' }}>
+        Claim & start sale<Icon name="arrow-right" size={14} stroke={2.2} />
+      </button>}
 
       {open &&
       <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 80, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fade .15s ease' }}>
@@ -2025,7 +2100,7 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
     sale: (p) => !!p.was,
     highthc: (p) => p.thc != null && p.thc >= 70,
     instock: (p) => p.qty > 20,
-    highmgn: (p) => p.margin >= 0.5
+    highmgn: (p) => typeof p.margin === 'number' && p.margin >= 0.5
   };
   const cats = ['All', ...window.HW.CATS.filter((c) => c !== 'Deals')];
   let rows = all.filter((p) =>
@@ -2121,7 +2196,14 @@ function AddItemPanel({ P, fmt, draft, onAdd }) {
   const smartChips = [
     ...(window.HWSwap ? [['fororder', 'For this order']] : []),
     ['under10', 'Under $10'], ['sale', 'On sale'], ['highthc', 'High THC'],
-    ['instock', 'In stock'], ['highmgn', 'High margin'],
+    ['instock', 'In stock'],
+    // ⚠️ "High margin" IS PRESENT ONLY WHILE A MARGIN EXISTS. It used to read
+    // p.margin, which pos/data.jsx derived from the SKU's character codes; that
+    // is gone and there is no cost of goods in this estate to replace it with.
+    // Same rule as 'For this order' one line up — a chip that is always there
+    // and sometimes matches nothing is worse than one that is honestly absent.
+    // It returns by itself the moment a real cost is entered on batch receipt.
+    ...(all.some((p) => typeof p.margin === 'number' && isFinite(p.margin)) ? [['highmgn', 'High margin']] : []),
   ];
 
   return (

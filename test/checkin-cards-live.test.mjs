@@ -325,3 +325,133 @@ test('a route that does not report sharing must not yield a per-person count', a
       'the shared 461-order total is on a card: ' + txt);
   }, { fetch: serve(undefined, OLD) });
 });
+
+/* ═══ THE CLAIM ACTUALLY LEAVES THE BROWSER ════════════════════════════════
+ *
+ * THE GAP THIS CLOSES, stated as the mutation that used to survive: change
+ *
+ *     if (typeof _hw.claimCheckin === 'function' && !_origClaim) {
+ *   to
+ *     if (false) {
+ *
+ * in shared/hw-live-checkin.js step 7 and the entire suite stayed green. That
+ * override is the ONLY thing that points HW.claimCheckin at the server; with it
+ * gone the live build falls back to pos/data.jsx's mock, which writes
+ * `claimedBy` onto the row object the seam published. The pill flips, the
+ * associate is satisfied, nothing is recorded — and the next board read
+ * replaces the CONTENTS of HW.CHECKINS and the claim silently disappears.
+ * Every other check-in test drove the mock handles or asserted on rendered
+ * text, so not one of them could tell the two builds apart.
+ *
+ * So this asserts on the WIRE and then on the state the SERVER reports back:
+ * a POST to /api/checkin/state carrying this check-in's id, and a pill still
+ * reading Unclaim after HW_CHECKIN.refresh() has thrown away every local row
+ * and rebuilt them from the board.
+ */
+
+/** serve(), plus a writable /api/checkin/state that mutates its own board copy
+ *  and records what was posted. The board is a deep copy per call, so a write
+ *  here cannot leak into the read-only tests above. */
+function serveWritable() {
+  const board = JSON.parse(JSON.stringify(BOARD));
+  const posts = [];
+  const inner = serve(board);
+  const okJson = (body) => Promise.resolve({
+    ok: true, status: 200, statusText: 'OK', url: '',
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+  });
+  const fn = (url, init) => {
+    const u = String(url);
+    const method = String((init && init.method) || 'GET').toUpperCase();
+    if (method === 'POST' && /\/api\/checkin\/state/.test(u)) {
+      let body = {};
+      try { body = JSON.parse((init && init.body) || '{}'); } catch (e) { body = {}; }
+      posts.push({ url: u, body });
+      const p = board.people.find((x) => x.id === body.checkin_id);
+      if (!p) return okJson({ ok: false, why: 'no such check-in ' + body.checkin_id });
+      // `unclaim: true` is a WORD, not a blank field — checkin_api._opt turns
+      // '' and null into "absent", so a blank claimed_by releases nobody. This
+      // stub honours that distinction, or it would not be testing the thing the
+      // seam is careful about.
+      if (body.unclaim === true) { p.claimed_by = null; return okJson({ ok: true, why: 'released' }); }
+      if (body.claimed_by) { p.claimed_by = body.claimed_by; return okJson({ ok: true, why: 'claimed' }); }
+      return okJson({ ok: false, why: 'nothing to change' });
+    }
+    return inner(url, init);
+  };
+  fn.stop = inner.stop;
+  fn.posts = posts;
+  fn.board = board;
+  return fn;
+}
+
+/** The claim/unclaim control on the live strip card for this person. */
+const pillFor = (app, name) => {
+  const body = [...app.document.querySelectorAll('button')]
+    .find((b) => (b.getAttribute('title') || '') === `Open ${name}'s cart`);
+  assert.ok(body, `no live strip card for ${name}`);
+  return [...body.parentElement.querySelectorAll('button')].find((b) => b !== body);
+};
+
+const untilPill = async (app, name, expect) => {
+  for (let i = 0; i < 80; i++) {
+    const p = pillFor(app, name);
+    if (p && expect.test(p.textContent || '')) return p;
+    await app.settle();
+  }
+  assert.fail(`the pill for ${name} never matched ${expect} — it reads: `
+    + (pillFor(app, name) || {}).textContent);
+};
+
+test('a claim on the LIVE strip is POSTed, and survives a board refresh', async () => {
+  const fetchFn = serveWritable();
+  await withApp('pos', async (app) => {
+    // The live claim ASKS who is taking the customer and deliberately drops the
+    // name the register could supply: HW.STATS.associate is one of
+    // pos/data.jsx's invented people, and writing that against a real customer
+    // would look exactly like a real claim. So a person answers, here too.
+    app.window.prompt = () => 'QA Associate';
+    await liveRegister(app);
+
+    const WHO = 'Dane Whitfield';   // the one unambiguous name on this board
+    const row = app.window.HW.CHECKINS.find((c) => c.name === WHO);
+    assert.ok(row && !row.claimedBy, `${WHO} did not start unclaimed`);
+
+    const pill = pillFor(app, WHO);
+    assert.match(pill.textContent, /Claim/);
+    assert.doesNotMatch(pill.textContent, /Unclaim/);
+
+    pill.dispatchEvent(new app.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await untilPill(app, WHO, /Unclaim/);
+
+    // 1. IT LEFT THE BROWSER. Under the `if (false)` mutation the mock handle
+    //    runs instead and this array is empty, however convincing the pill is.
+    const writes = fetchFn.posts.filter((p) => p.body.checkin_id === row.id);
+    assert.equal(writes.length, 1,
+      `the claim sent ${writes.length} writes to /api/checkin/state, not 1`);
+    assert.match(writes[0].url, /\/api\/checkin\/state$/);
+    assert.equal(writes[0].body.claimed_by, 'QA Associate',
+      'the POST did not carry the name the person actually gave');
+
+    // 2. THE SERVER HOLDS IT. refresh() re-reads the board and rebuilds every
+    //    row from scratch, so anything kept only in component state is gone by
+    //    the time this returns — which is exactly how the real claim vanished.
+    await app.window.HW_CHECKIN.refresh();
+    await untilPill(app, WHO, /Unclaim/);
+    assert.equal(app.window.HW.CHECKINS.find((c) => c.name === WHO).claimedBy,
+      'QA Associate', 'the claim did not survive the board refresh');
+
+    // 3. AND THE RELEASE IS A WRITE TOO, with the word `unclaim`, not a blank.
+    pillFor(app, WHO).dispatchEvent(
+      new app.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await untilPill(app, WHO, /^Claim$/);
+    const rel = fetchFn.posts.filter((p) => p.body.checkin_id === row.id
+      && p.body.unclaim === true);
+    assert.equal(rel.length, 1, 'the release never reached /api/checkin/state');
+    await app.window.HW_CHECKIN.refresh();
+    await untilPill(app, WHO, /^Claim$/);
+    assert.equal(app.window.HW.CHECKINS.find((c) => c.name === WHO).claimedBy, null,
+      'the release did not survive the board refresh');
+  }, { fetch: fetchFn });
+});

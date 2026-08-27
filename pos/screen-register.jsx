@@ -50,9 +50,15 @@ window.RegisterScreen = function RegisterScreen() {
   const [showDetails, setShowDetails] = React.useState(false); // member-details dropdown
   const [chipView, setChipView] = React.useState('bar'); // claimed-customer layout: bar | detailed | compact
   const [toast, setToast] = React.useState(null);
-  // "For this ticket" — engine ranking over the product grid. See `rankRecs`.
+  // "Pairs with cart" — engine ranking over the product grid. See `rankRecs`.
+  // (It was labelled "For this ticket". Same control, same behaviour, same
+  // state; the word "ticket" meant nothing to anyone who had not read the code.)
   const [rankOn, setRankOn] = React.useState(false);
   const [rankBasis, setRankBasis] = React.useState(null);
+  // "Suggested" — ranking over the PERSON rather than the ticket. See
+  // window.HWSuggestBasis in pos/screen-cart.jsx for what it is allowed to
+  // claim, and why that is so much less than the label would let you assume.
+  const [suggestOn, setSuggestOn] = React.useState(false);
 
   const t = tickets[active] || tickets[0];
   const customer = t ? t.person : null;
@@ -449,12 +455,51 @@ window.RegisterScreen = function RegisterScreen() {
     return m;
   }, [rankRecs]);
 
+  /* ── "Suggested" — the PERSON, not the ticket ────────────────────────────
+   *
+   * The whole of this chip's honesty lives in `basis.line`, which is rendered
+   * as visible text every single time the chip is on. The chip says
+   * "Suggested"; the screen says WHAT PRODUCED THE ORDER — a first visit, a
+   * returning customer we know nothing about, a record with no visit count at
+   * all, or (when something ever defines HW.purchaseHistory) real history.
+   * Those are different claims and they must not render identically.
+   *
+   * `basis.ranks === false` means DO NOT MOVE THE GRID. It is reached whenever
+   * the basis found nothing to lift — on the mock catalogue, always, because
+   * not one of its 24 products carries the house brand. A lit chip over an
+   * untouched grid with no sentence would read as a ranking that worked.
+   *
+   * Unlike `rankRecs` this is NOT frozen at chip-on, and it does not need to
+   * be: it is derived from the CUSTOMER and the catalogue, neither of which
+   * moves when the cashier taps a tile. The freeze next door exists because
+   * that ranking is derived from the cart.
+   */
+  const suggestBasis = React.useMemo(() => {
+    if (!suggestOn || !window.HWSuggestBasis) return null;
+    return window.HWSuggestBasis.resolve({ customer, catalogue: products.filter((p) => p.active) });
+  }, [suggestOn, customer, products]);
+
+  const suggestReason = React.useMemo(() => {
+    const m = new Map();
+    if (suggestBasis && suggestBasis.ranks) {
+      suggestBasis.skus.forEach((sku) => m.set(sku, suggestBasis.reason));
+    }
+    return m;
+  }, [suggestBasis]);
+
   // ORDER, never filter. Filtering the grid down to three tiles would empty the
   // catalogue the cashier is mid-search in. Ranked tiles rise; everything else
   // keeps catalogue order beneath them (stable sort, equal keys).
   if (rankOn && rankRecs && rankRecs.length) {
     const rk = new Map(rankRecs.map((r, i) => [r.p.sku, i]));
     const at = (p) => rk.has(p.sku) ? rk.get(p.sku) : Number.MAX_SAFE_INTEGER;
+    list = list.slice().sort((a, b) => at(a) - at(b));
+  }
+  // Same rule for the person-based lift, and the same stable sort. The two
+  // chips are mutually exclusive (see their onClick), so these never compose.
+  if (suggestBasis && suggestBasis.ranks) {
+    const sk = new Map(suggestBasis.skus.map((sku, i) => [sku, i]));
+    const at = (p) => sk.has(p.sku) ? sk.get(p.sku) : Number.MAX_SAFE_INTEGER;
     list = list.slice().sort((a, b) => at(a) - at(b));
   }
   // Is anything the cashier can SEE ranked? Search and the category chips still
@@ -486,14 +531,14 @@ window.RegisterScreen = function RegisterScreen() {
         </div>
         {customer &&
         <div style={{ padding: '11px 22px', background: P.canvas, borderTop: `1px solid ${P.hairline2}` }}>
-            <CustomerChip customer={customer} guests={guests} setGuests={setGuests} onClear={() => {openVisit(null, []);setShowDetails(false);}} detailsOpen={showDetails} onToggleDetails={() => setShowDetails((o) => !o)} view="detailed"
+            <window.CustomerChip customer={customer} guests={guests} setGuests={setGuests} onClear={() => {openVisit(null, []);setShowDetails(false);}} detailsOpen={showDetails} onToggleDetails={() => setShowDetails((o) => !o)} view="detailed"
             tickets={tickets} onStartTicket={startTicket} hasTicket={hasTicket} onPickTicket={setActive} activeTicket={active} />
           </div>}
       </div>
 
       {/* Member-details dropdown — directly underneath the check-in queue */}
       {customer && showDetails &&
-      <MemberDetails customer={customer} guests={guests} onClose={() => setShowDetails(false)} />}
+      <window.MemberDetails customer={customer} guests={guests} onClose={() => setShowDetails(false)} />}
 
 
       {/* Split body */}
@@ -505,10 +550,19 @@ window.RegisterScreen = function RegisterScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
               <ProductSearch q={q} setQ={setQ} onScan={() => flash('Scanner ready — scan a barcode')} />
               <div style={{ flex: '0 0 auto' }}><BrandFilter products={products} brands={brands} setBrands={setBrands} /></div>
+              {/* TWO CHIPS, TWO DIFFERENT QUESTIONS. "Suggested" is about the
+                  PERSON; "Pairs with cart" is about what is already on the
+                  ticket. They are mutually exclusive because two orderings
+                  applied to one grid is one ordering nobody can account for. */}
+              {window.HWSuggestBasis &&
+              <button onClick={() => {setSuggestOn((o) => !o);setRankOn(false);}} title="Rank the grid for this customer. The line under the chips says which basis was used."
+                style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 40, padding: '0 13px', borderRadius: P.r999, border: `1px solid ${suggestOn ? P.ink : P.hairline2}`, background: suggestOn ? P.ink : P.surface, color: suggestOn ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+                <Icon name="user" size={13} stroke={2} />Suggested
+              </button>}
               {canRank &&
-              <button onClick={() => setRankOn((o) => !o)} title="Rank the grid for what is already on this ticket"
+              <button onClick={() => {setRankOn((o) => !o);setSuggestOn(false);}} title="Rank the grid for what is already on this ticket"
                 style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 40, padding: '0 13px', borderRadius: P.r999, border: `1px solid ${rankOn ? P.ink : P.hairline2}`, background: rankOn ? P.ink : P.surface, color: rankOn ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
-                <Icon name="sparkle" size={13} stroke={2} />For this ticket
+                <Icon name="sparkle" size={13} stroke={2} />Pairs with cart
               </button>}
               <span style={{ flex: '0 0 auto', width: 1, height: 22, background: P.hairline2, margin: '0 1px' }} />
               {['All', ...window.HW.CATS].map((c) => {
@@ -532,8 +586,17 @@ window.RegisterScreen = function RegisterScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 2px 8px', fontSize: P.type.micro, fontWeight: 700, color: P.accentText }}>
               <Icon name="sparkle" size={11} stroke={2} />{rankedHere ? 'Best match first' : 'No ranking — catalogue order'}
             </div>}
+            {/* THE BASIS, IN WORDS, EVERY TIME. The chip only says "Suggested".
+                This line is the part that cannot be got wrong: it names what
+                actually produced the order, and it says so identically whether
+                the answer was flattering or was "we know nothing about this
+                person and this catalogue has no house brand in it". */}
+            {suggestBasis &&
+            <div data-hw-suggest-basis={suggestBasis.kind} style={{ display: 'flex', alignItems: 'flex-start', gap: 5, padding: '0 2px 8px', fontSize: P.type.micro, fontWeight: 700, color: suggestBasis.ranks ? P.accentText : P.inkMute, lineHeight: 1.45 }}>
+              <Icon name="user" size={11} stroke={2} /><span>{suggestBasis.line}</span>
+            </div>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(252px,1fr))', gap: 10 }}>
-              {list.map((p) => <ProductRow key={p.sku} p={p} inCart={cart.find((c) => c.sku === p.sku)?.qty} why={rankOn ? rankReason.get(p.sku) : null} onAdd={() => {add(p);flash(p.name + ' added');}} />)}
+              {list.map((p) => <ProductRow key={p.sku} p={p} inCart={cart.find((c) => c.sku === p.sku)?.qty} why={rankOn ? rankReason.get(p.sku) : suggestReason.get(p.sku) || null} onAdd={() => {add(p);flash(p.name + ' added');}} />)}
             </div>
             {list.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: P.inkMute }}>No products match</div>}
           </div>
@@ -623,7 +686,11 @@ function RibMetric({ P, icon, label, value, sub, accent }) {
 // ── Customer chip — reflects the party captured at CHECK-IN. Managing the party
 // here edits the check-in record, and a guest can be spun out onto their own
 // ticket when they're buying for themselves. ───────────────────────────────
-function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onToggleDetails, view = 'bar',
+// On `window` for the same reason MemberDetails is: its 'detailed' view prints
+// FIVE money/standing figures beside a named customer (points, visits, avg
+// order, wallet, lifetime), two of which were an arithmetic identity over
+// visits and points. A test that cannot mount it cannot see them.
+window.CustomerChip = function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onToggleDetails, view = 'bar',
   tickets = [], onStartTicket, hasTicket, onPickTicket, activeTicket = 0 }) {
   const P = useP();
   const [open, setOpen] = React.useState(false);
@@ -633,8 +700,26 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
   const tierColor = tier === 'Platinum' ? P.info : tier === 'Gold' ? goldInk : tier === 'Silver' ? P.neutral : P.warn;
   // Same derivation the details panel uses for avg basket, so the rail and the
   // expanded panel can never disagree about what this customer spends.
-  const chipLifetime = Math.round((customer.visits || 0) * 58 + (customer.points || 0) * 0.42);
-  const chipAov = chipLifetime / Math.max(1, customer.visits || 1);
+  // ── "LIFETIME $464" AND "AVG ORDER $93" WERE AN ARITHMETIC IDENTITY ───────
+  //
+  // 🔴 This read:
+  //     const chipLifetime = Math.round(visits * 58 + points * 0.42);
+  //     const chipAov      = chipLifetime / Math.max(1, visits);
+  // Two constants, 58 and 0.42, over a visit count and a loyalty balance. No
+  // order was consulted. They render as the "Lifetime" and "Avg order" stat
+  // cards on the register's customer chip — the two figures a budtender uses to
+  // decide whether to comp, upgrade or push a bigger basket, printed in 21px
+  // mono beside a named person's face.
+  //
+  // WHAT IS REAL: HW.ORDERS. It is the same treatment pos/screen-stubs.jsx
+  // already applies to this exact pair of numbers on the customer profile, and
+  // this chip is the copy that was missed — 'not recorded' when this customer
+  // has no order on the book, because a blank prompts a question and a
+  // plausible number does not.
+  const chipOrders = (window.HW.ORDERS || []).filter((o) => o.name === customer.name);
+  const chipLifetime = chipOrders.reduce((a, o) => a + (+o.total || 0), 0);
+  const chipHasSpend = chipOrders.length > 0;
+  const chipAov = chipHasSpend ? chipLifetime / chipOrders.length : null;
 
   /* ⚠️ THE SECOND "Clear" ON THE SCREEN — AND THE EXPENSIVE ONE.
    *
@@ -701,10 +786,12 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
     // Option A — stat cards. Each number gets an icon, a 19px mono numeral and
     // a sub-line that turns it into a sentence. Phone is contact detail, not a
     // metric, so it sits with the name and the freed room buys Lifetime spend.
-    const seed = (customer.name || '').length + (customer.visits || 1);
-    const pick = (arr) => arr[seed % arr.length];
-    const since = pick(['Mar 2022', 'Jul 2023', 'Nov 2021', 'Jan 2024', 'Sep 2022']);
-    const lastVisit = pick(['2 days ago', 'yesterday', '5 days ago', 'last week']);
+    // ⚠️ `since` AND `lastVisit` WERE PICKED OUT OF A LIST BY name.length.
+    // "Member since Mar 2022" and "last · 5 days ago" are facts about a person,
+    // and there is no created-at and no visit timestamp on a member record to
+    // read either off. They are null, and the sub-lines below say what the card
+    // actually knows instead of dressing a hash as a date.
+    const lastVisit = customer.lastVisitAt || null;
     const ready = (window.HW.REWARDS || []).filter((r) => !r.bday && customer.points >= r.cost).sort((a, b) => b.value - a.value)[0];
     const nextR = (window.HW.REWARDS || []).filter((r) => !r.bday && customer.points < r.cost).sort((a, b) => a.cost - b.cost)[0];
     // A guest spun onto their own ticket usually has no history — say so instead
@@ -742,13 +829,17 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
         <SCard hl icon="star" label="Points" value={customer.points.toLocaleString()}
         sub={ready ? `${ready.label} ready to redeem` : nextR ? `${nextR.cost - customer.points} to ${nextR.label}` : 'earning'}
         subColor={ready ? goldInk : P.inkMute} />
-        <SCard icon="user-check" label="Visits" value={fresh ? 1 : customer.visits} sub={fresh ? 'first visit today' : `last · ${lastVisit}`} />
-        <SCard icon="chart-line" label="Avg order" value={fresh ? '—' : window.HW.fmt.money(chipAov)} valColor={fresh ? P.inkMute : P.ink} sub={fresh ? 'no orders yet' : `over ${customer.visits} order${customer.visits === 1 ? '' : 's'}`} />
+        <SCard icon="user-check" label="Visits" value={fresh ? 1 : customer.visits} sub={fresh ? 'first visit today' : lastVisit ? `last · ${lastVisit}` : 'last visit not recorded'} />
+        <SCard icon="chart-line" label="Avg order" value={chipAov == null ? '—' : window.HW.fmt.money(chipAov)}
+        valColor={chipAov == null ? P.inkMute : P.ink}
+        sub={fresh && !chipHasSpend ? 'no orders yet' : chipHasSpend ? `over ${chipOrders.length} order${chipOrders.length === 1 ? '' : 's'} on the book` : 'no order on the book'} />
         <SCard icon="wallet" label="Wallet" value={window.HW.fmt.money(customer.wallet || 0)}
         valColor={customer.wallet > 0 ? P.good : P.inkMute}
         sub={customer.wallet > 0 ? 'store credit available' : 'no credit on account'}
         subColor={customer.wallet > 0 ? P.good : P.inkMute} />
-        <SCard icon="cash" label="Lifetime" value={fresh ? '$0' : window.HW.fmt.money0(chipLifetime)} valColor={fresh ? P.inkMute : P.ink} sub={fresh ? 'new customer' : `since ${since}`} />
+        <SCard icon="cash" label="Lifetime" value={chipHasSpend ? window.HW.fmt.money0(chipLifetime) : fresh ? '$0' : 'not recorded'}
+        valColor={chipHasSpend ? P.ink : P.inkMute}
+        sub={fresh && !chipHasSpend ? 'new customer' : chipHasSpend ? `${chipOrders.length} order${chipOrders.length === 1 ? '' : 's'} on the book` : 'no order on the book to total'} />
         {/* Actions */}
         <div style={{ flex: '0 0 106px', display: 'flex', flexDirection: 'column', gap: 5, justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}>
           <button onClick={onToggleDetails} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px 9px', background: detailsOpen ? P.surface3 : P.surface, color: P.ink2, border: `1px solid ${detailsOpen ? P.hairline3 : P.hairline2}`, borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, minHeight: 30 }}>
@@ -842,7 +933,7 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
       </>}
     </div>);
 
-}
+};
 
 // ── Ticket tabs — only exist once a party has more than one ticket ─────────
 function TicketTabs({ tickets, active, onPick, onDrop, totalOf }) {
@@ -1029,8 +1120,8 @@ function WaitRow({ c, active, onPick }) {
         {(c.guests || []).slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -9, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={22} /></span>)}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}<VisitPill visit={c.visit} />{c.guests && c.guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '0 6px', borderRadius: 99 }}>+{c.guests.length}</span>}</div>
-        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{claimed ? `Claimed · ${c.claimedBy.split(' ')[0]}` : c.type} · {c.wait}</div>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}<VisitPill visit={c.visit} history={c.history} />{c.guests && c.guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '0 6px', borderRadius: 99 }}>+{c.guests.length}</span>}</div>
+        <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{claimed ? `Claimed · ${c.claimedBy.split(' ')[0]}` : c.type} · {c.stale ? `${window.HW_WAIT.shortWait(c.waitSec)} · stale` : c.wait}</div>
       </div>
       <Icon name="arrow-right" size={15} color={P.inkFaint} />
     </button>);
@@ -1038,25 +1129,133 @@ function WaitRow({ c, active, onPick }) {
 }
 
 // Visit number badge — 1st / 2nd / 3rd (capped)
-function VisitPill({ visit }) {
+//
+// AND WHAT IT SAYS WHEN THERE IS NO VISIT COUNT. `visit` is a real ordinal on
+// the design build (pos/data.jsx CHECKINS) and is null on every live check-in,
+// because the checkins table records arrivals and has no visit count in it.
+// The pill used to render "visits unknown" for all four live cards and there
+// was nothing else it could honestly say.
+//
+// There is now something else. A live row carries `history`, built by
+// shared/hw-live-checkin.js from the check-in's RESOLVED identity and
+// GET /api/customer/purchase-history: how many orders this person has actually
+// placed and not had cancelled, across every Weedmaps account bound to them.
+// That is a real number and it IS NOT A VISIT COUNT — an order placed on a
+// phone is not a walk-in — so the pill prints what was counted, "5 prior
+// orders", and never promotes it to "5th visit". `history.label` is computed in
+// one place, in the seam, so the two screens that render this row cannot drift
+// into two different words for one number.
+//
+// Everything else still reads `visits unknown`: no identity resolved, no bound
+// Weedmaps account, no line data, history still loading. Those are four
+// different facts and none of them is "first-timer".
+function VisitPill({ visit, history }) {
   const P = useP();
+  // NO COUNT MEANS NO COUNT, and this pill decides that for itself.
+  //
+  // It used to fall through to window.HW.visitLabel(visit), and pos/data.jsx's
+  // visitLabel opens with `n = n || 1` — so a row carrying NO visit count
+  // rendered "1st visit", a confident claim about a stranger. The live seam
+  // patches that by wrapping visitLabel, which means the honesty of this pill
+  // depended on a seam being loaded: with the seam absent, or its board
+  // unreachable, or a row arriving from anywhere else, the fabricated "1st
+  // visit" came straight back. The check is here now, ahead of that call.
+  if (visit == null) {
+    const known = !!(history && history.known);
+    if (!history) {
+      return <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.02em', color: P.inkDim, background: P.neutralSoft, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontFamily: P.fontSans }}>visits unknown</span>;
+    }
+    return <span title={history.why || ''} style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.02em', color: known ? P.ink2 : P.inkDim, background: P.neutralSoft, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontFamily: P.fontSans, opacity: known ? 1 : 0.85 }}>{history.label || 'visits unknown'}</span>;
+  }
   const ord = window.HW.visitOrdinal(visit);
   const fg = ord === 1 ? P.inkDim : ord === 2 ? P.info : P.ink;
   const bg = ord === 1 ? P.neutralSoft : ord === 2 ? P.infoSoft : P.highlightSoft;
   return <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.02em', color: fg, background: bg, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontFamily: P.fontSans }}>{window.HW.visitLabel(visit)}</span>;
 }
 
+// ── how long they have been standing there ─────────────────────────────────
+// THE LADDER LIVES IN shared/hw-wait.js AND NOWHERE ELSE, and this screen calls
+// it inline as `window.HW_WAIT.shortWait(...)`. It is deliberately NOT aliased
+// to a top-level `const shortWait` here: Babel compiles a top-level binding in
+// a <script type="text/babel"> to a global, and pos/screen-orders.jsx renders
+// the same timer — two aliases would collide into one and we would be back to
+// last-file-wins. The reason there is a shared file at all is written up there:
+// this screen's ladder and the check-in seam's disagreed on the same number, on
+// the same screen, at the same moment.
+//
+// The OTHER half of the fix stays here, because it is a rendering decision and
+// not a format: `stale` (published by the board, threshold and all) says the
+// row is not a live wait at all, so the card draws it in a dead tone with the
+// word on it instead of an urgent one. Neither half adjusts `waitSec`. The
+// number is real and stays real.
+
+// ── the check-in queue cards ───────────────────────────────────────────────
+// APPROVED DESIGN: "Option 1 — Unclaim Replaces the Pill Button". A card that
+// is NOT claimed shows "Claim →" in the ink tone. A card that IS claimed shows
+// "✕ Unclaim" in a muted tone, and one press releases it — no second icon, no
+// confirmation. Tapping the card BODY (avatar / name / pills) opens the cart,
+// in both states.
+//
+// WHAT WAS THERE BEFORE. The whole card was inert except the bottom button,
+// which read "Claim" or "Resume" and did the SAME THING in both states: call
+// onPick. It recorded nothing. `claimedBy` had four occurrences in this
+// application and every one was a read, so "claimed" was a state the UI could
+// display and no click could ever produce — and the Unclaim half of the
+// approved design had nothing to read and no way to write.
+//
+// THE CLAIM HAS TO OUTLIVE THE POLL. It is written through
+// window.HW.claimCheckin / unclaimCheckin, which the live seam re-points at
+// POST /api/checkin/state (shared/hw-live-checkin.js step 7). Holding it in
+// component state would work perfectly until the next board read replaced the
+// contents of HW.CHECKINS, at which point the associate would watch their own
+// claim undo itself with nothing on screen explaining why.
 function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
   const P = useP();
   const checkins = window.HW.CHECKINS;
-  const shortWait = (c) => c.waitSec >= 60 ? `${Math.floor(c.waitSec / 60)}m` : `${c.waitSec}s`;
+  const [busy, setBusy] = React.useState(null);
+  const [err, setErr] = React.useState(null);
+  // The signed-in associate, or null. There is no auth on this POS: the only
+  // notion of "who is at this till" is HW.STATS.associate, which is real on the
+  // design build and is pos/data.jsx's invented person on any other. It is used
+  // for the word "You" and for the name a mock claim records — never sent to
+  // the server, which asks (shared/hw-live-checkin.js step 7).
+  const me = (window.HW.STATS && window.HW.STATS.associate && window.HW.STATS.associate.name) || null;
+
+  // A REFUSAL IS AN ANSWER AND HAS TO BE VISIBLE. The server refuses a release
+  // by name — a person still holding a bag cannot be released, because that
+  // leaves the bag bound to a customer with no associate against them. Dropping
+  // that on the floor would make the button look broken instead of guarded.
+  const run = (id, fn) => {
+    // A MISSING HANDLE IS A SENTENCE, NOT A STACK TRACE. claimCheckin /
+    // unclaimCheckin live on window.HW (pos/data.jsx) and are re-pointed at the
+    // server by the live seam. If a page ever loads this screen without them,
+    // the associate should read why the button did nothing — an uncaught
+    // TypeError here just makes a working-looking button inert.
+    if (typeof fn !== 'function') {
+      setErr('claim/unclaim is not wired on this page (window.HW.claimCheckin '
+        + 'is missing), so nothing was recorded.');
+      return;
+    }
+    setBusy(id); setErr(null);
+    Promise.resolve(fn()).then((r) => {
+      if (r && r.ok === false) setErr((r.why || 'refused') + '');
+    }).catch((e) => setErr(String((e && e.message) || e)))
+      .then(() => setBusy(null));
+  };
+
   return (
+    <div>
+    {err && <div role="alert" style={{ fontSize: 11, color: P.bad, background: P.badSoft, borderRadius: P.r10, padding: '6px 9px', marginBottom: 6, fontFamily: P.fontMono }}>{err}</div>}
     <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
       {checkins.map((c) => {
         const claimed = !!c.claimedBy;const active = c.name === activeName;
+        const working = busy === c.id;
         return (
           <div key={c.id} style={{ flex: '0 0 auto', width: 188, border: `1px solid ${active ? P.ink : P.hairline2}`, borderRadius: P.r12, overflow: 'hidden', background: P.surface }}>
-            <div style={{ padding: '7px 10px 6px' }}>
+            {/* THE CARD BODY OPENS THE CART. A div with onClick is not
+                reachable from a keyboard, and this is the primary action on the
+                screen, so it is a real button styled flat. */}
+            <button onClick={() => onPick(c)} title={`Open ${c.name}'s cart`} style={{ display: 'block', width: '100%', padding: '7px 10px 6px', background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', fontFamily: P.fontSans }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <div style={{ position: 'relative', flex: '0 0 auto' }}>
                   <Avatar name={c.name} size={34} crown={c.member} />
@@ -1065,40 +1264,101 @@ function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}{c.guests && c.guests.length > 0 ? <span style={{ color: P.inkMute, fontWeight: 600 }}> +{c.guests.length}</span> : ''}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                    <VisitPill visit={c.visit} />
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, color: claimed ? P.inkMute : P.warn, fontFamily: P.fontMono }}><Icon name="clock" size={10} stroke={2} />{shortWait(c)}</span>
-                    {claimed && <span style={{ marginLeft: 'auto', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>· {c.claimedBy.split(' ')[0]}</span>}
+                    <VisitPill visit={c.visit} history={c.history} />
+                    {/* A stale row is drawn dead, never urgent. The elapsed time
+                        is still shown, because it is the evidence that the row
+                        was abandoned. */}
+                    <span title={c.stale ? `waiting since ${new Date(Date.now() - c.waitSec * 1000).toLocaleString()} — past the board's ${Math.round((c.staleAfterSec || 0) / 3600)}h threshold, so this is a row nobody closed, not a customer at the counter` : ''} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, color: c.stale ? P.inkFaint : claimed ? P.inkMute : P.warn, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}><Icon name="clock" size={10} stroke={2} />{window.HW_WAIT.shortWait(c.waitSec)}{c.stale ? ' · stale' : ''}</span>
+                    {/* The approved design reads "· You" on the card the
+                        logged-in associate holds, and their colleague's first
+                        name on anyone else's. It says "You" only when the name
+                        on the claim IS this associate's — never as a default,
+                        because on a build with no sign-in there is nobody for
+                        "You" to mean. */}
+                    {claimed && <span style={{ marginLeft: 'auto', fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>· {me && c.claimedBy === me ? 'You' : c.claimedBy.split(' ')[0]}</span>}
                   </div>
                 </div>
               </div>
-            </div>
-            <button onClick={() => onPick(c)} style={{ width: '100%', minHeight: P.ctrlH.md, padding: '5px 10px', background: claimed ? P.surface3 : P.ink, color: claimed ? P.ink : P.surface, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              {claimed ? 'Resume' : 'Claim'}<Icon name="arrow-right" size={12} stroke={2.3} />
+            </button>
+            <button
+              disabled={working}
+              onClick={() => run(c.id, claimed
+                ? window.HW.unclaimCheckin && (() => window.HW.unclaimCheckin(c.id))
+                : window.HW.claimCheckin && (() => window.HW.claimCheckin(c.id, me)))}
+              title={claimed ? `Release ${c.claimedBy} from this customer` : 'Take this customer'}
+              style={{ width: '100%', minHeight: P.ctrlH.md, padding: '5px 10px', background: claimed ? P.surface3 : P.ink, color: claimed ? P.inkMute : P.surface, border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 11.5, fontWeight: 700, cursor: working ? 'progress' : 'pointer', opacity: working ? 0.6 : 1, fontFamily: P.fontSans, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              {claimed
+                ? <><Icon name="x" size={12} stroke={2.3} />Unclaim</>
+                : <>Claim<Icon name="arrow-right" size={12} stroke={2.3} /></>}
             </button>
           </div>);
       })}
+    </div>
     </div>);
 
 }
 
 // ── Member-details dropdown — ID, contact, loyalty, orders, referrals ──────
-function MemberDetails({ customer, guests, onClose }) {
+// Published on `window` like ProductSheet and FullOrderView are, and for the
+// same reason those are: this panel makes the strongest identity claims in the
+// POS (licence, medical card, lifetime spend) and a test that cannot MOUNT it
+// can only assert about source text — which is exactly the assurance that let
+// a fabricated licence number survive here after the identical fabrication was
+// deleted from pos/screen-stubs.jsx.
+window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
   const P = useP();
   const m = customer;
-  const seed = (m.name || '').length + (m.visits || 1);
-  const pick = (arr) => arr[seed % arr.length];
-  const lifetime = Math.round(m.visits * 58 + m.points * 0.42);
-  const memberSince = pick(['Mar 2022', 'Jul 2023', 'Nov 2021', 'Jan 2024', 'Sep 2022']);
-  const dob = pick(['04/14/1991', '09/02/1988', '12/21/1995', '06/30/1983', '02/11/1979']);
-  const idNum = 'CA ' + ('D' + (1700000 + seed * 53129).toString().slice(0, 7));
-  const favCat = window.HW.favCategory(m);
-  const lastVisit = pick(['2 days ago', 'Yesterday', '5 days ago', 'Last week']);
-  const avgBasket = (lifetime / Math.max(1, m.visits)).toFixed(0);
-  const gender = pick(['Female', 'Male', 'Non-binary', 'Female', 'Male']);
+  // ══ THIS PANEL MAY NOT INVENT A GOVERNMENT DOCUMENT ════════════════════════
+  //
+  // 🔴 Every line below was `seed = m.name.length + m.visits`, and then either
+  // `pick(list)[seed % n]` or arithmetic on `seed`:
+  //
+  //     idNum      'CA ' + ('D' + (1700000 + seed*53129)).slice(0,7)
+  //     dob        pick(['04/14/1991', … ])
+  //     mmic       'MMIC-' + (25800 + seed*137).slice(0,5)
+  //     medMd      pick(['Dr. A. Okafor', … ])
+  //     medIssued  pick(['Jan 2026', … ])
+  //     memberSince/lastVisit/gender  pick(…)
+  //     lifetime   Math.round(visits*58 + points*0.42)
+  //     avgBasket  lifetime / visits
+  //
+  // A driver's licence number and a medical-cannabis recommendation — issuing
+  // physician, MMIC number, issue date — rendered under a green
+  // "Medical card · ACTIVE" header with "Tax-exempt (MMIC verified)" beneath
+  // it. That is the fabricated-METRC-id class of claim on the one card in this
+  // POS that carries legal weight, and pos/screen-stubs.jsx already deleted its
+  // copy of exactly this. THIS ONE IS REACHABLE: screen-register.jsx:541 opens
+  // it from the customer chip on the live register.
+  //
+  // Nothing replaces them, because nothing sources them. A member record here
+  // is { id, name, email, phone, group, type, delivery, visits, points, wallet,
+  // member } — no licence, no DOB, no MMIC, no gender, no created-at, no
+  // last-visit. `verifyLabel()` below is what this screen is genuinely allowed
+  // to say about identity, and it already says it.
+  //
+  // 'not on file' is the value, and every consumer below handles null.
+  const idNum = m.idNumber || null;
+  const dob = m.dob || null;
+  const memberSince = m.createdAt || null;
+  const lastVisit = m.lastVisitAt || null;
+  const gender = m.gender || null;
   const isMed = m.type === 'MedicinalUser';
-  const mmic = 'MMIC-' + (25800 + seed * 137).toString().slice(0, 5);
-  const medMd = pick(['Dr. A. Okafor', 'Dr. L. Brandt', 'Dr. S. Patel', 'Dr. R. Nguyen']);
-  const medIssued = pick(['Jan 2026', 'Nov 2025', 'Mar 2026', 'Aug 2025']);
+  const mmic = m.mmic || null;
+  // A CARD IS ON FILE only when a card FIELD is. `m.type` is a customer-type
+  // enum, not a document — see the Medical card panel below.
+  const medCardOnFile = !!(m.mmic || m.medMd || m.medIssued || m.medExp);
+  const medMd = m.medMd || null;
+  const medIssued = m.medIssued || null;
+  // Lifetime spend and average basket come off the ORDER BOOK, exactly as
+  // pos/screen-stubs.jsx computes them, or they say they are not recorded.
+  const myOrders = (window.HW.ORDERS || []).filter((o) => o.name === m.name);
+  const lifetime = myOrders.reduce((a, o) => a + (+o.total || 0), 0);
+  const hasSpend = myOrders.length > 0;
+  const avgBasket = hasSpend ? lifetime / myOrders.length : null;
+  // favCategory now counts the customer's REAL purchase lines or returns null
+  // (pos/data.jsx). `basis` carries the reason so the row can say which.
+  const favBasis = window.HW.favCategoryBasis ? window.HW.favCategoryBasis(m) : { category: window.HW.favCategory(m), reason: null };
+  const favCat = favBasis.category;
   // ── This member's order history ─────────────────────────────────────────
   // The rows the ORDER BOOK can actually produce a record for come first, and
   // clicking one opens THAT record — so an edit made from here lands on the
@@ -1123,12 +1383,15 @@ function MemberDetails({ customer, guests, onClose }) {
   const [oq, setOq] = React.useState(''); // smart order search
   const oList = orders.filter((o) => !oq || (o.id + ' ' + o.date + ' ' + o.tag).toLowerCase().includes(oq.toLowerCase()));
   const [editing, setEditing] = React.useState(null); // field being edited
-  const addrSeed = pick([
-  { street: '418 Mission Trail', city: 'Wildomar', state: 'CA', zip: '92595' },
-  { street: '92 Diamond Dr', city: 'Lake Elsinore', state: 'CA', zip: '92530' },
-  { street: '5571 Grand Ave', city: 'Lakeland Village', state: 'CA', zip: '92530' },
-  { street: '210 Riverside Dr', city: 'Temescal', state: 'CA', zip: '92883' }]);
-  const [f, setF] = React.useState({ phone: m.phone, email: m.email, street: addrSeed.street, city: addrSeed.city, state: addrSeed.state, zip: addrSeed.zip, exp: pick(['08 / 2027', '03 / 2026', '11 / 2028', '05 / 2027']), medExp: pick(['12 / 2026', '06 / 2027', '09 / 2026']) });
+  // ⚠️ THE HOME ADDRESS AND THE TWO EXPIRY DATES WERE ALSO PICKED BY
+  // `name.length % n` — a street address for a named person, and the expiry on
+  // their licence and medical card. These are EDITABLE fields (EditKV writes
+  // into `f`), so the honest empty state is an empty field the operator fills,
+  // not a pre-filled address nobody entered. m.* wins where a real value has
+  // been written.
+  const [f, setF] = React.useState({ phone: m.phone, email: m.email,
+    street: m.street || '', city: m.city || '', state: m.state || '', zip: m.zip || '',
+    exp: m.idExp || '', medExp: m.medExp || '' });
   const set1 = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
   const photos = [
@@ -1156,11 +1419,18 @@ function MemberDetails({ customer, guests, onClose }) {
       </div>
       {children}
     </div>;
-  const KV = ({ k, v, mono = true }) =>
-  <div style={{ padding: '3px 0' }}>
+  // A null / empty value renders as "not on file", visibly muted, in the sans
+  // face — so an absent fact cannot be mistaken for a recorded one at a glance.
+  // This is the single place the empty state is decided for every row in this
+  // panel; each row deciding for itself is how one of them ends up printing an
+  // em-dash that reads as a value.
+  const KV = ({ k, v, mono = true, why }) => {
+    const empty = v == null || v === '';
+    return <div style={{ padding: '3px 0' }} title={empty ? why || 'not recorded on this member' : undefined}>
       <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', marginBottom: 1 }}>{k}</div>
-      <div style={{ fontSize: 12.5, color: P.ink2, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word', lineHeight: 1.3 }}>{v}</div>
+      <div style={{ fontSize: 12.5, color: empty ? P.inkFaint : P.ink2, fontWeight: 600, fontFamily: empty || !mono ? P.fontSans : P.fontMono, wordBreak: 'break-word', lineHeight: 1.3 }}>{empty ? 'not on file' : v}</div>
     </div>;
+  };
   // Editable field — pencil to edit inline, save commits
   const EditKV = ({ k, field, mono = true }) => {
     const on = editing === field;
@@ -1195,7 +1465,7 @@ function MemberDetails({ customer, guests, onClose }) {
             {photos.map((p2) => <PhotoCard key={p2.id} p2={p2} />)}
           </div>
           <div style={{ flex: '0 0 196px', border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, padding: 12, display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: P.inkMute, marginBottom: 8 }}>LICENSE · {idNum}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: P.inkMute, marginBottom: 8 }}>LICENSE · {idNum || <span style={{ color: P.inkFaint }}>number not on file</span>}</span>
             <KV k="DOB" v={dob} />
             <EditKV k="Expiration" field="exp" />
             <div style={{ flex: 1 }} />
@@ -1219,20 +1489,35 @@ function MemberDetails({ customer, guests, onClose }) {
             <div style={{ height: 1, background: P.hairline, margin: '7px 0' }} />
             <KV k="Points" v={m.points.toLocaleString() + ' pts'} />
             <KV k="Member since" v={memberSince} />
-            <KV k="Lifetime spend" v={window.HW.fmt.money(lifetime)} />
+            <KV k="Lifetime spend" v={hasSpend ? window.HW.fmt.money(lifetime) : null} why="no order on the book names this customer, so there is nothing to total" />
           </Panel>
 
           {/* Medical card details (comment 3) */}
-          <Panel title="Medical card" icon="shield" action={isMed ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ACTIVE</span> : <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute }}>NONE</span>}>
+          {/* ⚠️ "ACTIVE" AND "MMIC VERIFIED" ARE CLAIMS ABOUT A DOCUMENT, and
+              they used to be driven by `m.type === 'MedicinalUser'` alone —
+              a customer-type flag — while every field under them (MMIC number,
+              physician, issue date) was picked out of a list by name.length.
+              So the panel asserted a verified medical recommendation for a
+              named person on the strength of one enum value. The card is
+              PRESENT only when a card record is (`medCardOnFile`); the type
+              flag alone now reads CLAIMED, not ACTIVE, and the tax-exempt line
+              — which changes what the customer is charged — appears only when
+              there is a document behind it. */}
+          <Panel title="Medical card" icon="shield" action={medCardOnFile ?
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ACTIVE</span> :
+            isMed ? <span title="this customer is recorded as a medicinal user, but no card record is held — nothing here has been verified" style={{ fontSize: 10, fontWeight: 700, color: P.warn }}>CLAIMED · NOT ON FILE</span> :
+            <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute }}>NONE</span>}>
             {isMed ?
             <>
-                <KV k="MMIC #" v={mmic} />
+                <KV k="MMIC #" v={mmic} why="no medical-card record is held for this customer" />
                 <EditKV k="Expires" field="medExp" />
-                <KV k="Recommending MD" v={medMd} mono={false} />
-                <KV k="Issued" v={medIssued} />
+                <KV k="Recommending MD" v={medMd} mono={false} why="no medical-card record is held for this customer" />
+                <KV k="Issued" v={medIssued} why="no medical-card record is held for this customer" />
                 <div style={{ height: 1, background: P.hairline, margin: '7px 0' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.good, fontWeight: 600 }}><Icon name="check-circle" size={12} stroke={2} />Tax-exempt (MMIC verified)</div>
-                <div style={{ marginTop: 9 }}><PBtn variant="soft" size="xs" icon="eye" onClick={() => setLb(photos[2])}>View card</PBtn></div>
+                {medCardOnFile ?
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.good, fontWeight: 600 }}><Icon name="check-circle" size={12} stroke={2} />Tax-exempt (MMIC verified)</div> :
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.4 }}><Icon name="alert" size={12} stroke={2} style={{ flex: '0 0 auto', marginTop: 1 }} />Recorded as a medicinal user, but no card is on file. Nothing here is verified and the medicinal tax exemption is not established.</div>}
+                {medCardOnFile && <div style={{ marginTop: 9 }}><PBtn variant="soft" size="xs" icon="eye" onClick={() => setLb(photos[2])}>View card</PBtn></div>}
               </> :
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '6px 0' }}>
                 <span style={{ fontSize: 11.5, color: P.inkMute, lineHeight: 1.45 }}>No medical card on file. Adult-use customer.</span>
@@ -1269,7 +1554,7 @@ function MemberDetails({ customer, guests, onClose }) {
           <div style={{ marginTop: 7, padding: '7px 9px', background: P.surface3, borderRadius: P.r8, fontSize: 10.5, color: P.ink2, lineHeight: 1.45 }}>
                 #{histNote} is archived history — the order book holds no record for it, so there is nothing to open or edit.
               </div>}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11.5, color: P.inkDim }}><span>{m.visits} lifetime orders</span><span style={{ fontFamily: P.fontMono }}>avg {window.HW.fmt.money(avgBasket)}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11.5, color: P.inkDim }}><span>{m.visits} lifetime orders</span><span style={{ fontFamily: P.fontMono }}>{avgBasket == null ? 'avg not recorded' : 'avg ' + window.HW.fmt.money(avgBasket)}</span></div>
           </Panel>
 
           <Panel title="Referrals" icon="link">
@@ -1278,9 +1563,9 @@ function MemberDetails({ customer, guests, onClose }) {
               <span style={{ fontSize: 11.5, fontWeight: 600, color: P.ink2, marginLeft: 9 }}>{referrals.length} referral{referrals.length > 1 ? 's' : ''}</span>
             </div>
             <KV k="Gender" v={gender} mono={false} />
-            <KV k="Favorite" v={favCat} mono={false} />
+            <KV k="Favorite" v={favCat} mono={false} why={favBasis.reason || 'no purchase history was read for this customer'} />
             <KV k="Last visit" v={lastVisit} mono={false} />
-            <KV k="Avg basket" v={window.HW.fmt.money(avgBasket)} />
+            <KV k="Avg basket" v={avgBasket == null ? null : window.HW.fmt.money(avgBasket)} why="no order on the book names this customer" />
           </Panel>
         </div>
       </div>
@@ -1301,17 +1586,20 @@ function MemberDetails({ customer, guests, onClose }) {
         </div>}
     </div>);
 
-}
+};
 
-// `why` is the upsell engine's own reason copy for this tile, present only when
-// "For this ticket" ranked it. It is the engine's sentence, never one written
-// here — a reason invented by the UI is a claim the ranking never made.
+// `why` is the reason copy for this tile, and it comes from whichever control
+// lifted it. From "Pairs with cart" it is the upsell ENGINE'S OWN sentence,
+// never one written here — a reason invented by the UI is a claim the ranking
+// never made. From "Suggested" it is a FACT about the product rather than a
+// score ("Hyperwolf — house brand"), because that chip selects and does not
+// rank; see window.HWSuggestBasis in pos/screen-cart.jsx.
 function ProductRow({ p, inCart, onAdd, why }) {
   const P = useP();
   const [sheet, setSheet] = React.useState(false);
   return (
     // `data-hw-sku` names WHICH product this tile is, so the grid's ORDER is
-    // readable — the "For this ticket" ranking is an ordering, and an ordering
+    // readable — the "Pairs with cart" ranking is an ordering, and an ordering
     // that cannot be read cannot be tested. Not in the harness's clickable
     // selector, so it adds no new click target.
     <div onClick={() => setSheet(true)} data-hw-sku={p.sku} title="View product details" style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '7px 10px', background: P.surface, border: `1px solid ${inCart ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, transition: 'border-color .12s', cursor: 'pointer' }}

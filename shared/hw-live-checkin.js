@@ -335,12 +335,15 @@
     return h + 'h ' + m + 'm ' + (r < 10 ? '0' : '') + r + 's';
   }
 
-  function shortWait(sec) {
-    var s = Math.max(0, Math.round(num(sec) || 0));
-    if (s < 60) { return s + 's'; }
-    if (s < 3600) { return Math.floor(s / 60) + 'm'; }
-    return (s / 3600).toFixed(1) + 'h';
-  }
+  // ONE IMPLEMENTATION, IN shared/hw-wait.js. This used to be its own ladder
+  // that stopped at hours, so the same 677,000-second wait read '188.1h' on
+  // this panel and '7d 20h' on the register card beside it — one board read,
+  // one number, two formats on one screen. The register's ladder got fixed and
+  // this one did not, because nothing connected them. Delegating is what makes
+  // the next fix reach both. If HW_WAIT is missing the page is mis-wired (see
+  // the <script> order in Hyperwolf POS.html) and this throws by name rather
+  // than quietly growing a second copy back.
+  function shortWait(sec) { return W.HW_WAIT.shortWait(sec); }
 
   function people() { return (_board && _board.people) || []; }
   function orders() { return (_board && _board.orders) || []; }

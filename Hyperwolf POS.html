@@ -51,6 +51,10 @@
 <!-- The stacking scale. MUST be first: every floating layer on this page reads it,
      and the plain-JS chrome mounts before any text/babel module has run. -->
 <script src="shared/hw-z.js"></script>
+<!-- The ONE wait format. Plain JS, no dependencies, and it must load before
+     the check-in seam and the two screens that render a queue timer: they
+     call window.HW_WAIT.shortWait and hold no copy of their own. -->
+<script src="shared/hw-wait.js"></script>
 <script src="shared/hw-seam-dock.js"></script>
 <script src="shared/hw-live.js"></script>
 <!-- The sub-category -> Weedmaps node mapping board, live from /api/taxonomy.
@@ -81,6 +85,19 @@
      selling store on-hand stock; `kits` is delivery, selling the union of
      on-shift driver kits. Publishing them the same way is the classic mistake. -->
 <script src="shared/hw-live-regions.js"></script>
+<!-- What this customer has actually BOUGHT, across every Weedmaps account bound
+     to them. pos/data.jsx models an order's contents as an integer (`items: 3`),
+     so a "Suggested" button had no genuine input. This renders the real thing --
+     and, more to the point, keeps three facts apart that an empty product table
+     collapses into one: history / bought-nothing / we-have-no-line-data. A
+     first-time visitor and a customer whose lines we never captured are not the
+     same person to whoever is deciding what to suggest. -->
+<script src="shared/hw-live-history.js"></script>
+<!-- The RANKING on top of that history: repeat purchase, then category
+     affinity, then brand affinity (GET /api/customer/suggestions). Loads AFTER
+     hw-live-history.js on purpose -- it WRAPS HW.purchaseHistory rather than
+     publishing a second one, so the two never race for the property. -->
+<script src="shared/hw-live-suggest.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from
