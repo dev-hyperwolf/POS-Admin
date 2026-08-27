@@ -757,8 +757,19 @@ function CustomerChip({ customer, guests, setGuests, onClear, detailsOpen, onTog
           <button onClick={() => setOpen((o) => !o)} title="Manage the party · open a separate ticket" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px 9px', background: open ? P.accent : P.surface, color: open ? P.accentInk : P.ink2, border: `1px solid ${open ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, minHeight: 30 }}>
             <Icon name="users" size={13} stroke={2} />Party{guests.length > 0 ? ` ${1 + guests.length}` : ''}
           </button>
-          <button onClick={onClear} title={clearTitle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '5px 9px', background: 'transparent', color: P.inkMute, border: 'none', borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
-            <Icon name="x" size={12} stroke={2.2} />Clear
+          {/* IT SAID "Clear". IT ENDS THE VISIT AND DISCARDS EVERY TICKET IN
+              THE PARTY. The IconBtn above carries the honest wording -- "End
+              this visit" -- in a `label`/`title` a TOUCH TERMINAL CAN NEVER
+              RAISE, and both controls call THE SAME onClear. So the only
+              rendering of this action a finger could reach was the one that
+              understated it, next to a "Clear all" on the brand filter that
+              really does mean "clear a filter".
+              Named, and given the destructive tone: the weight of the action
+              is now visible before the words are read, not hidden in a
+              tooltip. `title` is kept for a pointer but is no longer the only
+              place the truth lives. */}
+          <button onClick={onClear} title={clearTitle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '5px 9px', background: 'transparent', color: P.bad, border: 'none', borderRadius: P.r10, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <Icon name="log-out" size={12} stroke={2.2} />End visit
           </button>
         </div>
       </div>;

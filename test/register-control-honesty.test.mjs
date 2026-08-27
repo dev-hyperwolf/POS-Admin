@@ -38,42 +38,52 @@ function labelled(app, label) {
 
 /* ── A. the two "Clear" buttons ──────────────────────────────────────────── */
 
-test('two controls both reading "Clear" are on the register at once', async () => {
+// UPDATED, NOT DELETED. These two tests were written to DOCUMENT the defect --
+// two controls both reading "Clear", distinguished only by a `title` a touch
+// terminal can never raise. The defect is fixed: the visit-ender now reads
+// "End visit" in the destructive tone with its own icon, and the cart control
+// reads "Clear cart". They now assert the FIX, because a test that still
+// demands the broken shape would block the repair it was written to provoke.
+test('the two controls are distinguishable by LABEL, not by a tooltip', async () => {
   await withApp('pos', async (app) => {
     await app.mount('RegisterScreen');
-    // This is the PREMISE of the next test, asserted rather than assumed. If a
-    // later change removes or renames one of them this goes red and says so,
-    // instead of the honesty test passing vacuously over one button.
-    const clears = labelled(app, 'Clear');
-    assert.equal(clears.length, 2,
-      `expected the chip's Clear and the cart's Clear on a seeded register, saw ${clears.length}: `
-      + `${clears.map((c) => c.getAttribute('title') || '(no title)').join(' | ')}`);
+    // THE OLD ASSERTION WAS `labelled(app,'Clear').length === 2`, which is what
+    // the defect looked like. Now exactly ONE control may read a bare "Clear",
+    // and it must be the cart one, named for its object.
+    const bare = labelled(app, 'Clear').filter(
+      (el) => (el.textContent || '').trim() === 'Clear');
+    assert.equal(bare.length, 0,
+      `no control may read a bare "Clear" any more; saw ${bare.length}: `
+      + bare.map((c) => c.getAttribute('title') || '(no title)').join(' | '));
+
+    const endVisit = labelled(app, 'End visit');
+    const clearCart = labelled(app, 'Clear cart');
+    assert.ok(endVisit.length >= 1,
+      'the visit-ending control must say "End visit" ON SCREEN, not in a title');
+    assert.ok(clearCart.length >= 1,
+      'the cart control must say "Clear cart" ON SCREEN, not in a title');
   });
 });
 
-test('neither "Clear" is silent about which one it is', async () => {
+test('the destructive control names the visit, the cart control names the cart', async () => {
   await withApp('pos', async (app) => {
     await app.mount('RegisterScreen');
-    const titles = labelled(app, 'Clear').map((el) => (el.getAttribute('title') || '').trim());
+    // The distinction must survive with the TOOLTIPS REMOVED, because a touch
+    // terminal never raises one. Read the visible text only.
+    const endText = labelled(app, 'End visit').map((e) => (e.textContent || '').trim());
+    const cartText = labelled(app, 'Clear cart').map((e) => (e.textContent || '').trim());
+    assert.ok(endText.some((t) => /end visit/i.test(t)),
+      `the visit-ender does not name the visit in its visible label: ${JSON.stringify(endText)}`);
+    assert.ok(cartText.some((t) => /clear cart/i.test(t)),
+      `the cart control does not name the cart in its visible label: ${JSON.stringify(cartText)}`);
+    assert.notDeepEqual(endText, cartText,
+      'the two controls still read identically, which is the defect this file exists for');
 
-    for (const [i, t] of titles.entries()) {
-      assert.ok(t.length > 0,
-        `the "Clear" at index ${i} states no consequence at all — it is pixel-identical to the other one`);
-    }
-    assert.notEqual(titles[0], titles[1],
-      'both "Clear" buttons say the same thing, so they are still indistinguishable');
-
-    // And they must say the RIGHT thing, not merely different things. One ends
-    // the visit; one empties a ticket and leaves the customer checked in.
-    const endsVisit = titles.filter((t) => /end this visit/i.test(t));
-    const emptiesTicket = titles.filter((t) => /empt(y|ies) this ticket/i.test(t));
-    assert.equal(endsVisit.length, 1,
-      `exactly one Clear should name ending the visit; saw ${endsVisit.length} of: ${JSON.stringify(titles)}`);
-    assert.equal(emptiesTicket.length, 1,
-      `exactly one Clear should name emptying the ticket; saw ${emptiesTicket.length} of: ${JSON.stringify(titles)}`);
-    // The cheap one has to promise the expensive thing does NOT happen.
-    assert.match(emptiesTicket[0], /stays checked in/i,
-      'the cart Clear does not say the customer survives it, which is the whole difference');
+    // The titles must STILL be right -- a pointer user should get the detail,
+    // and the cart one must still promise the expensive thing does not happen.
+    const cartTitle = (labelled(app, 'Clear cart')[0].getAttribute('title') || '');
+    assert.ok(/checked in|stays/i.test(cartTitle),
+      `the cart control must still say the customer survives it: ${JSON.stringify(cartTitle)}`);
   });
 });
 

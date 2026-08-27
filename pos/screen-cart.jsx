@@ -174,7 +174,7 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
                   pos/screen-register.jsx — ENDS THE VISIT and takes every
                   ticket in the party with it. Neither said which it was. Each
                   now states its own consequence; see the matching note there. */}
-              <button onClick={() => onClearCart && onClearCart()} title={`Empty this ticket — removes all ${count} item${count > 1 ? 's' : ''} and any discount on it. The customer stays checked in and the rest of the party's tickets are untouched.`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '0 4px', background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="x" size={12} stroke={2} />Clear</button>
+              <button onClick={() => onClearCart && onClearCart()} title={`Empty this ticket — removes all ${count} item${count > 1 ? 's' : ''} and any discount on it. The customer stays checked in and the rest of the party's tickets are untouched.`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '0 4px', background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="x" size={12} stroke={2} />Clear cart</button>
             </div>
             {lines.map((l) =>
             <div key={l.sku} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: P.surface, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
