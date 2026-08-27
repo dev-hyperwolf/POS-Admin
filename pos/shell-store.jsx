@@ -65,7 +65,14 @@
       const fmtName = FORMAT_BY_CAT[first.cat] || 'Eighth Jar 3.5g';
       const size = splitSize(first.wt || def.presets[1] || '1g');
       const unit = def.units.includes(size.unit) ? size.unit : def.unit;
-      const avgCost = Math.round(items.reduce((a, p) => a + p.cost, 0) / items.length * 100) / 100;
+      // ── UNIT COST: AVERAGED FROM WHAT, EXACTLY ────────────────────────────
+      // This averaged `p.cost`, which was the SKU character-hash (pos/data.jsx
+      // P_(), now removed). Averaging a hash produces a hash. It is `null`
+      // unless a real cost has actually been written onto a member of the
+      // family, and the row that renders it says which (see sharedRows).
+      const costs = items.map((p) => p.cost).filter((c) => typeof c === 'number' && isFinite(c));
+      const avgCost = costs.length ? Math.round(costs.reduce((a, c) => a + c, 0) / costs.length * 100) / 100 : null;
+      const costsKnown = costs.length, costsTotal = items.length;
       // Base price = the price most of the family actually sells at, so the
       // shell reads as the family norm and only genuine outliers show OVERRIDE.
       // A shell's EFFECTIVE price is always `sale || price`, and it always
@@ -83,10 +90,47 @@
         unit, netW: size.amount || '1', weight: (size.amount || '1') + unit, pack: first.cat === 'Edibles' ? '10' : '1',
         kit: BOX_BY_CAT[first.cat] || 'Cooler',
         wmNode: def.wm,
-        stores: 1 + first.sku.charCodeAt(1) % 4,
+        // ⚠️ `stores` WAS `1 + first.sku.charCodeAt(1) % 4` — a count of retail
+        // locations carrying this product line, taken from THE SECOND LETTER OF
+        // A SKU, rendered as "3 stores" on the shell list (pos/shells.jsx:220)
+        // and in the product-shell header (pos/product-shell.jsx:62).
+        //
+        // It is NULL, not 1. The estate claims four stores (HW.STORE.count = 4,
+        // and the catalog header prints "24 SKUs across 4 stores"), but nothing
+        // anywhere records WHICH of them carries a given shell — there is no
+        // per-store distribution table on the mock rows, in the wm-demo
+        // database or on /api/state. "1 store" would be a second invented
+        // figure standing where the first one was.
+        stores: null,
         hue: first.hue, price: retail, sale: sale, cost: avgCost,
+        costsKnown, costsTotal,
         traits: def.traits.map((t) => ({ ...t })),
-        variations: items.map((p) => ({ sku: p.sku, name: p.name, price: p.price, override: p.price !== base, strain: p.strain, active: p.active, qty: p.qty, sample: false, thumb: p }))
+        // ── `sample: false` THREW AWAY THE ONE FLAG THIS SCREEN PROMISES TO KEEP ─
+        //
+        // The Display-sample toggle (pos/product-shell.jsx:342) confirms, in the
+        // flow's own words: "Marked as a display sample — Kept off the sellable
+        // menu, still tracked as a full product profile." Rebuilding every
+        // variation with a hardcoded `false` broke that promise inside POS,
+        // before anything downstream got the chance to break it.
+        //
+        // 🔴 THE BIGGER FINDING THE HARDCODED `false` WAS HIDING: no stored item
+        // carries `sample` at all. Three writers produce product rows in this
+        // build — pos/data.jsx `P_()` (:38-55), shared/demo-seed.js `product()`
+        // (:196-207) and the live adapter shared/hw-live.js (:580-617) — and not
+        // one of them has this field. So the flag's only home was the variation
+        // object inside SHELLS, which lives exactly as long as the page. Reading
+        // `p.sample` here is half the repair; `addVariation` writing it onto the
+        // product row is the other half, and together they close the round trip
+        // for any variation whose SKU has a row.
+        //
+        // `active` IS NOT A STAND-IN, and is never read backwards. It is also
+        // false for `b.skip` and for qty === 0, so "inactive" cannot be decoded
+        // as "is a sample" — that inference is exactly how a display sample and
+        // an out-of-stock product become indistinguishable. The implication runs
+        // ONE way only, and that direction is enforced: a row flagged as a
+        // sample is never rebuilt as sellable, because a sample that comes back
+        // active is a sample back on the menu.
+        variations: items.map((p) => ({ sku: p.sku, name: p.name, price: p.price, override: p.price !== base, strain: p.strain, sample: !!p.sample, active: !!p.active && !p.sample, qty: p.qty, thumb: p }))
       };
     });
   }
@@ -127,14 +171,28 @@
       SHELLS = list.map((s) => s.id === editingId ? { ...s, ...common } : s);
     } else {
       id = 'SH-' + String(2000 + Math.floor(Math.random() * 900));
-      SHELLS = [{ id, ...common, stores: 1, hue: Math.floor(Math.random() * 360), cost: 0, variations: [] }, ...list];
+      // cost is NULL, not 0. `0` renders as "$0" — a wholesale cost of nothing,
+      // and a 100% margin — where the truth is that no cost has been entered.
+      SHELLS = [{ id, ...common, stores: null, hue: Math.floor(Math.random() * 360), cost: null, costsKnown: 0, costsTotal: 0, variations: [] }, ...list];
     }
     emit();
     return id;
   }
 
+  // The display-sample flag is written back onto the product row, the same way
+  // renameVariation below writes a name back. The row is what seed() rebuilds a
+  // variation FROM, so a flag held only on the variation object does not
+  // survive a reseed — and a reseed is not hypothetical: shared/hw-live.js
+  // `apply()` (:1015) replaces the contents of HW.PRODUCTS wholesale.
+  // A variation whose SKU has no row yet keeps the flag in SHELLS alone; see
+  // the note in seed() — nothing in this build creates a product row for a new
+  // variation, and that gap is not this function's to invent.
   function addVariation(shellId, v) {
     SHELLS = allShells().map((s) => s.id === shellId ? { ...s, variations: [...s.variations, v] } : s);
+    if (v && 'sample' in v) {
+      const prod = (HW.PRODUCTS || []).find((x) => x.sku === v.sku);
+      if (prod) prod.sample = !!v.sample;
+    }
     emit();
   }
   // A variation's NAME is a variation field, not a shell field — the flavour or
@@ -176,7 +234,36 @@
   // in the create-variation step and in the add-product flow.
   function sharedRows(s) {
     const money = HW.fmt.money0;
-    const low = Math.round(s.cost * 0.85), high = Math.round(s.cost * 1.18);
+    // ── THE HIGHEST-SEVERITY LIE ON THIS SCREEN WAS ITS LABEL ──────────────
+    //
+    // 🔴 The unit-cost row read:
+    //     { label: 'Unit cost · batch avg', value: money(s.cost),
+    //       sub: 'low ' + money(s.cost*0.85) + ' · high ' + money(s.cost*1.18),
+    //       flag: 'From batches' }
+    //
+    // `s.cost` was the average of pos/data.jsx's SKU character-hash, and the
+    // low/high spread was that hash multiplied by two constants — a "range
+    // across batches" for a family whose batches were never read. And it was
+    // stamped FROM BATCHES, beside a row genuinely flagged 'Synced'.
+    //
+    // A false provenance is worse than an undisclosed derivation: an operator
+    // who is told where a number came from stops asking. GET /api/state serves
+    // `batches` and it is an EMPTY ARRAY (0 rows, verified 2026-08-27) — this
+    // estate has never been handed a lot for any SKU, so nothing on this screen
+    // has ever been "from batches".
+    //
+    // The row survives, because the field is real and receiving a batch is how
+    // it gets filled (pos/product-shell.jsx:402). What it may claim does not.
+    const costRow = s.cost != null ?
+      { label: 'Unit cost · batch avg', value: money(s.cost),
+        sub: s.costsKnown === s.costsTotal ?
+          'averaged over all ' + s.costsTotal + ' variation' + (s.costsTotal === 1 ? '' : 's') :
+          'averaged over ' + s.costsKnown + ' of ' + s.costsTotal + ' variations — the rest have no cost recorded',
+        flag: 'Entered on receipt' } :
+      { label: 'Unit cost · batch avg', value: 'not recorded',
+        sub: 'no cost of goods is held for this line. Nothing in this build carries one — '
+           + 'GET /api/state serves no cost field and its batches list is empty — so it is '
+           + 'set when a batch is received, not derived.', flag: null };
     return [
       { label: 'Brand', value: s.brand },
       { label: 'Category', value: s.cat },
@@ -185,7 +272,7 @@
       { label: 'Weight / size', value: s.weight },
       { label: 'Retail price', value: money(s.price) },
       { label: 'Sale price', value: s.sale ? money(s.sale) : '—', sub: s.sale ? 'was ' + money(s.price) : 'no promo running' },
-      { label: 'Unit cost · batch avg', value: s.cost ? money(s.cost) : '—', sub: s.cost ? 'low ' + money(low) + '  ·  high ' + money(high) : 'set when a batch is received', flag: 'From batches' },
+      costRow,
       { label: 'Weedmaps node', value: s.wmNode, flag: 'Synced' },
       { label: 'Delivery box', value: s.kit || '—', flag: 'Delivery only' }];
   }
