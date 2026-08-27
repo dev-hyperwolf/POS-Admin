@@ -2,7 +2,7 @@
  *
  * `getUpsells()` has 299 tests of its own and had been wired into exactly one
  * chip in the driver app. These drive the POS instead: the cart rail that shows
- * while a sale is being rung up, and the "For this ticket" ranking over the
+ * while a sale is being rung up, and the "Pairs with cart" ranking over the
  * register's product grid.
  *
  * ⚠️ NOTHING HERE PINS A FIGURE THIS FILE COMPUTED. Every assertion is an
@@ -277,9 +277,9 @@ test('emptying the ticket line by line clears its dismissals too', async () => {
   });
 });
 
-/* ── 5. the register grid: "For this ticket" ORDERS, it never filters ─────── */
+/* ── 5. the register grid: "Pairs with cart" ORDERS, it never filters ─────── */
 
-test('"For this ticket" re-orders the grid without removing a single product', async () => {
+test('"Pairs with cart" re-orders the grid without removing a single product', async () => {
   await withApp('pos', async (app) => {
     const W = app.window;
     const open = mounter(app);
@@ -289,8 +289,8 @@ test('"For this ticket" re-orders the grid without removing a single product', a
       assert.ok(before.length > 3, 'the grid is too small to tell a sort from a filter');
       assert.equal(reasonedSkus(app).length, 0, 'the grid is claiming a ranking nobody asked for');
 
-      assert.ok(app.click('For this ticket'),
-        `no "For this ticket" chip — buttons: ${app.buttons().slice(0, 14).join(' | ')}`);
+      assert.ok(app.click('Pairs with cart'),
+        `no "Pairs with cart" chip — buttons: ${app.buttons().slice(0, 14).join(' | ')}`);
       await app.settle();
 
       const after = gridSkus(app);
@@ -316,7 +316,7 @@ test('"For this ticket" re-orders the grid without removing a single product', a
         'the grid is ranked and does not say so');
 
       // Off again: the ranking, the reasons and the claim all go together.
-      assert.ok(app.click('For this ticket'), 'the chip does not toggle off');
+      assert.ok(app.click('Pairs with cart'), 'the chip does not toggle off');
       await app.settle();
       assert.equal(reasonedSkus(app).length, 0, 'reason lines outlived the ranking that made them');
       assert.equal(gridSkus(app).join(','), before.join(','),
@@ -334,7 +334,7 @@ test('adding from a ranked grid does not re-sort the grid', async () => {
     const open = mounter(app);
     try {
       await open('RegisterScreen');
-      assert.ok(app.click('For this ticket'), 'no "For this ticket" chip');
+      assert.ok(app.click('Pairs with cart'), 'no "Pairs with cart" chip');
       await app.settle();
 
       const ranked = gridSkus(app);

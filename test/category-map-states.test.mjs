@@ -286,12 +286,27 @@ test('a category Weedmaps has no node for does not render like an unused one', a
   assert.equal(catState(doc, 'Deals'), 'NO_WM_NODE');
   assert.equal(catState(doc, 'Wellness'), 'UNUSED');
 
+  // TONE UPDATED 2026-08-27, ON THE OWNER'S RULING, AND THE OLD ASSERTION IS
+  // KEPT AS ITS INVERSE RATHER THAN DELETED.
+  //
+  // This used to demand `bad` — a red row on Deals, forever. The owner then
+  // ruled: "if we decide NOT to map deals, then that shouldnt be a problem and
+  // the system should allow it." A permanent red row on a settled decision is
+  // exactly the problem he said it should not be, and a permanent alarm is one
+  // nobody reads. So NO WM NODE is now `info`.
+  //
+  // WHAT THIS TEST STILL GUARDS, AND IT IS THE WHOLE POINT: quieting the colour
+  // must not collapse the STATE. The two must still differ in tone AND in
+  // words, and NO WM NODE must still not wear the alarm tone that belongs to a
+  // thing somebody has to fix.
   const dealsTone = tones(catCell(doc, 'Deals'));
   const wellTone = tones(catCell(doc, 'Wellness'));
-  assert.ok(dealsTone.includes('bad'),
-    'Deals must carry the bad tone, got ' + JSON.stringify(dealsTone));
-  assert.ok(!wellTone.includes('bad'),
-    'an UNUSED category must NOT borrow the unfixable tone, got ' + JSON.stringify(wellTone));
+  assert.ok(!dealsTone.includes('bad'),
+    'an ALLOWED resting state must not be rendered as an error, got ' + JSON.stringify(dealsTone));
+  assert.ok(dealsTone.includes('info'),
+    'NO WM NODE must carry its own informational tone, got ' + JSON.stringify(dealsTone));
+  assert.ok(!wellTone.includes('bad') && !wellTone.includes('info'),
+    'an UNUSED category must not borrow NO WM NODE\'s tone, got ' + JSON.stringify(wellTone));
   assert.notDeepEqual(dealsTone, wellTone,
     'NO WM NODE and UNUSED rendered the same tone — that is the collapse');
 
@@ -308,8 +323,16 @@ test('a category Weedmaps has no node for does not render like an unused one', a
 test('the unfixable row says it cannot be fixed here, and the benign one does not', async () => {
   const { doc, text } = await mount(serve(200, payload([DEALS, WELLNESS_UNUSED])));
   // The explainer states it once for the reader who has never seen the screen.
-  assert.match(text(), /NOT FIXABLE HERE/,
+  // WORDING UPDATED with the tone: it must still say no alias can reach it, and
+  // it must now ALSO say that leaving it alone is allowed — because the screen
+  // grew a node picker, and a picker makes "point it at something" look like
+  // the obvious next move on a row where there is nothing correct to point at.
+  assert.match(text(), /NOT FIXABLE, AND NOT A FAULT/,
     'the screen must say somewhere that NO WM NODE is not work anyone can do');
+  assert.match(text(), /allowed resting state/i,
+    'the screen must say that leaving it unbound is allowed, not merely impossible to fix');
+  assert.doesNotMatch(text(), /needs a decision/i,
+    'nothing is pending on an unbound category — the owner ruled it is not a problem');
   // And the row itself must not offer a node that does not exist.
   const dealsRow = rowOf(doc, 'Deals').textContent;
   assert.match(dealsRow, /no node exists/i);

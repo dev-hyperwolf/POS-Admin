@@ -1,0 +1,211 @@
+# Publish GitHub Pages from a BUILD, precompiled exactly the way Render is.
+#
+# ── WHY THIS EXISTS ─────────────────────────────────────────────────────────
+#
+# Render precompiles the JSX at deploy time (wm-integration/render.yaml). Pages
+# did not, because Pages had no build step at all: "deploy from a branch" serves
+# main verbatim. So the two hosts served the same SCREENS by two different
+# mechanisms, and the Pages mechanism was the slow one.
+#
+# Measured on 2026-08-27, against both live hosts, for `Hyperwolf POS.html`:
+#
+#     Pages   3,137,752 B  @babel/standalone from unpkg
+#           + 1,603,365 B  35 .jsx fetched by that compiler
+#           = 4,741,117 B  on the critical path, then 35 in-browser transforms
+#     Render  2,275,347 B  35 precompiled .js, no compiler, no transforms
+#
+# That compiler is on the critical path of 19 entry points, and 18 of them are
+# pure design pages with no API dependency at all — they work perfectly on
+# Pages and were paying 3MB for nothing. Pages is the DESIGN REFERENCE share
+# link (README "Hosting"); making the reference slow to open is the one thing
+# it must not be.
+#
+# ── WHAT THIS DOES NOT CHANGE ───────────────────────────────────────────────
+#
+# The HTML IN GIT still names the .jsx sources. Only the published ARTIFACT is
+# rewritten, inside this job, from a checkout that is thrown away when the job
+# ends. So:
+#   · the dev loop is untouched — edit a .jsx, reload, no build (package.json)
+#   · the 574-test harness is untouched — test/_drive.mjs and gov-harness.mjs
+#     read the text/babel tags out of the committed HTML and still find them
+#   · the "nothing compiled is ever committed" invariant is untouched —
+#     .gitignore:44 ignores build/, and this job never commits anything
+#
+# ── ⚠️ ONE-TIME SETTING, OWNER ONLY ─────────────────────────────────────────
+#
+# This workflow CANNOT take effect until the repo's Pages source is switched
+# from "Deploy from a branch" to "GitHub Actions":
+#     Settings > Pages > Build and deployment > Source: GitHub Actions
+# Until that is done this job will build, verify, and then FAIL at the deploy
+# step. It fails loudly rather than appearing to work, which is the point.
+#
+# ── STALENESS: THE ONLY REASON TO BE CAREFUL HERE ───────────────────────────
+#
+# A compiled bundle older than its source looks exactly like a working one, and
+# that is this project's defining failure. Four guards, three of which already
+# existed and one of which is new BECAUSE Pages needs it:
+#
+#   G1  Content-addressed filenames (tools/precompile.mjs). The page asks for
+#       the hash of the source it was built from. Stale source => 404, not
+#       wrong code.
+#   G2  tools/precompile-verify.mjs re-derives every hash from the sources on
+#       disk and fails THIS JOB on any mismatch. Mutation-tested 2026-08-27:
+#       edit a .jsx after the build => FAIL/STALE (exit 1); delete an output
+#       => FAIL/404 (exit 1); tamper the embedded SOURCE_SHA => FAIL/tampered
+#       (exit 1); restore => PASS (exit 0).
+#   G3  The boot guard inlined into every page: a script that 404s, or a mount
+#       node still empty after load, paints a NAMED red panel instead of the
+#       blank coloured page.
+#   G4  ★ NEW, AND THE WHOLE REASON THIS IS SAFE. Pages publishes
+#       build-info.json carrying THIS commit's sha, and the last step polls the
+#       live Pages URL until it reports that sha. Before today Pages published
+#       NO build stamp at all (build-info.json was a 404 there, verified), so a
+#       Pages deployment that lagged main was undetectable by any check —
+#       including sync-render.yml, which polls until the two hosts MATCH and
+#       therefore matches instantly against a stale Pages whenever a commit
+#       changed only JSX bodies and not the script list. Adding a build does
+#       not create the staleness risk; it finally makes it visible.
+#
+# ── TWO DIFFERENT FAILURES, TWO DIFFERENT ANSWERS ───────────────────────────
+#
+# Deliberately the same rule render.yaml uses, for the same reason:
+#   · the precompile RAN AND WENT WRONG  -> hard-fail. Wrong code is not
+#     something to publish.
+#   · the precompile COULD NOT BE ATTEMPTED (no tools/, no node) -> publish the
+#     pages verbatim, which is exactly the old, working, browser-side-babel
+#     behaviour, and SAY SO in the stamp. Failing here instead would leave the
+#     PREVIOUS Pages deployment up — i.e. it would choose a silent stale host
+#     over a loud slow one, which is the wrong trade every time.
+
+name: Publish Pages (precompiled)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false   # let a queued deploy finish; never half-publish
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      stamp: ${{ steps.compile.outputs.stamp }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Precompile the JSX
+        id: compile
+        run: |
+          set -e
+          STAMP="pages workflow"
+          if [ ! -f tools/precompile.mjs ]; then
+            echo "::warning::NOT PRECOMPILED: no tools/precompile.mjs on this commit."
+            echo "::warning::Publishing verbatim — the pages will transform their JSX in the browser."
+            STAMP="pages workflow (NOT PRECOMPILED - browser-side babel)"
+          else
+            # ONE package into a THROWAWAY PREFIX, not into the repo. Same reasoning
+            # as render.yaml: `npm install` here resolves this package.json and drags
+            # in the whole devDependency tree (esbuild's native binary included) to
+            # get one pure-JS package, and `--omit=dev` installs NOTHING because
+            # @babel/standalone is itself a devDependency. Pinned to the SAME version
+            # the pages loaded from unpkg and the SAME version render.yaml installs —
+            # if these three ever drift apart the two hosts emit different code.
+            npm install --no-save --no-audit --no-fund --loglevel=error \
+              --prefix /tmp/hw-babel @babel/standalone@7.29.0
+            export HW_BABEL_STANDALONE=/tmp/hw-babel/node_modules/@babel/standalone
+            # Anything from here on that fails, fails the deploy.
+            HW_PRECOMPILE_IN_PLACE_OK=1 node tools/precompile.mjs --in-place
+            node tools/precompile-verify.mjs
+            STAMP="pages workflow (precompiled - no browser-side babel)"
+          fi
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp the build
+        run: |
+          # G4. build-stamp.js surfaces this into window.HW_BUILD and out to the
+          # app-switcher, and the last job polls it over HTTP. Same shape as the
+          # file render.yaml writes, so one checker can read both hosts.
+          printf '{"branch":"main","sha":"%s","builtAt":"%s","source":"%s"}\n' \
+            "$GITHUB_SHA" \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            "${{ steps.compile.outputs.stamp }}" > build-info.json
+          cat build-info.json
+
+      - name: Guard the artifact
+        run: |
+          # .nojekyll must survive, or Pages hides every path starting with _
+          # and silently 404s it. It is in git; assert it reached the artifact.
+          [ -f .nojekyll ] || { echo "::error::.nojekyll is missing — Pages would drop underscore paths."; exit 1; }
+          # Never publish the toolchain or the working state.
+          rm -rf node_modules .git
+          echo "artifact: $(du -sh . | cut -f1)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Wait until Pages actually serves this commit
+        env:
+          SHA: ${{ github.sha }}
+          STAMP: ${{ needs.build.outputs.stamp }}
+        run: |
+          # G4, the assertion half. deploy-pages returning success means the
+          # artifact was accepted, NOT that the CDN is serving it — those are
+          # minutes apart. Without this poll, "green check, stale site" is a
+          # state this workflow would produce routinely.
+          #
+          # ⚠️ LEADS WITH PASS OR FAIL ON EVERY LINE. A step that dies without
+          # emitting a FAIL token reads as green to anyone skimming the log.
+          PAGES=https://dev-hyperwolf.github.io/POS-Admin
+          for i in $(seq 1 40); do
+            live=$(curl -sS -m 20 "$PAGES/build-info.json" 2>/dev/null \
+                   | sed -n 's/.*"sha":"\([^"]*\)".*/\1/p')
+            if [ "$live" = "$SHA" ]; then
+              echo "PASS pages-deploy: Pages is serving $SHA — $STAMP"
+              # Prove the compiler is actually gone from the heaviest page,
+              # rather than trusting the stamp that says so.
+              if curl -sS -m 25 "$PAGES/Hyperwolf%20POS.html" \
+                 | grep -q '@babel/standalone'; then
+                case "$STAMP" in
+                  *"NOT PRECOMPILED"*)
+                    echo "PASS pages-deploy: browser-side babel present, as the stamp declares." ;;
+                  *)
+                    echo "FAIL pages-deploy: stamp claims precompiled but the live page still loads @babel/standalone."
+                    exit 1 ;;
+                esac
+              else
+                echo "PASS pages-deploy: no @babel/standalone on the live POS page."
+              fi
+              exit 0
+            fi
+            echo "attempt $i: pages at ${live:-no-build-info}, want $SHA"
+            sleep 15
+          done
+          echo "FAIL pages-deploy: Pages did not reach $SHA within 10 minutes."
+          echo "::error::Pages is serving an OLDER commit and nothing on the page says so."
+          echo "::error::If build-info.json is a 404, the repo's Pages source is still"
+          echo "::error::'Deploy from a branch'. Settings > Pages > Source: GitHub Actions."
+          exit 1

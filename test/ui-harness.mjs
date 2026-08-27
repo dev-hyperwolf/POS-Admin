@@ -17,6 +17,13 @@
  *     writable.
  *   · TEARDOWN RACED QUEUED MICROTASKS, failing whole FILES whose every
  *     assertion had passed.
+ *   · IT WAITED ON THE CLOCK INSTEAD OF ON THE PAGE. `settle` and `mount` slept
+ *     a fixed 40ms/60ms. The browser does not run 14 copies of itself on one
+ *     box; `node --test` does, and under that the same 40ms of wall clock buys
+ *     a fraction of the work, so assertions read a half-drawn page. THAT is why
+ *     the suite was flaky in parallel and clean in serial, and why every green
+ *     number quoted from a parallel run was worth less than it looked. Both now
+ *     wait for the DOM to stop changing — see the long note at `settleFor`.
  *
  * The IIFE that hid STAGES and the sealed ReactDOM are the same bug wearing
  * different clothes. Before trusting this harness on anything load-order or
@@ -308,11 +315,112 @@ export async function boot(which = 'pos', opts = {}) {
   // half-loaded page.
   if (opts.strict && errors.length) throw new Error(errors.join(' | '));
 
-  const settle = () => new Promise((r) => setTimeout(r, opts.settleMs ?? 40));
+  /* ══ SETTLE WAITS FOR THE PAGE TO STOP CHANGING, NOT FOR THE CLOCK ═════════
+   *
+   * 🔴 THIS IS WHY THE SUITE WAS FLAKY IN PARALLEL AND CLEAN IN SERIAL.
+   *
+   * `settle` used to be `setTimeout(r, 40)` and `mount` used to be
+   * `setTimeout(r, 60)`. Those are WALL-CLOCK waits, but what a test is
+   * actually waiting for is CPU WORK: React 18 flushes through a scheduler
+   * macrotask, and the live seams do their own work on top. On a quiet machine
+   * 40ms of wall clock buys ~40ms of CPU and the render has finished. Under
+   * `node --test` at default concurrency, ~14 jsdom+React child processes share
+   * 14 cores with whatever else the box is doing, so the same 40ms of wall
+   * clock buys a FRACTION of that work — and the assertion runs against a
+   * half-rendered DOM. Nothing is shared between the workers (node --test gives
+   * every FILE its own process, so `window.HW` cannot leak across files); it is
+   * purely that the timeout measures the wrong thing.
+   *
+   * MEASURED, not assumed. test/checkin-cards.test.mjs, run ALONE in its own
+   * process, 10 reps: 0/10 failures on a quiet box, 10/10 with 20 CPU burners
+   * running. Same file, same process, no concurrency at all — so it is not
+   * shared state, not a port, not a fixture, not test order. Sweeping the
+   * window under that same load: 40ms → 5/5 fail, 100ms → 0/5, 800ms → 0/5.
+   *
+   * A BIGGER CONSTANT WOULD STILL BE A RACE, just a wider one, and it would tax
+   * every fast test to pay for the slowest. So this waits for the DOM to STOP
+   * CHANGING instead: the original floor still applies (negative assertions —
+   * "it did NOT navigate" — need a real window in which the thing could have
+   * happened), and after it we tick until two consecutive observations of the
+   * body are identical. A page still repainting has not settled, however long
+   * the clock says. `SETTLE_MAX_MS` caps it so a page with a genuinely
+   * repeating repaint degrades to today's behaviour instead of hanging.
+   *
+   * Overridable per-boot (`opts.settleMs`, `opts.settleMaxMs`) and by env
+   * (`HW_SETTLE_MS`, `HW_SETTLE_MAX_MS`) so this can be swept again. Set
+   * `HW_SETTLE_DEBUG=1` to print what each settle actually cost.
+   */
+  const SETTLE_MIN = Number(process.env.HW_SETTLE_MS) || (opts.settleMs ?? 40);
+  const SETTLE_MAX = Number(process.env.HW_SETTLE_MAX_MS) || (opts.settleMaxMs ?? 2000);
+  const SETTLE_STEP = 5;
+  const SETTLE_DEBUG = !!process.env.HW_SETTLE_DEBUG;
+  const settleStats = { calls: 0, extraTicks: 0, deadlineHits: 0, ms: 0 };
+  let api_waitFor;
+
+  /* Node's setTimeout, NOT window's: window.setTimeout is the tracked one and
+   * returns 0 once close() has run, which would spin this loop. */
+  const tick = (ms) => new Promise((r) => setTimeout(r, ms));
+  /* The whole body, not a length: two different renders can share a length. */
+  const shot = () => { try { return window.document.body.innerHTML; } catch { return ''; } };
+
+  const settleFor = async (minMs) => {
+    const t0 = Date.now();
+    const deadline = t0 + Math.max(SETTLE_MAX, minMs);
+    await tick(minMs);
+    let prev = shot();
+    let stable = 0;
+    let ticks = 0;
+    while (stable < 2) {
+      if (Date.now() >= deadline) { settleStats.deadlineHits++; break; }
+      await tick(SETTLE_STEP);
+      ticks++;
+      const now = shot();
+      if (now === prev) stable++; else { stable = 0; prev = now; }
+    }
+    settleStats.calls++; settleStats.extraTicks += ticks; settleStats.ms += Date.now() - t0;
+    if (SETTLE_DEBUG) console.error(`[settle] min=${minMs} ticks=${ticks} total=${Date.now() - t0}ms`);
+  };
+
+  /* THE MUTATION LEVER. `HW_SETTLE_QUIESCE=0` restores the exact pre-fix
+   * behaviour -- one fixed wall-clock wait, no stability check. It exists so
+   * qa/ui_suite_flake_probe.py can WATCH THIS FIX FAIL: it runs a real UI test
+   * file under deliberate CPU load twice, once with quiescence on (must be
+   * green) and once with it off (must go red). A guard nobody has watched fail
+   * is a hypothesis, and this one is cheap to falsify. */
+  const SETTLE_QUIESCE = process.env.HW_SETTLE_QUIESCE !== '0';
+
+  const settle = () => (SETTLE_QUIESCE ? settleFor(SETTLE_MIN) : tick(SETTLE_MIN));
+
+  /* ── WAIT FOR A CONDITION, BOUNDED BY A DEADLINE -- NEVER BY A COUNT ───────
+   *
+   * The bug this whole harness change is about is "a test bounded its wait by
+   * something that is not the thing it is waiting for". `for (i=0; i<80; i++)
+   * await settle()` is the same mistake one level up: 80 iterations is a proxy
+   * for time, and on a loaded box each iteration buys less work, so the loop
+   * expires earlier in real terms exactly when the page needs longer. One such
+   * loop is already live in test/checkin-cards-live.test.mjs (not this
+   * workflow's file) and it produced the one residual failure in 8 fixed
+   * parallel runs.
+   *
+   * Use this instead. It reports what it was waiting for when it gives up,
+   * which a bare `assert.fail` after N ticks does not.
+   */
+  api_waitFor = async (pred, { timeoutMs = 10000, what = 'condition' } = {}) => {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      let got = false;
+      try { got = !!pred(); } catch { got = false; }
+      if (got) return true;
+      if (Date.now() >= deadline) {
+        throw new Error(`waitFor gave up after ${timeoutMs}ms: ${what}`);
+      }
+      await settle();
+    }
+  };
 
   const roots = [];   // every React root mounted here, so close() can unmount them
   const api = {
-    window, document: window.document, errors,
+    window, document: window.document, errors, settleStats,
     /** All visible text, newlines collapsed — cheap to assert against. */
     text: () => (window.document.body.textContent || '').replace(/\s+/g, ' ').trim(),
     /** Every button label on screen, for when a test needs to say what it saw. */
@@ -343,6 +451,8 @@ export async function boot(which = 'pos', opts = {}) {
       return true;
     },
     settle,
+    /** Deadline-bounded wait. See the note above api_waitFor. */
+    waitFor: (...a) => api_waitFor(...a),
     /** Render the app into #root. Call once after boot. */
     async mount(componentName) {
       const Comp = window[componentName];
@@ -352,7 +462,12 @@ export async function boot(which = 'pos', opts = {}) {
       }
       const root = ReactDOM.createRoot(window.document.getElementById('root'));
       roots.push(root);
-      await new Promise((r) => { root.render(React.createElement(Comp)); setTimeout(r, opts.settleMs ?? 60); });
+      /* Same reason as `settle` above: the old fixed 60ms measured the clock
+       * when what mount is waiting for is React's first flush plus whatever
+       * effects it kicks off. Render, then settle to quiescence. */
+      root.render(React.createElement(Comp));
+      const mountMin = Number(process.env.HW_SETTLE_MS) || (opts.settleMs ?? 60);
+      await (SETTLE_QUIESCE ? settleFor(mountMin) : tick(mountMin));
       return api;
     },
   };
