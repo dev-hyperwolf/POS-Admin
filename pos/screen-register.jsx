@@ -174,13 +174,80 @@ window.RegisterScreen = function RegisterScreen() {
     openVisit(m, ci.guests || []);
     flash(`${ci.name} loaded${ci.guests && ci.guests.length ? ` \u00b7 ${ci.guests.length} guest${ci.guests.length > 1 ? 's' : ''}` : ''}`);
   };
-  // Completed new check-in from the modal
-  const onCheckIn = ({ customer: c, guests: g }) => {
-    openVisit(c, g || []);setShowCheckIn(false);
-    flash(`${c.name} checked in${g && g.length ? ` with ${g.length} guest${g.length > 1 ? 's' : ''}` : ''}`);
+  // Completed new check-in from the modal.
+  //
+  // 🔴 THIS REPORTED SUCCESS AND WROTE NOTHING. It called openVisit() — which
+  // is PURELY LOCAL REACT STATE, three setters and no store (see its definition
+  // above) — and then flashed "checked in". No member, no CHECKINS row, no IDV
+  // row. The screen showed a customer, the toast confirmed it, and the store had
+  // never heard of them. Every other surface already called addCheckIn:
+  // pos/screen-orders.jsx (the bind, scan-bind and new-check-in paths) and
+  // pos/screen-stubs.jsx. The register — the busiest of the four — was the one
+  // that did not, which is exactly the shape a toast cannot show you.
+  //
+  // THE CASCADE WAS WORSE THAN THE MISSING ROWS.
+  //   · IDV is the ledger assurance() derives its compliance verdict from
+  //     (pos/verification.jsx). A customer checked in here had no entry in it at
+  //     all, so a document scanned at THIS counter left them tier 0 and their
+  //     first delivery order sent them through the remote check the policy card
+  //     promises a verified customer never sees.
+  //   · recordTicket() below settles the visit with
+  //     HW.openCheckInFor(tk.person). With no CHECKINS row that returns null, so
+  //     the sale could not settle a check-in that had never been created — a
+  //     served customer and a walk-out stayed indistinguishable on this path no
+  //     matter what the settle code did.
+  //   · ID photos attached on this path reached nothing, even after the store
+  //     hop was fixed, because nothing ever carried them into the store.
+  //
+  // THE VISIT OPENS ON THE STORED RECORD, NOT THE MODAL'S LITERAL. A new
+  // customer arrives from pos/checkin.jsx carrying `id: 'new'` — a placeholder,
+  // not an id — so seating that object would file the order against a person the
+  // book does not contain and leave openCheckInFor() hunting for 'new'.
+  // memberById(ci.memberId) is the record addCheckIn just created or matched, and
+  // it is the same read loadCheckIn() above already does.
+  //
+  // AND A REFUSAL IS NOT A CHECK-IN. addCheckIn returns null rather than
+  // throwing; reporting success on that return is this same defect one step
+  // quieter, so the confirming toast sits on the written branch only and the
+  // refusal says so out loud.
+  const onCheckIn = (p) => {
+    const ci = window.HW.addCheckIn(p);
+    setShowCheckIn(false);
+    if (!ci) {flash('Check-in NOT recorded — no customer on the form');return;}
+    const g = ci.guests || [];
+    openVisit(window.HW.memberById(ci.memberId) || p.customer, g);
+    flash(`${ci.name} checked in${g.length ? ` with ${g.length} guest${g.length > 1 ? 's' : ''}` : ''}`);
   };
-  // Search → select checks the customer in (no separate check-in button needed)
-  const checkInCustomer = (m) => {openVisit(m, []);flash(`${m.name.split(' ')[0]} checked in`);};
+  // Search → select checks the customer in (no separate check-in button needed).
+  //
+  // Same hole as onCheckIn, same fix, and the SAME CALLING CONVENTION as
+  // pos/screen-orders.jsx's onCheckInBind: `type` and `delivery` are passed null
+  // to mean UNCHANGED, so a Medicinal patient picked out of search keeps their
+  // designation instead of being silently re-filed as Adult Use.
+  //
+  // ONE PERSON, ONE ROW. addCheckIn pushes unconditionally, so checking in
+  // somebody who is already on the waiting board would mint a SECOND row for the
+  // same visit — and openCheckInFor() returns the first match, so the sale would
+  // settle one of them and leave its twin on the board for ever. Search can
+  // absolutely surface a person who is already waiting; loadCheckIn() is the path
+  // for them, and this reuses the existing openCheckInFor() export rather than
+  // inventing a new one.
+  //
+  // THE NAME IS READ, NOT SPLIT. `m.name.split(' ')[0]` was a whitespace guess at
+  // a person's given name — wrong for "Mary Anne Evans", wrong for every mononym,
+  // and the exact guess the identity ladder was rebuilt to stop making, because
+  // the fingerprint is first + last. The record carries `first_name` now. A
+  // legacy row that has none falls back to the whole displayed name rather than
+  // carving out a boundary nobody typed — the same ruling addMember makes when it
+  // refuses to backfill the pair.
+  const checkInCustomer = (m) => {
+    const ci = window.HW.openCheckInFor(m) ||
+      window.HW.addCheckIn({ customer: m, guests: [], type: null, delivery: null });
+    if (!ci) {flash('Check-in NOT recorded');return;}
+    const rec = window.HW.memberById(ci.memberId) || m;
+    openVisit(rec, ci.guests || []);
+    flash(`${(rec.first_name || '').trim() || rec.name || ci.name} checked in`);
+  };
   // ── Recording the sale ──────────────────────────────────────────────────
   // The money record the ORDER PANEL prices. Exactly the shape seedOrderMoney
   // produces in pos/screen-orders.jsx — seed, lines, discReason, discAmt,
@@ -1006,8 +1073,16 @@ function BrandFilter({ products, brands, setBrands }) {
       </div>
 
       {open && <>
-        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 1000 }} />
-        <div style={{ position: 'fixed', left: pos.left, top: pos.top, width: 244, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, padding: 8, zIndex: 1001 }}>
+        {/* THE LADDER, NOT A BIG NUMBER. This pair was 1000/1001 — above notePanel
+            (520), tourMask (600) and tourCard (610). So with this filter menu open
+            the guided tour was painted UNDER it and could not be advanced at all.
+            Measured in a browser at 1440x900 before the fix: the tour's "Next" sat
+            at (820,519,58x31) and document.elementFromPoint at its own centre
+            returned this catcher — `DIV z=1000` — not the button.
+            A dropdown is a dropdown: P.z.dropdown, and the panel one step above its
+            own click-catcher. Never a number picked to win. */}
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: P.z.dropdown }} />
+        <div style={{ position: 'fixed', left: pos.left, top: pos.top, width: 244, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, padding: 8, zIndex: P.z.dropdown + 1 }}>
           <Field icon="search" placeholder="Search brands…" size="sm" value={q} autoFocus onChange={(e) => setQ(e.target.value)} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 188, overflowY: 'auto', margin: '8px 0' }}>
             {shown.map((b) => {const on = brands.has(b);return (
@@ -1317,12 +1392,48 @@ function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
  * one person to the next. Photographs of one customer's licence appearing
  * under another customer's name is the failure this whole pass exists to stop.
  *
- * WHY A MAP AND NOT THE MEMBER RECORD: writing onto `m` would put images on an
- * object every other screen reads, which is a persistence claim this build
- * cannot honour — pos/data.jsx addMember is an allow-list and drops the key,
- * and addCheckIn writes only `doc` into IDV. See the handback note in the
- * report: filing these against a customer needs a server route that does not
- * exist, and inventing one here is the worse defect, not the fix.
+ * WHY A MAP AND NOT THE MEMBER RECORD — AND WHY THE OLD ANSWER IS NOW FALSE.
+ *
+ * 🔴 THIS PARAGRAPH USED TO SAY: "pos/data.jsx addMember is an allow-list and
+ * drops the key". That was TRUE ON THE MORNING OF 2026-08-27 AND IS FALSE AS OF
+ * 0668546. addMember now carries `idPhotos: idPhotoList(m && m.idPhotos)` onto
+ * the record, addCheckIn passes them through for a new customer and MERGES them
+ * onto a returning one, and test/id-photos-store-hop.test.mjs pins all of it.
+ * `m.idPhotos` is a real, populated field. The claim is retracted here rather
+ * than merely deleted, because a corrected fact left standing in a comment
+ * manufactures false findings — this one cost a later reader real time by
+ * "confirming" a drop that no longer happens.
+ *
+ * WHAT IS STILL TRUE is the *second* half, and it is the half that keeps the
+ * Map: this build has NO SERVER ROUTE FOR ID IMAGES. MEMBERS is an in-memory
+ * array a reload rebuilds from seed, so neither home is storage. Carrying a
+ * photo through the store buys survival of in-session navigation, nothing more.
+ *
+ * SO SHOULD THE PANEL READ `m.idPhotos` INSTEAD? YES — BUT IT CANNOT YET, AND
+ * THE MISSING PIECE IS A WRITE PATH, NOT A READ.
+ *
+ * The verdict, stated plainly so nobody has to re-derive it: this Map is now a
+ * SECOND HOME FOR THE SAME FACT, which is precisely the drift addCheckIn's own
+ * note refuses to create ("two stored copies of one fact drift apart, and then
+ * nothing on screen tells you which copy a surface read"). Today the split is
+ * visible: a photo taken at the counter lands on `m.idPhotos` and this panel
+ * shows NOTHING, because it only ever reads the Map.
+ *
+ * It is not fixed here because <window.IdPhotoCapture> is a CONTROLLED
+ * component — `photos={captured} onChange={setCaptured}` below. Seeding it from
+ * the union of the record and the Map while writes still land only in the Map
+ * would make Remove report success and then re-render the photo it just
+ * deleted, which is the same lying-control defect one layer down. Reading the
+ * record honestly requires writing to it, and the store exports no way to:
+ * `updateMember` allow-lists name/phone/email/group/type/first_name/last_name
+ * and does not take `idPhotos`, and `mergeIdPhotos`/`idPhotoList` are module-
+ * private in pos/data.jsx — not on window.HW.
+ *
+ * HANDBACK (pos/data.jsx is settled and deliberately untouched by this pass):
+ * export one writer — `attachIdPhotos(memberId, photos)` returning the updated
+ * record, or `updateMember` accepting `idPhotos` through `mergeIdPhotos`. When
+ * that lands, delete this Map entirely and point `captured`/`setCaptured` at the
+ * record. Do not do it by widening the read alone.
  *
  * Nothing clears this map: a deliberate Remove inside the control is the only
  * way a photo leaves, exactly as in the check-in form. It dies with the tab. */

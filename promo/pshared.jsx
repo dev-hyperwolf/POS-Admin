@@ -102,8 +102,16 @@ window.AnchoredPopover = function AnchoredPopover({ anchorRef, onClose, width = 
   }, []);
   if (!pos) return null;
   return ReactDOM.createPortal(<>
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000 }} />
-    <div style={{ position: 'fixed', left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.w, maxHeight: pos.maxH, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, zIndex: 2001, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{children}</div>
+    {/* THE LADDER, NOT A BIG NUMBER. This pair was 2000/2001 — the highest in the
+        estate, and above every rung shared/hw-z.js defines: notePin 500, tourMask
+        600, tourCard 610. Portalling to document.body is what escapes CLIPPING;
+        it is not a reason to outrank the annotation layer and the guided tour,
+        which this did on every SlotChip and on the sentence builder's Add popover.
+        The identical shape in pos/screen-register.jsx (1000/1001) was measured in
+        a browser: it made the tour's "Next" button unclickable. Same fix, same
+        reason. P.z.dropdown, panel one step above its own catcher. */}
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: P.z.dropdown }} />
+    <div style={{ position: 'fixed', left: pos.left, top: pos.top, bottom: pos.bottom, width: pos.w, maxHeight: pos.maxH, background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r14, boxShadow: P.shadowLg, zIndex: P.z.dropdown + 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{children}</div>
   </>, document.body);
 };
 
