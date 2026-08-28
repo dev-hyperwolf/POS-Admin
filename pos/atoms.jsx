@@ -83,7 +83,17 @@ window.overlayScrim = function overlayScrim(P, opts) {
 // The other half of the contract. A card that forgets this still scrolls, but
 // pins to the top edge instead of centring — so it is a style object rather
 // than a convention nobody can enforce.
-window.overlayCard = { margin: 'auto', flex: '0 0 auto' };
+//
+// `flex-shrink: 1`, NOT 0, and the reason is that the scrim is a ROW flex
+// container: the card's cross axis is the vertical one, and flex-shrink does
+// not act on the cross axis at all. `alignItems:'flex-start'` is already what
+// stops the card being stretched vertically. So a shrink factor of 0 buys
+// nothing on the axis this contract cares about, and on the axis it does
+// touch — WIDTH — it removes the shrink that used to absorb the vertical
+// scrollbar. Measured: a `min(780px, 96vw)` card at a 720px viewport went from
+// fitting to forcing an 11px HORIZONTAL scrollbar, because `96vw` counts the
+// scrollbar the overlay's own overflowY had just added. Growth stays 0.
+window.overlayCard = { margin: 'auto', flex: '0 1 auto' };
 
 // Eyebrow label (mono, uppercase)
 window.Eyebrow = function Eyebrow({ children, color, style }) {

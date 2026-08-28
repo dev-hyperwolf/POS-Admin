@@ -462,8 +462,8 @@ function CheckInCard({ c, onStartSale }) {
       </button>}
 
       {open &&
-      <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 80, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fade .15s ease' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px, 94vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, padding: 18 }}>
+      <div onClick={() => setOpen(false)} style={window.overlayScrim(P, { z: 80, padding: 20, animate: true })}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(420px, 94vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 5 }}>
               <Avatar name={c.name} size={32} crown={c.member} />
               <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{c.name.split(' ')[0]}’s party</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Check-in · {c.type} · {c.wait}</div></div>
@@ -847,8 +847,8 @@ function WmStatusMapModal({ onClose }) {
   const toneC = (t) => t === 'good' ? P.good : t === 'bad' ? P.bad : t === 'info' ? P.info : P.ink2;
   const rows = STAGES.map((s) => ({ our: s.label, color: s.color(P), ...(map[s.id] || {}) }));
   const gc = '1fr 1fr 1.3fr';
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 95, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fade .15s ease' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(680px, 96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 95, padding: 20, animate: true })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(680px, 96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: P.brand.weedmapsInk, background: P.brand.weedmaps, padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: P.brand.weedmapsInk }} />Weedmaps</span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Order status mapping</div><div style={{ fontSize: 11.5, color: P.inkDim }}>How our fulfillment stages map to Weedmaps statuses — and what the customer sees</div></div>
@@ -2873,8 +2873,8 @@ function PackScanner({ items, packScan, onScanOne, onDone, onClose, nextLabel, s
   const allDone = next < 0;
   React.useEffect(() => {const t = setInterval(() => {if (inputRef.current && document.activeElement !== inputRef.current) inputRef.current.focus();}, 400);return () => clearInterval(t);}, []);
   const scan = () => {if (next < 0) return;setLast(items[next].name);onScanOne(next);setBuf('');};
-  return <div onClick={(e) => {e.stopPropagation();inputRef.current && inputRef.current.focus();}} style={{ position: 'fixed', inset: 0, zIndex: 95, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fade .15s ease' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px, 96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={(e) => {e.stopPropagation();inputRef.current && inputRef.current.focus();}} style={window.overlayScrim(P, { z: 95, padding: 20, animate: true })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(520px, 96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
         <span style={{ width: 32, height: 32, borderRadius: 8, background: P.ink, color: P.surface, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={17} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Scan to pack</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Hardware scanner · reserves stock · {nextLabel ? `Done moves this order to ${nextLabel}` : 'Done leaves the stage unchanged'}</div></div>

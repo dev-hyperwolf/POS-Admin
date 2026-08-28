@@ -287,8 +287,8 @@
 
   function Sheet({ icon, title, sub, onClose, children, footer, width }) {
     const P = useP();
-    return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: width || 'min(680px,96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+    return <div onClick={onClose} style={window.overlayScrim(P, { z: 200, padding: 20 })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: width || 'min(680px,96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}`, flex: '0 0 auto' }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={16} stroke={2} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>

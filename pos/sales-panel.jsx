@@ -120,8 +120,8 @@ function SaleDetail({ s, onClose, onFlash }) {
   const REASONS = ['Defective product', 'Wrong item', 'Customer changed mind', 'Damaged packaging', 'Other'];
   const rowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: P.ink2 };
 
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: P.scrim, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} data-tour="sale-detail" style={{ width: 'min(470px,96%)', maxHeight: '88%', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 500, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} data-tour="sale-detail" style={{ ...window.overlayCard, width: 'min(470px,96%)', maxHeight: '88%', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
         <Avatar name={s.name} size={34} />
         <div style={{ flex: 1, minWidth: 0 }}>

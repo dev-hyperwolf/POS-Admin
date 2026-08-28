@@ -266,8 +266,8 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
   const methods = [['cash', 'Cash', 'cash', 'No fee'], ['card', 'Card', 'card', '+ processing fee'], ['split', 'Split', 'split', 'Cash first, then card']];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 80, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', animation: 'fade .15s ease' }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(780px, 96vw)', maxHeight: 'calc(100vh - 80px)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden', border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={window.overlayScrim(P, { z: 80, animate: true })} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(780px, 96vw)', maxHeight: 'calc(100vh - 80px)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden', border: `1px solid ${P.hairline2}`, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 20px', borderBottom: `1px solid ${P.hairline2}`, flex: '0 0 auto' }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, color: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="receipt" size={16} stroke={1.9} /></span>

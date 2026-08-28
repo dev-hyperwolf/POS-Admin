@@ -134,7 +134,7 @@ function ExportMembersModal({ rows, total, narrowed, onClose }) {
   const href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   return (
     <div onClick={onClose} style={window.overlayScrim(P, { z: 120, padding: '48px 20px', animate: true })}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(620px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(620px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="download" size={16} stroke={2} color={P.accent} /></span>
           <span style={{ flex: 1, minWidth: 0 }}>

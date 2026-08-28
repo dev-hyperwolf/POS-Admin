@@ -83,8 +83,8 @@ window.AddNoteModal = function AddNoteModal({ member, onClose, onSave }) {
   const ok = text.trim().length > 3;
   const c = hot ? HOT_KINDS[kind].tone === 'bad' ? P.bad : HOT_KINDS[kind].tone === 'warn' ? P.warn : P.info : P.ink;
   const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 };
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px,96%)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 200, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(520px,96%)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: hot ? c : P.surface3, color: hot ? '#fff' : P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name={hot ? 'shield' : 'note'} size={16} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>{hot ? 'Add hot note' : 'Add note'}</div><div style={{ fontSize: 11.5, color: P.inkDim }}>{member ? member.name : 'Customer'}</div></div>
@@ -435,8 +435,8 @@ window.FullOrderView = function FullOrderView({ order, m, onClose }) {
     <span style={{ color: strong ? P.ink : P.inkDim, fontWeight: strong ? 700 : 500 }}>{k}</span>
     <span style={{ color: c || P.ink, fontWeight: strong ? 800 : 600, fontFamily: P.fontMono }}>{v}</span></div>;
   const Meta = ({ k, v }) => <div><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase' }}>{k}</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, marginTop: 2 }}>{v}</div></div>;
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(660px,96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 200, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(660px,96vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 32, height: 32, borderRadius: 9, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="receipt" size={17} stroke={1.9} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -519,8 +519,8 @@ window.PriceCheck = function PriceCheck() {
       <Icon name="tag" size={18} stroke={1.8} />
     </button>
     {open && ReactDOM.createPortal(
-      <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '80px 20px', fontFamily: P.fontSans }}>
-        <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+      <div onClick={() => setOpen(false)} style={{ ...window.overlayScrim(P, { z: 300, padding: '80px 20px' }), fontFamily: P.fontSans }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(560px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px', borderBottom: `1px solid ${P.hairline}` }}>
             <Icon name="tag" size={17} stroke={1.9} color={P.ink2} />
             <input ref={ref} value={q} onChange={(e) => {setQ(e.target.value);setSel(null);}} placeholder="Scan a barcode or type a product, brand or SKU…"

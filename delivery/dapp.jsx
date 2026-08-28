@@ -224,8 +224,8 @@ function AddWmPinModal({ kind, onClose, onSave }) {
   const inp = { width: '100%', padding: '10px 12px', background: P.field || P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink, fontSize: 13.5, fontFamily: P.fontSans, outline: 'none' };
   const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, display: 'block', marginBottom: 6 };
   const save = () => {if (!city.trim()) return;onSave({ city: city.trim(), assoc: assoc.trim(), pinId: pinId.trim(), menuId: menuId.trim(), apiKey: apiKey.trim() });};
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: P.scrim, zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px,96vw)', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 90, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(420px,96vw)', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 6, height: 6, borderRadius: 2, background: '#fff' }} />Weedmaps</span>
         <span style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>New {kind.toLowerCase()} pin</span>
