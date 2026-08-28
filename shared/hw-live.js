@@ -608,7 +608,18 @@
           listings: listings,
           ext: ext,
           last: lastPushed ? ago(lastPushed) : 'never',
-          issue: wmState === 'synced' ? undefined : issue
+          issue: wmState === 'synced' ? undefined : issue,
+          // The operator override behind POST /api/product/publish
+          // (wmdemo/catalog.set_manual_unpublish, wm_manual_unpublish on the
+          // raw catalog row). Read straight off the catalog blob, not derived
+          // from `listings` above: `listings` says what the LAST PUSH landed
+          // as, which can lag or fail independently of whether the override
+          // itself is set (see engine.set_product_published's push_failed
+          // path — the override can be saved even when the push could not
+          // reach Weedmaps). The two are shown separately in the UI for that
+          // reason: this is the intent, `listings`/`published` is the
+          // confirmed result.
+          manualUnpublish: !!p.wm_manual_unpublish
         },
         _live: true,
         _stockByRegion: byRegion,

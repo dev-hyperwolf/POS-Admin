@@ -554,6 +554,179 @@ function wmListingCoverage(p) {
     on: known.filter((r) => r.published).length };
 }
 
+// ── Manual publish override ─────────────────────────────────────────────────
+// "Deactivate on Weedmaps" / "Reactivate on Weedmaps" — hides a product from
+// the storefront without deleting the listing (POST /api/product/publish,
+// engine.set_product_published). Sets/clears the wm_manual_unpublish catalog
+// flag, which the server's ONE publish resolver (publish_decision) honours
+// ahead of the automatic stock/price gate, then re-pushes and reads every
+// listing back before answering.
+//
+// THREE STATES THIS CONTROL CAN BE IN, SHOWN DISTINCTLY RATHER THAN AS ONE
+// ON/OFF LIGHT — collapsing them was the failure mode this screen is trying
+// not to repeat:
+//   1. AUTOMATIC — no operator override. Whatever the gate (stock/price/
+//      mapping) decides is what publishes. No pill; button offers to hold it
+//      off on purpose.
+//   2. HELD OFF BY OPERATOR — wm_manual_unpublish is set. The item is hidden
+//      regardless of what the gate would otherwise do. Warn pill names WHO
+//      did this (a person, not the gate); button offers to clear it.
+//   3. CLEARED BY OPERATOR, STILL NOT LIVE — the override was just cleared
+//      (operator wants it published) but read-back shows the automatic gate
+//      is the one keeping it off (no stock, no price, unmapped). Different
+//      pill, because "a person is holding this off" and "nothing is holding
+//      it off but it still won't publish" are different facts an operator
+//      needs to act on differently — conflating them is exactly how the
+//      category-map control shipped confusing.
+// A caption under the button always states the mechanism (override vs. gate)
+// so state 3 is never a surprise.
+//
+// HONESTY RULE, ENFORCED HERE NOT JUST IN THE SERVER: `r.ok` from
+// window.HW_LIVE.post is only the HTTP status (2xx) — the route answers 200
+// even when the override was saved and pushed but read-back could not
+// confirm every listing (most often because the automatic gate still blocks
+// the sku on stock or price, which is a true and different fact from "the
+// toggle failed"). Only `r.body.ok`, the server's own read-back verdict, is
+// allowed to report success. See engine.set_product_published's docstring.
+//
+// STALENESS. ProductDetailPage's `p` is a SNAPSHOT captured when the row was
+// clicked (screen-catalog.jsx's `detail` state) — a global refresh re-fetches
+// /api/state but does not push a new object into an already-open detail page.
+// So this control does not trust `p` again once it has its own answer: after
+// a toggle, `afterAction` — built from the POST's own read-back — overrides
+// `p.wm.manualUnpublish` and `p.wm.listings` for as long as this page stays
+// open. Without this the button and pill kept showing the PRE-click state
+// even while the success message correctly reported the change.
+function WmPublishToggle({ p }) {
+  const P = useP();
+  const post = window.HW_LIVE && typeof window.HW_LIVE.post === 'function' ? window.HW_LIVE.post : null;
+  const [busy, setBusy] = React.useState(false);
+  const [afterAction, setAfterAction] = React.useState(null); // {heldNow, ok, listings}
+  const initialHeld = !!(p.wm && p.wm.manualUnpublish);
+  const held = afterAction ? afterAction.heldNow : initialHeld;
+  const mapped = p._wmProductId != null;
+
+  // Gate-blocked-with-no-override, worked out from whatever evidence this
+  // page actually has. Post-action it is exact (the read-back per listing).
+  // Pre-action it is a weaker but still honest signal — the listing coverage
+  // this SKU shipped with when the page opened — because /api/state does not
+  // carry publish_decision's block_reason for every sku on every poll; that
+  // would mean asking the gate for all 1500+ skus on every load to caption
+  // one product's card, which is not a cost this control gets to spend.
+  //
+  // NOT DERIVED FROM WHICH BUTTON WAS CLICKED. body.ok from the server means
+  // "read-back matches what the resolver intended" — and clearing the
+  // override can intend published=false just as honestly as true, when stock
+  // or price still fail the gate (engine.publish_decision — clearing the
+  // override hands the decision back to the gate, it does not force one).
+  // An earlier version of this control said "is live on Weedmaps again"
+  // whenever body.ok was true after a Reactivate click, which is the exact
+  // conflation this file's own price-integrity note warns about: "confirmed"
+  // and "confirmed published" are different claims. Fixed by reading
+  // `intended_published` per listing instead of inferring from the request.
+  const staleCov = wmListingCoverage(p);
+  const listingsArr = afterAction ?
+  Object.values(afterAction.listings || {}).filter((l) => l.found) : [];
+  const gateWantsPublish = listingsArr.some((l) => l.intended_published);
+  const gateBlocked = afterAction ?
+  !afterAction.heldNow && listingsArr.length > 0 && !gateWantsPublish :
+  !held && staleCov && staleCov.known > 0 && staleCov.on === 0;
+  const gateReasons = Array.from(new Set(listingsArr.
+  map((l) => l.block_reason).filter(Boolean)));
+
+  const toggle = () => {
+    if (!post) {
+      setAfterAction((a) => ({ ...(a || { heldNow: held, listings: {} }), ok: false,
+        msg: 'shared/hw-live.js is not on this page — there is no write path to call.' }));
+      return;
+    }
+    const wasHeld = held;
+    setBusy(true);
+    post('/api/product/publish', { sku: p.sku, published: wasHeld }).then((r) => {
+      setBusy(false);
+      const body = r.body || {};
+      if (body.error === 'no_wm_mapping') {
+        setAfterAction({ heldNow: wasHeld, ok: false, listings: {},
+          msg: `${p.sku} has no live Weedmaps mapping — map it before toggling.` });
+      } else if (body.error === 'unknown_sku') {
+        setAfterAction({ heldNow: wasHeld, ok: false, listings: {},
+          msg: `${p.sku} is not in the catalog.` });
+      } else if (body.error === 'push_failed') {
+        // The LOCAL flag still flipped (engine.set_product_published sets it
+        // before attempting the push) — say so, so "saved" and "reached
+        // Weedmaps" are not conflated into one failure.
+        setAfterAction({ heldNow: !wasHeld, ok: false, listings: {},
+          msg: `Saved locally, but the push to Weedmaps failed (${body.detail || 'unreachable'}). It will take effect on the next sync.` });
+      } else if (!r.ok && !body.error) {
+        setAfterAction({ heldNow: wasHeld, ok: false, listings: {},
+          msg: `Refused (${r.code}): ${r.error || 'no reason given'}` });
+      } else {
+        // body.ok (confirmed) or not (not every listing landed) — either way
+        // the per-listing `listings` map is the one honest source for what
+        // to tell the operator, never the button they clicked.
+        const arr = Object.values(body.listings || {}).filter((l) => l.found);
+        const wantsPublish = arr.some((l) => l.intended_published);
+        const nowHeld = !wasHeld;
+        let msg;
+        if (nowHeld) {
+          msg = body.ok ?
+          `${p.sku} is hidden from the Weedmaps storefront — confirmed by reading every listing back.` :
+          null; // partial confirmation on a hide is rare; the per-listing note below covers it
+        } else if (!wantsPublish && arr.length) {
+          // The override is gone, but the automatic gate is the one keeping
+          // this off (no stock, no price, or similar) — a true and different
+          // fact from "the toggle failed", named per listing below rather
+          // than papered over as a success or a failure.
+          msg = null;
+        } else if (body.ok) {
+          msg = `${p.sku} is live on Weedmaps again — confirmed by reading every listing back.`;
+        } else {
+          msg = 'Override cleared and the gate wants this published, but not every listing confirmed it yet' +
+            (arr.length ? '' : ' (no read-back reached a listing)') + '.';
+        }
+        setAfterAction({ heldNow: nowHeld, ok: !!body.ok, listings: body.listings || {}, msg });
+      }
+      // refresh(), not the plain rerender() every sibling seam's own write
+      // handler calls: rerender() repaints with whatever /api/state last
+      // handed to this page, which is exactly the stale local copy the task
+      // says not to trust. This keeps the CATALOG LIST and any future-opened
+      // detail page current; THIS already-open page's own state is kept
+      // truthful by afterAction above, set from the write's own read-back.
+      if (window.HW_LIVE && typeof window.HW_LIVE.refresh === 'function') window.HW_LIVE.refresh();
+      else if (window.HW_LIVE && window.HW_LIVE.rerender) window.HW_LIVE.rerender();
+    });
+  };
+
+  const pill = held ?
+  <Pill kind="warn" dot>Held off by operator</Pill> :
+  gateBlocked ?
+  <Pill kind="info" dot>Not live — blocked by Weedmaps checks{gateReasons.length ? `: ${gateReasons.join(', ')}` : ''}</Pill> :
+  null;
+
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
+      <PBtn variant="secondary" size="sm" icon={held ? 'check-circle' : 'eye-off'} busy={busy}
+        disabled={busy || !mapped} onClick={toggle}
+        title={mapped ? undefined : 'No live Weedmaps mapping — nothing to toggle'}>
+        {held ? 'Reactivate on Weedmaps' : 'Deactivate on Weedmaps'}
+      </PBtn>
+      {pill}
+    </div>
+    <div style={{ fontSize: 10.5, color: P.inkMute, lineHeight: 1.4 }}>
+      {held ?
+      'A person turned this off — it stays hidden even if stock and price would otherwise let it publish. Reactivate returns control to the automatic checks; it does not force a republish by itself.' :
+      'Automatic: Weedmaps checks (stock, price, mapping) decide whether this publishes. Deactivate overrides them on purpose, until someone reactivates it.'}
+    </div>
+    {!mapped && <div style={{ fontSize: 10.5, color: P.inkMute }}>Map this SKU to a Weedmaps product before it can be toggled here.</div>}
+    {afterAction && afterAction.msg &&
+    <div style={{ fontSize: 11.5, color: afterAction.ok ? P.good : P.bad, lineHeight: 1.45 }}>{afterAction.msg}</div>}
+    {afterAction && !afterAction.msg && !held && gateBlocked &&
+    <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>
+      Override cleared, but Weedmaps has not published it{gateReasons.length ? ` — ${gateReasons.join(', ')}` : ''}. That is the automatic gate, not this control.
+    </div>}
+  </div>;
+}
+
 // On-shift driver kits carrying this SKU. `kits` and `on_shift` are both in
 // /api/state and shared/hw-live.js already joins them onto window.HW.DRIVERS
 // as `kit` (that driver's SKU list) and `status` ('offline' when off shift).
@@ -1364,6 +1537,7 @@ function ProductDetailPage({ p, onBack }) {
                 <Icon name="lock" size={13} stroke={1.9} color={P.inkMute} />
                 <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>external_id</div><div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: P.fontMono }}>{p.wm.ext}</div></div>
               </div>
+              <WmPublishToggle p={p} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {/* LISTING COVERAGE. Denominator = the listings that really
                     exist (region_menus); numerator = the ones this SKU is
