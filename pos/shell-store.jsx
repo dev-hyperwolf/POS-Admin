@@ -293,6 +293,56 @@
     }).catch(() => null);
   }
 
+  // A SKU the Add Product wizard submits under is not guaranteed new — there
+  // is no client- or server-side SKU-uniqueness check anywhere, and an
+  // operator re-running this flow with a typo'd or reused SKU hits a sku a
+  // real product already owns. productPayload() builds a body straight from
+  // the wizard form, which only knows the fields the wizard shows —
+  // `wm_manual_unpublish` (the operator's own "hide from storefront" call),
+  // `wm_product_id` (the Weedmaps mapping link), `wm_brand_id`, `tags`,
+  // `image_url`, `sale_pct` are not among them. Because /api/product is a
+  // full replace (catalog.upsert_product, wmdemo/server.py's own comment on
+  // this exact route), POSTing that body on a collision would silently wipe
+  // every one of those fields with a 200 OK — undoing a real operator
+  // decision, or worse, unmapping a live Weedmaps listing.
+  //
+  // So: GET the sku first (createVariation below). A 404 means this really is
+  // a new product — proceed exactly as before. A hit means this is actually
+  // an EDIT of an existing row wearing an Add-Product wizard, and gets the
+  // same GET -> modify -> POST discipline renameVariation already uses:
+  // rawToPayload folds the wizard's fields onto the raw stored row, so
+  // everything the wizard never heard of survives untouched.
+  //
+  // `sample` is deliberately left OUT of the collision override set. The
+  // wizard's Display-sample switch defaults to off, and an operator filling
+  // it in has not reviewed — has no reason to suspect — an existing product's
+  // sample status; sending it through would re-run the exact same silent-wipe
+  // bug one field at a time (a real sample landing on a colliding SKU gets
+  // de-sampled, and samples must never reach Weedmaps — owner ruling
+  // 2026-08-27, catalog.set_wm_product_id). Changing sample on a product that
+  // already exists is the product-detail page's job (updateVariationFields),
+  // done deliberately, not a side effect of colliding with it here.
+  function collisionOverrides(shell, v, b) {
+    const genetics = v.strain ? String(v.strain).toLowerCase() : null;
+    const o = {
+      name: [shell.brand, v.name, shell.format].filter(Boolean).join(' '),
+      category: shell.cat,
+      price: typeof v.price === 'number' ? v.price : parseFloat(v.price) || 0,
+      weight_unit: shell.unit, weight_value: shell.netW || '1',
+      genetics,
+      strain: v.name || null,
+      description: v.desc || null,
+      brand_name: shell.brand || null,
+      items_per_pack: shell.pack && shell.pack !== '1' ? shell.pack : null,
+      inventory: v.qty || 0
+    };
+    if (b && !b.skip) {
+      if (b.thc !== '' && b.thc != null) o.thc = b.thc;
+      if (b.cbd !== '' && b.cbd != null) o.cbd = b.cbd;
+    }
+    return o;
+  }
+
   // Creates a PRODUCT, not a local row. WAS: a pure client-side mock write to
   // SHELLS (and, for `sample`, to HW.PRODUCTS in place) — the Add Product flow
   // reported "created" to the operator and nothing ever reached Weedmaps.
@@ -300,7 +350,7 @@
   // live catalogue actually confirms — one source of truth, not two that can
   // disagree.
   //
-  // Returns a promise of { ok, sku, wm, error, hint }:
+  // Returns a promise of { ok, sku, wm, error, hint, collided }:
   //   ok    the catalog write is confirmed by reading it back — never set from
   //         a bare HTTP 200.
   //   wm    per-listing push verdict (wmPushSummary), or null when a push
@@ -308,26 +358,33 @@
   //         above) — a genuinely different fact from "the push failed".
   //   error/hint  present when `ok` is false, for the one place in this flow
   //         that shows an operator what happened (product-shell.jsx commit()).
+  //   collided  true when the sku already had a row before this call — this
+  //         write edited it (via collisionOverrides above) rather than
+  //         creating a new product, so a caller can say so instead of
+  //         reporting a fresh "created".
   function createVariation(shellId, v, b) {
     const shell = shellById(shellId);
     if (!shell) return Promise.resolve({ ok: false, sku: v && v.sku, error: 'unknown_shell', hint: null });
-    const body = productPayload(shell, v, b);
-    return pushProduct(body).then((r) => readBackProduct(v.sku).then((live) => {
-      if (!live) {
-        return { ok: false, sku: v.sku, error: r.error || 'not_confirmed',
-          hint: r.hint || (r.ok ? null :
-            'A fresh read of the catalog does not show ' + v.sku + ' — nothing was created.') };
-      }
-      // CONFIRMED. Populate the mock FROM the confirmed row so the shell list
-      // and product sheet show exactly what the server holds, not what we
-      // asked it to hold. `thumb: live` mirrors seed()'s own `thumb: p`.
-      const row = { sku: live.sku, name: live.name, price: live.price, override: !!v.override,
-        strain: live.strain, active: !!live.active && !live.sample, qty: live.qty || 0,
-        sample: !!live.sample, thumb: live };
-      SHELLS = allShells().map((s) => s.id === shell.id ? { ...s, variations: [...s.variations, row] } : s);
-      emit();
-      return { ok: true, sku: v.sku, wm: r.wm ? wmPushSummary(r.wm) : null };
-    }));
+    return fetchRawProduct(v.sku).then((existing) => {
+      const collided = !!existing.ok;
+      const body = collided ? rawToPayload(existing.product, collisionOverrides(shell, v, b)) : productPayload(shell, v, b);
+      return pushProduct(body).then((r) => readBackProduct(v.sku).then((live) => {
+        if (!live) {
+          return { ok: false, sku: v.sku, error: r.error || 'not_confirmed',
+            hint: r.hint || (r.ok ? null :
+              'A fresh read of the catalog does not show ' + v.sku + ' — nothing was created.') };
+        }
+        // CONFIRMED. Populate the mock FROM the confirmed row so the shell list
+        // and product sheet show exactly what the server holds, not what we
+        // asked it to hold. `thumb: live` mirrors seed()'s own `thumb: p`.
+        const row = { sku: live.sku, name: live.name, price: live.price, override: !!v.override,
+          strain: live.strain, active: !!live.active && !live.sample, qty: live.qty || 0,
+          sample: !!live.sample, thumb: live };
+        SHELLS = allShells().map((s) => s.id === shell.id ? { ...s, variations: [...s.variations, row] } : s);
+        emit();
+        return { ok: true, sku: v.sku, wm: r.wm ? wmPushSummary(r.wm) : null, collided };
+      }));
+    });
   }
 
   // Reads the TRUE stored row for one sku off the new GET /api/product/<sku>
@@ -540,5 +597,10 @@
 
   window.HW_SHELL = { TAX, catDef, get BOXES() {return BOXES;}, KIT_BOXES: BOXES, SHELL_FORMATS, FORMAT_BY_CAT,
     allShells, shellById, shellOf, useShells, saveShell, createVariation, renameVariation, updateVariationFields, addBox, renameBox,
+    // fetchRawProduct exported so the Add Product wizard can warn an operator
+    // BEFORE submitting that a sku already exists — createVariation above
+    // does the same GET internally and merges safely either way, so this is
+    // purely advisory; nothing about correctness depends on the UI calling it.
+    fetchRawProduct,
     parseSize, splitSize, mono1, mono2, slugify, familyPath, menuPath, totalStock, effectivePrice, aiDesc, sharedRows };
 })();

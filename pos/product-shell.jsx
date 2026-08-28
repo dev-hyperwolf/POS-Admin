@@ -174,6 +174,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   const [saving, setSaving] = React.useState(false);
   const [saveErr, setSaveErr] = React.useState(null);
   const [saveWm, setSaveWm] = React.useState(null);
+  const [saveCollided, setSaveCollided] = React.useState(false);
   const commit = () => {
     if (!shell) return Promise.resolve(false);
     setSaving(true);setSaveErr(null);
@@ -184,9 +185,31 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
       setSaving(false);
       if (!r.ok) {setSaveErr(wmCreateErrorText(r));return false;}
       setSaveWm(r.wm);
+      setSaveCollided(!!r.collided);
       return true;
     });
   };
+
+  // ── pre-submit collision warning ──
+  // There is no sku-uniqueness check anywhere in this build, so a typo'd or
+  // reused sku silently turns "add a product" into "edit an existing one".
+  // SH.createVariation now merges that case safely (wm_manual_unpublish,
+  // wm_product_id and sample all survive — see its own comment), but the
+  // operator should find out BEFORE clicking Create, not just after. Debounced
+  // off `sku` (which changes on every keystroke of the name while
+  // auto-assigned) and only checked on the variation step, where the field is
+  // visible. Purely advisory: createVariation does its own GET regardless of
+  // whether this resolves in time, so a slow or failed check here cannot
+  // cause data loss, only a missed warning.
+  const [skuExisting, setSkuExisting] = React.useState(null); // null = clear/unknown, else the raw row found
+  React.useEffect(() => {
+    if (cur.k !== 'variation' || !sku || !sku.trim() || !SH.fetchRawProduct) {setSkuExisting(null);return;}
+    let live = true;
+    const t = setTimeout(() => {
+      SH.fetchRawProduct(sku).then((r) => {if (live) setSkuExisting(r.ok ? r.product : null);});
+    }, 400);
+    return () => {live = false;clearTimeout(t);};
+  }, [sku, cur.k]);
 
   const Head = () => <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 20px', background: P.surface2, borderBottom: `1px solid ${P.hairline}`, overflowX: 'auto' }}>
     {FLOW_STEPS.map((s, i) => {const on = i === step, done = i < step;
@@ -366,6 +389,13 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                   <Icon name="refresh" size={14} stroke={1.8} color={P.inkMute} />
                 </div>}
                 <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 5 }}>Generated from the shell code + product name. Get it right now — it is permanent on Weedmaps.</div>
+                {skuExisting && <div style={{ display: 'flex', gap: 9, marginTop: 8, padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}44`, borderRadius: P.r10 }}>
+                  <Icon name="alert-triangle" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                  <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+                    <b>{sku}</b> already exists — <b>{skuExisting.name}</b>. Creating will <b>edit that product</b>, not add a new one.
+                    Its Weedmaps mapping, publish status and sample flag are kept as-is; only the fields on this screen will change.
+                  </div>
+                </div>}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 13px', marginBottom: 13, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: 9 }}>
@@ -463,10 +493,12 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
 
         {cur.k === 'done' && <div style={{ textAlign: 'center', padding: '14px 0' }}>
           <span style={{ width: 46, height: 46, borderRadius: 99, background: P.good, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={24} stroke={2.6} color="#fff" /></span>
-          <div style={{ fontSize: 16.5, fontWeight: 800, color: P.ink, marginTop: 11 }}>{v.name || 'Variation'} added</div>
+          <div style={{ fontSize: 16.5, fontWeight: 800, color: P.ink, marginTop: 11 }}>{v.name || 'Variation'} {saveCollided ? 'updated' : 'added'}</div>
           <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{sku || '—'} · {shell ? shell.name : ''}{effPrice ? ' · ' + money(effPrice) + (v.override ? ' (override)' : '') : ''}</div>
           <div style={{ marginTop: 16, textAlign: 'left', border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
-            {[['Variation created on ' + (shell ? shell.id : 'the shell'), 'good', v.override ? 'Brand, format, size and traits inherited. Retail price overridden for this variation only.' : 'Brand, format, size, price and traits all inherited — nothing re-entered.'],
+            {[saveCollided ?
+              ['Existing product updated, not created', 'warn', 'SKU ' + sku + ' already had a product on it — this edited that record in place rather than adding a new one. Its Weedmaps mapping, publish status and sample flag were left exactly as they were.'] :
+              ['Variation created on ' + (shell ? shell.id : 'the shell'), 'good', v.override ? 'Brand, format, size and traits inherited. Retail price overridden for this variation only.' : 'Brand, format, size, price and traits all inherited — nothing re-entered.'],
             // The only line on this screen that reports whether this product
             // actually reached Weedmaps — SH.createVariation's own per-listing
             // push verdict, never a bare 200. `saveWm == null` is a genuinely
