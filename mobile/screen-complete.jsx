@@ -156,7 +156,7 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
             <span style={{ width: 40, height: 40, borderRadius: 11, background: idChecked ? P.good : P.warnSoft, color: idChecked ? '#fff' : P.warn, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={idChecked ? 'check' : 'camera'} size={21} stroke={2.1} /></span>
             <div style={{ flex: 1, textAlign: 'left' }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{idChecked ? 'ID captured · 21+ verified' : 'Scan customer ID · 21+'}</div>
-              <div style={{ fontSize: 12.5, color: idChecked ? (P.mode === 'dark' ? P.good : '#1B5E20') : P.warn, marginTop: 2, fontWeight: 600 }}>{idChecked ? 'Saved to their profile' : 'First-time guest — photo required'}</div>
+              <div style={{ fontSize: 12.5, color: idChecked ? (P.mode === 'dark' ? P.good : '#1B5E20') : P.warn, marginTop: 2, fontWeight: 600 }}>{idChecked ? 'Checked for this stop — not saved' : 'First-time guest — photo required'}</div>
             </div>
             {!idChecked && <Icon name="chevron-right" size={18} stroke={2} color={P.inkFaint} />}
           </button>
@@ -241,7 +241,7 @@ window.CompleteScreen = function CompleteScreen({ taskId, receiptOnly }) {
         <PBtn variant="accent" size="xl" full icon="check" disabled={!canCollect} onClick={() => finish('success')}>Confirm delivered</PBtn>}
       </div>}
 
-      {showIdCam && <window.IDCapture name={base.name} onCancel={() => setShowIdCam(false)} onCaptured={() => { setIdChecked(true); setShowIdCam(false); window.M.flash('ID captured & saved to profile'); }} />}
+      {showIdCam && <window.IDCapture name={base.name} onCancel={() => setShowIdCam(false)} onCaptured={() => { setIdChecked(true); setShowIdCam(false); window.M.flash('ID checked for this stop — not saved to a profile'); }} />}
 
       {showPay && <window.MobilePayment total={totals.total} customer={base.name} startMethod={payMethod} onCancel={() => setShowPay(false)} onDone={(sale) => {setPay(sale);setShowPay(false);window.M.flash('Payment collected');}} />}
     </div>);

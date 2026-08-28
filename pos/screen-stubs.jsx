@@ -110,7 +110,17 @@ window.MembersScreen = function MembersScreen() {
       {addOpen && <AddMemberModal onClose={() => setAddOpen(false)} onAdd={(m) => {window.HW.addMember(m);setAddOpen(false);}} />}
       {/* The modal hands back {customer, guests, type, delivery} — dropping it
           was the whole bug: the flow completed and created nothing. */}
-      {showCheckIn && window.CheckInModal && <window.CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={(p) => {window.HW.addCheckIn(p);setShowCheckIn(false);}} />}
+      {showCheckIn && window.CheckInModal && <window.CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={(p) => {
+        // addCheckIn REFUSES (returns null) when the payload carries no
+        // customer. Closing the modal on that branch is the flow reporting
+        // completion with nothing written — the same defect the comment above
+        // describes, one step quieter. This screen has no toast, so the honest
+        // refusal signal is the modal STAYING OPEN with the operator's form
+        // still on it, rather than vanishing as though it had worked.
+        const ci = window.HW.addCheckIn(p);
+        if (!ci) return;
+        setShowCheckIn(false);
+      }} />}
     </div>);
 
 };
@@ -381,7 +391,34 @@ function MemberDetailPage({ m, onBack }) {
   const saveEdits = () => {
     const first = String(form.first || '').trim(), last = String(form.last || '').trim();
     const joined = window.HWName ? window.HWName.join(first, last) : [first, last].filter(Boolean).join(' ');
-    window.HW.updateMember(m.id, { first_name: first, last_name: last, name: joined, phone: form.phone, email: form.email });
+    const saved = window.HW.updateMember(m.id, { first_name: first, last_name: last, name: joined, phone: form.phone, email: form.email });
+    // 🔴 THE COMMENT HERE USED TO READ "// Saved." OVER AN UNCHECKED RETURN.
+    // updateMember returns null when the id no longer resolves (pos/data.jsx:
+    // `if (!m || !patch) return null`), and this cleared the guessed mark on
+    // that branch too — which is WORSE THAN A MISSING TOAST, and the reason
+    // this site was fixed ahead of the others.
+    //
+    // `nameGuessed` is not decoration. It is the standing warning that the
+    // first/last boxes were INFERRED from one joined string rather than read
+    // off a document, and the panel at line ~584 renders it as "These two boxes
+    // are a guess… saving is what turns the guess into two real columns".
+    // Clearing it is a claim that a human confirmed the boundary and the store
+    // now holds two real columns. Clearing it on a refused write left the
+    // record LOOKING VERIFIED while nothing had been written: the warning that
+    // existed precisely to stop a bad split propagating was gone, the operator
+    // had been shown a screen that agreed with them, and the next reader — the
+    // identity fingerprint that decides whether two records are one person —
+    // would trust a boundary nobody ever confirmed. A silent no-op degrades to
+    // stale data; this degraded to CONFIDENT stale data.
+    //
+    // So the mark is cleared on the WRITTEN BRANCH ONLY, and a refusal says so
+    // out loud in the activity log — the same shape applyCredit() above already
+    // uses for creditWallet. Editing stays open on refusal: the operator's
+    // typed values are still on screen and still unsaved, which is the truth.
+    if (!saved) {
+      setLogged((l) => [{ icon: 'alert', accent: true, t: 'Edits NOT saved — this member is no longer in the book', s: 'Just now' }, ...l]);
+      return;
+    }
     // Saved. The split is no longer an inference waiting to be checked — the
     // operator was shown the mark and committed these two values, so the record
     // now HAS separate columns and nothing downstream needs to guess again.
@@ -714,7 +751,20 @@ function MemberDetailPage({ m, onBack }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <PBtn variant="ghost" size="xs" onClick={() => setUnlinkAsk(false)}>Cancel</PBtn>
                       <div style={{ flex: 1 }} />
-                      <PBtn variant="danger" size="xs" icon="user-off" onClick={() => {window.HW.setWmLink(m.id, false);setUnlinkAsk(false);}}>Unlink</PBtn>
+                      <PBtn variant="danger" size="xs" icon="user-off" onClick={() => {
+                        // setWmLink returns null when the id does not resolve.
+                        // Dismissing the confirm panel on that branch tells the
+                        // operator the identity was unlinked while the link is
+                        // still there — and the next Weedmaps order still lands
+                        // on this profile automatically, which is exactly the
+                        // behaviour they just acted to stop.
+                        const un = window.HW.setWmLink(m.id, false);
+                        if (!un) {
+                          setLogged((l) => [{ icon: 'alert', accent: true, t: 'NOT unlinked — this member is no longer in the book', s: 'Just now' }, ...l]);
+                          return;
+                        }
+                        setUnlinkAsk(false);
+                      }}>Unlink</PBtn>
                     </div>
                   </div> :
                 <PBtn variant="ghost" size="sm" icon="user-off" onClick={() => setUnlinkAsk(true)}>Unlink Weedmaps identity</PBtn>}
@@ -838,6 +888,15 @@ function LaneEconomicsSettings({ onClose }) {
   }));
   const num = (k) => parseFloat(f[k]);
   const bad = Object.keys(f).find((k) => !Number.isFinite(num(k)) || num(k) < 0);
+  // The store REFUSED the figures. Today `bad` above screens for the same
+  // condition setLaneSettings does, so this should be unreachable through the
+  // Save button — but the two checks iterate DIFFERENT KEY SETS (`bad` walks
+  // the form's own keys, setLaneSettings walks LANE_DEFAULTS), so they agree by
+  // coincidence of the form currently holding exactly those four keys, not by
+  // construction. Adding a fifth lane figure to one and not the other silently
+  // re-opens the hole, and the failure mode is the modal closing over a refused
+  // write. Cheap to hold the door shut instead of asserting nobody will open it.
+  const [refused, setRefused] = React.useState(false);
   const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 };
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value.replace(/[^0-9.]/g, '') }));
   const Row = ({ k, label, hint }) =>
@@ -884,6 +943,7 @@ function LaneEconomicsSettings({ onClose }) {
         </div>
 
         {bad && <div style={{ fontSize: 11.5, color: P.bad, fontWeight: 600 }}>Every figure must be a number and cannot be negative &mdash; a negative minimum would silently switch the gate off.</div>}
+        {refused && !bad && <div style={{ fontSize: 11.5, color: P.bad, fontWeight: 600 }}>Not saved &mdash; the store refused these figures. The lanes are unchanged.</div>}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 9, padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
@@ -891,7 +951,7 @@ function LaneEconomicsSettings({ onClose }) {
         <span style={{ display: 'flex', gap: 9 }}>
           <PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
           <PBtn variant="accent" size="md" icon="check" disabled={!!bad}
-            onClick={() => { window.HW.setLaneSettings({ expressMinimum: num('expressMinimum'), expressFee: num('expressFee'), scheduledMinimum: num('scheduledMinimum'), scheduledFee: num('scheduledFee') }); onClose(); }}>
+            onClick={() => { const saved = window.HW.setLaneSettings({ expressMinimum: num('expressMinimum'), expressFee: num('expressFee'), scheduledMinimum: num('scheduledMinimum'), scheduledFee: num('scheduledFee') }); if (!saved) { setRefused(true); return; } onClose(); }}>
             Save &middot; min {money(num('expressMinimum') || 0)}
           </PBtn>
         </span>

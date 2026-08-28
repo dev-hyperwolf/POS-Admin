@@ -65,7 +65,16 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
         {idOk ?
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: P.goodSoft, border: `1px solid ${P.good}`, borderRadius: P.r16, marginBottom: 16 }}>
             <span style={{ width: 38, height: 38, borderRadius: 11, background: P.good, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="check" size={20} stroke={2.2} /></span>
-            <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>ID on file · 21+</div><div style={{ fontSize: 12.5, color: P.mode === 'dark' ? P.good : '#1B5E20', marginTop: 1, fontWeight: 600 }}>Verified — ready to shop</div></div>
+            {/* 🔴 "ID on file" IS TRUE FOR ONE OF THESE TWO STATES ONLY.
+                `idOk` is seeded from base.verified but is ALSO set by a capture
+                made moments ago on this phone, and that capture stores nothing
+                (see the note over window.IDCapture in screen-task.jsx). So a
+                driver who had just held up a camera was shown "ID on file ·
+                Verified", which names a record that does not exist — the same
+                claim the toast underneath it used to make, except this one
+                stays on screen for the rest of the appointment. The two states
+                are told apart rather than sharing one sentence. */}
+            <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>{base.verified ? 'ID on file · 21+' : 'ID checked · 21+'}</div><div style={{ fontSize: 12.5, color: P.mode === 'dark' ? P.good : '#1B5E20', marginTop: 1, fontWeight: 600 }}>{base.verified ? 'Verified — ready to shop' : 'Checked for this stop — ready to shop'}</div></div>
           </div> :
 
         <button onClick={() => setShowIdCam(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '15px 16px', background: P.surface, border: `1.5px solid ${P.warn}`, borderRadius: P.r16, cursor: 'pointer', marginBottom: 16 }}>
@@ -94,7 +103,7 @@ window.AppointmentScreen = function AppointmentScreen({ taskId }) {
       </div>}
 
       {zoom && <window.ZoomView kind={zoom} base={base} onClose={() => setZoom(null)} />}
-      {showIdCam && <window.IDCapture name={base.name} onCancel={() => setShowIdCam(false)} onCaptured={() => {setIdOk(true);setShowIdCam(false);window.M.flash('ID captured & saved to profile');}} />}
+      {showIdCam && <window.IDCapture name={base.name} onCancel={() => setShowIdCam(false)} onCaptured={() => {setIdOk(true);setShowIdCam(false);window.M.flash('ID checked for this stop — not saved to a profile');}} />}
     </div>);
 };
 

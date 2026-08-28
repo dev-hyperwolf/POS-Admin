@@ -137,6 +137,35 @@ function ArrivalSection({ base, onZoom }) {
 }
 
 // ID capture — in-app camera with a placement overlay (unverified guests)
+//
+// 🔴 THIS BUTTON SAID "Save to profile" AND THERE IS NO PROFILE TO SAVE TO.
+// Read that as three separate absences, because fixing any one of them alone
+// would still leave the claim false:
+//
+//   1. THERE IS NO IMAGE. `shot` is a BOOLEAN. Pressing the shutter runs
+//      setShot(true) and the "captured ID" tile below renders <Avatar name=…>,
+//      which draws the customer's INITIALS on a gradient. No File, no blob, no
+//      data URL — nothing is digitised, so `onCaptured` has nothing to be
+//      handed and is correctly called with no argument. The photo is not
+//      dropped on the way to the store; it never existed.
+//   2. THERE IS NO PROFILE. A driver task (mobile/data.jsx T_) carries
+//      id/order/name/phone/addr — and NO member id. Nothing links a stop to a
+//      row in HW.MEMBERS, so "their profile" names a record this app cannot
+//      identify. mobile/ references MEMBERS, addMember, addCheckIn, IDV,
+//      idPhotos, memberById, HWIdPhotos and IdPhotoCapture exactly ZERO times.
+//   3. AND A PHOTO MUST NOT MINT A LEDGER ROW ANYWAY. pos/data.jsx (addCheckIn)
+//      rules on this explicitly: `doc` is what a scanner read, `idPhotos` is
+//      what a human photographed, and an IDV row for a person no document has
+//      been seen for would put an identity-ledger entry behind a snapshot. So
+//      wiring this to IDV would not be the missing half of the fix — it would
+//      be a second, worse defect.
+//
+// ⚠️ SO THE COPY WAS CHANGED AND NO WRITER WAS INVENTED. What actually happens
+// is real and worth saying: the driver eyeballed the ID and the shopping /
+// collection gate opens. What does NOT happen is any persistence — the gate is
+// React state (useState in screen-appointment.jsx and screen-complete.jsx),
+// discarded on unmount. A driver told an ID was "saved to profile" would
+// reasonably stop re-checking it on the next visit, and would be wrong.
 window.IDCapture = function IDCapture({ name, onCancel, onCaptured }) {
   const P = useP();
   const [shot, setShot] = React.useState(false);
@@ -163,7 +192,7 @@ window.IDCapture = function IDCapture({ name, onCancel, onCaptured }) {
       <div style={{ padding: '16px 20px 40px', background: '#0c0c0c' }}>
         {!shot ?
         <button onClick={() => setShot(true)} style={{ width: 70, height: 70, borderRadius: 99, background: '#fff', border: `4px solid rgba(255,255,255,.4)`, cursor: 'pointer', margin: '0 auto', display: 'block' }} /> :
-        <div style={{ display: 'flex', gap: 10 }}><PBtn variant="secondary" size="xl" full icon="refresh" onClick={() => setShot(false)}>Retake</PBtn><PBtn variant="accent" size="xl" full icon="check" onClick={onCaptured}>Save to profile</PBtn></div>}
+        <div style={{ display: 'flex', gap: 10 }}><PBtn variant="secondary" size="xl" full icon="refresh" onClick={() => setShot(false)}>Retake</PBtn><PBtn variant="accent" size="xl" full icon="check" onClick={onCaptured}>Confirm ID checked</PBtn></div>}
         {!shot && <div style={{ textAlign: 'center', color: 'rgba(255,255,255,.5)', fontSize: 11.5, marginTop: 12, fontFamily: P.fontMono }}>Tap to capture · camera only, no library</div>}
       </div>
     </div>);
@@ -535,16 +564,45 @@ window.TaskScreen = function TaskScreen({ taskId }) {
    * on their own line; a sku join silently moves all of them.
    */
   const onCommitted = (result) => {
+    // 🔴 THE STORE IS ASKED FIRST, BECAUSE THE BASKET USED TO MOVE FIRST.
+    // The old order was: rebuild the basket, restage the cart, THEN file the
+    // record — and then flash "Swapped to <product>" no matter what filing
+    // returned. `filed` did correctly gate the van debit, so that one line was
+    // right; everything around it ignored the answer. On a refusal the driver
+    // was holding a rebuilt basket, a restaged collection total and a toast
+    // confirming a swap the store had never recorded.
+    //
+    // addSubRecord returns null in TWO DIFFERENT SITUATIONS and they need two
+    // different sentences, which is why this is not one `if (!filed)`:
+    //
+    //   · ALREADY ON FILE — idempotent by the engine's own record id
+    //     (pos/data.jsx addSubRecord). The swap really did happen; this is a
+    //     re-commit of the same one, e.g. a double-tap. Nothing more should be
+    //     written and the van MUST NOT be debited twice, but calling it a
+    //     failure would be its own lie. It is simply already done, and says so.
+    //   · NO RECORD, OR A RECORD WITH NO ID — nothing is filed at all. This is
+    //     the one that costs money: stock has physically left the bag with no
+    //     paper behind it, so the van reconciles short at count-out and there
+    //     is nothing to reconcile against. Here NOTHING is mutated — the basket
+    //     and the collection total stay as they were, which keeps the screen
+    //     and the store telling the same story — and the refusal is said out
+    //     loud instead of a confirmation.
+    const already = !!(result.record && result.record.id) &&
+      window.HW.subRecords(result.record.orderId).some((r) => r.id === result.record.id);
+    const filed = window.HW.addSubRecord(result.record);
+    if (!filed && !already) {
+      setSwapIdx(null);
+      window.M.flash('Swap NOT recorded — nothing was filed against this order', 'bad');
+      return;
+    }
     const next = result.order.lines.map((l) => ({ sku: l.productId, qty: l.quantity }));
     window.M.setBasket(taskId, next);
     // The close-out screen still reads the legacy slot, so it is kept in step —
     // otherwise the driver is told to collect one figure and closes out on
     // another, which is the money bug this whole flow exists to avoid.
     window.M.startCart(taskId, next);
-    // File the ENGINE's record. `addSubRecord` is idempotent by the engine's own
-    // id, and it is the gate for the van ledger: a re-filed record must not
-    // debit the van twice.
-    const filed = window.HW.addSubRecord(result.record);
+    // The van is debited ONLY for a record that was newly filed. A re-commit of
+    // a record already on file must not move the van a second time.
     if (filed) VanLedger.apply(result.intents.inventory);
     // A swap invalidates that line's verification — the scans described a
     // product that is no longer in the bag. Which products moved is the record's
@@ -556,7 +614,8 @@ window.TaskScreen = function TaskScreen({ taskId }) {
       return n;
     });
     setSwapIdx(null);
-    window.M.flash('Swapped to ' + result.record.toProductName);
+    window.M.flash(filed ? 'Swapped to ' + result.record.toProductName
+                         : 'Already swapped to ' + result.record.toProductName);
   };
   const totalUnits = lines.reduce((a, l) => a + l.qty, 0);
   const doneUnits = lines.reduce((a, l) => a + Math.min(l.qty, scanned[l.sku] || 0), 0);
