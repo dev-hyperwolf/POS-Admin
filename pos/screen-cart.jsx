@@ -825,17 +825,27 @@ function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, 
  * one (`AovBooster`) is the @hyperwolf/commerce-logic upsell ranking for the
  * `cart_add_to_order` surface. It IS handed the cart — but its evidence is
  * same-brand / same-category / promotion-unlock heuristics plus a
- * `favoriteCategories` hint, and `HW.favCategory` is a HASH OF THE MEMBER'S
- * NAME (see the HWSuggestBasis header). Nothing in it is a measurement that
- * two products were bought together. It is a perfectly good up-sell rail and it
- * is not a pairing claim, so it keeps its own heading and this card does not
- * borrow from it.
+ * `favoriteCategories` hint. Nothing in it is a measurement that two products
+ * were bought together. It is a perfectly good up-sell rail and it is not a
+ * pairing claim, so it keeps its own heading and this card does not borrow
+ * from it.
+ *
+ * CORRECTION 2026-08-27: this paragraph used to say `HW.favCategory` was a
+ * HASH OF THE MEMBER'S NAME. That was true when it was written and is not true
+ * now — `favCategoryBasis()` (pos/data.jsx:207) reads real purchase history
+ * through `HW.purchaseHistory` and returns null WITH A REASON when it cannot
+ * (no identity key, seam absent, no history, no line the route could resolve to
+ * a category). The char-hash was deleted. The stale sentence was read back as
+ * current fact by an agent today and nearly relayed to the owner, which is the
+ * whole cost of leaving a corrected claim standing in a comment.
  *
  * WHAT THIS CARD SHOWS: the `pairs_with_cart` lane of wmdemo/reco/core.py,
  * through `HW.cartPairings` (shared/hw-live-suggest.js), and NOTHING ELSE.
  *
  * ⚠️ THE HONEST ANSWER TODAY IS A REFUSAL, AND THE REFUSAL IS THE RENDER.
- * There is no HTTP route for the lane yet, and even once there is, the lane
+ * The HTTP route now exists (GET /api/reco/pairs-with-cart, added 2026-08-27,
+ * p99 15.9 ms), so the first half of this warning is spent. The second half
+ * still stands and is the reason the card refuses: the lane
  * refuses on the current order data: a co-occurrence pair needs three DISTINCT
  * customers and 187 of the 191 multi-item baskets belong to one synthetic
  * account. So this card's normal state is a stated refusal carrying the lane's
