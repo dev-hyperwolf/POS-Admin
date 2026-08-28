@@ -29,7 +29,13 @@ window.RegisterScreen = function RegisterScreen() {
   const [tickets, setTickets] = React.useState(() => pending && pending.customer ?
     [{ id: 't1', person: pending.customer, cart: [], paid: false, discounts: [] }] :
     [{ id: 't1', person: window.HW.MEMBERS[2],
-    cart: [{ sku: 'H480PRO1', qty: 1, disc: 0 }, { sku: 'F2Q4EN2C', qty: 1, disc: 0 }], paid: false, discounts: [] }]);
+    // SEEDED FROM WHAT IS ACTUALLY IN THE CATALOGUE, not from two hardcoded skus.
+    // 'H480PRO1' and 'F2Q4EN2C' are demo fixtures; this screen reads its products
+    // through useHW(), which serves the LIVE catalogue when a server is attached.
+    // The live catalogue is under no obligation to contain a fixture sku — and on
+    // 2026-08-28 it did not, which is how a hardcoded demo cart took the POS down.
+    cart: (window.HW.PRODUCTS || []).slice(0, 2).map((p2) => ({ sku: p2.sku, qty: 1, disc: 0 })),
+    paid: false, discounts: [] }]);
   const [active, setActive] = React.useState(0);
   const [guests, setGuests] = React.useState(() => pending ? pending.guests || [] : [
   { key: 'g-mia', id: null, name: 'Mia Tran', dob: '09/02/1988', phone: '(951) 555-0121', member: false, doc: { onFile: true } },
@@ -122,7 +128,17 @@ window.RegisterScreen = function RegisterScreen() {
   const setQty = (sku, qty) => setCart((c) => qty <= 0 ? c.filter((x) => x.sku !== sku) : c.map((x) => x.sku === sku ? { ...x, qty } : x));
   const remove = (sku) => setCart((c) => c.filter((x) => x.sku !== sku));
 
-  const lines = cart.map((c) => {const p = find(c.sku);return { ...c, p, total: (p.price - c.disc) * c.qty };});
+  // AN UNKNOWN SKU MUST NOT TAKE THE APP DOWN. find() returns undefined when the
+  // cart names a product the catalogue does not have, and this line dereferenced
+  // it unguarded — so one stale cart line threw TypeError inside render and the
+  // whole POS failed to mount. Its two siblings (merchOf, tkLines) already guard;
+  // this one did not, and it is the one that runs on every render.
+  //
+  // The line is KEPT and FLAGGED, not dropped and not silently valued at zero.
+  // Dropping it would make an item the operator can see in the ticket vanish with
+  // no explanation; zero would price an unsellable thing at nothing and let it
+  // reach a tender. `missing` is the fact, and the cart pane renders it.
+  const lines = cart.map((c) => {const p = find(c.sku);return { ...c, p, missing: !p, total: p ? (p.price - c.disc) * c.qty : 0 };});
   // merch → what the goods cost · discountOff → what comes off before tax
   // sub   → the taxable subtotal · total → what the customer actually pays
   const merch = round2(lines.reduce((s, l) => s + l.total, 0));
