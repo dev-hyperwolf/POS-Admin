@@ -56,16 +56,23 @@
 //
 // ── WHAT IT DOES NOT DO ─────────────────────────────────────────────────────
 //
-// READ ONLY, deliberately. Nothing here posts. The two writes this screen could
-// grow — editing an alias, and deciding a NO-WM-NODE category's publish policy
-// — both change what goes live on the owner's real Weedmaps listing, and an
-// alias edit in particular must be an EXPLICIT write with a NAMED REFUSAL when
-// it would collide (taxonomy._build_alias_index already refuses a colliding
-// alias at import, because a silent one re-files an entire top-level category).
+// IT DOES NOT RE-DERIVE ANYTHING. Every id, every state, every count and every
+// match key below is read off the route. The only things this file computes are
+// which visual bucket a row is shown in — from the `state` the server already
+// set — and which nodes in the picker share a name, from the collisions the
+// route already reported.
 //
-// It also does not re-derive the match. Every id, every state and every count
-// below is read off the route. The only thing this file computes is which
-// visual bucket a row is shown in, from the `state` the server already set.
+// IT IS NO LONGER READ-ONLY, and the comment that used to sit here saying so
+// was wrong for long enough to matter. Three writes: bind a category to a node,
+// unbind it, and add / repoint / remove an accepted spelling. Every one of them
+// goes through a preview whose product count must be echoed back, and every one
+// of them can be REFUSED with a 409 that is a correct answer rather than a
+// crash. See the `catmap-writes` note at the foot of the file.
+//
+// WHAT IT STILL DOES NOT DO: decide a publish policy for a category with no
+// Weedmaps node. Not mapping something is an allowed resting state and needs no
+// acknowledgement — the owner ruled it explicitly for `Deals`. There is no
+// do-not-publish control and there must not be one.
 ;(function () {
   'use strict';
   const useP = window.useP;
@@ -190,6 +197,43 @@
   };
   function st(row) { return STATES[row && row.state] || STATES.UNKNOWN_USE; }
 
+  // ── THE SECOND JOIN, which is not the one every other column shows ────────
+  //
+  // `wm_ids` answers the PUBLISH question: which node ids do we send with an
+  // item. `match_key` answers the MATCH question: which single word does
+  // mapping.eval_candidate() compare our category string against, BY IDENTITY,
+  // before any scoring happens.
+  //
+  // They are DIFFERENT QUESTIONS WITH DIFFERENT ANSWERS. `Accessories`
+  // publishes to [234, 9] and matches on `Gear`, because Weedmaps' Accessories
+  // [9] is a child of the root Gear [234] and a WM product carries its whole
+  // ancestor path -- so the ROOT is what decides its category. A screen that
+  // renders only the first can show a row as `resolves`, in green, truthfully,
+  // while every candidate for every SKU under it is thrown out before it is
+  // ever compared. That was live for 804 of 1,529 SKUs (category_map.py says
+  // so in its own comment) and this screen said RESOLVES for all of them.
+  //
+  // The route has carried `match_key`, `match_state`, `match_path`,
+  // `match_differs` and `match_ambiguous` on every row, plus a whole top-level
+  // `match` block, and until now NOTHING ON THIS SCREEN READ ANY OF IT. Built
+  // server-side, never wired to the UI.
+  //
+  // IT GETS ITS OWN COLUMN, not a sub-line under the node and not a tooltip. A
+  // fact that can contradict the green badge two columns to its left cannot be
+  // rendered as a footnote to that badge.
+  //
+  // AND THE MATCH KEY IS NEVER PRESENTED AS A NAME WE COULD CHANGE. It is
+  // Weedmaps' root node name, derived from cats.json; renaming our category on
+  // screen would break the publish join and would not move the match key at
+  // all. Display name and match key are two facts, and neither is allowed to
+  // stand in for the other.
+  const MATCH_STATES = {
+    MATCHES: { kind: 'good', icon: 'check-circle', label: 'joins' },
+    NO_MATCH_KEY: { kind: 'bad', icon: 'ban', label: 'NO MATCH KEY' },
+    BROKEN_TREE: { kind: 'bad', icon: 'alert', label: 'BROKEN TREE' },
+    UNKNOWN: { kind: 'warn', icon: 'help', label: 'unknown' }
+  };
+
   function num(v) { return v == null ? '—' : Number(v).toLocaleString(); }
 
   // ── the explainer ─────────────────────────────────────────────────────────
@@ -294,7 +338,28 @@
           {tree && tree.collisions && tree.collisions.length > 0 && line('alert', 'warn',
             <span><strong>{tree.collisions.length}</strong> Weedmaps node name{tree.collisions.length === 1 ? ' is' : 's are'} used by more than one node, so a match on {tree.collisions.length === 1 ? 'it' : 'them'} is decided by order rather than by intent: {tree.collisions.map(function (col) {
               return <span key={String(col.kept_id) + '-' + String(col.ignored_id)}><code style={mono}>{col.name}</code> keeps id {col.kept_id}, ignores {col.ignored_id}{' '}</span>;
-            })}. None of our nine names is one of them today.</span>)}
+            })}.{' '}
+            {/* DERIVED, NEVER ASSERTED. This sentence used to be the literal
+                string "None of our nine names is one of them today." — a claim
+                about live data, hard-coded, that nothing recomputed and nothing
+                could falsify. The day one of our nine collided it would have
+                gone on reassuring the reader. It is now read off the rows the
+                route just sent. */}
+            {(function () {
+              const ours = ((d && d.rows) || []).map(function (r) { return String(r.category || '').toLowerCase(); });
+              const hits = tree.collisions.filter(function (col) {
+                return ours.indexOf(String(col.name || '').toLowerCase()) >= 0;
+              });
+              if (!ours.length) { return <strong>Whether any of our own names is one of them cannot be said — no rows came back.</strong>; }
+              if (!hits.length) { return <span>None of our own {ours.length} names is one of them in this payload.</span>; }
+              return (
+                <strong data-hw-collision-ours="1" style={{ color: P.bad }}>
+                  {hits.length} of our own names {hits.length === 1 ? 'is' : 'are'} one of them
+                  {' '}({hits.map(function (h) { return h.name; }).join(', ')}) &mdash; so which node
+                  {' '}{hits.length === 1 ? 'it binds' : 'they bind'} to was decided by order. Pick the
+                  node explicitly to settle it.
+                </strong>);
+            })()}</span>)}
         </div>
       </Card>);
   }
@@ -305,8 +370,14 @@
   function TheDefect({ d }) {
     const P = useP();
     const uncat = (d && d.uncategorised_skus) || [];
-    const rescued = (d && d.rescued_by_alias) || [];
-    if (!uncat.length && !rescued.length) { return null; }
+    // `rescued_by_alias` USED TO BE RENDERED HERE, inside this card, and that
+    // was the bug the owner reported: a list where every row is green with a
+    // tick, nested inside a panel whose border goes red the moment anything
+    // else in it is broken, under an eyebrow reading "Products publishing to
+    // Weedmaps with no category". Four FIXED things read as four broken ones.
+    // It is its own panel now (TheRescued), with its own tone. The information
+    // stays — the fix being recent is exactly why it is worth showing.
+    if (!uncat.length) { return null; }
     const mono = { fontFamily: P.fontMono, fontSize: P.type.meta };
 
     // Grouped by the SPELLING that broke, because that is the unit a decision
@@ -345,19 +416,12 @@
     const brokenSkus = groups.reduce(function (a, g) { return a + g.skus.length; }, 0);
     const restingSkus = resting.reduce(function (a, g) { return a + g.skus.length; }, 0);
 
-    const byRescue = {};
-    rescued.forEach(function (r) {
-      const k = String(r.spelling);
-      if (!byRescue[k]) { byRescue[k] = { spelling: r.spelling, canonical: r.canonical, wm_ids: r.wm_ids, skus: [] }; }
-      byRescue[k].skus.push(r.sku);
-    });
-    const rgroups = Object.keys(byRescue).map(function (k) { return byRescue[k]; })
-      .sort(function (a, b) { return b.skus.length - a.skus.length; });
-
     return (
-      <Card density="roomy" style={{ marginBottom: 18,
-        border: '1px solid ' + (brokenSkus ? P.bad : P.hairline2),
-        background: brokenSkus ? P.badSoft : P.surface }}>
+      <Card density="roomy" data-hw-defect="1"
+        data-hw-defect-tone={brokenSkus ? 'alarm' : 'calm'}
+        style={{ marginBottom: 18,
+          border: '1px solid ' + (brokenSkus ? P.bad : P.hairline2),
+          background: brokenSkus ? P.badSoft : P.surface }}>
         <SectionHead level={3}
           eyebrow="Products publishing to Weedmaps with no category"
           title={brokenSkus
@@ -423,29 +487,132 @@
                 </div>);
             })}
           </div>}
-        {rgroups.length > 0 &&
-          <div style={{ marginTop: (groups.length || resting.length) ? 14 : 4 }}>
-            <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink, marginBottom: 3 }}>
-              {rescued.length} SKU{rescued.length === 1 ? ' was' : 's were'} in that same state and {rescued.length === 1 ? 'is' : 'are'} now fixed by the alias layer
-            </div>
-            <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5, marginBottom: 8, maxWidth: 900 }}>
-              These raw spellings match no Weedmaps node name on their own. The publish path now folds them through
-              {' '}<code style={mono}>_norm_category</code> first, so they resolve. Shown because the fix is recent, and
-              because the same shape recurs the next time a spelling drifts.
-            </div>
-            {rgroups.map(function (g) {
-              return (
-                <div key={g.spelling} style={{ padding: '9px 12px', marginBottom: 6, background: P.goodSoft,
-                  border: '1px solid ' + P.hairline2, borderRadius: P.r10, display: 'flex', gap: 10,
-                  alignItems: 'center', flexWrap: 'wrap' }}>
-                  <code style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{g.spelling}</code>
-                  <Icon name="arrow-right" size={13} stroke={2} color={P.inkMute} />
-                  <span style={{ fontSize: P.type.meta, color: P.ink }}><strong>{g.canonical}</strong></span>
-                  <code style={{ fontFamily: P.fontMono, fontSize: P.type.meta, color: P.good }}>[{(g.wm_ids || []).join(', ')}]</code>
-                  <Pill kind="good" size="sm" icon="check">{g.skus.length} SKU{g.skus.length === 1 ? '' : 's'}</Pill>
-                </div>);
-            })}
+      </Card>);
+  }
+
+  // ── how many SKUs the matcher discards before it scores anything ─────────
+  //
+  // A REAL alarm, and deliberately a SEPARATE panel from the publish defect
+  // above it. One is about what we send to Weedmaps; the other is about what
+  // we can ever match back. A deployment can be perfectly healthy on the first
+  // and shut out on the second, and every green badge in the table below says
+  // nothing whatsoever about this one.
+  function TheShutout({ d }) {
+    const P = useP();
+    const m = (d && d.match) || null;
+    if (!m) { return null; }
+    const mono = { fontFamily: P.fontMono, fontSize: P.type.meta };
+    const out = m.skus_shutout;
+    // NULL IS NOT ZERO, and zero is the single most reassuring thing this panel
+    // could say. An unreadable catalogue or an underivable vocabulary arrives
+    // as null and must render as UNKNOWN. Printing 0 there asserts "nothing is
+    // shut out", which is the one claim it has no evidence for.
+    const unknown = out == null;
+    const bad = !unknown && out > 0;
+    if (!bad && !unknown && !m.error) {
+      return (
+        <Card density="compact" data-hw-shutout="clear" style={{ marginBottom: 18, background: P.surface2 }}>
+          <Eyebrow>The other join</Eyebrow>
+          <div style={{ fontSize: P.type.meta, color: P.ink2, marginTop: 5, lineHeight: 1.5, maxWidth: 900 }}>
+            Every catalogue spelling is also spelt the way the MATCHER joins on, so no SKU is excluded
+            before scoring. That is a different question from the table below, which is about what we publish.
+          </div>
+        </Card>);
+    }
+    const shut = (m.spellings || []).filter(function (x) { return !x.joins; });
+    return (
+      <Card density="roomy" data-hw-shutout={unknown ? 'unknown' : 'bad'}
+        style={{ marginBottom: 18, border: '1px solid ' + (unknown ? P.warn : P.bad),
+          background: unknown ? P.surface2 : P.badSoft }}>
+        <SectionHead level={3} eyebrow="Before any score is computed"
+          title={unknown
+            ? 'How many SKUs the matcher excludes is UNKNOWN — which is not none'
+            : num(out) + ' of ' + num(m.skus) + ' SKUs are excluded before the matcher scores anything'}
+          subtitle={unknown
+            ? 'The catalogue or the match vocabulary could not be read. This panel will not print 0 here: 0 would say "nothing is shut out", and nothing has been looked at.'
+            : 'mapping.eval_candidate() compares our category string against Weedmaps\u2019 ROOT node name BY IDENTITY. A spelling that is not that exact word excludes every candidate for every SKU carrying it — permanently, whatever the thresholds or the feed do. A row can read `resolves` in the table below and still be counted here: that badge is about publishing, and this is not.'} />
+        {m.error &&
+          <div style={{ fontSize: P.type.meta, color: P.bad, marginBottom: 10, lineHeight: 1.5 }}>
+            The match vocabulary could not be derived: {m.error}
           </div>}
+        {shut.slice(0, 12).map(function (x) {
+          return (
+            <div key={x.spelling} data-hw-shutout-row={x.spelling}
+              style={{ padding: '9px 12px', marginBottom: 6, background: P.surface,
+                border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <code style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{x.spelling || '(empty string)'}</code>
+                <Pill kind="bad" size="sm" icon="ban">{num(x.products)} SKU{x.products === 1 ? '' : 's'}</Pill>
+                {x.canonical &&
+                  <span style={{ fontSize: P.type.meta, color: P.inkDim }}>folds to <strong>{x.canonical}</strong></span>}
+                {x.match_key &&
+                  <span style={{ fontSize: P.type.meta, color: P.inkDim }}>matcher joins on <code style={mono}>{x.match_key}</code></span>}
+              </div>
+              {x.why &&
+                <div style={{ fontSize: P.type.meta, color: P.ink2, marginTop: 5, lineHeight: 1.5 }}>{x.why}</div>}
+            </div>);
+        })}
+        {shut.length > 12 &&
+          <div style={{ fontSize: P.type.micro, color: P.inkMute }}>+{shut.length - 12} more spellings</div>}
+      </Card>);
+  }
+
+  // ── what the alias layer already FIXED ───────────────────────────
+  //
+  // ITS OWN PANEL, AND THAT IS THE ENTIRE POINT OF THIS COMPONENT.
+  //
+  // This list used to live at the bottom of TheDefect, inside a card whose
+  // border and background go red whenever anything ELSE in that card is
+  // broken, under the eyebrow "Products publishing to Weedmaps with no
+  // category". So four SKUs that are FIXED were framed as four that are
+  // failing, and the owner read the panel exactly the way it was styled --
+  // as an alarm. Every row inside it was already green with a tick, which is
+  // the tell: a container contradicting its own contents.
+  //
+  // The rule this encodes: TONE IS AN ASSERTION. A red border says "somebody
+  // must act". Nobody must act on any of this -- it is a record of a repair,
+  // kept visible because the repair is recent and because the same shape
+  // recurs the next time a spelling drifts. So it is calm, it says `fixed` in
+  // its title rather than leaving the reader to infer it from tick marks, and
+  // it never inherits a neighbour's alarm.
+  function TheRescued({ d }) {
+    const P = useP();
+    const rescued = (d && d.rescued_by_alias) || [];
+    if (!rescued.length) { return null; }
+    const mono = { fontFamily: P.fontMono, fontSize: P.type.meta };
+    const byRescue = {};
+    rescued.forEach(function (r) {
+      const k = String(r.spelling);
+      if (!byRescue[k]) { byRescue[k] = { spelling: r.spelling, canonical: r.canonical, wm_ids: r.wm_ids, skus: [] }; }
+      byRescue[k].skus.push(r.sku);
+    });
+    const rgroups = Object.keys(byRescue).map(function (k) { return byRescue[k]; })
+      .sort(function (a, b) { return b.skus.length - a.skus.length; });
+    return (
+      <Card density="roomy" data-hw-rescued="1" data-hw-rescued-tone="calm"
+        style={{ marginBottom: 18, border: '1px solid ' + P.hairline2, background: P.surface }}>
+        <SectionHead level={3} eyebrow="Already fixed — nothing here is waiting on anybody"
+          title={rescued.length + ' SKU' + (rescued.length === 1 ? '' : 's')
+            + ' would publish with no category, and ' + (rescued.length === 1 ? 'does' : 'do')
+            + ' not, because the alias layer catches ' + (rescued.length === 1 ? 'it' : 'them')}
+          subtitle={'These raw spellings match no Weedmaps node name on their own. The publish path folds them through _norm_category first, so they resolve. This is a record of a repair, not a task — it is shown because the fix is recent, and because the same shape recurs the next time a spelling drifts.'} />
+        {rgroups.map(function (g) {
+          return (
+            <div key={g.spelling} data-hw-rescued-row={g.spelling}
+              style={{ padding: '9px 12px', marginBottom: 6, background: P.goodSoft,
+                border: '1px solid ' + P.hairline2, borderRadius: P.r10, display: 'flex', gap: 10,
+                alignItems: 'center', flexWrap: 'wrap' }}>
+              <code style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{g.spelling}</code>
+              <Icon name="arrow-right" size={13} stroke={2} color={P.inkMute} />
+              <span style={{ fontSize: P.type.meta, color: P.ink }}><strong>{g.canonical}</strong></span>
+              <code style={{ fontFamily: P.fontMono, fontSize: P.type.meta, color: P.good }}>[{(g.wm_ids || []).join(', ')}]</code>
+              <Pill kind="good" size="sm" icon="check">{g.skus.length} SKU{g.skus.length === 1 ? '' : 's'} fixed</Pill>
+            </div>);
+        })}
+        <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 4, lineHeight: 1.5 }}>
+          Removing one of these spellings from <code style={mono}>Accepted spellings</code> below would put
+          {' '}{rescued.length === 1 ? 'this SKU' : 'these SKUs'} straight back to publishing uncategorised.
+        </div>
       </Card>);
   }
 
@@ -483,6 +650,68 @@
         <div style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkMute, marginTop: 3 }}>
           category_ids [{r.wm_ids.join(', ')}]
         </div>
+      </div>);
+  }
+
+  // ── the match column ──────────────────────────────────────────────────────
+  function MatchCell({ r }) {
+    const P = useP();
+    const mono = { fontFamily: P.fontMono, fontSize: P.type.micro };
+    // NO MATCH STATE AT ALL IS NOT A MATCH STATE. category_map.py sends null
+    // for every match_* field when the derivation itself could not run, and a
+    // default here would invent a verdict about the exact question this column
+    // exists to answer. `UNKNOWN` is a state the route can send; absence is not
+    // it, and the two must not render alike.
+    if (r.match_state == null) {
+      return (
+        <div data-hw-match={r.category} data-hw-match-state="ABSENT" style={{ minWidth: 0 }}>
+          <Pill kind="warn" size="sm" icon="help">not derived</Pill>
+          <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 4, lineHeight: 1.4 }}>
+            This payload carried no match key. That is not the same claim as &ldquo;it matches&rdquo;.
+          </div>
+        </div>);
+    }
+    const m = MATCH_STATES[r.match_state] || MATCH_STATES.UNKNOWN;
+    return (
+      <div data-hw-match={r.category} data-hw-match-state={r.match_state} style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          {r.match_key
+            ? <code style={{ fontFamily: P.fontMono, fontSize: P.type.body, fontWeight: 700, color: P.ink }}>{r.match_key}</code>
+            : <span style={{ fontSize: P.type.meta, color: P.bad, fontWeight: 600 }}>no key</span>}
+          <Pill kind={m.kind} size="sm" icon={m.icon}>{m.label}</Pill>
+        </div>
+        {/* THE REASON THE COLUMN EXISTS, said in words on the rows where the two
+            facts disagree. A silent difference between the display name and the
+            match key is precisely what let `Accessories` read green. */}
+        {r.match_differs === true &&
+          <div data-hw-match-differs="1" style={{ fontSize: P.type.micro, color: P.warn, marginTop: 4, lineHeight: 1.45 }}>
+            Not the same word as <strong>{r.category}</strong>. We publish under{' '}
+            <code style={mono}>{r.wm_path || 'no node'}</code>; the matcher compares on{' '}
+            <code style={mono}>{r.match_key}</code>, Weedmaps&rsquo; ROOT node name.{' '}
+            <strong>Renaming this category on screen would break the publish join and would not move the match key.</strong>
+          </div>}
+        {r.match_state === 'NO_MATCH_KEY' &&
+          <div style={{ fontSize: P.type.micro, color: P.bad, marginTop: 4, lineHeight: 1.45 }}>
+            Our name resolves to no Weedmaps node, so no candidate can ever carry it. Every candidate
+            for every SKU here is excluded before scoring &mdash; whatever the thresholds or the feed do.
+          </div>}
+        {r.match_state === 'BROKEN_TREE' &&
+          <div style={{ fontSize: P.type.micro, color: P.bad, marginTop: 4, lineHeight: 1.45 }}>
+            The name matched, but the walk up to a root never terminated. That is a broken capture on
+            our side, not a fact about Weedmaps&rsquo; taxonomy.
+          </div>}
+        {(r.match_ambiguous || []).length > 0 &&
+          <div data-hw-match-ambiguous="1" style={{ fontSize: P.type.micro, color: P.warn, marginTop: 4, lineHeight: 1.45 }}>
+            {r.match_ambiguous.map(function (a) {
+              return (
+                <span key={String(a.kept_id) + '-' + String(a.ignored_id)}>
+                  <code style={mono}>{a.name}</code> is more than one Weedmaps node &mdash; kept [{a.kept_id}], ignored [{a.ignored_id}].{' '}
+                </span>);
+            })}
+            Decided by order, not by intent.
+          </div>}
+        {r.match_path &&
+          <div style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkMute, marginTop: 3 }}>{r.match_path}</div>}
       </div>);
   }
 
@@ -598,10 +827,37 @@
   // Weedmaps' 94 nodes as their real two-level tree, filterable. Every entry is
   // a node that EXISTS in the same capture every id on this screen was resolved
   // against, so the picker and the map cannot disagree about what a node is.
-  function NodePicker({ tree, value, onPick }) {
+  // ── the picker ────────────────────────────────────────────────────────────
+  //
+  // WEEDMAPS' TREE IS NOT NAME-UNIQUE, and a picker that pretends otherwise is
+  // the exact defect that made a probe wrong about which node our shelf binds
+  // to. `Diamonds` is TWO live nodes -- 423 (solvent BHO) and 428 (solventless
+  // rosin) -- and 94 nodes collapse to 93 names because of it.
+  //
+  // engine.resolve_categories() keeps the FIRST node it sees and drops the
+  // other. So one of those two ids is reachable by name match and the other is
+  // reachable ONLY by an explicit pick made here. Rendering them as two
+  // identical-looking rows -- same word, different number, nothing else --
+  // leaves the person to pick by coin flip, which is the same coin flip the
+  // engine already made, only now with a human's name on it.
+  //
+  // So: every node in a name collision is MARKED, on both sides, and each side
+  // says which one it is. The slug is shown too, because it is the only field
+  // that tells 423 and 428 apart at a glance. `collisions` comes from
+  // wm_tree.collisions -- the same capture every id on this screen resolved
+  // against, so the picker and the map cannot disagree about who won.
+  function NodePicker({ tree, value, onPick, collisions }) {
     const P = useP();
     const [q, setQ] = React.useState('');
     const nodes = tree || [];
+    const collByName = {};
+    (collisions || []).forEach(function (c) {
+      const k = String(c.name || '').toLowerCase();
+      if (!k) { return; }
+      if (!collByName[k]) { collByName[k] = { name: c.name, kept_id: c.kept_id, ignored: [] }; }
+      collByName[k].ignored.push(c.ignored_id);
+    });
+    const collOf = function (n) { return collByName[String(n.name || '').toLowerCase()] || null; };
     const roots = nodes.filter(function (n) { return n.parent_id == null; });
     const kids = {};
     nodes.forEach(function (n) {
@@ -669,6 +925,24 @@
                   <span style={{ fontSize: P.type.micro, color: P.warn, marginLeft: 6 }}>parent {n.parent_id} is not in the capture</span>}
                 {n.published === false &&
                   <span style={{ fontSize: P.type.micro, color: P.warn, marginLeft: 6 }}>not published on Weedmaps</span>}
+                {(function () {
+                  const col = collOf(n);
+                  if (!col) { return null; }
+                  const kept = Number(col.kept_id) === Number(n.id);
+                  return (
+                    <span data-hw-node-collision={String(n.id)}
+                      data-hw-node-collision-side={kept ? 'kept' : 'ignored'}>
+                      <span style={{ fontSize: P.type.micro, color: P.warn, marginLeft: 6, fontWeight: 700 }}>
+                        SAME NAME AS {col.ignored.length + 1 > 2 ? (col.ignored.length + 1) + ' NODES' : 'ANOTHER NODE'}
+                      </span>
+                      <span style={{ display: 'block', fontSize: P.type.micro, color: P.inkDim, marginTop: 2, lineHeight: 1.45 }}>
+                        {kept
+                          ? 'The name match lands here by ORDER, not by intent — it keeps the first node of this name and drops [' + col.ignored.join(', ') + '].'
+                          : 'The name match NEVER reaches this node — it keeps [' + col.kept_id + ']. Picking it here is the only way to bind it.'}
+                        {n.slug ? ' Slug: ' + n.slug + '.' : ''}
+                      </span>
+                    </span>);
+                })()}
               </button>);
           })}
         </div>
@@ -817,7 +1091,7 @@
   }
 
   // ── binding editor: one category, one node, one confirmed save ────────────
-  function BindingEditor({ row, tree, onSaved, onClose }) {
+  function BindingEditor({ row, tree, collisions, onSaved, onClose }) {
     const P = useP();
     const [node, setNode] = React.useState(
       row.binding ? row.binding.node_id : (row.wm_ids && row.wm_ids.length ? row.wm_ids[row.wm_ids.length - 1] : null));
@@ -891,7 +1165,7 @@
 
         {mode === 'bind' &&
           <div style={{ marginBottom: 12 }}>
-            <NodePicker tree={tree} value={node} onPick={setNode} />
+            <NodePicker tree={tree} value={node} onPick={setNode} collisions={collisions} />
           </div>}
 
         {(mode === 'unbind' || node != null) &&
@@ -1094,7 +1368,7 @@
     const c = (d && d.counts) || {};
 
     const columns = [
-      { label: 'Our category', width: '22%', render: function (r) {
+      { label: 'Our category', width: '19%', render: function (r) {
         const s = st(r);
         // data-hw-cat / data-hw-cat-state are TEST HOOKS, and they are on the
         // cell rather than on the table row on purpose: DataTable owns the row
@@ -1114,7 +1388,7 @@
               </div>}
           </div>);
       } },
-      { label: 'Weedmaps node', width: '30%', render: function (r) {
+      { label: 'Weedmaps node', width: '26%', render: function (r) {
         return (
           <div style={{ minWidth: 0 }}>
             <WmCell r={r} />
@@ -1144,7 +1418,13 @@
               </div>}
           </div>);
       } },
-      { label: 'Accepted spellings', width: '30%', render: function (r) {
+      // THE MATCH JOIN, BETWEEN THE NODE AND THE SPELLINGS ON PURPOSE. It sits
+      // next to the node it is constantly mistaken for, so the two facts are
+      // read together rather than one standing in for the other.
+      { label: 'Matcher joins on', width: '23%', render: function (r) {
+        return <MatchCell r={r} />;
+      } },
+      { label: 'Accepted spellings', width: '20%', render: function (r) {
         return <AliasCell r={r} open={!!open[r.category]}
           onToggle={function () {
             setOpen(function (m) {
@@ -1154,7 +1434,7 @@
             });
           }} />;
       } },
-      { label: 'Our products', width: '18%', align: 'right', render: function (r) {
+      { label: 'Our products', width: '12%', align: 'right', render: function (r) {
         if (r.product_count == null) {
           return (
             <span title="The catalog could not be read. This is not zero.">
@@ -1227,11 +1507,19 @@
           const r = rows.filter(function (x) { return x.category === editing; })[0];
           if (!r) { return null; }
           return <BindingEditor row={r} tree={(d.wm_tree && d.wm_tree.tree) || []}
+            collisions={(d.wm_tree && d.wm_tree.collisions) || []}
             onClose={function () { setEditing(null); }}
             onSaved={function (map) { setEditing(null); if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
         })()}
 
         {d && <TheDefect d={d} />}
+
+        {/* THE MATCH JOIN, ABOVE THE TABLE. It is not a footnote to the table:
+            it can be the reason a table full of green badges is still wrong. */}
+        {d && <TheShutout d={d} />}
+
+        {/* CALM, AND NOT INSIDE THE DEFECT CARD. See TheRescued. */}
+        {d && <TheRescued d={d} />}
 
         {d && rows.length === 0 &&
           <EmptyState icon="grid" title="The route answered and listed no categories"
