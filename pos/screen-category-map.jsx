@@ -96,6 +96,44 @@
     });
   }
 
+  // WRITES. Same envelope as getJSON, for the same reason: a refusal (409), a
+  // crash (500) and "we could not ask" (0) must stay three different things all
+  // the way to the screen. The category editor's whole design rests on 409 ≠
+  // 500 — a refusal is a CORRECT outcome and must never render as a breakage.
+  function canWrite() {
+    try { return !!(window.HW_LIVE && typeof window.HW_LIVE.post === 'function'); } catch (e) { return false; }
+  }
+
+  function post(path, payload) {
+    const url = base() + path;
+    if (canWrite()) {
+      return Promise.resolve(window.HW_LIVE.post(path, payload)).then(function (r) {
+        return Object.assign({ url: url }, r || {});
+      });
+    }
+    return fetch(url, {
+      method: 'POST', credentials: 'omit', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    }).then(function (res) {
+      return res.text().then(function (txt) {
+        let body = null; try { body = JSON.parse(txt); } catch (e) {}
+        return { ok: res.ok, code: res.status, body: body, url: url,
+          raw: String(txt || '').slice(0, 400) };
+      });
+    }).catch(function (e) {
+      return { ok: false, code: 0, body: null, url: url,
+        netError: (e && e.message) || 'request failed' };
+    });
+  }
+
+  function qs(params) {
+    return Object.keys(params)
+      .filter(function (k) { return params[k] != null && params[k] !== ''; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
+      .join('&');
+  }
+
   // ── the four states, in ONE table ─────────────────────────────────────────
   // Every visual difference between them is decided here and nowhere else, so
   // two of them cannot drift into looking alike in one place while staying
@@ -108,11 +146,34 @@
       why: 'This name matches a real Weedmaps node, so every product under it publishes carrying category_ids. Nothing to do.',
       fixable: null
     },
+    // TONE CHANGED DELIBERATELY, 2026-08-27, on the owner's ruling: "if we
+    // decide NOT to map deals, then that shouldnt be a problem and the system
+    // should allow it." This used to be `bad` — a red row, forever, on a
+    // category that is working exactly as decided. That is a nag about a
+    // settled question, and a permanent alarm is an alarm nobody reads.
+    //
+    // WHAT DID NOT CHANGE, AND MUST NOT: the WORDS. It is still its own state
+    // with its own label, and it still says an alias cannot fix it. Quieting
+    // the colour is not the same as collapsing the state into "unmapped", and
+    // the picker below makes that collapse EASIER to reach, not harder — an
+    // operator who can now point any category at any node needs telling that
+    // there is nothing correct to point this one at.
     NO_WM_NODE: {
-      kind: 'bad', icon: 'ban', label: 'NO WEEDMAPS NODE',
-      short: 'Weedmaps has no such node',
+      kind: 'info', icon: 'ban', label: 'NO WEEDMAPS NODE',
+      short: 'no node to bind to — allowed',
       why: 'Weedmaps carries no node with this name — not under a different parent, not under a different spelling, nowhere in its tree. Products under it publish with NO category at all, and Weedmaps accepts them anyway.',
-      fixable: 'NOT FIXABLE HERE. An alias re-spells our side; the node that is missing is on theirs. This needs a decision — publish it uncategorised, or do not publish it — or Weedmaps has to grow a node.'
+      fixable: 'NOT FIXABLE, AND NOT A FAULT. An alias re-spells our side; the node that is missing is on theirs. Unbound is an allowed resting state — nothing here is waiting on anybody. You can still point it at a node with the picker, but Weedmaps has no right answer to point it at.'
+    },
+    // A PICK THAT HAS STOPPED MEANING ANYTHING. Somebody chose a Weedmaps node
+    // and that node is no longer in the tree we resolve against. It is NOT
+    // NO_WM_NODE (Weedmaps may well carry a node of this name) and it is NOT
+    // RESOLVES. Its own state, because folding it into either one hides a
+    // decision that has quietly stopped applying.
+    BINDING_BROKEN: {
+      kind: 'warn', icon: 'alert', label: 'BINDING BROKEN',
+      short: 'the picked node has left the tree',
+      why: 'Someone bound this category to a specific Weedmaps node, and that node is not in the tree this deployment resolves against any more. Products under it publish with no category_ids — not because nothing was chosen, but because what was chosen is gone.',
+      fixable: 'FIXABLE HERE: pick a node again, or remove the binding to fall back to the name match.'
     },
     UNUSED: {
       kind: 'neutral', icon: 'circle', label: 'unused',
@@ -183,12 +244,15 @@
             const s = STATES[k];
             return (
               <div key={k} style={{ flex: '1 1 240px', minWidth: 220, padding: '10px 12px',
-                background: P.surface2, border: '1px solid ' + (k === 'NO_WM_NODE' ? P.bad : P.hairline2),
+                background: P.surface2, border: '1px solid ' + (k === 'NO_WM_NODE' ? P.infoBorder || P.hairline2 : P.hairline2),
                 borderRadius: P.r10 }}>
                 <Pill kind={s.kind} size="sm" icon={s.icon}>{s.label}</Pill>
                 <div style={{ fontSize: P.type.meta, color: P.inkDim, marginTop: 6, lineHeight: 1.45 }}>{s.why}</div>
+                {/* The `fixable` sentence takes the STATE's own colour, not a
+                    hardcoded red. NO WEEDMAPS NODE is a resting state and must
+                    not shout; BINDING BROKEN is a real thing to fix and should. */}
                 {s.fixable &&
-                  <div style={{ fontSize: P.type.meta, color: P.bad, marginTop: 6, lineHeight: 1.45, fontWeight: 600 }}>{s.fixable}</div>}
+                  <div style={{ fontSize: P.type.meta, color: s.kind === 'warn' ? P.warn : P.ink2, marginTop: 6, lineHeight: 1.45, fontWeight: 600 }}>{s.fixable}</div>}
               </div>);
           })}
         </div>
@@ -250,11 +314,36 @@
     const byWhy = {};
     uncat.forEach(function (u) {
       const k = String(u.spelling) + '|' + String(u.why);
-      if (!byWhy[k]) { byWhy[k] = { spelling: u.spelling, why: u.why, canonical: u.canonical, skus: [] }; }
+      if (!byWhy[k]) {
+        byWhy[k] = { spelling: u.spelling, why: u.why, canonical: u.canonical,
+          // TWO CAUSES, ONE SYMPTOM, AND ONLY ONE OF THEM IS A DEFECT.
+          //
+          //   unfoldable  — a spelling NOBODY chose to accept. A rogue import,
+          //                 a typo, a shop rename. Fixable right here by adding
+          //                 an alias, and until somebody does, those SKUs
+          //                 publish with no category.
+          //   no_wm_node  — one of OUR nine, spelt fine, and Weedmaps simply
+          //                 has no node for it. `Deals`. Nothing on our side
+          //                 changes that, and the owner has said it is allowed:
+          //                 "if we decide NOT to map deals, then that shouldnt
+          //                 be a problem". Rendering it in the same red as the
+          //                 fixable kind is a permanent alarm about a settled
+          //                 decision, and a permanent alarm is one nobody reads.
+          //
+          // `kind` comes from the route. The fallback exists for a payload
+          // written before the field did, and it derives the same split from
+          // the same fact rather than defaulting to the reassuring one.
+          kind: u.kind || (u.canonical ? 'no_wm_node' : 'unfoldable'),
+          skus: [] };
+      }
       byWhy[k].skus.push(u.sku);
     });
-    const groups = Object.keys(byWhy).map(function (k) { return byWhy[k]; })
+    const all = Object.keys(byWhy).map(function (k) { return byWhy[k]; })
       .sort(function (a, b) { return b.skus.length - a.skus.length; });
+    const groups = all.filter(function (g) { return g.kind !== 'no_wm_node'; });
+    const resting = all.filter(function (g) { return g.kind === 'no_wm_node'; });
+    const brokenSkus = groups.reduce(function (a, g) { return a + g.skus.length; }, 0);
+    const restingSkus = resting.reduce(function (a, g) { return a + g.skus.length; }, 0);
 
     const byRescue = {};
     rescued.forEach(function (r) {
@@ -267,16 +356,18 @@
 
     return (
       <Card density="roomy" style={{ marginBottom: 18,
-        border: '1px solid ' + (uncat.length ? P.bad : P.hairline2),
-        background: uncat.length ? P.badSoft : P.surface }}>
+        border: '1px solid ' + (brokenSkus ? P.bad : P.hairline2),
+        background: brokenSkus ? P.badSoft : P.surface }}>
         <SectionHead level={3}
           eyebrow="Products publishing to Weedmaps with no category"
-          title={uncat.length
-            ? uncat.length + ' SKU' + (uncat.length === 1 ? ' goes' : 's go') + ' live on Weedmaps with no category at all'
-            : 'No SKU publishes uncategorised right now'}
-          subtitle={uncat.length
-            ? 'engine.py:919 sets category_ids only on a hit. On a miss it leaves the field off and publishes the item anyway — so this does not error, does not retry, and is invisible from our side.'
-            : 'Every category spelling in the catalog folds to a canonical name that resolves to a real Weedmaps node.'} />
+          title={brokenSkus
+            ? brokenSkus + ' SKU' + (brokenSkus === 1 ? ' goes' : 's go') + ' live on Weedmaps with no category, and nobody chose that'
+            : restingSkus
+              ? 'No SKU publishes uncategorised by accident'
+              : 'No SKU publishes uncategorised right now'}
+          subtitle={brokenSkus
+            ? 'engine.py:919 sets category_ids only on a hit. On a miss it leaves the field off and publishes the item anyway — so this does not error, does not retry, and is invisible from our side. Every spelling below can be fixed from this screen by adding an alias.'
+            : 'Every category spelling in the catalog folds to a canonical name that resolves to a real Weedmaps node, or to one we have deliberately left unbound.'} />
         {groups.map(function (g) {
           return (
             <div key={g.spelling + g.why} style={{ padding: '11px 13px', marginBottom: 8,
@@ -302,8 +393,38 @@
               </div>
             </div>);
         })}
+        {resting.length > 0 &&
+          <div data-hw-resting-uncategorised="1" style={{ marginTop: groups.length ? 14 : 4,
+            padding: '11px 13px', background: P.surface2,
+            border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
+            <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink, marginBottom: 3 }}>
+              {restingSkus} SKU{restingSkus === 1 ? '' : 's'} publish{restingSkus === 1 ? 'es' : ''} with no category because
+              {' '}Weedmaps has no node for {resting.length === 1 ? 'that category' : 'those categories'} — which is allowed
+            </div>
+            <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5, maxWidth: 900 }}>
+              This is not the same defect as the rows above and is not counted with them. These spellings fold to
+              one of our nine perfectly well; the node that is missing is on Weedmaps&rsquo; side, so no alias and
+              no picker can reach it. <strong>Nothing here is waiting on anybody.</strong>
+            </div>
+            {resting.map(function (g) {
+              return (
+                <div key={g.spelling + g.why} style={{ display: 'flex', gap: 10, alignItems: 'center',
+                  flexWrap: 'wrap', marginTop: 8 }}>
+                  <code style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{g.spelling}</code>
+                  <Pill kind="info" size="sm" icon="ban">{g.skus.length} SKU{g.skus.length === 1 ? '' : 's'}</Pill>
+                  <span style={{ fontSize: P.type.meta, color: P.inkDim }}>{g.why}. No alias can fix this.</span>
+                  <span style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {g.skus.slice(0, 12).map(function (sk) {
+                      return <span key={sk} style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.ink2, padding: '3px 7px', background: P.surface3, borderRadius: P.r8 }}>{sk}</span>;
+                    })}
+                    {g.skus.length > 12 &&
+                      <span style={{ fontSize: P.type.micro, color: P.inkMute, alignSelf: 'center' }}>+{g.skus.length - 12} more</span>}
+                  </span>
+                </div>);
+            })}
+          </div>}
         {rgroups.length > 0 &&
-          <div style={{ marginTop: groups.length ? 14 : 4 }}>
+          <div style={{ marginTop: (groups.length || resting.length) ? 14 : 4 }}>
             <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink, marginBottom: 3 }}>
               {rescued.length} SKU{rescued.length === 1 ? ' was' : 's were'} in that same state and {rescued.length === 1 ? 'is' : 'are'} now fixed by the alias layer
             </div>
@@ -334,8 +455,11 @@
     if (!r.wm_ids || !r.wm_ids.length) {
       return (
         <div style={{ minWidth: 0 }}>
-          <Pill kind="bad" size="sm" icon="ban">no node exists</Pill>
-          <div style={{ fontSize: P.type.micro, color: P.bad, marginTop: 4, lineHeight: 1.4 }}>
+          {/* `info`, not `bad`. The words still say the node does not exist —
+              which is the fact — but nothing here is a fault or a task. See
+              STATES.NO_WM_NODE for the ruling this implements. */}
+          <Pill kind="info" size="sm" icon="ban">no node exists</Pill>
+          <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 4, lineHeight: 1.4 }}>
             not under another parent, not under another spelling
           </div>
         </div>);
@@ -445,20 +569,527 @@
       </div>);
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // THE EDITOR. Picker, aliases, preview — the owner's three answers.
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // He asked for three things and refused a fourth by not asking for it:
+  //
+  //   1. A PICKER over Weedmaps' real tree. NOT an id field. Typing an id is
+  //      how a category ends up bound to whatever node happens to carry that
+  //      number, and the number is right there in the payload — a text box
+  //      would be asking the operator for something the system already knows.
+  //   2. ALIAS add and edit, so the next rogue spelling ("Vapes", "Pre-rolls",
+  //      both real, both were publishing uncategorised) does not wait on a
+  //      developer. A collision REFUSES and names what it hit.
+  //   3. A PREVIEW before saving, and the save is gated on echoing back the
+  //      number the preview showed — the publish gate's own shape, for the
+  //      publish gate's own reason: a screen that has gone stale must not be
+  //      able to confirm.
+  //
+  // AND THE FOURTH, WHICH IS NOT HERE ON PURPOSE: there is no "do not publish"
+  // button. He was not asked for one and did not choose one, and his words were
+  // "if we decide NOT to map deals, then that shouldnt be a problem and the
+  // system should allow it". Unbound is the DEFAULT — you reach it by doing
+  // nothing — and a control that made you declare it would turn "not a problem"
+  // into a chore. Do not add one back.
+
+  // ── the node picker ───────────────────────────────────────────────────────
+  // Weedmaps' 94 nodes as their real two-level tree, filterable. Every entry is
+  // a node that EXISTS in the same capture every id on this screen was resolved
+  // against, so the picker and the map cannot disagree about what a node is.
+  function NodePicker({ tree, value, onPick }) {
+    const P = useP();
+    const [q, setQ] = React.useState('');
+    const nodes = tree || [];
+    const roots = nodes.filter(function (n) { return n.parent_id == null; });
+    const kids = {};
+    nodes.forEach(function (n) {
+      if (n.parent_id == null) { return; }
+      (kids[n.parent_id] = kids[n.parent_id] || []).push(n);
+    });
+    const needle = q.trim().toLowerCase();
+    const hit = function (n) {
+      if (!needle) { return true; }
+      return String(n.name || '').toLowerCase().indexOf(needle) >= 0
+        || String(n.slug || '').toLowerCase().indexOf(needle) >= 0
+        || String(n.id) === needle;
+    };
+    const shown = [];
+    roots.forEach(function (r) {
+      const ch = (kids[r.id] || []).filter(hit);
+      if (hit(r) || ch.length) {
+        shown.push({ node: r, depth: 0 });
+        (hit(r) ? (kids[r.id] || []) : ch).forEach(function (c) {
+          shown.push({ node: c, depth: 1 });
+        });
+      }
+    });
+    // Orphans: a node whose parent is not in the capture. Shown rather than
+    // dropped — a node we cannot place is still a node somebody may need, and
+    // silently omitting it makes the picker quietly incomplete.
+    nodes.forEach(function (n) {
+      if (n.parent_id != null && !nodes.some(function (m) { return m.id === n.parent_id; }) && hit(n)) {
+        shown.push({ node: n, depth: 1, orphan: true });
+      }
+    });
+    return (
+      <div data-hw-picker="1">
+        <input value={q} onChange={function (e) { setQ(e.target.value); }}
+          placeholder={'Filter ' + nodes.length + ' Weedmaps nodes by name, slug or id'}
+          data-hw-picker-filter="1"
+          style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px',
+            fontSize: P.type.body, fontFamily: P.fontSans, color: P.ink,
+            background: P.surface, border: '1px solid ' + P.hairline3,
+            borderRadius: P.r8 }} />
+        <div style={{ maxHeight: 260, overflowY: 'auto', marginTop: 8,
+          border: '1px solid ' + P.hairline2, borderRadius: P.r10,
+          background: P.surface }}>
+          {shown.length === 0 &&
+            <div style={{ padding: '12px 10px', fontSize: P.type.meta, color: P.inkMute }}>
+              No Weedmaps node matches “{q}”. That is a statement about their tree, not about ours.
+            </div>}
+          {shown.map(function (e) {
+            const n = e.node;
+            const sel = value != null && Number(value) === Number(n.id);
+            return (
+              <button key={String(n.id) + '-' + e.depth} type="button"
+                data-hw-node={String(n.id)}
+                data-hw-node-selected={sel ? '1' : '0'}
+                onClick={function () { onPick(n.id); }}
+                style={{ display: 'block', width: '100%', textAlign: 'left',
+                  padding: e.depth ? '5px 10px 5px 26px' : '6px 10px',
+                  background: sel ? P.accentSoft : 'transparent',
+                  border: 0, borderBottom: '1px solid ' + P.hairline2,
+                  cursor: 'pointer', font: 'inherit',
+                  color: sel ? P.accentText : P.ink }}>
+                <span style={{ fontSize: P.type.body, fontWeight: e.depth ? 500 : 700 }}>{n.name}</span>
+                <code style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkDim, marginLeft: 6 }}>[{n.id}]</code>
+                {e.orphan &&
+                  <span style={{ fontSize: P.type.micro, color: P.warn, marginLeft: 6 }}>parent {n.parent_id} is not in the capture</span>}
+                {n.published === false &&
+                  <span style={{ fontSize: P.type.micro, color: P.warn, marginLeft: 6 }}>not published on Weedmaps</span>}
+              </button>);
+          })}
+        </div>
+      </div>);
+  }
+
+  // ── the preview, and the echo that gates the save ─────────────────────────
+  //
+  // THREE CONFIRMATION SHAPES, NOT TWO, and this is the whole reason this
+  // component exists rather than a bare number input:
+  //
+  //   products_known === true   → type the number you were shown.
+  //   products_known === false  → the catalog could not be read, so the count
+  //                               is UNKNOWN. You confirm the UNKNOWN itself
+  //                               (a separate control that sends null). There
+  //                               is deliberately NO way to type 0 here: an
+  //                               absence and an unknown must not be able to
+  //                               produce the same request.
+  //   would_refuse !== null     → no save control at all, and the reason is
+  //                               printed. A button that discovers on submit
+  //                               that it could never have worked is worse than
+  //                               no button.
+  function PreviewPanel({ pv, http, busy, onSave, onCancel, refusal, saveLabel }) {
+    const P = useP();
+    const [echo, setEcho] = React.useState('');
+    const [unk, setUnk] = React.useState(false);
+    const mono = { fontFamily: P.fontMono, fontSize: P.type.meta };
+    React.useEffect(function () { setEcho(''); setUnk(false); },
+      [pv && pv.op, pv && pv.subject, pv && String(pv.to_ids), pv && pv.products_affected]);
+
+    if (http && !http.ok && !(http.body && http.body.code)) {
+      return (
+        <div data-hw-preview-error="1" style={{ padding: '10px 12px', background: P.badSoft,
+          border: '1px solid ' + P.bad, borderRadius: P.r10, fontSize: P.type.meta, color: P.ink }}>
+          The preview could not be read (HTTP {http.code || 'no response'}{http.netError ? ' — ' + http.netError : ''}).
+          <strong> Nothing is saved and nothing is known.</strong> This is not “no change” — it is no answer.
+        </div>);
+    }
+    if (!pv) { return <div style={{ fontSize: P.type.meta, color: P.inkMute }}>Reading what this would change…</div>; }
+
+    const known = pv.products_known !== false;
+    const n = pv.products_affected;
+    const refuse = pv.would_refuse;
+    const ready = refuse ? false : (known ? (echo !== '' && Number(echo) === Number(n)) : unk);
+
+    return (
+      <div data-hw-preview={pv.op}>
+        <div style={{ padding: '11px 13px', background: P.surface2,
+          border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
+          <Eyebrow>What this would change, before it changes</Eyebrow>
+          <div data-hw-preview-sentence="1"
+            style={{ fontSize: P.type.body, color: P.ink, lineHeight: 1.55, marginTop: 6 }}>
+            {pv.sentence}
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 9 }}>
+            <code style={mono}>{pv.from_path || 'no category_ids'}</code>
+            <Icon name="arrow-right" size={13} stroke={2} color={P.inkMute} />
+            <code style={mono}>{pv.to_path || 'no category_ids'}</code>
+          </div>
+        </div>
+
+        {refuse &&
+          <div data-hw-refusal={refuse.code}
+            style={{ marginTop: 10, padding: '10px 12px', background: P.warnSoft,
+              border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+            <Pill kind="warn" size="sm" icon="ban">{refuse.code}</Pill>
+            <div style={{ fontSize: P.type.meta, color: P.ink, marginTop: 6, lineHeight: 1.5 }}>{refuse.error}</div>
+            <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 5 }}>
+              This is a refusal, not a failure — the save is not offered because the server would decline it.
+            </div>
+          </div>}
+
+        {!refuse && known &&
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5 }}>
+              Type <strong data-hw-echo-target="1">{num(n)}</strong> to confirm — the number of product rows this
+              affects, recomputed by the server when you save. The catalog moves while a screen is open, so a
+              stale preview must not be able to confirm itself.
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+              <input value={echo} onChange={function (e) { setEcho(e.target.value); }}
+                data-hw-echo="1" inputMode="numeric" placeholder="count"
+                style={{ width: 96, padding: '7px 10px', fontFamily: P.fontMono,
+                  fontSize: P.type.body, color: P.ink, background: P.surface,
+                  border: '1px solid ' + P.hairline3, borderRadius: P.r8 }} />
+              <PBtn variant="accent" icon="check" disabled={!ready || busy}
+                onClick={function () { onSave(Number(echo)); }}>
+                {busy ? 'Saving…' : (saveLabel || 'Save')}
+              </PBtn>
+              <PBtn icon="x" onClick={onCancel}>Cancel</PBtn>
+            </div>
+          </div>}
+
+        {!refuse && !known &&
+          <div data-hw-confirm-unknown="1" style={{ marginTop: 10, padding: '10px 12px',
+            background: P.warnSoft, border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+            <div style={{ fontSize: P.type.meta, color: P.ink, lineHeight: 1.5 }}>
+              <strong>The catalog could not be read, so how many products this affects is UNKNOWN.</strong>{' '}
+              That is not zero and not “nothing is affected”. There is no number to type here, and no way to
+              type one: you can only confirm the unknown you were actually shown.
+              {pv.catalog_error ? <span> ({pv.catalog_error})</span> : null}
+            </div>
+            <label style={{ display: 'flex', gap: 7, alignItems: 'center', marginTop: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={unk} data-hw-echo-unknown="1"
+                onChange={function (e) { setUnk(!!e.target.checked); }} />
+              <span style={{ fontSize: P.type.meta, color: P.ink }}>
+                I am saving without knowing how many products this affects.
+              </span>
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <PBtn variant="accent" icon="check" disabled={!ready || busy}
+                onClick={function () { onSave(null); }}>
+                {busy ? 'Saving…' : (saveLabel || 'Save')}
+              </PBtn>
+              <PBtn icon="x" onClick={onCancel}>Cancel</PBtn>
+            </div>
+          </div>}
+
+        {refusal &&
+          <div data-hw-server-refusal={refusal.code || 'error'}
+            style={{ marginTop: 10, padding: '10px 12px',
+              background: refusal.code ? P.warnSoft : P.badSoft,
+              border: '1px solid ' + (refusal.code ? P.warn : P.bad), borderRadius: P.r10 }}>
+            <Pill kind={refusal.code ? 'warn' : 'bad'} size="sm" icon="ban">
+              {refusal.code ? ('refused · ' + refusal.code) : ('HTTP ' + (refusal.http || '?'))}
+            </Pill>
+            <div style={{ fontSize: P.type.meta, color: P.ink, marginTop: 6, lineHeight: 1.5 }}>{refusal.error}</div>
+            {refusal.code === 'confirm_mismatch' &&
+              <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 5 }}>
+                The catalog changed while this screen was open. Nothing was written.
+              </div>}
+          </div>}
+      </div>);
+  }
+
+  /** Turn a POST result into either null (saved) or a refusal the panel shows.
+   *  409 IS NOT AN ERROR HERE. It is the server declining for a stated reason,
+   *  and it carries a machine code plus a sentence written for a person. A 500
+   *  and a dropped connection are different animals and keep their own shape. */
+  function refusalOf(r) {
+    if (!r || r.ok) { return null; }
+    const b = r.body || {};
+    if (r.code === 409 && b.code) { return { code: b.code, error: b.error, extra: b }; }
+    return { code: null, http: r.code || 0,
+      error: b.error || r.netError || r.raw || ('HTTP ' + (r.code || 0) + ' with no body') };
+  }
+
+  // ── binding editor: one category, one node, one confirmed save ────────────
+  function BindingEditor({ row, tree, onSaved, onClose }) {
+    const P = useP();
+    const [node, setNode] = React.useState(
+      row.binding ? row.binding.node_id : (row.wm_ids && row.wm_ids.length ? row.wm_ids[row.wm_ids.length - 1] : null));
+    const [mode, setMode] = React.useState('bind');   // 'bind' | 'unbind'
+    const [http, setHttp] = React.useState(null);
+    const [busy, setBusy] = React.useState(false);
+    const [refusal, setRefusal] = React.useState(null);
+
+    React.useEffect(function () {
+      let live = true;
+      setHttp(null); setRefusal(null);
+      const path = ROUTE + '/preview?' + (mode === 'unbind'
+        ? qs({ op: 'unbind', category: row.category })
+        : qs({ op: 'bind', category: row.category, node: node }));
+      if (mode === 'bind' && node == null) { return function () { live = false; }; }
+      getJSON(path).then(function (r) { if (live) { setHttp(r); } });
+      return function () { live = false; };
+    }, [row.category, node, mode]);
+
+    // A 409 on the PREVIEW is still a preview: the body is the refusal, and the
+    // panel renders it as the reason a save is not offered.
+    const pv = (http && http.parsed && http.body && http.body.op) ? http.body
+      : (http && http.parsed && http.body && http.body.code)
+        ? { op: mode, subject: row.category, products_affected: null, products_known: true,
+            from_ids: row.wm_ids || [], to_ids: [], from_path: row.wm_path, to_path: null,
+            sentence: 'This cannot be previewed.', would_refuse: { code: http.body.code, error: http.body.error } }
+        : null;
+
+    function save(confirm) {
+      setBusy(true); setRefusal(null);
+      const path = ROUTE + (mode === 'unbind' ? '/unbind' : '/bind');
+      const payload = mode === 'unbind'
+        ? { category: row.category, confirm_products: confirm }
+        : { category: row.category, node: node, confirm_products: confirm };
+      post(path, payload).then(function (r) {
+        setBusy(false);
+        const ref = refusalOf(r);
+        if (ref) { setRefusal(ref); return; }
+        onSaved(r.body && r.body.map);
+      });
+    }
+
+    const s = st(row);
+    return (
+      <Card density="roomy" data-hw-editor="binding"
+        style={{ marginBottom: 18, border: '1px solid ' + P.accentBorder }}>
+        <SectionHead level={3} eyebrow="Pick a Weedmaps node"
+          title={'Bind ' + row.category + ' to a node in Weedmaps’ tree'}
+          subtitle={'Currently: ' + (row.binding_source === 'explicit'
+            ? 'explicitly bound to ' + (row.wm_path || 'a node that is no longer in the tree') + ' by ' + (row.binding && row.binding.actor || 'someone') + (row.binding && row.binding.at_iso ? ' on ' + row.binding.at_iso : '')
+            : row.binding_source === 'name_match'
+              ? 'matched by name to ' + row.wm_path + ' — nobody picked this, the word simply hit a node of the same name'
+              : 'not bound to anything. Weedmaps has no node named “' + row.category + '”, and that is an allowed resting state.')}
+          action={<PBtn icon="x" onClick={onClose}>Close</PBtn>} />
+
+        {row.binding_source === 'none' &&
+          <div data-hw-resting="1" style={{ padding: '10px 12px', marginBottom: 12,
+            background: P.infoSoft, border: '1px solid ' + P.hairline2, borderRadius: P.r10,
+            fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5 }}>
+            <strong>You do not have to bind this.</strong> Leaving it unbound is a legitimate resting state —
+            products under it publish with no <code style={{ fontFamily: P.fontMono }}>category_ids</code> and
+            Weedmaps accepts them. There is no decision to record and nothing is waiting on you.
+          </div>}
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          <PBtn active={mode === 'bind'} onClick={function () { setMode('bind'); }} icon="grid">Pick a node</PBtn>
+          {row.binding &&
+            <PBtn active={mode === 'unbind'} data-hw-unbind="1"
+              onClick={function () { setMode('unbind'); }} icon="x">Remove the explicit binding</PBtn>}
+        </div>
+
+        {mode === 'bind' &&
+          <div style={{ marginBottom: 12 }}>
+            <NodePicker tree={tree} value={node} onPick={setNode} />
+          </div>}
+
+        {(mode === 'unbind' || node != null) &&
+          <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal}
+            saveLabel={mode === 'unbind' ? 'Remove the binding' : 'Bind it'}
+            onSave={save} onCancel={onClose} />}
+
+        {mode === 'bind' && node == null &&
+          <div style={{ fontSize: P.type.meta, color: P.inkMute }}>
+            Choose a node above and this will show exactly what saving it would change.
+          </div>}
+      </Card>);
+  }
+
+  // ── alias editor: add a spelling, repoint one, remove one ─────────────────
+  //
+  // A COLLISION REFUSES AND SAYS WHAT IT HIT. taxonomy._build_alias_index
+  // already refuses AT IMPORT when one alias key would resolve to two different
+  // canonical names, because a silent winner re-files an entire top-level
+  // category. The route enforces the same rule; this panel shows the reason
+  // BEFORE the save rather than after, using the preview's `would_refuse`.
+  //
+  // BUILT-IN ALIASES ARE NOT EDITABLE HERE and are not rendered as if they
+  // were. They live in taxonomy.CATEGORY_ALIASES because live rows and live SKU
+  // assignments on a persistent disk carry those spellings; changing one is a
+  // code change with a migration behind it. An edit control on them would be a
+  // control that asks the operator for a decision the system has already made.
+  function AliasEditor({ d, onSaved }) {
+    const P = useP();
+    const ed = (d && d.editor) || {};
+    const cats = ed.top_level || [];
+    const rows = ed.alias_overrides || [];
+    const [alias, setAlias] = React.useState('');
+    const [cat, setCat] = React.useState(cats[0] || '');
+    const [pending, setPending] = React.useState(null);   // {kind, alias, category, expect}
+    const [http, setHttp] = React.useState(null);
+    const [busy, setBusy] = React.useState(false);
+    const [refusal, setRefusal] = React.useState(null);
+    const mono = { fontFamily: P.fontMono, fontSize: P.type.micro };
+
+    React.useEffect(function () {
+      let live = true;
+      setHttp(null); setRefusal(null);
+      if (!pending) { return function () { live = false; }; }
+      const path = ROUTE + '/preview?' + (pending.kind === 'remove'
+        ? qs({ op: 'alias_remove', alias: pending.alias })
+        : qs({ op: 'alias', alias: pending.alias, category: pending.category }));
+      getJSON(path).then(function (r) { if (live) { setHttp(r); } });
+      return function () { live = false; };
+    }, [pending && pending.kind, pending && pending.alias, pending && pending.category]);
+
+    const pv = (http && http.parsed && http.body && http.body.op) ? http.body
+      : (http && http.parsed && http.body && http.body.code)
+        ? { op: 'alias', subject: pending && pending.alias, products_affected: null,
+            products_known: true, from_ids: [], to_ids: [], sentence: 'This cannot be previewed.',
+            would_refuse: { code: http.body.code, error: http.body.error } }
+        : null;
+
+    function save(confirm) {
+      if (!pending) { return; }
+      setBusy(true); setRefusal(null);
+      const path = ROUTE + (pending.kind === 'remove' ? '/alias/delete'
+        : pending.kind === 'repoint' ? '/alias/repoint' : '/alias');
+      const payload = { alias: pending.alias, confirm_products: confirm };
+      if (pending.kind !== 'remove') { payload.category = pending.category; }
+      if (pending.kind === 'repoint') { payload.expect_current = pending.expect; }
+      post(path, payload).then(function (r) {
+        setBusy(false);
+        const ref = refusalOf(r);
+        if (ref) { setRefusal(ref); return; }
+        setPending(null); setAlias('');
+        onSaved(r.body && r.body.map);
+      });
+    }
+
+    if (ed.error) {
+      return (
+        <Card density="roomy" style={{ marginBottom: 18, border: '1px solid ' + P.bad }}>
+          <SectionHead level={3} eyebrow="Spellings"
+            title="The alias editor’s own rows could not be read"
+            subtitle={ed.error + ' — so this screen cannot tell you whether any operator alias exists. That is not the same as “none exist”.'} />
+        </Card>);
+    }
+
+    return (
+      <Card density="roomy" data-hw-editor="alias" style={{ marginBottom: 18 }}>
+        <SectionHead level={3} eyebrow="Spellings we accept"
+          title="Teach the system a spelling, without waiting for a developer"
+          subtitle="“Vapes” and “Pre-rolls” were both real, both arrived from an import nobody controlled, and both published SKUs to Weedmaps with no category until someone edited code. This is that edit, made from here — and refused, by name, when it would collide." />
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 4 }}>
+          <div style={{ flex: '1 1 220px', minWidth: 180 }}>
+            <div style={{ fontSize: P.type.micro, color: P.inkDim, marginBottom: 4 }}>The spelling as it arrives</div>
+            <input value={alias} data-hw-alias-input="1"
+              onChange={function (e) { setAlias(e.target.value); }}
+              placeholder="e.g. Pre-rollz"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px',
+                fontSize: P.type.body, fontFamily: P.fontMono, color: P.ink,
+                background: P.surface, border: '1px solid ' + P.hairline3, borderRadius: P.r8 }} />
+          </div>
+          <div style={{ flex: '0 1 200px', minWidth: 160 }}>
+            <div style={{ fontSize: P.type.micro, color: P.inkDim, marginBottom: 4 }}>folds to our category</div>
+            <select value={cat} data-hw-alias-category="1"
+              onChange={function (e) { setCat(e.target.value); }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px',
+                fontSize: P.type.body, fontFamily: P.fontSans, color: P.ink,
+                background: P.surface, border: '1px solid ' + P.hairline3, borderRadius: P.r8 }}>
+              {cats.map(function (c) { return <option key={c} value={c}>{c}</option>; })}
+            </select>
+          </div>
+          <PBtn icon="plus" data-hw-alias-add="1" disabled={!alias.trim()}
+            onClick={function () { setPending({ kind: 'add', alias: alias.trim(), category: cat }); }}>
+            See what this would do
+          </PBtn>
+        </div>
+        <div style={{ fontSize: P.type.micro, color: P.inkMute, lineHeight: 1.45, marginBottom: 12 }}>
+          Case and punctuation are removed before comparison, so “Pre-Roll”, “pre roll” and “PreRoll” are one
+          spelling. Adding a tenth top-level category is not possible here — that is a code change, deliberately.
+        </div>
+
+        {pending &&
+          <div style={{ marginBottom: 14 }}>
+            <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal}
+              saveLabel={pending.kind === 'remove' ? 'Remove the alias'
+                : pending.kind === 'repoint' ? 'Repoint it' : 'Add the alias'}
+              onSave={save} onCancel={function () { setPending(null); }} />
+          </div>}
+
+        <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink, marginBottom: 6 }}>
+          {rows.length ? rows.length + ' spelling' + (rows.length === 1 ? '' : 's') + ' added here'
+            : 'No spelling has been added here yet'}
+        </div>
+        {rows.length === 0 &&
+          <div style={{ fontSize: P.type.meta, color: P.inkDim, lineHeight: 1.5 }}>
+            Every spelling this system accepts today comes from
+            {' '}<code style={mono}>taxonomy.CATEGORY_ALIASES</code> — the code table, listed per category in
+            the table below. Nothing has been added from this screen.
+          </div>}
+        {rows.map(function (r) {
+          return (
+            <div key={r.alias_key} data-hw-operator-alias={r.alias_key}
+              style={{ padding: '9px 12px', marginBottom: 6,
+                background: r.live ? P.surface2 : P.warnSoft,
+                border: '1px solid ' + (r.live ? P.hairline2 : P.warn), borderRadius: P.r10 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <code style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{r.alias}</code>
+                <Icon name="arrow-right" size={12} stroke={2} color={P.inkMute} />
+                <strong style={{ fontSize: P.type.body, color: P.ink }}>{r.canonical}</strong>
+                <Pill kind="neutral" size="sm">added here</Pill>
+                <span style={{ fontSize: P.type.micro, color: P.inkMute }}>
+                  by {r.actor}{r.at_iso ? ' · ' + r.at_iso : ''}
+                </span>
+                <span style={{ flex: 1 }} />
+                <select value={r.canonical} data-hw-repoint={r.alias_key}
+                  onChange={function (e) {
+                    setPending({ kind: 'repoint', alias: r.alias, category: e.target.value, expect: r.canonical });
+                  }}
+                  style={{ padding: '4px 8px', fontSize: P.type.meta, color: P.ink,
+                    background: P.surface, border: '1px solid ' + P.hairline3, borderRadius: P.r8 }}>
+                  {cats.map(function (c) { return <option key={c} value={c}>{c}</option>; })}
+                </select>
+                <PBtn size="xs" icon="x" data-hw-alias-remove={r.alias_key}
+                  onClick={function () { setPending({ kind: 'remove', alias: r.alias }); }}>Remove</PBtn>
+              </div>
+              {/* A ROW THAT HAS STOPPED APPLYING MUST SAY SO. If the code table
+                  later grew the same spelling, the code entry wins and this row
+                  is dead — and dead is exactly the state that renders as fine. */}
+              {!r.live &&
+                <div style={{ fontSize: P.type.meta, color: P.warn, marginTop: 6, lineHeight: 1.45, fontWeight: 600 }}>
+                  {r.dead_reason === 'shadowed_by_code'
+                    ? 'This row no longer does anything: the code table now folds this spelling to ' + r.shadowed_by + ', and the code table wins. Remove it, or change the code.'
+                    : 'This row no longer does anything: it points at ' + r.canonical + ', which is not one of our top-level categories any more.'}
+                </div>}
+            </div>);
+        })}
+      </Card>);
+  }
+
   window.CategoryMapScreen = function CategoryMapScreen() {
     const P = useP();
     const [http, setHttp] = React.useState(null);
     const [tick, setTick] = React.useState(0);
     const [open, setOpen] = React.useState({});
+    const [editing, setEditing] = React.useState(null);
+    // THE MAP THE SERVER RETURNED WITH THE WRITE, not one this screen guessed.
+    // Every write route answers with the whole recomputed map, so the row an
+    // operator sees after saving is the server's answer and never an optimistic
+    // local edit — the shape that lets a UI show a binding the server declined.
+    const [fresh, setFresh] = React.useState(null);
 
     React.useEffect(function () {
       let live = true;
-      setHttp(null);
+      setHttp(null); setFresh(null);
       getJSON(ROUTE).then(function (r) { if (live) { setHttp(r); } });
       return function () { live = false; };
     }, [tick]);
 
-    const d = (http && http.ok && http.parsed) ? http.body : null;
+    const d = fresh || ((http && http.ok && http.parsed) ? http.body : null);
     const rows = (d && Array.isArray(d.rows)) ? d.rows : [];
     const c = (d && d.counts) || {};
 
@@ -483,7 +1114,36 @@
               </div>}
           </div>);
       } },
-      { label: 'Weedmaps node', width: '30%', render: function (r) { return <WmCell r={r} />; } },
+      { label: 'Weedmaps node', width: '30%', render: function (r) {
+        return (
+          <div style={{ minWidth: 0 }}>
+            <WmCell r={r} />
+            {/* WHO DECIDED, which is a different fact from WHETHER IT RESOLVES.
+                A name match is nobody's decision — the word happened to hit a
+                node of the same name — and an operator about to change it
+                should know which of the two they are looking at. */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+              <span data-hw-binding-source={r.binding_source || 'name_match'}
+                style={{ fontSize: P.type.micro, color: P.inkMute }}>
+                {r.binding_source === 'explicit'
+                  ? 'picked by ' + ((r.binding && r.binding.actor) || 'someone')
+                  : r.binding_source === 'explicit_missing_node'
+                    ? 'picked node ' + ((r.binding && r.binding.node_id) || '?') + ' is not in the tree'
+                    : r.binding_source === 'none'
+                      ? 'nothing bound — allowed'
+                      : 'matched by name, not chosen'}
+              </span>
+              <PBtn size="xs" icon="edit" data-hw-edit-binding={r.category}
+                onClick={function () { setEditing(editing === r.category ? null : r.category); }}>
+                {r.binding_source === 'explicit' ? 'Change' : 'Pick a node'}
+              </PBtn>
+            </div>
+            {r.overrides_name_match &&
+              <div style={{ fontSize: P.type.micro, color: P.warn, marginTop: 4, lineHeight: 1.4 }}>
+                overrides the name match, which would bind [{(r.name_match_ids || []).join(', ')}]
+              </div>}
+          </div>);
+      } },
       { label: 'Accepted spellings', width: '30%', render: function (r) {
         return <AliasCell r={r} open={!!open[r.category]}
           onToggle={function () {
@@ -535,9 +1195,17 @@
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12, marginBottom: 18 }}>
             <KPI label="Our categories" value={num(c.categories)}
               sublabel={num(c.resolves) + ' resolve · ' + num(c.unused) + ' unused'} icon="grid" />
+            {/* NOT "needs a decision". Nothing is pending on this number: an
+                unbound category is an allowed resting state and there is no
+                ceremony to complete. The old sublabel was a standing to-do for
+                a question that has already been answered. */}
             <KPI label="No Weedmaps node" value={num(c.no_wm_node)}
-              sublabel={c.no_wm_node ? 'unfixable by mapping — needs a decision' : 'every category has a node'}
+              sublabel={c.no_wm_node ? 'no node to bind to — allowed, not a task' : 'every category has a node'}
               icon="ban" />
+            {c.binding_broken
+              ? <KPI label="Bindings pointing nowhere" value={num(c.binding_broken)}
+                  sublabel="a picked node has left Weedmaps' tree" icon="alert" />
+              : null}
             <KPI label="SKUs publishing uncategorised" value={num(c.products_uncategorised)}
               sublabel={c.products_uncategorised
                 ? 'live on Weedmaps with no category, silently'
@@ -555,6 +1223,14 @@
               icon="package" />
           </div>}
 
+        {d && editing && (function () {
+          const r = rows.filter(function (x) { return x.category === editing; })[0];
+          if (!r) { return null; }
+          return <BindingEditor row={r} tree={(d.wm_tree && d.wm_tree.tree) || []}
+            onClose={function () { setEditing(null); }}
+            onSaved={function (map) { setEditing(null); if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
+        })()}
+
         {d && <TheDefect d={d} />}
 
         {d && rows.length === 0 &&
@@ -563,6 +1239,11 @@
 
         {d && rows.length > 0 &&
           <DataTable columns={columns} rows={rows} rowKey={function (r) { return r.category; }} stickyHead />}
+
+        {d && <div style={{ marginTop: 22 }}>
+          <AliasEditor d={d}
+            onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />
+        </div>}
 
         {d && (d.unfoldable || []).length > 0 &&
           <Card density="roomy" style={{ marginTop: 22, border: '1px solid ' + P.bad }}>
@@ -599,19 +1280,37 @@
           </DevNoteP>
         </DevNote>
 
-        <DevNote id="catmap-read-only"
-          title="This screen is read-only on purpose, and what a write would have to do">
+        <DevNote id="catmap-writes"
+          title="This screen writes now — what each write does, and the one control that is deliberately missing">
           <DevNoteP>
-            Nothing here posts. The two writes it could grow are an alias edit and a publish decision
-            for a <DevNoteMono>NO WEEDMAPS NODE</DevNoteMono> category, and both change what goes live
-            on the owner&rsquo;s real Weedmaps listing.
+            Two writes, both real: picking a Weedmaps node for a category
+            (<DevNoteMono>POST /api/taxonomy/categories/bind</DevNoteMono>) and adding, repointing or
+            removing a spelling (<DevNoteMono>/alias</DevNoteMono>). Both change what goes live on the
+            owner&rsquo;s real Weedmaps listing, so both are gated on echoing back the number the
+            preview showed &mdash; recomputed by the server at save time, which is what stops a screen
+            that has gone stale from confirming itself. It is the publish gate&rsquo;s own mechanism.
           </DevNoteP>
           <DevNoteP>
-            An alias edit in particular must be an EXPLICIT write with a named refusal when it would
-            collide. <DevNoteMono>taxonomy._build_alias_index</DevNoteMono> already refuses at import
-            when one alias key would resolve to two different canonical names, because that silently
-            re-files an entire top-level category. A UI that overwrote one quietly would reintroduce
-            exactly that.
+            A picked node beats the name match on the publish path itself
+            (<DevNoteMono>engine.build_item_payload</DevNoteMono> asks
+            {' '}<DevNoteMono>category_edit.explicit_ids_for</DevNoteMono> first), and an added spelling
+            folds through <DevNoteMono>taxonomy._norm_category</DevNoteMono> like any built-in alias.
+            Neither is cosmetic. Both hooks are fail-open: a broken row costs the override, never a push.
+          </DevNoteP>
+          <DevNoteP>
+            A collision REFUSES and names what it hit &mdash; it never overwrites.
+            {' '}<DevNoteMono>taxonomy._build_alias_index</DevNoteMono> refuses at import when one alias
+            key would resolve to two different canonical names, because a silent winner re-files an
+            entire top-level category; the route enforces the same rule, and the preview shows the
+            reason before you commit rather than after.
+          </DevNoteP>
+          <DevNoteP>
+            THE MISSING CONTROL, ON PURPOSE: there is no &ldquo;do not publish&rdquo; button, no
+            acknowledge, no decision to record for a category with no Weedmaps node. The owner asked
+            for a picker, aliases and a preview, and said &ldquo;if we decide NOT to map deals, then
+            that shouldnt be a problem and the system should allow it&rdquo;. Unbound is the DEFAULT
+            &mdash; you reach it by doing nothing &mdash; and a control that made you declare it would
+            turn &ldquo;not a problem&rdquo; into a chore. Do not add one back.
           </DevNoteP>
         </DevNote>
       </div>);

@@ -55,8 +55,12 @@ window.RegisterScreen = function RegisterScreen() {
   // state; the word "ticket" meant nothing to anyone who had not read the code.)
   const [rankOn, setRankOn] = React.useState(false);
   const [rankBasis, setRankBasis] = React.useState(null);
-  // "Suggested" — ranking over the PERSON rather than the ticket. See
-  // window.HWSuggestBasis in pos/screen-cart.jsx for what it is allowed to
+  // "Recommended" — ranking over the PERSON rather than the ticket: their own
+  // order history, and customers who look like them. (It was labelled
+  // "Suggested" until 2026-08-27. Same control, same behaviour, same state —
+  // `suggestOn` and HWSuggestBasis are unchanged; only the word moved, because
+  // "Suggested" and "Pairs with cart" did not read as two different questions.)
+  // See window.HWSuggestBasis in pos/screen-cart.jsx for what it is allowed to
   // claim, and why that is so much less than the label would let you assume.
   const [suggestOn, setSuggestOn] = React.useState(false);
 
@@ -455,11 +459,11 @@ window.RegisterScreen = function RegisterScreen() {
     return m;
   }, [rankRecs]);
 
-  /* ── "Suggested" — the PERSON, not the ticket ────────────────────────────
+  /* ── "Recommended" — the PERSON, not the ticket ──────────────────────────
    *
    * The whole of this chip's honesty lives in `basis.line`, which is rendered
    * as visible text every single time the chip is on. The chip says
-   * "Suggested"; the screen says WHAT PRODUCED THE ORDER — a first visit, a
+   * "Recommended"; the screen says WHAT PRODUCED THE ORDER — a first visit, a
    * returning customer we know nothing about, a record with no visit count at
    * all, or (when something ever defines HW.purchaseHistory) real history.
    * Those are different claims and they must not render identically.
@@ -550,14 +554,14 @@ window.RegisterScreen = function RegisterScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
               <ProductSearch q={q} setQ={setQ} onScan={() => flash('Scanner ready — scan a barcode')} />
               <div style={{ flex: '0 0 auto' }}><BrandFilter products={products} brands={brands} setBrands={setBrands} /></div>
-              {/* TWO CHIPS, TWO DIFFERENT QUESTIONS. "Suggested" is about the
+              {/* TWO CHIPS, TWO DIFFERENT QUESTIONS. "Recommended" is about the
                   PERSON; "Pairs with cart" is about what is already on the
                   ticket. They are mutually exclusive because two orderings
                   applied to one grid is one ordering nobody can account for. */}
               {window.HWSuggestBasis &&
               <button onClick={() => {setSuggestOn((o) => !o);setRankOn(false);}} title="Rank the grid for this customer. The line under the chips says which basis was used."
                 style={{ flex: '0 0 auto', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 40, padding: '0 13px', borderRadius: P.r999, border: `1px solid ${suggestOn ? P.ink : P.hairline2}`, background: suggestOn ? P.ink : P.surface, color: suggestOn ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
-                <Icon name="user" size={13} stroke={2} />Suggested
+                <Icon name="user" size={13} stroke={2} />Recommended
               </button>}
               {canRank &&
               <button onClick={() => {setRankOn((o) => !o);setSuggestOn(false);}} title="Rank the grid for what is already on this ticket"
@@ -586,7 +590,7 @@ window.RegisterScreen = function RegisterScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 2px 8px', fontSize: P.type.micro, fontWeight: 700, color: P.accentText }}>
               <Icon name="sparkle" size={11} stroke={2} />{rankedHere ? 'Best match first' : 'No ranking — catalogue order'}
             </div>}
-            {/* THE BASIS, IN WORDS, EVERY TIME. The chip only says "Suggested".
+            {/* THE BASIS, IN WORDS, EVERY TIME. The chip only says "Recommended".
                 This line is the part that cannot be got wrong: it names what
                 actually produced the order, and it says so identically whether
                 the answer was flattering or was "we know nothing about this
@@ -1591,7 +1595,7 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
 // `why` is the reason copy for this tile, and it comes from whichever control
 // lifted it. From "Pairs with cart" it is the upsell ENGINE'S OWN sentence,
 // never one written here — a reason invented by the UI is a claim the ranking
-// never made. From "Suggested" it is a FACT about the product rather than a
+// never made. From "Recommended" it is a FACT about the product rather than a
 // score ("Hyperwolf — house brand"), because that chip selects and does not
 // rank; see window.HWSuggestBasis in pos/screen-cart.jsx.
 function ProductRow({ p, inCart, onAdd, why }) {

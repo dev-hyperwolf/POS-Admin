@@ -18,13 +18,41 @@ const CAT_COLOR = {
 
 const B = window.HW_BRANDS.name;
 
+// ── COST OF GOODS IS NOT A FUNCTION OF HOW A SKU IS SPELLED ────────────────
+//
+// 🔴 What this replaces. Every product carried a wholesale cost and a profit
+// margin computed from the CHARACTER CODES OF ITS SKU:
+//
+//     const h = sku.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0);
+//     const marginPct = 0.28 + (h % 41)/100;            // 0.28 … 0.68
+//     const cost = Math.max(0.5, +(price*(1-marginPct)).toFixed(2));
+//     const margin = +((price-cost)/price).toFixed(3);
+//
+// That is the deleted char-hash confidence score again, denominated in dollars
+// and in points of margin — the two numbers a buyer uses to decide what to
+// stock, what to discount and what to push. Renaming a SKU moved its margin.
+//
+// THERE IS NO COST OF GOODS IN THIS ESTATE. Verified 2026-08-27, not assumed:
+//   * wm-demo `products` table — 31 rows, union of every JSON key is
+//     brand_name, category, cbd, description, genetics, image_url, inventory,
+//     items_per_pack, name, price, sku, strain, tags, thc, weight,
+//     wm_brand_id, wm_product_id. No cost, no margin, no wholesale.
+//   * the deployed instance, GET /api/state (read-only) — 149 catalog rows,
+//     21 distinct keys, ZERO matching /cost|margin|wholesale/.
+//   * shared/hw-live.js:466-479 says so itself in a comment and then
+//     recomputes the SAME hash over the live price. That copy is fixed too.
+// So there was nothing to wire this to. `cost` and `margin` are `null`, and
+// every surface that used to print them now says the figure is not held rather
+// than printing a number that measures nothing.
+//
+// The FIELDS stay in the shape on purpose. A real cost has exactly one honest
+// way in — an operator types it on batch receipt (pos/product-shell.jsx:402,
+// which computes its margin off that typed number and is NOT affected here) —
+// and when it lands it belongs in these two slots, not in a new pair beside
+// them.
 function P_(name, sku, brand, strain, cat, thc, wt, price, was, qty, hue){
-  // deterministic unit cost → profit margin (varies 28%–68% by sku)
-  const h = sku.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0);
-  const marginPct = 0.28 + (h % 41)/100;            // 0.28 … 0.68
-  const cost = Math.max(0.5, +(price*(1-marginPct)).toFixed(2));
-  const margin = +((price-cost)/price).toFixed(3);  // 0..1
-  return { id:sku, name, sku, brand, strain, cat, thc, wt, price, was:was||null, qty, cost, margin, hue:hue??CAT_HUE[cat]??90, active:qty>0 };
+  return { id:sku, name, sku, brand, strain, cat, thc, wt, price, was:was||null, qty,
+    cost:null, margin:null, hue:hue??CAT_HUE[cat]??90, active:qty>0 };
 }
 
 const PRODUCTS = [
@@ -141,13 +169,68 @@ const STATS = {
   },
 };
 
-// Customer's go-to category (deterministic per member)
-function favCategory(m){
-  if(!m) return null;
-  const cats = ['Flower','Vapes','Pre-Rolls','Concentrates','Edibles','Wellness'];
-  const seed = (m.name||'').length + (m.visits||1)*3 + (m.points||0);
-  return cats[seed % cats.length];
+// ── "USUALLY BUYS FLOWER" IS A CLAIM ABOUT A NAMED PERSON ──────────────────
+//
+// 🔴 What this replaces:
+//
+//     const seed = (m.name||'').length + (m.visits||1)*3 + (m.points||0);
+//     return cats[seed % cats.length];
+//
+// A purchase habit asserted about a customer standing at the counter, computed
+// from THE SPELLING OF THEIR NAME. Verified 2026-08-27: renaming "Girish
+// Sharma" to "Girish Sharmax" moves their "favourite category" from Flower to
+// Vapes. It reached the operator as the literal words "Usually buys Flower" on
+// the cart rail (upsell() below, and the engine's own reason string via
+// weights.favoriteCategory = 6 — second only to a promotion unlock).
+//
+// UNLIKE COST OF GOODS, THIS ONE HAS A REAL SOURCE NOW. wmdemo/purchase_history
+// .py + GET /api/customer/purchase-history return this customer's actual line
+// items, each with a `category` and a `category_known` flag, read out of the
+// retained Weedmaps webhook payloads across every WM account bound to them.
+// shared/hw-live-history.js publishes it as window.HW.purchaseHistory(key).
+// So the answer is now COUNTED from what they bought, or it is absent.
+//
+// ⚠️ A MOCK MEMBER ROW IS NOT A CUSTOMER KEY, and that is the seam's rule, not
+// ours: hw-live-history.js deliberately excludes `customer.id` from its key
+// list because MEMBERS is five invented people with invented ids, and handing
+// one of those to the route would return a REAL stranger's purchase history to
+// rank on. So a member carrying none of identity_id / pos_customer_id /
+// wm_customer_id gets state 'no_key' and NO category — which is the correct
+// answer for every row in the mock catalogue, and the reason the cart rail no
+// longer prints an affinity claim in the demo.
+//
+// favCategoryBasis() returns { category, state, reason } so a surface can say
+// WHY it has nothing. favCategory() is the old one-value signature, kept so
+// every existing caller keeps working — it just returns null far more often.
+const FAV_KEYS = ['identity_id','pos_customer_id','wm_customer_id'];
+
+function favCategoryBasis(m){
+  if(!m) return { category:null, state:'no_key', reason:'no customer' };
+  const kn = FAV_KEYS.find((k)=> m[k] != null && m[k] !== '');
+  if(!kn) return { category:null, state:'no_key',
+    reason:'this member record carries no identity the purchase-history route can read '
+      + '(identity_id, pos_customer_id or wm_customer_id), so nothing was looked up' };
+  const HWo = window.HW;
+  if(!HWo || typeof HWo.purchaseHistory !== 'function') return { category:null, state:'unavailable',
+    reason:'the purchase-history seam (shared/hw-live-history.js) is not on this page, '
+      + 'so this customer’s purchases were never read' };
+  const h = HWo.purchaseHistory({ [kn]: m[kn] });
+  if(!h || h.state !== 'history') return { category:null, state:(h && h.state) || 'unavailable',
+    reason:(h && h.state_reason) || 'the purchase-history route returned no history' };
+  // Count only lines the route itself resolved to a category. `category_known`
+  // false means IT could not tell either — counting those as a category would
+  // reintroduce the guess one layer down.
+  const tally = {};
+  (h.items || []).forEach((i)=>{ if(i && i.category_known && i.category){ tally[i.category] = (tally[i.category]||0) + 1; } });
+  const ranked = Object.keys(tally).sort((a,b)=> tally[b]-tally[a] || a.localeCompare(b));
+  if(!ranked.length) return { category:null, state:'no_category',
+    reason:'this customer has purchases, but none of their lines resolved to a category' };
+  const top = ranked[0], n = tally[top], total = Object.keys(tally).reduce((a,k)=>a+tally[k],0);
+  return { category:top, state:'history', count:n, lines:total,
+    reason:n + ' of ' + total + ' categorised lines this customer actually bought were ' + top };
 }
+
+function favCategory(m){ return favCategoryBasis(m).category; }
 
 // Personalized up-sell — ranks by the member's go-to category, what pairs with
 // the current cart, on-sale items, then potency/stock. Each rec carries a reason.
@@ -184,7 +267,23 @@ const WM_PRODUCT_SYNC = {
   'FCF1LRS':  { state:'error',    listings:['pickup','delivery'],   ext:'HW-FCF1LRS',  last:'1h ago',  issue:'Price on WM ($22) is stale vs POS — last write was rejected (listing paused by retailer).' },
   'BRD35SM':  { state:'synced',   listings:['pickup','delivery'],   ext:'HW-BRD35SM',  last:'just now' },
 };
-PRODUCTS.forEach((p)=>{ p.wm = WM_PRODUCT_SYNC[p.sku] || { state:'synced', listings:['pickup','delivery'], ext:'HW-'+p.sku, last:['3m ago','12m ago','28m ago','1h ago'][p.sku.charCodeAt(0)%4] }; });
+// ⚠️ `last` IS NULL, NOT A TIME. The default used to be
+//     ['3m ago','12m ago','28m ago','1h ago'][p.sku.charCodeAt(0)%4]
+// — HOW LONG AGO THIS PRODUCT LAST SYNCED TO WEEDMAPS, taken from the FIRST
+// LETTER OF ITS SKU. It rendered two ways, and the second is the worse one:
+//   pos/screen-catalog.jsx:1353  "Last synced 28m ago"
+//   pos/screen-catalog.jsx:715   "last push recorded by the API · 28m ago"
+// The second sits four lines under a paragraph that correctly says "Nothing on
+// this screen has contacted Weedmaps", and attributes the hash TO THE API by
+// name — a false provenance beside an honest disclosure, which is how the
+// disclosure stops being read. An operator uses this figure to decide whether a
+// listing is stale enough to re-push.
+//
+// The five hand-authored WM_PRODUCT_SYNC rows above keep their `last`: those
+// are deliberate fixtures for named states ('never', 'just now', '4h ago'),
+// authored rather than derived. Every other product now has no answer, and
+// both surfaces say so.
+PRODUCTS.forEach((p)=>{ p.wm = WM_PRODUCT_SYNC[p.sku] || { state:'synced', listings:['pickup','delivery'], ext:'HW-'+p.sku, last:null }; });
 
 // WM order status the customer sees on weedmaps.com, mapped from OUR fulfillment stage.
 // WM state machine: DRAFT → PENDING → IN_PROGRESS → READY_FOR_ATTAINMENT → COMPLETE
@@ -450,6 +549,46 @@ function settleCheckIn(id, outcome, meta) {
 function removeCheckIn(id) { return settleCheckIn(id, 'unspecified'); }
 
 function settledCheckIns() { return CHECKIN_LOG.slice(); }
+
+// ── claim / release ────────────────────────────────────────────────────────
+// `claimedBy` had FOUR occurrences in this application and every one of them
+// was a READ. The only writes were the seed literals above and
+// `claimedBy: null` in addCheckIn, so the queue card's Claim button opened a
+// sale and never recorded that anybody had taken the person — which is why the
+// approved design's "✕ Unclaim" state had nothing to read and could not exist.
+// These two are that write, and its inverse.
+//
+// THEY ARE ASYNC ON PURPOSE. The live build (shared/hw-live-checkin.js step 7)
+// replaces both with calls that POST to /api/checkin/state and then re-read the
+// board, because the live seam REPLACES the contents of CHECKINS on every poll
+// — a claim held only here would be undone by the next refresh while the
+// associate watched. One await at the call site works against both builds.
+//
+// `who` is not defaulted deeper than this. A claim is a name against a
+// decision, and the only place that legitimately knows the name is the screen
+// with the logged-in associate on it.
+function claimCheckIn(id, who) {
+  const c = CHECKINS.find((x) => x.id === id);
+  if (!c) return Promise.resolve({ ok: false, why: 'no such check-in ' + id });
+  const name = who == null ? null : String(who).trim();
+  if (!name) return Promise.resolve({ ok: false, why: 'a claim needs an associate name; nothing was recorded' });
+  c.claimedBy = name;
+  _hwNotify();
+  return Promise.resolve({ ok: true, why: 'claimed by ' + name, claimedBy: name });
+}
+
+// ONE CLICK RELEASES, and it is its own function rather than
+// `claimCheckIn(id, null)`. Passing a falsy name to a claim already means
+// "refuse, nothing was recorded" above; making the same call also mean "release
+// this customer" would put a release one typo away from every claim.
+function unclaimCheckIn(id) {
+  const c = CHECKINS.find((x) => x.id === id);
+  if (!c) return Promise.resolve({ ok: false, why: 'no such check-in ' + id });
+  const was = c.claimedBy || null;
+  c.claimedBy = null;
+  _hwNotify();
+  return Promise.resolve({ ok: true, why: was ? 'released ' + was : 'already unclaimed', released: was });
+}
 
 // The OPEN check-in this person is the primary of, or null.
 // Matched on memberId ALONE. A name fallback would be a guess: two customers
@@ -726,11 +865,12 @@ let _pendingSale = null;
 function startSaleFor(customer, guests) { _pendingSale = customer ? { customer, guests: (guests || []).slice() } : null; }
 function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
 
-window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, fmt, visitLabel, visitOrdinal,
+window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, favCategoryBasis, fmt, visitLabel, visitOrdinal,
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
   addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,
   CHECKIN_OUTCOMES, CHECKIN_LOG, settleCheckIn, settledCheckIns, checkinOutcomeCounts, openCheckInFor,
+  claimCheckin: claimCheckIn, unclaimCheckin: unclaimCheckIn,
   orderLineSource,
   STAGES: ORDER_STAGES, addOrder, updateOrder, setStage, nextStage, orderById,
   addSubRecord, subRecords, allSubRecords,

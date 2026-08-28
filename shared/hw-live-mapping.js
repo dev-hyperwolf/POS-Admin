@@ -47,6 +47,20 @@
 //               every SKU under that brand at once. So the state carries the
 //               brand and the panel groups the work by brand, because 108 rows
 //               of "nothing matched" is 22 brands of "we never asked".
+//   MAPPED, NOT IN OUR MIRROR — a mapping row exists and points at a Weedmaps
+//               product id that HAS NO ROW in wm_products. We are published
+//               against a product we have never pulled and cannot see: no name,
+//               no brand, no weight, no category. It is not LINKED-and-fine and
+//               it is not "Weedmaps dropped it" either — those are three states
+//               and the server used to collapse two of them into the first.
+//               Live case, 2026-08-27: SLUG-BB-629491 → wm 634042, tier 1,
+//               score 1.0, status active, while its brand feed (Sluggers Hit,
+//               28588) has NEVER been pulled — so 634042 cannot be in the
+//               mirror — and the dashboard's wm_missing on the same response
+//               was []. This row drew as a healthy green LINKED. The fix is on
+//               both sides: store.mapping_dashboard now emits `wm_unknown`,
+//               bulk_view puts `wm_mirror` on every row, and rows() below tests
+//               this BEFORE `linked`, which was swallowing it.
 //   ABSENT    — the absence ledger says Weedmaps genuinely does not carry it,
 //               confirmed across two DISTINCT catalogue pulls
 //               (wmdemo/mapping.py:562-588). This is not our work at all — it
@@ -264,6 +278,11 @@
   var _filter = 'all';
   var _openSku = null, _cands = null, _candStatus = 'idle', _candErr = null;
   var _candQuery = '', _candSku = null;
+  // The re-point control. Its own drawer, deliberately NOT folded into the
+  // candidate picker: the picker answers "which of their products is this?"
+  // against a ranked list, and this answers "these two specific ids — which one
+  // is real?", which is a different question with a different failure mode.
+  var _rpSku = null, _rp = null, _rpStatus = 'idle', _rpErr = null, _rpTarget = '';
   var _fresh = {};                            // sku -> the server's own rescore verdict
   var _msg = null, _msgOk = false;
   var _el = null, _panel = null, _scroll = 0;
@@ -314,6 +333,11 @@
   // to send a brand.
   function tone(P, st) {
     if (st === 'linked')   { return { fg: P.good,    bg: P.goodSoft,    word: 'LINKED' }; }
+    // Shares NO CONFIDENT MATCH's red, and the WORD is what separates them —
+    // the same way NOT SCORED YET and NEVER LOOKED share `info`. It earns the
+    // red: this is the only state on the board where something we have already
+    // PUBLISHED is pointing somewhere we cannot see.
+    if (st === 'unmirrored'){ return { fg: P.bad,     bg: P.badSoft,     word: 'MAPPED TO A PRODUCT WE CANNOT SEE' }; }
     if (st === 'ready')    { return { fg: P.accentText, bg: P.highlightSoft, word: 'READY · ONE CLICK' }; }
     if (st === 'review')   { return { fg: P.warn,    bg: P.warnSoft,    word: 'NEEDS REVIEW' }; }
     if (st === 'rejected') { return { fg: P.neutral, bg: P.neutralSoft, word: 'REJECTED · STICKY' }; }
@@ -331,7 +355,10 @@
     return { fg: P.bad, bg: P.badSoft, word: 'NO CONFIDENT MATCH' };
   }
 
-  var ORDER = { ready: 0, review: 1, rejected: 2, nomatch: 3, unscored: 4, unlooked: 5, absent: 6, linked: 7 };
+  // -1: it sorts ABOVE the one-click work. A live mapping pointing at a product
+  // we have never pulled is already on Weedmaps and already wrong; everything
+  // else on this board is work not yet done.
+  var ORDER = { unmirrored: -1, ready: 0, review: 1, rejected: 2, nomatch: 3, unscored: 4, unlooked: 5, absent: 6, linked: 7 };
 
   // ── the derived board ────────────────────────────────────────────────────
   // ONE place where a state is decided, and every input to it is something the
@@ -350,8 +377,39 @@
       var v = _verdicts ? _verdicts[r.sku] : null;
       var rejected = !linked && !!(v && v.action === 'rejected');
 
+      // THREE ANSWERS AND TWO DIFFERENT WAYS OF NOT HAVING ONE. The server
+      // sends wm_mirror = 'present' | 'delisted' | 'unknown' on any live
+      // mapping, and wm_mirror_known === false when its own mirror read failed.
+      //
+      // `wm_mirror_known !== false` WAS THE BUG, and it was this file asserting
+      // something it had never been told. That expression is TRUE WHEN THE KEY
+      // IS ABSENT — which is every response from any server built before the
+      // field existed. So an old server made this panel report "we checked WM
+      // #N and it is in our mirror" on the strength of a field it never sent.
+      // This panel's whole claim to be trusted is that every verdict word on it
+      // is the server's; a default that manufactures the server's most
+      // reassuring answer out of silence is that claim inverted.
+      //
+      // ABSENT IS ITS OWN STATE. Three values, and `true` is reachable ONLY by
+      // the server actually saying so:
+      //   true   the server read its mirror; r.wm_mirror is its answer
+      //   false  the server TRIED to read its mirror and the read FAILED
+      //   null   the server said NOTHING about the mirror — no field at all
+      // null and false are both "we do not know", and they are not the same
+      // fact: one is an outage on a server that HAS this check, the other is a
+      // server that has never had it. They get different sentences below.
+      var mirrorKnown = r.wm_mirror_known === true ? true
+                      : r.wm_mirror_known === false ? false
+                      : null;
+      var mirror = mirrorKnown === true ? (r.wm_mirror || null) : null;
+
       var st;
-      if (linked) { st = 'linked'; }
+      // BEFORE `linked`, and that order is the entire fix. `linked` was the
+      // first arm of this chain and it returned true for a mapping onto a wm id
+      // our mirror has never held, so the row rendered green and nothing on the
+      // board disagreed.
+      if (linked && mirror === 'unknown') { st = 'unmirrored'; }
+      else if (linked) { st = 'linked'; }
       else if (abs && (abs.state === 'absent' || abs.state === 'requested')) { st = 'absent'; }
       else if (rejected) { st = 'rejected'; }
       else if (r.queued) { st = 'review'; }
@@ -399,6 +457,7 @@
       return {
         sku: r.sku, name: r.name, category: r.category, weight: r.weight,
         state: st, mapping: m, linked: linked, suggestion: sug,
+        mirror: mirror, mirrorKnown: mirrorKnown,
         suggestionStatus: r.suggestion_status || null,
         queued: !!r.queued, queueReason: r.queue_reason,
         wmProductId: r.wm_product_id,
@@ -411,10 +470,17 @@
 
   function counts() {
     var c = { total: 0, linked: 0, ready: 0, review: 0, rejected: 0, nomatch: 0,
-              unscored: 0, unlooked: 0, absent: 0, accepted: 0, drift: 0,
-              neverPushed: 0 };
+              unscored: 0, unlooked: 0, absent: 0, unmirrored: 0, accepted: 0,
+              drift: 0, neverPushed: 0, mirrorUnknowable: 0, mirrorUnreported: 0 };
     rows().forEach(function (x) {
       c.total++; c[x.state]++;
+      // THREE COUNTERS, NOT TWO. "we could not check" is not "we checked and
+      // it is fine", it is not "it is missing", and it is not "this server
+      // never told us" either. `!x.mirrorKnown` counted the last two as one —
+      // and since an absent key used to read as `true`, the third was not
+      // counted at all and no number on this board would have moved.
+      if (x.linked && x.mirrorKnown === false) { c.mirrorUnknowable++; }
+      if (x.linked && x.mirrorKnown === null) { c.mirrorUnreported++; }
       if (x.linked) {
         if (x.accepted) { c.accepted++; }
         if (!x.listings) { c.neverPushed++; }
@@ -1170,6 +1236,348 @@
     return h + '</div>';
   }
 
+
+  // ── the re-point control ─────────────────────────────────────────────────
+  // TWO SIDES, DRAWN FROM THE MIRROR ONLY, AND NEVER APPLIED BY THIS FILE.
+  //
+  // The failure this exists for is a mapping onto a Weedmaps product id we have
+  // never pulled. The obvious "fix" is to read the digits out of our own SKU
+  // (SLUG-BB-629491 → 629491) and re-point to them. That is the SAME class of
+  // error in the opposite direction: the SKU is a string WE wrote, and the whole
+  // reason this row is wrong is that something already treated one unverified
+  // field as authoritative. So the server offers the digits as a labelled
+  // WITNESS, this panel prefills the box with them and says where they came
+  // from, and a person presses the button.
+  function loadRepoint(sku, target) {
+    _rpSku = sku; _rpStatus = 'pending'; _rp = null; _rpErr = null;
+    paint();
+    var body = { sku: sku };
+    if (target != null && String(target).trim() !== '') {
+      body.wm_id = Number(String(target).trim());
+    }
+    return post('/api/mapping/repoint-preview', body).then(function (r) {
+      if (_rpSku !== sku) { return; }               // a later click won
+      if (!r.ok || !r.body) {
+        _rpStatus = 'error';
+        _rpErr = r.error || 'no preview in the response';
+      } else {
+        _rp = r.body; _rpStatus = 'live';
+        // The box follows the server, so what is shown is what would be sent.
+        _rpTarget = (_rp.proposed && _rp.proposed.wm_id != null)
+          ? String(_rp.proposed.wm_id) : '';
+      }
+      paint();
+    });
+  }
+
+  // The write. ONE route, which itself calls mapping.approve() — this panel
+  // does not have a second path to product_mappings and must never grow one.
+  //
+  // Two refusals are expected and both are questions, not dead ends:
+  //   target_not_in_mirror — we have never pulled the product being aimed at,
+  //                          so nothing here can show it. Legitimate when the
+  //                          operator has Weedmaps open in front of them.
+  //   claim_conflict       — another SKU of ours already holds it.
+  // Neither flag is ever sent on this file's own initiative.
+  function repoint(sku, wmId, opts) {
+    opts = opts || {};
+    var body = { sku: sku, wm_id: Number(wmId) };
+    if (opts.force) { body.force = true; }
+    if (opts.confirmUnmirrored) { body.confirm_unmirrored = true; }
+    if (opts.note) { body.note = opts.note; }
+    var prev = _rp && _rp.current_mapping ? _rp.current_mapping.wm_id : null;
+    return write('/api/mapping/repoint', body,
+                 sku + ': ' + (prev == null ? 'unmapped' : 'WM #' + prev) +
+                 ' → WM #' + wmId + ' (manual override, tier 0' +
+                 (opts.force ? ', FORCED second claim' : '') +
+                 (opts.confirmUnmirrored ? ', target NOT in our mirror' : '') +
+                 '). The previous id is in the event record.')
+      .then(function (res) {
+        if (res.ok || res.code !== 409 || !res.body) {
+          if (res.ok && _rpSku === sku) { loadRepoint(sku, wmId); }
+          return res;
+        }
+        var code = res.body.code;
+        if (code === 'target_not_in_mirror' && !opts.confirmUnmirrored) {
+          if (!W.confirm('WM #' + wmId + ' is NOT in our Weedmaps mirror.\n\n' +
+                         'We have never pulled it, so nothing on this screen can show you its ' +
+                         'Weedmaps name, brand, weight or category — you would be approving a ' +
+                         'product this system cannot see. That is exactly the state you are here ' +
+                         'to fix.\n\nIf you are reading Weedmaps directly and know this id is ' +
+                         'right, press OK. Otherwise cancel and pull that brand’s feed first.')) {
+            return res;
+          }
+          return repoint(sku, wmId, { force: opts.force, confirmUnmirrored: true, note: opts.note });
+        }
+        if (code === 'claim_conflict' && !opts.force) {
+          var holder = res.body.conflict_with;
+          if (!W.confirm('WM #' + wmId + ' is already claimed by ' + holder + '.\n\n' +
+                         'Re-point anyway? ' + sku + ' and ' + holder + ' would then BOTH point at ' +
+                         'WM #' + wmId + '. Weedmaps does not enforce a unique external_id, so this ' +
+                         'is how duplicate listings get made — and it is sometimes exactly ' +
+                         'what you want. Your call, not the machine’s.')) {
+            return res;
+          }
+          return repoint(sku, wmId, { force: true, confirmUnmirrored: opts.confirmUnmirrored, note: opts.note });
+        }
+        return res;
+      });
+  }
+
+  // ONE SIDE OF THE COMPARISON. An unmirrored side renders NO product fields —
+  // not an em-dash, not "unknown" in the name slot, nothing that could be read
+  // across from the other column as if the two were being compared. It renders
+  // the reason instead.
+  function sideHTML(P, title, side, extra) {
+    var known = side && (side.mirror === 'present' || side.mirror === 'delisted');
+    var t = !side || side.mirror === 'none'
+      ? { fg: P.inkDim, bg: P.neutralSoft, word: 'NO ID' }
+      : side.mirror === 'present' ? { fg: P.good, bg: P.goodSoft, word: 'IN OUR MIRROR' }
+      : side.mirror === 'delisted' ? { fg: P.warn, bg: P.warnSoft, word: 'DELISTED BY WEEDMAPS' }
+      : { fg: P.bad, bg: P.badSoft, word: 'NOT IN OUR MIRROR' };
+    var h = '<div style="flex:1 1 220px;min-width:0;border:1px solid ' + t.fg +
+      ';border-radius:' + P.r8 + 'px;padding:7px 8px;background:' + P.surface2 + '">' +
+      '<div style="display:flex;gap:6px;align-items:baseline;justify-content:space-between">' +
+      '<span style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;color:' +
+      P.inkFaint + '">' + esc(title) + '</span>' + chip(P, t, t.word) + '</div>' +
+      '<div style="font-family:' + ff(P.fontMono) + ';font-size:' + P.type.micro + 'px;color:' +
+      P.inkFaint + ';margin-top:2px">' +
+      (side && side.wm_id != null ? '#' + esc(side.wm_id) : 'no weedmaps id') + '</div>';
+
+    if (known) {
+      h += '<div style="font-size:' + P.type.body + 'px;font-weight:700;color:' + P.ink +
+        ';margin-top:4px;line-height:1.35">' + esc(side.name || '(no name on the mirrored row)') + '</div>';
+      // Every one of these four is the mirrored Weedmaps value. A null renders
+      // as the words "not on the mirrored row", never as a blank that reads
+      // like agreement with the other column.
+      [['brand', side.brand_name], ['category', side.category],
+       ['weight', wt(side.weight) || null], ['strain', side.strain]
+      ].forEach(function (kv) {
+        h += '<div style="font-size:' + P.type.micro + 'px;color:' +
+          (kv[1] == null ? P.inkFaint : P.ink2) + ';line-height:1.5">' +
+          '<span style="color:' + P.inkFaint + '">' + esc(kv[0]) + ': </span>' +
+          esc(kv[1] == null ? 'not on the mirrored row' : kv[1]) + '</div>';
+      });
+    } else {
+      h += '<div style="font-size:' + P.type.meta + 'px;color:' + t.fg +
+        ';line-height:1.45;margin-top:5px">' + esc(side ? side.why : 'nothing to show') + '</div>';
+    }
+    return h + (extra || '') + '</div>';
+  }
+
+  // ── DUPLICATE ROWS ON WEEDMAPS ───────────────────────────────────────────
+  // THE PREMISE OF THIS WHOLE CONTROL CHANGED, and this is where it lands.
+  //
+  // It was built to fix what looked like a mismapping: SLUG-BB-629491 mapped
+  // onto WM #634042 while our own SKU string names 629491. Paging the full
+  // Sluggers Hit feed (brand 28588, meta.total 236) read-only on 2026-08-27
+  // showed BOTH ids live, both published, identical on name, categories and
+  // strain. WEEDMAPS CARRIES THE SAME PRODUCT TWICE. There was never a
+  // mismapping to fix — 634042 only looked wrong because our mirror held page
+  // one of that brand and not the page carrying it.
+  //
+  // It is not a one-off: that single brand carries EIGHT duplicate groups, one
+  // of them a triple (629494 / 634043 / 860002). BD-F-35G and DD-FL-NULLINV-35
+  // reached "review: near-duplicate" for the same underlying reason.
+  //
+  // So the sentence owed to an operator is "Weedmaps lists this product twice
+  // and you are on one of them", and the wrong sentence — the one that was
+  // here — sends somebody to correct something that is not broken, by making
+  // a real write against a live listing.
+  //
+  // AND THE DUPLICATES ARE NOT INTERCHANGEABLE. Same live read: #634042 carries
+  // msrp 16.00 USD and #629491 carries none. The "obvious fix" of re-pointing
+  // to the id our SKU names would have moved us from the priced row to the
+  // unpriced one. That is drawn loudest of all, because it is the one thing
+  // here that can quietly cost money.
+  function dupeFramingTone(P, key) {
+    if (key === 'choice_between_duplicates') { return { fg: P.warn, bg: P.warnSoft, word: 'WEEDMAPS LISTS THIS PRODUCT MORE THAN ONCE' }; }
+    if (key === 'different_products')        { return { fg: P.ink2, bg: P.neutralSoft, word: 'TWO DIFFERENT PRODUCTS' }; }
+    return { fg: P.info, bg: P.infoSoft, word: 'WE CANNOT TELL YET' };
+  }
+
+  // One duplicate group. `d` is null when that side is NOT IN OUR MIRROR — and
+  // that is rendered as "we have never looked", never as "no duplicates". The
+  // two are the same pixels and opposite facts, which is the defect this whole
+  // file exists to stop repeating.
+  function dupeHTML(P, title, d, sideMirror) {
+    var h = '<div style="margin-top:6px">' +
+      '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;color:' +
+      P.inkFaint + '">' + esc(title) + '</div>';
+    if (!d) {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info + ';line-height:1.45;margin-top:3px">' +
+        esc(sideMirror === 'none'
+          ? 'No Weedmaps id on this side, so there is nothing to look for duplicates of.'
+          : 'NOT CHECKED. This product has no row in our mirror, so we could not look for ' +
+            'duplicates of it. This is not "no duplicates found" — it is the same "we never ' +
+            'looked" that made this control necessary.') + '</div>';
+      return h + '</div>';
+    }
+    if (!d.group.length) {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.ink2 + ';line-height:1.45;margin-top:3px">' +
+        esc('No other row in our mirror shares this product\u2019s name.') + '</div>';
+    } else {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.ink2 + ';line-height:1.5;margin-top:3px">' +
+        esc('Weedmaps carries ' + (d.group.length + 1) + ' rows under this name: #' + d.wm_id +
+            ' (this one) plus ' + d.group.map(function (g) { return '#' + g.wm_id; }).join(', ') +
+            '.') + '</div>';
+      d.group.forEach(function (g) {
+        var same = g.relation === 'identical';
+        h += '<div style="font-size:' + P.type.micro + 'px;line-height:1.5;margin-top:3px;padding:4px 6px;' +
+          'border-radius:' + P.r8 + 'px;background:' + P.surface2 + ';border-left:2px solid ' +
+          (same ? P.warn : P.info) + '">' +
+          '<span style="font-family:' + ff(P.fontMono) + ';color:' + P.ink + '">#' + esc(g.wm_id) + '</span> ' +
+          '<span style="color:' + (same ? P.warn : P.info) + ';font-weight:700">' +
+          esc(same ? 'IDENTICAL on ' + d.compared_on.join(', ')
+                   : 'NEAR-DUPLICATE — differs on ' + g.differs.join(', ')) + '</span>' +
+          (g.delisted ? '<span style="color:' + P.warn + '"> \u00b7 delisted by Weedmaps</span>' : '') +
+          (g.claimed_by ? '<span style="color:' + P.ink2 + '"> \u00b7 already claimed by ' +
+             esc(g.claimed_by) + '</span>' : '');
+        // THE PART THAT COSTS MONEY IF IT IS MISSED.
+        (g.differs_beyond_identity || []).forEach(function (f) {
+          h += '<div style="color:' + (f.decides ? P.bad : P.inkFaint) + ';line-height:1.45">' +
+            esc((f.decides ? 'NOT INTERCHANGEABLE \u2014 ' : '') + f.field + ': #' + d.wm_id +
+                ' has ' + (f.current == null ? 'none' : f.current) + ', #' + g.wm_id +
+                ' has ' + (f.other == null ? 'none' : f.other)) +
+            (f.decides ? '' : ' (context, not a difference in what customers see)') + '</div>';
+        });
+        h += '</div>';
+      });
+      if (d.interchangeable === false) {
+        h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.bad + ';line-height:1.45;margin-top:3px">' +
+          esc('These are the same product and NOT the same listing. Moving between them changes ' +
+              'what Weedmaps shows \u2014 check the field(s) named above before you press ' +
+              'anything.') + '</div>';
+      }
+    }
+    // HOW MUCH OF THE BRAND WE ACTUALLY SAW. An empty group over a partly
+    // mirrored brand means nothing, and saying so is the entire lesson of this
+    // ticket: #634042 was invisible because we held page 1 of 12.
+    var sc = d.scan || {};
+    if (sc.complete !== true) {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info + ';line-height:1.45;margin-top:3px">' +
+        esc('Scan coverage: ' + (sc.why || 'unknown') +
+            ' A duplicate on a page we never pulled would not be listed above.') + '</div>';
+    }
+    h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkFaint + ';line-height:1.4;margin-top:3px">' +
+      esc(d.not_compared_note || '') + '</div>';
+    return h + '</div>';
+  }
+
+  function repointHTML(P, x) {
+    var h = '<div style="margin-top:8px;padding:8px 9px;border-radius:' + P.r8 +
+      'px;background:' + P.surface + ';border:1px solid ' + P.hairline2 + '">' +
+      '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.06em;color:' +
+      P.inkFaint + ';margin-bottom:6px">RE-POINT THIS MAPPING</div>';
+
+    if (_rpStatus === 'pending') {
+      return h + '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + '">Asking ' +
+        esc(base) + '/api/mapping/repoint-preview…</div></div>';
+    }
+    if (_rpStatus === 'error' || !_rp) {
+      return h + '<div style="font-size:' + P.type.meta + 'px;color:' + P.bad + ';line-height:1.45">' +
+        esc('No preview: ' + (_rpErr || 'the server did not answer') +
+            '. NOTHING is offered to press — a re-point button with no preview behind it ' +
+            'is the same blind approval this control exists to remove.') + '</div></div>';
+    }
+
+    // FRAMING FIRST, because it changes how the two boxes below are read.
+    // Two identical Weedmaps rows are not a mistake anybody made.
+    if (_rp.framing) {
+      var ft = dupeFramingTone(P, _rp.framing);
+      h += '<div style="margin-bottom:7px;padding:6px 8px;border-radius:' + P.r8 +
+        'px;background:' + ft.bg + ';border-left:3px solid ' + ft.fg + '">' +
+        '<div style="font-size:' + P.type.micro + 'px;font-weight:800;letter-spacing:.05em;color:' +
+        ft.fg + '">' + esc(ft.word) + '</div>' +
+        '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 +
+        ';line-height:1.45;margin-top:2px">' + esc(_rp.framing_note || '') + '</div></div>';
+    }
+
+    h += '<div style="display:flex;gap:7px;flex-wrap:wrap">' +
+      sideHTML(P, 'MAPPED NOW', _rp.current) +
+      sideHTML(P, 'PROPOSED', _rp.proposed,
+        _rp.conflict_with
+          ? '<div style="font-size:' + P.type.micro + 'px;color:' + P.warn +
+            ';line-height:1.4;margin-top:5px">Already claimed by <b>' + esc(_rp.conflict_with) +
+            '</b> (tier ' + esc(_rp.holder_tier) + ', ' + esc(_rp.holder_status) + ', ' +
+            esc(_rp.holder_decided_by) + ').</div>'
+          : '') +
+      '</div>';
+
+    // WHAT AGREES — only when both sides are actually readable. `agreement:null`
+    // is NOT "no differences found"; the server says so in words and they are
+    // printed rather than paraphrased.
+    if (_rp.agreement) {
+      var ks = Object.keys(_rp.agreement);
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.ink2 +
+        ';line-height:1.6;margin-top:6px;font-family:' + ff(P.fontMono) + '">' +
+        ks.map(function (k) {
+          var v = _rp.agreement[k];
+          // Tri-state, from the server's own weights_equal(): true / false /
+          // null-meaning-one-side-has-no-value. A null must not print as "no".
+          return '<span style="color:' + (v === true ? P.good : v === false ? P.bad : P.inkFaint) +
+            '">' + esc(k) + ': ' + esc(v === true ? 'same' : v === false ? 'DIFFERENT' : 'not comparable') +
+            '</span>';
+        }).join('<br>') + '</div>';
+    } else {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.bad +
+        ';line-height:1.45;margin-top:6px">' + esc(_rp.agreement_note || '') + '</div>';
+    }
+
+    // THE DUPLICATE GROUPS, one per side.
+    if (_rp.duplicates) {
+      h += dupeHTML(P, 'OTHER WEEDMAPS ROWS FOR THE PRODUCT MAPPED NOW',
+                    _rp.duplicates.current, _rp.current && _rp.current.mirror);
+      h += dupeHTML(P, 'OTHER WEEDMAPS ROWS FOR THE PROPOSED PRODUCT',
+                    _rp.duplicates.proposed, _rp.proposed && _rp.proposed.mirror);
+    }
+
+    // The SKU-string witness, labelled as what it is.
+    if (_rp.sku_id_witness) {
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.inkDim +
+        ';line-height:1.45;margin-top:6px;padding:5px 7px;border-radius:' + P.r8 +
+        'px;background:' + P.surface2 + '">' + esc(
+          'Our own SKU string names #' + _rp.sku_id_witness.wm_id + '. ' +
+          _rp.sku_id_witness.authority) + '</div>';
+    }
+
+    // The next action, when there is no evidence to decide on at all.
+    if (_rp.next_action) {
+      var na = _rp.next_action;
+      h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info +
+        ';line-height:1.45;margin-top:6px;padding:5px 7px;border-radius:' + P.r8 +
+        'px;background:' + P.infoSoft + '">' + esc(
+          'Next action: pull the brand feed for ' +
+          (na.brand_name ? '“' + na.brand_name + '”' : 'this SKU’s brand') +
+          (na.brand_id == null
+            ? ' — except we have NO Weedmaps brand id for it, so there is no feed to pull yet. ' +
+              'That has to be set before either side of this can be read.'
+            : ' (Weedmaps brand ' + na.brand_id +
+              (na.brand_id_source ? ', resolved from ' + na.brand_id_source : '') + '). ') +
+          ' Until then neither column above can be read on evidence.') + '</div>';
+    }
+
+    h += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">' +
+      '<input data-hwm-rp value="' + esc(_rpTarget) + '" placeholder="weedmaps product id" ' +
+      'style="' + ctlCSS(P) + 'height:28px;width:150px;font-family:' + ff(P.fontMono) + '">' +
+      btn(P, 'data-hwm', 'rp-preview', x.sku, 'Preview') +
+      btn(P, 'data-hwm', 'rp-apply', x.sku,
+          'Apply re-point' + (_rp.decidable ? '' : ' anyway…')) + '</div>';
+
+    h += '<div style="font-size:' + P.type.micro + 'px;color:' +
+      (_rp.decidable ? P.inkDim : P.bad) + ';line-height:1.45;margin-top:5px">' + esc(
+        _rp.decidable
+          ? 'Applying writes through the same approve() every other button here uses: sticky, ' +
+            'tier 0, recorded as a manual override by you, and refused if another SKU already ' +
+            'holds that product. The PREVIOUS Weedmaps id is written into the event record, so ' +
+            'this is reversible — it is the first field of that record and it is not truncated.'
+          : 'This is NOT decidable from what we hold: ' + (_rp.blocked_by || 'unknown reason') +
+            '. The button is still live — an operator reading Weedmaps directly may know ' +
+            'better than our mirror does — but it will ask you to confirm that you are ' +
+            'approving a product this system cannot show you.') + '</div>';
+    return h + '</div>';
+  }
+
   function rowHTML(P, x) {
     var t = tone(P, x.state);
     var h = '<div style="border:1px solid ' + (x.state === 'linked' ? P.hairline : t.fg) +
@@ -1192,6 +1600,17 @@
         (x.mapping.manual_override ? ' by a person' : ' by the engine') +
         ' (tier ' + x.mapping.tier + (x.mapping.score == null ? '' : ', score ' + scoreText(x.mapping.score)) + ').';
       colour = P.ink2;
+    } else if (x.state === 'unmirrored') {
+      says = 'This SKU is mapped to Weedmaps product #' + x.mapping.wm_id +
+        ' and THERE IS NO SUCH PRODUCT IN OUR MIRROR. We have never pulled it, so nothing on ' +
+        'this screen can tell you its Weedmaps name, brand, weight or category — and the mapping ' +
+        'was still written' +
+        (x.mapping.manual_override ? ' by a person' : ' by the engine') +
+        ' at tier ' + x.mapping.tier +
+        (x.mapping.score == null ? '' : ' with score ' + scoreText(x.mapping.score)) +
+        '. That score was not computed against anything we hold. This is NOT proof the product ' +
+        'does not exist on Weedmaps — it is proof we cannot see it, which is a different fact ' +
+        'and a different next move.';
     } else if (x.state === 'ready') {
       says = 'The engine is confident: “' + (x.suggestion.decision) + '” at ' +
         scoreText(x.suggestion.score) + '. Nothing has approved it, so this SKU has NO Weedmaps ' +
@@ -1267,6 +1686,39 @@
       }
     }
 
+    // MIRROR STATE, said on every linked row that is not already the state.
+    // 'delisted' is a real and separate thing to say: we HELD this product and
+    // Weedmaps stopped returning it. And when the server could not read its own
+    // mirror, that is said too rather than passed over as if it were healthy.
+    if (x.linked && x.state !== 'unmirrored') {
+      if (x.mirrorKnown === false) {
+        h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info +
+          ';line-height:1.4;margin-top:4px">' + esc(
+            'Whether Weedmaps product #' + x.mapping.wm_id + ' is in our mirror at all is UNKNOWN ' +
+            'on this load — the server could not read wm_products. This row is not being called ' +
+            'healthy; it is being called unchecked.') + '</div>';
+      } else if (x.mirrorKnown === null) {
+        // A DIFFERENT SENTENCE, because it is a different fact and a different
+        // fix. Nothing tried and failed here: the server never sent the field.
+        // Saying "the server could not read wm_products" would be this panel
+        // inventing an outage; saying nothing at all is what it used to do,
+        // and that drew this row as a checked, healthy mapping.
+        h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.info +
+          ';line-height:1.4;margin-top:4px">' + esc(
+            'This server did not report a mirror state for WM #' + x.mapping.wm_id +
+            ' at all — the field is ABSENT from its response, not false. Nothing has checked ' +
+            'whether we hold that product, so this row is drawn exactly as it was before that ' +
+            'check existed. It is not evidence of a healthy mapping. Update the server, or ' +
+            'read the mapping directly.') + '</div>';
+      } else if (x.mirror === 'delisted') {
+        h += '<div style="font-size:' + P.type.micro + 'px;color:' + P.warn +
+          ';line-height:1.4;margin-top:4px">' + esc(
+            'We hold Weedmaps product #' + x.mapping.wm_id + ' in our mirror, but Weedmaps has ' +
+            'STOPPED returning it. What we show for it is the last copy we pulled, not what is on ' +
+            'their menu now.') + '</div>';
+      }
+    }
+
     // A 'suspected' absence is evidence, not a verdict, and it is only shown
     // where it changes what you would do next.
     if (x.absence && x.state !== 'absent') {
@@ -1323,10 +1775,18 @@
                'Approve #' + x.suggestion.wm_id, x.suggestion.wm_id);
     }
     h += btn(P, 'data-hwm', 'cands', x.sku,
-             _openSku === x.sku ? 'Hide candidates' : (x.state === 'linked' ? 'Change…' : 'Candidates'));
-    if (x.state === 'linked') { h += btn(P, 'data-hwm', 'unmap', x.sku, 'Unlink'); }
+             _openSku === x.sku ? 'Hide candidates' : (x.linked ? 'Change…' : 'Candidates'));
+    // THE RE-POINT CONTROL. Offered on every linked row, not only the broken
+    // one: "this mapping is aimed at the wrong product" is a thing an operator
+    // discovers about a perfectly mirrored row too.
+    if (x.linked) {
+      h += btn(P, 'data-hwm', 'repoint', x.sku,
+               _rpSku === x.sku ? 'Hide re-point' : 'Re-point\u2026');
+      h += btn(P, 'data-hwm', 'unmap', x.sku, 'Unlink');
+    }
     h += '</div>';
 
+    if (_rpSku === x.sku) { h += repointHTML(P, x); }
     if (_openSku === x.sku) { h += drawerHTML(P, x); }
     return h + '</div>';
   }
@@ -1347,6 +1807,17 @@
     // only produces when its bulk pass ran out of time budget, which should
     // never happen. A permanent 0 chip would train the eye to skip it.
     if (c.unscored) { defs.splice(5, 0, ['unscored', 'Not scored ' + c.unscored]); }
+    // UNCONDITIONAL, unlike NOT SCORED. A zero here is a real, checkable
+    // statement — "no live mapping points at a product we have never pulled" —
+    // and it is exactly the number that was silently 0-by-omission before.
+    // `?` when the server could not read its own mirror OR never reported one,
+    // never 0. BOTH have to be here: a server that does not send
+    // wm_mirror_known at all makes every linked row unreportable, `unmirrored`
+    // is then structurally 0, and a chip reading "Not in our mirror 0" is this
+    // panel publishing a checked-looking zero for a check that never ran.
+    defs.splice(1, 0, ['unmirrored',
+      'Not in our mirror ' +
+      ((c.mirrorUnknowable || c.mirrorUnreported) && !c.unmirrored ? '?' : c.unmirrored)]);
     return '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px">' +
       defs.map(function (d) {
         var on = _filter === d[0];
@@ -1543,6 +2014,17 @@
         esc(_filter === 'unlooked' && _unlErr
           ? 'This filter cannot be answered on this load: GET /api/mapping/unlooked failed (' +
             _unlErr + '). Empty here means UNKNOWN, not zero.'
+          : _filter === 'unmirrored' && c.mirrorUnknowable
+          ? 'This filter cannot be answered on this load: the server could not read its own ' +
+            'wm_products mirror for ' + c.mirrorUnknowable + ' linked SKU(s). Empty here means ' +
+            'UNKNOWN, not zero.'
+          : _filter === 'unmirrored' && c.mirrorUnreported
+          ? 'This filter cannot be answered by this server at all: it reported no mirror state ' +
+            'for ' + c.mirrorUnreported + ' linked SKU(s) — the field is absent from its ' +
+            'response. Empty here means THE QUESTION WAS NEVER ASKED, not zero.'
+          : _filter === 'unmirrored'
+          ? 'No live mapping points at a Weedmaps product missing from our mirror. That is a ' +
+            'real answer, checked against wm_products on this load — not an unasked question.'
           : c.total ? 'No product is in that state right now.'
           : 'The API served an empty catalog, so there is nothing to map.') + '</div>';
     }
@@ -1684,9 +2166,23 @@
         if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-hwm-q')) {
           _candQuery = e.target.value;
         }
+        // Same rule for the re-point id box, and for the same reason: a poll or
+        // a theme change repaints the panel, and a value that lives only in the
+        // DOM would silently revert to the last previewed id while the operator
+        // was looking at what they typed.
+        if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-hwm-rp')) {
+          _rpTarget = e.target.value;
+        }
       });
       _panel.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') { return; }
+        if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-hwm-rp')) {
+          e.preventDefault();
+          // Enter PREVIEWS, it never applies. The one destructive control in
+          // this drawer is behind a button and a confirm, deliberately.
+          if (_rpSku) { loadRepoint(_rpSku, rpInput()); }
+          return;
+        }
         if (!e.target || !e.target.hasAttribute || !e.target.hasAttribute('data-hwm-q')) { return; }
         e.preventDefault();
         if (_openSku) { loadCandidates(_openSku); }
@@ -1756,6 +2252,15 @@
     paint();
   }
 
+  // The id actually in the box RIGHT NOW. Read from the DOM rather than kept in
+  // a variable the keystrokes update: paint() re-renders the whole panel and a
+  // mirrored variable is one missed event away from sending a different id from
+  // the one on screen.
+  function rpInput() {
+    var el = _panel && _panel.querySelector ? _panel.querySelector('[data-hwm-rp]') : null;
+    return el ? el.value : _rpTarget;
+  }
+
   function onClick(e) {
     var t = e.target;
     var act = t && t.getAttribute && t.getAttribute('data-hwm');
@@ -1779,6 +2284,45 @@
       return;
     }
     if (act === 'search') { e.stopPropagation(); if (sku) { loadCandidates(sku); } return; }
+    if (act === 'repoint') {
+      e.stopPropagation();
+      if (_rpSku === sku) { _rpSku = null; _rp = null; _rpStatus = 'idle'; _rpTarget = ''; paint(); return; }
+      _rpSku = sku; _rpTarget = '';
+      loadRepoint(sku);                  // no target: the server prefills its witness
+      return;
+    }
+    if (act === 'rp-preview') {
+      e.stopPropagation();
+      if (sku) { loadRepoint(sku, rpInput()); }
+      return;
+    }
+    if (act === 'rp-apply') {
+      e.stopPropagation();
+      var tgt = rpInput();
+      // The BOX is what gets sent, not the last preview: an operator who typed
+      // a new id and pressed Apply without pressing Preview must not have the
+      // old id written. If they disagree, re-preview first and say so.
+      if (!tgt || !/^[0-9]+$/.test(String(tgt).trim())) {
+        _msgOk = false;
+        _msg = 'Nothing sent: give a numeric Weedmaps product id.';
+        paint();
+        return;
+      }
+      if (_rp && _rp.proposed && String(_rp.proposed.wm_id) !== String(tgt).trim()) {
+        _msgOk = false;
+        _msg = 'Nothing sent: the box says #' + String(tgt).trim() + ' but the preview above is ' +
+               'for #' + _rp.proposed.wm_id + '. Press Preview so you are looking at what you ' +
+               'would be approving.';
+        paint();
+        return;
+      }
+      if (!W.confirm('Re-point ' + sku + ' to Weedmaps product #' + String(tgt).trim() + '?\n\n' +
+                     'This writes through approve(): tier 0, manual override, recorded as you. ' +
+                     'The previous Weedmaps id is written into the mapping event record, so it ' +
+                     'can be put back.')) { return; }
+      repoint(sku, String(tgt).trim());
+      return;
+    }
     if (act === 'rescore') { e.stopPropagation(); if (sku) { rescore(sku); } return; }
     if (act === 'approve') {
       e.stopPropagation();
@@ -1845,6 +2389,9 @@
     get unlooked() { return _unlBySku; },
     get unlookedBrands() { return _unlBrands; },
     candidates: loadCandidates,
+    get repointPreview() { return _rp; },
+    previewRepoint: loadRepoint,
+    repoint: repoint,
     approve: approve,
     approveAllReady: approveAllReady,
     reject: reject,

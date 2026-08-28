@@ -1887,6 +1887,52 @@
           h += '<div style="font-size:' + P.type.meta + 'px;color:' + P.inkDim + ';line-height:1.5;' +
             'margin-top:3px"><b>Remedy: </b>' + esc(ph.remedy) + '</div>';
         }
+
+        // ── THE REFUSAL THAT DID NOT HAPPEN ────────────────────────────────
+        // This block rendered block_code and remedy and NOTHING else, so an
+        // order allowed ONLY because the owner's expiry switch is off looked
+        // pixel-identical to one that had nothing wrong with it. That defeats
+        // the whole design of a default-OFF toggle: it exists so the population
+        // that turning enforcement ON would refuse can be COUNTED first. A
+        // screen that never shows what WOULD have been refused is a screen
+        // nobody can see the cliff coming from.
+        //
+        // The gate stamps three fields on the Decision (verify_gate.Decision:
+        // expiry_enforced / would_block_code / would_block_reason). They are
+        // printed VERBATIM — this file invents no refusal vocabulary.
+        var hasWB = Object.prototype.hasOwnProperty.call(ph, 'would_block_code');
+        if (ph.would_block_code) {
+          h += '<div style="border:1px solid ' + (P.warn || P.bad) + '55;background:' +
+            (P.warnSoft || 'transparent') + ';border-radius:' + P.r8 + 'px;padding:7px 9px;' +
+            'margin-top:6px">' +
+            '<div style="font-size:' + P.type.meta + 'px;font-weight:800;color:' +
+            (P.warn || P.bad) + '">ALLOWED — BUT WOULD HAVE BEEN REFUSED · ' +
+            esc(String(ph.would_block_code)) + '</div>' +
+            '<div style="font-size:' + P.type.meta + 'px;color:' + P.ink2 + ';line-height:1.5;' +
+            'margin-top:3px">' + esc(ph.would_block_reason ||
+              'the gate stamped a would-block code and sent no sentence with it. That is the ' +
+              'route to fix — the code alone does not tell an operator what the customer ' +
+              'would have been told.') + '</div>' +
+            // Which switch position produced the allow, on the row where it
+            // landed. Strict boolean: anything else is "the route did not say".
+            '<div style="margin-top:4px">' + kv(P, 'expiry_enforced',
+              ph.expiry_enforced === false ? 'false — enforcement is OFF' :
+              ph.expiry_enforced === true ? 'true — enforcement is ON (and this still allowed, ' +
+                'so the would-block is NOT the expiry rule)' :
+              'the route did not report it', true) + '</div></div>';
+        } else if (ph.allowed && !hasWB) {
+          // ABSENCE IS NOT "NOTHING WAS WRONG". Today the route
+          // (server.py, the pickup_handoff dict) forwards allowed / block_code
+          // / reason / remedy / computed and drops the three soft-lapse fields
+          // the Decision already carries. Until it forwards them, an allow on
+          // this panel cannot be read as clean, and saying so is cheaper than
+          // an operator concluding it was.
+          h += note(P, 'This allow carries no would_block_code, because the route does not ' +
+            'return one at all — not because there was nothing to refuse. An order allowed ' +
+            'only because expiry enforcement is off is indistinguishable from a clean pass ' +
+            'here until pickup_handoff forwards would_block_code, would_block_reason and ' +
+            'expiry_enforced off the Decision.');
+        }
       }
     }
 

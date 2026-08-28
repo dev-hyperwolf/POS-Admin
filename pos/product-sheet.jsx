@@ -5,28 +5,48 @@
 const useP = window.useP;
 
 const EFFECTS_BY_STRAIN = { Indica: ['Relaxed', 'Sleepy', 'Calm', 'Body high'], Sativa: ['Energetic', 'Uplifted', 'Focused', 'Creative'], Hybrid: ['Balanced', 'Happy', 'Creative', 'Social'], CBD: ['Clear-headed', 'Calm', 'Low-key'] };
-const TERP_LIST = [['Myrcene', 'Earthy · musky', '#8A5CD6'], ['Limonene', 'Citrus · zesty', '#D9A21C'], ['Caryophyllene', 'Peppery · spicy', '#D2483F'], ['Pinene', 'Pine · herbal', '#3DA35D'], ['Linalool', 'Floral · lavender', '#8E7BE0'], ['Terpinolene', 'Fruity · fresh', '#21A89B']];
-const TASTE = ['Citrus', 'Pine', 'Berry', 'Diesel', 'Sweet cream', 'Earthy', 'Gassy', 'Vanilla'];
+// TERP_LIST and TASTE were deleted with the hash that indexed them. They are
+// not left here unused: a list of plausible terpenes sitting one line above a
+// SKU hash is how this defect gets reintroduced by the next person who needs
+// "something to show". A real profile arrives as a product field, not a table.
 
 window.ProductSheet = function ProductSheet({ p, inCart, onAdd, onClose }) {
   const P = useP();
   const money = window.HW.fmt.money;
-  const h = p.sku.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  // ══ THE BATCH TABLE WAS A CHARACTER SUM OF THE SKU ═════════════════════════
+  //
+  // 🔴 `h = sku.split('').reduce((a,c)=>a+c.charCodeAt(0),0)` produced, on the
+  // sheet a budtender reads with a customer in front of them:
+  //
+  //     batchCount 2 + h % 3                       how many lots are on the shelf
+  //     b.id       'B-' + sku.slice(0,4) + …       a lot number
+  //     b.qty      qty/batchCount + (bh % 7) - 3   units in that lot
+  //     b.thc      +(19 + bh % 110 / 10)           POTENCY, per lot
+  //     b.cbd      +(bh % 13 / 10)                 potency, per lot
+  //     b.exp      ['Jun 2','Jun 9',…][bh % 4]     an EXPIRY DATE
+  //     b.coa      bh % 9 === 0 ? 'Pending' : 'Passed'   a LAB RESULT
+  //     cbd        h % 4 === 0 ? … : 0.1           the sheet's CBD headline
+  //     terps      TERP_LIST[h % 6] …              "Dominant: Myrcene"
+  //     tastes     TASTE[h % 8] …
+  //
+  // Fabricated lot numbers, fabricated per-lot potency, a fabricated expiry and
+  // a green "COA · Passed" pill — the exact class of claim (METRC ids, COA
+  // links, potency values) this codebase has already deleted elsewhere, still
+  // rendering here, under a caption instructing the operator to QUOTE IT:
+  // "quote the figure from the batch you actually hand over".
+  //
+  // THERE ARE NO BATCHES. GET /api/state serves a `batches` key and it is an
+  // EMPTY ARRAY — 0 rows, verified 2026-08-27 — and shared/hw-live.js never
+  // attaches it to a product, so no SKU in this estate has ever been handed a
+  // lot. pos/screen-catalog.jsx says the same thing in its own header. The
+  // terpene profile went the same way on that screen ("TERP_INFO / TERP_RANK /
+  // TerpRow went with the seed"); this is the copy that was missed.
+  //
+  // Nothing is substituted. `p.thc` is a real catalogue field and stays; every
+  // per-lot figure is gone and the section says why.
   const effects = (EFFECTS_BY_STRAIN[p.strain] || EFFECTS_BY_STRAIN.Hybrid).slice(0, 3);
-  const terps = [TERP_LIST[h % 6], TERP_LIST[(h + 2) % 6], TERP_LIST[(h + 4) % 6]];
-  const tastes = [TASTE[h % 8], TASTE[(h + 3) % 8]];
-  const cbd = h % 4 === 0 ? +(0.4 + h % 2).toFixed(1) : 0.1;
+  const cbd = p.cbd != null ? p.cbd : null;
   const perGram = p.wt && /g$/.test(p.wt) ? p.price / (parseFloat(p.wt) || 1) : null;
-  // Batches physically on the shelf for this SKU — FIFO, oldest sells first.
-  const batchCount = 2 + h % 3;
-  const batches = Array.from({ length: batchCount }).map((_, i) => {const bh = h + i * 97;
-    return { id: 'B-' + p.sku.slice(0, 4) + '-' + (2400 + (h + i * 13) % 140),
-      qty: Math.max(1, Math.round(p.qty / batchCount) + (bh % 7) - 3),
-      thc: +(19 + bh % 110 / 10).toFixed(1), cbd: +(bh % 13 / 10).toFixed(1),
-      exp: ['Jun 2', 'Jun 9', 'May 28', 'Jun 14'][bh % 4] + ', 2027',
-      arrived: ['2 days ago', '1 week ago', '3 weeks ago', 'Today'][bh % 4],
-      coa: bh % 9 === 0 ? 'Pending' : 'Passed' };});
-  const active = batches[0];
   const lowStock = p.qty < 10;
 
   const Sec = ({ icon, title, right, children }) => <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r12, overflow: 'hidden' }}>
@@ -79,25 +99,23 @@ window.ProductSheet = function ProductSheet({ p, inCart, onAdd, onClose }) {
               <div><div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 5 }}>Reported effects</div>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{effects.map((e) => <Chip key={e} color={P.good}>{e}</Chip>)}</div></div>
               <div><div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 5 }}>Tastes like</div>
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{tastes.map((t) => <Chip key={t}>{t}</Chip>)}</div></div>
+                <div style={{ fontSize: 11.5, color: P.inkMute }}>No tasting notes are recorded for this product.</div></div>
             </div>
           </Sec>
 
           {/* Potency + terps */}
           <Sec icon="lightning" title="Potency & terpenes">
             <div style={{ display: 'flex', gap: 9, marginBottom: 11 }}>
-              {[['THC', (p.thc != null ? p.thc : '—') + '%', P.ink], ['CBD', cbd + '%', P.ink2]].map(([k, v, c]) =>
+              {[['THC', p.thc != null ? p.thc + '%' : 'not recorded', p.thc != null ? P.ink : P.inkFaint],
+                ['CBD', cbd != null ? cbd + '%' : 'not recorded', cbd != null ? P.ink2 : P.inkFaint]].map(([k, v, c]) =>
                 <div key={k} style={{ flex: 1, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{k}</div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: c, fontFamily: P.fontMono, marginTop: 1 }}>{v}</div>
                 </div>)}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {terps.map((t, i) => <div key={t[0]} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 3, background: t[2], flex: '0 0 auto' }} />
-                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>{t[0]}</div><div style={{ fontSize: 11.5, color: P.inkMute }}>{t[1]}</div></div>
-                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: i === 0 ? P.mode === 'dark' ? P.accent : '#7A5A00' : P.inkMute, background: i === 0 ? P.accentSoft : P.surface3, borderRadius: 6, padding: '3px 8px' }}>{['Dominant', 'Secondary', 'Present'][i]}</span>
-              </div>)}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11.5, color: P.inkMute, lineHeight: 1.5 }}>
+              <Icon name="info" size={13} stroke={1.9} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+              <span>No terpene profile is recorded for this product. The three terpenes that used to sit here — one of them ranked top of the profile — were chosen from a fixed list by the character sum of the SKU, so they described the spelling of the SKU and not the product.</span>
             </div>
           </Sec>
 
@@ -119,7 +137,10 @@ window.ProductSheet = function ProductSheet({ p, inCart, onAdd, onClose }) {
           <div style={{ gridColumn: '1/-1' }}>
             <Sec icon="package" title="On the shelf" right={<span style={{ fontSize: 11.5, fontWeight: 700, color: lowStock ? P.warn : P.good, fontFamily: P.fontMono }}>{p.qty} in stock</span>}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(104px,1fr))', gap: 9 }}>
-                {[['Available now', p.qty + ' units', lowStock ? P.warn : P.good], ['Active batch', active.id, P.ink], ['THC on shelf', active.thc + '%', P.ink], ['Expires', active.exp, P.ink2]].map(([k, v, c]) =>
+                {[['Available now', p.qty + ' units', lowStock ? P.warn : P.good],
+                  ['Active batch', 'not tracked', P.inkFaint],
+                  ['THC on shelf', p.thc != null ? p.thc + '% (catalogue)' : 'not recorded', p.thc != null ? P.ink : P.inkFaint],
+                  ['Expires', 'not tracked', P.inkFaint]].map(([k, v, c]) =>
                   <div key={k} style={{ padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{k}</div>
                     <div style={{ fontSize: 13.5, fontWeight: 700, color: c, fontFamily: P.fontMono, marginTop: 2 }}>{v}</div>
@@ -131,23 +152,22 @@ window.ProductSheet = function ProductSheet({ p, inCart, onAdd, onClose }) {
             </Sec>
           </div>
 
-          {/* Batches */}
+          {/* ── Batches: THERE ARE NONE, AND THAT IS THE STATEMENT ────────── */}
           <div style={{ gridColumn: '1/-1' }}>
-            <Sec icon="list" title="Batches available" right={<span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>FIFO · oldest sells first</span>}>
-              <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1.1fr .6fr .6fr .6fr .9fr .7fr', gap: 10, padding: '7px 11px', background: P.surface2, fontSize: 10, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute }}>
-                  <span>Batch</span><span style={{ textAlign: 'right' }}>Units</span><span style={{ textAlign: 'right' }}>THC</span><span style={{ textAlign: 'right' }}>CBD</span><span>Expires</span><span>COA</span>
+            <Sec icon="list" title="Batches available" right={<span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>0 lots held</span>}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '11px 12px', background: P.warnSoft, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+                <Icon name="alert" size={14} stroke={2} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+                  <b>No batch is tracked for this SKU.</b> This table used to list lot
+                  numbers, per-lot units, per-lot THC and CBD, an expiry date and a
+                  green <b>COA verdict</b> pill — all of it computed from the
+                  character codes of the SKU, none of it read from anywhere.
+                  <div style={{ marginTop: 6 }}>
+                    Quote the potency on the package in your hand. Do not quote a figure
+                    from this screen as a lot result: this build holds none.
+                  </div>
                 </div>
-                {batches.map((b, i) => <div key={b.id} style={{ display: 'grid', gridTemplateColumns: '1.1fr .6fr .6fr .6fr .9fr .7fr', gap: 10, alignItems: 'center', padding: '9px 11px', borderTop: `1px solid ${P.hairline}`, background: i === 0 ? P.accentSoft : 'transparent' }}>
-                  <span style={{ fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 700, color: P.ink }}>{b.id}{i === 0 && <span style={{ display: 'block', fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.mode === 'dark' ? P.accent : '#7A5A00' }}>selling now</span>}</span>
-                  <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 11.5, color: P.ink2 }}>{b.qty}</span>
-                  <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 11.5, fontWeight: 600, color: P.ink }}>{b.thc}%</span>
-                  <span style={{ textAlign: 'right', fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim }}>{b.cbd}%</span>
-                  <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{b.exp}</span>
-                  <span>{b.coa === 'Passed' ? <Pill kind="good" dot>Passed</Pill> : <Pill kind="warn" dot>Pending</Pill>}</span>
-                </div>)}
               </div>
-              <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>Potency varies per batch — quote the figure from the batch you actually hand over, not the product average.</div>
             </Sec>
           </div>
 

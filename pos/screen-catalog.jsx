@@ -19,6 +19,10 @@ window.CatalogScreen = function CatalogScreen() {
   const [section, setSection] = React.useState('products'); // catalog sub-module: products | shells
   const shells = window.HW_SHELL.useShells();
 
+  // Does ANY row in this catalogue carry a real margin? Drives the column, the
+  // sort option and the ≥% filter — see hasMargin() and NO_MARGIN_NOTE below.
+  const marginKnown = hasMargin(all);
+
   const active = all.filter((p) => p.active).length;
   const inactive = all.length - active;
   const lowStock = all.filter((p) => p.qty > 0 && p.qty < 10).length;
@@ -36,9 +40,12 @@ window.CatalogScreen = function CatalogScreen() {
     cat === 'All' || p.cat === cat) && (
     strain === 'All' || p.strain === strain) &&
     (SMART[smart] || SMART.none)(p) &&
-    p.margin * 100 >= marginMin
+    // A null margin is NOT "0%". `null * 100 >= 0` is true, so the old
+    // expression silently kept every row at the default and dropped every row
+    // the moment the slider moved — a filter that looks like it is working.
+    (!marginMin || typeof p.margin === 'number' && p.margin * 100 >= marginMin)
     );
-    r = [...r].sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : sort === 'qty' ? b.qty - a.qty : sort === 'price' ? b.price - a.price : sort === 'margin' ? b.margin - a.margin : 0);
+    r = [...r].sort((a, b) => sort === 'name' ? a.name.localeCompare(b.name) : sort === 'qty' ? b.qty - a.qty : sort === 'price' ? b.price - a.price : sort === 'margin' ? (b.margin || 0) - (a.margin || 0) : 0);
     return r;
   }, [q, cat, strain, sort, smart, marginMin, all]);
 
@@ -61,11 +68,13 @@ window.CatalogScreen = function CatalogScreen() {
   { label: 'Strain', render: (r) => r.strain ? <StrainPill type={r.strain} thc={r.thc} /> : <span style={{ color: P.inkFaint }}>—</span> },
   { label: 'Category', render: (r) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: P.ink2 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: window.HW.CAT_COLOR[r.cat] || P.neutral }} />{r.cat}</span> },
   { label: 'Stock', align: 'right', render: (r) => <span style={{ fontFamily: P.fontMono, fontWeight: 600, fontSize: 12.5, color: r.qty === 0 ? P.bad : r.qty < 10 ? P.warn : P.ink, fontVariantNumeric: 'tabular-nums' }}>{r.qty}</span> },
-  { label: 'Margin', align: 'right', render: (r) => {const mc = marginColor(P, r.margin);return (
+  ...(marginKnown ? [{ label: 'Margin', align: 'right', render: (r) => {
+    if (typeof r.margin !== 'number') return <span title={NO_MARGIN_NOTE} style={{ fontSize: 11.5, color: P.inkFaint, fontFamily: P.fontMono }}>no cost</span>;
+    const mc = marginColor(P, r.margin);return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
         <span style={{ fontFamily: P.fontMono, fontWeight: 700, fontSize: 12.5, color: mc }}>{Math.round(r.margin * 100)}%</span>
         <span style={{ width: 46, height: 4, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}><span style={{ display: 'block', width: `${Math.round(r.margin * 100)}%`, height: '100%', background: mc }} /></span>
-      </div>);} },
+      </div>);} }] : []),
   { label: 'Price', align: 'right', render: (r) =>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, justifyContent: 'flex-end' }}>
         {r.was && <span style={{ fontSize: 11.5, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{window.HW.fmt.money0(r.was)}</span>}
@@ -154,8 +163,8 @@ window.CatalogScreen = function CatalogScreen() {
           <Seg value={cat} onChange={setCat} size="sm" options={[{ value: 'All', label: 'All' }, ...window.HW.CATS.filter((c) => c !== 'Deals').map((c) => ({ value: c, label: c }))]} />
           <div style={{ flex: 1 }} />
           <Seg value={strain} onChange={setStrain} size="sm" options={[{ value: 'All', label: 'All strains' }, { value: 'Indica', label: 'Indica' }, { value: 'Sativa', label: 'Sativa' }, { value: 'Hybrid', label: 'Hybrid' }]} />
-          <div><MarginFilter value={marginMin} onChange={setMarginMin} rows={rows} all={all} /></div>
-          <PBtn variant="secondary" size="sm" icon="sort" iconRight="chevron-down" onClick={() => setSort((s) => s === 'name' ? 'qty' : s === 'qty' ? 'price' : s === 'price' ? 'margin' : 'name')}>{sort === 'name' ? 'Name' : sort === 'qty' ? 'Stock' : sort === 'price' ? 'Price' : 'Margin'}</PBtn>
+          {marginKnown && <div><MarginFilter value={marginMin} onChange={setMarginMin} rows={rows} all={all} /></div>}
+          <PBtn variant="secondary" size="sm" icon="sort" iconRight="chevron-down" onClick={() => setSort((s) => s === 'name' ? 'qty' : s === 'qty' ? 'price' : s === 'price' ? marginKnown ? 'margin' : 'name' : 'name')}>{sort === 'name' ? 'Name' : sort === 'qty' ? 'Stock' : sort === 'price' ? 'Price' : 'Margin'}</PBtn>
           <Seg value={view} onChange={setView} size="sm" options={[{ value: 'table', icon: 'list', label: '' }, { value: 'grid', icon: 'grid', label: '' }]} />
         </div>
         {/* Smart product filters */}
@@ -219,6 +228,33 @@ function bulkBtn(P) {return { display: 'inline-flex', alignItems: 'center', gap:
 
 // Profit-margin color: higher = healthier
 function marginColor(P, m) {return m >= 0.55 ? P.good : m >= 0.42 ? P.mode === 'light' ? '#B07A12' : P.warn : P.bad;}
+
+// ── MARGIN IS SHOWN ONLY WHERE A MARGIN EXISTS ─────────────────────────────
+//
+// 🔴 Every margin on this screen — the column, the sort, the ≥% filter with its
+// "catalog avg 48%" footer, the detail panel's bar and its "wholesale $8.40"
+// caption — read `p.margin`, which pos/data.jsx computed from the CHARACTER
+// CODES OF THE SKU. It has been removed (see P_() there); there is no cost of
+// goods in this estate, on the mock rows, in the wm-demo database, or on the
+// deployed /api/state.
+//
+// So these controls do not get a "—" and stay on the screen. A margin column
+// of dashes, a slider that matches nothing and a "catalog avg 0%" are worse
+// than absent: they read as a catalogue with no margin rather than a build
+// with no cost data, and the estate's own standard (pos/screen-orders.jsx, the
+// smart-chip list) is that a control which is always there and sometimes inert
+// is worse than one that is honestly missing.
+//
+// They come BACK on their own. `hasMargin` is computed from the rows in front
+// of it, so the first real cost entered on batch receipt (pos/product-shell
+// .jsx:402) lights the column, the sort and the filter again with no edit here.
+function hasMargin(list) {
+  return (list || []).some((p) => typeof p.margin === 'number' && isFinite(p.margin));
+}
+// The one sentence every margin-shaped hole on this screen prints, so three
+// surfaces cannot drift into three different explanations of one fact.
+const NO_MARGIN_NOTE = 'No wholesale cost is recorded for this catalogue, so margin cannot be ' +
+  'computed. It is entered when a batch is received.';
 
 // ── WHAT THIS SCREEN IS ACTUALLY TOLD ──────────────────────────────────────
 // One source, and only one: shared/hw-live.js reads GET /api/state and hands
@@ -307,8 +343,14 @@ function MarginFilter({ value, onChange, rows, all }) {
   const P = useP();
   const [open, setOpen] = React.useState(false);
   const presets = [0, 30, 45, 55, 65];
-  const avg = all.length ? Math.round(all.reduce((s, p) => s + p.margin, 0) / all.length * 100) : 0;
-  const matched = all.filter((p) => p.margin * 100 >= value).length;
+  // ⚠️ AVERAGED OVER THE ROWS THAT HAVE ONE, AND THE FOOTER SAYS HOW MANY.
+  // `all.reduce((s,p)=>s+p.margin,0)/all.length` treats a missing margin as 0%
+  // and drags "catalog avg" down by exactly the share of the catalogue nobody
+  // has costed — a number that moves when a cost is entered anywhere and looks
+  // like the catalogue got more profitable.
+  const known = all.filter((p) => typeof p.margin === 'number' && isFinite(p.margin));
+  const avg = known.length ? Math.round(known.reduce((s, p) => s + p.margin, 0) / known.length * 100) : null;
+  const matched = known.filter((p) => p.margin * 100 >= value).length;
   const active = value > 0;
   return (
     <div style={{ position: 'relative', flex: '0 0 auto' }}>
@@ -330,8 +372,8 @@ function MarginFilter({ value, onChange, rows, all }) {
             })}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${P.hairline}`, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>
-            <span>{matched} of {all.length} match</span>
-            <span>catalog avg {avg}%</span>
+            <span>{matched} of {known.length} match</span>
+            <span>{avg == null ? 'no costed rows' : 'avg ' + avg + '% over ' + known.length + ' of ' + all.length}</span>
           </div>
         </div>
       </>}
@@ -444,7 +486,9 @@ function CatalogGrid({ rows, sel, toggle, onOpen }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 7, fontSize: 11.5, fontFamily: P.fontMono }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: P.inkMute }}><span style={{ width: 7, height: 7, borderRadius: 2, background: window.HW.CAT_COLOR[r.cat] || P.neutral }} />{r.cat}</span>
-            <span style={{ fontWeight: 700, color: marginColor(P, r.margin) }}>{Math.round(r.margin * 100)}% mgn</span>
+            {typeof r.margin === 'number' ?
+              <span style={{ fontWeight: 700, color: marginColor(P, r.margin) }}>{Math.round(r.margin * 100)}% mgn</span> :
+              <span title={NO_MARGIN_NOTE} style={{ color: P.inkFaint }}>no cost</span>}
           </div>
         </div>
       </Card>
@@ -668,7 +712,11 @@ function WmResyncButton({ p }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontFamily: P.fontMono, color: P.ink2 }}>
         <span>catalogue source · {live ? 'live API' : 'local demo data (not the API)'}</span>
         <span>write access · {live ? writes : 'n/a'}{live && !hasToken ? ' · no token set' : ''}</span>
-        <span>last push recorded by the API · {p.wm.last}</span>
+        {/* ⚠️ NOT "recorded by the API". Nothing here has contacted Weedmaps —
+            the paragraph four lines above says so — and this value came off
+            the loaded catalogue, not off a push. Naming the API as its source
+            is the one thing this line may not do. */}
+        <span>last push · {p.wm.last ? p.wm.last + ' (from the loaded catalogue, not the API)' : 'not recorded'}</span>
       </div>
       {p.wm.issue && <div style={{ color: P.ink2 }}>{p.wm.issue}</div>}
     </div>}
@@ -1205,17 +1253,20 @@ function ProductDetailPage({ p, onBack }) {
               </div>
             </label>
             <Fld label="Compare-at" hint="The “was” price shown struck-through on menus to signal a markdown — usually the MSRP or pre-sale price. Leave blank when the item isn’t on sale." value={p.was ? fmt.money(p.was) : '—'} mono locked />
-            <Fld label="Wholesale cost" value={fmt.money(p.cost)} mono locked />
+            <Fld label="Wholesale cost" value={typeof p.cost === 'number' ? fmt.money(p.cost) : 'not recorded'} mono locked hint={typeof p.cost === 'number' ? undefined : NO_MARGIN_NOTE} />
             <Fld label="Price / gram" value={perGram ? fmt.money(perGram) : '—'} mono locked />
             <Fld label="Tax category" value="CA Cannabis" locked />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Margin</span>
               <div style={{ minHeight: 38, display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: mc, fontFamily: P.fontMono }}>{Math.round(p.margin * 100)}%</span>
-                <span style={{ flex: 1, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}><span style={{ display: 'block', width: `${Math.round(p.margin * 100)}%`, height: '100%', background: mc }} /></span>
+                {typeof p.margin === 'number' ? <>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: mc, fontFamily: P.fontMono }}>{Math.round(p.margin * 100)}%</span>
+                  <span style={{ flex: 1, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}><span style={{ display: 'block', width: `${Math.round(p.margin * 100)}%`, height: '100%', background: mc }} /></span>
+                </> : <span style={{ fontSize: 13.5, fontWeight: 600, color: P.inkMute, fontFamily: P.fontMono }}>not recorded</span>}
               </div>
             </div>
             <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: P.inkDim }}><Icon name="lock" size={12} stroke={1.9} color={P.inkMute} />Retail price, wholesale cost and tax come from the <b style={{ color: P.ink2 }}>product shell</b>. Override the retail price here only when this store must deviate from shell pricing; margin is derived from the effective price.</div>
+            {typeof p.margin !== 'number' && <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 11.5, color: P.inkDim, lineHeight: 1.55 }}><Icon name="info" size={13} color={P.warn} style={{ flex: '0 0 auto', marginTop: 2 }} /><span>{NO_MARGIN_NOTE} It was previously derived from the characters of the SKU; that derivation has been removed rather than shown as a figure.</span></div>}
           </Sec>
 
           <Sec icon="package" title="Inventory by region" sub={inv ? `${inv.totAvail} available · ${inv.totHold} on hold · ${inv.totOnHand} on hand` : 'Per-region split not held'} cols={1}>
@@ -1280,7 +1331,9 @@ function ProductDetailPage({ p, onBack }) {
             <div style={{ padding: 15, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
               {[
               ['Price', fmt.money0(p.price), p.was ? P.bad : P.ink, p.was ? `was ${fmt.money0(p.was)}` : 'retail'],
-              ['Margin', `${Math.round(p.margin * 100)}%`, mc, `wholesale ${fmt.money(p.cost)}`],
+              typeof p.margin === 'number' ?
+                ['Margin', `${Math.round(p.margin * 100)}%`, mc, `wholesale ${fmt.money(p.cost)}`] :
+                ['Margin', 'not recorded', P.inkMute, 'no wholesale cost held'],
               inv ? ['On hand', inv.totOnHand, inv.totOnHand === 0 ? P.bad : inv.totOnHand < 10 ? P.warn : P.ink, `${inv.rows.length} region${inv.rows.length === 1 ? '' : 's'}`] :
               ['On hand', p.qty == null ? 'not known' : p.qty, P.inkMute, p.qty == null ? 'no figure served' : 'catalogue total · no split'],
               inv ? ['Available', inv.totAvail, inv.totAvail === 0 ? P.bad : inv.totAvail < 10 ? P.warn : P.good, `${inv.totHold} on hold`] :
@@ -1301,7 +1354,7 @@ function ProductDetailPage({ p, onBack }) {
               <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: m.c }}><span style={{ width: 8, height: 8, borderRadius: 99, background: m.c }} />{m.label}</span>
             </div>
             <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 12 }} data-tour="wm-card">
-              <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }} data-tour="wm-listings">Last synced {p.wm.last} · {listingsSub(p.wm)}</div>
+              <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }} data-tour="wm-listings">{p.wm.last ? 'Last synced ' + p.wm.last : 'Last sync not recorded'} · {listingsSub(p.wm)}</div>
               {p.wm.issue &&
               <div style={{ display: 'flex', gap: 9, padding: '10px 12px', background: p.wm.state === 'error' ? P.badSoft : P.warnSoft, borderRadius: P.r10 }}>
                 <Icon name="shield" size={15} stroke={1.9} color={p.wm.state === 'error' ? P.bad : P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />

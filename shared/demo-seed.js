@@ -180,9 +180,19 @@
     var brands = hw.PRODUCTS.map(function (p) { return p.brand; });
     var brand = o.brand || pick(brands);
 
-    // The margin fields the rest of the app expects. Mirrors pos/data.jsx's P_.
-    var marginPct = 0.28 + (Math.floor(Math.random() * 41)) / 100;
-    var cost = Math.max(0.5, money(price * (1 - marginPct)));
+    // ── NO COST, NO MARGIN. Mirrors pos/data.jsx's P_(), which no longer has
+    // them either. This read:
+    //     var marginPct = 0.28 + (Math.floor(Math.random() * 41)) / 100;
+    //     var cost = Math.max(0.5, money(price * (1 - marginPct)));
+    // — the same 28%–68% band as the deleted SKU hash, rolled from
+    // Math.random() instead. It is worse than the hash it mirrored, not better:
+    // pos/screen-catalog.jsx shows its margin column only when SOME row carries
+    // a margin, so one click of "+ Demo data → New product" would light the
+    // column for the whole catalogue with a random figure on the demo row and
+    // "no cost" on the 24 real ones. A row this generator creates is marked
+    // demo data everywhere else; a margin is not something a demo row may
+    // invent, because the column it lights is not marked at all.
+    var cost = null;
 
     var p = {
       id: sku, sku: sku, name: name, brand: brand,
@@ -191,7 +201,7 @@
       wt: o.wt || (cat === 'Edibles' ? '10mg' : cat === 'Flower' ? '3.5g' : '1g'),
       price: price, was: o.was || null,
       qty: o.qty != null ? o.qty : 10 + Math.floor(Math.random() * 90),
-      cost: cost, margin: money((price - cost) / price),
+      cost: cost, margin: null,
       hue: Math.floor(Math.random() * 360), active: true,
     };
     hw.PRODUCTS.push(p);

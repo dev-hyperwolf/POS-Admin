@@ -217,7 +217,7 @@
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}><CatDot cat={s.cat} /><span style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono }}>{S.familyPath(s)}</span></div>
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink, lineHeight: 1.1 }}>{s.name}</h1>
-          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 4 }}>{s.id} · {s.stores} store{s.stores > 1 ? 's' : ''} · {S.totalStock(s)} in stock</div>
+          <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 4 }}>{s.id} · {s.stores == null ? 'stores not tracked' : s.stores + ' store' + (s.stores > 1 ? 's' : '')} · {S.totalStock(s)} in stock</div>
         </div>
         <div style={{ display: 'flex', gap: 9, flex: '0 0 auto' }}>
           <PBtn variant="secondary" size="md" icon="pencil" onClick={() => onEdit(s.id)}>Edit shell</PBtn>

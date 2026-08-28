@@ -1,4 +1,4 @@
-/* ── "Suggested" — THE CHIP THAT IS ONLY ALLOWED TO CLAIM WHAT IT WAS GIVEN ──
+/* ── "Recommended" — THE CHIP THAT IS ONLY ALLOWED TO CLAIM WHAT IT WAS GIVEN ─
  *
  * The register now carries two suggestion chips. "Pairs with cart" ranks on the
  * TICKET through the upsell engine and is covered by pos-upsell-surfaces.test.
@@ -64,34 +64,39 @@ function houseProduct(W, sku = 'HWHOUSE1') {
 
 /* ── 1. both chips are there, under the names the owner asked for ─────────── */
 
-test('the register carries "Suggested" and "Pairs with cart", and no "For this ticket"', async () => {
+test('the register carries "Recommended" and "Pairs with cart", and neither old label', async () => {
   await withApp('pos', async (app) => {
     const open = mounter(app);
     try {
       await open('RegisterScreen');
       const b = app.buttons();
-      assert.ok(b.includes('Suggested'), `no "Suggested" chip — buttons: ${b.slice(0, 16).join(' | ')}`);
+      assert.ok(b.includes('Recommended'), `no "Recommended" chip — buttons: ${b.slice(0, 16).join(' | ')}`);
       assert.ok(b.includes('Pairs with cart'), `no "Pairs with cart" chip — buttons: ${b.slice(0, 16).join(' | ')}`);
       assert.ok(!app.text().includes('For this ticket'),
         'the old label survived the rename and now two names describe one control');
+      // The person-ranking chip was called "Suggested" until 2026-08-27. Two
+      // names for one control is the defect the "For this ticket" rename above
+      // was fixing, so the same guard applies to this rename.
+      assert.ok(!b.includes('Suggested'),
+        `the old "Suggested" chip survived the rename to "Recommended" — buttons: ${b.slice(0, 16).join(' | ')}`);
     } finally { open.close(); }
   });
 });
 
 /* ── 2. the basis is VISIBLE TEXT, every time the chip is on ──────────────── */
 
-test('turning "Suggested" on always prints the basis, and turning it off takes the claim with it', async () => {
+test('turning "Recommended" on always prints the basis, and turning it off takes the claim with it', async () => {
   await withApp('pos', async (app) => {
     const open = mounter(app);
     try {
       await open('RegisterScreen');
       assert.equal(banner(app), null, 'the grid is claiming a basis nobody asked for');
-      assert.ok(app.click('Suggested'), 'no "Suggested" chip to click');
+      assert.ok(app.click('Recommended'), 'no "Recommended" chip to click');
       await app.settle();
       const shown = banner(app);
       assert.ok(shown, 'the chip is on and the screen does not say what produced the order');
       assert.ok(shown.text.length > 20, `the basis line is too short to be a sentence: ${JSON.stringify(shown.text)}`);
-      assert.ok(app.click('Suggested'), 'the chip does not toggle off');
+      assert.ok(app.click('Recommended'), 'the chip does not toggle off');
       await app.settle();
       assert.equal(banner(app), null, 'the basis line outlived the chip that made it');
     } finally { open.close(); }
@@ -108,7 +113,7 @@ test('a basis that found nothing leaves the grid exactly where it was, and says 
       await open('RegisterScreen');
       const before = gridSkus(app);
       assert.ok(before.length > 3, 'the grid is too small to tell a sort from a filter');
-      assert.ok(app.click('Suggested'));
+      assert.ok(app.click('Recommended'));
       await app.settle();
       const shown = banner(app);
       assert.equal(shown.kind, 'no-house-brand',
@@ -133,7 +138,7 @@ test('a house-branded product is lifted to the top without a single tile leaving
       assert.ok(before.includes(sku), 'the injected house-brand product never reached the grid');
       assert.notEqual(before[0], sku, 'the fixture is already first — this proves nothing about the lift');
 
-      assert.ok(app.click('Suggested'));
+      assert.ok(app.click('Recommended'));
       await app.settle();
       const after = gridSkus(app);
       assert.equal(after.length, before.length,
@@ -160,7 +165,7 @@ test('lighting one suggestion chip puts the other one out', async () => {
       await app.settle();
       assert.ok(app.text().includes('Best match first') || app.text().includes('No ranking'),
         'the ticket ranking did not come on');
-      assert.ok(app.click('Suggested'));
+      assert.ok(app.click('Recommended'));
       await app.settle();
       assert.ok(banner(app), 'the person basis did not come on');
       assert.ok(!app.text().includes('Best match first'),

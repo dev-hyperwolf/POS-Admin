@@ -313,16 +313,39 @@ window.FullOrderView = function FullOrderView({ order, m, onClose }) {
   const P = useP();
   const fmt = window.HW.fmt;
   const o = order;
-  const h = (o.id + m.id).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  const prods = window.HW.PRODUCTS;
-  const lines = Array.from({ length: o.items }).map((_, i) => {const p = prods[(h + i * 17) % prods.length];const qty = 1 + (h + i) % 2;return { p, qty, line: +(p.price * qty).toFixed(2) };});
-  const sub = +lines.reduce((a, l) => a + l.line, 0).toFixed(2);
-  const promo = h % 3 === 0 ? +(sub * 0.1).toFixed(2) : 0;
-  const base = +(sub - promo).toFixed(2);
-  const tax = window.HW.taxBreakdown(base);
-  const fee = o.channel === 'Delivery' ? 5 : 0;
-  const grand = +(base + tax.total + fee).toFixed(2);
-  const tender = ['Card', 'Cash', 'Split'][h % 3];
+  // ══ A RECEIPT MAY NOT INVENT THE BASKET IT IS A RECEIPT FOR ════════════════
+  //
+  // 🔴 `h = (o.id + m.id).charCodeSum` produced every line on this receipt:
+  //     lines   prods[(h + i*17) % prods.length]  WHICH PRODUCTS THEY BOUGHT
+  //     qty     1 + (h + i) % 2                   how many of each
+  //     promo   h % 3 === 0 ? sub * 0.1 : 0       a discount that was given
+  //     tender  ['Card','Cash','Split'][h % 3]    how they paid
+  //     served  ['Priya Nair', …][h % 3]          WHICH EMPLOYEE SERVED THEM
+  // and the subtotal, tax and grand total were then computed off those lines —
+  // so the receipt's own Total disagreed with `o.total`, the figure the order
+  // book holds, and the operator was reading the invented one.
+  //
+  // An order in this build records a NAME, an item COUNT and a TOTAL, and no
+  // line items at all (pos/data.jsx O_()). Naming a product someone bought, an
+  // employee who served them, or a discount they were given, from a hash of two
+  // ids, is the same defect as the fabricated licence number one screen over.
+  //
+  // The record's own total is what this renders. The basket, the tender and the
+  // associate are stated as not held.
+  const lines = Array.isArray(o.lines) ? o.lines : null;
+  const sub = lines ? +lines.reduce((a, l) => a + (+l.line || 0), 0).toFixed(2) : null;
+  const promo = +(o.discount || 0) || 0;
+  const fee = +(o.deliveryFee || 0) || 0;
+  // THE TOTAL COMES OFF THE RECORD. Recomputing it from a basket we do not have
+  // is how the two figures drifted apart in the first place.
+  const grand = o.total != null ? +(+o.total).toFixed(2) : null;
+  // The tax breakdown is only shown when there is a merchandise base to break
+  // down. Applying taxBreakdown() to a total we did not build produces line
+  // items that do not sum to it.
+  const tax = sub != null ? window.HW.taxBreakdown(+(sub - promo).toFixed(2)) : null;
+  const base = sub != null ? +(sub - promo).toFixed(2) : null;
+  const tender = o.pay || null;
+  const servedBy = o.associate || null;
   const Row = ({ k, v, strong, c }) => <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', fontSize: strong ? 14 : 12.5 }}>
     <span style={{ color: strong ? P.ink : P.inkDim, fontWeight: strong ? 700 : 500 }}>{k}</span>
     <span style={{ color: c || P.ink, fontWeight: strong ? 800 : 600, fontFamily: P.fontMono }}>{v}</span></div>;
@@ -339,12 +362,13 @@ window.FullOrderView = function FullOrderView({ order, m, onClose }) {
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 12, padding: '12px 14px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
-          <Meta k="Channel" v={o.channel} /><Meta k="Items" v={o.items} /><Meta k="Payment" v={tender} />
-          <Meta k="Served by" v={['Priya Nair', 'Marcus Hill', 'Devon Pierce'][h % 3]} />
+          <Meta k="Channel" v={o.channel} /><Meta k="Items" v={o.items} />
+          <Meta k="Payment" v={tender || 'not recorded'} />
+          <Meta k="Served by" v={servedBy || 'not recorded'} />
         </div>
         <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r12, overflow: 'hidden' }}>
           <div style={{ padding: '8px 13px', background: P.surface2, borderBottom: `1px solid ${P.hairline}`, fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>Items</div>
-          {lines.map((l, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 13px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
+          {lines ? lines.map((l, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 13px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
             <Thumb item={l.p} size={38} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.p.name}</div>
@@ -352,16 +376,26 @@ window.FullOrderView = function FullOrderView({ order, m, onClose }) {
             </div>
             <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>×{l.qty}</span>
             <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, minWidth: 62, textAlign: 'right' }}>{fmt.money(l.line)}</span>
-          </div>)}
+          </div>) :
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '12px 13px' }}>
+            <Icon name="alert" size={14} stroke={2} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+            <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+              <b>No line items are held for this order.</b> The record carries {o.items} item{o.items === 1 ? '' : 's'} as a COUNT and a total — which products, and how many of each, were never recorded. This list used to name products chosen by a character sum of the order and member ids.
+            </div>
+          </div>}
         </div>
         <div style={{ padding: '12px 14px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r12 }}>
-          <Row k="Subtotal" v={fmt.money(sub)} />
-          {promo > 0 && <Row k="Promo · FRIENDS" v={'−' + fmt.money(promo)} c={P.good} />}
-          {promo > 0 && <Row k="Net subtotal" v={fmt.money(base)} />}
-          {tax.lines.map((t) => <Row key={t.k} k={t.k} v={fmt.money(t.v)} />)}
+          {sub != null && <Row k="Subtotal" v={fmt.money(sub)} />}
+          {promo > 0 && <Row k="Discount" v={'−' + fmt.money(promo)} c={P.good} />}
+          {promo > 0 && base != null && <Row k="Net subtotal" v={fmt.money(base)} />}
+          {tax && tax.lines.map((t) => <Row key={t.k} k={t.k} v={fmt.money(t.v)} />)}
           {fee > 0 && <Row k="Delivery fee" v={fmt.money(fee)} />}
-          <div style={{ borderTop: `1px solid ${P.hairline2}`, marginTop: 6, paddingTop: 4 }}><Row k="Total" v={fmt.money(grand)} strong /></div>
-          <div style={{ marginTop: 6, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>Paid by {tender.toLowerCase()}</div>
+          <div style={{ borderTop: `1px solid ${P.hairline2}`, marginTop: 6, paddingTop: 4 }}><Row k="Total" v={grand == null ? 'not recorded' : fmt.money(grand)} strong /></div>
+          {/* ⚠️ The total is the RECORD's. A tax breakdown is printed only when
+              there is a basket to break down — a subtotal + tax + fee that do
+              not add up to the total shown is worse than no breakdown. */}
+          {sub == null && grand != null && <div style={{ marginTop: 6, fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>Total as recorded on the order. No subtotal or tax split is held for it, so none is shown.</div>}
+          <div style={{ marginTop: 6, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{tender ? 'Paid by ' + String(tender).toLowerCase() : 'Tender not recorded'}</div>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 9, padding: '13px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>

@@ -95,6 +95,309 @@ window.HWPosUpsell = (function () {
   return { slotsFor, offersFor };
 })();
 
+/* ── WHO THIS CUSTOMER IS, AND WHAT THAT ENTITLES THE SCREEN TO CLAIM ────────
+ *
+ * The register has two suggestion chips. "Pairs with cart" ranks on the TICKET
+ * and goes through the engine above. This one is about the PERSON, and the
+ * person is where this estate has almost nothing — so this module's whole job
+ * is to name the basis it actually got, out loud, every time.
+ *
+ * ⚠️ THERE IS NO PER-CUSTOMER PURCHASE HISTORY IN THIS BUILD. Verified
+ * 2026-08-27, not assumed:
+ *   * pos/data.jsx MEMBERS carries name / visits / points / wallet / type and
+ *     nothing about what anyone bought. pos/data.jsx O_() records an item
+ *     COUNT (`items: 3`) and no line items at all.
+ *   * shared/hw-live.js:982 lists MEMBERS among the things the live seam
+ *     deliberately does NOT replace, so the live path does not supply it
+ *     either — HW.MEMBERS is the same five invented rows on every path.
+ *   * MemberDetails' `ARCHIVE` (pos/screen-register.jsx) is a hardcoded list
+ *     of six orders shown identically for EVERY member. It is not history and
+ *     nothing here may rank on it.
+ * So the history branch below is reached only through a NAMED SEAM that does
+ * not exist yet — `window.HW.purchaseHistory` — and until something defines
+ * it, this module says "no history" rather than producing an ordering and
+ * letting the chip's label imply one. See SPEC at the bottom of this comment.
+ *
+ * ⚠️ DO NOT REACH FOR `window.HW.favCategory`. It is the one thing on this page
+ * that LOOKS like a purchase-affinity signal, and it is a hash:
+ *   seed = name.length + visits*3 + points;  cats[seed % cats.length]
+ * Verified 2026-08-27 — renaming a member from "Girish Sharma" to "Girish
+ * Sharmax" changes their "favourite category" from Flower to Vapes. It is
+ * already handed to the engine by offersFor() above as `favoriteCategories`,
+ * where `weights.favoriteCategory` is 6 (second only to a promotion unlock, and
+ * four times the margin weight), and the engine turns it into the on-screen
+ * reason "Usually buys {category}". So the cart rail currently prints a
+ * purchase-history claim about a person that was computed from the length of
+ * their name. THIS MODULE DOES NOT USE IT, and the "Suggested" chip therefore
+ * makes no affinity claim at all. Reported, not fixed here: changing it changes
+ * the "Pairs with cart" ranking, which this task was told to leave alone.
+ *
+ * ⚠️ THE HOUSE-BRAND DEFAULT IS ONLY AS REAL AS THE CATALOGUE IN FRONT OF IT.
+ * The owner's rule is that a first-timer gravitates to house-branded product.
+ * Whether that rule can be APPLIED depends entirely on which catalogue is
+ * loaded, and the three differ (verified 2026-08-27):
+ *   * pos/data.jsx mock — 0 of 24 rows are Hyperwolf. shared/brands.js is the
+ *     VENDOR list and has no Hyperwolf row at all, so there is nothing to read
+ *     a house brand off. The default can rank NOTHING here.
+ *   * the wm-demo repo database — 31 products, `brand_name` empty on all 31.
+ *     Also nothing.
+ *   * the deployed instance, GET /api/state — 149 products, 8 are 'Hyperwolf'
+ *     and 33 carry no brand_name at all. Here the default is real, and it is
+ *     real over 116 of 149 rows.
+ * "Found 8 house-brand products" and "this catalogue has none" must not render
+ * the same, so `ranks` is false in the second case and the grid does not move.
+ * A blank brand is NOT a brand: it is counted and reported separately, never
+ * silently scored as "not house brand".
+ *
+ * SPEC — WHAT THE HISTORY-BASED VERSION NEEDS, precisely, so it is a task and
+ * not an ambition. The data exists; the join does not:
+ *   1. wm_order_events.raw_payload carries `lineItems` on every order and is
+ *      NOT NULL (wmdemo/order_lines.py). GET /api/order/lines already serves
+ *      them PER ORDER (wmdemo/server.py:1722, wired 2026-08-26).
+ *   2. orders.identity_id keys an order to a person. Measured on the repo
+ *      database: 880 of 4,064 orders carry an identity_id, 1,721 of their
+ *      webhook events carry lineItems, and 294 distinct identities have at
+ *      least one lined order (266 have two or more). So the history is
+ *      DERIVABLE today for 294 of 651 identities.
+ *   3. What is missing is (a) a route — no endpoint returns lines BY PERSON;
+ *      GET /api/identity/member returns `fulfilled_count`, an order COUNT, and
+ *      no skus; and (b) the register's customer is a mock MEMBERS row with no
+ *      identity_id on it, so there is nothing to look the person up BY.
+ *   Deliver those two and define `window.HW.purchaseHistory(customer)` →
+ *   `{ skus: [...], orders: n, source: '<what produced this>' }`; the branch
+ *   below lights up and relabels itself with no other change.
+ */
+window.HWSuggestBasis = (function () {
+  'use strict';
+
+  // The catalogue's own `brand` string. There is no id to match on: the live
+  // seam sets `brand: p.brand_name || ''` (shared/hw-live.js) and the mock sets
+  // a display name out of shared/brands.js. So the name is the only key there
+  // is, and it is compared case-insensitively and trimmed.
+  var HOUSE_BRAND = 'Hyperwolf';
+
+  function brandOf(p) { return String((p && p.brand) || '').trim(); }
+  function isHouse(p) { return brandOf(p).toLowerCase() === HOUSE_BRAND.toLowerCase(); }
+  function skuOf(p) { return p.sku || p.id; }
+
+  /**
+   * The purchase-history seam. Absent in this build — see the header.
+   *
+   * A list that cannot say WHERE IT CAME FROM is refused, not used: `source` is
+   * what lets the banner name the basis, and a ranking whose basis cannot be
+   * named is the thing this whole module exists to prevent. Same for an empty
+   * list — "the source ran and this person has bought nothing" is not history.
+   */
+  function readHistory(customer) {
+    var HW = window.HW;
+    if (!customer || !HW || typeof HW.purchaseHistory !== 'function') return { state: 'no-seam' };
+    var h;
+    try { h = HW.purchaseHistory(customer); } catch (e) { return { state: 'no-seam' }; }
+    if (!h || typeof h !== 'object') return { state: 'no-seam' };
+
+    // TRANSIENT AND REFUSED STATES ARE NOT "NO HISTORY". shared/hw-live-history.js
+    // publishes state:'loading' while the fetch is in flight, 'off' when the seam
+    // is disarmed, 'unavailable' when the route refused, 'no_key' when the row
+    // carries nothing to look the person up by. Before this branch existed all
+    // four fell through the `!h.skus.length` guard below and rendered as the
+    // house-brand default under the sentence "no itemised purchase history on
+    // this record" -- an assertion about the RECORD made while the request had
+    // not come back yet. Verified 2026-08-27: loading and unknown produced a
+    // byte-identical banner.
+    var st = String(h.state || '');
+    if (st === 'loading') {
+      return { state: 'loading', detail: h.state_reason || null };
+    }
+    // 'no_key' and 'off' ARE NOT REFUSALS AND MUST NOT RENDER AS ONE.
+    // 'no_key' means this ticket's row carries nothing to look the person up
+    // by -- the normal, permanent condition of every mock MEMBERS row in this
+    // build, where the seam fires no fetch at all. 'off' means the seam was
+    // deliberately disarmed. In both we never asked, so the honest basis is
+    // the visit-count fallback below, exactly as before this seam existed.
+    // Verified 2026-08-27: routing these two to the refusal branch broke both
+    // tests in test/suggested-basis.test.mjs, which is the app saying that the
+    // register's ordinary path runs through here.
+    if (st === 'no_key' || st === 'off') { return { state: 'no-seam' }; }
+    if (st === 'unavailable') {
+      // The route was actually asked and actually refused -- e.g. a Weedmaps
+      // id bound to four different people. That one an operator must see.
+      return { state: 'unavailable', code: h.state_code || st,
+        detail: h.state_reason || null };
+    }
+
+    // A list that cannot say where it came from is still refused, exactly as
+    // before -- `source` is what lets the banner name the basis.
+    var src = String(h.source || '').trim();
+    if (!src) return { state: 'no-seam' };
+    var orders = typeof h.orders === 'number' ? h.orders : null;
+
+    // THE THREE STATES, KEPT APART. purchase_history.py distinguishes them and
+    // hw-live-history.js carries the distinction into `skus` as [...] / [] /
+    // null. Collapsing the last two is the defect this project keeps shipping:
+    // "they have bought nothing" and "we cannot see what they bought" are
+    // different facts about a person and lead an operator to different offers.
+    if (h.skus === null || h.skus === undefined) {
+      return { state: 'unknown', source: src, detail: h.state_reason || null };
+    }
+    if (!Array.isArray(h.skus)) return { state: 'no-seam' };
+    if (!h.skus.length) {
+      return { state: 'no-purchases', source: src, orders: orders,
+        detail: h.state_reason || null };
+    }
+    return { state: 'history', skus: h.skus.slice(), source: src, orders: orders };
+  }
+
+  /**
+   * WHY WE ARE FALLING BACK, which is not one state but four, and they are four
+   * different sentences because they are four different facts about the person:
+   *
+   *   no-customer     nobody is on this ticket, so nothing at all is known
+   *   visits-unknown  there IS a person and their record carries no visit count.
+   *                   `visitLabel()` renders this as "1st visit" (`n = n || 1`)
+   *                   and it is reachable — pos/screen-register.jsx loadCheckIn
+   *                   builds `{ name, points, type, member }` with no `visits`
+   *                   for a check-in whose member row is gone. NOT KNOWING is
+   *                   not the same as knowing they are new, and this module
+   *                   refuses to round one into the other.
+   *   first-visit     visits is a number and it is 1 or 0 — the owner's rule
+   *   returning       visits is a number and it is 2 or more, and we still have
+   *                   no history. The operator has to be able to tell this from
+   *                   first-visit: a regular is being shown house brand because
+   *                   we know NOTHING about them, not because they buy it.
+   */
+  function why(customer) {
+    if (!customer) return 'no-customer';
+    if (typeof customer.visits !== 'number' || !isFinite(customer.visits)) return 'visits-unknown';
+    return customer.visits <= 1 ? 'first-visit' : 'returning';
+  }
+
+  var LEAD = {
+    'no-customer': 'No customer on this ticket — nothing is known about who this is',
+    'visits-unknown': 'No visit count on this record — we do not know if they are new',
+    'first-visit': 'First visit — no purchase history yet',
+    'returning': null // built from the count, below
+  };
+
+  function lead(kind, customer, histLead) {
+    // The seam's own sentence wins when the seam actually answered: it names
+    // what we know about their PURCHASES, not how many times they walked in.
+    if (histLead) { return histLead; }
+    if (kind === 'returning') {
+      return 'Visit ' + customer.visits + ' — no itemised purchase history on this record';
+    }
+    return LEAD[kind];
+  }
+
+  /**
+   * resolve({ customer, catalogue }) → the basis, always. Never null: "I have
+   * no basis" is itself a basis the screen has to print.
+   *
+   *   kind    machine-readable state, one of the seven below
+   *   ranks   may the grid be re-ordered on this? false means DO NOT MOVE IT
+   *   skus    the skus to lift, in catalogue order. No score, no weighting —
+   *           this module ranks nothing, it SELECTS. (The engine next door is
+   *           the only scorer, and note that its margin weight is fed by
+   *           pos/data.jsx's char-code hash; nothing here touches that.)
+   *   reason  the per-tile line, a fact rather than a claim
+   *   line    the banner the operator reads. Every branch has one.
+   */
+  function resolve(opts) {
+    opts = opts || {};
+    var customer = opts.customer || null;
+    var all = (opts.catalogue || []).filter(function (p) { return p && p.active !== false; });
+    // Lift only what can be sold. A house-brand tile the store has none of is
+    // not a suggestion, it is a promise the till cannot keep.
+    var sellable = all.filter(function (p) { return p.qty == null || p.qty > 0; });
+    var houses = sellable.filter(isHouse);
+    var noBrand = all.filter(function (p) { return !brandOf(p); }).length;
+    var counts = { catalogue: all.length, house: houses.length, noBrand: noBrand };
+    // Said out loud wherever the house-brand default is what answered: a third
+    // of the live catalogue carries no brand at all, so the basis is PARTIAL
+    // and the operator is told by how much rather than left to assume it is total.
+    var caveat = noBrand ? ' ' + noBrand + ' of ' + counts.catalogue +
+      ' products carry no brand at all and could not be judged.' : '';
+
+    var h = readHistory(customer);
+    if (h.state === 'history') {
+      // THE RANKING'S ORDER IS THE RANKING. `skus` arrives ordered by
+      // wmdemo/suggestion_rank.py -- repeat purchases first, then category
+      // affinity, then brand affinity. Filtering the catalogue rebuilt that
+      // list in CATALOGUE order and silently threw the ranking away: verified
+      // 2026-08-27, a seam returning C,A,B rendered as A,B,C. The position of
+      // each sku in `skus` is carried through instead. First occurrence wins,
+      // so a duplicated sku cannot promote itself.
+      var want = Object.create(null);
+      h.skus.forEach(function (s, i) {
+        if (!Object.prototype.hasOwnProperty.call(want, s)) { want[s] = i; }
+      });
+      var hit = sellable.filter(function (p) {
+        return Object.prototype.hasOwnProperty.call(want, skuOf(p));
+      }).sort(function (a, b) { return want[skuOf(a)] - want[skuOf(b)]; });
+      // History that is entirely out of stock is NOT "no history" — the
+      // operator can still say "the two things you always buy are out".
+      if (!hit.length) {
+        return { kind: 'history-nothing-stocked', ranks: false, skus: [], counts: counts,
+          source: h.source, reason: null,
+          line: 'Purchase history found (' + h.source + '), but none of the ' + h.skus.length +
+                ' product' + (h.skus.length === 1 ? '' : 's') + ' on it is in stock — nothing ranked.' };
+      }
+      return { kind: 'history', ranks: true, skus: hit.map(skuOf), counts: counts,
+        source: h.source, reason: 'Bought before', historyState: 'history',
+        line: 'Ranked on this customer’s purchase history — ' + hit.length + ' of ' +
+              h.skus.length + ' previously bought product' + (h.skus.length === 1 ? '' : 's') +
+              ' in stock. Source: ' + h.source + '.' };
+    }
+
+    // WHY WE ARE FALLING BACK. `why(customer)` reads the VISIT COUNT, which is a
+    // different fact from whether we know what they bought -- so when the seam
+    // has actually spoken, its answer names the fallback instead. All four
+    // fallbacks below rank the same house-brand set; what differs is the
+    // SENTENCE, which is the entire point of the chip.
+    var k = why(customer);
+    var histLead = null;
+    if (h.state === 'no-purchases') {
+      k = 'no-purchases';
+      histLead = 'We have this customer\u2019s record and they have bought nothing yet' +
+        (typeof h.orders === 'number' && h.orders === 0 ? ' \u2014 no orders on file' : '') +
+        '. This is a first purchase, not a blank record';
+    } else if (h.state === 'unknown') {
+      k = 'history-unknown';
+      histLead = 'WE DO NOT KNOW what this customer has bought \u2014 ' +
+        (h.detail || 'no line data could be read for them') +
+        '. Do NOT read this as a first-time customer';
+    } else if (h.state === 'loading' || h.state === 'unavailable') {
+      // Nothing is asserted and the grid does not move. Ranking on a default
+      // while the real answer is seconds away, under a banner that claims the
+      // record is empty, is the failure this branch exists to prevent.
+      return { kind: h.state === 'loading' ? 'history-loading' : 'history-unavailable',
+        ranks: false, skus: [], counts: counts, source: null, reason: null,
+        historyState: h.state, code: h.code || null,
+        line: (h.state === 'loading'
+          ? 'Reading this customer\u2019s purchase history\u2026 nothing is ranked yet, and nothing is being claimed about them.'
+          : 'This customer\u2019s purchase history could not be read (' +
+            (h.code || 'unavailable') + ') \u2014 ' + (h.detail || 'the seam did not answer') +
+            '. That is not the same as them having bought nothing, so nothing was ranked.') };
+    }
+
+    if (!houses.length) {
+      // The default the owner asked for cannot be applied to THIS catalogue.
+      // Saying so is the honest output; re-ordering the grid on an empty set
+      // and leaving "Suggested" lit is the failure this branch exists to avoid.
+      return { kind: 'no-house-brand', ranks: false, skus: [], counts: counts,
+        source: null, reason: null, fallbackWhy: k, historyState: h.state,
+        line: lead(k, customer, histLead) + ' — and no ' + HOUSE_BRAND +
+              '-branded product is in this catalogue (0 of ' + counts.catalogue +
+              '), so nothing was ranked.' + caveat };
+    }
+    return { kind: k, ranks: true, skus: houses.map(skuOf), counts: counts,
+      source: null, reason: HOUSE_BRAND + ' — house brand', historyState: h.state,
+      line: lead(k, customer, histLead) + ' — showing ' + HOUSE_BRAND + ' (house brand) first: ' +
+            counts.house + ' of ' + counts.catalogue + ' products.' + caveat };
+  }
+
+  return { resolve: resolve, HOUSE_BRAND: HOUSE_BRAND, isHouse: isHouse };
+})();
+
 // `merch` is what the goods cost; `sub` is what is left to tax after
 // `discountOff` comes off. They are separate props because the footer has to
 // show the customer both — a total that quietly shrank is a total nobody trusts.
@@ -190,7 +493,14 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
             )}
           </div>
 
-          {/* AOV booster — goal meter + engine-ranked up-sells (comment 8) */}
+          {/* The pairs-with-cart lane. It renders its own refusal; see CartPairs. */}
+          <CartPairs P={P} skus={(lines || []).map((l) => l.sku)} onAdd={onAdd} />
+
+          {/* AOV booster — goal meter + engine-ranked up-sells (comment 8).
+              ⚠️ THIS IS NOT THE PAIRING LANE and must not be read as one — its
+              heading says "Suggested for this sale", the card above says "Pairs
+              with cart", and they are ranked by two different engines on two
+              different kinds of evidence. See CartPairs' header. */}
           <AovBooster P={P} total={total} goal={goal} gap={gap} goalPct={goalPct} recs={recs} onAdd={onAdd}
           engineRanked={engineRanked} onDismiss={onDismissUpsell} />
 
@@ -503,6 +813,135 @@ function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, 
       onApprove={(r) => {onApply && onApply({ kind: 'manual', off: Math.min(sub, r2(r.off)), label: 'Manual discount', mgr: r.mgr, reason: r.reason, note: r.note });setAmount('');}} />}
     </Card>);
 
+}
+
+/* ── "PAIRS WITH CART", INSIDE THE CART ──────────────────────────────────────
+ *
+ * The owner asked for this by name: "we also have the cards inside of the cart
+ * that show suggestions — that's where I'd like to see pairs well with cart
+ * suggestions as well."
+ *
+ * WHAT THE CARDS SHOWED BEFORE, so the change is legible: the rail below this
+ * one (`AovBooster`) is the @hyperwolf/commerce-logic upsell ranking for the
+ * `cart_add_to_order` surface. It IS handed the cart — but its evidence is
+ * same-brand / same-category / promotion-unlock heuristics plus a
+ * `favoriteCategories` hint, and `HW.favCategory` is a HASH OF THE MEMBER'S
+ * NAME (see the HWSuggestBasis header). Nothing in it is a measurement that
+ * two products were bought together. It is a perfectly good up-sell rail and it
+ * is not a pairing claim, so it keeps its own heading and this card does not
+ * borrow from it.
+ *
+ * WHAT THIS CARD SHOWS: the `pairs_with_cart` lane of wmdemo/reco/core.py,
+ * through `HW.cartPairings` (shared/hw-live-suggest.js), and NOTHING ELSE.
+ *
+ * ⚠️ THE HONEST ANSWER TODAY IS A REFUSAL, AND THE REFUSAL IS THE RENDER.
+ * There is no HTTP route for the lane yet, and even once there is, the lane
+ * refuses on the current order data: a co-occurrence pair needs three DISTINCT
+ * customers and 187 of the 191 multi-item baskets belong to one synthetic
+ * account. So this card's normal state is a stated refusal carrying the lane's
+ * own code and the lane's own sentence — never an empty rail, never a spinner
+ * that stays forever, and never a filler list.
+ *
+ * 🔴 TWO CONTROLS NOW READ "PAIRS WITH CART" AND THEY ARE NOT THE SAME ENGINE.
+ * The register's grid chip (pos/screen-register.jsx, `rankOn`) carries that
+ * label and is ranked by @hyperwolf/commerce-logic through `HWPosUpsell` — the
+ * same heuristics as the rail below this card. THIS card is the reco engine's
+ * measured co-occurrence lane. So the two can disagree about the same cart, and
+ * the chip will happily show a confident ordering in the exact situation this
+ * card is refusing. That is a real hazard and it is REPORTED, not papered over
+ * here: the fix is to point the grid chip at the same lane, which is a change to
+ * a control this task was told to leave alone.
+ *
+ * ⚠️ NO SUBSTITUTES, NO BESTSELLERS, NO BACKFILL. When the lane refuses this
+ * card renders zero product tiles. It says how many substitutes exist, because
+ * that is a useful thing for an associate to know, and it does not show one:
+ * a product you could buy INSTEAD of what is on the counter is not a product
+ * that goes WITH it, and putting one under this heading is a false claim
+ * dressed as a feature. `window.HW_CART_PAIRS.status()` shows what was asked.
+ */
+function CartPairs({ P, skus, onAdd }) {
+  // Re-asked only when the CART changes. The string key is deliberate for the
+  // same reason AovBooster's is: `skus` is a new array on every render.
+  const key = (skus || []).slice().sort().join(',');
+  // ⚠️ AND WHEN THE LANE ANSWERS. The first ask returns 'loading' and the reply
+  // arrives later, so a card memoised on the cart alone would show 'Asking…'
+  // for the rest of the sale — including for the REFUSAL, which is the one
+  // answer this card exists to render. `tick` is bumped by the seam after every
+  // terminal outcome, refusals and failures included.
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const S = window.HW_CART_PAIRS;
+    if (!S || typeof S.subscribe !== 'function') return undefined;
+    return S.subscribe(() => setTick((n) => n + 1));
+  }, []);
+  const ans = React.useMemo(
+    () => (window.HW && typeof window.HW.cartPairings === 'function' ?
+      window.HW.cartPairings(skus || []) :
+      { state: 'unavailable', code: 'no_seam', items: [], substitutes_found: 0,
+        sentence: 'shared/hw-live-suggest.js is not loaded, so the pairs-with-cart ' +
+          'lane was never asked. Nothing is being claimed about this cart.' }),
+    [key, tick]);
+
+  if (!ans || ans.state === 'empty') return null;
+
+  const pairs = ans.state === 'pairs' ? ans.items || [] : [];
+  const tone = ans.state === 'pairs' ? P.accentText : P.inkMute;
+
+  return (
+    <div data-hw-cart-pairs={ans.state} data-hw-cart-pairs-code={ans.code || ''}
+      style={{ marginBottom: 10, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden', background: P.surface }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px 6px' }}>
+        <Icon name="sparkle" size={12} stroke={2} color={tone} style={{ flex: '0 0 auto' }} />
+        <Eyebrow>Pairs with cart</Eyebrow>
+        {/* WHICH STATE THIS IS, in one word, next to the heading. A refusal and
+            a ranking that worked must not be told apart only by squinting at
+            whether any cards are underneath. */}
+        <span style={{ marginLeft: 'auto', fontSize: P.type.micro, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: tone, whiteSpace: 'nowrap' }}>
+          {ans.state === 'pairs' ? `${pairs.length} bought together` :
+           ans.state === 'loading' ? 'Asking…' :
+           ans.state === 'refused' ? 'No pairing evidence' : 'Not available'}
+        </span>
+      </div>
+
+      {/* THE LANE'S OWN SENTENCE, VERBATIM, IN EVERY STATE. This is the part
+          that cannot be got wrong: a screen that renders `items.length === 0`
+          as blank space is indistinguishable from one whose engine died. */}
+      {ans.sentence &&
+      <div style={{ padding: '0 11px 8px', fontSize: P.type.micro, fontWeight: ans.state === 'pairs' ? 700 : 600, color: ans.state === 'pairs' ? P.accentText : P.ink2, lineHeight: 1.5 }}>
+        {ans.state !== 'pairs' &&
+        <span style={{ display: 'inline-block', marginRight: 5, padding: '0 5px', borderRadius: 5, background: P.surface3, color: P.inkDim, fontFamily: P.fontMono, fontSize: 10, fontWeight: 700 }}>{ans.code}</span>}
+        {ans.sentence}
+      </div>}
+
+      {/* Substitutes are COUNTED here and rendered NOWHERE. See the header. */}
+      {ans.state !== 'pairs' && ans.substitutes_found > 0 &&
+      <div style={{ padding: '0 11px 9px', fontSize: P.type.micro, fontWeight: 600, color: P.inkMute, lineHeight: 1.5 }}>
+        {ans.substitutes_found} product{ans.substitutes_found === 1 ? ' is' : 's are'} attribute-similar
+        to what is on the counter. Those are substitutes — things to buy INSTEAD — so none of them is
+        shown here.
+      </div>}
+
+      {pairs.length > 0 &&
+      <div style={{ borderTop: `1px solid ${P.hairline}`, padding: '7px 11px 9px', background: P.surface2, display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {pairs.map((it) => {
+          const p = (window.HW.PRODUCTS || []).find((x) => x.sku === it.sku) || null;
+          return (
+            <div key={it.sku} style={{ flex: '0 0 auto', width: 232, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, padding: 9, display: 'flex', gap: 9 }}>
+              {p && <Thumb item={p} size={44} radius={8} />}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.brand_name || (p && p.brand) || ''}</span>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || (p && p.name) || it.sku}</div>
+                {/* THE EVIDENCE, COUNTED. "N of the M baskets that contained X
+                    also contained this" — the lane's own words, not ours. */}
+                {it.top_reason && <div style={{ fontSize: P.type.micro, fontWeight: 700, color: P.accentText, lineHeight: 1.4 }}>{it.top_reason}</div>}
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 1 }}>{window.HW.fmt.money0(it.price != null ? it.price : (p ? p.price : 0))}</div>
+              </div>
+              {p && onAdd &&
+              <button onClick={() => onAdd(p)} title={`Add ${it.name || it.sku}`} style={{ flex: '0 0 auto', alignSelf: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, background: P.accent, color: P.accentInk, border: 'none', borderRadius: 10, cursor: 'pointer' }}><Icon name="plus" size={17} stroke={2.6} /></button>}
+            </div>);
+        })}
+      </div>}
+    </div>);
 }
 
 // AOV goal meter — the bar, plus recommended up-sells.

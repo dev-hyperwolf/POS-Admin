@@ -71,6 +71,43 @@ function isExpiredDoc(doc, now) {
 }
 window.HWExpiry = { parseExpiry, isExpiredDoc };
 
+// ── THE OWNER'S EXPIRY-ENFORCEMENT SWITCH [RULING 2026-08-27] ───────────────
+// Whether a lapsed document REFUSES is a toggle, default OFF, and the server
+// owns its position. Detection is not the toggle: an expired document is still
+// detected, still counted and still shown either way. The switch decides one
+// thing — whether this screen refuses.
+//
+// THIS SCREEN HAD NO KNOWLEDGE OF IT AT ALL. assurance() hard-blocked on a
+// lapse (tier 0, canStore:false, canDelivery:false), so with enforcement OFF
+// the server allowed the order and the counter still refused it. The switch the
+// owner asked for did not switch.
+//
+// THREE STATES, NOT TWO. The flag is READ — never inferred, never defaulted.
+// If nothing published it (an older server, a board that predates the switch),
+// that is `null`: it is not "enforcing" and it is not "not enforcing", and
+// rendering an absence as either answer is the exact failure this estate has
+// spent the week finding. A compliance switch is the last place to add one.
+//
+// Read in specificity order — the row the consequence lands on beats the board,
+// the board beats the estate-wide contract:
+//   1. v.doc_expiry.enforced        per-row (checkin_api._doc_expiry_view)
+//   2. HW_CHECKIN.board.expiry_enforcement.enforced      the check-in board
+//   3. HW_CHECKIN.contract.doc_expiry_enforced           the served contract
+// Each read is a STRICT boolean test. A missing key, a null, a string 'false'
+// and an object all fall through to the next source rather than being coerced;
+// coercing is how `null` becomes `false` and the third state disappears.
+function expiryEnforced(v) {
+  const row = v && v.doc_expiry;
+  if (row && typeof row.enforced === 'boolean') return row.enforced;
+  const ck = typeof window !== 'undefined' && window.HW_CHECKIN;
+  const bd = ck && ck.board && ck.board.expiry_enforcement;
+  if (bd && typeof bd.enforced === 'boolean') return bd.enforced;
+  const ct = ck && ck.contract;
+  if (ct && typeof ct.doc_expiry_enforced === 'boolean') return ct.doc_expiry_enforced;
+  return null;                                    // absent. NOT false.
+}
+window.HWExpiryPolicy = { expiryEnforced };
+
 function assurance(v) {
   if (!v) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, blocker: 'No ID has been seen yet.', next: 'Scan their ID at the counter, or send a remote ID-check link.' };
   const doc = v.doc,ph = v.phone || {},pa = v.remoteId || v.persona;
@@ -78,17 +115,46 @@ function assurance(v) {
   const docExpired = isExpiredDoc(doc);
   const remoteOk = !!(pa && pa.status === 'passed');
   const phoneOk = !!ph.smsVerified;
+  const enforced = expiryEnforced(v);
+  const on = doc && doc.expires ? ' on ' + doc.expires : '';
+  // What a soft-lapsed ALLOW carries down the ladder with it. Mirrors the
+  // server's Decision fields verbatim (verify_gate.Decision: expiry_enforced /
+  // would_block_code / would_block_reason) so the two never drift into two
+  // vocabularies for one fact.
+  let soft = enforced === null ? { expiryEnforced: null } : { expiryEnforced: enforced };
 
-  if (docExpired) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, expired: true,
-    blocker: 'The ID we have on file expired' + (doc && doc.expires ? ' on ' + doc.expires : '') + '.',
-    next: 'Re-scan a current ID — the account and history are kept.' };
-  if (!docOk && !remoteOk) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, blocker: 'No ID has been seen yet.', next: 'Scan their ID at the counter, or send a remote ID-check link.' };
-  if (!phoneOk) return { tier: 1, ...TIERS[1], canStore: true, canDelivery: false,
+  if (docExpired) {
+    if (enforced === true) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, expired: true,
+      lapsed: true, expiryEnforced: true,
+      blocker: 'The ID we have on file expired' + on + '.',
+      next: 'Re-scan a current ID — the account and history are kept.' };
+    if (enforced === null) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, expired: true,
+      lapsed: true, expiryEnforced: null, expiryEnforcementUnknown: true,
+      blocker: 'The ID we have on file expired' + on + ' — and NOTHING has told this screen whether ' +
+        'expiry is enforced here, so it is refusing on the strict reading rather than guessing.',
+      next: 'Re-scan a current ID. Separately: the server publishes the enforcement switch three ways ' +
+        '(the check-in board, the served contract, and the row itself) and none of them reached this ' +
+        'screen — that is a wiring fault to fix, not a decision anybody made.' };
+    // enforced === false. ALLOW — and carry the refusal that did not happen, so
+    // that turning the switch on later is a number somebody counted rather than
+    // a cliff nobody predicted.
+    // `tone: 'warn'` deliberately OVERRIDES the tier's own tone below. A soft
+    // lapse that reaches T2 would otherwise wear TIERS[2].tone === 'good' and
+    // render as the identical green chip as a customer with nothing wrong with
+    // them — which is the whole defect: allowed-because-the-switch-is-off must
+    // never look like allowed-on-the-merits.
+    soft = { expiryEnforced: false, lapsed: true, wouldBlockCode: 'lapsed', tone: 'warn',
+      wouldBlockReason: 'WOULD HAVE BEEN REFUSED: the ID on file expired' + on + '. Expiry ' +
+        'enforcement is OFF, so this is allowed and the refusal is recorded instead of applied. ' +
+        'Turn enforcement on and this person stops clearing.' };
+  }
+  if (!docOk && !remoteOk) return { tier: 0, ...TIERS[0], canStore: false, canDelivery: false, ...soft, blocker: 'No ID has been seen yet.', next: 'Scan their ID at the counter, or send a remote ID-check link.' };
+  if (!phoneOk) return { tier: 1, ...TIERS[1], canStore: true, canDelivery: false, ...soft,
     blocker: 'Phone not confirmed — we can’t tie a remote order back to this person.',
     next: 'One SMS code, and only if they want delivery. In-store shopping needs nothing more.' };
-  return { tier: 2, ...TIERS[2], canStore: true, canDelivery: true, via: remoteOk && !docOk ? 'remote' : doc && doc.where === 'door' ? 'door' : 'in-store' };
+  return { tier: 2, ...TIERS[2], canStore: true, canDelivery: true, ...soft, via: remoteOk && !docOk ? 'remote' : doc && doc.where === 'door' ? 'door' : 'in-store' };
 }
-window.HWV = { assurance, TIERS };
+window.HWV = { assurance, TIERS, expiryEnforced };
 
 // ── Badge ───────────────────────────────────────────────────────────────────
 window.AssuranceBadge = function AssuranceBadge({ v, size = 'md' }) {
@@ -96,8 +162,13 @@ window.AssuranceBadge = function AssuranceBadge({ v, size = 'md' }) {
   const a = assurance(v);
   const c = a.tone === 'good' ? P.good : a.tone === 'warn' ? P.warn : P.bad;
   const sm = size === 'sm';
-  return <span title={a.blocker || 'Cleared for in-store and delivery'} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: sm ? '2px 8px' : '4px 10px', borderRadius: 99, background: c + '1f', color: c, fontSize: sm ? 10 : 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-    <Icon name={a.tier === 2 ? 'check-circle' : a.tier === 1 ? 'shield' : 'x'} size={sm ? 11 : 13} stroke={2.2} />{a.label}
+  // A SOFT-LAPSED ALLOW IS NOT A CLEAN PASS AND MUST NOT WEAR ONE. The tier is
+  // real — the server allowed this order — but it was allowed only because
+  // enforcement is off, so the chip says `lapsed`, drops the tick for an alert
+  // glyph, and puts the sentence the gate WOULD have refused with in the title.
+  const soft = a.wouldBlockCode === 'lapsed';
+  return <span title={soft ? a.wouldBlockReason : a.blocker || 'Cleared for in-store and delivery'} data-hw-would-block={soft ? a.wouldBlockCode : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: sm ? '2px 8px' : '4px 10px', borderRadius: 99, background: c + '1f', color: c, fontSize: sm ? 10 : 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+    <Icon name={soft ? 'alert' : a.tier === 2 ? 'check-circle' : a.tier === 1 ? 'shield' : 'x'} size={sm ? 11 : 13} stroke={2.2} />{a.label}{soft ? ' · ID lapsed' : ''}
   </span>;
 };
 
@@ -115,16 +186,45 @@ window.IdentityLadder = function IdentityLadder({ v, compact }) {
     doc.where === 'door' ? 'Scanned at the door by ' + doc.by + ' · ' + doc.scannedAt :
     'Scanned & photographed by ' + doc.by + ' · ' + doc.where :
     'Nobody has seen a document yet.',
-    meta: a.tier >= 1 && doc.num ? doc.type + ' ' + doc.num + ' · expires ' + doc.expires : null },
+    // The date alone is not the fact. A lapsed document printed as a plain
+    // "expires 2026-05-30" beside a green tick asks the reader to do the date
+    // arithmetic the code already did.
+    meta: a.tier >= 1 && doc.num ? doc.type + ' ' + doc.num + ' · expires ' + doc.expires +
+      (a.wouldBlockCode === 'lapsed' ? ' — LAPSED, not enforced' : '') : null },
   { n: 2, t: 'Phone confirmed', done: !!ph.smsVerified, note: 'delivery only',
     d: ph.smsVerified ? 'SMS code confirmed ' + (ph.verifiedAt || '') + ' — ' + ph.value :
     ph.sentAt ? 'Code sent ' + ph.sentAt + ' to ' + ph.value + ' — waiting on them' :
     'Not sent. Only sent when they order delivery — never for an in-store visit.' },
   { n: 3, t: 'Delivery unlocked', done: a.tier >= 2,
-    d: a.tier >= 2 ? 'Can order delivery on our site and on Weedmaps. No further checks, ever.' :
+    // "No further checks, ever" is FALSE over a lapsed document: the switch
+    // being turned on is exactly a further check, and it is the one this
+    // customer fails.
+    d: a.tier >= 2 ? (a.wouldBlockCode === 'lapsed'
+      ? 'Can order delivery today — but on a LAPSED document, allowed only while expiry enforcement is off. This is not a permanent clearance.'
+      : 'Can order delivery on our site and on Weedmaps. No further checks, ever.') :
     'Opens automatically the moment step 2 lands. In-store shopping is already open.' }];
 
   return <div style={{ display: 'flex', flexDirection: 'column' }}>
+    {/* THE REFUSAL THAT DID NOT HAPPEN. Without this the ladder shows three
+        green ticks for somebody the gate would refuse the moment the owner's
+        switch is turned on — and the point of a default-OFF toggle is that the
+        population it will block can be COUNTED before it is turned on. A rung
+        that reads "No further checks, ever" over a lapsed document is the
+        cliff being hidden rather than measured. */}
+    {a.wouldBlockCode === 'lapsed' &&
+      <div data-hw="soft-lapse" style={{ display: 'flex', gap: 8, padding: '8px 10px', marginBottom: 10, background: P.warnSoft, border: `1px solid ${P.warn}44`, borderRadius: P.r8 }}>
+        <Icon name="alert" size={13} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+        <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+          <b>Allowed only because expiry enforcement is off.</b> {a.wouldBlockReason}
+        </div>
+      </div>}
+    {a.expiryEnforcementUnknown &&
+      <div data-hw="expiry-switch-unknown" style={{ display: 'flex', gap: 8, padding: '8px 10px', marginBottom: 10, background: P.warnSoft, border: `1px solid ${P.warn}44`, borderRadius: P.r8 }}>
+        <Icon name="alert" size={13} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+        <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+          <b>Expiry enforcement: not published.</b> {a.next}
+        </div>
+      </div>}
     {rungs.map((r, i) => {
       const c = r.done ? P.good : P.inkMute;
       return <div key={r.n} style={{ display: 'flex', gap: 10 }}>
@@ -639,6 +739,18 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
     // one compliance claim in this product a regulator would ask about, and the
     // honest branch costs a date comparison.
     const expired = window.HWExpiry ? window.HWExpiry.isExpiredDoc(d) : false;
+    // WHAT THE LAPSE COSTS IS THE OWNER'S SWITCH, NOT THIS CARD'S OPINION.
+    // "it cannot clear a check-in" is a claim about CONSEQUENCE, and with
+    // enforcement off it is simply untrue — the gate allows this person. The
+    // detection stays unconditional (red, named, dated, either way); only the
+    // sentence about what happens next reads the switch. Absent switch is its
+    // own sentence again: not "blocked" and not "allowed".
+    const enf = window.HWV ? window.HWV.expiryEnforced(null) : null;
+    const lapseCost = enf === true
+      ? ' — it cannot clear a check-in. Ask for a current ID.'
+      : enf === false
+        ? ' — expiry enforcement is OFF, so this will still clear a check-in today. Ask for a current ID anyway: turning enforcement on stops them.'
+        : ' — and nothing has told this screen whether expiry is enforced here, so whether it clears a check-in is UNKNOWN from this card. Ask for a current ID.';
     const unknownMatch = d.returning == null;
     const tone = expired ? P.bad : d.returning ? P.good : unknownMatch ? P.warn : P.info;
     const toneSoft = expired ? P.badSoft : d.returning ? P.goodSoft : unknownMatch ? P.warnSoft : P.infoSoft;
@@ -651,7 +763,7 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
           {d.name || 'Name not read'}{d.simulated && <DemoMark />}
         </div>
         <div style={{ fontSize: 11.5, color: expired ? P.bad : P.inkDim, fontFamily: P.fontMono }}>
-          {expired ? `This document EXPIRED on ${d.expires} — it cannot clear a check-in. Ask for a current ID.` :
+          {expired ? `This document EXPIRED on ${d.expires}${lapseCost}` :
            d.returning ? 'Existing customer · account found' :
            unknownMatch ? 'Document read · the customer book was NOT available, so we do not know whether they already have an account' :
            'New customer · from the document'}{expired ? '' : ` · ${d.type} ${d.num} · expires ${d.expires}`}

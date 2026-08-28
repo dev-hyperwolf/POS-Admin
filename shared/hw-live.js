@@ -464,18 +464,27 @@
     return { price: baseCents / 100, was: null, salePct: null };
   }
 
-  // The design derives cost/margin deterministically from the SKU + price
-  // (pos/data.jsx:23-26). The API has no cost of goods at all, so the ONLY
-  // honest options were to drop the margin columns (needs screen edits, which
-  // this seam is forbidden) or keep the same synthetic derivation over the live
-  // price. We keep it, and the badge panel says out loud that margin is not
-  // live. Do not read a business decision off it.
-  function syntheticCost(sku, price) {
-    var h = 0;
-    for (var i = 0; i < sku.length; i++) { h += sku.charCodeAt(i); }
-    var marginPct = 0.28 + (h % 41) / 100;
-    var cost = Math.max(0.5, +(price * (1 - marginPct)).toFixed(2));
-    return { cost: cost, margin: price > 0 ? +((price - cost) / price).toFixed(3) : 0 };
+  // ── THE SYNTHETIC COST IS GONE, AND SO IS THE REASON IT SURVIVED ─────────
+  //
+  // This function was:
+  //     var h = 0; for (i…) { h += sku.charCodeAt(i); }
+  //     var marginPct = 0.28 + (h % 41) / 100;
+  //     var cost = Math.max(0.5, +(price * (1 - marginPct)).toFixed(2));
+  // — the same SKU character-hash pos/data.jsx P_() used, recomputed here over
+  // the LIVE price so that live products carried an invented margin too. The
+  // comment that stood here argued the only honest alternative (dropping the
+  // margin columns) "needs screen edits, which this seam is forbidden". Those
+  // screen edits have now been made: pos/screen-catalog.jsx and
+  // pos/screen-orders.jsx hide the margin column, sort, filter and chip when
+  // no row carries a margin, so a null is rendered as an absence rather than
+  // as 0%.
+  //
+  // The API still has no cost of goods (GET /api/state, 149 catalog rows, 21
+  // distinct keys, none matching /cost|margin|wholesale/ — verified
+  // 2026-08-27), so the answer is null. A disclosure in a badge panel does not
+  // repair a number sitting in the margin column; the number had to go.
+  function syntheticCost() {
+    return { cost: null, margin: null };
   }
 
   // Thumbnail hue. pos/data.jsx keeps CAT_HUE module-private, so rather than
@@ -566,7 +575,7 @@
       if (warn) { weightFlags.push({ sku: sku, note: warn }); }
       if (!p.brand_name) { blankBrand++; }
 
-      var cm = syntheticCost(sku, pw.price);
+      var cm = syntheticCost();
 
       return {
         id: sku,
@@ -979,7 +988,11 @@
   }
 
   function stillMock() {
-    var m = ['MEMBERS', 'CHECKINS', 'IDV', 'STATS', 'REWARDS', 'ORDER_BIND', 'cost / margin'];
+    // 'cost / margin' left this list because it is no longer MOCK — it is
+    // ABSENT. The API serves no cost of goods, so cost and margin are null and
+    // the screens render an absence. Leaving it here would imply a stand-in
+    // figure is still on the page.
+    var m = ['MEMBERS', 'CHECKINS', 'IDV', 'STATS', 'REWARDS', 'ORDER_BIND'];
     if (_ordersLive) {
       m.push('order line items', 'order activity log',
              'delivery addresses / distances / ETA windows / map pins');

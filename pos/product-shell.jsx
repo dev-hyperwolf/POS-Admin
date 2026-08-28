@@ -59,7 +59,7 @@ window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave })
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Product shell</div>
           <div style={{ fontSize: 16, fontWeight: 800, color: P.ink, letterSpacing: '-.01em' }}>{shell.name}</div>
-          <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{shell.id} · {shell.variations.length} variation{shell.variations.length === 1 ? '' : 's'} · {shell.stores} store{shell.stores > 1 ? 's' : ''}</div>
+          <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{shell.id} · {shell.variations.length} variation{shell.variations.length === 1 ? '' : 's'} · {shell.stores == null ? 'stores not tracked' : shell.stores + ' store' + (shell.stores > 1 ? 's' : '')}</div>
         </div>
         <IconBtn icon="x" size={16} onClick={onClose} />
       </div>
