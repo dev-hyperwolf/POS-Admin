@@ -96,7 +96,8 @@ const M_LABEL = {
   onduty: 'Going on duty', filters: 'Filters', textcustomer: 'Texting the customer',
   editphone: 'Editing the phone number', vehicles: 'Vehicles', editvehicle: 'Editing a vehicle',
   editavatar: 'Editing your photo', moretime: 'Asking for more time',
-  msgtemplates: 'Message templates', editmsg: 'Editing a message' };
+  msgtemplates: 'Message templates', editmsg: 'Editing a message',
+  approvals: 'Pending approvals' };
 
 /* One place that turns a surface id into the boundary it was classified with.
  * `key` matters: without it React reuses one boundary instance across a
@@ -141,7 +142,8 @@ const SHEETS = {
   editavatar: (p) => <window.EditAvatarSheet {...p} />,
   moretime: (p) => <window.MoreTimeSheet {...p} />,
   msgtemplates: (p) => <window.MsgTemplatesSheet {...p} />,
-  editmsg: (p) => <window.EditMsgSheet {...p} />
+  editmsg: (p) => <window.EditMsgSheet {...p} />,
+  approvals: (p) => <window.PendingApprovalsSheet {...p} />
 };
 
 function AppInner() {

@@ -72,6 +72,17 @@ window.ProfileScreen = function ProfileScreen() {
         <Row icon="phone" tint={P.good} title="Contact" detail={prof.pendingPhone ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ fontFamily: P.fontMono, color: P.inkMute }}>{prof.phone}</span><span style={{ padding: '2px 8px', borderRadius: 99, background: P.warnSoft, color: P.warn, fontSize: 10, fontWeight: 800, fontFamily: P.fontSans }}>Pending approval</span></span> : prof.phone} onClick={() => window.M.openSheet('editphone', {})} last />
       </Group>
 
+      {/* Manager tools — approvePhone() existed with zero callers: a driver could
+          submit a new number and it would sit at "pending" forever. This is the
+          approval surface. Same single-profile model as the rest of this demo
+          (no multi-driver roster exists anywhere in mobile/), so the list below
+          is this driver's own pending submission — but it reads the real
+          `pendingPhone` field and calls the real `M.approvePhone()`, which
+          persists and is read by the Contact row above and EditPhoneSheet below. */}
+      <Group label="Manager tools">
+        <Row icon="user-check" tint={P.warn} title="Pending approvals" detail={prof.pendingPhone ? '1' : 'None'} onClick={() => window.M.openSheet('approvals', {})} last />
+      </Group>
+
       <Group label="Money & activity">
         <Row icon="cash" tint={P.accent} title="My tips" detail={window.HW.fmt.money(tipBank)} onClick={() => window.M.push('tips')} />
         <Row icon="receipt" tint={P.info} title="Order history" onClick={() => window.M.push('orderhistory')} />
@@ -200,6 +211,53 @@ window.EditPhoneSheet = function EditPhoneSheet() {
         <Icon name="lock" size={15} stroke={2} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
         <span style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>Changes to your contact number must be approved by management before they go live. Your current number stays active until then.</span>
       </div>
+    </window.Sheet>);
+};
+
+// Manager: approve a pending phone-verification submission (sheet)
+//
+// Before this existed, `window.M.approvePhone()` had zero callers repo-wide —
+// EditPhoneSheet above writes `pendingPhone` and there was no surface anywhere
+// that could ever clear it. A submission was a permanent dead end.
+//
+// This IS the approval surface. It reads the real `pendingPhone` field (not a
+// mock) and calls the real `approvePhone()`, which moves pendingPhone -> phone
+// and persists to localStorage — the same state the Contact row and
+// EditPhoneSheet above already read, so approving here is immediately visible
+// there, and the "awaiting approval" banner disappears because its condition
+// (`prof.pendingPhone`) is now false.
+window.PendingApprovalsSheet = function PendingApprovalsSheet() {
+  const P = useP(); window.useM();
+  const d = window.MD.DRIVER;
+  const prof = window.M.profile();
+  const pending = prof.pendingPhone ? [{ id: d.id, name: d.name, current: prof.phone, requested: prof.pendingPhone }] : [];
+  return (
+    <window.Sheet title="Pending approvals" onClose={() => window.M.closeSheet()}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14 }}>
+        <Icon name="shield" size={15} stroke={2} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+        <span style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.45 }}>Contact-number changes go live only after a manager approves them here.</span>
+      </div>
+      {pending.length === 0 ?
+        <div style={{ textAlign: 'center', color: P.inkMute, padding: '40px 20px', fontSize: 13.5 }}>No pending requests.</div> :
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 6 }}>
+          {pending.map((r) => (
+            <div key={r.id} style={{ padding: '13px 15px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <Avatar name={r.name} size={34} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: P.ink }}>{r.name}</div>
+                  <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{r.id}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 12.5, fontFamily: P.fontMono }}>
+                <span style={{ color: P.inkMute, textDecoration: 'line-through' }}>{r.current}</span>
+                <Icon name="arrow-right" size={13} stroke={2} color={P.inkFaint} />
+                <span style={{ color: P.ink, fontWeight: 700 }}>{r.requested}</span>
+              </div>
+              <PBtn variant="accent" size="lg" full icon="check" onClick={() => { window.M.approvePhone(); window.M.flash('Phone number approved'); }}>Approve</PBtn>
+            </div>
+          ))}
+        </div>}
     </window.Sheet>);
 };
 
