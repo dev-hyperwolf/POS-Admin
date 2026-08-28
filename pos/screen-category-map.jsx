@@ -1242,26 +1242,19 @@
     }
 
     const s = st(row);
-    // THE EDITOR OPENS INLINE IN A 4,886px TABLE, so it can appear entirely below
-    // the fold: measured on the live build, the trigger sat at y=1546 in an 800px
-    // viewport. Nothing told the operator anything had opened, which is why the
-    // buttons read as "not working" -- they were off-screen, not dead. Bring it to
-    // them. 'nearest' rather than 'center' so a card already in view does not move.
-    const editorRef = React.useRef(null);
-    React.useEffect(function () {
-      const el = editorRef.current;
-      if (el && typeof el.scrollIntoView === 'function') {
-        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }
-    }, []);
-    // The ref goes on a PLAIN DIV, not on Card. window.Card is a function
-    // component with no forwardRef (pos/atoms.jsx:12), so a ref handed to it is
-    // silently null and this effect would have been a no-op that looked fixed --
-    // the exact class of defect this screen is being repaired for.
+    // NO LONGER SCROLLED INTO VIEW, ON PURPOSE. Before 2026-08-28's split-view
+    // rework, this editor rendered inline in a 4,886px table -- it could open
+    // entirely below the fold (measured on the live build: trigger at y=1546 in
+    // an 800px viewport), and scrollIntoView({block:'nearest'}) was the fix for
+    // that. It worked exactly as written and was still wrong: this editor now
+    // renders in the sticky right-hand panel (CategoryMapScreen, below), which
+    // is always in view by construction -- there is no fold to be below and
+    // nothing to scroll to. A scrollIntoView here would now fight the one
+    // scroll position that matters, the operator's place in the table on the
+    // left. See CategoryMapScreen for the panel that replaced the jump.
     return (
-      <div ref={editorRef}>
       <Card density="roomy" data-hw-editor="binding"
-        style={{ marginBottom: 18, border: '1px solid ' + P.accentBorder }}>
+        style={{ border: '1px solid ' + P.accentBorder }}>
         <SectionHead level={3} eyebrow="Weedmaps bindings"
           title={row.category + '’s Weedmaps node' + (bindings.length === 1 ? '' : 's')}
           subtitle={'Currently: ' + (bindings.length
@@ -1337,8 +1330,7 @@
           <div style={{ fontSize: P.type.meta, color: P.inkMute }}>
             Choose a node above and this will show exactly what saving it would change.
           </div>}
-      </Card>
-      </div>);
+      </Card>);
   }
 
   // ── alias editor: add a spelling, repoint one, remove one ─────────────────
@@ -1645,88 +1637,124 @@
             onRetry={function () { setTick(tick + 1); }}
             style={{ background: P.badSoft, borderRadius: P.r12, marginBottom: 18 }} />}
 
+        {/* SPLIT VIEW (2026-08-28), replacing the inline-in-the-table editor.
+            The owner's words: "have to click on pick a node, then theres a
+            bind button, to interface with the categories you have to scroll
+            to the top of the page." Both complaints traced to the same root
+            cause -- the editor rendered in ONE fixed spot in this tree
+            (originally right here, above TheDefect) no matter which row's
+            button opened it, so scrollIntoView had to drag the whole page up
+            to it every time. The fix is not a better scroll: it is not
+            re-rendering the editor in the document flow at all. The table
+            keeps its normal place on the left; the editor is a panel PINNED
+            on the right for as long as this screen is open, and clicking a
+            different row's "Bindings" swaps what the panel shows in place --
+            `position:'sticky'` against <main>'s own scroll (pos/app.jsx),
+            the exact mechanism DataTable's own `stickyHead` already uses on
+            this page, so this is a second call site of a pattern already
+            proven here, not a new one. No nested scroll container is
+            introduced -- NodePicker's own comment already documents what
+            overscroll-chaining inside a second scroller did the last time
+            this screen grew one. */}
         {d &&
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12, marginBottom: 18 }}>
-            <KPI label="Our categories" value={num(c.categories)}
-              sublabel={num(c.resolves) + ' resolve · ' + num(c.unused) + ' unused'} icon="grid" />
-            {/* NOT "needs a decision". Nothing is pending on this number: an
-                unbound category is an allowed resting state and there is no
-                ceremony to complete. The old sublabel was a standing to-do for
-                a question that has already been answered. */}
-            <KPI label="No Weedmaps node" value={num(c.no_wm_node)}
-              sublabel={c.no_wm_node ? 'no node to bind to — allowed, not a task' : 'every category has a node'}
-              icon="ban" />
-            {c.binding_broken
-              ? <KPI label="Bindings pointing nowhere" value={num(c.binding_broken)}
-                  sublabel="a picked node has left Weedmaps' tree" icon="alert" />
-              : null}
-            <KPI label="SKUs publishing uncategorised" value={num(c.products_uncategorised)}
-              sublabel={c.products_uncategorised
-                ? 'live on Weedmaps with no category, silently'
-                : 'every spelling reaches a node'}
-              icon="alert" />
-            <KPI label="SKUs saved by the alias layer" value={num(c.products_rescued_by_alias)}
-              sublabel={c.products_rescued_by_alias
-                ? 'would publish uncategorised without it'
-                : 'no spelling currently depends on an alias'}
-              icon="check-circle" />
-            <KPI label="Our products" value={num(c.products)}
-              sublabel={c.spellings_unfoldable
-                ? c.spellings_unfoldable + ' spelling(s) we refuse outright'
-                : 'every spelling is accepted'}
-              icon="package" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 380px', gap: 16, alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12, marginBottom: 18 }}>
+                <KPI label="Our categories" value={num(c.categories)}
+                  sublabel={num(c.resolves) + ' resolve · ' + num(c.unused) + ' unused'} icon="grid" />
+                {/* NOT "needs a decision". Nothing is pending on this number: an
+                    unbound category is an allowed resting state and there is no
+                    ceremony to complete. The old sublabel was a standing to-do for
+                    a question that has already been answered. */}
+                <KPI label="No Weedmaps node" value={num(c.no_wm_node)}
+                  sublabel={c.no_wm_node ? 'no node to bind to — allowed, not a task' : 'every category has a node'}
+                  icon="ban" />
+                {c.binding_broken
+                  ? <KPI label="Bindings pointing nowhere" value={num(c.binding_broken)}
+                      sublabel="a picked node has left Weedmaps' tree" icon="alert" />
+                  : null}
+                <KPI label="SKUs publishing uncategorised" value={num(c.products_uncategorised)}
+                  sublabel={c.products_uncategorised
+                    ? 'live on Weedmaps with no category, silently'
+                    : 'every spelling reaches a node'}
+                  icon="alert" />
+                <KPI label="SKUs saved by the alias layer" value={num(c.products_rescued_by_alias)}
+                  sublabel={c.products_rescued_by_alias
+                    ? 'would publish uncategorised without it'
+                    : 'no spelling currently depends on an alias'}
+                  icon="check-circle" />
+                <KPI label="Our products" value={num(c.products)}
+                  sublabel={c.spellings_unfoldable
+                    ? c.spellings_unfoldable + ' spelling(s) we refuse outright'
+                    : 'every spelling is accepted'}
+                  icon="package" />
+              </div>
+
+              <TheDefect d={d} />
+
+              {/* THE MATCH JOIN, ABOVE THE TABLE. It is not a footnote to the table:
+                  it can be the reason a table full of green badges is still wrong. */}
+              <TheShutout d={d} />
+
+              {/* CALM, AND NOT INSIDE THE DEFECT CARD. See TheRescued. */}
+              <TheRescued d={d} />
+
+              {rows.length === 0 &&
+                <EmptyState icon="grid" title="The route answered and listed no categories"
+                  body="wmdemo/taxonomy.TOP_LEVEL is the list this screen renders. An empty list means that tuple is empty, which would itself be the defect — it does not mean the categories are fine." />}
+
+              {rows.length > 0 &&
+                <DataTable columns={columns} rows={rows} rowKey={function (r) { return r.category; }} stickyHead />}
+
+              <div style={{ marginTop: 22 }}>
+                <AliasEditor d={d}
+                  onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />
+              </div>
+
+              {(d.unfoldable || []).length > 0 &&
+                <Card density="roomy" style={{ marginTop: 22, border: '1px solid ' + P.bad }}>
+                  <SectionHead level={3} eyebrow="Below the category layer"
+                    title={d.unfoldable.length + ' category spelling' + (d.unfoldable.length === 1 ? '' : 's') + ' we refuse outright'}
+                    subtitle="No alias accepts these strings, so taxonomy._norm_category raises on them. The products carrying them are not merely unmapped — they are not filed under any category this system can reason about." />
+                  {d.unfoldable.map(function (u) {
+                    return (
+                      <div key={u.spelling} style={{ padding: '9px 12px', marginBottom: 6, background: P.surface2,
+                        border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
+                        <code style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{u.spelling || '(empty string)'}</code>
+                        <span style={{ fontSize: P.type.meta, color: P.inkDim, marginLeft: 8 }}>{num(u.products)} product{u.products === 1 ? '' : 's'}</span>
+                      </div>);
+                  })}
+                </Card>}
+            </div>
+
+            {/* THE PANEL. `top: 0` sticks it to <main>'s own padding edge --
+                the same scroll container DataTable's stickyHead already
+                sticks its header row against, so this is proven behaviour on
+                this exact page, not a new assumption about the shell. */}
+            <div style={{ position: 'sticky', top: 0 }} data-hw-binding-panel="1">
+              {(function () {
+                const r = editing ? rows.filter(function (x) { return x.category === editing; })[0] : null;
+                if (r) {
+                  return <BindingEditor row={r} tree={(d.wm_tree && d.wm_tree.tree) || []}
+                    collisions={(d.wm_tree && d.wm_tree.collisions) || []}
+                    onClose={function () { setEditing(null); }}
+                    // STAYS OPEN ON SAVE, deliberately: a category can hold several
+                    // explicit picks now, and closing after every one (the pre-multi-
+                    // bind behaviour) turned "bind Flower to two nodes" into two
+                    // separate trips through "Bindings (N)". The editor resets its
+                    // own picker/mode state after each save; only Close or picking a
+                    // different row's "Bindings" button leaves this one.
+                    onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
+                }
+                // EDITING SET BUT THE ROW IS GONE (a reload dropped it) reads the
+                // same as NOTHING SELECTED. Neither state is an error -- there is
+                // simply nothing here to bind right now.
+                return (
+                  <EmptyState icon="edit" title="No category selected"
+                    body={'Click “Pick a node” or “Bindings” on any row on the left to bind it to a Weedmaps node here — this panel stays put while the table scrolls.'} />);
+              })()}
+            </div>
           </div>}
-
-        {d && editing && (function () {
-          const r = rows.filter(function (x) { return x.category === editing; })[0];
-          if (!r) { return null; }
-          return <BindingEditor row={r} tree={(d.wm_tree && d.wm_tree.tree) || []}
-            collisions={(d.wm_tree && d.wm_tree.collisions) || []}
-            onClose={function () { setEditing(null); }}
-            // STAYS OPEN ON SAVE, deliberately: a category can hold several
-            // explicit picks now, and closing after every one (the pre-multi-
-            // bind behaviour) turned "bind Flower to two nodes" into two
-            // separate trips through "Bindings (N)". The editor resets its
-            // own picker/mode state after each save; only Close or picking a
-            // different row's "Bindings" button leaves this one.
-            onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
-        })()}
-
-        {d && <TheDefect d={d} />}
-
-        {/* THE MATCH JOIN, ABOVE THE TABLE. It is not a footnote to the table:
-            it can be the reason a table full of green badges is still wrong. */}
-        {d && <TheShutout d={d} />}
-
-        {/* CALM, AND NOT INSIDE THE DEFECT CARD. See TheRescued. */}
-        {d && <TheRescued d={d} />}
-
-        {d && rows.length === 0 &&
-          <EmptyState icon="grid" title="The route answered and listed no categories"
-            body="wmdemo/taxonomy.TOP_LEVEL is the list this screen renders. An empty list means that tuple is empty, which would itself be the defect — it does not mean the categories are fine." />}
-
-        {d && rows.length > 0 &&
-          <DataTable columns={columns} rows={rows} rowKey={function (r) { return r.category; }} stickyHead />}
-
-        {d && <div style={{ marginTop: 22 }}>
-          <AliasEditor d={d}
-            onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />
-        </div>}
-
-        {d && (d.unfoldable || []).length > 0 &&
-          <Card density="roomy" style={{ marginTop: 22, border: '1px solid ' + P.bad }}>
-            <SectionHead level={3} eyebrow="Below the category layer"
-              title={d.unfoldable.length + ' category spelling' + (d.unfoldable.length === 1 ? '' : 's') + ' we refuse outright'}
-              subtitle="No alias accepts these strings, so taxonomy._norm_category raises on them. The products carrying them are not merely unmapped — they are not filed under any category this system can reason about." />
-            {d.unfoldable.map(function (u) {
-              return (
-                <div key={u.spelling} style={{ padding: '9px 12px', marginBottom: 6, background: P.surface2,
-                  border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
-                  <code style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink }}>{u.spelling || '(empty string)'}</code>
-                  <span style={{ fontSize: P.type.meta, color: P.inkDim, marginLeft: 8 }}>{num(u.products)} product{u.products === 1 ? '' : 's'}</span>
-                </div>);
-            })}
-          </Card>}
 
         <DevNote id="catmap-what-green-means" tone="warn"
           title="What a green row here does and does not tell you">

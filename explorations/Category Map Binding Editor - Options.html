@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Category map — binding editor: interaction options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+    --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+    --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+    --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+    --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+    --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+    --r8:8px; --r10:10px; --r12:12px; --r20:20px; --r999:999px;
+    --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+    --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+    --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+    --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+    --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+    --scrim:rgba(20,18,12,.42);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg2);}
+  body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+
+  /* ── chrome for this comparison doc, not part of any mockup ─────────── */
+  .doc-head{position:sticky;top:0;z-index:50;background:var(--ink);color:var(--surface);
+    padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+  .doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+  .doc-head .sub{font-size:11.5px;color:rgba(255,255,255,.55);font-family:var(--fontMono);}
+  .seg{display:inline-flex;background:rgba(255,255,255,.08);border-radius:var(--r10);padding:3px;gap:2px;margin-left:auto;}
+  .seg button{appearance:none;border:0;background:transparent;color:rgba(255,255,255,.65);font-family:var(--fontSans);
+    font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+  .seg button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+  .seg button:not(.active):hover{color:rgba(255,255,255,.9);}
+
+  .diagnosis{max-width:1100px;margin:0 auto;padding:18px 24px 0;}
+  .diagnosis .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+    padding:16px 18px;box-shadow:var(--shadowSm);}
+  .diagnosis .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--inkMute);font-family:var(--fontMono);margin-bottom:6px;}
+  .diagnosis h2{font-size:16px;margin:0 0 6px;letter-spacing:-.01em;}
+  .diagnosis p{font-size:12.5px;color:var(--ink2);line-height:1.6;margin:0 0 6px;max-width:900px;}
+  .diagnosis code{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block;}
+
+  .stage{max-width:1100px;margin:18px auto 60px;padding:0 24px;}
+
+  /* ── replicated app atoms ─────────────────────────────────────────── */
+  .app-shell{background:var(--bg);border:1px solid var(--hairline2);border-radius:var(--r12);
+    box-shadow:var(--shadowLg);overflow:hidden;}
+  .app-topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+    padding:20px 24px 16px;border-bottom:1px solid var(--hairline);background:var(--bg);}
+  .app-topbar .eb{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--inkDim);font-family:var(--fontMono);margin-bottom:9px;}
+  .app-topbar h2{margin:0;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;}
+  .app-body{padding:20px 24px 28px;}
+
+  .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px;}
+  .card.roomy{padding:20px;}
+  .card.compact{padding:12px;}
+  .section-eb{font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+  .section-title{font-size:15px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px;color:var(--ink);}
+  .section-sub{font-size:12.5px;color:var(--inkDim);line-height:1.4;max-width:680px;}
+
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+    font-size:11.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;font-family:var(--fontSans);}
+  .pill.sm{padding:2px 7px 3px;font-size:10px;}
+  .pill-good{background:var(--goodSoft);color:var(--good);}
+  .pill-warn{background:var(--warnSoft);color:var(--warnText);}
+  .pill-bad{background:var(--badSoft);color:var(--bad);}
+  .pill-info{background:var(--infoSoft);color:var(--info);}
+  .pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+    font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+    white-space:nowrap;transition:background .12s ease;}
+  .btn-secondary{background:var(--surface);color:var(--ink);border:1px solid var(--hairline3);}
+  .btn-secondary:hover{background:var(--surface3);}
+  .btn-accent{background:var(--accent);color:var(--accentInk);border:1px solid var(--accentBorder);}
+  .btn-accent:hover{background:var(--accentHover);}
+  .btn-accent:disabled{background:var(--surface3);color:var(--inkMute);border-color:var(--hairline2);cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--ink2);border:1px solid transparent;}
+  .btn-ghost:hover{background:var(--surface3);}
+  .btn-xs{min-height:28px;padding:0 9px;font-size:11px;}
+  .btn[data-active="1"]{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+
+  code.mono{font-family:var(--fontMono);}
+
+  /* ── KPI row filler ───────────────────────────────────────────────── */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;}
+  .kpi{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+    padding:14px 16px;box-shadow:var(--shadowSm);}
+  .kpi .lbl{font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.1em;text-transform:uppercase;}
+  .kpi .val{font-family:var(--fontMono);font-size:21px;font-weight:600;margin-top:6px;}
+  .kpi .sub{font-size:11.5px;color:var(--inkDim);margin-top:2px;}
+
+  .filler-card{margin-bottom:18px;}
+
+  /* ── data table ───────────────────────────────────────────────────── */
+  table.dt{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--hairline2);
+    border-radius:var(--r12);overflow:hidden;}
+  table.dt thead th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--inkMute);background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--hairline2);}
+  table.dt tbody td{padding:13px 14px;border-bottom:1px solid var(--hairline);vertical-align:top;font-size:12.5px;}
+  table.dt tbody tr:last-child td{border-bottom:0;}
+  table.dt tbody tr.flash{animation:flashRow 1.4s ease;}
+  @keyframes flashRow{0%{background:var(--accentSoft);}100%{background:transparent;}}
+  .cat-name{font-size:13.5px;font-weight:700;}
+  .node-chain{font-size:12.5px;}
+  .node-chain b{font-weight:700;}
+  .node-id{font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);margin-left:3px;}
+  .binding-src{font-size:11px;color:var(--inkMute);}
+  .products-num{font-family:var(--fontMono);font-size:15px;font-weight:700;text-align:right;}
+
+  /* ── node picker ──────────────────────────────────────────────────── */
+  .picker-input{width:100%;box-sizing:border-box;padding:7px 10px;font-size:12.5px;font-family:var(--fontSans);
+    color:var(--ink);background:var(--surface);border:1px solid var(--hairline3);border-radius:var(--r8);}
+  .picker-list{max-height:220px;overflow-y:auto;overscroll-behavior:contain;margin-top:8px;
+    border:1px solid var(--hairline2);border-radius:var(--r10);background:var(--surface);}
+  .picker-row{display:block;width:100%;text-align:left;padding:8px 10px;background:transparent;border:0;
+    border-bottom:1px solid var(--hairline2);cursor:pointer;font:inherit;color:var(--ink);font-size:12.5px;}
+  .picker-row:last-child{border-bottom:0;}
+  .picker-row:hover{background:var(--surface3);}
+  .picker-row.selected{background:var(--accentSoft);color:var(--accentText);}
+  .picker-row .depth{padding-left:16px;font-weight:500;}
+
+  /* ── annotation callouts (mockup-only, explain the mechanism) ───────── */
+  .anno{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:var(--r10);
+    font-size:12px;line-height:1.5;margin-bottom:14px;}
+  .anno.bad{background:var(--badSoft);border:1px solid var(--bad);color:var(--ink);}
+  .anno.good{background:var(--goodSoft);border:1px solid var(--good);color:var(--ink);}
+  .anno.info{background:var(--infoSoft);border:1px solid var(--info);color:var(--ink);}
+  .anno b{font-weight:700;}
+  .anno .tag{font-family:var(--fontMono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    flex:0 0 auto;padding:2px 7px;border-radius:6px;background:rgba(0,0,0,.06);}
+
+  /* ── scrim + drawer (Direction A) ─────────────────────────────────── */
+  .scrim{position:fixed;inset:0;background:var(--scrim);z-index:300;display:none;}
+  .scrim.open{display:block;}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:min(440px,92vw);background:var(--bg);
+    border-left:1px solid var(--hairline3);box-shadow:var(--shadowLg);z-index:310;
+    transform:translateX(100%);transition:transform .22s ease;overflow-y:auto;}
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{position:sticky;top:0;background:var(--bg);padding:18px 20px 14px;border-bottom:1px solid var(--hairline2);
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;z-index:1;}
+  .drawer-body{padding:18px 20px 28px;}
+
+  /* ── split view (Direction B) ────────────────────────────────────── */
+  .split{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start;}
+  .split-left{max-height:640px;overflow-y:auto;overscroll-behavior:contain;border-radius:var(--r12);}
+  .split-right{position:sticky;top:16px;max-height:640px;overflow-y:auto;}
+  @media (max-width: 860px){ .split{grid-template-columns:1fr;} .split-right{position:static;} }
+
+  .empty-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    gap:8px;padding:48px 20px;color:var(--inkMute);font-size:12.5px;border:1px dashed var(--hairline3);
+    border-radius:var(--r12);background:var(--surface2);}
+
+  .flow-caption{text-align:center;font-size:11px;color:var(--inkMute);font-family:var(--fontMono);
+    margin:8px 0 26px;letter-spacing:.04em;text-transform:uppercase;}
+
+  .measure{font-family:var(--fontMono);}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>Category map — binding editor</h1>
+    <div class="sub">interaction options · not wired to the real app · nothing here writes anything</div>
+  </div>
+  <div class="seg" id="tabseg">
+    <button class="tab-btn active" data-tab="current">Current flow</button>
+    <button class="tab-btn" data-tab="drawer">Direction A — Drawer</button>
+    <button class="tab-btn" data-tab="split">Direction B — Side panel</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ TAB: CURRENT FLOW ══════════════════════════════ -->
+<div class="tabpanel active" id="tab-current">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Current flow — the problem, reproduced</div>
+      <h2>Two separate defects, and this tab reproduces both</h2>
+      <p><b>The scroll-to-top jump:</b> the trigger ("Bindings" / "Pick a node") lives inside a table
+        row, which can be a long way down the page — the real screen stacks an explainer, a source
+        banner, a KPI row, and three more report cards <i>above</i> the table before a single category
+        row appears. The editor itself renders in a fixed spot in the page — right after the KPI row,
+        near the very top — regardless of which row you clicked. Scrolling it into view (the existing
+        fix) works exactly as coded: it snaps the whole page back up near the top, away from the row
+        you were just looking at. That jump <i>is</i> the fix behaving correctly for the wrong layout.</p>
+      <p><b>Pick a node, then there's a bind button:</b> the node picker is its own scrollable box; the
+        actual "Add this node" button is in a second block below it that only exists after an async
+        preview call returns, and it stays disabled until you retype the exact number the preview
+        showed. Three waits and a typed number between "I picked it" and "it's bound."</p>
+      <p>Click <b>"Bindings (2)"</b> on the <b>Flower</b> row below to feel it.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app-shell">
+      <div class="app-topbar">
+        <div>
+          <div class="eb">Our categories ↔ Weedmaps' categories</div>
+          <h2>Category map</h2>
+        </div>
+        <button class="btn btn-secondary">↻ Reload</button>
+      </div>
+      <div class="app-body" id="current-body">
+
+        <div class="card roomy filler-card">
+          <div class="section-eb">Two taxonomies, one name lookup</div>
+          <div class="section-title">Our category names are matched against Weedmaps' node names.</div>
+          <div class="section-sub">A product's raw category string folds to one of our nine canonical
+            names, which is looked up against Weedmaps' node names. On a hit the item publishes bound
+            to the node's ids. On a miss the field is simply left off.</div>
+        </div>
+
+        <div class="card compact filler-card" style="background:var(--surface2)">
+          <div class="section-eb">Where these numbers come from</div>
+          <div class="section-sub" style="margin-top:6px">GET /api/taxonomy/categories answered HTTP 200.
+            Weedmaps' side: 94 nodes collapsing to 93 distinct names. Our side: 1,529 product rows
+            carrying 14 distinct category spellings.</div>
+        </div>
+
+        <div class="kpi-row filler-card">
+          <div class="kpi"><div class="lbl">Our categories</div><div class="val">9</div><div class="sub">7 resolve · 2 unused</div></div>
+          <div class="kpi"><div class="lbl">No Weedmaps node</div><div class="val">1</div><div class="sub">allowed, not a task</div></div>
+          <div class="kpi"><div class="lbl">SKUs uncategorised</div><div class="val">0</div><div class="sub">every spelling reaches a node</div></div>
+          <div class="kpi"><div class="lbl">Saved by alias layer</div><div class="val">4</div><div class="sub">would publish uncategorised without it</div></div>
+          <div class="kpi"><div class="lbl">Our products</div><div class="val">1,529</div><div class="sub">every spelling accepted</div></div>
+        </div>
+
+        <div id="current-editor-slot"></div>
+
+        <div class="card roomy filler-card" style="border-color:var(--hairline2)">
+          <div class="section-eb">Products publishing to Weedmaps with no category</div>
+          <div class="section-title" style="color:var(--good)">No SKU publishes uncategorised right now</div>
+          <div class="section-sub">Every category spelling in the catalog folds to a canonical name
+            that resolves to a real Weedmaps node, or to one deliberately left unbound.</div>
+        </div>
+
+        <div class="card compact filler-card" style="background:var(--surface2)">
+          <div class="section-eb">The other join</div>
+          <div class="section-sub" style="margin-top:6px">Every catalogue spelling is also spelt the way
+            the matcher joins on, so no SKU is excluded before scoring.</div>
+        </div>
+
+        <div class="card roomy filler-card">
+          <div class="section-eb">Already fixed — nothing here is waiting on anybody</div>
+          <div class="section-title">4 SKUs would publish with no category, and do not</div>
+          <div class="section-sub">These raw spellings match no Weedmaps node name on their own; the
+            alias layer catches them before publish.</div>
+        </div>
+
+        <table class="dt" id="current-table">
+          <thead><tr>
+            <th style="width:18%">Our category</th>
+            <th style="width:30%">Weedmaps node</th>
+            <th style="width:22%">Matcher joins on</th>
+            <th style="width:18%">Accepted spellings</th>
+            <th style="width:12%;text-align:right">Our products</th>
+          </tr></thead>
+          <tbody id="current-tbody"></tbody>
+        </table>
+
+      </div>
+    </div>
+    <div class="flow-caption">↑ this single app frame is ~2,000px tall before you click anything — the editor you're about to open lives near the very top of it</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ TAB: DIRECTION A — DRAWER ══════════════════════════════ -->
+<div class="tabpanel" id="tab-drawer">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Direction A — a drawer that takes over, in place</div>
+      <h2>The editor stops living in the page's document flow</h2>
+      <p>"Bindings" now opens a fixed-position panel anchored to the <i>viewport</i>, not to a spot in
+        the page. It doesn't matter whether the row is 200px down or 2,000px down — the drawer appears
+        in the same place, the page behind it never scrolls, and closing it costs nothing: you're
+        exactly where you left off. Inside, the picker and the confirm-and-bind step sit in the same
+        panel, one directly under the other, so selecting a node and confirming the bind read as one
+        continuous action instead of two sections separated by a network round trip.</p>
+      <p>Click <b>"Bindings (2)"</b> on the <b>Flower</b> row below — notice the page doesn't move at all.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app-shell">
+      <div class="app-topbar">
+        <div>
+          <div class="eb">Our categories ↔ Weedmaps' categories</div>
+          <h2>Category map</h2>
+        </div>
+        <button class="btn btn-secondary">↻ Reload</button>
+      </div>
+      <div class="app-body">
+
+        <div class="card roomy filler-card">
+          <div class="section-eb">Two taxonomies, one name lookup</div>
+          <div class="section-title">Our category names are matched against Weedmaps' node names.</div>
+          <div class="section-sub">Same explainer as today — kept, because the complaint was never
+            about this card.</div>
+        </div>
+
+        <div class="kpi-row filler-card">
+          <div class="kpi"><div class="lbl">Our categories</div><div class="val">9</div><div class="sub">7 resolve · 2 unused</div></div>
+          <div class="kpi"><div class="lbl">No Weedmaps node</div><div class="val">1</div><div class="sub">allowed, not a task</div></div>
+          <div class="kpi"><div class="lbl">SKUs uncategorised</div><div class="val">0</div><div class="sub">every spelling reaches a node</div></div>
+          <div class="kpi"><div class="lbl">Our products</div><div class="val">1,529</div><div class="sub">every spelling accepted</div></div>
+        </div>
+
+        <table class="dt" id="drawer-table">
+          <thead><tr>
+            <th style="width:18%">Our category</th>
+            <th style="width:30%">Weedmaps node</th>
+            <th style="width:22%">Matcher joins on</th>
+            <th style="width:18%">Accepted spellings</th>
+            <th style="width:12%;text-align:right">Our products</th>
+          </tr></thead>
+          <tbody id="drawer-tbody"></tbody>
+        </table>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="scrim" id="drawer-scrim"></div>
+  <div class="drawer" id="drawer-panel">
+    <div class="drawer-head">
+      <div>
+        <div class="section-eb">Weedmaps bindings</div>
+        <div class="section-title" id="drawer-title" style="font-size:16px">Flower's Weedmaps nodes</div>
+      </div>
+      <button class="btn btn-ghost btn-xs" id="drawer-close">✕ Close</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════ TAB: DIRECTION B — SPLIT VIEW ══════════════════════════════ -->
+<div class="tabpanel" id="tab-split">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Direction B — a persistent side panel</div>
+      <h2>Table and editor share the screen instead of trading places</h2>
+      <p>The table gets its own scroll region on the left; a binding panel sits fixed on the right for
+        the whole session. Nothing opens or closes — clicking "Bindings" on any row just swaps what the
+        panel shows, instantly, with no transition to watch and no position to lose. You can compare
+        two categories' bindings back to back without ever losing the table under you. This direction
+        costs the most layout space and reads best on a wide screen; on narrow viewports the panel
+        drops below the table instead of beside it.</p>
+      <p>Click <b>"Bindings (2)"</b> on <b>Flower</b>, then click <b>"Pick a node"</b> on <b>Vapes</b> —
+        watch the panel update without the table ever losing your place.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app-shell">
+      <div class="app-topbar">
+        <div>
+          <div class="eb">Our categories ↔ Weedmaps' categories</div>
+          <h2>Category map</h2>
+        </div>
+        <button class="btn btn-secondary">↻ Reload</button>
+      </div>
+      <div class="app-body">
+
+        <div class="split">
+          <div class="split-left">
+            <div class="card roomy filler-card">
+              <div class="section-eb">Two taxonomies, one name lookup</div>
+              <div class="section-title" style="font-size:14px">Our category names are matched against Weedmaps' node names.</div>
+            </div>
+            <div class="kpi-row filler-card">
+              <div class="kpi"><div class="lbl">Our categories</div><div class="val">9</div></div>
+              <div class="kpi"><div class="lbl">No WM node</div><div class="val">1</div></div>
+              <div class="kpi"><div class="lbl">Products</div><div class="val">1,529</div></div>
+            </div>
+            <table class="dt" id="split-table">
+              <thead><tr>
+                <th style="width:22%">Our category</th>
+                <th style="width:38%">Weedmaps node</th>
+                <th style="width:26%">Matcher joins on</th>
+                <th style="width:14%;text-align:right">Products</th>
+              </tr></thead>
+              <tbody id="split-tbody"></tbody>
+            </table>
+          </div>
+          <div class="split-right">
+            <div id="split-panel">
+              <div class="empty-panel">
+                <div style="font-size:22px">◧</div>
+                <div><b style="color:var(--ink2)">No category selected</b></div>
+                <div>Click "Pick a node" or "Bindings" on any row to bind it here.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ── shared fake data ──────────────────────────────────────────────
+  var NODES = [
+    {id:2,  name:'Flower'},
+    {id:184,name:'Ground', depth:1},
+    {id:201,name:'Pre-Ground', depth:1},
+    {id:92, name:'Infused Flower', depth:1},
+    {id:15, name:'Vape Cartridges'},
+    {id:190,name:'Live Resin Carts', depth:1},
+    {id:8,  name:'Edibles'},
+    {id:55, name:'Gummies', depth:1},
+    {id:40, name:'Concentrates'},
+    {id:178,name:'Rosin', depth:1}
+  ];
+
+  function rowsData(){
+    return [
+      { cat:'Flower', state:'good', bindings:[{id:2,name:'Flower'},{id:184,name:'Ground'}],
+        match:'Flower', spellings:3, products:412 },
+      { cat:'Vapes', state:'good', bindings:[], nameMatch:{id:15,name:'Vape Cartridges'},
+        match:'Vapes', spellings:2, products:298 },
+      { cat:'Edibles', state:'good', bindings:[], nameMatch:{id:8,name:'Edibles'},
+        match:'Edibles', spellings:4, products:181 },
+      { cat:'Concentrates', state:'good', bindings:[], nameMatch:{id:40,name:'Concentrates'},
+        match:'Concentrates', spellings:3, products:97 },
+      { cat:'Deals', state:'info', bindings:[], nameMatch:null,
+        match:null, spellings:1, products:0 }
+    ];
+  }
+
+  function pillFor(state){
+    if (state==='good') return '<span class="pill pill-good sm">✓ resolves</span>';
+    if (state==='info') return '<span class="pill pill-info sm">⊘ NO WEEDMAPS NODE</span>';
+    return '<span class="pill pill-neutral sm">'+state+'</span>';
+  }
+
+  function nodeCellHTML(r){
+    if (r.bindings.length){
+      return r.bindings.map(function(b,i){
+        return '<div class="node-chain"><b>'+b.name+'</b><span class="node-id">['+b.id+']</span>'+
+          (r.bindings.length>1 ? ' <span style="font-size:10.5px;color:var(--inkMute)">(one of '+r.bindings.length+')</span>' : '')+'</div>';
+      }).join('');
+    }
+    if (r.nameMatch){
+      return '<div class="node-chain"><b>'+r.nameMatch.name+'</b><span class="node-id">['+r.nameMatch.id+']</span></div>';
+    }
+    return '<span class="pill pill-info sm">no node exists</span>';
+  }
+
+  function sourceLabel(r){
+    if (r.bindings.length) return r.bindings.length+' explicit pick'+(r.bindings.length===1?'':'s');
+    if (r.nameMatch) return 'matched by name, not chosen';
+    return 'nothing bound — allowed';
+  }
+
+  function editBtnLabel(r){
+    return r.bindings.length ? 'Bindings ('+r.bindings.length+')' : 'Pick a node';
+  }
+
+  function tableRowHTML(r, editAttrs){
+    return '<tr data-cat="'+r.cat+'">'+
+      '<td><div class="cat-name">'+r.cat+'</div><div style="margin-top:4px">'+pillFor(r.state)+'</div></td>'+
+      '<td>'+nodeCellHTML(r)+
+        '<div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<span class="binding-src">'+sourceLabel(r)+'</span>'+
+        '<button class="btn btn-xs btn-secondary" '+editAttrs+'>'+editBtnLabel(r)+'</button>'+
+        '</div></td>'+
+      '<td>'+(r.match ? '<code class="mono" style="font-size:12.5px;font-weight:700">'+r.match+'</code> <span class="pill pill-good sm">joins</span>' : '<span class="pill pill-warn sm">no key</span>')+'</td>'+
+      '<td>'+r.spellings+' alias'+(r.spellings===1?'':'es')+'</td>'+
+      '<td class="products-num">'+r.products.toLocaleString()+'</td>'+
+      '</tr>';
+  }
+
+  function pickerHTML(prefix){
+    var opts = NODES.map(function(n){
+      return '<button type="button" class="picker-row'+(n.depth?' depth':'')+'" data-node-id="'+n.id+'" data-node-name="'+n.name+'" data-prefix="'+prefix+'">'+
+        n.name+' <span class="node-id">['+n.id+']</span></button>';
+    }).join('');
+    return '<div class="section-eb" style="margin-top:2px">Pick a node</div>'+
+      '<input class="picker-input" placeholder="Filter 94 Weedmaps nodes by name, slug or id" data-filter="'+prefix+'">'+
+      '<div class="picker-list" data-list="'+prefix+'">'+opts+'</div>';
+  }
+
+  function wirePickerFilter(prefix){
+    var input = document.querySelector('[data-filter="'+prefix+'"]');
+    var list = document.querySelector('[data-list="'+prefix+'"]');
+    if (!input || !list) return;
+    input.addEventListener('input', function(){
+      var q = input.value.trim().toLowerCase();
+      list.querySelectorAll('.picker-row').forEach(function(btn){
+        var hay = (btn.dataset.nodeName+' '+btn.dataset.nodeId).toLowerCase();
+        btn.style.display = (!q || hay.indexOf(q) >= 0) ? '' : 'none';
+      });
+    });
+  }
+
+  // ═══════════════════════ TAB 1: current flow ═══════════════════════
+  (function(){
+    var data = rowsData();
+    var tbody = document.getElementById('current-tbody');
+    var slot = document.getElementById('current-editor-slot');
+
+    function render(){
+      tbody.innerHTML = data.map(function(r){
+        return tableRowHTML(r, 'data-edit="'+r.cat+'"');
+      }).join('');
+    }
+    render();
+
+    var openCat = null;
+    var stage = 0; // 0 idle, 1 node picked (waiting), 2 preview shown
+
+    function closeEditor(){ openCat=null; stage=0; slot.innerHTML=''; }
+
+    function openEditor(cat){
+      openCat = cat; stage = 0;
+      var r = data.filter(function(x){return x.cat===cat;})[0];
+      var jumpFrom = document.querySelector('#current-table tr[data-cat="'+cat+'"]');
+      var fromTop = jumpFrom ? jumpFrom.getBoundingClientRect().top + window.scrollY : 0;
+
+      slot.innerHTML =
+        '<div class="card roomy filler-card" style="border:1px solid var(--accentBorder)" id="current-editor-card">'+
+          '<div class="anno bad"><span class="tag">jumped</span><span>This editor opened <b><span id="jump-distance">…</span></b> away from the <b>'+cat+'</b> row you clicked. The editor always renders here — right under the KPI row — no matter which row triggered it.</span></div>'+
+          '<div class="section-eb">Weedmaps bindings</div>'+
+          '<div class="section-title">'+cat+"'s Weedmaps node"+(r.bindings.length===1?'':'s')+'</div>'+
+          '<div class="section-sub" style="margin-bottom:12px">'+
+            (r.bindings.length ? r.bindings.length+' explicit pick'+(r.bindings.length===1?'':'s')+' — a category can bind more than one node.' : 'not bound to anything yet.')+
+          '</div>'+
+          (r.bindings.length ? '<div style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px">'+
+            r.bindings.map(function(b){
+              return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:8px"><div class="node-chain"><b>'+b.name+'</b><span class="node-id">['+b.id+']</span></div><button class="btn btn-xs btn-ghost">✕ Remove</button></div>';
+            }).join('')+'</div>' : '')+
+          '<div style="margin-bottom:12px"><button class="btn btn-secondary" data-active="1">'+(r.bindings.length?'Add another node':'Pick a node')+'</button></div>'+
+          '<div id="current-picker-slot">'+pickerHTML('cur')+'</div>'+
+          '<div id="current-preview-slot" style="margin-top:12px"></div>'+
+          '<div style="text-align:right;margin-top:10px"><button class="btn btn-ghost btn-xs" id="current-close">✕ Close</button></div>'+
+        '</div>';
+
+      wirePickerFilter('cur');
+      document.getElementById('current-close').addEventListener('click', closeEditor);
+      document.querySelectorAll('[data-prefix="cur"]').forEach(function(btn){
+        btn.addEventListener('click', function(){ pickNode(btn.dataset.nodeId, btn.dataset.nodeName); });
+      });
+
+      requestAnimationFrame(function(){
+        var card = document.getElementById('current-editor-card');
+        card.scrollIntoView({block:'nearest', behavior:'smooth'});
+        setTimeout(function(){
+          var toTop = card.getBoundingClientRect().top + window.scrollY;
+          var delta = Math.round(Math.abs(toTop - fromTop));
+          var el = document.getElementById('jump-distance');
+          if (el) el.textContent = delta + 'px';
+        }, 260);
+      });
+    }
+
+    function pickNode(id, name){
+      var previewSlot = document.getElementById('current-preview-slot');
+      previewSlot.innerHTML = '<div class="section-sub" style="padding:10px 0">Reading what this would change…</div>';
+      document.querySelectorAll('#current-picker-slot .picker-row').forEach(function(b){ b.classList.remove('selected'); });
+      var chosen = document.querySelector('#current-picker-slot [data-node-id="'+id+'"]');
+      if (chosen) chosen.classList.add('selected');
+
+      setTimeout(function(){
+        var n = 24 + Math.floor(Math.random()*40);
+        previewSlot.innerHTML =
+          '<div class="anno info" style="margin-bottom:0"><span class="tag">separate step</span><span>The preview only appears now, after a round trip — this is the "then there is a bind button" gap.</span></div>'+
+          '<div class="card compact" style="background:var(--surface2);margin-top:10px">'+
+            '<div class="section-eb">What this would change, before it changes</div>'+
+            '<div style="font-size:12.5px;margin-top:6px">Binding <b>'+openCat+'</b> to <b>'+name+' ['+id+']</b> would affect <b>'+n+'</b> products.</div>'+
+            '<div style="margin-top:10px;font-size:12px;color:var(--inkDim)">Type <b>'+n+'</b> to confirm:</div>'+
+            '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">'+
+              '<input id="current-echo" class="picker-input" style="width:90px" inputmode="numeric" placeholder="count">'+
+              '<button class="btn btn-accent" id="current-save" disabled>Add this node</button>'+
+            '</div>'+
+          '</div>';
+        var echo = document.getElementById('current-echo');
+        var save = document.getElementById('current-save');
+        echo.addEventListener('input', function(){
+          save.disabled = (echo.value.trim() !== String(n));
+        });
+        save.addEventListener('click', function(){
+          var r = data.filter(function(x){return x.cat===openCat;})[0];
+          r.bindings.push({id:Number(id), name:name});
+          render();
+          closeEditor();
+          var tr = document.querySelector('#current-table tr[data-cat="'+openCat+'"]');
+          if (tr){ tr.classList.add('flash'); }
+        });
+      }, 550);
+    }
+
+    tbody.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-edit]');
+      if (!btn) return;
+      var cat = btn.dataset.edit;
+      if (openCat === cat){ closeEditor(); } else { openEditor(cat); }
+    });
+  })();
+
+  // ═══════════════════════ TAB 2: drawer ═══════════════════════
+  (function(){
+    var data = rowsData();
+    var tbody = document.getElementById('drawer-tbody');
+    var scrim = document.getElementById('drawer-scrim');
+    var panel = document.getElementById('drawer-panel');
+    var title = document.getElementById('drawer-title');
+    var body = document.getElementById('drawer-body');
+    var openCat = null;
+
+    function render(){
+      tbody.innerHTML = data.map(function(r){ return tableRowHTML(r, 'data-edit="'+r.cat+'"'); }).join('');
+    }
+    render();
+
+    function close(){ openCat=null; scrim.classList.remove('open'); panel.classList.remove('open'); }
+    scrim.addEventListener('click', close);
+    document.getElementById('drawer-close').addEventListener('click', close);
+
+    function open(cat){
+      openCat = cat;
+      var r = data.filter(function(x){return x.cat===cat;})[0];
+      title.textContent = cat+"'s Weedmaps node"+(r.bindings.length===1?'':'s');
+      body.innerHTML =
+        '<div class="anno good"><span class="tag">no jump</span><span>The page behind this drawer has not moved — 0px. Close it and you are exactly where you clicked.</span></div>'+
+        '<div class="section-sub" style="margin-bottom:12px">'+
+          (r.bindings.length ? r.bindings.length+' explicit pick'+(r.bindings.length===1?'':'s')+' — a category can bind more than one node.' : 'not bound to anything yet.')+
+        '</div>'+
+        (r.bindings.length ? '<div style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px">'+
+          r.bindings.map(function(b){
+            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:8px"><div class="node-chain"><b>'+b.name+'</b><span class="node-id">['+b.id+']</span></div><button class="btn btn-xs btn-ghost">✕ Remove</button></div>';
+          }).join('')+'</div>' : '')+
+        '<button class="btn btn-secondary" data-active="1" style="margin-bottom:10px">'+(r.bindings.length?'Add another node':'Pick a node')+'</button>'+
+        pickerHTML('drw')+
+        '<div id="drawer-preview-slot" style="margin-top:12px"></div>';
+
+      wirePickerFilter('drw');
+      document.querySelectorAll('[data-prefix="drw"]').forEach(function(btn){
+        btn.addEventListener('click', function(){ pickNode(btn.dataset.nodeId, btn.dataset.nodeName); });
+      });
+
+      scrim.classList.add('open');
+      panel.classList.add('open');
+    }
+
+    function pickNode(id, name){
+      var previewSlot = document.getElementById('drawer-preview-slot');
+      document.querySelectorAll('#drawer-panel .picker-row').forEach(function(b){ b.classList.remove('selected'); });
+      var chosen = document.querySelector('#drawer-panel [data-node-id="'+id+'"]');
+      if (chosen) chosen.classList.add('selected');
+      previewSlot.innerHTML = '<div class="section-sub" style="padding:8px 0">Reading what this would change…</div>';
+      setTimeout(function(){
+        var n = 24 + Math.floor(Math.random()*40);
+        previewSlot.innerHTML =
+          '<div class="card compact" style="background:var(--surface2)">'+
+            '<div style="font-size:12.5px">Bind to <b>'+name+' ['+id+']</b> — affects <b>'+n+'</b> products.</div>'+
+            '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'+
+              '<input id="drawer-echo" class="picker-input" style="width:80px" inputmode="numeric" placeholder="'+n+'">'+
+              '<button class="btn btn-accent" id="drawer-save" disabled>Confirm &amp; bind</button>'+
+            '</div>'+
+          '</div>';
+        var echo = document.getElementById('drawer-echo');
+        var save = document.getElementById('drawer-save');
+        echo.addEventListener('input', function(){ save.disabled = (echo.value.trim() !== String(n)); });
+        save.addEventListener('click', function(){
+          var r = data.filter(function(x){return x.cat===openCat;})[0];
+          r.bindings.push({id:Number(id), name:name});
+          render();
+          close();
+          var tr = document.querySelector('#drawer-table tr[data-cat="'+r.cat+'"]');
+          if (tr){ tr.classList.add('flash'); }
+        });
+      }, 400);
+    }
+
+    tbody.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-edit]');
+      if (!btn) return;
+      open(btn.dataset.edit);
+    });
+  })();
+
+  // ═══════════════════════ TAB 3: split view ═══════════════════════
+  (function(){
+    var data = rowsData();
+    var tbody = document.getElementById('split-tbody');
+    var panelEl = document.getElementById('split-panel');
+    var openCat = null;
+
+    function shortRow(r){
+      return '<tr data-cat="'+r.cat+'">'+
+        '<td><div class="cat-name">'+r.cat+'</div><div style="margin-top:4px">'+pillFor(r.state)+'</div></td>'+
+        '<td>'+nodeCellHTML(r)+
+          '<div style="margin-top:6px"><button class="btn btn-xs btn-secondary" data-edit="'+r.cat+'">'+editBtnLabel(r)+'</button></div></td>'+
+        '<td>'+(r.match ? '<code class="mono" style="font-size:12px;font-weight:700">'+r.match+'</code>' : '<span class="pill pill-warn sm">no key</span>')+'</td>'+
+        '<td class="products-num">'+r.products.toLocaleString()+'</td>'+
+        '</tr>';
+    }
+    function render(){ tbody.innerHTML = data.map(shortRow).join(''); }
+    render();
+
+    function renderPanel(cat){
+      openCat = cat;
+      var r = data.filter(function(x){return x.cat===cat;})[0];
+      panelEl.innerHTML =
+        '<div class="card roomy" style="border:1px solid var(--accentBorder)">'+
+          '<div class="anno good" style="margin-bottom:12px"><span class="tag">stays put</span><span>The table on the left keeps its own scroll position. This panel just swaps content — nothing moved.</span></div>'+
+          '<div class="section-eb">Weedmaps bindings</div>'+
+          '<div class="section-title" style="font-size:15px">'+cat+"'s Weedmaps node"+(r.bindings.length===1?'':'s')+'</div>'+
+          '<div class="section-sub" style="margin:4px 0 12px">'+
+            (r.bindings.length ? r.bindings.length+' explicit pick'+(r.bindings.length===1?'':'s')+'.' : 'not bound to anything yet.')+
+          '</div>'+
+          (r.bindings.length ? '<div style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px">'+
+            r.bindings.map(function(b){
+              return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 9px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:8px;font-size:12px"><div class="node-chain"><b>'+b.name+'</b><span class="node-id">['+b.id+']</span></div><button class="btn btn-xs btn-ghost">✕</button></div>';
+            }).join('')+'</div>' : '')+
+          '<button class="btn btn-secondary btn-xs" data-active="1" style="margin-bottom:10px">'+(r.bindings.length?'Add another node':'Pick a node')+'</button>'+
+          pickerHTML('spl')+
+          '<div id="split-preview-slot" style="margin-top:12px"></div>'+
+        '</div>';
+
+      wirePickerFilter('spl');
+      document.querySelectorAll('[data-prefix="spl"]').forEach(function(btn){
+        btn.addEventListener('click', function(){ pickNode(btn.dataset.nodeId, btn.dataset.nodeName); });
+      });
+    }
+
+    function pickNode(id, name){
+      var previewSlot = document.getElementById('split-preview-slot');
+      document.querySelectorAll('#split-panel .picker-row').forEach(function(b){ b.classList.remove('selected'); });
+      var chosen = document.querySelector('#split-panel [data-node-id="'+id+'"]');
+      if (chosen) chosen.classList.add('selected');
+      previewSlot.innerHTML = '<div class="section-sub" style="padding:6px 0">Reading what this would change…</div>';
+      setTimeout(function(){
+        var n = 24 + Math.floor(Math.random()*40);
+        previewSlot.innerHTML =
+          '<div class="card compact" style="background:var(--surface2)">'+
+            '<div style="font-size:12px">Bind to <b>'+name+' ['+id+']</b> — affects <b>'+n+'</b> products.</div>'+
+            '<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'+
+              '<input id="split-echo" class="picker-input" style="width:76px" inputmode="numeric" placeholder="'+n+'">'+
+              '<button class="btn btn-accent btn-xs" id="split-save" disabled>Confirm &amp; bind</button>'+
+            '</div>'+
+          '</div>';
+        var echo = document.getElementById('split-echo');
+        var save = document.getElementById('split-save');
+        echo.addEventListener('input', function(){ save.disabled = (echo.value.trim() !== String(n)); });
+        save.addEventListener('click', function(){
+          var r = data.filter(function(x){return x.cat===openCat;})[0];
+          r.bindings.push({id:Number(id), name:name});
+          render();
+          renderPanel(openCat);
+          var tr = document.querySelector('#split-table tr[data-cat="'+r.cat+'"]');
+          if (tr){ tr.classList.add('flash'); }
+        });
+      }, 400);
+    }
+
+    tbody.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-edit]');
+      if (!btn) return;
+      renderPanel(btn.dataset.edit);
+    });
+  })();
+
+  // ═══════════════════════ tab switching ═══════════════════════
+  document.getElementById('tabseg').addEventListener('click', function(e){
+    var btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    var id = btn.dataset.tab;
+    document.querySelectorAll('.tabpanel').forEach(function(p){ p.classList.remove('active'); });
+    document.getElementById('tab-'+id).classList.add('active');
+    window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+  });
+})();
+</script>
+
+</body>
+</html>
