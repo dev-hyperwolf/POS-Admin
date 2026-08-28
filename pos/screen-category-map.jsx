@@ -872,14 +872,38 @@
         || String(n.id) === needle;
     };
     const shown = [];
-    roots.forEach(function (r) {
-      const ch = (kids[r.id] || []).filter(hit);
-      if (hit(r) || ch.length) {
-        shown.push({ node: r, depth: 0 });
-        (hit(r) ? (kids[r.id] || []) : ch).forEach(function (c) {
-          shown.push({ node: c, depth: 1 });
-        });
+    // FULL DEPTH, NOT TWO LEVELS. This walked roots and then kids[r.id] and
+    // stopped, so anything at depth 2 or deeper was never rendered and the filter
+    // only narrowed an already-truncated list. Measured against the live 94-node
+    // tree: 47 OF 94 NODES WERE UNREACHABLE. That included BOTH Diamonds --
+    // 423 under Solvent under Concentrates, and 428 under Rosin under Solventless
+    // under Concentrates, each at depth 3 -- so typing "diamonds" into the filter
+    // returned nothing at all. Also unreachable: every child of Apparel, Bongs
+    // and Dab Rigs, plus Rolling Papers, RSO and Tinctures.
+    //
+    // The collision between the two Diamonds is the reason the picker exists at
+    // all: the name match cannot separate them, so PICKING is the only way to
+    // bind the loser. A picker that cannot show either one cannot do the single
+    // job it was built for.
+    //
+    // A whole branch is kept when the branch ITSELF matches, so filtering to a
+    // parent still reveals what is under it; otherwise only matching descendants
+    // survive, and an ancestor is carried along only when it has a surviving
+    // child -- so no node is ever shown without the path that explains it.
+    const walk = function (node, depth, ancestorHit) {
+      const selfHit = hit(node);
+      const children = kids[node.id] || [];
+      const rows = [];
+      children.forEach(function (c) {
+        rows.push.apply(rows, walk(c, depth + 1, ancestorHit || selfHit));
+      });
+      if (selfHit || ancestorHit || rows.length) {
+        return [{ node: node, depth: depth }].concat(rows);
       }
+      return [];
+    };
+    roots.forEach(function (r) {
+      shown.push.apply(shown, walk(r, 0, false));
     });
     // Orphans: a node whose parent is not in the capture. Shown rather than
     // dropped — a node we cannot place is still a node somebody may need, and
