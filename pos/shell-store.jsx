@@ -330,34 +330,108 @@
     }));
   }
 
+  // Reads the TRUE stored row for one sku off the new GET /api/product/<sku>
+  // (wmdemo/server.py) — the same shape catalog.upsert_product reads/writes
+  // (weight nested, tags a list), NOT the live-adapted shape adaptProducts
+  // hands the rest of this page (shared/hw-live.js), which is missing
+  // items_per_pack and the raw weight split. Resolves { ok: false, ... } on a
+  // network failure, a missing read seam, or an unknown sku (404) — never
+  // rejects, same contract as pushProduct/readBackProduct below.
+  function fetchRawProduct(sku) {
+    const get = window.HW_LIVE && typeof window.HW_LIVE.get === 'function' ? window.HW_LIVE.get : null;
+    if (!get) {
+      return Promise.resolve({ ok: false, error: 'no-write-path',
+        hint: 'shared/hw-live.js is not on this page — there is no read path to call.' });
+    }
+    return get('/api/product/' + encodeURIComponent(sku)).then((r) => {
+      const b = r.body || {};
+      if (r.ok && !b.error) return { ok: true, product: b };
+      return { ok: false, code: r.code, error: b.error || r.error || ('HTTP ' + r.code),
+        hint: r.hint || null };
+    });
+  }
+
+  // Raw catalog row (fetchRawProduct's shape) -> the flat POST /api/product
+  // body (server.py's do_POST reads weight_unit/weight_value and a comma
+  // string for tags, not the nested/array forms the row itself stores). Every
+  // key server.py's writer names is carried through explicitly — the same
+  // discipline productPayload above already follows for a NEW variation — so
+  // a get-then-modify-then-put through this function drops nothing: `sample`,
+  // `items_per_pack`, `wm_manual_unpublish`, thc/cbd, the WM ids, all of it.
+  // `overrides` is applied last and wins, e.g. { name: next }.
+  function rawToPayload(raw, overrides) {
+    const w = raw.weight || {};
+    const body = {
+      sku: raw.sku,
+      name: raw.name,
+      category: raw.category,
+      price: raw.price,
+      sale_pct: raw.sale_pct != null ? raw.sale_pct : '',
+      weight_unit: w.unit || 'g',
+      weight_value: w.value != null ? String(w.value) : '1.0',
+      genetics: raw.genetics || null,
+      strain: raw.strain || null,
+      thc: raw.thc || null,
+      cbd: raw.cbd || null,
+      description: raw.description || null,
+      image_url: raw.image_url || null,
+      brand_name: raw.brand_name || null,
+      wm_brand_id: raw.wm_brand_id || null,
+      wm_product_id: raw.wm_product_id || null,
+      items_per_pack: raw.items_per_pack || null,
+      inventory: raw.inventory != null ? raw.inventory : 25,
+      sample: !!raw.sample,
+      wm_manual_unpublish: !!raw.wm_manual_unpublish,
+      tags: Array.isArray(raw.tags) ? raw.tags.join(',') : (raw.tags || '')
+    };
+    return Object.assign(body, overrides || {});
+  }
+
   // A variation's NAME is a variation field, not a shell field — the flavour or
   // strain that distinguishes it inside the family. It is renamed in place from
-  // wherever the product is open (product detail, shell page) with no round-trip.
+  // wherever the product is open (product detail, shell page).
   //
-  // THE REAL SYNC THIS FUNCTION DOES NOT ATTEMPT, AND WHY. This is the other
-  // half of "editing an existing product has the same disconnected-mock
-  // problem" (2026-08-28 audit) — confirmed: a rename here never reaches
-  // Weedmaps either. It is NOT fixed the way createVariation is above, on
-  // purpose: /api/product is a full upsert with no partial-PATCH form, and
-  // there is no GET /api/product/<sku> — the only per-sku read this estate
-  // has is the LIVE-ADAPTED shape (shared/hw-live.js adaptProducts), which
-  // does not carry every raw field the row actually stores (items_per_pack
-  // and the raw weight split are absent — see that file's own return object;
-  // `sample` WAS also missing here and is now carried straight through).
-  // Rebuilding a full upsert body from that lossy shape
-  // would silently erase whatever it drops — a worse defect than the one
-  // being fixed, for the sake of a rename. The safe fix needs a real
-  // GET /api/product/<sku> on wmdemo's side first; flagged as a follow-up
-  // rather than patched around here.
+  // NOW FIXED, on the same "write, then read back to confirm" discipline as
+  // createVariation above: GET the current row (fetchRawProduct), change only
+  // `name` on it (rawToPayload), POST the complete object back, then confirm
+  // via readBackProduct before touching the mock. WAS a pure client-side
+  // rename with no server round-trip at all (2026-08-28 audit) — deliberately
+  // NOT fixed by rebuilding a payload from the live-adapted shape this page
+  // already had, because that shape drops items_per_pack and the raw weight
+  // split and would have silently erased them on every rename. The missing
+  // piece was GET /api/product/<sku>, added alongside this fix.
+  //
+  // Returns a promise of { ok, sku, wm, error, hint } — same shape
+  // createVariation returns, for the same reason: one contract, one place
+  // (screen-catalog.jsx's inline name editor) that shows an operator what
+  // happened.
   function renameVariation(shellId, sku, next) {
     const name = (next || '').trim();
-    if (!name) return false;
-    SHELLS = allShells().map((s) => s.id !== shellId ? s :
-    { ...s, variations: s.variations.map((v) => v.sku === sku ? { ...v, name, thumb: v.thumb ? { ...v.thumb, name } : v.thumb } : v) });
-    const prod = (HW.PRODUCTS || []).find((x) => x.sku === sku);
-    if (prod) prod.name = name;
-    emit();
-    return true;
+    if (!name) return Promise.resolve({ ok: false, sku, error: 'empty_name', hint: 'Enter a name.' });
+    return fetchRawProduct(sku).then((g) => {
+      if (!g.ok) {
+        return { ok: false, sku, error: g.error || 'not_found',
+          hint: g.hint || ('Could not read the current record for ' + sku +
+            ' before renaming it — nothing was changed.') };
+      }
+      const body = rawToPayload(g.product, { name });
+      return pushProduct(body).then((r) => readBackProduct(sku).then((live) => {
+        if (!live || live.name !== name) {
+          return { ok: false, sku, error: r.error || 'not_confirmed',
+            hint: r.hint || ('A fresh read of the catalog does not show the new '
+              + 'name for ' + sku + ' — the rename may not have landed.') };
+        }
+        // CONFIRMED. Same "populate FROM the confirmed row" rule as
+        // createVariation: the shell list shows what the server holds.
+        SHELLS = allShells().map((s) => s.id !== shellId ? s :
+        { ...s, variations: s.variations.map((v) => v.sku === sku ?
+          { ...v, name: live.name, sample: !!live.sample, thumb: live } : v) });
+        const prod = (HW.PRODUCTS || []).find((x) => x.sku === sku);
+        if (prod) prod.name = live.name;
+        emit();
+        return { ok: true, sku, wm: r.wm ? wmPushSummary(r.wm) : null };
+      }));
+    });
   }
   function addBox(name) {if (name && !BOXES.includes(name)) {BOXES = [...BOXES, name];emit();}}
   function renameBox(oldName, next) {

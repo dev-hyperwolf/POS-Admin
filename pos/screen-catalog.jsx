@@ -1236,12 +1236,34 @@ function ProductDetailPage({ p, onBack }) {
   // distinguishes this product inside its shell — so it is edited right here.
   // Brand, SKU and barcode belong to the shell and stay locked.
   const [name, setName] = React.useState(p.name);
-  const nameDirty = name.trim() !== p.name;
+  // savedName, NOT p.name — same STALENESS rule WmPublishToggle documents a
+  // few hundred lines up: `p` is a snapshot captured when this row was
+  // clicked, and a global refresh (readBackProduct's HW_LIVE.refresh() inside
+  // renameVariation) does not push a new object into an already-open detail
+  // page. Comparing against p.name forever would leave nameDirty — and the
+  // "Save name" button — stuck on true after a confirmed, successful rename.
+  const [savedName, setSavedName] = React.useState(p.name);
+  const nameDirty = name.trim() !== savedName;
+  // saveName is now a real server round-trip (shell-store.jsx renameVariation:
+  // GET the true row, rename it, POST it back, read back to confirm) — not a
+  // client-side mock write. nameSaving/nameErr mirror product-shell.jsx's own
+  // saving/saveErr for the Add Product wizard: a real pending state while the
+  // write is in flight, and an honest failure message when the GET, the POST,
+  // or the read-back confirmation does not pan out. Nothing here claims
+  // success off a bare click — only renameVariation's own `ok` does.
+  const [nameSaving, setNameSaving] = React.useState(false);
+  const [nameErr, setNameErr] = React.useState(null);
   const saveName = () => {
     const next = name.trim();
-    if (!next || next === p.name) {setName(p.name);return;}
+    if (!next || next === savedName) {setName(savedName);setNameErr(null);return;}
     const sh = window.HW_SHELL.shellOf(p);
-    window.HW_SHELL.renameVariation(sh && sh.id, p.sku, next);
+    setNameSaving(true);setNameErr(null);
+    window.HW_SHELL.renameVariation(sh && sh.id, p.sku, next).then((r) => {
+      setNameSaving(false);
+      if (!r.ok) {setNameErr(r.hint || r.error || 'Rename failed — nothing was changed.');return;}
+      setNameErr(null);
+      setSavedName(next);          // confirmed by renameVariation's own read-back
+    });
   };
   // Meta is AI-drafted. src tracks provenance per field: ai | local | edited.
   const META_FIELDS = ['title', 'desc', 'slug', 'keywords'];
@@ -1373,7 +1395,24 @@ function ProductDetailPage({ p, onBack }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           <Sec icon="package" title="Product information" cols={3}>
             <Fld label="Product name" value={name} wide hint="The variation name inside the shell — the flavour or strain. Renaming here updates every store and channel." placeholder="e.g. Blue Dream" onChange={setName} onCommit={saveName}
-            right={nameDirty ?
+            right={nameSaving ?
+            // A real pending state, not a guess: shell-store.jsx's renameVariation
+            // GET -> POST -> read-back chain is still in flight. Same disabled-
+            // spinner shape as PBtn's own busy render (pos/atoms.jsx), scaled to
+            // an inline field.
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
+              <span style={{ width: 11, height: 11, borderRadius: 99, border: `2px solid ${P.disabledInk}`, borderTopColor: 'transparent', animation: 'hwspin .7s linear infinite', flex: '0 0 auto' }} />
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: P.inkMute }}>Saving…</span>
+            </span> :
+            nameErr ?
+            // THE SERVER'S REFUSAL, SHOWN. Never overwritten by a bare click —
+            // saveName() clears it only once a fresh attempt actually resolves,
+            // so a failed GET/POST/read-back reads as a failure, not silence.
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto', minWidth: 0 }}>
+              <span title={nameErr} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: P.bad, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><Icon name="alert" size={12} stroke={2} />{nameErr}</span>
+              <button onClick={(e) => {e.preventDefault();saveName();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: 'none', background: P.accent, color: P.accentInk, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="check" size={11} stroke={2.6} />Retry</button>
+            </span> :
+            nameDirty ?
             <button onClick={(e) => {e.preventDefault();saveName();}} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto', padding: '2px 8px', borderRadius: 99, border: 'none', background: P.accent, color: P.accentInk, fontSize: 11.5, fontWeight: 800, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="check" size={11} stroke={2.6} />Save name</button> :
             <span title="Variation field — editable here" style={{ display: 'inline-flex', flex: '0 0 auto', color: P.inkFaint }}><Icon name="pencil" size={12} stroke={1.9} /></span>} />
             <Fld label="Brand" value={p.brand} locked onEditLocked={() => setShellEdit(true)} />

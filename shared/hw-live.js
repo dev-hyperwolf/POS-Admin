@@ -206,6 +206,43 @@
     });
   }
 
+  // THE one per-sku READ path, mirroring post()'s contract exactly ({ ok, code,
+  // body, error, hint }, never rejects) so a caller can chain it the same way
+  // without a second error-handling shape to learn. No token, no gate: every
+  // GET route in wmdemo/server.py is read-only by construction (do_GET never
+  // touches the write gate do_POST does), so there is nothing here for the
+  // public-mode 403 dance settleWrite does.
+  //
+  // First caller: shell-store.jsx's renameVariation, which has to read the
+  // TRUE stored row (GET /api/product/<sku>) before it can safely rewrite it
+  // -- the live-adapted shape this module hands out elsewhere drops fields a
+  // blind rewrite would erase.
+  function get(path) {
+    return fetch(base + path, {
+      method: 'GET',
+      credentials: 'omit',
+      cache: 'no-store'
+    }).then(function (res) {
+      return res.json().then(function (j) { return settleRead(res, j); },
+                             function () { return settleRead(res, null); });
+    }).catch(function (e) {
+      return { ok: false, code: 0, body: null, hint: null,
+               error: 'request failed: ' + (e && e.message ? e.message : 'unknown') };
+    });
+  }
+
+  function settleRead(res, j) {
+    // A body we could not parse as JSON is evidence of nothing (same ruling
+    // as settleWrite below) -- res.ok stays the only truth we assert past it.
+    return {
+      ok: res.ok,
+      code: res.status,
+      body: j,
+      error: (j && (j.error || j.why)) || (res.ok ? null : ('HTTP ' + res.status)),
+      hint: (j && j.hint) || null
+    };
+  }
+
   function settleWrite(res, j, sent) {
     // Only the public-mode gate answers 403 with an `error` beginning
     // 'read-only' (wmdemo/server.py:368). Anything else -- 200, 400, 404, 500 --
@@ -1751,6 +1788,9 @@
     // one function so the token, the same-origin rule and the server's own
     // error text all live in exactly one place.
     post: post,
+    // The shared per-sku read path (GET /api/product/<sku> and friends) --
+    // same one-seam reasoning as post(), for reads.
+    get: get,
     get writes() { return _writes; },
     hasToken: function () { return !!_token; },
     // Takes the token, stores it, re-probes. Returns the new write state --
