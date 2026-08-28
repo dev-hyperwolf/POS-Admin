@@ -1735,11 +1735,27 @@ function WmMatchModal({ p, onClose }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
-  const level = conf >= 0.85 ? { t: 'High confidence', c: P.good } : conf >= 0.6 ? { t: 'Medium confidence', c: P.warn } : conf > 0 ? { t: 'Low confidence — review', c: P.bad } : { t: 'No match found', c: P.inkMute };
-  const cands = [
-  { title: p.name, brand: p.brand, price: p.price, conf: conf },
-  { title: `${p.brand} ${p.cat} ${p.strain || ''}`.trim(), brand: p.brand, price: p.price + 2, conf: Math.max(0.2, conf - 0.18) },
-  { title: `${p.name} (1g)`, brand: p.brand, price: Math.max(1, p.price - 3), conf: Math.max(0.15, conf - 0.31) }];
+  // `level` AND `cands` DELETED — and with them the last invented number on this
+  // screen. They were the old fake modal's headline band and its three rival
+  // candidates, and both were computed from `conf` — which was `wmConf`
+  // (screen-catalog.jsx:950), itself
+  // `p.wm.state === 'error' ? 0.46 : 0.7 + charCodeSum(sku) % 30 / 100`.
+  // `wmConf` went with the rewrite. These two lines did not, so they went on reading
+  // a `conf` declared nowhere in this file — and a bare undeclared identifier is a
+  // ReferenceError, not an undefined. THIS COMPONENT THREW ON ITS FIRST RENDER, every
+  // time. Both buttons that open it (~1420, ~1422) are live in the product panel, so
+  // the modal was reachable AND dead: nobody had opened it since the rewrite, which is
+  // exactly how a vestige survives a careful replacement.
+  //
+  // NOTHING IS RE-SOURCED IN THEIR PLACE, deliberately. The band is not missing data,
+  // it is a refusal — see refusal 1 in the block above. The engine's real floors are
+  // T_AUTO = 0.86 and T_AI = 0.50 (wmdemo/mapping.py:38-39), and neither is served to
+  // this client, so the 0.85 / 0.6 written here were never the engine's opinion in the
+  // first place: 0.85 would have printed "High confidence" over a score the engine
+  // REFUSES to auto-map, and 0.6 would have printed "Medium confidence" over one the
+  // engine had already escalated to AI review. What this modal shows instead is the
+  // engine's own WORD and its own raw score, read off the mapping board, and it shows
+  // neither when the board has not answered.
   const post = window.HW_LIVE && typeof window.HW_LIVE.post === 'function' ? window.HW_LIVE.post : null;
   const [tick, setTick] = React.useState(0);
   const board = wmBoardRow(p.sku);
