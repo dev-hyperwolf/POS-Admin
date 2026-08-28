@@ -1302,6 +1302,35 @@ function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
 
 }
 
+/* ── ID PHOTOS ATTACHED FROM THE MEMBER PANEL, FOR THIS TAB ONLY ────────────
+ *
+ * THIS IS NOT A NEW STORAGE CLAIM, it is the same one shared/id-photos.jsx
+ * already makes and renders on screen: "Held in this browser tab only. Nothing
+ * is uploaded and nothing is filed against the customer — this build has no
+ * server route for ID images." A Map in this module is precisely that, and the
+ * control states it unconditionally beside every capture, so nothing here says
+ * a second thing about where these go.
+ *
+ * IT IS KEYED BY MEMBER ID BECAUSE THE PANEL IS NOT. The register mounts one
+ * <MemberDetails> and swaps `customer` underneath it; React keeps the same
+ * instance, so a list held in component state would follow the operator from
+ * one person to the next. Photographs of one customer's licence appearing
+ * under another customer's name is the failure this whole pass exists to stop.
+ *
+ * WHY A MAP AND NOT THE MEMBER RECORD: writing onto `m` would put images on an
+ * object every other screen reads, which is a persistence claim this build
+ * cannot honour — pos/data.jsx addMember is an allow-list and drops the key,
+ * and addCheckIn writes only `doc` into IDV. See the handback note in the
+ * report: filing these against a customer needs a server route that does not
+ * exist, and inventing one here is the worse defect, not the fix.
+ *
+ * Nothing clears this map: a deliberate Remove inside the control is the only
+ * way a photo leaves, exactly as in the check-in form. It dies with the tab. */
+const MEMBER_ID_PHOTOS_THIS_TAB = new Map();
+// One shared empty array, so a member with no photos hands the control the
+// same reference every render rather than a fresh [] that re-renders it.
+const MEMBER_ID_PHOTOS_NONE = [];
+
 // ── Member-details dropdown — ID, contact, loyalty, orders, referrals ──────
 // Published on `window` like ProductSheet and FullOrderView are, and for the
 // same reason those are: this panel makes the strongest identity claims in the
@@ -1381,7 +1410,13 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
   const orders = [...liveOrders, ...ARCHIVE.filter((a) => !liveOrders.some((l) => l.id === 'ORD-' + a.id))];
   const referrals = (guests && guests.length ? guests.map((g)=>window.guestName?window.guestName(g):g) : ['Dev Anand', 'Mia Tran']).slice(0, 4);
 
-  const [lb, setLb] = React.useState(null); // enlarged photo
+  // THE LIGHTBOX IS GONE WITH THE TILES IT MAGNIFIED. It had exactly one
+  // subject — a 300px-tall version of the same gradient — and two entry points
+  // that both lied about what they did: "Update image" (below) opened it, and
+  // "View card" in the Medical panel opened the third fabricated tile. There is
+  // no image in this build to enlarge; when a stored document image exists,
+  // enlarging it is a feature to add against that image, not a modal kept warm
+  // over a placeholder.
   const [ord, setOrd] = React.useState(null); // order details modal
   const [histNote, setHistNote] = React.useState(null); // id of an archive row the operator clicked
   const [oq, setOq] = React.useState(''); // smart order search
@@ -1398,21 +1433,56 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
     exp: m.idExp || '', medExp: m.medExp || '' });
   const set1 = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
-  const photos = [
-  { id: 'front', label: 'License · front', hue: 210, glyph: 'card' },
-  { id: 'selfie', label: 'Selfie match', hue: 150, glyph: 'user' },
-  { id: 'med', label: 'Medical card', hue: 90, glyph: 'shield' }];
-
-  const PhotoCard = ({ p2, big }) =>
-  <button onClick={() => !big && setLb(p2)} style={{ position: 'relative', flex: '0 0 auto', width: big ? '100%' : 196, height: big ? 300 : 124, borderRadius: P.r12, overflow: 'hidden', border: `1px solid ${P.hairline2}`, cursor: big ? 'default' : 'zoom-in', padding: 0, background: `linear-gradient(140deg, hsl(${p2.hue} 36% ${P.mode === 'dark' ? '26%' : '78%'}), hsl(${(p2.hue + 30) % 360} 32% ${P.mode === 'dark' ? '18%' : '66%'}))` }}>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.mode === 'dark' ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.8)' }}>
-        {p2.id === 'selfie' ? <Avatar name={m.name} size={big ? 120 : 56} /> : <Icon name={p2.glyph} size={big ? 80 : 38} stroke={1.4} />}
-      </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', background: 'linear-gradient(transparent, rgba(0,0,0,.45))' }}>
-        <span style={{ fontSize: big ? 12 : 10, fontWeight: 700, color: '#fff', letterSpacing: '.04em' }}>{p2.label}</span>
-        {!big && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, color: '#fff', background: 'rgba(0,0,0,.35)', padding: '2px 6px', borderRadius: 99 }}><Icon name="expand" size={10} stroke={2} />Enlarge</span>}
-      </div>
-    </button>;
+  // ══ THREE DOCUMENT TILES THAT WERE NOT PHOTOGRAPHS OF ANYTHING ═════════════
+  //
+  // 🔴 What stood here was a hardcoded list — 'License · front', 'Selfie match',
+  // 'Medical card' — rendered UNCONDITIONALLY for every member as coloured
+  // gradients with an icon, captioned as documents on file and clickable into
+  // an "Enlarge" lightbox. Nothing checked that a photo existed, because no
+  // photo ever existed: there was no image, no source and no capture.
+  //
+  // 'Selfie match' was the worst of the three. `PhotoCard` drew <Avatar
+  // name={m.name}/> for it — an initials/colour blob generated from the
+  // CUSTOMER'S OWN NAME — under a label asserting a biometric comparison.
+  // Nothing in this estate performs a face match; there is no vendor, no
+  // score, no threshold and no result to render. So the tile is DELETED rather
+  // than relabelled: a vaguer caption over the same avatar would keep the
+  // picture that makes the claim believable and only soften the sentence. When
+  // a face-match vendor lands, it will have a verdict of its own to show.
+  // 'Medical card' is gone for the same reason as its ACTIVE badge below — no
+  // card record exists to have an image of.
+  //
+  // The tell that made this unambiguous: the LICENSE panel eleven lines below
+  // prints 'number not on file' when the number is missing. The same panel was
+  // scrupulous about its text and invented its pictures.
+  //
+  // ── WHAT REPLACES THEM ────────────────────────────────────────────────────
+  // window.IdPhotoCapture — the SHARED control from shared/id-photos.jsx, the
+  // one pos/checkin.jsx adopts. Not a copy: the compliance-critical part of
+  // that file is the single storage sentence, and a fork here is a second
+  // place for it to go stale. It brings with it the empty state (a sentence,
+  // never a placeholder image), the three-valued preview that keeps "attached
+  // but would not load" visibly distinct from "nothing attached", and the
+  // docKey stamp that makes a photo say when it no longer matches the scanned
+  // document.
+  const idv = (window.HW.IDV || {})[m.id] || null;
+  const idDoc = idv && idv.doc || null;
+  const docKey = window.HWIdPhotos ? window.HWIdPhotos.docKeyOf(idDoc) : null;
+  // A LEDGER FLAG IS NOT AN IMAGE. IDV rows carry `doc.photo: true`, which
+  // records that the scanner captured a document image — and this build keeps
+  // no bytes alongside it. Drawing a tile from that boolean is how the
+  // Members screen still renders a gradient today; here it is stated as the
+  // record it is, with no picture, because a rectangle the operator can point
+  // at is exactly the artefact this panel was inventing.
+  const scanImageOnRecord = !!(idDoc && idDoc.photo);
+  // Attached from THIS panel. Keyed by member id and read fresh every render:
+  // MemberDetails is one mounted element that the register re-points at
+  // whichever customer is loaded, so plain component state would have shown
+  // the previous customer's ID photos under the next customer's name — the
+  // hazard shared/id-photos.jsx documents at docKeyOf, one hop further out.
+  const [, bumpPhotos] = React.useReducer((n) => n + 1, 0);
+  const captured = MEMBER_ID_PHOTOS_THIS_TAB.get(m.id) || MEMBER_ID_PHOTOS_NONE;
+  const setCaptured = (next) => { MEMBER_ID_PHOTOS_THIS_TAB.set(m.id, next); bumpPhotos(); };
 
   const Panel = ({ title, icon, action, children, style }) =>
   <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, padding: 12, minWidth: 0, ...style }}>
@@ -1458,23 +1528,68 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
           <Icon name="user" size={15} stroke={1.9} color={P.ink2} />
           <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Member details</span>
           <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>· {m.name}</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: P.good }}><Icon name="check-circle" size={11} stroke={2} />ID VERIFIED</span>
+          {/* 🔴 A GREEN TICK READING "ID VERIFIED" WAS PRINTED FOR EVERY
+              MEMBER, unconditionally, in the same breath as the invented photo
+              tiles — including for a customer whose ladder says nobody has ever
+              seen a document. It is the same fabrication in eleven characters,
+              and it is the badge an operator would point at to prove the check
+              happened. window.AssuranceBadge is the estate's one reading of the
+              IDV ledger (pos/verification.jsx assurance()); it is what the
+              Members screen shows, it distinguishes no-document from
+              document-on-file from fully cleared, and it refuses to wear the
+              clean tick for an allow that only happened because expiry
+              enforcement is off. Two surfaces, one verdict. */}
+          {window.AssuranceBadge ?
+            <window.AssuranceBadge v={idv} size="sm" /> :
+            <span title="pos/verification.jsx is not loaded, so this screen cannot read the identity ledger — it is not claiming the check passed or failed" style={{ fontSize: 10, fontWeight: 700, color: P.inkMute }}>ID STATUS UNAVAILABLE</span>}
           <div style={{ flex: 1 }} />
           <PBtn variant="ghost" size="xs" icon="x" onClick={onClose}>Close</PBtn>
         </div>
 
-        {/* Photo cards — scroll through, click to enlarge */}
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: 11, marginBottom: 12 }}>
-          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 2, flex: 1, minWidth: 0 }}>
-            {photos.map((p2) => <PhotoCard key={p2.id} p2={p2} />)}
+        {/* ID photos — captured here, never assumed */}
+        {/* `flex-start`, NOT `stretch`. The old row held two fixed-height
+            gradient tiles beside a licence card of roughly their height, so
+            stretching them was free. The capture control is TALLER and grows as
+            photos are added, and under `stretch` the licence card grew with it —
+            leaving a 200px well of empty surface with the Exp button pinned to
+            the bottom of it, which reads as a panel that failed to load. jsdom
+            has no layout and reported this as fine. Seen at 1440 and 1024. */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11, marginBottom: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: P.inkMute }}>PHOTOS OF THE ID / PASSPORT</span>
+            {/* THE LEDGER'S OWN RECORD, AS A RECORD. `doc.photo` says the
+                scanner captured an image; no bytes were kept with it, so there
+                is nothing to show and this says which of those two facts it is.
+                A tile drawn from a boolean is the defect, not the fix. */}
+            {scanImageOnRecord &&
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 11px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
+              <Icon name="scan" size={13} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 2 }} />
+              <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>
+                The scan on file{idDoc.scannedAt ? ' (' + idDoc.scannedAt + ')' : ''} records that a document image was captured{idDoc.simulated ? ' by the demo scanner' : ''}. <b>No image data was stored with it</b>, so there is nothing to display here — that is a record without a picture, not a picture that failed to load.
+              </span>
+            </div>}
+            {window.IdPhotoCapture ?
+            <window.IdPhotoCapture photos={captured} onChange={setCaptured} docKey={docKey} /> :
+            /* NOT LOADED IS NOT "NONE ATTACHED". Saying "no photos" here would
+               be this panel reporting an absence it has no way to observe —
+               the same mistake as reporting a presence it never observed. */
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+              <Icon name="camera" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+              <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The photo control is not loaded on this page, so no image of the document can be attached here — and this screen cannot tell you whether any exist.</span>
+            </div>}
           </div>
           <div style={{ flex: '0 0 196px', border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, padding: 12, display: 'flex', flexDirection: 'column' }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', color: P.inkMute, marginBottom: 8 }}>LICENSE · {idNum || <span style={{ color: P.inkFaint }}>number not on file</span>}</span>
             <KV k="DOB" v={dob} />
             <EditKV k="Expiration" field="exp" />
             <div style={{ flex: 1 }} />
+            {/* "UPDATE IMAGE" OPENED A LIGHTBOX OF THE FABRICATED TILE — a
+                button whose label promised a capture and whose only effect was
+                to magnify a gradient. The capture it named now genuinely
+                exists, three inches to the left, as Add photo / Take photo. A
+                second control duplicating those would be a second path into one
+                list; this one is deleted rather than rewired. */}
             <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-              <PBtn variant="soft" size="xs" icon="upload" onClick={() => setLb(photos[0])}>Update image</PBtn>
               <PBtn variant="soft" size="xs" icon="calendar" onClick={() => setEditing('exp')}>Exp</PBtn>
             </div>
           </div>
@@ -1521,7 +1636,12 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
                 {medCardOnFile ?
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: P.good, fontWeight: 600 }}><Icon name="check-circle" size={12} stroke={2} />Tax-exempt (MMIC verified)</div> :
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.4 }}><Icon name="alert" size={12} stroke={2} style={{ flex: '0 0 auto', marginTop: 1 }} />Recorded as a medicinal user, but no card is on file. Nothing here is verified and the medicinal tax exemption is not established.</div>}
-                {medCardOnFile && <div style={{ marginTop: 9 }}><PBtn variant="soft" size="xs" icon="eye" onClick={() => setLb(photos[2])}>View card</PBtn></div>}
+                {/* "VIEW CARD" OPENED THE THIRD FABRICATED TILE. It is removed
+                    rather than disabled: a card RECORD (mmic / physician /
+                    issue date) is not a card IMAGE, and this build holds no
+                    image for one. The fields above are the record, and they are
+                    all of it. A viewer belongs here on the day a medical-card
+                    image is actually stored. */}
               </> :
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '6px 0' }}>
                 <span style={{ fontSize: 11.5, color: P.inkMute, lineHeight: 1.45 }}>No medical card on file. Adult-use customer.</span>
@@ -1575,19 +1695,10 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
       </div>
 
       {ord && window.OrderDetails && React.createElement(window.OrderDetails, { o: ord, onClose: () => setOrd(null) })}
-      {lb &&
-      <div onClick={() => setLb(null)} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 30, animation: 'fade .15s ease' }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px, 94vw)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: P.railBright }}>{lb.label} · {m.name}</span>
-              <div style={{ display: 'flex', gap: 7 }}>
-                <PBtn variant="accent" size="sm" icon="upload">Replace image</PBtn>
-                <IconBtn icon="x" size={18} onClick={() => setLb(null)} style={{ color: P.railBright }} />
-              </div>
-            </div>
-            <PhotoCard p2={lb} big />
-          </div>
-        </div>}
+      {/* The photo lightbox stood here. Its "Replace image" button had no
+          onClick at all — a primary, accent-coloured control on a compliance
+          modal that did nothing when pressed. Both it and the modal are gone
+          with the tiles they existed to display. */}
     </div>);
 
 };
