@@ -256,6 +256,47 @@
     ['/health', window.ScreenHealth],
   ]);
 
+  /* == WHERE A FAILURE STOPS IN ENGAGE =======================================
+   * Engage holds customer PII, so the question asked of every surface was: if
+   * this breaks, can somebody act on what is left and get it wrong?
+   *
+   * The answer here is no, and the reason is the PLACEMENT rather than the
+   * component: the boundary sits at the SCREEN level, never around a panel
+   * inside a screen. A screen therefore renders whole or not at all. There is
+   * no state where a customer detail comes up with its do-not-contact row
+   * silently missing while the rest of the record looks complete and current --
+   * that partial is the dangerous one, and screen-level placement makes it
+   * unreachable. So Engage CONTAINS: a failed screen is a named panel, and the
+   * sidebar beside it still navigates.
+   *
+   * If a panel-level boundary is ever added INSIDE one of these screens, that
+   * reasoning stops holding and the surface has to be reclassified.
+   *
+   * !! RENDER AND LIFECYCLE ONLY. Sending a campaign is an onClick and is not
+   * covered by anything here. */
+  if (!window.ScreenBoundary || !window.CriticalBoundary) {
+    try {console.error('[HW boundary] Hyperwolf Engage.html did not load shared/error-boundary.jsx — ' +
+      'Engage is running with NO error boundaries.');} catch (e) {}
+  }
+  const EngageFrame = window.ScreenBoundary || function EngageFrame(p) {return p.children;};
+
+  const ENGAGE_LABEL = {
+    '/': 'The dashboard', '/audiences': 'Audiences', '/campaigns': 'Campaigns',
+    '/flows': 'Flows', '/customers': 'Customers', '/loyalty': 'Loyalty',
+    '/analytics': 'Analytics', '/integrations': 'Integrations', '/audit': 'The audit log',
+    '/settings': 'Settings', '/health': 'Health' };
+
+  /* Never "Something went wrong": an unlisted route is named from its own path
+   * ("/flows/f-12/steps" -> "Flows · f-12 · steps"). */
+  function engageName(path) {
+    if (ENGAGE_LABEL[path]) return ENGAGE_LABEL[path];
+    const top = '/' + String(path || '').split('/')[1];
+    const base = ENGAGE_LABEL[top];
+    const rest = String(path || '').replace(/^\//, '').split('/').slice(1).join(' · ');
+    if (base) return rest ? base + ' · ' + rest : base;
+    return String(path || '').replace(/^\//, '').replace(/\//g, ' · ') || 'This screen';
+  }
+
   function App() {
     const [route, setRoute] = React.useState(() => location.hash || '#/');
     const [collapsed, setCollapsed] = React.useState(false);
@@ -304,19 +345,32 @@
 
     return (
       <div style={{ display: 'flex', height: '100%', background: P.bg, color: P.ink }}>
-        <window.HWRail active="engage" />
-        <ModuleSidebar path={path} navigate={navigate} collapsed={collapsed} setCollapsed={setCollapsed} />
+        <EngageFrame name="The navigation rail"><window.HWRail active="engage" /></EngageFrame>
+        <EngageFrame name="The module sidebar">
+          <ModuleSidebar path={path} navigate={navigate} collapsed={collapsed} setCollapsed={setCollapsed} />
+        </EngageFrame>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Topbar path={path} onSearch={() => setSearchOpen(true)} />
+          <EngageFrame name="The top bar"><Topbar path={path} onSearch={() => setSearchOpen(true)} /></EngageFrame>
           <main style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            {Screen ? <Screen {...ctx} /> : <Placeholder title={path.replace(/^\//, '').replace(/\//g, ' · ') || 'Screen'} />}
+            {/* Keyed by route. Without the key React keeps one boundary instance
+                across a navigation, so the failure would still be on screen
+                after the operator moved to a screen that works. */}
+            <EngageFrame key={path} name={engageName(path)}
+        onReset={() => navigate('#/')} resetLabel="Back to the dashboard">
+              {Screen ? <Screen {...ctx} /> : <Placeholder title={path.replace(/^\//, '').replace(/\//g, ' · ') || 'Screen'} />}
+            </EngageFrame>
           </main>
         </div>
-        <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} />
-        <ToastHost />
+        <EngageFrame name="The command palette">
+          <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} />
+        </EngageFrame>
+        <EngageFrame name="The toast host"><ToastHost /></EngageFrame>
       </div>);
   }
 
   window.EngageApp = App;
-  ReactDOM.createRoot(document.getElementById('root')).render(<ThemeProvider><App /></ThemeProvider>);
+    /* Backstop: catches App itself and the ThemeProvider's children. Without it a
+     throw in App's own body is unguarded and white-screens the page. */
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <ThemeProvider><EngageFrame name="Engage"><App /></EngageFrame></ThemeProvider>);
 })();

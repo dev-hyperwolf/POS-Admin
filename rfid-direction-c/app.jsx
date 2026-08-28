@@ -261,7 +261,17 @@
       </div>);
   }
 
+  /* == WHERE A FAILURE STOPS IN THE RFID STUDY (DIRECTION C) ==
+   * CONTAINS. The boundaries sit at shell level, so the app renders whole or shows a
+   * named panel -- there is no partial state that reads as a complete screen.
+   * !! RENDER AND LIFECYCLE ERRORS ONLY -- not event handlers, not async work. */
+  if (!window.ScreenBoundary || !window.CriticalBoundary) {
+    try {console.error('[HW boundary] rfid-direction-c/index.html did not load shared/error-boundary.jsx — ' +
+      'the RFID study (direction C) is running with NO error boundaries.');} catch (e) {}
+  }
+  const RfidFrame = window.ScreenBoundary || function RfidFrame(p) {return p.children;};
+
   ReactDOM.createRoot(document.getElementById('root')).render(
-    <window.ThemeProvider><Shell /></window.ThemeProvider>
+    <window.ThemeProvider><RfidFrame name="The RFID console"><Shell /></RfidFrame></window.ThemeProvider>
   );
 })();

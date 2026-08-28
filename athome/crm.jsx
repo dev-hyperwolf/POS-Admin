@@ -75,7 +75,19 @@ const STATUSMAP = { in_session:{l:'In session',k:'good'}, delivered:{l:'Delivere
 
 // ── shell chrome ───────────────────────────────────────────────────────
 // The rail is shared by every Hyperwolf app — see shared/app-rail.jsx.
-function Rail(){ return <window.HWRail active="members"/>; }
+/* == WHERE A FAILURE STOPS IN THE MEMBERS CRM ==
+ * CONTAINS. This console holds customer PII, and the boundaries sit at SHELL level
+ * rather than around panels inside a record: a member record therefore renders
+ * whole or not at all, so there is no state where a consent or do-not-contact row
+ * is silently missing from a record that otherwise looks complete and current.
+ * !! RENDER AND LIFECYCLE ERRORS ONLY -- not event handlers, not async work. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try {console.error('[HW boundary] Members CRM.html did not load shared/error-boundary.jsx — ' +
+    'the Members CRM is running with NO error boundaries.');} catch (e) {}
+}
+const CrmFrame = window.ScreenBoundary || function CrmFrame(p) {return p.children;};
+
+function Rail(){ return <CrmFrame name="The navigation rail"><window.HWRail active="members"/></CrmFrame>; }
 
 function TopBar(){ const P=useP(); const { mode, toggle }=useTheme(); return (
   <header style={{ height:60, flex:'0 0 60px', display:'flex', alignItems:'center', gap:14, padding:'0 22px', borderBottom:`1px solid ${P.hairline2}`, background:P.surface }}>
@@ -327,5 +339,6 @@ function Shell(){ const P=useP(); const [sel,setSel]=useState('C-1042');
     </div>
   </div>); }
 
-window.CustomerCRMApp = function CustomerCRMApp(){ return React.createElement(ThemeProvider, null, React.createElement(Shell)); };
+/* Backstop: catches Shell itself, which is otherwise unguarded. */
+window.CustomerCRMApp = function CustomerCRMApp(){ return React.createElement(ThemeProvider, null, React.createElement(CrmFrame, { name: 'The Members CRM' }, React.createElement(Shell))); };
 })();

@@ -31,6 +31,33 @@ function SuiteTopBar({ onNew }) {
   </header>;
 }
 
+/* == WHERE A FAILURE STOPS IN THE PROMOTIONS SUITE ===========================
+ * One surface here refuses, and it is worth saying why, because it is the case
+ * that containment gets wrong:
+ *
+ *   THE BUILDER REFUSES. BuilderTopBar (which owns Save) and BuilderBlocks
+ *   (the editor) are SIBLINGS. Contain the editor on its own and you get a
+ *   promotion builder showing a live Save button over an editor that failed to
+ *   render -- the operator saves a promo whose conditions never appeared, and a
+ *   promotion is a discount, which is money. So BuilderBlocks is wrapped in a
+ *   CriticalBoundary that escalates to a ScreenBoundary around the WHOLE
+ *   builder column, taking Save with it. The rail is outside that column and
+ *   survives, so there is still a way out.
+ *
+ *   THE SUITE VIEWS CONTAIN. Promotions, Weedmaps and Studio are lists and
+ *   dashboards; a named panel with the tabs still working is honest, and
+ *   nothing that survives is a thing to act on.
+ *
+ * !! RENDER AND LIFECYCLE ONLY. saveBuilder() runs from an onClick and is not
+ * covered here -- a throw inside it is still unguarded. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try {console.error('[HW boundary] Promotions Suite.html did not load shared/error-boundary.jsx — ' +
+    'the promotions suite is running with NO error boundaries.');} catch (e) {}
+}
+const PromoFrame = window.ScreenBoundary || function PromoFrame(p) {return p.children;};
+const PromoCritical = window.CriticalBoundary || function PromoCritical(p) {return p.children;};
+const PROMO_VIEW_LABEL = { home: 'Promotions', weedmaps: 'The Weedmaps view', studio: 'The studio' };
+
 function Suite() {
   const P = useP();
   const [promos, setPromos] = useState(() => M.seedMerged());
@@ -63,13 +90,20 @@ function Suite() {
   // ── builder overlay ───────────────────────────────────────────────────────
   if (builderId) {
     return <div style={{ display: 'flex', height: '100vh', background: P.bg }}>
-      <window.PRail active="promos" onNav={() => {}} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        <window.BuilderTopBar mode={bmode} setMode={setBmode} draft={draft} onCancel={() => setBuilderId(null)} onSave={saveBuilder} />
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <window.BuilderBlocks draft={draft} set={set} />
+      <PromoFrame name="The navigation rail"><window.PRail active="promos" onNav={() => {}} /></PromoFrame>
+      {/* This ScreenBoundary is the escalation target for the editor below.
+          It wraps the top bar TOO, on purpose: when the editor refuses, the
+          Save button must disappear with it. */}
+      <PromoFrame name="The promotion builder" onReset={() => setBuilderId(null)} resetLabel="Discard and go back">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+          <window.BuilderTopBar mode={bmode} setMode={setBmode} draft={draft} onCancel={() => setBuilderId(null)} onSave={saveBuilder} />
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <PromoCritical name="The promotion editor" flow="This promotion">
+              <window.BuilderBlocks draft={draft} set={set} />
+            </PromoCritical>
+          </div>
         </div>
-      </div>
+      </PromoFrame>
     </div>;
   }
 
@@ -80,13 +114,15 @@ function Suite() {
 
 
   return <div style={{ display: 'flex', height: '100vh', background: P.bg, color: P.ink, fontFamily: P.fontSans, overflow: 'hidden' }}>
-    <window.PRail active="promos" onNav={() => setView('home')} />
+    <PromoFrame name="The navigation rail"><window.PRail active="promos" onNav={() => setView('home')} /></PromoFrame>
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-      <SuiteTopBar onNew={() => openBuilder('new')} />
+      <PromoFrame name="The top bar"><SuiteTopBar onNew={() => openBuilder('new')} /></PromoFrame>
       <div style={{ padding: '0 30px', borderBottom: `1px solid ${P.hairline2}`, background: P.surface, flex: '0 0 auto' }}>
         <Tabs value={view} onChange={setView} options={TABS} />
       </div>
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '26px 30px 56px' }}>
+        <PromoFrame key={view} name={PROMO_VIEW_LABEL[view] || view}
+      onReset={() => setView('home')} resetLabel="Back to promotions">
         {view === 'home' && <>
           <window.BrandMapView onNew={() => openBuilder('new')} />
           <div style={{ height: 1, background: P.hairline2, margin: '44px 0' }} />
@@ -96,9 +132,12 @@ function Suite() {
         </>}
         {view === 'weedmaps' && <window.WeedmapsView promos={promos} setPromos={setPromos} onOpen={openBuilder} onOpenWm={openWmBuilder} />}
         {view === 'studio' && <window.StudioView promos={promos} setPromos={setPromos} onOpen={openBuilder} />}
+        </PromoFrame>
       </main>
     </div>
   </div>;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<ThemeProvider><Suite /></ThemeProvider>);
+/* Backstop: catches Suite's own body, which is otherwise unguarded. */
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <ThemeProvider><PromoFrame name="The promotions suite"><Suite /></PromoFrame></ThemeProvider>);

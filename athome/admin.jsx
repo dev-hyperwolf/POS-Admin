@@ -110,7 +110,17 @@ function StatCol({ label, children, mono=true }){ const P=useP(); return (
 
 // ── RAIL ────────────────────────────────────────────────────────────────
 // The rail is shared by every Hyperwolf app — see shared/app-rail.jsx.
-function Rail(){ return <window.HWRail active="shophome"/>; }
+/* == WHERE A FAILURE STOPS IN SHOP AT HOME ==
+ * CONTAINS. The boundaries sit at shell level, so the app renders whole or shows a
+ * named panel -- there is no partial state that reads as a complete screen.
+ * !! RENDER AND LIFECYCLE ERRORS ONLY -- not event handlers, not async work. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try {console.error('[HW boundary] Shop at Home.html did not load shared/error-boundary.jsx — ' +
+    'Shop at Home is running with NO error boundaries.');} catch (e) {}
+}
+const AtHomeFrame = window.ScreenBoundary || function AtHomeFrame(p) {return p.children;};
+
+function Rail(){ return <AtHomeFrame name="The navigation rail"><window.HWRail active="shophome"/></AtHomeFrame>; }
 
 function TopBar(){
   const P=useP(); const { mode, toggle }=useTheme();
@@ -579,5 +589,6 @@ function Shell(){
   </div>);
 }
 
-window.ShopHomeApp = function ShopHomeApp(){ return React.createElement(ThemeProvider, null, React.createElement(Shell)); };
+/* Backstop: catches Shell itself, which is otherwise unguarded. */
+window.ShopHomeApp = function ShopHomeApp(){ return React.createElement(ThemeProvider, null, React.createElement(AtHomeFrame, { name: 'Shop at Home' }, React.createElement(Shell))); };
 })();

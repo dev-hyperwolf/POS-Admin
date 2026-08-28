@@ -146,6 +146,29 @@ function MissingScreen({ tab }) {
     body={`Hyperwolf Shop.html expects window.${g} from shop/screen-${tab}.jsx.`} />;
 }
 
+/* == WHERE A FAILURE STOPS IN THE STOREFRONT =================================
+ * This is a customer-facing checkout, so the split is drawn at money:
+ *   CONTAIN  home, shop  -- browsing. A failed rail shows a named panel and
+ *            the header nav beside it still works.
+ *   REFUSE   cart, checkout -- a cart that renders with a line missing, or a
+ *            total that renders without its fees, is money, and a customer
+ *            will pay it. Nothing of those subtrees renders.
+ * Omission is safe: an unclassified screen has no boundary of its own and
+ * propagates to the shell frame, which behaves like a refusal.
+ * !! RENDER AND LIFECYCLE ONLY -- not the "Place order" onClick, not async
+ * price fetches. Those are unguarded and a separate mechanism. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try {console.error('[HW boundary] Hyperwolf Shop.html did not load shared/error-boundary.jsx — ' +
+    'the storefront is running with NO error boundaries.');} catch (e) {}
+}
+const ShopScreenFrame = window.ScreenBoundary || function ShopScreenFrame(p) {return p.children;};
+const ShopCriticalFrame = window.CriticalBoundary || function ShopCriticalFrame(p) {return p.children;};
+
+const SHOP_REFUSE = {
+  cart: { name: 'Your cart', flow: 'This order' },
+  checkout: { name: 'Checkout', flow: 'This order' } };
+const SHOP_LABEL = { home: 'The storefront', shop: 'The shop' };
+
 window.ShopShell = function ShopShell() {
   const P = useP();
   const S = window.useShop();
@@ -157,9 +180,19 @@ window.ShopShell = function ShopShell() {
   }, [S.s.toast]);
   return (
     <div style={{ minHeight: '100vh', background: P.bg, color: P.ink, fontFamily: P.fontSans }}>
-      <window.ShopHeader />
+      <ShopScreenFrame name="The shop header"><window.ShopHeader /></ShopScreenFrame>
       <main style={{ maxWidth: 1240, margin: '0 auto', padding: '24px 20px 64px' }}>
-        {Screen ? <Screen /> : <MissingScreen tab={S.s.tab} />}
+        {/* Keyed by tab: without the key React reuses one boundary instance
+            across a navigation, so a failure on the cart would still be showing
+            after the shopper moved back to browsing. */}
+        {SHOP_REFUSE[S.s.tab] ?
+        <ShopCriticalFrame key={S.s.tab} name={SHOP_REFUSE[S.s.tab].name} flow={SHOP_REFUSE[S.s.tab].flow}>
+            {Screen ? <Screen /> : <MissingScreen tab={S.s.tab} />}
+          </ShopCriticalFrame> :
+        <ShopScreenFrame key={S.s.tab} name={SHOP_LABEL[S.s.tab] || S.s.tab}
+        onReset={() => window.SHOP.go('home')} resetLabel="Back to the storefront">
+            {Screen ? <Screen /> : <MissingScreen tab={S.s.tab} />}
+          </ShopScreenFrame>}
       </main>
       {S.s.toast &&
       <div role="status" style={{ position: 'fixed', left: '50%', bottom: 28, transform: 'translateX(-50%)', zIndex: 60, background: P.ink, color: P.surface, borderRadius: P.r999, padding: '11px 20px', fontSize: P.type.strong, fontWeight: 600, boxShadow: P.shadowLg }}>{S.s.toast}</div>}
@@ -168,5 +201,7 @@ window.ShopShell = function ShopShell() {
 };
 
 window.ShopApp = function ShopApp() {
-  return <ThemeProvider><window.ShopShell /></ThemeProvider>;
+  /* Backstop. This is the escalation target the cart and checkout hand their
+     refusal up to, and it is also what catches ShopShell itself. */
+  return <ThemeProvider><ShopScreenFrame name="The storefront"><window.ShopShell /></ShopScreenFrame></ThemeProvider>;
 };

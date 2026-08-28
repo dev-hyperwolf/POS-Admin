@@ -21,6 +21,19 @@ function OptionsPanel() {
     </div>);
 }
 
+/* == WHERE A FAILURE STOPS IN the terminal console ==
+ * Terminal configuration. Everything CONTAINS: these are configuration and version
+ * read-outs, the boundaries sit at panel level where each panel is a visually
+ * self-contained card, and nothing that survives one failing is a figure a
+ * person acts on.
+ * !! RENDER AND LIFECYCLE ERRORS ONLY -- not event handlers, not async work.
+ * The buttons that actually write are unguarded by anything here. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try {console.error('[HW boundary] POS Terminal Configuration.html did not load shared/error-boundary.jsx — ' +
+    'the terminal console is running with NO error boundaries.');} catch (e) {}
+}
+const TermFrame = window.ScreenBoundary || function TermFrame(p) {return p.children;};
+
 function TerminalCanvas() {
   const P = useP();
   // Comfortable is the shipped density — the toggle is gone from the UI.
@@ -33,14 +46,15 @@ function TerminalCanvas() {
   return (
     <TweakCtx.Provider value={value}>
       <div style={{ display: 'flex', height: '100vh', background: P.bg, overflow: 'hidden' }}>
-        <window.HWRail active="terminals" />
+        <TermFrame name="The navigation rail"><window.HWRail active="terminals" /></TermFrame>
         <div style={{ flex: 1, minWidth: 0, height: '100vh', overflowY: 'auto', overflowX: 'hidden', background: P.bg }}>
-          <OptionsPanel />
-          <VersionByLocation />
+          <TermFrame name="Display options"><OptionsPanel /></TermFrame>
+          <TermFrame name="Versions by location"><VersionByLocation /></TermFrame>
         </div>
       </div>
     </TweakCtx.Provider>);
 }
 
-function Root() {return <ThemeProvider><TerminalCanvas /></ThemeProvider>;}
+/* Backstop: catches TerminalCanvas's own body and its context provider. */
+function Root() {return <ThemeProvider><TermFrame name="Terminal configuration"><TerminalCanvas /></TermFrame></ThemeProvider>;}
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);

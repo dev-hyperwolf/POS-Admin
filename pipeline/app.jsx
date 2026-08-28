@@ -182,6 +182,57 @@
       </div>);
   }
 
+  /* == WHERE A FAILURE STOPS IN THE PIPELINE =================================
+   * This console is the METRC side: regulated chain-of-custody. Two classes:
+   *
+   *   REFUSE  /compliance, /compliance/holds, /scan, /batches/merge.
+   *           These are the screens a person reads immediately before doing
+   *           something to a regulated package -- releasing it, holding it,
+   *           scanning a tag onto it, merging two of them. A CriticalBoundary
+   *           renders nothing AND escalates, so the sidebar and top bar go with
+   *           it. That matters here specifically: if only the main pane were
+   *           blanked, the sidebar's own "Holds · 3" badge would still be on
+   *           screen, still look authoritative, and still be the number
+   *           somebody acts on. Refusing takes the whole frame so there is no
+   *           surviving figure to act on.
+   *
+   *   CONTAIN  everything else -- batch lists, products, buyers, invoices, AP,
+   *           credits, scorecards, admin, settings. Reading surfaces; a named
+   *           panel with the sidebar still working is the honest outcome.
+   *
+   * Omission is safe: an unclassified route has no boundary of its own and
+   * propagates to the app frame, which behaves like a refusal.
+   * !! RENDER AND LIFECYCLE ONLY -- not the buttons that actually write. */
+  if (!window.ScreenBoundary || !window.CriticalBoundary) {
+    try {console.error('[HW boundary] METRC Batch Pipeline.html did not load shared/error-boundary.jsx — ' +
+      'the pipeline is running with NO error boundaries.');} catch (e) {}
+  }
+  const PipeFrame = window.ScreenBoundary || function PipeFrame(p) {return p.children;};
+  const PipeCritical = window.CriticalBoundary || function PipeCritical(p) {return p.children;};
+
+  const PIPE_REFUSE = {
+    '/compliance': { name: 'Compliance', flow: 'This compliance check' },
+    '/compliance/holds': { name: 'Holds', flow: 'This hold' },
+    '/scan': { name: 'Tag scanning', flow: 'This scan' },
+    '/batches/merge': { name: 'Merging packages', flow: 'This merge' } };
+
+  const PIPE_LABEL = {
+    '/': 'Batches', '/batches': 'Batches', '/batches/archive': 'The batch archive',
+    '/inbox': 'The inbox', '/inventory': 'Inventory', '/products': 'Products',
+    '/products/shells': 'Product shells', '/ap': 'AP', '/credits': 'Credits',
+    '/credits/new': 'A new credit memo', '/buyers': 'Buyers',
+    '/scorecards': 'Vendor scorecards', '/settings/flags': 'Feature flags' };
+
+  /* An unlisted route is named from its own path, never generically. */
+  function pipeName(path) {
+    if (PIPE_LABEL[path]) return PIPE_LABEL[path];
+    const top = '/' + String(path || '').split('/')[1];
+    const base = PIPE_LABEL[top];
+    const rest = String(path || '').replace(/^\//, '').split('/').slice(1).join(' · ');
+    if (base) return rest ? base + ' · ' + rest : base;
+    return String(path || '').replace(/^\//, '').replace(/\//g, ' · ') || 'This screen';
+  }
+
   function App() {
     const [route, setRoute] = React.useState(() => location.hash || '#/batches');
     const [entity, setEntityState] = React.useState(() => { try { return localStorage.getItem('hd-entity') || 'thc'; } catch (e) { return 'thc'; } });
@@ -235,18 +286,33 @@
 
     return (
       <div style={{ display: 'flex', height: '100%', background: P.canvas, color: P.ink }}>
-        <window.HWRail active="batches" />
-        <ModuleSidebar route={path} navigate={navigate} collapsed={collapsed} setCollapsed={setCollapsed} />
+        <PipeFrame name="The navigation rail"><window.HWRail active="batches" /></PipeFrame>
+        <PipeFrame name="The module sidebar">
+          <ModuleSidebar route={path} navigate={navigate} collapsed={collapsed} setCollapsed={setCollapsed} />
+        </PipeFrame>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <Topbar route={route} entity={entity} setEntity={setEntity} navigate={navigate} onSearch={() => setSearchOpen(true)} />
-          <main style={{ flex: 1, minHeight: 0, overflowY: path === '/batches' || path === '/inbox' ? 'hidden' : 'auto' }}>{screen}</main>
+          <PipeFrame name="The top bar">
+            <Topbar route={route} entity={entity} setEntity={setEntity} navigate={navigate} onSearch={() => setSearchOpen(true)} />
+          </PipeFrame>
+          <main style={{ flex: 1, minHeight: 0, overflowY: path === '/batches' || path === '/inbox' ? 'hidden' : 'auto' }}>
+            {/* Keyed by route: one boundary instance reused across a navigation
+                strands the user on a failure they have already navigated away
+                from. */}
+            {PIPE_REFUSE[path] ?
+        <PipeCritical key={path} name={PIPE_REFUSE[path].name} flow={PIPE_REFUSE[path].flow}>{screen}</PipeCritical> :
+        <PipeFrame key={path} name={pipeName(path)} onReset={() => navigate('#/batches')} resetLabel="Back to batches">{screen}</PipeFrame>}
+          </main>
         </div>
-        <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} />
-        <ToastHost />
+        <PipeFrame name="The search palette">
+          <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} navigate={navigate} />
+        </PipeFrame>
+        <PipeFrame name="The toast host"><ToastHost /></PipeFrame>
       </div>);
   }
 
   window.PipelineApp = App;
+  /* Backstop: catches App's own body, and is the escalation target every
+     refusing compliance route hands its refusal up to. */
   ReactDOM.createRoot(document.getElementById('root')).render(
-    <ThemeProvider><App /></ThemeProvider>);
+    <ThemeProvider><PipeFrame name="The batch pipeline"><App /></PipeFrame></ThemeProvider>);
 })();

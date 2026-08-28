@@ -567,6 +567,20 @@ function SectionBanner({ icon, title, sub }) {
 }
 
 // ── App shell ───────────────────────────────────────────────────────────────
+/* == WHERE A FAILURE STOPS IN the delivery console ==
+ * Region + KML configuration. Every boundary here CONTAINS: the boundaries sit at
+ * screen level (the region detail, the add-region modal), so a surface renders
+ * whole or shows a named panel -- there is no partial state where an override
+ * row is silently missing from a region that otherwise looks complete. Nothing
+ * that survives a failure is a figure somebody acts on.
+ * !! RENDER AND LIFECYCLE ERRORS ONLY -- not event handlers, not async work.
+ * The buttons that actually write are unguarded by anything here. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try {console.error('[HW boundary] Hyperwolf Delivery.html did not load shared/error-boundary.jsx — ' +
+    'the delivery console is running with NO error boundaries.');} catch (e) {}
+}
+const DelivFrame = window.ScreenBoundary || function DelivFrame(p) {return p.children;};
+
 window.DeliveryApp = function DeliveryApp() {
   const [mode, setMode] = React.useState(() => {try {return localStorage.getItem('hw-pos-theme') || 'light';} catch (e) {return 'light';}});
   React.useEffect(() => {try {localStorage.setItem('hw-pos-theme', mode);} catch (e) {}document.documentElement.style.background = window.THEMES[mode].bg;}, [mode]);
@@ -583,28 +597,37 @@ window.DeliveryApp = function DeliveryApp() {
   const focused = focus ? regions.find((r) => r.id === focus) : null;
 
   return <window.ThemeCtx.Provider value={themeValue}><div style={{ display: 'flex', height: '100vh', background: P.bg, color: P.ink, fontFamily: P.fontSans, overflow: 'hidden' }}>
-    <window.HWRail active="delivery" />
+    <DelivFrame name="The navigation rail"><window.HWRail active="delivery" /></DelivFrame>
     <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '26px 34px 60px' }}>
     <div style={{ maxWidth: 1240, margin: '0 auto' }}>
-      <PageHeader onAdd={() => setAdding(true)} mode={mode} onToggleTheme={themeValue.toggle} />
+      <DelivFrame name="The page header"><PageHeader onAdd={() => setAdding(true)} mode={mode} onToggleTheme={themeValue.toggle} /></DelivFrame>
       {focused ?
-      <RegionDetail region={focused} onBack={() => setFocus(null)} onChange={updateRegion} /> :
+      /* Keyed by region id: without the key a failure on one region would still
+         be showing after the user opened a different one. */
+      <DelivFrame key={focused.id} name={'Region · ' + (focused.name || focused.id)}
+      onReset={() => setFocus(null)} resetLabel="Back to all regions">
+          <RegionDetail region={focused} onBack={() => setFocus(null)} onChange={updateRegion} />
+        </DelivFrame> :
       <>
           <div style={{ marginBottom: 34 }}>
-            <ScheduleWeek />
+            <DelivFrame name="The week schedule"><ScheduleWeek /></DelivFrame>
           </div>
           <div>
             <SectionBanner icon="map" title="Regions" sub="Counties → sub-regions · central settings, overrides & KML zones" />
-            <RegionsHome onOpen={setFocus} regions={regions} />
+            <DelivFrame name="The regions list"><RegionsHome onOpen={setFocus} regions={regions} /></DelivFrame>
           </div>
           <div style={{ marginTop: 34 }}>
             <SectionBanner icon="link" title="Weedmaps" sub="Region → listing mappings, menu IDs & API credentials" />
-            <WeedmapsPanel regions={regions} />
+            <DelivFrame name="The Weedmaps mappings"><WeedmapsPanel regions={regions} /></DelivFrame>
           </div>
         </>}
     </div>
-    {adding && <AddRegionModal regions={regions} onClose={() => setAdding(false)} onSave={addRegion} />}
+    {adding && <DelivFrame name="Adding a region" onReset={() => setAdding(false)} resetLabel="Close">
+      <AddRegionModal regions={regions} onClose={() => setAdding(false)} onSave={addRegion} />
+    </DelivFrame>}
   </div></div></window.ThemeCtx.Provider>;
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(<window.DeliveryApp />);
+/* Backstop: catches DeliveryApp's own body, which is otherwise unguarded. */
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <DelivFrame name="The delivery console"><window.DeliveryApp /></DelivFrame>);

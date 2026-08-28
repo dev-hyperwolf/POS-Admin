@@ -359,8 +359,27 @@ function LanesView({ s, F }) {
 // its own. It previously held a private ThemeCtx pinned to `useState('dark')`,
 // which ignored that key entirely and made this the only console that opened
 // dark on a light-mode platform.
+/* == WHERE A FAILURE STOPS IN LOGISTICS ======================================
+ * Dispatch. Everything CONTAINS, and the reason is placement: each boundary
+ * wraps a whole self-contained unit -- the board/map/lanes view, the order
+ * sheet, the new-order sheet, the settings modal. A unit renders whole or shows
+ * a named panel, so there is no half-rendered order sheet with the address
+ * missing that a dispatcher could reassign a driver against.
+ * The sheets are guarded SEPARATELY from the board on purpose: a broken order
+ * sheet then leaves the board behind it working, which is where the dispatcher
+ * needs to be anyway.
+ * !! RENDER AND LIFECYCLE ONLY -- the reassign and dispatch calls are onClick
+ * handlers and nothing here covers them. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try {console.error('[HW boundary] Hyperdrive Logistics.html did not load shared/error-boundary.jsx — ' +
+    'logistics is running with NO error boundaries.');} catch (e) {}
+}
+const LogiFrame = window.ScreenBoundary || function LogiFrame(p) {return p.children;};
+const LOGI_VIEW_LABEL = { board: 'The board', map: 'The map', lanes: 'Lanes' };
+
 window.LogisticsApp = function LogisticsApp() {
-  return <window.ThemeProvider><LogisticsShell /></window.ThemeProvider>;
+  /* Backstop: catches LogisticsShell's own body, otherwise unguarded. */
+  return <window.ThemeProvider><LogiFrame name="Hyperdrive Logistics"><LogisticsShell /></LogiFrame></window.ThemeProvider>;
 };
 
 function LogisticsShell() {
@@ -378,7 +397,7 @@ function LogisticsShell() {
   const openOrder = s.orders.find((o) => o.id === openId);
   return <React.Fragment>
     <div style={{ display: 'flex', height: '100vh', background: P.bg, overflow: 'hidden' }}>
-    <window.HWRail active="logistics" />
+    <LogiFrame name="The navigation rail"><window.HWRail active="logistics" /></LogiFrame>
     <div style={{ flex: 1, minWidth: 0, height: '100vh', background: P.bg, color: P.ink, fontFamily: P.fontSans, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <AppHeader view={view} onView={setView} mode={mode} onToggleMode={toggle} onSettings={() => setSettings(true)} />
       {(() => {const un = s.orders.filter((o) => !o.driver && !o.sched);if (!un.length) return null;return <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', background: P.badSoft, borderBottom: `1px solid ${P.bad}`, flex: '0 0 auto', flexWrap: 'wrap' }}>
@@ -392,15 +411,28 @@ function LogisticsShell() {
         <Hero h={h} status={status} setStatus={setStatus} />
         <FilterBar inline region={region} setRegion={setRegion} driver={driver} setDriver={setDriver} status={status} setStatus={setStatus} drivers={s.drivers} onNew={(k) => setTaskFlow(k)}
           right={<span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginRight: 4 }}>{filterOrders(s.orders, F).length} orders shown below</span>} />
-        {view === 'board' && <BoardView s={s} F={F} onOpen={setOpenId} />}
-        {view === 'map' && <MapView s={s} F={F} />}
-        {view === 'lanes' && <LanesView s={s} F={F} />}
+        {/* Keyed by view: one boundary instance reused across a view switch
+            would still be showing the previous view's failure. */}
+        <LogiFrame key={view} name={LOGI_VIEW_LABEL[view] || view}
+      onReset={() => setView('board')} resetLabel="Back to the board">
+          {view === 'board' && <BoardView s={s} F={F} onOpen={setOpenId} />}
+          {view === 'map' && <MapView s={s} F={F} />}
+          {view === 'lanes' && <LanesView s={s} F={F} />}
+        </LogiFrame>
       </div>
-      {openId && openOrder && <LOrderSheet order={openOrder} drivers={s.drivers} onReassign={(id, name) => {s.reassign(id, name);s.setFlash(`#${id} → ${name}`);}} onItems={s.setItems} onFlash={s.setFlash} onClose={() => setOpenId(null)} />}
-      {taskFlow === 'order' && <NewOrderSheet drivers={s.drivers} onFlash={s.setFlash} onClose={() => setTaskFlow(null)} />}
-      {(taskFlow === 'break' || taskFlow === 'meal') && <TaskFlowModal kind={taskFlow} drivers={s.drivers} onClose={() => setTaskFlow(null)} onFlash={s.setFlash} />}
-      {settings && <SettingsModal onClose={() => setSettings(false)} onFlash={s.setFlash} />}
-      <LToast msg={s.flash} />
+      {openId && openOrder && <LogiFrame key={'o' + openId} name={'Order #' + openId} onReset={() => setOpenId(null)} resetLabel="Close">
+        <LOrderSheet order={openOrder} drivers={s.drivers} onReassign={(id, name) => {s.reassign(id, name);s.setFlash(`#${id} → ${name}`);}} onItems={s.setItems} onFlash={s.setFlash} onClose={() => setOpenId(null)} />
+      </LogiFrame>}
+      {taskFlow === 'order' && <LogiFrame name="A new order" onReset={() => setTaskFlow(null)} resetLabel="Close">
+        <NewOrderSheet drivers={s.drivers} onFlash={s.setFlash} onClose={() => setTaskFlow(null)} />
+      </LogiFrame>}
+      {(taskFlow === 'break' || taskFlow === 'meal') && <LogiFrame key={taskFlow} name={taskFlow === 'meal' ? 'A meal break' : 'A rest break'} onReset={() => setTaskFlow(null)} resetLabel="Close">
+        <TaskFlowModal kind={taskFlow} drivers={s.drivers} onClose={() => setTaskFlow(null)} onFlash={s.setFlash} />
+      </LogiFrame>}
+      {settings && <LogiFrame name="Settings" onReset={() => setSettings(false)} resetLabel="Close">
+        <SettingsModal onClose={() => setSettings(false)} onFlash={s.setFlash} />
+      </LogiFrame>}
+      <LogiFrame name="The toast"><LToast msg={s.flash} /></LogiFrame>
     </div>
     </div>
   </React.Fragment>;
