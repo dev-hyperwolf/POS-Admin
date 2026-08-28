@@ -813,7 +813,8 @@ function MemberDetailPage({ m, onBack }) {
 const SETTINGS = [
 { group: 'Store', items: [['Terminal', 'scan'], ['Store Information', 'shop'], ['Notification', 'bell'], ['Tax Management', 'percent']] },
 { group: 'Commerce', items: [['Shop Settings', 'settings'], ['Delivery Management', 'truck'], ['Claim Ceiling', 'shield'], ['Cannabis Limit Management', 'leaf'], ['Credit Card Fee Settings', 'card']] },
-{ group: 'Cash handling', items: [['Cash Drawer', 'cash'], ['Close Shift', 'lock'], ['METRC Sync', 'refresh'], ['Audit Log', 'list']] }];
+{ group: 'Cash handling', items: [['Cash Drawer', 'cash'], ['Close Shift', 'lock'], ['METRC Sync', 'refresh'], ['Audit Log', 'list']] },
+{ group: 'Integrations', items: [['Weedmaps Status', 'globe']] }];
 
 
 // ── Cash Drawer settings — the store-level required starting balance ───────
@@ -960,6 +961,164 @@ function LaneEconomicsSettings({ onClose }) {
   </div>;
 }
 
+/* ── Weedmaps status ──────────────────────────────────────────────────────
+ *
+ * READ-ONLY, v1. wmdemo/config.py already computes rich operator sentences —
+ * live_write_mode() ("is this deployment even allowed to write to the real
+ * Weedmaps menu, and why"), order_push_blocker() ("order-status push is
+ * blocked because Weedmaps hasn't granted the scope") — and until
+ * GET /api/wm/status existed neither one left the boot log. This panel is
+ * that route's response, laid out. It has NO save button and writes nothing:
+ * making any of this editable needs a DB-backed settings-overlay table (the
+ * pattern category_edit.py's alias overlay already uses), which is a
+ * materially bigger project than a status screen and is explicitly deferred.
+ *
+ * Fetched through window.HW_LIVE.get(), the same one-seam read path every
+ * other live card in this app uses (screen-categories.jsx's
+ * useKnownCategories is the model): idle -> pending -> live | error, and an
+ * honest "could not reach it" on failure rather than inventing a status.
+ */
+function useWmStatus() {
+  const [st, setSt] = React.useState({ status: 'idle', data: null, err: null });
+  React.useEffect(() => {
+    if (!window.HW_LIVE || typeof window.HW_LIVE.get !== 'function') {
+      setSt({ status: 'error', data: null, err: 'the live data seam (shared/hw-live.js) is not loaded on this page' });
+      return;
+    }
+    let dead = false;
+    setSt({ status: 'pending', data: null, err: null });
+    window.HW_LIVE.get('/api/wm/status').then((r) => {
+      if (dead) return;
+      if (!r.ok || !r.body) { setSt({ status: 'error', data: null, err: r.error || ('HTTP ' + r.code) }); return; }
+      setSt({ status: 'live', data: r.body, err: null });
+    });
+    return () => { dead = true; };
+  }, []);
+  return st;
+}
+
+function WmSettingCard({ P, pillKind, pillDot, pillLabel, title, source, children }) {
+  return (
+    <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 16, background: P.surface }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+        {pillLabel && <Pill kind={pillKind} dot={pillDot} size="sm">{pillLabel}</Pill>}
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</span>
+      </div>
+      <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.6 }}>{children}</div>
+      {source && <div style={{ marginTop: 10, fontSize: 10.5, color: P.inkFaint, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+        {source}
+        <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute, background: P.surface3, padding: '2px 7px', borderRadius: 99, letterSpacing: '.03em', textTransform: 'uppercase', fontFamily: P.fontSans }}>engineer only</span>
+      </div>}
+    </div>
+  );
+}
+
+function WeedmapsStatusPanel({ onClose }) {
+  const P = useP();
+  const st = useWmStatus();
+  const kv = { display: 'flex', justifyContent: 'space-between', gap: 14, padding: '5px 0', fontSize: 12 };
+
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 200, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(820px,96vw)', maxHeight: '92vh', overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
+        <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="globe" size={16} stroke={2} /></span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Weedmaps</div>
+          <div style={{ fontSize: 11.5, color: P.inkDim }}>Environment &amp; write-mode status</div>
+        </div>
+        <Pill kind="neutral" size="sm">Read-only</Pill>
+        <IconBtn icon="x" size={16} onClick={onClose} />
+      </div>
+
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
+          <Icon name="info" size={14} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Every card below states a fact this process already computed — nothing here is a control. Most of these values require a process restart to take effect, and one of them (OAuth token scopes) has already caused a real outage from a casual-looking edit, so there is no "change it here" for any of them yet.</div>
+        </div>
+
+        {st.status === 'pending' && <div style={{ fontSize: 12.5, color: P.inkDim, padding: '20px 0', textAlign: 'center' }}>Asking GET /api/wm/status…</div>}
+
+        {st.status === 'error' && <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.badSoft, borderRadius: P.r10 }}>
+          <Icon name="alert" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b>Could not reach GET /api/wm/status</b> ({st.err}). Nothing below is invented to fill the gap — this panel shows a status, not a guess.</div>
+        </div>}
+
+        {st.status === 'live' && (() => {
+          const d = st.data;
+          const lw = d.live_write || {};
+          const op = d.order_push || {};
+          const partner = d.partner || {};
+          const wh = d.webhook || {};
+          const posture = wh.posture || {};
+          const sync = d.sync || {};
+          const mp = d.merchant_preflight || {};
+
+          return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 14 }}>
+
+            <WmSettingCard P={P} pillKind={lw.mode === 'allowed' ? 'good' : 'bad'} pillDot
+              pillLabel={lw.mode === 'allowed' ? 'allowed' : 'refused'} title="Live write mode"
+              source="config.live_write_mode() · WM_API_BASE, WM_ALLOW_LIVE_WM, WM_API_READONLY">
+              {lw.reason || 'No reason returned.'}
+            </WmSettingCard>
+
+            <WmSettingCard P={P} pillKind={op.entitled ? 'good' : 'bad'} pillDot
+              pillLabel={op.entitled ? 'entitled' : 'blocked'} title="Order-status push"
+              source="config.order_push_blocker() · ORDERS_SCOPE_ENTITLED">
+              {op.entitled ? 'This client carries orders:status:write — queued statuses may drain.' : (op.blocked_reason || 'Blocked, no reason returned.')}
+            </WmSettingCard>
+
+            <WmSettingCard P={P} pillKind="info" pillDot
+              pillLabel={partner.on_live_host ? 'live partner' : 'non-live host'} title="Environment"
+              source="config.API_BASE (WM_API_BASE)">
+              Talking to <code style={{ fontFamily: P.fontMono, background: P.surface3, padding: '1px 5px', borderRadius: 6 }}>{partner.api_base || '—'}</code>.
+              {partner.read_only_declared ? ' This process has declared itself read-only (WM_API_READONLY=1) — every non-GET to the partner is refused regardless of the write-mode verdict above.' : ' No read-only declaration is in effect for this process.'}
+            </WmSettingCard>
+
+            <WmSettingCard P={P} pillKind={wh.signature_key_configured ? 'good' : 'bad'} pillDot
+              pillLabel={wh.signature_key_configured ? 'key configured' : 'not configured'} title="Webhook signature"
+              source="engine.verify_signature — keyed on config.CLIENT_SECRET">
+              <div>The inbound webhook HMAC is keyed on the same secret as the OAuth client credential — its value is never shown here, only whether one is set.</div>
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${P.hairline2}` }}>
+                <div style={kv}><span style={{ color: P.inkDim }}>Posture</span><span style={{ fontWeight: 600, color: P.ink }}>{posture.state || 'unknown'}</span></div>
+                <div style={kv}><span style={{ color: P.inkDim }}>Verified from Weedmaps</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{posture.external_verified ?? '—'}</span></div>
+                <div style={kv}><span style={{ color: P.inkDim }}>Rejected from Weedmaps</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{posture.external_rejected ?? '—'}</span></div>
+              </div>
+            </WmSettingCard>
+
+            <WmSettingCard P={P} title="Sync cadence"
+              source="config.SYNC_DEBOUNCE_S / PROMO_POLL_S / RECONCILE_EVERY_S">
+              <div style={kv}><span style={{ color: P.inkDim }}>Write debounce</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.debounce_s ?? '—'}s</span></div>
+              <div style={kv}><span style={{ color: P.inkDim }}>Promo poll (no push API exists)</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.promo_poll_s ?? '—'}s</span></div>
+              <div style={kv}><span style={{ color: P.inkDim }}>Reconcile safety net</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.reconcile_every_s ?? '—'}s</span></div>
+            </WmSettingCard>
+
+            <WmSettingCard P={P} pillKind={mp.enabled ? 'good' : 'neutral'} pillDot
+              pillLabel={mp.enabled ? 'on' : 'off'} title="Merchant pre-flight"
+              source="config.MERCHANT_PREFLIGHT / _TTL_KNOWN_S / _TTL_UNKNOWN_S">
+              <div style={kv}><span style={{ color: P.inkDim }}>Known-merchant cache</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{mp.ttl_known_s ?? '—'}s</span></div>
+              <div style={kv}><span style={{ color: P.inkDim }}>Unknown-merchant cache</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{mp.ttl_unknown_s ?? '—'}s</span></div>
+              <div style={kv}><span style={{ color: P.inkDim }}>Pre-flight timeout</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{mp.timeout_s ?? '—'}s</span></div>
+            </WmSettingCard>
+
+            <WmSettingCard P={P} pillKind={d.public_mode ? 'warn' : 'neutral'} pillDot
+              pillLabel={d.public_mode ? 'public' : 'not public'} title="Write token"
+              source="config.WRITE_TOKEN (WM_DEMO_WRITE_TOKEN) — secret, never surfaced">
+              {d.public_mode ?
+                (d.write_token_configured ? 'This service is reachable from the internet and a write token is configured — every mutating route requires it. Reads stay open.' : 'This service is public and NO write token is configured — mutating routes are unprotected.') :
+                'This service is not in public mode, so the write-token gate is not in effect' + (d.write_token_configured ? ' (a token is configured anyway).' : '.')}
+            </WmSettingCard>
+
+          </div>;
+        })()}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '14px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
+        <PBtn variant="secondary" size="md" onClick={onClose}>Close</PBtn>
+      </div>
+    </div>
+  </div>;
+}
+
 window.SettingsScreen = function SettingsScreen() {
   const P = useP();
   const POS = window.usePOS();
@@ -972,7 +1131,7 @@ window.SettingsScreen = function SettingsScreen() {
           <Eyebrow style={{ marginBottom: 11 }}>{sec.group}</Eyebrow>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(248px,1fr))', gap: 11 }}>
             {sec.items.map(([label, icon]) =>
-          <Card key={label} padding={15} hover onClick={() => { if (label === 'Cash Drawer') setOpen('drawer'); if (label === 'Delivery Management') setOpen('lanes'); if (label === 'Claim Ceiling') setOpen('claim'); }} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+          <Card key={label} padding={15} hover onClick={() => { if (label === 'Cash Drawer') setOpen('drawer'); if (label === 'Delivery Management') setOpen('lanes'); if (label === 'Claim Ceiling') setOpen('claim'); if (label === 'Weedmaps Status') setOpen('wmstatus'); }} style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
                 <span style={{ width: 38, height: 38, borderRadius: P.r10, background: P.surface3, color: P.ink2, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={18} stroke={1.8} /></span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: P.ink }}>{label}</span>
@@ -983,6 +1142,7 @@ window.SettingsScreen = function SettingsScreen() {
                       to. It caps the deepest discount merchandising copy may ADVERTISE —
                       the guard that "Up to 97% off" got past. */}
                   {label === 'Claim Ceiling' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Max advertised {window.HWClaim ? window.HWClaim.get() : '—'}%{window.HWClaim && window.HWClaim.isDefault() ? ' · provisional' : ''}</span>}
+                  {label === 'Weedmaps Status' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Read-only · GET /api/wm/status</span>}
                 </span>
                 <Icon name="chevron-right" size={16} stroke={2} color={P.inkMute} />
               </Card>
@@ -993,6 +1153,7 @@ window.SettingsScreen = function SettingsScreen() {
       {open === 'drawer' && <CashDrawerSettings onClose={() => setOpen(null)} />}
       {open === 'lanes' && <LaneEconomicsSettings onClose={() => setOpen(null)} />}
       {open === 'claim' && window.ClaimCeilingSettings && <window.ClaimCeilingSettings onClose={() => setOpen(null)} />}
+      {open === 'wmstatus' && <WeedmapsStatusPanel onClose={() => setOpen(null)} />}
     </div>);
 
 };
