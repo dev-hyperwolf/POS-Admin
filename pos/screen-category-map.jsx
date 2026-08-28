@@ -182,6 +182,18 @@
       why: 'Someone bound this category to a specific Weedmaps node, and that node is not in the tree this deployment resolves against any more. Products under it publish with no category_ids — not because nothing was chosen, but because what was chosen is gone.',
       fixable: 'FIXABLE HERE: pick a node again, or remove the binding to fall back to the name match.'
     },
+    // A CATEGORY CAN BIND SEVERAL NODES NOW (2026-08-28), and this state only
+    // exists because that is true: with at most one pick there was no OTHER
+    // still-valid pick for a broken one to leave behind. It still publishes —
+    // under whichever bound nodes still resolve — so it must read calmer than
+    // BINDING BROKEN (nothing published at all is not what is happening) and
+    // more urgent than resolves (a pick has genuinely stopped working).
+    BINDING_PARTIAL: {
+      kind: 'warn', icon: 'alert', label: 'PARTIALLY BROKEN',
+      short: 'one of several picks has left the tree',
+      why: 'This category is explicitly bound to more than one Weedmaps node, and at least one of them is not in the tree this deployment resolves against any more. Products still publish under every pick that DOES resolve — the broken pick just contributes nothing until it is changed or removed.',
+      fixable: 'FIXABLE HERE: open the bindings below, remove the pick that is no longer in the tree, or pick a replacement for it.'
+    },
     UNUSED: {
       kind: 'neutral', icon: 'circle', label: 'unused',
       short: 'resolves, no products carry it',
@@ -616,7 +628,50 @@
       </Card>);
   }
 
+  // ── one Weedmaps node's own path (parent > child), arrow-joined ───────────
+  // Factored out of WmCell so a name-match path and each EXPLICIT pick's own
+  // path render with the exact same look — the only thing that changes below
+  // is how many of these chains sit next to each other, and what separates them.
+  function WmPathChain({ nodes, broken, nodeId }) {
+    const P = useP();
+    if (broken || !nodes || !nodes.length) {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: P.type.body, fontWeight: 700, color: P.bad }}>
+            node {nodeId} — not in the tree
+          </span>
+        </span>);
+    }
+    const last = nodes.length - 1;
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+        {nodes.map(function (n, i) {
+          return (
+            <span key={String(n.id) + '-' + i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {i > 0 && <Icon name="arrow-right" size={11} stroke={2} color={P.inkMute} />}
+              <span style={{ fontSize: P.type.body, fontWeight: i === last ? 700 : 500,
+                color: i === last ? P.ink : P.inkDim }}>
+                {n.name || <span style={{ color: P.bad }}>id not in the tree</span>}
+              </span>
+              <code style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkDim }}>[{n.id}]</code>
+            </span>);
+        })}
+      </span>);
+  }
+
   // ── the Weedmaps side of one row ──────────────────────────────────────────
+  //
+  // MULTIPLE EXPLICIT PICKS RENDER AS SEPARATE CHAINS, NOT ONE LONGER CHAIN.
+  // Before 2026-08-28 `wm_nodes` was always ONE node's own [parent_id, id]
+  // pair, so arrow-joining the whole list was correct — it drew that one
+  // node's real ancestry. A category can now hold several INDEPENDENT picks
+  // (Flower bound to both Flower and Infused Flower), and arrow-joining
+  // those would draw a hierarchy between two nodes that share none — Infused
+  // Flower is not a child of Flower just because an operator bound both.
+  // `r.bindings` (one entry per explicit pick, each with its OWN resolved
+  // path) is what makes the distinction renderable; it is empty for a
+  // name-match or unbound row, which is exactly when the old single-chain
+  // rendering is still correct and is kept as the fallback.
   function WmCell({ r }) {
     const P = useP();
     if (!r.wm_ids || !r.wm_ids.length) {
@@ -631,22 +686,26 @@
           </div>
         </div>);
     }
-    const last = r.wm_nodes.length - 1;
+    const bindings = r.bindings || [];
     return (
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-          {(r.wm_nodes || []).map(function (n, i) {
-            return (
-              <span key={String(n.id) + '-' + i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                {i > 0 && <Icon name="arrow-right" size={11} stroke={2} color={P.inkMute} />}
-                <span style={{ fontSize: P.type.body, fontWeight: i === last ? 700 : 500,
-                  color: i === last ? P.ink : P.inkDim }}>
-                  {n.name || <span style={{ color: P.bad }}>id not in the tree</span>}
-                </span>
-                <code style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkDim }}>[{n.id}]</code>
-              </span>);
-          })}
-        </div>
+        {bindings.length
+          ? <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {bindings.map(function (b, i) {
+                return (
+                  <div key={String(b.node_id) + '-' + i}
+                    data-hw-bound-node={b.node_id}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                      opacity: b.broken ? 0.85 : 1 }}>
+                    <WmPathChain nodes={b.path} broken={b.broken} nodeId={b.node_id} />
+                    {bindings.length > 1 &&
+                      <span style={{ fontSize: P.type.micro, color: P.inkMute }}>
+                        {b.broken ? '(broken pick)' : '(one of ' + bindings.length + ')'}
+                      </span>}
+                  </div>);
+              })}
+            </div>
+          : <WmPathChain nodes={r.wm_nodes} broken={false} nodeId={null} />}
         <div style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkMute, marginTop: 3 }}>
           category_ids [{r.wm_ids.join(', ')}]
         </div>
@@ -1124,9 +1183,15 @@
   // ── binding editor: one category, one node, one confirmed save ────────────
   function BindingEditor({ row, tree, collisions, onSaved, onClose }) {
     const P = useP();
-    const [node, setNode] = React.useState(
-      row.binding ? row.binding.node_id : (row.wm_ids && row.wm_ids.length ? row.wm_ids[row.wm_ids.length - 1] : null));
-    const [mode, setMode] = React.useState('bind');   // 'bind' | 'unbind'
+    // `bindings` -- one entry per EXPLICIT pick, oldest first. Multiple picks
+    // are the whole point of 2026-08-28's change: picking a node here ADDS to
+    // this list, it does not replace whatever was already in it.
+    const bindings = row.bindings || [];
+    const [node, setNode] = React.useState(null);       // the node being ADDED
+    // 'bind' | 'unbind' | 'unbind_all'. Starts on 'bind' even when picks
+    // already exist -- adding another is the common case a re-open is for.
+    const [mode, setMode] = React.useState('bind');
+    const [unbindNode, setUnbindNode] = React.useState(null); // which pick 'unbind' targets
     const [http, setHttp] = React.useState(null);
     const [busy, setBusy] = React.useState(false);
     const [refusal, setRefusal] = React.useState(null);
@@ -1134,13 +1199,15 @@
     React.useEffect(function () {
       let live = true;
       setHttp(null); setRefusal(null);
-      const path = ROUTE + '/preview?' + (mode === 'unbind'
-        ? qs({ op: 'unbind', category: row.category })
-        : qs({ op: 'bind', category: row.category, node: node }));
       if (mode === 'bind' && node == null) { return function () { live = false; }; }
+      if (mode === 'unbind' && unbindNode == null) { return function () { live = false; }; }
+      const path = ROUTE + '/preview?' + (
+        mode === 'unbind_all' ? qs({ op: 'unbind_all', category: row.category })
+        : mode === 'unbind' ? qs({ op: 'unbind', category: row.category, node: unbindNode })
+        : qs({ op: 'bind', category: row.category, node: node }));
       getJSON(path).then(function (r) { if (live) { setHttp(r); } });
       return function () { live = false; };
-    }, [row.category, node, mode]);
+    }, [row.category, node, mode, unbindNode]);
 
     // A 409 on the PREVIEW is still a preview: the body is the refusal, and the
     // panel renders it as the reason a save is not offered.
@@ -1153,15 +1220,24 @@
 
     function save(confirm) {
       setBusy(true); setRefusal(null);
-      const path = ROUTE + (mode === 'unbind' ? '/unbind' : '/bind');
-      const payload = mode === 'unbind'
+      const path = ROUTE + (mode === 'unbind_all' ? '/unbind-all'
+        : mode === 'unbind' ? '/unbind' : '/bind');
+      const payload = mode === 'unbind_all'
         ? { category: row.category, confirm_products: confirm }
-        : { category: row.category, node: node, confirm_products: confirm };
+        : mode === 'unbind'
+          ? { category: row.category, node: unbindNode, confirm_products: confirm }
+          : { category: row.category, node: node, confirm_products: confirm };
       post(path, payload).then(function (r) {
         setBusy(false);
         const ref = refusalOf(r);
         if (ref) { setRefusal(ref); return; }
-        onSaved(r.body && r.body.map);
+        // STAY OPEN, RESET TO 'bind'. Closing after every save (the pre-multi-
+        // bind behaviour) made adding a SECOND node a two-click round trip
+        // through "Bindings (N)" again; staying open with a cleared picker is
+        // what makes "bind Flower to two nodes" read as one continuous task
+        // rather than two unrelated edits.
+        setNode(null); setUnbindNode(null); setMode('bind');
+        onSaved(r.body && r.body.map, row.category);
       });
     }
 
@@ -1186,10 +1262,11 @@
       <div ref={editorRef}>
       <Card density="roomy" data-hw-editor="binding"
         style={{ marginBottom: 18, border: '1px solid ' + P.accentBorder }}>
-        <SectionHead level={3} eyebrow="Pick a Weedmaps node"
-          title={'Bind ' + row.category + ' to a node in Weedmaps’ tree'}
-          subtitle={'Currently: ' + (row.binding_source === 'explicit'
-            ? 'explicitly bound to ' + (row.wm_path || 'a node that is no longer in the tree') + ' by ' + (row.binding && row.binding.actor || 'someone') + (row.binding && row.binding.at_iso ? ' on ' + row.binding.at_iso : '')
+        <SectionHead level={3} eyebrow="Weedmaps bindings"
+          title={row.category + '’s Weedmaps node' + (bindings.length === 1 ? '' : 's')}
+          subtitle={'Currently: ' + (bindings.length
+            ? bindings.length + ' explicit pick' + (bindings.length === 1 ? '' : 's') +
+              ' — a category can bind more than one node, and every one of them publishes'
             : row.binding_source === 'name_match'
               ? 'matched by name to ' + row.wm_path + ' — nobody picked this, the word simply hit a node of the same name'
               : 'not bound to anything. Weedmaps has no node named “' + row.category + '”, and that is an allowed resting state.')}
@@ -1204,11 +1281,45 @@
             Weedmaps accepts them. There is no decision to record and nothing is waiting on you.
           </div>}
 
+        {/* EVERY CURRENT PICK, EACH WITH ITS OWN REMOVE CONTROL. This is the
+            list a second (or third) bind ADDS to, and the thing that makes
+            "pick a node" additive rather than destructive legible on screen. */}
+        {bindings.length > 0 &&
+          <div data-hw-bindings-list="1" style={{ marginBottom: 12, display: 'flex',
+            flexDirection: 'column', gap: 6 }}>
+            {bindings.map(function (b) {
+              const targeted = mode === 'unbind' && unbindNode === b.node_id;
+              return (
+                <div key={b.node_id} data-hw-binding-row={b.node_id}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: 10, padding: '8px 10px', flexWrap: 'wrap',
+                    background: targeted ? P.warnSoft : P.surface2,
+                    border: '1px solid ' + (targeted ? P.warn : P.hairline2), borderRadius: P.r8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <WmPathChain nodes={b.path} broken={b.broken} nodeId={b.node_id} />
+                    <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 2 }}>
+                      picked by {b.actor || 'someone'}{b.at_iso ? ' on ' + b.at_iso : ''}
+                      {b.broken ? ' — not in the tree any more' : ''}
+                    </div>
+                  </div>
+                  <PBtn size="xs" icon="x" data-hw-remove-node={b.node_id}
+                    onClick={function () { setMode('unbind'); setUnbindNode(b.node_id); }}>
+                    Remove
+                  </PBtn>
+                </div>);
+            })}
+          </div>}
+
         <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-          <PBtn active={mode === 'bind'} onClick={function () { setMode('bind'); }} icon="grid">Pick a node</PBtn>
-          {row.binding &&
-            <PBtn active={mode === 'unbind'} data-hw-unbind="1"
-              onClick={function () { setMode('unbind'); }} icon="x">Remove the explicit binding</PBtn>}
+          <PBtn active={mode === 'bind'} data-hw-add-node="1"
+            onClick={function () { setMode('bind'); }} icon="grid">
+            {bindings.length ? 'Add another node' : 'Pick a node'}
+          </PBtn>
+          {bindings.length > 1 &&
+            <PBtn active={mode === 'unbind_all'} data-hw-unbind-all="1"
+              onClick={function () { setMode('unbind_all'); }} icon="x">
+              Clear all {bindings.length} bindings
+            </PBtn>}
         </div>
 
         {mode === 'bind' &&
@@ -1216,9 +1327,10 @@
             <NodePicker tree={tree} value={node} onPick={setNode} collisions={collisions} />
           </div>}
 
-        {(mode === 'unbind' || node != null) &&
+        {(mode === 'unbind_all' || (mode === 'unbind' && unbindNode != null) || (mode === 'bind' && node != null)) &&
           <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal}
-            saveLabel={mode === 'unbind' ? 'Remove the binding' : 'Bind it'}
+            saveLabel={mode === 'unbind_all' ? 'Remove all bindings'
+              : mode === 'unbind' ? 'Remove this binding' : 'Add this node'}
             onSave={save} onCancel={onClose} />}
 
         {mode === 'bind' && node == null &&
@@ -1438,6 +1550,10 @@
           </div>);
       } },
       { label: 'Weedmaps node', width: '26%', render: function (r) {
+        // Guarded, not assumed: category_map.py always sends `bindings` now,
+        // but a stale cached payload (or a map object built by hand, as in
+        // this screen's own test fixtures) may not carry it yet.
+        const rBindings = r.bindings || [];
         return (
           <div style={{ minWidth: 0 }}>
             <WmCell r={r} />
@@ -1448,17 +1564,26 @@
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
               <span data-hw-binding-source={r.binding_source || 'name_match'}
                 style={{ fontSize: P.type.micro, color: P.inkMute }}>
+                {/* A category can hold SEVERAL explicit picks (2026-08-28) —
+                    rBindings is every one of them, oldest first. */}
                 {r.binding_source === 'explicit'
-                  ? 'picked by ' + ((r.binding && r.binding.actor) || 'someone')
-                  : r.binding_source === 'explicit_missing_node'
-                    ? 'picked node ' + ((r.binding && r.binding.node_id) || '?') + ' is not in the tree'
-                    : r.binding_source === 'none'
-                      ? 'nothing bound — allowed'
-                      : 'matched by name, not chosen'}
+                  ? (rBindings.length === 1
+                      ? 'picked by ' + (rBindings[0].actor || 'someone')
+                      : rBindings.length + ' explicit picks')
+                  : r.binding_source === 'explicit_partial'
+                    ? (rBindings.filter(function (b) { return b.broken; }).length
+                        + ' of ' + rBindings.length + ' picks not in the tree')
+                    : r.binding_source === 'explicit_missing_node'
+                      ? (rBindings.length === 1
+                          ? 'picked node ' + (rBindings[0] ? rBindings[0].node_id : '?') + ' is not in the tree'
+                          : 'all ' + rBindings.length + ' picked nodes are not in the tree')
+                      : r.binding_source === 'none'
+                        ? 'nothing bound — allowed'
+                        : 'matched by name, not chosen'}
               </span>
               <PBtn size="xs" icon="edit" data-hw-edit-binding={r.category}
                 onClick={function () { setEditing(editing === r.category ? null : r.category); }}>
-                {r.binding_source === 'explicit' ? 'Change' : 'Pick a node'}
+                {rBindings.length ? 'Bindings (' + rBindings.length + ')' : 'Pick a node'}
               </PBtn>
             </div>
             {r.overrides_name_match &&
@@ -1558,7 +1683,13 @@
           return <BindingEditor row={r} tree={(d.wm_tree && d.wm_tree.tree) || []}
             collisions={(d.wm_tree && d.wm_tree.collisions) || []}
             onClose={function () { setEditing(null); }}
-            onSaved={function (map) { setEditing(null); if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
+            // STAYS OPEN ON SAVE, deliberately: a category can hold several
+            // explicit picks now, and closing after every one (the pre-multi-
+            // bind behaviour) turned "bind Flower to two nodes" into two
+            // separate trips through "Bindings (N)". The editor resets its
+            // own picker/mode state after each save; only Close or picking a
+            // different row's "Bindings" button leaves this one.
+            onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
         })()}
 
         {d && <TheDefect d={d} />}

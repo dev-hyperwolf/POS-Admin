@@ -88,7 +88,7 @@ function alias(name, over) {
 }
 
 function row(category, over) {
-  return Object.assign({
+  const merged = Object.assign({
     category, state: 'RESOLVES', wm_ids: [2],
     wm_nodes: [{ id: 2, name: 'Flower', parent_id: null, slug: 'flower',
       published: true, unknown: false }],
@@ -99,6 +99,21 @@ function row(category, over) {
       spellings_in_use: [category], resolves_on_its_own: true, own_ids: [2] })],
     alias_count: 0, other_spellings_in_use: [], policy: {}
   }, over || {});
+  // `bindings` (plural, 2026-08-28 multi-bind) IS DERIVED from the legacy
+  // singular `binding` when a caller only set that -- every pre-existing test
+  // in this file was written against the one-pick-per-category shape, and
+  // deriving here keeps every one of them a faithful (not weakened) test of
+  // the NEW contract instead of requiring a `bindings: [...]` override on
+  // every single call site. A caller that wants to test several picks passes
+  // `bindings` explicitly and this leaves it untouched.
+  if (!('bindings' in (over || {}))) {
+    merged.bindings = merged.binding
+      ? [Object.assign({ note: null, broken: merged.binding_source === 'explicit_missing_node',
+          path: (merged.wm_nodes && merged.wm_nodes.length) ? merged.wm_nodes : [] },
+          merged.binding)]
+      : [];
+  }
+  return merged;
 }
 
 /** `Deals` as the route serves it: nothing bound, and that is allowed. */
@@ -408,7 +423,7 @@ test('the save is refused until the operator echoes the exact count shown', asyn
     /Binds 3 product rows under Deals to Flower \[2\]/,
     'the preview sentence must be the server’s, printed verbatim');
 
-  const save = () => btnByText(m.doc, /Bind it/);
+  const save = () => btnByText(m.doc, /Add this node/);
   assert.equal(save().getAttribute('data-disabled'), '1',
     'the save must start disabled — nothing has been confirmed');
 
@@ -442,7 +457,7 @@ test('the map the screen shows after a save is the one the SERVER returned', asy
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
   await m.type(q(m.doc, '[data-hw-echo]'), '1');
-  await m.click(btnByText(m.doc, /Bind it/));
+  await m.click(btnByText(m.doc, /Add this node/));
 
   const src = q(m.doc, '[data-hw-binding-source]');
   assert.equal(src.getAttribute('data-hw-binding-source'), 'explicit');
@@ -474,7 +489,7 @@ test('an unreadable catalog offers no number to type, and confirms null', async 
   assert.doesNotMatch(panel.textContent, /\b0\b/,
     'an unknown must not print a zero anywhere in its own panel');
 
-  const save = () => btnByText(m.doc, /Bind it/);
+  const save = () => btnByText(m.doc, /Add this node/);
   assert.equal(save().getAttribute('data-disabled'), '1');
   await m.check(q(m.doc, '[data-hw-echo-unknown]'));
   assert.equal(save().getAttribute('data-disabled'), '0');
@@ -500,7 +515,7 @@ test('a 409 refusal renders as a named refusal, not as a breakage', async () => 
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
   await m.type(q(m.doc, '[data-hw-echo]'), '3');
-  await m.click(btnByText(m.doc, /Bind it/));
+  await m.click(btnByText(m.doc, /Add this node/));
 
   const ref = q(m.doc, '[data-hw-server-refusal="confirm_mismatch"]');
   assert.ok(ref, 'the refusal must be rendered with its machine code');
@@ -527,7 +542,7 @@ test('a preview that already knows the save would be refused offers no save', as
   await m.click(q(m.doc, '[data-hw-node="2"]'));
 
   assert.ok(q(m.doc, '[data-hw-refusal="no_such_node"]'));
-  assert.equal(btnByText(m.doc, /Bind it/), undefined,
+  assert.equal(btnByText(m.doc, /Add this node/), undefined,
     'a button that discovers on submit that it could never work is worse than no button');
   assert.equal(q(m.doc, '[data-hw-echo]'), null);
   assert.match(q(m.doc, '[data-hw-refusal="no_such_node"]').textContent,
@@ -746,7 +761,7 @@ test('MUTATION: enabling the save without a matching echo breaks these tests', a
   });
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
-  assert.equal(btnByText(m.doc, /Bind it/).getAttribute('data-disabled'), '0',
+  assert.equal(btnByText(m.doc, /Add this node/).getAttribute('data-disabled'), '0',
     'the mutation should have opened the gate with nothing confirmed; it did ' +
     'not, so `ready` is not what is actually gating the button — find out what is');
 });
