@@ -322,8 +322,8 @@
       // and product sheet show exactly what the server holds, not what we
       // asked it to hold. `thumb: live` mirrors seed()'s own `thumb: p`.
       const row = { sku: live.sku, name: live.name, price: live.price, override: !!v.override,
-        strain: live.strain, active: !!live.active && !v.sample, qty: live.qty || 0,
-        sample: !!v.sample, thumb: live };
+        strain: live.strain, active: !!live.active && !live.sample, qty: live.qty || 0,
+        sample: !!live.sample, thumb: live };
       SHELLS = allShells().map((s) => s.id === shell.id ? { ...s, variations: [...s.variations, row] } : s);
       emit();
       return { ok: true, sku: v.sku, wm: r.wm ? wmPushSummary(r.wm) : null };
@@ -341,9 +341,10 @@
   // purpose: /api/product is a full upsert with no partial-PATCH form, and
   // there is no GET /api/product/<sku> — the only per-sku read this estate
   // has is the LIVE-ADAPTED shape (shared/hw-live.js adaptProducts), which
-  // does not carry every raw field the row actually stores (items_per_pack,
-  // `sample`, the raw weight split are all absent from it — see that file's
-  // own return object). Rebuilding a full upsert body from that lossy shape
+  // does not carry every raw field the row actually stores (items_per_pack
+  // and the raw weight split are absent — see that file's own return object;
+  // `sample` WAS also missing here and is now carried straight through).
+  // Rebuilding a full upsert body from that lossy shape
   // would silently erase whatever it drops — a worse defect than the one
   // being fixed, for the sake of a rename. The safe fix needs a real
   // GET /api/product/<sku> on wmdemo's side first; flagged as a follow-up

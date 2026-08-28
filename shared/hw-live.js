@@ -603,6 +603,15 @@
         margin: cm.margin,
         hue: hueFor(cat),
         active: qty > 0,
+        // Staff/free-sample flag off the raw catalog row (`sample` — same key,
+        // no rename: pos/data.jsx, shared/demo-seed.js and productPayload in
+        // shell-store.jsx all already use the flat `sample` name, unlike the
+        // Weedmaps-specific fields nested under `wm` below). Must never be
+        // inferred from `active`/qty — a sample is deliberately kept off the
+        // sellable menu while still tracked as a full product profile, and a
+        // page that cannot see this flag cannot enforce "samples never reach
+        // Weedmaps" or even show the Sample tag correctly.
+        sample: !!p.sample,
         wm: {
           state: wmState,
           listings: listings,
