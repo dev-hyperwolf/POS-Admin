@@ -1565,10 +1565,16 @@ function ProductDetailPage({ p, onBack }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{name}</span>
-            {p.strain && <StrainPill type={p.strain} />}
+            {/* strainType/cat, NOT p.strain/p.cat — same staleness rule as
+                name above: p is a snapshot from when this row was clicked,
+                so a confirmed Save changes (saveChanges above) would leave
+                this badge and subtitle showing the pre-edit strain type and
+                category forever, contradicting the very saveMsg it sits
+                next to. */}
+            {strainType && <StrainPill type={strainType} />}
             {p.active ? <Pill kind="good" dot>Active</Pill> : <Pill kind="neutral" dot>Inactive</Pill>}
           </div>
-          <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{p.sku} · {p.brand} · {p.cat}</div>
+          <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{p.sku} · {p.brand} · {cat}</div>
         </div>
       </div>
 
