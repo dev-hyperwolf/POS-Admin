@@ -180,10 +180,24 @@ jobs:
           SRCLIST
 
           # ── 1. BOTH HOSTS ARE SERVING THIS COMMIT ────────────────────────
+          # RETRY HERE TOO, same reason as step 2 below: measured directly,
+          # 2026-08-28, a deploy of this size took Render over 2 minutes to
+          # come back up, well past the "wait until Render serves this
+          # commit" step's own earlier poll (which only proves the FIRST
+          # successful response matched -- it says nothing about whether the
+          # instance stays up through the handful of seconds it takes THIS
+          # step to run its own checks against it next). A single retry-less
+          # curl here can catch that same settling window and false-fail an
+          # otherwise-correct deploy.
           for host in PAGES RENDER; do
             url=$(eval echo \$$host)
-            live=$(curl -sS -m 20 "$url/build-info.json" 2>/dev/null \
-                   | sed -n 's/.*"sha":"\([^"]*\)".*/\1/p')
+            live=""
+            for attempt in 1 2 3 4 5 6; do
+              live=$(curl -sS -m 20 "$url/build-info.json" 2>/dev/null \
+                     | sed -n 's/.*"sha":"\([^"]*\)".*/\1/p')
+              [ "$live" = "$SHA" ] && break
+              sleep 10
+            done
             if [ "$live" = "$SHA" ]; then
               echo "PASS host-sha: $host is serving $SHA"
             elif [ -z "$live" ] && [ "$host" = "PAGES" ]; then
