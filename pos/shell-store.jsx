@@ -153,6 +153,17 @@
     return allShells();
   }
 
+  // A SHELL HAS NO SERVER REPRESENTATION, on purpose — wmdemo's catalog is
+  // flat products; brand/format/category/price only exist there per-SKU,
+  // encoded into each product's own fields (see productPayload below). So
+  // this staying local-only is correct, not the same gap createVariation
+  // fixes. What IS a real, undressed gap: editing a shell that already has
+  // variations does not re-push any of them — a price or brand change here
+  // is invisible to every SKU already created under it until something else
+  // (a rename, a manual re-push) touches that SKU. Not fixed here: looping a
+  // full /api/product upsert over up to ~50 variations from a single form
+  // save is a different-shaped change (batching, partial-failure reporting,
+  // rate limits) than "wire the one write this form already makes."
   function saveShell(draft, editingId) {
     const list = allShells();
     const def = catDef(draft.cat);
@@ -179,25 +190,164 @@
     return id;
   }
 
-  // The display-sample flag is written back onto the product row, the same way
-  // renameVariation below writes a name back. The row is what seed() rebuilds a
-  // variation FROM, so a flag held only on the variation object does not
-  // survive a reseed — and a reseed is not hypothetical: shared/hw-live.js
-  // `apply()` (:1015) replaces the contents of HW.PRODUCTS wholesale.
-  // A variation whose SKU has no row yet keeps the flag in SHELLS alone; see
-  // the note in seed() — nothing in this build creates a product row for a new
-  // variation, and that gap is not this function's to invent.
-  function addVariation(shellId, v) {
-    SHELLS = allShells().map((s) => s.id === shellId ? { ...s, variations: [...s.variations, v] } : s);
-    if (v && 'sample' in v) {
-      const prod = (HW.PRODUCTS || []).find((x) => x.sku === v.sku);
-      if (prod) prod.sample = !!v.sample;
+  // ── real write path: POST /api/product ──────────────────────────────────
+  // wmdemo's /api/product (server.py) is a FULL UPSERT — catalog.upsert_product
+  // replaces the whole stored JSON blob for a sku, so every field this shell +
+  // variation actually own has to go in every call, or the rest of the record
+  // is silently erased server-side (server.py's own comment on this route
+  // names `sample` as the field that used to be lost exactly this way).
+  //
+  // CATEGORY. wmdemo/engine.build_item_payload normalises OUR spelling before
+  // it ever reaches Weedmaps — taxonomy._norm_category + CATEGORY_ALIASES
+  // (wmdemo/taxonomy.py:246-284) — 'Vapes' -> 'Vape Pens', 'Pre-Rolls' ->
+  // 'Pre Roll', 'Wellness' and 'Accessories' are already canonical. Verified
+  // by reading that table 2026-08-28: every TAX key above already resolves.
+  // So shell.cat is sent AS-IS; there is no separate category-assignment step
+  // to build here, and no mapping/category screen this flow needs to touch.
+  function productPayload(shell, v, b) {
+    // v.strain here is the GENETICS CLASS (Indica/Sativa/Hybrid/CBD or null —
+    // see AddProductFlow.commit()), not a strain NAME. The API's `strain` is
+    // the name (server.py, catalog.py) and v.name IS that name — it is the
+    // field this whole flow calls "flavour".
+    const genetics = v.strain ? String(v.strain).toLowerCase() : null;
+    const body = {
+      sku: v.sku,
+      name: [shell.brand, v.name, shell.format].filter(Boolean).join(' '),
+      category: shell.cat,
+      price: typeof v.price === 'number' ? v.price : parseFloat(v.price) || 0,
+      weight_unit: shell.unit, weight_value: shell.netW || '1',
+      genetics,
+      strain: v.name || null,
+      description: v.desc || null,
+      brand_name: shell.brand || null,
+      items_per_pack: shell.pack && shell.pack !== '1' ? shell.pack : null,
+      sample: !!v.sample,
+      inventory: v.qty || 0
+    };
+    // THC/CBD are real top-level fields on the catalog product (server.py) —
+    // there is NO batch/lot table behind them (GET /api/state.batches is
+    // always empty; see the note on costRow above), so this is the only place
+    // they are ever actually stored, whatever the wizard's "batch" step and
+    // its cost/barcode/METRC/expiry fields might imply.
+    if (b && !b.skip) {
+      if (b.thc !== '' && b.thc != null) body.thc = b.thc;
+      if (b.cbd !== '' && b.cbd != null) body.cbd = b.cbd;
     }
-    emit();
+    // v.photo is a data: URL from FileReader (product-shell.jsx readImg) — it
+    // is never sent as `image_url`. There is no image-hosting endpoint in
+    // this build, and image_url is documented (engine.py build_item_payload)
+    // as a field WM's PUT expects to be a real URL. Sending the raw base64
+    // would either bloat every push or get silently rejected by WM — worse
+    // than the honest gap this leaves, which the "done" screen names.
+    return body;
   }
+
+  // THE one write. Never rejects — mirrors window.HW_LIVE.post's own contract
+  // (post()'s docstring, shared/hw-live.js:184), so a caller cannot mistake a
+  // refusal for a network error and report a committed write as one.
+  function pushProduct(body) {
+    const post = window.HW_LIVE && typeof window.HW_LIVE.post === 'function' ? window.HW_LIVE.post : null;
+    if (!post) {
+      return Promise.resolve({ ok: false, code: 0, error: 'no-write-path',
+        hint: 'shared/hw-live.js is not on this page — there is no write path to call.' });
+    }
+    return post('/api/product', body).then((r) => {
+      const b = r.body || {};
+      if (r.ok && !b.error) return { ok: true, code: r.code, product: b.product, wm: b.wm };
+      return { ok: false, code: r.code, error: b.error || r.error || ('HTTP ' + r.code),
+        hint: r.hint || null, fields: b.field ? [b.field] : b.fields || null };
+    });
+  }
+
+  // Per-listing verdict out of push_product's own return shape (engine.py):
+  // {menu_id: <2xx status>} on a landed push, {menu_id: {error, ...}} on a
+  // refusal (423/paused) or a caught exception. This is NOT a read-back like
+  // engine.set_product_published's — push_product reports what WM's PUT
+  // itself returned, nothing more — so it can say "the push was accepted",
+  // never "Weedmaps is now serving it".
+  function wmPushSummary(wm) {
+    if (!wm || typeof wm !== 'object') return { ok: false, checked: 0, failed: [] };
+    const entries = Object.entries(wm);
+    const failed = entries.filter(([, v]) => !(typeof v === 'number' && v >= 200 && v < 300));
+    return { ok: entries.length > 0 && failed.length === 0, checked: entries.length,
+      failed: failed.map(([mid, v]) => mid + ': ' + (v && typeof v === 'object' ? (v.note || v.error) : 'no response')) };
+  }
+
+  // Reads the just-written SKU back out of the LIVE catalogue — a fresh
+  // GET /api/state via window.HW_LIVE.refresh(), not the POST response we
+  // already have — so "created" means the catalog actually holds it now, the
+  // same discipline engine.set_product_published applies with its own
+  // read-back. This is also what catches the gap a bare 200/500 cannot: a
+  // push that raises AFTER catalog.upsert_product already committed (dead
+  // WM_API_BASE, the exact shape server.py's do_POST wrapper answers with a
+  // 500 "unhandled: ...") still leaves the product saved, and this is the
+  // only way this page can find that out.
+  // Resolves null when there is no live seam to ask, or the sku genuinely
+  // is not there after a refresh.
+  function readBackProduct(sku) {
+    const HL = window.HW_LIVE;
+    if (!HL || typeof HL.refresh !== 'function') return Promise.resolve(null);
+    return HL.refresh().then(() => {
+      const rows = (window.HW && window.HW.PRODUCTS) || [];
+      return rows.find((p) => p.sku === sku) || null;
+    }).catch(() => null);
+  }
+
+  // Creates a PRODUCT, not a local row. WAS: a pure client-side mock write to
+  // SHELLS (and, for `sample`, to HW.PRODUCTS in place) — the Add Product flow
+  // reported "created" to the operator and nothing ever reached Weedmaps.
+  // NOW: POST /api/product first; SHELLS is only ever updated FROM a write the
+  // live catalogue actually confirms — one source of truth, not two that can
+  // disagree.
+  //
+  // Returns a promise of { ok, sku, wm, error, hint }:
+  //   ok    the catalog write is confirmed by reading it back — never set from
+  //         a bare HTTP 200.
+  //   wm    per-listing push verdict (wmPushSummary), or null when a push
+  //         result never came back at all (e.g. the 500-after-commit case
+  //         above) — a genuinely different fact from "the push failed".
+  //   error/hint  present when `ok` is false, for the one place in this flow
+  //         that shows an operator what happened (product-shell.jsx commit()).
+  function createVariation(shellId, v, b) {
+    const shell = shellById(shellId);
+    if (!shell) return Promise.resolve({ ok: false, sku: v && v.sku, error: 'unknown_shell', hint: null });
+    const body = productPayload(shell, v, b);
+    return pushProduct(body).then((r) => readBackProduct(v.sku).then((live) => {
+      if (!live) {
+        return { ok: false, sku: v.sku, error: r.error || 'not_confirmed',
+          hint: r.hint || (r.ok ? null :
+            'A fresh read of the catalog does not show ' + v.sku + ' — nothing was created.') };
+      }
+      // CONFIRMED. Populate the mock FROM the confirmed row so the shell list
+      // and product sheet show exactly what the server holds, not what we
+      // asked it to hold. `thumb: live` mirrors seed()'s own `thumb: p`.
+      const row = { sku: live.sku, name: live.name, price: live.price, override: !!v.override,
+        strain: live.strain, active: !!live.active && !v.sample, qty: live.qty || 0,
+        sample: !!v.sample, thumb: live };
+      SHELLS = allShells().map((s) => s.id === shell.id ? { ...s, variations: [...s.variations, row] } : s);
+      emit();
+      return { ok: true, sku: v.sku, wm: r.wm ? wmPushSummary(r.wm) : null };
+    }));
+  }
+
   // A variation's NAME is a variation field, not a shell field — the flavour or
   // strain that distinguishes it inside the family. It is renamed in place from
   // wherever the product is open (product detail, shell page) with no round-trip.
+  //
+  // THE REAL SYNC THIS FUNCTION DOES NOT ATTEMPT, AND WHY. This is the other
+  // half of "editing an existing product has the same disconnected-mock
+  // problem" (2026-08-28 audit) — confirmed: a rename here never reaches
+  // Weedmaps either. It is NOT fixed the way createVariation is above, on
+  // purpose: /api/product is a full upsert with no partial-PATCH form, and
+  // there is no GET /api/product/<sku> — the only per-sku read this estate
+  // has is the LIVE-ADAPTED shape (shared/hw-live.js adaptProducts), which
+  // does not carry every raw field the row actually stores (items_per_pack,
+  // `sample`, the raw weight split are all absent from it — see that file's
+  // own return object). Rebuilding a full upsert body from that lossy shape
+  // would silently erase whatever it drops — a worse defect than the one
+  // being fixed, for the sake of a rename. The safe fix needs a real
+  // GET /api/product/<sku> on wmdemo's side first; flagged as a follow-up
+  // rather than patched around here.
   function renameVariation(shellId, sku, next) {
     const name = (next || '').trim();
     if (!name) return false;
@@ -278,6 +428,6 @@
   }
 
   window.HW_SHELL = { TAX, catDef, get BOXES() {return BOXES;}, KIT_BOXES: BOXES, SHELL_FORMATS, FORMAT_BY_CAT,
-    allShells, shellById, shellOf, useShells, saveShell, addVariation, renameVariation, addBox, renameBox,
+    allShells, shellById, shellOf, useShells, saveShell, createVariation, renameVariation, addBox, renameBox,
     parseSize, splitSize, mono1, mono2, slugify, familyPath, menuPath, totalStock, effectivePrice, aiDesc, sharedRows };
 })();

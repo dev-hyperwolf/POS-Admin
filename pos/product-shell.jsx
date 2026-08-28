@@ -17,6 +17,23 @@
 const useP = window.useP;
 const SH = window.HW_SHELL;
 
+// Turns SH.createVariation's refusal shape into the one sentence the operator
+// sees. Named codes first (the server's own words, wmdemo/server.py's
+// POST /api/product); anything else falls to the generic form rather than
+// guessing at a reason the response did not give.
+function wmCreateErrorText(r) {
+  if (!r) return 'Could not create the product — no response at all.';
+  if (r.error === 'no-write-path') return r.hint || 'There is no write path to call.';
+  if (r.error === 'unknown_shell') return 'This shell no longer exists — pick one again.';
+  if (r.error === 'not_confirmed') {
+    return r.hint || 'The server answered, but a fresh read of the catalog does not show this SKU yet — nothing was created.';
+  }
+  if (typeof r.error === 'string' && r.error.indexOf('missing required field') === 0) {
+    return 'The server refused the product: ' + r.error + '.';
+  }
+  return 'Could not create the product' + (r.error ? ' (' + r.error + ')' : '') + (r.hint ? ' — ' + r.hint : '') + '.';
+}
+
 function Lb({ children, hint, right }) {
   const P = useP();
   return <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
@@ -146,12 +163,29 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   const effPrice = v.override && v.price !== '' ? parseFloat(v.price) || 0 : shell ? SH.effectivePrice(shell) : 0;
   const margin = effPrice && b.cost ? Math.round((1 - (parseFloat(b.cost) || 0) / (effPrice || 1)) * 100) : null;
 
+  // WAS: SH.addVariation(...) — a synchronous write to the client-side mock
+  // only, called from the button's onClick with the very next line advancing
+  // to the "done" step unconditionally. Nothing here ever reached
+  // POST /api/product, so nothing ever reached Weedmaps, and the operator was
+  // told "added" regardless. NOW: commit() is the one place this flow talks
+  // to the server, it is awaited, and the "done" step is only reached when
+  // SH.createVariation's own read-back confirms the write. See saveErr /
+  // saveWm below and their one call site, the "Create variation" button.
+  const [saving, setSaving] = React.useState(false);
+  const [saveErr, setSaveErr] = React.useState(null);
+  const [saveWm, setSaveWm] = React.useState(null);
   const commit = () => {
-    if (!shell) return;
-    SH.addVariation(shell.id, { sku, name: v.name.trim() || 'New Variation', price: effPrice, override: v.override,
+    if (!shell) return Promise.resolve(false);
+    setSaving(true);setSaveErr(null);
+    return SH.createVariation(shell.id, { sku, name: v.name.trim() || 'New Variation', price: effPrice, override: v.override,
       strain: v.strain === 'N/A' ? null : v.strain, active: !v.sample && !b.skip, qty: b.skip ? 0 : parseInt(b.qty || '0', 10) || 0,
       sample: v.sample, desc: v.desc, photo: v.photo, thumb: { hue: shell.hue },
-      metaTitle: meta.title, metaDesc: meta.desc, slug: meta.slug, keywords: meta.keywords });
+      metaTitle: meta.title, metaDesc: meta.desc, slug: meta.slug, keywords: meta.keywords }, b).then((r) => {
+      setSaving(false);
+      if (!r.ok) {setSaveErr(wmCreateErrorText(r));return false;}
+      setSaveWm(r.wm);
+      return true;
+    });
   };
 
   const Head = () => <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '11px 20px', background: P.surface2, borderBottom: `1px solid ${P.hairline}`, overflowX: 'auto' }}>
@@ -433,12 +467,33 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
           <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{sku || '—'} · {shell ? shell.name : ''}{effPrice ? ' · ' + money(effPrice) + (v.override ? ' (override)' : '') : ''}</div>
           <div style={{ marginTop: 16, textAlign: 'left', border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
             {[['Variation created on ' + (shell ? shell.id : 'the shell'), 'good', v.override ? 'Brand, format, size and traits inherited. Retail price overridden for this variation only.' : 'Brand, format, size, price and traits all inherited — nothing re-entered.'],
+            // The only line on this screen that reports whether this product
+            // actually reached Weedmaps — SH.createVariation's own per-listing
+            // push verdict, never a bare 200. `saveWm == null` is a genuinely
+            // different fact from `saveWm.ok === false`: the catalog write was
+            // confirmed by read-back either way, but a null push result means
+            // the response that would have said what happened never arrived
+            // (e.g. WM_API_BASE unreachable raised past the write, which the
+            // route still committed).
+            saveWm == null ?
+              ['Weedmaps push status unknown', 'warn', 'The catalog write was confirmed, but no push result came back with it — check the sync log, or push again from the catalog screen.'] :
+            saveWm.ok ?
+              ['Pushed to Weedmaps', 'good', 'Confirmed by the server’s own push result — ' + saveWm.checked + ' listing' + (saveWm.checked === 1 ? '' : 's') + ' accepted it.'] :
+            saveWm.checked === 0 ?
+              ['Not pushed to Weedmaps yet', 'warn', 'Saved to the catalog, but no listing accepted the push — it should go out on the next sync.'] :
+              ['Push to Weedmaps incomplete', 'warn', 'Saved to the catalog, but not every listing confirmed: ' + saveWm.failed.join('; ') + '.'],
             v.sample ? ['Marked as a display sample', 'warn', 'Kept off the sellable menu, still tracked as a full product profile.'] :
             b.skip ? ['No stock yet', 'neutral', 'It will not appear on any menu until a batch is received against it.'] :
-            ['Batch received · ' + (b.qty || 0) + ' units', 'good', 'Quantity, wholesale cost and barcode recorded on the batch, not the product.'],
+            // WAS "recorded on the batch" — there is no batch/lot entity in
+            // this build at all (GET /api/state.batches is always empty; see
+            // the costRow note above). Quantity is the one real field here;
+            // wholesale cost, barcode/RFID, METRC tag and expiry are entered
+            // above and held nowhere once this modal closes.
+            ['Batch received · ' + (b.qty || 0) + ' units', 'good', 'Quantity synced to the Weedmaps catalog as on-hand inventory. Wholesale cost, barcode/RFID, METRC tag and expiry are not stored anywhere in this build — there is no batch/lot table server-side yet.'],
             ['Inherits the shell’s Weedmaps node', 'good', shell ? shell.wmNode + ' — already mapped, so it can sync without joining the review queue.' : 'Already mapped.'],
             ['Its own storefront listing', 'good', 'hyperwolf.com/shop/' + meta.slug + ' — title, description and keywords are written per product, not shared with the family.'],
-            b.skip || !b.thc ? ['Potency not recorded yet', 'warn', 'Enter THC and cannabinoids from the batch label when the stock is received.'] : ['Potency recorded · ' + b.thc + '% THC', 'good', 'Typed from the batch label. Low / high / avg recalculate across in-stock batches.']].map(([t, tone, d], i) => {
+            b.skip || !b.thc ? ['Potency not recorded yet', 'warn', 'Enter THC and cannabinoids from the batch label when the stock is received.'] : ['Potency recorded · ' + b.thc + '% THC', 'good', 'Sent to the catalog as the product’s THC. Low / high / avg still assume per-batch lots this build does not have.'],
+            v.photo ? ['Photo not synced to Weedmaps', 'warn', 'This build has no image-hosting endpoint — the API expects a real image URL, not the file captured here. The photo stays on this device only.'] : null].filter(Boolean).map(([t, tone, d], i) => {
               const c = tone === 'good' ? P.good : tone === 'warn' ? P.warn : P.inkMute;
               return <div key={t} style={{ display: 'flex', gap: 10, padding: '10px 12px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
                 <Icon name={tone === 'good' ? 'check-circle' : tone === 'warn' ? 'clock' : 'package'} size={14} color={c} style={{ flex: '0 0 auto', marginTop: 1 }} />
@@ -454,8 +509,28 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
         {cur.k === 'done' ?
         <PBtn variant="accent" size="md" icon="check" onClick={() => {onDone && onDone(v);onClose();}}>Open the shell</PBtn> :
         <><PBtn variant="secondary" size="md" onClick={onClose}>Cancel</PBtn>
+          {/* saveErr is the SERVER's refusal, shown after a real attempt —
+              distinct from `missing`, which is client-side validation before
+              one is ever made. Never both at once: canNext gates missing off
+              exactly when a submit is possible, which is the only time
+              saveErr can be non-null. */}
           {missing && <span style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, marginRight: 4, textAlign: 'right', maxWidth: 300 }}>{missing}</span>}
-          <PBtn variant="accent" size="md" iconRight="chevron-right" disabled={!canNext} onClick={() => {if (!canNext) return;if (FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done') commit();setStep((s) => s + 1);}} style={{ opacity: canNext ? 1 : .5 }}>{FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done' ? 'Create variation' : 'Continue'}</PBtn></>}
+          {saveErr && <span style={{ fontSize: 11.5, color: P.bad, fontWeight: 600, marginRight: 4, textAlign: 'right', maxWidth: 320 }}>{saveErr}</span>}
+          <PBtn variant="accent" size="md" iconRight="chevron-right" busy={saving} disabled={!canNext || saving}
+            onClick={() => {
+              if (!canNext || saving) return;
+              const isFinal = FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done';
+              if (!isFinal) {setStep((s) => s + 1);return;}
+              // Only advance to "done" once SH.createVariation's own
+              // read-back says the product is really there. A failure leaves
+              // the wizard on this step with saveErr visible, instead of
+              // silently landing on a "done" screen for a write that never
+              // happened.
+              commit().then((ok) => {if (ok) setStep((s) => s + 1);});
+            }}
+            style={{ opacity: canNext && !saving ? 1 : .5 }}>
+            {saving ? 'Creating…' : FLOW_STEPS[step + 1] && FLOW_STEPS[step + 1].k === 'done' ? 'Create variation' : 'Continue'}
+          </PBtn></>}
       </div>
     </div>
   </div>;
