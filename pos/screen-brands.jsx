@@ -712,7 +712,16 @@
               <Card density="compact" style={{ marginTop: 14, background: P.warnSoft, borderColor: P.warn }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <Icon name="ban" size={15} stroke={2} color={P.warn} />
-                  <span style={{ fontSize: P.type.strong, fontWeight: 700, color: P.warn }}>
+                  {/* THE VERDICT HAS TO BE THE MOST READABLE LINE ON THE CARD,
+                      AND IT WAS THE LEAST. 13.5px bold in P.warn on P.warnSoft
+                      measures 3.05:1 — below AA — while the explanatory body
+                      right beneath it sits at 12.6:1. The single sentence that
+                      says the bind cannot happen was the one an operator's eye
+                      slid off. P.warnText is the same amber darkened to clear
+                      AA (5.26:1) so the card keeps its amber voice and the
+                      headline outranks its own body text again. Dark mode was
+                      already 7.01:1 and is unchanged. */}
+                  <span style={{ fontSize: P.type.strong, fontWeight: 700, color: P.warnText }}>
                     Nothing here can be bound to {row.ourName}
                   </span>
                 </div>

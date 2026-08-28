@@ -133,7 +133,7 @@ function ExportMembersModal({ rows, total, narrowed, onClose }) {
   const csv = [COLS.map((c) => c[0]).join(',')].concat(rows.map((m) => COLS.map(([, f]) => cell(f(m))).join(','))).join('\n');
   const href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
+    <div onClick={onClose} style={window.overlayScrim(P, { z: 120, padding: '48px 20px', animate: true })}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(620px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="download" size={16} stroke={2} color={P.accent} /></span>
@@ -239,8 +239,22 @@ function AddMemberModal({ onClose, onAdd }) {
       phone: v.phone.trim(), email: v.email.trim() || '—', type: v.type, group: v.group, visits: 0, points: 0, wallet: 0, member: v.group === 'VIP' });
   };
   const Lb = ({ children }) => <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 5 }}>{children}</div>;
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px,96%)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  // THIS MODAL COULD NOT BE SUBMITTED, AND THE MONONYM CASE WAS THE WORST OF IT.
+  // The overlay was a non-scrolling `alignItems:'center'` scrim, so a card taller
+  // than the viewport overflowed off BOTH edges with no scroll container to reach
+  // it. At 1440x800 that put "Create member" at y=824 — off-screen — and a member
+  // could not be created at all. At 1440x900 it fitted by 6px until you typed a
+  // first name and no last name: the mononym note below adds 59px and pushed the
+  // button to y=908. The note that exists to protect mononyms was what made the
+  // mononym case impossible to complete.
+  //
+  // The fix is the CONTAINER, not the content. `overlayScrim` scrolls and the
+  // card centres via auto margins, which collapse to flush-top when the card is
+  // taller than the viewport — so this survives any height and no future note can
+  // bring the bug back. The note stays exactly as written, and a last name stays
+  // optional: see the gate above for why an empty surname is the correct record.
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 200, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(520px,96%)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-plus" size={16} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Add member</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Creates the customer record — ID is still verified at check-in</div></div>
@@ -519,8 +533,11 @@ function MemberDetailPage({ m, onBack }) {
     <div style={{ fontSize: 10, color: P.inkMute, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon name={icon} size={11} color={P.inkMute} />{label}</div>
     {ed ? <input value={value} onChange={(e) => onChange && onChange(e.target.value)} style={inp()} /> : <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, fontFamily: mono ? P.fontMono : P.fontSans, wordBreak: 'break-word' }}>{value}</div>}
   </div>;
-  const Modal = ({ title, children, onClose }) => <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 80, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(440px,96vw)', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
+  // Same non-scrolling scrim as Add-member had. This one is short TODAY, which is
+  // exactly the argument that keeps producing the bug — it is a generic wrapper,
+  // so its height is whatever a future caller passes as `children`.
+  const Modal = ({ title, children, onClose }) => <div onClick={onClose} style={window.overlayScrim(P, { z: 80, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(440px,96vw)', background: P.surface, borderRadius: P.r16, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}` }}><span style={{ fontSize: 15, fontWeight: 700, color: P.ink, flex: 1 }}>{title}</span><IconBtn icon="x" size={17} onClick={onClose} /></div>
       <div style={{ padding: 18 }}>{children}</div>
     </div>
@@ -759,8 +776,8 @@ function CashDrawerSettings({ onClose }) {
   const [val, setVal] = React.useState(String(POS.getRequiredFloat()));
   const n = parseFloat(val) || 0;
   const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 };
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 200, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(520px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="cash" size={16} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Cash drawer</div><div style={{ fontSize: 11.5, color: P.inkDim }}>{window.HW.STORE.name}</div></div>
@@ -830,8 +847,8 @@ function LaneEconomicsSettings({ onClose }) {
       <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 6, lineHeight: 1.5 }}>{hint}</div>
     </div>;
 
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px,96vw)', maxHeight: '92vh', overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 200, padding: 20 })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(560px,96vw)', maxHeight: '92vh', overflowY: 'auto', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="truck" size={16} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Delivery lanes</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Minimums and fees for Express and Scheduled</div></div>

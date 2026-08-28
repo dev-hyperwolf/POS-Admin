@@ -176,6 +176,25 @@ const ZIP_ZONE = {
   '92563': { region: 'RC1 · Temecula', zone: 'buffer' }
 };
 function zoneForZip(zip) {return ZIP_ZONE[String(zip || '').trim()] || { region: 'No region covers this ZIP', zone: 'out' };}
+/** The name of ONE address parameter, sitting above its own box and staying
+ *  there once the box is full. Deliberately tiny: this panel is narrow and the
+ *  split turned four boxes into six, so the label has to cost close to nothing
+ *  vertically or it buys clarity on the field and loses it on the form.
+ *
+ *  `inkDim`, NOT `inkMute`, AND THE DIFFERENCE WAS MEASURED IN A BROWSER. The
+ *  first version of this used P.inkMute at 9.5px — rgba(15,15,12,.42), which
+ *  composites to 2.81:1 against the card it sits on, where AA for text this
+ *  size wants 4.5:1. It passed every assertion in the suite, because jsdom
+ *  reads textContent and a label it can FIND is a label it calls present; on
+ *  screen it was an unreadable smudge. inkDim (.60) measures 4.95:1 here and
+ *  5.03:1 on the storefront's white card. A label nobody can read is the same
+ *  defect as no label, one step quieter — and the suite cannot tell them apart,
+ *  which is exactly why the number is written down here. */
+function AddrLab({ children }) {
+  const P = useP();
+  return <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
+    color: P.inkDim, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>;
+}
 window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
   const P = useP();
   const [list, setList] = React.useState(() => addressesFor(m));
@@ -190,6 +209,19 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
   const BLANK_NF = { label: '', streetNumber: '', streetName: '', city: '', state: '', zip: '' };
   const [nf, setNf] = React.useState(BLANK_NF);
   const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v }));
+  // AN UNSTARTED FORM IS NOT A FORM WITH ERRORS. The amber "Still needs …"
+  // line below used to render the instant `adding` flipped true, so opening
+  // the panel greeted the operator with a six-item list of everything they had
+  // not yet typed. That is the same defect the split-name work exists to avoid
+  // one field over: an ABSENCE reported as a fault. An operator who meets the
+  // amber every single time they open the form learns to read past it — at
+  // which point it is worth nothing on the address that really is half-filled.
+  //
+  // DERIVED rather than held as its own flag, deliberately: Cancel and a
+  // successful save both reset `nf` to BLANK_NF, so "every box is empty" IS
+  // "nobody has started here", and there is no second piece of state that can
+  // be left set behind the first one.
+  const touched = Object.keys(nf).some((k) => String(nf[k]).trim() !== '');
   const commit = (next) => {ADDR_BOOK[m.id] = next;setList(next);};
   const missing = [
   !nf.label.trim() && 'a label',
@@ -270,10 +302,19 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
            Street number is deliberately the small box and street name the wide
            one; state is two characters. This is a real layout change and jsdom
            cannot see it — it answers "is it wired", never "does it fit". */}
-      <div style={{ display: 'flex', gap: 8 }}><div style={{ width: 110 }}><Field size="sm" placeholder="Label" value={nf.label} onChange={(e) => setNf1('label', e.target.value)} /></div><div style={{ width: 92 }}><Field size="sm" mono placeholder="Street no." value={nf.streetNumber} onChange={(e) => setNf1('streetNumber', e.target.value)} /></div><div style={{ flex: 1 }}><Field size="sm" placeholder="Street name" value={nf.streetName} onChange={(e) => setNf1('streetName', e.target.value)} /></div></div>
-      <div style={{ display: 'flex', gap: 8 }}><div style={{ flex: 1 }}><Field size="sm" placeholder="City" value={nf.city} onChange={(e) => setNf1('city', e.target.value)} /></div><div style={{ width: 64 }}><Field size="sm" mono placeholder="State" value={nf.state} onChange={(e) => setNf1('state', e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} /></div><div style={{ width: 100 }}><Field size="sm" mono placeholder="ZIP" value={nf.zip} onChange={(e) => setNf1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
+      {/* A PLACEHOLDER IS NOT A LABEL. It is the one piece of text that
+           disappears exactly when the field stops being self-explanatory: the
+           moment "3400" is in the narrow box and "S Las Vegas Blvd" is in the
+           wide one, nothing on screen says which of the two is the number and
+           which is the name. Splitting one box into five and then leaving the
+           five unnamed moves the ambiguity rather than removing it, and this
+           panel is the one an operator comes back to in order to CHECK an
+           address, not only to type one. The label is the smallest thing that
+           survives being filled in. */}
+      <div style={{ display: 'flex', gap: 8 }}><div style={{ width: 110 }}><AddrLab>Label</AddrLab><Field size="sm" placeholder="Label" value={nf.label} onChange={(e) => setNf1('label', e.target.value)} /></div><div style={{ width: 92 }}><AddrLab>Street no.</AddrLab><Field size="sm" mono placeholder="Street no." value={nf.streetNumber} onChange={(e) => setNf1('streetNumber', e.target.value)} /></div><div style={{ flex: 1 }}><AddrLab>Street name</AddrLab><Field size="sm" placeholder="Street name" value={nf.streetName} onChange={(e) => setNf1('streetName', e.target.value)} /></div></div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}><div style={{ flex: 1 }}><AddrLab>City</AddrLab><Field size="sm" placeholder="City" value={nf.city} onChange={(e) => setNf1('city', e.target.value)} /></div><div style={{ width: 64 }}><AddrLab>State</AddrLab><Field size="sm" mono placeholder="State" value={nf.state} onChange={(e) => setNf1('state', e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} /></div><div style={{ width: 100 }}><AddrLab>ZIP</AddrLab><Field size="sm" mono placeholder="ZIP" value={nf.zip} onChange={(e) => setNf1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
         <PBtn variant="accent" size="sm" icon="check" disabled={!addrOk} title={addrOk ? undefined : `Still needs ${needs}`} onClick={saveAddress}>Save</PBtn><PBtn variant="ghost" size="sm" onClick={() => {setNf(BLANK_NF);setAdding(false);}}>Cancel</PBtn></div>
-      {!addrOk && <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.45 }}>Still needs {needs}.</div>}
+      {touched && !addrOk && <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.45 }}>Still needs {needs}.</div>}
       <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>The ZIP decides everything: it resolves to a region, the region's on-shift driver decides what can be sold to it, and an unserved ZIP blocks delivery checkout for this address only.</div>
     </div>}
     <div style={{ display: 'flex', gap: 8, padding: '11px 13px', borderTop: `1px solid ${P.hairline}`, background: P.infoSoft }}>

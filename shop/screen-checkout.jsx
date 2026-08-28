@@ -329,6 +329,22 @@ window.ShopTipSelector = function ShopTipSelector({ lane, onChange }) {
   </div>;
 };
 
+/** The name of ONE address parameter, above its own box, still there once the
+ *  box is full. Kept tiny on purpose: this storefront is used on a phone and
+ *  the split already turned one box into five.
+ *
+ *  `inkDim`, NOT `inkMute`, AND THE DIFFERENCE WAS MEASURED IN A BROWSER at
+ *  375px. inkMute is rgba(15,15,12,.42) — 2.81:1 on this white card, where AA
+ *  for text this size wants 4.5:1. It passed the whole suite, because jsdom
+ *  reads textContent and a label it can FIND is a label it calls present; on a
+ *  phone it was an unreadable smudge. inkDim (.60) measures 5.03:1. A label
+ *  nobody can read is the same defect as no label, one step quieter. */
+function ShopAddrLab({ children }) {
+  const P = scUseP();
+  return <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
+    color: P.inkDim, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{children}</div>;
+}
+
 /** The address row: [pin] No Address … + Add Address. */
 window.ShopAddressRow = function ShopAddressRow({ onChange }) {
   const P = scUseP();
@@ -340,6 +356,16 @@ window.ShopAddressRow = function ShopAddressRow({ onChange }) {
   const has = !!SCO_STATE.address;
   const missing = scoAddressMissing(draft);
   const ok = missing.length === 0;
+  // AN UNSTARTED FORM IS NOT A FORM WITH ERRORS. "Still needs …" used to render
+  // the moment the panel opened, so a customer who tapped Add Address was met
+  // by a red list of four things they had not yet had the chance to type. On a
+  // STOREFRONT that is worse than noise: the first thing the page does is tell
+  // the buyer they have got it wrong. The refusal is still loud, and it still
+  // names every missing part — it just waits until there is something to
+  // refuse. Changing an address that already exists starts non-empty, so it is
+  // touched from the outset and the line shows immediately, which is right:
+  // that form really does have content, and the content really is incomplete.
+  const touched = Object.keys(draft).some((k) => String(draft[k] || '').trim() !== '');
   const needs = missing.length === 1 ? missing[0]
     : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
   const save = () => {
@@ -366,21 +392,27 @@ window.ShopAddressRow = function ShopAddressRow({ onChange }) {
          layout change on a storefront that is used on a phone, and jsdom cannot
          see any of it — it answers "is it wired", never "does it fit". */}
     {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+      {/* A PLACEHOLDER IS NOT A LABEL — it vanishes exactly when the box stops
+           explaining itself. With "3400" in the narrow box and "S Las Vegas
+           Blvd" in the wide one, nothing named which was which, and this is the
+           form a customer re-opens to CHECK the address an order is about to be
+           driven to. Splitting one box into five and leaving the five unnamed
+           moves the ambiguity instead of removing it. */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <div style={{ width: 96 }}><Field mono placeholder="Street no." value={draft.streetNumber} onChange={(e) => set1('streetNumber', e.target.value)} /></div>
-        <div style={{ flex: 1, minWidth: 0 }}><Field icon="pin" placeholder="Street name" value={draft.streetName} onChange={(e) => set1('streetName', e.target.value)} /></div>
+        <div style={{ width: 96 }}><ShopAddrLab>Street no.</ShopAddrLab><Field mono placeholder="Street no." value={draft.streetNumber} onChange={(e) => set1('streetNumber', e.target.value)} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}><ShopAddrLab>Street name</ShopAddrLab><Field icon="pin" placeholder="Street name" value={draft.streetName} onChange={(e) => set1('streetName', e.target.value)} /></div>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
-        <div style={{ flex: 1, minWidth: 0 }}><Field placeholder="City" value={draft.city} onChange={(e) => set1('city', e.target.value)} /></div>
-        <div style={{ width: 72 }}><Field mono placeholder="State" value={draft.state} onChange={(e) => set1('state', e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} /></div>
-        <div style={{ width: 104 }}><Field mono placeholder="ZIP" value={draft.zip} onChange={(e) => set1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}><ShopAddrLab>City</ShopAddrLab><Field placeholder="City" value={draft.city} onChange={(e) => set1('city', e.target.value)} /></div>
+        <div style={{ width: 72 }}><ShopAddrLab>State</ShopAddrLab><Field mono placeholder="State" value={draft.state} onChange={(e) => set1('state', e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} /></div>
+        <div style={{ width: 104 }}><ShopAddrLab>ZIP</ShopAddrLab><Field mono placeholder="ZIP" value={draft.zip} onChange={(e) => set1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {/* Refused OUT LOUD, naming each parameter separately. A greyed button
              with no stated reason makes the customer guess which of five boxes
              is the blocker — and on a storefront, guessing means leaving. */}
-        {!ok && <span style={{ flex: 1, minWidth: 0, fontSize: P.type.meta, color: P.warn, lineHeight: 1.45 }}>Still needs {needs}.</span>}
-        <div style={{ flex: ok ? 1 : '0 0 auto' }} />
+        {touched && !ok && <span style={{ flex: 1, minWidth: 0, fontSize: P.type.meta, color: P.warn, lineHeight: 1.45 }}>Still needs {needs}.</span>}
+        <div style={{ flex: (ok || !touched) ? 1 : '0 0 auto' }} />
         <PBtn size="md" variant="secondary" style={{ flex: '0 0 auto' }} disabled={!ok}
           title={ok ? undefined : `Still needs ${needs}`} onClick={save}>Save</PBtn>
       </div>

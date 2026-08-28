@@ -31,6 +31,60 @@ window.Card = function Card({ children, padding, density = 'default', elevation 
 
 };
 
+// ── Modal overlay — THE SCRIM IS A COMPONENT NOW, BECAUSE IT WAS NEVER ONE ──
+//
+// There was no shared scrim. The same object literal was retyped inline at 36
+// call sites, and 17 of them were missing `overflowY`, so whether a modal could
+// be submitted depended on which copy the author started from. That is not a
+// styling inconsistency — it is a correctness one.
+//
+// THE BUG THIS FIXES. `alignItems:'center'` on a non-scrolling fixed overlay
+// centres the card and then puts the parts that do not fit OUTSIDE the viewport
+// on BOTH edges, where no scroll container exists to reach them. The Add-member
+// modal is 888px tall; at 1440x800 its "Create member" button sat at y=824 and
+// a member simply could not be created. Typing a first name and no last name
+// adds the mononym note (+59px) and breaks 1440x900 too — so the note that
+// exists to serve mononyms was what made the mononym case unusable.
+//
+// WHY `margin:'auto'` ON THE CARD RATHER THAN `alignItems:'center'`. Auto
+// margins on the cross axis outrank align-items, so the card still centres when
+// there IS spare room — today's look is unchanged. But when free space goes
+// negative, auto margins resolve to ZERO instead of to a negative offset, so the
+// card sits flush against the padded top edge and the scroll container can reach
+// every pixel of it. `alignItems:'center'` cannot do that: it centres an
+// overflowing child and strands the overhang above the scroll origin.
+//
+// That is the whole point of fixing the container instead of trimming content:
+// this survives ANY height, so the next note anyone adds cannot resurrect the
+// bug. Tuning a fixed height to today's tallest modal only moves the cliff.
+//
+//   <div style={overlayScrim(P, { z: P.z.modal })}>
+//     <div style={{ ...overlayCard, width: 'min(520px,96%)' }}>…</div>
+//   </div>
+//
+// `overscrollBehavior:'contain'` stops a scroll that reaches the end of the
+// overlay from chaining to the page underneath it.
+window.overlayScrim = function overlayScrim(P, opts) {
+  const o = opts || {};
+  return {
+    position: 'fixed', inset: 0, zIndex: o.z == null ? 200 : o.z,
+    background: P.scrim, display: 'flex', justifyContent: 'center',
+    // flex-start, NOT center: see the note above. The card's `margin:auto`
+    // is what restores centring in the case where centring is safe.
+    alignItems: 'flex-start',
+    padding: o.padding == null ? '40px 20px' : o.padding,
+    overflowY: 'auto', overscrollBehavior: 'contain',
+    // Opt-IN, so migrating an existing modal onto this helper cannot quietly
+    // add an animation it never had.
+    ...(o.animate ? { animation: 'fade .15s ease' } : null)
+  };
+};
+
+// The other half of the contract. A card that forgets this still scrolls, but
+// pins to the top edge instead of centring — so it is a style object rather
+// than a convention nobody can enforce.
+window.overlayCard = { margin: 'auto', flex: '0 0 auto' };
+
 // Eyebrow label (mono, uppercase)
 window.Eyebrow = function Eyebrow({ children, color, style }) {
   const P = useP();
@@ -45,7 +99,17 @@ window.SectionHead = function SectionHead({ eyebrow, title, subtitle, action, le
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: 14, ...style }}>
       <div style={{ minWidth: 0 }}>
-        {eyebrow && <div style={{ fontSize: sz.eb, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkMute, marginBottom: level === 1 ? 9 : 6, fontFamily: P.fontMono }}>{eyebrow}</div>}
+        {/* CONTRAST, NOT TASTE. This eyebrow was P.inkMute — rgba(15,15,12,.42)
+          on the warm paper bg, which measures 2.76:1, under even the 3:1 floor
+          large text gets, and it is not large text: 10-11px uppercase is the
+          SMALLEST type on the screen. P.inkDim is the next step on the same ramp
+          and measures 4.85:1 on bg / 5.03:1 on surface, clearing AA 4.5:1 for
+          normal text in both modes (dark: 6.65:1 on bg).
+          The fix is deliberately HERE and not on the inkMute token itself:
+          inkMute is also carrying KPI labels, table headers and field labels,
+          and a token bump would silently restyle all of them. One component,
+          one measured decision. */}
+        {eyebrow && <div style={{ fontSize: sz.eb, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', color: P.inkDim, marginBottom: level === 1 ? 9 : 6, fontFamily: P.fontMono }}>{eyebrow}</div>}
         <HTag style={{ margin: 0, fontSize: sz.t, fontWeight: level === 1 ? 700 : 600, letterSpacing: level === 1 ? '-.02em' : '-.01em', color: P.ink, lineHeight: 1.12 }}>{title}</HTag>
         {subtitle && <div style={{ fontSize: sz.st, color: P.inkDim, marginTop: 6, maxWidth: 680, lineHeight: 1.4 }}>{subtitle}</div>}
       </div>

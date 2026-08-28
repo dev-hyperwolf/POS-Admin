@@ -350,3 +350,234 @@ test('new customer, a CURRENT document is unaffected in all three positions', as
     });
   }
 });
+
+/* ═══ C. THE INSTRUCTION AND THE CONTROL, ON THE SAME CARD ═════════════════
+ *
+ * Section A above proves the soft-lapse banner appears and that it ends with
+ * "Ask for a current ID anyway". That sentence is an INSTRUCTION, and the card
+ * it sits on could not carry it out: a soft-lapsed allow counts as a document
+ * ON FILE — the gate allows it — so the card takes the on-file branch, which
+ * renders one line of mono text and NO scanner. The only route to a scanner was
+ * the Change button, which discards the selected customer.
+ *
+ * The dead-end predates the toggle: the on-file branch has never carried a
+ * scanner, and for a CURRENT document that is correct — the card asks the
+ * operator for nothing. What the soft lapse changed is that the screen now
+ * actively requests the one thing it withholds.
+ *
+ * TWO THINGS THESE TESTS KEEP APART, because conflating them is how a fix here
+ * turns into a compliance defect:
+ *
+ *   PRESSING A BUTTON CLEARS NOTHING. Only a CURRENT document clears the soft
+ *   lapse. A re-scan that produces another expired document leaves the state
+ *   exactly where it was, renaming it to the new date.
+ *
+ *   A RE-SCAN REPLACES THE DOCUMENT AND NOTHING ELSE. Same rule the
+ *   new-customer form gets from `fromScan`; on this card the document's whole
+ *   contribution IS `doc`, so everything else on the record is carried through.
+ */
+
+/** The primary-customer card, over a customer whose document is already on the
+ *  record, with the shared scanner swapped for a stub that hands back a fixed
+ *  document. The real IdScanPanel cycles a demo pool, and a compliance
+ *  assertion cannot rest on which of six people it lands on. Same idiom as
+ *  `newCustomerForm` above, deliberately.
+ *
+ *  The stub records the `value` it was handed, because HOW the panel is opened
+ *  is part of the fix: handed the lapsed document it would open on its own
+ *  done-state card and put a Re-scan button behind a Scan button. */
+async function primaryCard(app, doc, next, customer = CUSTOMER) {
+  app.window.HW = app.window.HW || {};
+  app.window.HW.MEMBERS = app.window.HW.MEMBERS || [];
+  app.window.HW.IDV = app.window.HW.IDV || {};
+  const R = app.window.React;
+  if (next !== undefined) {
+    app.window.IdScanPanel = function StubScan({ value, onChange }) {
+      return R.createElement('button',
+        { 'data-hw-stub-value': value === null ? 'null' : 'a-document',
+          onClick: () => onChange(next) }, 'STUB SCAN');
+    };
+  }
+  app.window.__CheckInProbe = () =>
+    R.createElement(app.window.CheckInModal, {
+      initialCustomer: { ...customer, doc }, onClose() {}, onCheckIn() {} });
+  await app.mount('__CheckInProbe');
+  return app;
+}
+
+/* ⚠️ A BOOLEAN, NOT THE ELEMENT. Handing a jsdom Element to assert.equal makes
+ * a failure spend ~30s building its diff — util.inspect walking a live DOM node
+ * — and node --test reports that as a FILE-level 'test failed' with no
+ * assertion named, which reads as an infrastructure problem rather than the bug
+ * it is. Same family as the cross-realm trap in test/ui-harness.mjs: compare
+ * primitives. Found by mutating this file and watching the red take 31 seconds
+ * to say nothing. */
+const hasSoftLapse = (app) => !!app.document.querySelector('[data-hw="soft-lapse-primary"]');
+const inSoftLapse = (app, label) => {
+  const b = app.document.querySelector('[data-hw="soft-lapse-primary"]');
+  return !!b && [...b.querySelectorAll('button')]
+    .some((x) => (x.textContent || '').trim() === label);
+};
+
+test('THE DEAD END: a soft-lapsed allow offers the scanner the sentence beside it just asked for', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    await primaryCard(app, LAPSED, null);
+    const t = app.text();
+    assert.match(t, /Ask for a current ID anyway/,
+      'the instruction is the premise of this whole test — if it moved, this test must move with it');
+    assert.ok(inSoftLapse(app, 'Scan a current ID'),
+      'THE DEFECT: the screen asked the operator for a current ID and gave them nowhere to scan ' +
+      'one. A soft-lapsed allow takes the "document on file" branch, which renders a line of ' +
+      'text and no scanner; Change was the only route and Change discards the customer');
+  });
+});
+
+test('a CURRENT document does not grow the affordance — it is asking for nothing', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    await primaryCard(app, CURRENT, null);
+    assert.equal(hasSoftLapse(app), false, 'no lapse, no block');
+    assert.ok(!app.buttons().includes('Scan a current ID'),
+      'the on-file branch carrying no scanner is CORRECT for a document with nothing wrong ' +
+      'with it. Hanging a re-scan on every clean card is the same noise-that-hides-signal ' +
+      'failure this file spends its length avoiding');
+  });
+});
+
+test('the control is the SHARED scanner, and it opens ready to READ rather than on the lapsed document', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    await primaryCard(app, LAPSED, { ...CURRENT, name: 'Marcus Webb' });
+    assert.ok(!app.buttons().includes('STUB SCAN'),
+      'the scanner is behind the affordance, not always open — this card already carries a ' +
+      'pill, a document line and a banner');
+    assert.ok(app.click('Scan a current ID'));
+    await app.settle();
+    assert.ok(app.buttons().includes('STUB SCAN'),
+      'window.IdScanPanel is what opens — the same control the no-document branch, the ' +
+      'new-customer form and GuestEditor all render. A second scanner would be a second thing ' +
+      'to keep in step');
+    assert.equal(app.document.querySelector('[data-hw-stub-value]').getAttribute('data-hw-stub-value'), 'null',
+      'and it is handed NOTHING, so it opens ready to read. Handed the lapsed document it ' +
+      'would open on its own done-state card — the expiry printed a third time, with a ' +
+      'Re-scan button hidden behind a Scan button');
+  });
+});
+
+test('a re-scan of a CURRENT document clears the soft lapse honestly', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    await primaryCard(app, LAPSED, { ...CURRENT, name: 'Marcus Webb', by: 'Priya Raman' });
+    assert.ok(app.click('Scan a current ID'));
+    await app.settle();
+    assert.ok(app.click('STUB SCAN'));
+    await app.settle();
+    const t = app.text();
+    assert.equal(hasSoftLapse(app), false,
+      'the document that was lapsed has been replaced by one that is not');
+    assert.doesNotMatch(t, /WOULD HAVE BEEN REFUSED/,
+      'and the refusal that did not happen is no longer pending against this customer');
+    assert.doesNotMatch(t, /EXPIRED/);
+    assert.match(t, /ID on file/, 'the clean pill, earned rather than assumed');
+    assert.match(t, /by Priya Raman/,
+      'the card names the NEW capture — proof the record took the replacement rather than ' +
+      'merely hiding the banner');
+    assert.equal(footerButtons(app)['Check in'].disabled, false);
+  });
+});
+
+test('a re-scan of ANOTHER EXPIRED document does not clear it — only a current document does that', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    await primaryCard(app, LAPSED, { ...LAPSED, expires: '2021-08-14' });
+    assert.ok(app.click('Scan a current ID'));
+    await app.settle();
+    assert.ok(app.click('STUB SCAN'));
+    await app.settle();
+    const t = app.text();
+    assert.equal(hasSoftLapse(app), true,
+      'PRESSING THE BUTTON IS NOT THE THING THAT CLEARS THE LAPSE. A fix that closed the block ' +
+      'on any capture would launder a second expired licence into a clean card, which is worse ' +
+      'than the dead end it replaced');
+    assert.match(t, /EXPIRED on 2021-08-14/,
+      'and the banner names the document that is on the record NOW, not the one it replaced');
+    assert.doesNotMatch(t, /EXPIRED on 2020-05-30/);
+    assert.match(t, /WOULD HAVE BEEN REFUSED/);
+    assert.ok(inSoftLapse(app, 'Scan a current ID'),
+      'the affordance is back, because the instruction it serves is still on screen and still ' +
+      'unsatisfied');
+  });
+});
+
+test('a re-scan replaces the DOCUMENT and nothing else on the record', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    // Fields nothing about a document should be able to touch: the record's own
+    // e-mail and points, which the card prints, and a name the scan agrees with.
+    const RECORD = { ...CUSTOMER, email: 'kept@yopmail.com', points: 4210 };
+    await primaryCard(app, LAPSED,
+      { ...CURRENT, name: 'Marcus Webb', num: '••••9999' }, RECORD);
+    assert.ok(app.click('Scan a current ID'));
+    await app.settle();
+    assert.ok(app.click('STUB SCAN'));
+    await app.settle();
+    const t = app.text();
+    assert.match(t, /kept@yopmail\.com/,
+      'THE SAME RULE THE NEW-CUSTOMER FORM GETS FROM `fromScan`: a re-scan withdraws the ' +
+      'document\'s contribution and only that. On this card the document\'s whole contribution ' +
+      'IS `doc`, so a scan that rebuilt the customer from the barcode would take the record\'s ' +
+      'e-mail with it');
+    assert.match(t, /4,?210 pts/, 'and its points');
+    assert.match(t, /Marcus Webb/, 'and its name');
+  });
+});
+
+test('a re-scan that reads SOMEBODY ELSE says so, instead of the card not moving', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    await primaryCard(app, LAPSED, { ...CURRENT, name: 'Dana Vance' });
+    assert.ok(app.click('Scan a current ID'));
+    await app.settle();
+    assert.ok(app.click('STUB SCAN'));
+    await app.settle();
+    const t = app.text();
+    assert.match(t, /This document is not this customer’s/,
+      'the mismatch panel used to live inside the no-document branch — the only branch that ' +
+      'had a scanner. A second scanner reaching a silent rejection is the same dead end again: ' +
+      'the operator scans, the card does not move, and nothing says why');
+    assert.match(t, /Dana Vance/, 'naming what the barcode read');
+    assert.equal(hasSoftLapse(app), true, 'and the lapse is untouched, because nothing was bound');
+    assert.ok(!app.buttons().includes('STUB SCAN'),
+      'the mismatch takes the scanner\'s place rather than sitting under it — one question at a time');
+  });
+});
+
+test('backing out of the re-scan says what it leaves behind', async () => {
+  await withApp('pos', async (app) => {
+    setSwitch(app, { contract: false });
+    await primaryCard(app, LAPSED, null);
+    assert.ok(app.click('Scan a current ID'));
+    await app.settle();
+    assert.ok(app.click('Keep the expired ID for now'),
+      'a control that backs out of a compliance step names the state it returns you to — ' +
+      '"Cancel" would not say that an EXPIRED document is still on this record');
+    await app.settle();
+    assert.ok(inSoftLapse(app, 'Scan a current ID'), 'and the way back in is still there');
+    assert.match(app.text(), /EXPIRED on 2020-05-30/);
+  });
+});
+
+test('the other two switch positions already reached a scanner, and still do', async () => {
+  for (const position of [{ contract: true }, {}]) {
+    await withApp('pos', async (app) => {
+      setSwitch(app, position);
+      await primaryCard(app, LAPSED, null);
+      assert.equal(hasSoftLapse(app), false,
+        `${JSON.stringify(position)} REFUSES, so there is no soft-lapsed allow to serve`);
+      assert.ok(app.buttons().includes('STUB SCAN'),
+        'a refused lapse is not a document on file, so the card takes the no-document branch — ' +
+        'which has always carried the scanner. The fix must not have moved it');
+    });
+  }
+});

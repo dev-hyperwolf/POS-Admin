@@ -215,17 +215,55 @@
   }
 
   // ── Customers ─────────────────────────────────────────────────────────────
-  var CUST_NAMES = ['Rowan Petrov', 'Amara Diallo', 'Tomas Lindgren', 'Priya Raghunathan',
-    'Eli Nakamura', 'Fern Okafor', 'Marta Silva', 'Desmond Clarke'];
+  // HELD AS PAIRS, NOT AS JOINED STRINGS [OWNER RULING 2026-08-27]. This list
+  // was eight joined names, and `customer()` wrote the joined string onto the
+  // record and nothing else — so every customer this seeder minted was born in
+  // exactly the legacy shape the whole field-split effort exists to retire, and
+  // the next reader had to guess the pair back out of it. The generator HAD
+  // both halves here (a human typed them) and threw the pair away; that is the
+  // same defect engage/data.jsx was fixed for. Keeping them split means the
+  // default path never guesses at all.
+  var CUST_NAMES = [['Rowan', 'Petrov'], ['Amara', 'Diallo'], ['Tomas', 'Lindgren'],
+    ['Priya', 'Raghunathan'], ['Eli', 'Nakamura'], ['Fern', 'Okafor'],
+    ['Marta', 'Silva'], ['Desmond', 'Clarke']];
+
+  function joinName(first, last) {
+    return window.HWName ? window.HWName.join(first, last) : [first, last].filter(Boolean).join(' ');
+  }
 
   function customer(opts) {
     var o = opts || {};
     var hw = HW();
     if (!hw.MEMBERS) return { ok: false, message: 'pos/data.jsx has not loaded — HW.MEMBERS is missing.' };
 
-    var name = o.name || pick(CUST_NAMES);
+    // THREE WAYS IN, AND ONLY ONE OF THEM IS A GUESS.
+    //   · an explicit pair — taken as given, nothing inferred;
+    //   · nothing at all — a pair off the list above, also nothing inferred;
+    //   · a joined `name` — the caller handed one string for two parameters,
+    //     so it goes through the ONE splitter this estate has (HWName.
+    //     splitGuess) rather than a second private copy of the rule.
+    var first, last;
+    if (o.first != null || o.last != null) {
+      first = String(o.first || '').trim(); last = String(o.last || '').trim();
+    } else if (o.name) {
+      var g = window.HWName ? window.HWName.splitGuess(String(o.name))
+        : { first: String(o.name).trim(), last: '' };
+      first = g.first; last = g.last;
+    } else {
+      var pair = pick(CUST_NAMES);
+      first = pair[0]; last = pair[1];
+    }
+    // DERIVED, never stored beside the pair as an independent second copy —
+    // two copies of one fact is how they drift, and after they have drifted
+    // nothing on screen tells you which one the identity fingerprint used.
+    var name = joinName(first, last);
     var m = {
       id: nextId(hw.MEMBERS, 'm'),
+      // The key names pos/data.jsx addMember and the server both use. A record
+      // minted here is now indistinguishable in SHAPE from one a human created
+      // at the counter, which is the point of a seeder.
+      first_name: first,
+      last_name: last,
       name: name,
       email: o.email || name.toLowerCase().replace(/[^a-z0-9]/g, '.') + '@yopmail.com',
       phone: o.phone || '(951) 555-0' + (100 + Math.floor(Math.random() * 899)),

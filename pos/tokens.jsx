@@ -49,6 +49,13 @@ const LIGHT = {
   // Signals
   good:'#1F8A4F', goodSoft:'#E2F2E8',
   warn:'#C07A12', warnSoft:'#FBEFD6',
+  // Amber TEXT on the amber wash, for the same reason accentText exists:
+  // the signal colour and the readable colour are not the same colour.
+  // warn on warnSoft measures 3.05:1 — under AA — so a refusal headline
+  // written in it is the least readable thing on its own card. This is the
+  // darkened amber that clears it (5.26:1 on warnSoft, 5.99:1 on surface)
+  // while staying recognisably the warn hue. Never write amber ink inline.
+  warnText:'#8F560C',
   bad: '#C0392B', badSoft:'#F8E2DF',
   info:'#2C5BB8', infoSoft:'#E3ECFA',
   neutral:'#6E6E66', neutralSoft:'#ECEAE2',
@@ -111,6 +118,10 @@ const DARK = {
 
   good:'#46C07E', goodSoft:'rgba(70,192,126,.15)',
   warn:'#E0A53A', warnSoft:'rgba(224,165,58,.15)',
+  // Dark mode never had the problem: #E0A53A on the .15 wash is 7.01:1.
+  // warnText is the SAME value here on purpose — the token exists so the
+  // call site can stop choosing, not to darken a mode that already passes.
+  warnText:'#E0A53A',
   bad: '#E8675B', badSoft:'rgba(232,103,91,.16)',
   info:'#6A99EC', infoSoft:'rgba(106,153,236,.16)',
   neutral:'#9A968B', neutralSoft:'rgba(245,243,234,.08)',
