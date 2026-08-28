@@ -180,13 +180,23 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
   const P = useP();
   const [list, setList] = React.useState(() => addressesFor(m));
   const [adding, setAdding] = React.useState(false);
-  const [nf, setNf] = React.useState({ label: '', street: '', city: '', zip: '' });
+  // ONE FIELD PER PARAMETER [OWNER RULING 2026-08-27]. This form used to hold a
+  // single free-text "Street address" and NO state field at all — the state was
+  // a literal 'CA' hardcoded into the render below, which meant every
+  // out-of-state address on file silently displayed as Californian. Danny
+  // Fitzgerald's NV licence is the case that makes it concrete.
+  // `state` is captured, not assumed; the blank start is deliberate, because
+  // seeding it with 'CA' is the same defect wearing an input box.
+  const BLANK_NF = { label: '', streetNumber: '', streetName: '', city: '', state: '', zip: '' };
+  const [nf, setNf] = React.useState(BLANK_NF);
   const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v }));
   const commit = (next) => {ADDR_BOOK[m.id] = next;setList(next);};
   const missing = [
   !nf.label.trim() && 'a label',
-  !nf.street.trim() && 'a street address',
+  !nf.streetNumber.trim() && 'a street number',
+  !nf.streetName.trim() && 'a street name',
   !nf.city.trim() && 'a city',
+  !/^[A-Za-z]{2}$/.test(nf.state.trim()) && 'a 2-letter state',
   !/^\d{5}$/.test(nf.zip.trim()) && 'a 5-digit ZIP'].
   filter(Boolean);
   const addrOk = missing.length === 0;
@@ -194,10 +204,16 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
   const saveAddress = () => {
     if (!addrOk) return;
     const z = zoneForZip(nf.zip);
-    const rec = { id: 'ad-' + Date.now().toString(36), label: nf.label.trim(), street: nf.street.trim(), city: nf.city.trim(), zip: nf.zip.trim(),
+    const streetNumber = nf.streetNumber.trim(), streetName = nf.streetName.trim();
+    const rec = { id: 'ad-' + Date.now().toString(36), label: nf.label.trim(),
+      streetNumber, streetName,
+      // `street` is DERIVED and kept only so existing readers of a.street keep
+      // working. The split pair is what was captured and what should be sent.
+      street: window.HWAddress ? window.HWAddress.joinStreet(streetNumber, streetName) : (streetNumber + ' ' + streetName).trim(),
+      city: nf.city.trim(), state: nf.state.trim().toUpperCase(), zip: nf.zip.trim(),
       region: z.region, zone: z.zone, def: list.length === 0, lastUsed: null, orders: 0, addedHere: true };
     commit(list.concat([rec]));
-    setNf({ label: '', street: '', city: '', zip: '' });
+    setNf(BLANK_NF);
     setAdding(false);
   };
   const ZONE = {
@@ -228,7 +244,16 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
             {a.def && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: P.accentInk, background: P.accent, borderRadius: 99, padding: '1px 7px' }}>Default</span>}
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: z.c }}>{z.label}</span>
           </div>
-          <div style={{ fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, marginTop: 2 }}>{a.street}, {a.city}, CA {a.zip}</div>
+          {/* THE STATE IS READ, NOT ASSUMED. This line used to end with a
+               hardcoded `CA`, so an address in Nevada rendered as Californian
+               and nothing anywhere said otherwise — a fabricated value with a
+               compliance-shaped face. A row that carries no state now SAYS it
+               carries no state. Legacy rows keep whatever joined `street` they
+               were saved with: re-splitting stored data here would invent a
+               number/name boundary nobody typed. */}
+          <div style={{ fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, marginTop: 2 }}>{
+            [window.HWAddress ? window.HWAddress.joinStreet(a.streetNumber, a.streetName) || a.street : a.street, a.city].filter(Boolean).join(', ')
+          }{a.state ? ', ' + a.state : ''} {a.zip}{!a.state && <span style={{ color: P.warn, fontFamily: 'inherit' }}> · state not recorded</span>}</div>
           {/* AN ORDER COUNT AND A LAST-USED DATE ARE MEASUREMENTS, and nothing
                measures them here. They used to be generated beside the address
                and they were the two things that made an invented address
@@ -241,9 +266,13 @@ window.DeliveryAddressBook = function DeliveryAddressBook({ m, idAddr }) {
         {!a.def && <button onClick={() => setDefault(a.id)} style={{ flex: '0 0 auto', alignSelf: 'flex-start', padding: '3px 9px', borderRadius: 99, border: `1px solid ${P.hairline2}`, background: P.surface, color: P.ink2, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: P.fontSans }}>Make default</button>}
       </div>;})}
     {adding && <div style={{ padding: '12px 13px', borderTop: `1px solid ${P.hairline}`, background: P.surface2, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', gap: 8 }}><div style={{ width: 110 }}><Field size="sm" placeholder="Label" value={nf.label} onChange={(e) => setNf1('label', e.target.value)} /></div><div style={{ flex: 1 }}><Field size="sm" placeholder="Street address" value={nf.street} onChange={(e) => setNf1('street', e.target.value)} /></div></div>
-      <div style={{ display: 'flex', gap: 8 }}><div style={{ flex: 1 }}><Field size="sm" placeholder="City" value={nf.city} onChange={(e) => setNf1('city', e.target.value)} /></div><div style={{ width: 100 }}><Field size="sm" mono placeholder="ZIP" value={nf.zip} onChange={(e) => setNf1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
-        <PBtn variant="accent" size="sm" icon="check" disabled={!addrOk} title={addrOk ? undefined : `Still needs ${needs}`} onClick={saveAddress}>Save</PBtn><PBtn variant="ghost" size="sm" onClick={() => {setNf({ label: '', street: '', city: '', zip: '' });setAdding(false);}}>Cancel</PBtn></div>
+      {/* SIX FIELDS WHERE THERE WERE FOUR, in a panel that is already narrow.
+           Street number is deliberately the small box and street name the wide
+           one; state is two characters. This is a real layout change and jsdom
+           cannot see it — it answers "is it wired", never "does it fit". */}
+      <div style={{ display: 'flex', gap: 8 }}><div style={{ width: 110 }}><Field size="sm" placeholder="Label" value={nf.label} onChange={(e) => setNf1('label', e.target.value)} /></div><div style={{ width: 92 }}><Field size="sm" mono placeholder="Street no." value={nf.streetNumber} onChange={(e) => setNf1('streetNumber', e.target.value)} /></div><div style={{ flex: 1 }}><Field size="sm" placeholder="Street name" value={nf.streetName} onChange={(e) => setNf1('streetName', e.target.value)} /></div></div>
+      <div style={{ display: 'flex', gap: 8 }}><div style={{ flex: 1 }}><Field size="sm" placeholder="City" value={nf.city} onChange={(e) => setNf1('city', e.target.value)} /></div><div style={{ width: 64 }}><Field size="sm" mono placeholder="State" value={nf.state} onChange={(e) => setNf1('state', e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} /></div><div style={{ width: 100 }}><Field size="sm" mono placeholder="ZIP" value={nf.zip} onChange={(e) => setNf1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
+        <PBtn variant="accent" size="sm" icon="check" disabled={!addrOk} title={addrOk ? undefined : `Still needs ${needs}`} onClick={saveAddress}>Save</PBtn><PBtn variant="ghost" size="sm" onClick={() => {setNf(BLANK_NF);setAdding(false);}}>Cancel</PBtn></div>
       {!addrOk && <div style={{ fontSize: 11.5, color: P.warn, fontWeight: 600, lineHeight: 1.45 }}>Still needs {needs}.</div>}
       <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>The ZIP decides everything: it resolves to a region, the region's on-shift driver decides what can be sold to it, and an unserved ZIP blocks delivery checkout for this address only.</div>
     </div>}
@@ -278,14 +307,29 @@ window.MemberVerificationCard = function MemberVerificationCard({ m, idv, onLog 
       <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{a.tier === 2 ? 'in-store + delivery' : a.tier === 1 ? 'in-store only' : 'nothing cleared'}</span>
     </div>
     <div style={{ padding: 13, display: 'flex', flexDirection: 'column', gap: 11 }}>
-      <div style={{ display: 'flex', gap: 8, padding: '9px 11px', background: a.canDelivery ? P.goodSoft : P.surface2, borderRadius: P.r10 }}>
-        <Icon name={a.canDelivery ? 'check-circle' : 'shop'} size={13} color={a.canDelivery ? P.good : P.ink2} style={{ flex: '0 0 auto', marginTop: 1 }} />
+      {/* "NOTHING FURTHER WILL EVER BE ASKED" IS A PROMISE, AND A SOFT-LAPSED
+           ALLOW CANNOT KEEP IT. With HW_ENFORCE_DOC_EXPIRY off, a customer
+           whose ID has expired still clears to tier 2 carrying
+           `wouldBlockCode: 'lapsed'` (see assurance() in verification.jsx).
+           For them the sentence was false in the most expensive direction:
+           turning the switch on IS something further, and it stops them at the
+           door. The clean pass and the soft pass also shared one green chip and
+           one check icon, which is the same defect the badge already had.
+           Only TWO states reach this line, not three — an expired document
+           under an UNPUBLISHED switch refuses at tier 0 and never gets here,
+           so there is no unpublished branch to write. */}
+      {(() => {
+        const softLapse = a.canDelivery && a.wouldBlockCode === 'lapsed';
+        const good = a.canDelivery && !softLapse;
+        return <div style={{ display: 'flex', gap: 8, padding: '9px 11px', background: good ? P.goodSoft : softLapse ? P.warnSoft : P.surface2, borderRadius: P.r10 }}>
+        <Icon name={good ? 'check-circle' : softLapse ? 'shield' : 'shop'} size={13} color={good ? P.good : softLapse ? P.warn : P.ink2} style={{ flex: '0 0 auto', marginTop: 1 }} />
         <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
-          {a.canDelivery ? <>Cleared for <b>in-store and delivery</b>. Nothing further will ever be asked of them.</> :
+          {softLapse ? <>Cleared for <b>in-store and delivery</b> — but only because expiry enforcement is OFF. Their ID has lapsed, and turning the switch on stops them clearing. Ask for a current ID.</> :
+          good ? <>Cleared for <b>in-store and delivery</b>. Nothing further will ever be asked of them.</> :
           a.canStore ? <>Cleared for <b>in-store</b> — they can shop the counter today with no extra step. Delivery is the only thing waiting on the phone confirmation.</> :
           <>Not yet cleared. {a.next}</>}
         </div>
-      </div>
+      </div>;})()}
       <button onClick={() => setOpen((v) => !v)} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '7px 10px', background: 'transparent', border: `1px solid ${P.hairline2}`, borderRadius: P.r8, cursor: 'pointer', fontFamily: P.fontSans }}>
         <span style={{ fontSize: 11.5, fontWeight: 600, color: P.ink2 }}>Verification steps</span>
         <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{Math.min(a.tier + 1, 3)} / 3</span>

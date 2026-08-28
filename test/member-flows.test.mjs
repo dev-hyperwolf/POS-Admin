@@ -313,7 +313,17 @@ test('...and Discard leaves the record alone', async () => {
 
 /* ── 5. delivery addresses ───────────────────────────────────────────────── */
 
-test('Add address: the four fields are wired and Save creates the address', async () => {
+/* The field COUNT changed on 2026-08-27 and this test was updated to follow it,
+ * not weakened. [OWNER RULING] "each customer parameter needs a dedicated input
+ * field … street number + street name / city / state / zip". The single
+ * "Street address" box became a number/name pair, and a State field was added
+ * where there had been none — the state used to be a literal 'CA' hardcoded in
+ * the render, so every out-of-state address displayed as Californian. The
+ * assertions below still check the same two things they always did: that every
+ * field reaches the record, and that an unserved ZIP is flagged rather than
+ * hidden. Split-specific behaviour is pinned separately in
+ * test/customer-field-split.test.mjs. */
+test('Add address: every field is wired and Save creates the address', async () => {
   await withApp('pos', async (app) => {
     await app.mount('MembersScreen');
     openMember(app, 'Manisha Saini');
@@ -321,7 +331,8 @@ test('Add address: the four fields are wired and Save creates the address', asyn
 
     assert.ok(app.click('Add address'), 'no Add address button');
     await app.settle();
-    for (const [ph, v] of [['Label', 'Mum'], ['Street address', '12 Probe Way'], ['City', 'Corona'], ['ZIP', '92879']]) {
+    for (const [ph, v] of [['Label', 'Mum'], ['Street no.', '12'], ['Street name', 'Probe Way'],
+                           ['City', 'Corona'], ['State', 'CA'], ['ZIP', '92879']]) {
       setValue(app, byPlaceholder(app, ph), v);
       await app.settle();
     }
@@ -347,7 +358,10 @@ test('...and Save is refused OUT LOUD while the address is incomplete', async ()
 
     const b = btn(app, /^Save$/);
     assert.equal(b.disabled, true, 'Save must not look clickable with an empty address');
-    assert.match(app.text(), /Still needs a street address, a city and a 5-digit ZIP/,
+    // Each parameter is now named on its own. "a street address" could not tell
+    // the operator WHICH of the two street boxes was still empty.
+    assert.match(app.text(),
+      /Still needs a street number, a street name, a city, a 2-letter state and a 5-digit ZIP/,
       'it must say what is missing');
   });
 });

@@ -71,6 +71,101 @@ function isExpiredDoc(doc, now) {
 }
 window.HWExpiry = { parseExpiry, isExpiredDoc };
 
+// ── NAMES ARE CAPTURED SPLIT. THEY ARE NEVER GUESSED SPLIT AND STORED. ──────
+// [OWNER RULING 2026-08-27: "each customer parameter needs a dedicated input
+//  field, we cannot have dirty data … first name / last name / street number +
+//  street name / city / state / zip … fix it system-wide"]
+//
+// WHY THIS IS AN IDENTITY BUG AND NOT A TIDINESS ONE. The identity ladder
+// matches on `name_dob_fp` — a fingerprint over first name, last name and date
+// of birth. A single "Full name" box means the split is performed by code, on
+// whitespace, at write time, and that guess then DECIDES WHETHER TWO RECORDS
+// ARE THE SAME PERSON. This estate has already put one Weedmaps customer id on
+// four live identities carrying 458 orders between them, and has already nearly
+// written a government-document hash onto a stranger. A fingerprint built from
+// a bad split is that same failure with a different first mover.
+//
+// THE SERVER HAS ALWAYS WANTED THEM SPLIT — verified 2026-08-27 against
+// wmdemo/identity_match.py:176 and wmdemo/server.py:4843:
+//     def name_dob_fp(first, last, dob):
+//         if not (first and last and dob): return None
+// It takes `first_name`/`last_name` as separate keys and there is NO joined
+// `name` key on any create/update endpoint. So the joined box in the UI was
+// never the wire format — it was a lossy local detour that the client had to
+// reverse by guessing before it could speak to the server at all.
+//
+// WHITESPACE DOES NOT SPLIT NAMES. 'Nina Alvarez' is the easy case and it is
+// the only easy case:
+//   'Mary Jo Van Der Berg'      — 2-token given name, 3-token surname
+//   'Maria de los Angeles Ruiz' — particles that are not the surname
+//   'Jean-Luc Picard'           — a hyphen is not a separator here
+//   'Ng'                        — a mononym has no last name AT ALL
+//   'Robert Downey Jr.'         — the last token is a suffix, not a surname
+// No heuristic gets these right, so this one DOES NOT TRY to be right. It
+// returns its best guess AND a standing declaration that it is a guess, and
+// every caller must render the result editable and marked.
+//
+// THE ONLY REAL FIX IS UPSTREAM: capture first and last separately, and have a
+// scanner that reads a document read them separately too. AAMVA PDF417 carries
+// family name and given name as DISTINCT elements (DCS / DAC) — a joined name
+// on the scan path was something this code invented, never something the
+// barcode did. `splitGuess` exists for ONE job: LEGACY joined strings that
+// already exist and have nothing better to offer. It is not a field.
+function splitNameGuess(joined) {
+  const raw = String(joined == null ? '' : joined).trim().replace(/\s+/g, ' ');
+  // Nothing in, nothing guessed. An empty name is an ABSENCE, and marking an
+  // absence as a "guess" would hang a warning on a field nobody has filled in
+  // yet — which is how operators learn to ignore the warning that matters.
+  if (!raw) return { first: '', last: '', guessed: false, confidence: 'none', note: '' };
+  const parts = raw.split(' ');
+  if (parts.length === 1) {
+    // A MONONYM'S LAST NAME IS EMPTY, NOT A COPY OF THE FIRST. Duplicating the
+    // token would mint a name_dob_fp for a surname we do not have, and it would
+    // collide with everyone who genuinely carries that token as a surname.
+    // Leaving it empty makes the server return None from name_dob_fp, which is
+    // the honest outcome: no fingerprint beats a wrong one.
+    return { first: parts[0], last: '', guessed: true, confidence: 'low',
+      note: 'One word only — we cannot tell whether this is a given name, a family name or a mononym. The last-name field is left EMPTY on purpose rather than filled with a copy of the first.' };
+  }
+  if (parts.length === 2) {
+    return { first: parts[0], last: parts[1], guessed: true, confidence: 'low',
+      note: 'Split on the single space. Two words is the case this guess is least wrong on — it is still a guess.' };
+  }
+  return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1], guessed: true, confidence: 'low',
+    note: parts.length + ' words — everything before the last word went to the first-name field. Compound surnames (Van Der Berg, de los Angeles) and suffixes (Jr.) come out WRONG under this rule. Check it against the document.' };
+}
+// Joining is lossless and needs no warning — it is only ever a display concern.
+// A mononym joins to itself, with no trailing space.
+function joinName(first, last) {
+  return [String(first == null ? '' : first).trim(), String(last == null ? '' : last).trim()]
+    .filter(Boolean).join(' ');
+}
+window.HWName = { splitGuess: splitNameGuess, join: joinName };
+
+// ── ADDRESSES, SAME RULING ──────────────────────────────────────────────────
+// Street number and street name are separate parameters. Splitting a joined
+// street line is a guess for the same reasons: '12 Probe Way' is easy, and
+// 'Apt 4, 1200 E Ocean Blvd', 'PO Box 12', '221B Baker St' and '1/2 Front St'
+// are not. A house number is not reliably leading, and not reliably numeric.
+function splitStreetGuess(joined) {
+  const raw = String(joined == null ? '' : joined).trim().replace(/\s+/g, ' ');
+  if (!raw) return { number: '', name: '', guessed: false, confidence: 'none', note: '' };
+  const m = raw.match(/^([0-9][0-9A-Za-z\-\/]*)\s+(.*)$/);
+  if (!m) {
+    // No leading number at all. We refuse to invent one — the whole string is
+    // the street name and the number field stays empty for a human to fill.
+    return { number: '', name: raw, guessed: true, confidence: 'low',
+      note: 'No leading street number was found, so the number field is left EMPTY rather than carved out of the text.' };
+  }
+  return { number: m[1], name: m[2], guessed: true, confidence: 'low',
+    note: 'Split at the first space after a leading number. Unit/apartment prefixes and PO boxes come out wrong under this rule.' };
+}
+function joinStreet(number, name) {
+  return [String(number == null ? '' : number).trim(), String(name == null ? '' : name).trim()]
+    .filter(Boolean).join(' ');
+}
+window.HWAddress = { splitStreetGuess, joinStreet };
+
 // ── THE OWNER'S EXPIRY-ENFORCEMENT SWITCH [RULING 2026-08-27] ───────────────
 // Whether a lapsed document REFUSES is a toggle, default OFF, and the server
 // owns its position. Detection is not the toggle: an expired document is still
@@ -589,14 +684,35 @@ window.CustomerPeek = function CustomerPeek({ member, contact, idv, onClose }) {
 //
 // The pool cycles rather than randomises, so repeated scans give DIFFERENT
 // people in a repeatable order — which is what makes a party testable.
+//
+// THE POOL CARRIES SPLIT FIELDS BECAUSE A REAL DOCUMENT DOES.
+// [OWNER RULING 2026-08-27 — see window.HWName at the top of this file]
+// AAMVA PDF417 encodes family name, given name, street, city, jurisdiction and
+// postal code as SEPARATE data elements (DCS, DAC, DAG, DAI, DAJ, DAK). The
+// previous pool stored one joined `name` string, so the scan path handed the
+// new-customer form something a real barcode never produces, and the form then
+// had to guess the split back out on the way to a server whose ONLY name keys
+// are `first_name` and `last_name` (wmdemo/server.py:4843). The guess was
+// ours, start to finish — it was never in the document and never on the wire.
+//
+// The six people, their order and their joined spelling are UNCHANGED, so the
+// cycling that makes a party testable still lands on the same person on the
+// same scan. `name` below is DERIVED from first + last, not stored beside them:
+// one source of truth, and no way for the two to drift apart.
+// `addr` is likewise what the barcode carries, already split.
 const DEMO_IDS = [
-  { name: 'Marcus Webb',      dob: '03/11/1994', type: 'CA DL',    num: '••••4821', expires: '2029-04-11' },
-  { name: 'Priya Raman',      dob: '11/02/1991', type: 'CA DL',    num: '••••7730', expires: '2027-11-02' },
-  { name: 'Tomas Alvarez',    dob: '07/24/1988', type: 'Passport', num: '••••2264', expires: '2031-07-23' },
-  { name: 'Ruth Okonjo',      dob: '01/09/1997', type: 'CA DL',    num: '••••5518', expires: '2028-01-09' },
-  { name: 'Danny Fitzgerald', dob: '05/30/1985', type: 'NV DL',    num: '••••9012', expires: '2026-05-30' },
-  { name: 'Aiko Tanaka',      dob: '09/17/1999', type: 'Passport', num: '••••4407', expires: '2032-09-16' },
+  { first: 'Marcus', last: 'Webb',        dob: '03/11/1994', type: 'CA DL',    num: '••••4821', expires: '2029-04-11', addr: { number: '1180', street: 'Grand Ave',      city: 'Corona',        state: 'CA', zip: '92879' } },
+  { first: 'Priya',  last: 'Raman',       dob: '11/02/1991', type: 'CA DL',    num: '••••7730', expires: '2027-11-02', addr: { number: '415',  street: 'Diamond Dr',    city: 'Lake Elsinore', state: 'CA', zip: '92530' } },
+  { first: 'Tomas',  last: 'Alvarez',     dob: '07/24/1988', type: 'Passport', num: '••••2264', expires: '2031-07-23', addr: { number: '',     street: '',              city: '',              state: '',   zip: '' } },
+  { first: 'Ruth',   last: 'Okonjo',      dob: '01/09/1997', type: 'CA DL',    num: '••••5518', expires: '2028-01-09', addr: { number: '22',   street: 'Palomar St',    city: 'Wildomar',      state: 'CA', zip: '92595' } },
+  { first: 'Danny',  last: 'Fitzgerald',  dob: '05/30/1985', type: 'NV DL',    num: '••••9012', expires: '2026-05-30', addr: { number: '3400', street: 'S Las Vegas Blvd', city: 'Las Vegas',   state: 'NV', zip: '89109' } },
+  { first: 'Aiko',   last: 'Tanaka',      dob: '09/17/1999', type: 'Passport', num: '••••4407', expires: '2032-09-16', addr: { number: '',     street: '',              city: '',              state: '',   zip: '' } },
 ];
+// A PASSPORT CARRIES NO ADDRESS. The two passport holders above have an empty
+// address on purpose — that is a real property of the document, and inventing a
+// street for them would be exactly the fabrication the DEMO mark exists to
+// prevent. An empty address must render as "not recorded", never as a blank
+// street the operator assumes they simply have not scrolled to.
 let _demoIdx = 0;
 
 window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
@@ -680,16 +796,54 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
       if (lookup === 'ok' && _tryReturning) {
         const m = pickReturning(M);
         if (m) {
+          // THE RETURNING BRANCH IS THE ONE PLACE THAT STILL HAS TO GUESS, AND
+          // IT SAYS SO. `window.HW.MEMBERS` rows carry a joined `name` and
+          // nothing else (pos/data.jsx:86 — no first/last, no address), so the
+          // split here is derived, not read. `nameGuessed` travels WITH the
+          // document so every downstream surface can mark the two fields as a
+          // guess instead of presenting them as something the barcode said.
+          // When MEMBERS grows real first/last columns this branch stops
+          // guessing on its own and `nameGuessed` goes false — no other file
+          // has to change.
+          const g = m.first_name || m.last_name
+            ? { first: m.first_name || '', last: m.last_name || '', guessed: false, note: '' }
+            : splitNameGuess(m.name);
           doc = { type: 'CA DL', num: '••••' + String(1000 + (_demoIdx * 37) % 9000), expires: '2029-04-11',
                   scannedAt: 'Just now', by: 'Manisha Saini', where: 'Front Counter 1', photo: true,
-                  name: m.name, dob: m.dob || '', memberId: m.id, returning: true, lookup: 'ok', simulated: true };
+                  firstName: g.first, lastName: g.last,
+                  nameGuessed: !!g.guessed, nameGuessNote: g.note || '',
+                  // Kept as a DERIVED convenience for surfaces that only ever
+                  // display a name. It is not the source of truth and must
+                  // never be the thing that gets stored or fingerprinted.
+                  name: joinName(g.first, g.last) || m.name,
+                  // The customer book holds no address, and an absent address
+                  // is not an empty one. `null` so it renders as "not recorded".
+                  address: null,
+                  dob: m.dob || '', memberId: m.id, returning: true, lookup: 'ok', simulated: true };
         }
       }
       if (!doc) {
         const d = DEMO_IDS[_demoIdx++ % DEMO_IDS.length];
+        const hasAddr = !!(d.addr && (d.addr.number || d.addr.street || d.addr.city || d.addr.zip));
         doc = { type: d.type, num: d.num, expires: d.expires, scannedAt: 'Just now',
                 by: 'Manisha Saini', where: 'Front Counter 1', photo: true,
-                name: d.name, dob: d.dob,
+                // READ OFF THE DOCUMENT, SPLIT, WITH NO GUESS ANYWHERE. This is
+                // the whole point of the ruling: the fields arrive separate, so
+                // nothing has to infer where one name ends and the next begins.
+                firstName: d.first, lastName: d.last, nameGuessed: false, nameGuessNote: '',
+                name: joinName(d.first, d.last),      // derived, display only
+                // A passport has no address. null, not an empty shape.
+                // SPLIT IS THE SOURCE OF TRUTH; `street` IS DERIVED FROM IT.
+                // pos/screen-stubs.jsx:367 renders `idAddr.street` as one line
+                // and does not belong to this workstream, so the joined key
+                // stays and keeps meaning what it always meant. Adding the
+                // split keys beside it migrates the producer without stranding
+                // a consumer on a shape that changed under it.
+                address: hasAddr ? { streetNumber: d.addr.number, streetName: d.addr.street,
+                                     street: joinStreet(d.addr.number, d.addr.street),
+                                     city: d.addr.city, state: d.addr.state, zip: d.addr.zip,
+                                     guessed: false } : null,
+                dob: d.dob,
                 // `returning: null` is NOT `false`. Null means unknown, and the
                 // result card gives it its own neutral face.
                 returning: lookup === 'unavailable' ? null : false, lookup, simulated: true };
