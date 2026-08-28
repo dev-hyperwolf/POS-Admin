@@ -200,13 +200,32 @@ jobs:
           # ── 2. EVERY ENTRY POINT LOADS THE SAME SOURCES, IN ORDER ────────
           # The list comes from the repo, not from either host, so a page that
           # one host stopped serving entirely is a failure and not a shrug.
+          #
+          # RETRY A LONE BAD FETCH BEFORE CALLING IT DRIFT. Render blips with a
+          # handful of transient 502s in the seconds right after a deploy swaps
+          # in the new instance (measured directly, 2026-08-28: a fully healthy
+          # deploy still 502'd on one page fetched moments later, then served
+          # 200 on every retry). 34 sequential page fetches against a host that
+          # is still settling gives 34 chances to hit that window; the older,
+          # 1-page check rarely got unlucky. Three attempts, short backoff --
+          # same shape as "Wait until Render actually serves this commit" above,
+          # just scoped to one page instead of the whole host.
+          fetch_with_retry() {
+            local url="$1" out="$2" code=000
+            for attempt in 1 2 3; do
+              code=$(curl -sS -m 25 -o "$out" -w '%{http_code}' "$url" || echo 000)
+              case "$code" in 2*) break ;; esac
+              sleep 5
+            done
+            echo "$code"
+          }
           entries=$(git ls-tree -r --name-only HEAD | grep '\.html$')
           n=0
           while IFS= read -r page; do
             [ -n "$page" ] || continue
             enc=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$page")
-            pcode=$(curl -sS -m 25 -o /tmp/p.html -w '%{http_code}' "$PAGES/$enc"  || echo 000)
-            rcode=$(curl -sS -m 30 -o /tmp/r.html -w '%{http_code}' "$RENDER/$enc" || echo 000)
+            pcode=$(fetch_with_retry "$PAGES/$enc" /tmp/p.html)
+            rcode=$(fetch_with_retry "$RENDER/$enc" /tmp/r.html)
             if [ "$pcode" != "$rcode" ]; then
               echo "FAIL entry-point: $page — pages=$pcode render=$rcode (served by only ONE host)"
               fails=$((fails+1)); continue
