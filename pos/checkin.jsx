@@ -83,6 +83,34 @@ function sameName(a, b) {
 function docIsExpired(doc) {
   return !!(doc && window.HWExpiry && window.HWExpiry.isExpiredDoc(doc));
 }
+// ── THE OWNER'S EXPIRY SWITCH, ON THIS SCREEN ───────────────────────────────
+// [OWNER RULING 2026-08-27] Document-expiry enforcement is a TOGGLE, default
+// OFF. This file did not know the switch existed: docIsExpired() hard-blocked
+// Create and Check-in, so with enforcement OFF the gate allowed the customer
+// and the counter screen refused them anyway. The toggle did not toggle.
+//
+// DETECTION IS UNCONDITIONAL AND STAYS THAT WAY. docIsExpired() above reads a
+// date and nothing else, and every screen below names the lapse, dates it and
+// paints it in the alarm tone in ALL THREE switch positions. What the switch
+// governs is whether that lapse BLOCKS. Wiring it the other way round — showing
+// the expiry only when enforcement is on — would hide a real lapse from the
+// associate, which is a worse failure than the one being fixed here.
+//
+// THREE STATES, NOT TWO. window.HWV.expiryEnforced() returns true / false /
+// null, read in specificity order with a strict boolean test at each rung, and
+// `null` is NOT `false`: it means nothing published the switch. This screen
+// then refuses on the STRICT reading and says that is what happened, rather
+// than claiming a policy nobody set. Only an explicit, published `false`
+// allows. HWV missing entirely lands on null too — fail-closed by the same
+// rule, not by accident.
+function expirySwitch(rec) {
+  return window.HWV ? window.HWV.expiryEnforced(rec || null) : null;
+}
+// Does a detected lapse actually stop this person today? Detection AND the
+// switch, never one without the other.
+function expiryBlocks(doc, rec) {
+  return docIsExpired(doc) && expirySwitch(rec) !== false;
+}
 
 window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
   const P = useP();
@@ -437,7 +465,11 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     // the party without a scanned document (line 153: disabled={!nf.doc}).
     // An EXPIRED document is not a document. It used to enable this button and
     // print "Document captured · this customer starts at ID-on-file".
-    if (!nf.name.trim() || !nf.doc || docIsExpired(nf.doc)) return;
+    // ...UNLESS THE OWNER'S SWITCH SAYS OTHERWISE. With enforcement OFF the
+    // gate allows this person, and refusing here would be the counter screen
+    // overruling the server it is supposed to be showing. With enforcement ON —
+    // or unpublished, which is not the same as off — this still refuses.
+    if (!nf.name.trim() || !nf.doc || expiryBlocks(nf.doc, null)) return;
     setCustomer({ id: 'new', name: nf.name.trim(), email: nf.email || '—', phone: nf.phone || '—', points: 0,
       type: type || 'AdultUse', member: false, gender: nf.gender,
       // `nf` was being dumped wholesale into `address`, which is how the
@@ -465,11 +497,29 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   // session bypassed assurance() entirely, so an expired licence scanned at the
   // counter enabled Create/Check-in and printed "ID on file" in the good tone.
   const primaryScan = customer && customer.doc && customer.doc.scannedAt ? customer.doc : null;
+  // The member's own verification record, so that `doc_expiry.enforced` — the
+  // most specific of the three publication sites, and the one the server stamps
+  // on the row the consequence lands on — outranks the board and the contract,
+  // exactly as verification.jsx reads them. A brand-new customer has no record,
+  // so their read falls through to the board and then the contract.
+  const primaryRec = customer && customer.id ? (window.HW && window.HW.IDV || {})[customer.id] || null : null;
+  const primaryEnforced = expirySwitch(primaryRec);
+  // DETECTION — unconditional, and displayed in every switch position.
   const primaryScanExpired = docIsExpired(primaryScan);
-  const primaryDoc = customer ? primaryScan && !primaryScanExpired ? primaryScan : docOnFileFor(customer.id) : null;
+  // CONSEQUENCE — governed by the switch, and only by an explicit published OFF.
+  const primaryScanBlocks = primaryScanExpired && primaryEnforced !== false;
+  // A lapse that is ALLOWED rather than refused. The document does count as on
+  // file, because the gate allows it — but it must never wear the clean pill a
+  // customer with nothing wrong with them wears, or the operator cannot see the
+  // cliff that turning the switch on would produce.
+  const primaryScanLapsedSoft = primaryScanExpired && !primaryScanBlocks;
+  const primaryDoc = customer ? primaryScan && !primaryScanBlocks ? primaryScan : docOnFileFor(customer.id) : null;
   const primaryNeedsId = !!customer && !primaryDoc;
-  // The new-customer form's document is held to the same bar.
+  // The new-customer form's document is held to the same bar — detection and
+  // consequence kept apart there too.
   const nfDocExpired = docIsExpired(nf.doc);
+  const nfEnforced = expirySwitch(null);
+  const nfDocBlocks = nfDocExpired && nfEnforced !== false;
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', animation: 'fade .15s ease', overflowY: 'auto' }} onClick={onClose}>
@@ -498,16 +548,39 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                       which document backs them, or that none does. */}
                   <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{customer.points} pts · {customer.email}</div>
                 </div>
-                {primaryDoc ? <Pill kind="good" dot>ID on file</Pill> : <Pill kind="warn" dot>No ID on file</Pill>}
+                {/* THREE PILLS FOR THREE FACTS. A soft-lapsed allow reaches
+                    "on file" — the gate allows it — and rendering it in the
+                    same green as a current document is exactly the defect the
+                    toggle work exists to close. */}
+                {primaryDoc ? primaryScanLapsedSoft ? <Pill kind="bad" dot>ID on file · EXPIRED</Pill> : <Pill kind="good" dot>ID on file</Pill> : <Pill kind="warn" dot>No ID on file</Pill>}
                 <PBtn variant="ghost" size="sm" icon="pencil" onClick={() => {setCustomer(null);setTypeFrom(null);setDeliveryFrom(null);}}>Change</PBtn>
               </div>
+              {/* THE REFUSAL THAT DID NOT HAPPEN. Without this the card shows
+                  a document on file for somebody the gate refuses the moment
+                  the owner's switch is turned on, and the population that
+                  switch would block is the thing a default-OFF toggle exists to
+                  let you COUNT before you turn it on. */}
+              {primaryScanLapsedSoft &&
+              <div data-hw="soft-lapse-primary" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
+                <Icon name="alert" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+                  <b>The ID scanned for this customer EXPIRED on {primaryScan.expires}.</b> WOULD HAVE BEEN REFUSED — expiry enforcement is OFF, so this check-in is allowed and the refusal is recorded instead of applied. Ask for a current ID anyway: turn enforcement on and this customer stops clearing.
+                </span>
+              </div>}
               {primaryDoc ?
               <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{docLine(primaryDoc)}</div> :
               <div style={{ padding: '10px 12px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10, display: 'flex', flexDirection: 'column', gap: 9 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                   <Icon name="shield" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
                   <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>{primaryScanExpired ?
-                  <><b>The ID scanned for this customer has expired.</b> An expired document does not verify an age today. The account and its history are kept — only the document has to be replaced. Scan a current one.</> :
+                  primaryEnforced === true ?
+                  <><b>The ID scanned for this customer EXPIRED on {primaryScan.expires}.</b> Expiry enforcement is ON, so an expired document does not verify an age today. The account and its history are kept — only the document has to be replaced. Scan a current one.</> :
+                  /* enforced === null. NOT the same sentence as ON. Both refuse
+                     today, so the wording is the only thing that tells the
+                     operator whether the estate decided this or whether nobody
+                     told the screen anything — and only one of those two is a
+                     wiring fault somebody should go and fix. */
+                  <><b>The ID scanned for this customer EXPIRED on {primaryScan.expires}.</b> Whether expiry is enforced here is UNKNOWN — nothing published the switch to this screen, so it is refusing on the strict reading rather than guessing. Scan a current ID. Separately: the server publishes that switch three ways and none of them arrived, which is a wiring fault, not a decision anybody made.</> :
                   <><b>Nobody has held this customer’s ID.</b> A record in the book is a name, not a document — and the buyer is the one person whose age has to be verified for the sale. Scan it to complete the check-in.</>}</span>
                 </div>
                 {window.IdScanPanel && !docMismatch ?
@@ -646,14 +719,21 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                         people waiting. The footer does this correctly; so does
                         this now. */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {/* THE LAPSE IS NAMED IN ALL THREE POSITIONS; only the
+                          consequence sentence changes. `nfDocExpired` still
+                          drives the alarm colour whether or not it blocks. */}
                       <span style={{ flex: 1, fontSize: 11.5, color: nfDocExpired ? P.bad : !nf.doc || !nf.name.trim() ? P.warn : P.inkDim, lineHeight: 1.4 }}>{
                         !nf.doc ? 'Scan the ID first — a name on its own is not enough for the buyer either.' :
-                        nfDocExpired ? `That document expired on ${nf.doc.expires}. An expired ID cannot start a customer at ID-on-file — ask for a current one and re-scan.` :
+                        nfDocExpired ? (
+                          nfEnforced === true ? `That document EXPIRED on ${nf.doc.expires}. Expiry enforcement is ON, so an expired ID cannot start a customer at ID-on-file — ask for a current one and re-scan.` :
+                          nfEnforced === false ? `That document EXPIRED on ${nf.doc.expires}. WOULD HAVE BEEN REFUSED — expiry enforcement is OFF, so this customer can still be created and the refusal is recorded instead of applied. Ask for a current ID anyway: turn enforcement on and they stop clearing.` :
+                          `That document EXPIRED on ${nf.doc.expires}. Whether expiry is enforced here is UNKNOWN — nothing published the switch to this screen, so it is refusing on the strict reading rather than guessing. Ask for a current one and re-scan.`
+                        ) :
                         !nf.name.trim() ? 'The document produced no name. Type the legal name to continue.' :
                         'Document captured · this customer starts at ID-on-file.'
                       }</span>
                       <PBtn variant="secondary" size="sm" onClick={() => setNewOpen(false)}>Cancel</PBtn>
-                      <PBtn variant="accent" size="sm" icon="check" disabled={!nf.name.trim() || !nf.doc || nfDocExpired} onClick={createNew}>Create customer</PBtn>
+                      <PBtn variant="accent" size="sm" icon="check" disabled={!nf.name.trim() || !nf.doc || nfDocBlocks} onClick={createNew}>Create customer</PBtn>
                     </div>
                   </div> :
               /* THREE OUTCOMES OF A LOOKUP, not one empty rectangle.
@@ -707,9 +787,14 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
 
         {/* Footer */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', borderTop: `1px solid ${P.hairline2}`, background: P.surface2 }}>
-          <span style={{ fontSize: 11.5, color: blocked || primaryNeedsId ? P.bad : P.inkDim, fontFamily: P.fontMono }}>{
+          {/* THE LAPSE IS ON THE FOOTER IN ALL THREE POSITIONS TOO — but a
+              footer that says only "the scanned ID has expired" beside an
+              ENABLED Check in button reads as a broken screen. Say which of the
+              three the operator is looking at. */}
+          <span style={{ fontSize: 11.5, color: blocked || primaryNeedsId || primaryScanExpired ? P.bad : P.inkDim, fontFamily: P.fontMono }}>{
             !customer ? 'Select a customer' :
-            primaryScanExpired ? 'The scanned ID has expired' :
+            primaryScanLapsedSoft ? 'ID EXPIRED — allowed, enforcement is OFF' :
+            primaryScanExpired ? (primaryEnforced === true ? 'The scanned ID has EXPIRED' : 'ID EXPIRED — enforcement UNKNOWN, refusing') :
             primaryNeedsId ? 'Scan the buyer’s ID' :
             blocked ? blocked + ' guest' + (blocked > 1 ? 's' : '') + ' need ID' :
             1 + guests.length + ' in party'}</span>

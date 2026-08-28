@@ -515,8 +515,12 @@ test('a genuinely clean allow does not grow a would-block box', () => {
 test('an allow from a route that reports NO would-block field says so, rather than reading as clean', () => {
   const R = verdictRenderer();
   try {
-    // Exactly what wmdemo/server.py builds today: allowed / block_code /
-    // reason / remedy / computed, and none of the three soft-lapse fields.
+    // What wmdemo/server.py's pickup_handoff dict built BEFORE 2026-08-27:
+    // allowed / block_code / reason / remedy / computed, and none of the three
+    // soft-lapse fields. That route now forwards all three, so this is no
+    // longer a description of our own server — it is the OLDER-ROUTE case, and
+    // it stays because that is exactly what a client talking to a server that
+    // predates the toggle receives, and reading it as clean is the failure.
     const h = R.render(simResult({ allowed: true, block_code: null, reason: '', remedy: '',
       computed: true }));
     assert.match(h, /does not return one/,
