@@ -849,6 +849,278 @@
       </Card>);
   }
 
+  // ── the audit trail for one brand ────────────────────────────────────────
+  // Reads GET /api/brands/history?brand=<key>&limit=50 — the wire this session
+  // added for wmdemo/brands.py's brand_events table, which has had a writer
+  // (every _event() call: approve/reject/unreject/unmap/mark_absent/
+  // unmark_absent, plus roster_added/mapped_from_catalog/catalog_id_conflict)
+  // since the table was created and, until now, no reader anywhere. Styled as
+  // a slide-in drawer, same shell as Picker above, because a second visual
+  // language for "a panel about one brand row" is exactly the kind of drift
+  // this screen's own header comment warns about.
+  function HistoryDrawer({ row, onClose }) {
+    const P = useP();
+    const [res, setRes] = React.useState(null);
+
+    React.useEffect(function () {
+      let dead = false;
+      setRes(null);
+      getJSON('/api/brands/history?brand=' + encodeURIComponent(row.key) + '&limit=50')
+        .then(function (r) { if (!dead) { setRes(r); } });
+      return function () { dead = true; };
+    }, [row.key]);
+
+    const body = res && res.parsed ? res.body : null;
+    const events = body && Array.isArray(body.events) ? body.events : null;
+    const refused = res && res.code === 503;
+
+    // Same three-signal palette the mockup's .tl-dot uses (good/bad/warn),
+    // read off the ACTION string rather than re-deriving a verdict — this
+    // drawer reports what happened, it does not re-judge it.
+    function dotColor(action) {
+      if (action === 'approved' || action === 'mapped_from_catalog') { return P.good; }
+      if (action === 'rejected' || action === 'marked_absent' || action === 'catalog_id_conflict') { return P.warn; }
+      if (action === 'unmapped' || action === 'unmarked_absent' || action === 'unrejected') { return P.bad; }
+      return P.inkFaint;
+    }
+
+    function detailLine(ev) {
+      const d = ev.detail;
+      if (d == null) { return null; }
+      if (typeof d === 'string') { return d; }
+      const bits = [];
+      if (d.by) { bits.push('by ' + d.by); }
+      if (d.reason) { bits.push('reason: ' + d.reason); }
+      if (d.skus != null) { bits.push(d.skus + ' sku' + (d.skus === 1 ? '' : 's')); }
+      if (d.index_size != null) { bits.push('index ' + d.index_size + ' rows'); }
+      if (d.ids) { bits.push('ids ' + (Array.isArray(d.ids) ? d.ids.join(', ') : d.ids)); }
+      if (d.scope) { bits.push(d.scope); }
+      return bits.length ? bits.join(' · ') : JSON.stringify(d);
+    }
+
+    return (
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: P.scrim, zIndex: 60,
+        display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}>
+        <div onClick={function (e) { e.stopPropagation(); }} style={{ width: 'min(560px, 96vw)', background: P.surface,
+          borderTopLeftRadius: P.r20, borderBottomLeftRadius: P.r20, display: 'flex', flexDirection: 'column',
+          boxShadow: P.shadowLg, overflow: 'hidden' }}>
+          <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid ' + P.hairline2, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <Eyebrow>Audit trail</Eyebrow>
+              <div style={{ fontSize: P.type.h2, fontWeight: 700, color: P.ink, marginTop: 5, letterSpacing: '-.01em' }}>{row.ourName}</div>
+              <div style={{ fontSize: P.type.meta, color: P.inkDim, marginTop: 4, fontFamily: P.fontMono }}>brand_key {row.key}</div>
+            </div>
+            <IconBtn icon="x" label="Close" onClick={onClose} />
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 22px 24px' }}>
+            {!res && <SkeletonRows rows={4} avatar={false} />}
+
+            {!res ? null : refused &&
+              <Card density="compact" style={{ background: P.warnSoft, borderColor: P.warn }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Icon name="ban" size={15} stroke={2} color={P.warn} />
+                  <span style={{ fontSize: P.type.strong, fontWeight: 700, color: P.warn }}>The brand store is not here</span>
+                </div>
+                <div style={{ fontSize: P.type.meta, color: P.ink2, marginTop: 6, lineHeight: 1.55 }}>
+                  <code style={{ fontFamily: P.fontMono }}>GET /api/brands/history</code> answered <strong>503</strong>: {body && body.error}.
+                </div>
+              </Card>}
+
+            {res && !refused && res && !res.ok &&
+              <ErrorState compact title={'GET /api/brands/history answered HTTP ' + (res.code || 'nothing')}
+                body="That route is the brand_events audit trail. A failed read is not the same as an empty trail — nothing was confirmed either way."
+                detail={res.netError || res.raw} />}
+
+            {events && events.length === 0 &&
+              <EmptyState compact icon="clock" title="No events recorded for this brand"
+                body="brand_events holds nothing for this brand_key yet — it has not been rostered, approved, rejected, unmapped, or marked absent since this table started recording." />}
+
+            {events && events.length > 0 &&
+              <div>
+                {events.length >= 50 &&
+                  <div style={{ fontSize: P.type.micro, color: P.inkMute, marginBottom: 10 }}>
+                    Showing the {events.length} most recent of {body.total} total events.
+                  </div>}
+                {events.map(function (ev) { return (
+                  <div key={ev.id} style={{ display: 'flex', gap: 10, padding: '9px 0', borderBottom: '1px solid ' + P.hairline, fontSize: P.type.meta }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: dotColor(ev.action), marginTop: 5, flex: '0 0 auto' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontWeight: 700, color: P.ink }}>{ev.action}</span>
+                      {ev.wm_brand_id != null &&
+                        <span style={{ fontFamily: P.fontMono, color: P.inkDim }}> &middot; wm_brand_id {ev.wm_brand_id}</span>}
+                      {ev.confidence != null &&
+                        <span style={{ fontFamily: P.fontMono, color: P.inkDim }}> &middot; conf {Number(ev.confidence).toFixed(4)}</span>}
+                      {detailLine(ev) && <div style={{ color: P.ink2, marginTop: 2, lineHeight: 1.45 }}>{detailLine(ev)}</div>}
+                      <div style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkMute, marginTop: 2 }}>{ev.ts}</div>
+                    </div>
+                  </div>); })}
+              </div>}
+          </div>
+        </div>
+      </div>);
+  }
+
+  // ── the operator's worklist, as the engine itself groups it ──────────────
+  // Reads GET /api/brands/needs-attention -- wmdemo/brands.needs_attention(),
+  // wired this session. Deliberately NOT re-derived from `rows` client-side:
+  // whether an absence may be confirmed depends on absence_licensed() (index
+  // size AND freshness), which this screen cannot evaluate on its own, and a
+  // client-side guess would eventually disagree with the engine's own answer
+  // about the one verdict that turns into an email to a brand.
+  function NeedsAttentionQueue({ naHttp, onOpenPicker, onMarkAbsent, onRetryPull,
+                                  onRefreshIndex, naWrite, refreshBusy }) {
+    const P = useP();
+    const [tab, setTab] = React.useState('choose');
+    const data = naHttp && naHttp.parsed ? naHttp.body : null;
+    const refused = naHttp && naHttp.code === 503;
+
+    if (!naHttp) { return <Card density="roomy" style={{ marginBottom: 18 }}><SkeletonRows rows={3} avatar={false} /></Card>; }
+
+    if (refused) {
+      return (
+        <Card density="roomy" style={{ marginBottom: 18, background: P.warnSoft, borderColor: P.warn }}>
+          <SectionHead level={3} eyebrow="Needs attention" title="The worklist route is not here" />
+          <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.55 }}>
+            <code style={{ fontFamily: P.fontMono }}>GET /api/brands/needs-attention</code> answered <strong>503</strong>: {data && data.error}.
+          </div>
+        </Card>);
+    }
+    if (naHttp && !naHttp.ok) {
+      return (
+        <ErrorState style={{ marginBottom: 18 }} compact
+          title={'GET /api/brands/needs-attention answered HTTP ' + (naHttp.code || 'nothing')}
+          body="This is the engine's own worklist. Nothing below is a re-derivation of it, so a failure here is not shown as an empty queue." />);
+    }
+    if (!data) { return null; }
+
+    const shortRows = ((data.short_feed || []).concat(data.unchecked_feed || []));
+    const tabs = [
+      { value: 'choose', label: 'Choose a brand', rows: data.choose_a_brand || [] },
+      { value: 'empty', label: 'Empty on Weedmaps', rows: data.empty_on_wm || [] },
+      { value: 'absent', label: 'Confirm not on Weedmaps', rows: data.confirm_absent || [] },
+      { value: 'cannot_check', label: 'Cannot check yet', rows: data.cannot_check || [] },
+      { value: 'stale', label: 'Stale / failed pull', rows: data.stale_or_failed_pull || [] },
+      { value: 'short', label: 'Feed incomplete', rows: shortRows }
+    ];
+    const active = tabs.find(function (t) { return t.value === tab; }) || tabs[0];
+    const totalNeeding = tabs.reduce(function (n, t) { return n + t.rows.length; }, 0);
+
+    function Item({ children }) {
+      return <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', marginBottom: 8,
+        border: '1px solid ' + P.hairline2, borderRadius: P.r10, background: P.surface }}>{children}</div>;
+    }
+
+    return (
+      <Card density="roomy" style={{ marginBottom: 18 }}>
+        <SectionHead level={3} eyebrow="Needs attention"
+          title={totalNeeding === 0 ? 'Nothing needs a human right now' : totalNeeding + ' row' + (totalNeeding === 1 ? '' : 's') + ' need a decision'}
+          subtitle={data.next_action || "wmdemo/brands.needs_attention()'s own worklist, grouped exactly as the engine groups it server-side."} />
+        <Seg value={tab} onChange={setTab} options={tabs.map(function (t) { return { value: t.value, label: t.label, count: t.rows.length }; })} />
+        <div style={{ marginTop: 14 }}>
+          {active.rows.length === 0 &&
+            <div style={{ fontSize: P.type.meta, color: P.inkMute, padding: '8px 2px' }}>Nothing in this bucket.</div>}
+
+          {tab === 'choose' && active.rows.map(function (r) { return (
+            <Item key={r.brand_key}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{r.our_name}</div>
+                <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 2 }}>
+                  {r.sku_count} SKU{r.sku_count === 1 ? '' : 's'} blocked
+                  {r.match_reason ? ' · ' + r.match_reason : ' · never looked'}
+                </div>
+              </div>
+              <PBtn size="xs" variant="secondary" onClick={function () { onOpenPicker(r); }}>Open picker</PBtn>
+            </Item>); })}
+
+          {tab === 'empty' && active.rows.map(function (r) { return (
+            <Item key={r.brand_key}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{r.our_name}</div>
+                <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 2 }}>
+                  bound to {r.wm_name || ('wm_brand_id ' + r.wm_brand_id)} &middot; the binding is correct and its feed carries 0 products
+                </div>
+              </div>
+              <PBtn size="xs" variant="ghost" onClick={function () { onOpenPicker(r); }}>Review</PBtn>
+            </Item>); })}
+
+          {tab === 'absent' && active.rows.map(function (r) { return (
+            <Item key={r.brand_key}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{r.our_name}</div>
+                <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 2, lineHeight: 1.4 }}>
+                  {r.sku_count} SKU{r.sku_count === 1 ? '' : 's'} &middot; {r.absence_evidence || 'no confident match anywhere in the Weedmaps brand index'}
+                </div>
+              </div>
+              <PBtn size="xs" variant="accent" busy={naWrite && naWrite.pending === r.brand_key}
+                onClick={function () { onMarkAbsent(r); }}>Confirm not on Weedmaps</PBtn>
+            </Item>); })}
+
+          {tab === 'cannot_check' && (
+            <div>
+              <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.55, marginBottom: 10, padding: '9px 11px', background: P.surface2, borderRadius: P.r10 }}>
+                {data.wm_index && data.wm_index.evidence}
+                {' '}Nothing in this bucket may be reported as missing from Weedmaps &mdash; refresh the index to move it into &ldquo;Confirm not on Weedmaps&rdquo; or resolve it.
+                <div style={{ marginTop: 8 }}>
+                  <PBtn size="xs" variant="secondary" busy={refreshBusy} onClick={onRefreshIndex}>Refresh Weedmaps brand index</PBtn>
+                </div>
+              </div>
+              {active.rows.map(function (r) { return (
+                <Item key={r.brand_key}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{r.our_name}</div>
+                    <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 2 }}>{r.sku_count} SKU{r.sku_count === 1 ? '' : 's'} &middot; blocked on the index refresh above, not on this brand</div>
+                  </div>
+                </Item>); })}
+            </div>)}
+
+          {tab === 'stale' && active.rows.map(function (r) { return (
+            <Item key={r.brand_key}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{r.our_name}</div>
+                <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 2, lineHeight: 1.4 }}>
+                  bound to wm_brand_id {r.wm_brand_id} &middot; last pull failed: {r.wm_pull_error || 'no error text recorded'}
+                </div>
+              </div>
+              <PBtn size="xs" variant="secondary" busy={naWrite && naWrite.pending === r.brand_key}
+                onClick={function () { onRetryPull(r); }}>Retry pull</PBtn>
+            </Item>); })}
+
+          {tab === 'short' && (
+            <div>
+              {data.feed_shortfall && data.feed_shortfall.verdict &&
+                <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.55, marginBottom: 10, padding: '9px 11px', background: P.surface2, borderRadius: P.r10 }}>
+                  {data.feed_shortfall.verdict}
+                </div>}
+              {active.rows.map(function (r, i) { return (
+                <Item key={(r.wm_brand_id != null ? r.wm_brand_id : i)}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* feed_shortfall() rows carry our_name/wm_name, not brand_key
+                        — this is a wm_brand_feeds ledger row, not a brands row,
+                        and the two tables key differently. our_name is null
+                        whenever the feed ledger and our roster have not been
+                        joined for this id (see feed_shortfall's own `ours.get`),
+                        so wm_name is the fallback, never a blank line. */}
+                    <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{r.our_name || r.wm_name || ('wm_brand_id ' + r.wm_brand_id)}</div>
+                    <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 2 }}>
+                      {r.verdict === 'short'
+                        ? r.rows + ' / ' + r.total_expected + ' rows seen — short ' + r.short + ' — no absence may be claimed against it'
+                        : 'no meta.total on record — neither whole nor short, unchecked'}
+                    </div>
+                  </div>
+                </Item>); })}
+            </div>)}
+
+          {naWrite && naWrite.done &&
+            <div style={{ marginTop: 8, padding: '9px 11px', borderRadius: P.r8,
+              background: naWrite.ok ? P.goodSoft : P.badSoft, color: naWrite.ok ? P.good : P.bad,
+              fontSize: P.type.meta, lineHeight: 1.5 }}>
+              {naWrite.label} &mdash; HTTP {naWrite.code}. {naWrite.ok ? 'Recorded.' : naWrite.error}
+            </div>}
+        </div>
+      </Card>);
+  }
+
   // ── the screen ───────────────────────────────────────────────────────────
   window.BrandsScreen = function BrandsScreen() {
     const P = useP();
@@ -859,6 +1131,11 @@
     const [only, setOnly] = React.useState('all');
     const [picking, setPicking] = React.useState(null);
     const [bfState, setBfState] = React.useState(null);
+    const [historyRow, setHistoryRow] = React.useState(null);
+    const [naHttp, setNaHttp] = React.useState(null);
+    const [naTick, setNaTick] = React.useState(0);
+    const [naWrite, setNaWrite] = React.useState(null);
+    const [refreshBusy, setRefreshBusy] = React.useState(false);
 
     React.useEffect(function () {
       let dead = false;
@@ -867,6 +1144,62 @@
       getJSON('/api/brands/backfill').then(function (r) { if (!dead) { setBackfill(r); } });
       return function () { dead = true; };
     }, [tick]);
+
+    // ITS OWN TICK, PLUS THE MAIN ONE. The worklist is the engine's own answer
+    // (needs_attention()), not a projection of `data`, so a mark-absent or a
+    // pull retry invalidates only itself via naTick rather than forcing a
+    // refetch of the whole 90-row roster and its backfill preview. But `tick`
+    // is ALSO a dependency: the top-of-screen "Reload" button only bumps
+    // `tick`, and a reload that silently left the queue showing a stale
+    // worklist would be the same "the button did nothing" trap the backfill
+    // preview already guards against elsewhere on this screen.
+    React.useEffect(function () {
+      let dead = false;
+      setNaHttp(null);
+      getJSON('/api/brands/needs-attention').then(function (r) { if (!dead) { setNaHttp(r); } });
+      return function () { dead = true; };
+    }, [naTick, tick]);
+
+    // A needs-attention row is the RAW brands table row (brand_key, our_name,
+    // sku_count, wm_brand_id...), not buildRows()'s enriched shape. Picker only
+    // reads .key / .ourName / .skuCount and isMapped() only reads .wmId, so a
+    // thin adapter is enough -- duplicating buildRows() here would be a second
+    // copy of a join that already exists.
+    function toPickerRow(r) {
+      return { key: r.brand_key, ourName: r.our_name, skuCount: r.sku_count || 0,
+        wmId: n0(r.wm_brand_id) };
+    }
+
+    function handleMarkAbsent(r) {
+      setNaWrite({ pending: r.brand_key });
+      post('/api/brands/mark-absent', { brand: r.brand_key, reviewer: 'admin@hyperwolf.com' })
+        .then(function (resp) {
+          setNaWrite({ done: true, ok: resp.ok, code: resp.code, error: resp.error,
+            label: 'Confirm not on Weedmaps — ' + r.our_name });
+          if (resp.ok) { setNaTick(function (t) { return t + 1; }); setTick(function (t) { return t + 1; }); }
+        });
+    }
+
+    function handleRetryPull(r) {
+      setNaWrite({ pending: r.brand_key });
+      post('/api/brands/pull', { brand: r.brand_key })
+        .then(function (resp) {
+          setNaWrite({ done: true, ok: resp.ok, code: resp.code, error: resp.error,
+            label: 'Retry pull — ' + r.our_name });
+          if (resp.ok) { setNaTick(function (t) { return t + 1; }); setTick(function (t) { return t + 1; }); }
+        });
+    }
+
+    function handleRefreshIndex() {
+      setRefreshBusy(true);
+      post('/api/brands/refresh-index', { mode: 'incremental' })
+        .then(function (resp) {
+          setRefreshBusy(false);
+          setNaWrite({ done: true, ok: resp.ok, code: resp.code, error: resp.error,
+            label: 'Refresh Weedmaps brand index' });
+          if (resp.ok) { setNaTick(function (t) { return t + 1; }); }
+        });
+    }
 
     const data = http && http.parsed ? http.body : null;
     const mapBySku = React.useMemo(mappedBySku, [tick, http]);
@@ -974,10 +1307,14 @@
       } },
       { label: 'Their feed', width: '13%', render: function (r) { return <WmMeta r={r} />; } },
       { label: 'Our SKUs → mapped', width: '16%', render: function (r) { return <SkuPair r={r} />; } },
-      { label: '', width: 96, align: 'right', render: function (r) {
+      { label: '', width: 168, align: 'right', render: function (r) {
         // NOT `accent`. One accent per view (POS-Admin/CLAUDE.md design rule 1),
         // and it is spent on the single binding action inside the picker.
-        return <PBtn size="xs" variant={isMapped(r) ? 'ghost' : 'secondary'} onClick={function () { setPicking(r); }}>{isMapped(r) ? 'Review' : 'Map'}</PBtn>;
+        return (
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+            <PBtn size="xs" variant="ghost" icon="clock" onClick={function () { setHistoryRow(r); }}>History</PBtn>
+            <PBtn size="xs" variant={isMapped(r) ? 'ghost' : 'secondary'} onClick={function () { setPicking(r); }}>{isMapped(r) ? 'Review' : 'Map'}</PBtn>
+          </div>);
       } }
     ];
 
@@ -1015,6 +1352,12 @@
             detail={http.netError || http.raw || http.url}
             onRetry={function () { setTick(tick + 1); }}
             style={{ background: P.badSoft, borderRadius: P.r12, marginBottom: 18 }} />}
+
+        <NeedsAttentionQueue naHttp={naHttp} naWrite={naWrite} refreshBusy={refreshBusy}
+          onOpenPicker={function (r) { setPicking(toPickerRow(r)); }}
+          onMarkAbsent={handleMarkAbsent}
+          onRetryPull={handleRetryPull}
+          onRefreshIndex={handleRefreshIndex} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12, marginBottom: 18 }}>
           <KPI label="Our brands" value={tally.total} sublabel={(tally.mapped) + ' mapped · ' + tally.unmapped + ' not'} icon="database" />
@@ -1077,6 +1420,8 @@
 
         {picking && <Picker row={picking} onClose={function () { setPicking(null); }}
           onChanged={function () { setTick(tick + 1); }} />}
+
+        {historyRow && <HistoryDrawer row={historyRow} onClose={function () { setHistoryRow(null); }} />}
       </div>);
   };
 })();
