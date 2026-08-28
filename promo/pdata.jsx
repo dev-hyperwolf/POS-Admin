@@ -303,7 +303,11 @@ const WM_AUTOMATION = [
   { area:'Product mapping',  how:'Matched to WM catalog by name + brand + category, scored by ML.', auto:'High-confidence links push automatically.', human:'Low-confidence matches wait in a review queue.' },
   { area:'Customer identity',how:'WM customers merge into ours by device, phone & email fingerprint.', auto:'Clean matches merge silently.', human:'Fraud signals & ambiguous merges are flagged.' },
   { area:'Order routing',    how:'Zip → region → an on-shift driver, or → the store for Pickup.', auto:'Routed in the Draft window, no human.', human:'No-coverage zips & no-driver regions raise an alert.' },
-  { area:'Promotions',       how:'Internal promos push to WM; WM promos pull back every 60s.', auto:'Exact matches link automatically.', human:'Overlaps & WM-only promos need a decision.' },
+  // Weedmaps' partner API has no promo-push endpoint (wmdemo/config.py) — WM
+  // promos are pulled (mirrored in), never pushed. Linking a WM promo to one
+  // of ours is always an operator decision (wmdemo/store.add_promo_link);
+  // nothing auto-links, even on an exact code match.
+  { area:'Promotions',       how:'WM promos pull back into the mirror every 60s (one-way — there is no push).', auto:'The pull itself, and overlap detection against active internal promos.', human:'Every link and every overlap resolution — mirrors / supersedes / conflict — is a decision an operator makes.' },
 ];
 
 // ── Weedmaps promotions: what the published schema ACTUALLY gives us ────────

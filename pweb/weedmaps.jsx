@@ -6,15 +6,6 @@ const { pfmt, WM_REGIONS, WM_LISTINGS, WM_STORE, WM_SYNC, WM_ORDER_FLOW, WM_AUTO
 
 const WM_ACTOR = { Weedmaps:'#1F5FC0', Hyperwolf:'#15140F', Driver:'#2E7D46', Store:'#B7791F' };
 
-// deterministic WM sync state for a Suite promo (this dataset has no wm field yet)
-function wmStateFor(p, i) {
-  if (p.status === 'scheduled' || p.status === 'draft') return 'not_pushed';
-  if (p.status === 'paused') return 'paused';
-  if (p.status === 'ended') return 'ended';
-  if (i === 2) return 'overlap';
-  return 'synced';
-}
-
 function WmPanel({ title, sub, right, children, pad = 18 }) {
   const P = useP();
   return (
@@ -84,311 +75,350 @@ function WmRegionMap() {
     </div>);
 }
 
-// ── Weedmaps promotions — the EIGHT published attributes, and nothing else ──
-// `ApplicableDiscountAttributes` (Weedmaps OOS OpenAPI; a copy of the spec is at
-// qa/wm_oos_openapi_2026-01.json in the wm-demo repo) declares exactly eight
-// properties, and carries NO `required` list, so ANY of them may be absent on
-// any discount:
+// ── Weedmaps promotions — the real registry, wired to the real routes ──────
+// wmdemo/promos.py + store.py already implement the whole loop: mirror-pull
+// (pull_wm_promos), an internal promo registry (upsert_internal_promo /
+// delete_internal_promo), named WM<->internal relations — mirrors /
+// supersedes / conflict (add_promo_link) — and automatic overlap detection
+// with a severity (detect_overlap, check_overlaps). promo_registry() already
+// returns the combined "which pairs need a decision" view. Routes, all POST
+// (wmdemo/server.py, verified by grep — there is no GET variant, registry
+// included): /api/promos/registry, /pull, /link, /link/delete, /internal,
+// /internal/delete.
 //
-//   auto_apply · code_name · description · end_date
-//   legal_disclaimer · prerequisite_customer_type · redemption_details · title
+// WHAT USED TO BE HERE: a "Push to Weedmaps" table whose Push / Re-sync /
+// Pause / Resume buttons faked success via a client-side setTimeout with no
+// backing route, and a "WM discounts we mirror" table whose Link / Merge /
+// Keep-standalone / Unlink buttons had no onClick handler at all — reading
+// from window.WM_PROMOS, a static mock array in promo/pdata.jsx, not
+// anything pulled from Weedmaps. Both are replaced by ONE real panel below.
 //
-// NOT ONE OF THEM IS MONETARY. No amount, no percent, no discount type, no
-// scope, no targets or exclusions, no stacking rule, no priority, no minimum
-// spend, no usage limit, no per-customer cap, no redemption count, no revenue,
-// no cost, no ROI.
+// WHY "PUSH" IS GONE, NOT JUST UNWIRED: Weedmaps' partner API has no
+// promo-push endpoint at all (wmdemo/config.py's own comment — polling is
+// the only mechanism that exists for promotions). A "push our promo to
+// Weedmaps" control is not a missing wire, it is a capability that does not
+// exist on the other end, so no version of this panel offers one. Creating
+// a Weedmaps-side deal happens in their own merchant portal, never here.
 //
-// This panel used to render 25+ fields of exactly that kind — per-promo revenue
-// and discount cost among them — under a comment that called the list "every
-// parameter WM exposes". The fields were invented; the comment is why nobody
-// checked. The figures the business still wants are now listed at the foot of
-// the detail as explicitly unavailable. None is rendered as 0: a 0 is an
-// answer, and we do not have one.
-//
-// Nor has any real discount ever arrived — available_discounts has returned
-// 200 {"data":[]} for every listing anyone has polled.
+// `ApplicableDiscountAttributes` (the schema behind every WM promo row) also
+// publishes no monetary field of any kind — no amount, percent, discount
+// type, scope, stacking rule, or redemption count — which is why the table
+// below shows relationships and overlaps, not per-promo revenue or ROI: we
+// have no source for those figures, and this panel does not invent one.
 
-// Read a WM discount element WITHOUT deciding which shape Weedmaps sends.
-//   SPEC-LITERAL   ApplicableDiscount declares `data` and `jsonapi`, so each
-//                  array element WRAPS the resource: data[i].data.attributes.
-//   JSON:API       the convention it claims to follow: data[i].attributes.
-// Nobody can settle this by observation, because the endpoint has only ever
-// answered with an empty array and an empty array discriminates nothing.
-// Guessing is silent rather than loud: reading elem.attributes unconditionally
-// against a spec-literal payload yields a null id and eight null attributes for
-// EVERY discount, with no exception raised. So this reads either shape and
-// reports which one it saw. Mirrors unwrap_discount_element in the sibling
-// wmdemo/promos.py — deliberately NOT a decision about which is right.
-function wmUnwrapDiscount(elem) {
-  const none = { inner:{}, attrs:{}, shape:'unreadable' };
-  if (!elem || typeof elem !== 'object' || Array.isArray(elem)) return none;
-  const at = (o) => (o && typeof o.attributes === 'object' && o.attributes) || {};
-  const inner = elem.data;
-  // A wrapper carries `data` as an object and no resource keys of its own.
-  if (inner && typeof inner === 'object' && !Array.isArray(inner) && !('attributes' in elem) && !('type' in elem))
-    return { inner, attrs: at(inner), shape:'nested' };
-  if ('attributes' in elem || 'type' in elem || 'id' in elem)
-    return { inner: elem, attrs: at(elem), shape:'flat' };
-  return none;
+function severityMeta(sev) {
+  return sev === 'high' ? { kind:'bad', label:'high' } : { kind:'warn', label:'low' };
+}
+function overlapKindLabel(k) { return k === 'code' ? 'code' : k === 'window' ? 'window' : (k || '—'); }
+function fmtPromoWindow(w) {
+  const s = (w && w.start) || null, e = (w && w.end) || null;
+  if (!s && !e) return 'open-ended';
+  return (s || 'open') + ' → ' + (e || 'open');
+}
+// promos.py's own _on_weedmaps guard, mirrored client-side for the "also run
+// on Weedmaps" KPI sublabel — an internal promo's `channels` list is the only
+// place that fact lives.
+function onWeedmapsChannel(row) {
+  const ch = row && row.channels;
+  if (!Array.isArray(ch)) return false;
+  return ch.some((c) => ['weedmaps', 'wm'].indexOf(String(c).trim().toLowerCase()) !== -1);
 }
 
-// The eight, in spec order, with the spec's own descriptions.
-const WM_DISCOUNT_ATTRS = [
-  { key:'title',                      label:'Title',            desc:'Discount title' },
-  { key:'code_name',                  label:'Code name',        desc:'Discount code', mono:true },
-  { key:'description',                label:'Description',      desc:'Discount description', wide:true },
-  { key:'auto_apply',                 label:'Auto apply',       desc:'Whether the discount is automatically applied', bool:true },
-  { key:'prerequisite_customer_type', label:'Customer type',    desc:'First time/returning customer eligibility requirements' },
-  { key:'end_date',                   label:'End date',         desc:'Expiration date', mono:true },
-  { key:'redemption_details',         label:'Redemption details', desc:'Redemption details', wide:true },
-  { key:'legal_disclaimer',           label:'Legal disclaimer', desc:'Legal disclaimer', wide:true },
+const PROMO_RELATIONS = [
+  { value:'mirrors', title:'Mirrors — same offer, two channels',
+    sub:'Redeeming it burns both ledgers. Use this when the WM promo and the internal one are the same real-world deal.' },
+  { value:'supersedes', title:'Supersedes — one replaces the other',
+    sub:'Informational tag only in this version; does not change which one prices the cart.' },
+  { value:'conflict', title:'Conflict — flag it, decide manually',
+    sub:'Keeps the alert open but records that a human has seen it.' },
 ];
 
-// Figures the business asks for that ApplicableDiscountAttributes does not
-// publish. Listed rather than deleted BECAUSE they are wanted — but a number
-// here would have no source, and a 0 would be a claim we cannot make.
-const WM_NO_SOURCE = [
-  'Discount amount or percent', 'Discount type (%, $, BOGO)', 'What it applies to (scope, targets, exclusions)',
-  'Stacking rule and priority', 'Minimum spend or item count', 'Usage limit and per-customer cap',
-  'Redemption count', 'Revenue and discount cost', 'ROI',
-];
+// Live read of promos.promo_registry() via HW_PROMOS_LIVE (shared/hw-live-
+// promos.js). Read-only, never triggers a WM pull itself — matches the
+// server function's own docstring.
+function useWmPromoRegistry() {
+  const [state, setState] = React.useState({ loading:true, error:null, data:null });
+  const refresh = React.useCallback(() => {
+    const live = window.HW_PROMOS_LIVE;
+    if (!live) {
+      setState({ loading:false, error:'shared/hw-live-promos.js is not on this page — there is no live seam to read.', data:null });
+      return Promise.resolve(null);
+    }
+    setState((s) => ({ ...s, loading:true }));
+    return live.registry().then((r) => {
+      if (r.ok && r.body && !r.body.error) {
+        setState({ loading:false, error:null, data:r.body });
+        return r.body;
+      }
+      const msg = (r.body && r.body.error) || r.error || ('HTTP ' + r.code);
+      setState((s) => ({ ...s, loading:false, error:msg }));
+      return null;
+    });
+  }, []);
+  React.useEffect(() => { refresh(); }, [refresh]);
+  return { ...state, refresh };
+}
 
-// Absent is its OWN value. It is not "No", it is not "" and it is not 0 —
-// nothing in ApplicableDiscountAttributes is required, so absence is expected.
-function wmPresent(attrs, k) {
-  return attrs != null && Object.prototype.hasOwnProperty.call(attrs, k) && attrs[k] != null && attrs[k] !== '';
-}
-function wmAttr(attrs, spec) {
-  if (!wmPresent(attrs, spec.key)) return null;          // null ⇒ render as absent
-  return spec.bool ? (attrs[spec.key] ? 'Yes' : 'No') : String(attrs[spec.key]);
-}
-// Token match on prerequisite_customer_type, the ONE derivation the sibling
-// repo sanctions (wmdemo/promos.py derive_first_timer). Casefolded whole-token,
-// never a substring, and never invented when the attribute is absent.
-function wmFirstTimer(prereq) {
-  if (prereq == null || prereq === '') return null;
-  return String(prereq).toLowerCase().split(/[^a-z0-9]+/).indexOf('first') !== -1;
-}
-function wmTitleOf(attrs, id) {
-  if (wmPresent(attrs, 'title')) return { text: String(attrs.title), real:true };
-  if (wmPresent(attrs, 'code_name')) return { text: String(attrs.code_name), real:true };
-  return { text: id ? id : 'No title and no code on this element', real:false };
-}
-// `id` is OPTIONAL on ApplicableDiscount, which requires only `type` and
-// `attributes`. An id-less discount must stay visibly id-less: keying it as the
-// string "None" would collapse every id-less discount into one row.
-function wmIdOf(inner) {
-  const raw = inner && inner.id;
-  return raw == null || String(raw).trim() === '' || String(raw) === 'None' ? null : String(raw);
-}
-const WM_SHAPE = {
-  flat:       { label:'Flat element',   kind:'neutral', note:'data[i].attributes — the JSON:API convention.' },
-  nested:     { label:'Nested element', kind:'info',    note:'data[i].data.attributes — the spec read literally.' },
-  unreadable: { label:'Unreadable',     kind:'bad',     note:'Matched neither candidate shape. Nothing was parsed and nothing was guessed.' },
-};
-function wmListingName(id) {
-  const l = Object.values(WM_LISTINGS || {}).filter((x) => x.id === id)[0];
-  return l ? l.name + ' · ' + l.kind : id || null;
-}
-function wmMapPill(m) {
-  if (m.state === 'mapped') return <Pill kind="good" dot>Mapped</Pill>;
-  if (m.state === 'standalone') return <Pill kind="info" dot>Standalone</Pill>;
-  return <Pill kind={m.overlap ? 'bad' : 'warn'} dot>Unmapped</Pill>;
-}
-function WmField({ label, value, mono, hint, wide }) {
+// Relation modal — the ONE write for both flows: resolving a named overlap
+// (both sides fixed, from the "unlinked overlaps" list) and linking a WM
+// promo to any internal promo by hand (internal side picked from a select).
+// Write, then READ BACK to confirm before claiming success — same discipline
+// as pos/shell-store.jsx's createVariation / wmdemo/engine.py's
+// set_product_published: a 200 from POST /api/promos/link means the gate let
+// the write through, not that the registry now shows it.
+function LinkModal({ wmId, wmName, internalId, internalName, defaultRelation, internalOptions, onClose, onSaved }) {
   const P = useP();
-  const absent = value == null;
-  return <div style={{ display:'flex', flexDirection:'column', gap:2, minWidth:0, gridColumn: wide ? '1/-1' : 'auto' }}>
-    <span style={{ fontSize: 10, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase', color:P.inkMute }}>{label}</span>
-    <span style={{ fontSize: 12.5, color: absent ? P.inkFaint : P.ink, fontStyle: absent ? 'italic' : 'normal',
-      fontFamily: absent ? P.fontSans : (mono ? P.fontMono : P.fontSans), wordBreak:'break-word' }}>
-      {absent ? 'Not provided' : value}</span>
-    {hint && <span style={{ fontSize:10.5, color:P.inkMute, lineHeight:1.4 }}>{hint}</span>}
-  </div>;
-}
-function WmGroup({ title, sub, children }) {
-  const P = useP();
-  return <div>
-    <div style={{ fontSize:10, fontWeight:800, letterSpacing:'.07em', textTransform:'uppercase', color:P.inkDim, marginBottom: sub ? 3 : 9 }}>{title}</div>
-    {sub && <div style={{ fontSize:11, color:P.inkMute, lineHeight:1.45, marginBottom:9 }}>{sub}</div>}
-    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:'12px 16px' }}>{children}</div>
-  </div>;
-}
-function WmPromoDetail({ p, onOpen, onOpenWm }) {
-  const P = useP();
-  const { inner, attrs, shape } = wmUnwrapDiscount(p.element);
-  const sh = WM_SHAPE[shape];
-  const wmId = wmIdOf(inner);
-  const firstTimer = wmFirstTimer(attrs.prerequisite_customer_type);
-  const mirror = p.mirror || {};
+  const locked = internalId != null;
+  const [relation, setRelation] = React.useState(defaultRelation || 'mirrors');
+  const [chosen, setChosen] = React.useState(locked ? internalId : '');
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
 
-  return <div style={{ background:P.surface2, borderTop:`1px solid ${P.hairline2}`, padding:'16px 18px', display:'flex', flexDirection:'column', gap:18 }}>
-    {shape === 'unreadable' &&
-      <div style={{ background:P.surface, border:`1px solid ${P.hairline2}`, borderLeft:`3px solid ${P.bad}`, borderRadius:P.r10, padding:'11px 13px' }}>
-        <div style={{ fontSize:11.5, fontWeight:800, letterSpacing:'.05em', textTransform:'uppercase', color:P.bad, marginBottom:4 }}>Element could not be read</div>
-        <div style={{ fontSize:12.5, color:P.ink2, lineHeight:1.55 }}>{sh.note} The eight attributes below are shown as not provided because nothing was parsed — <b>not</b> because Weedmaps sent them empty.</div>
-      </div>}
-
-    <WmGroup title="From Weedmaps — ApplicableDiscountAttributes"
-      sub="These eight are the whole of the published schema. None is required, so any may be absent — “Not provided” means the attribute did not arrive, which is different from an empty value and different from zero.">
-      {WM_DISCOUNT_ATTRS.map((f) => (
-        <WmField key={f.key} label={f.label} value={wmAttr(attrs, f)} mono={f.mono} wide={f.wide}
-          hint={f.key === 'prerequisite_customer_type' && firstTimer != null
-            ? 'Derived: ' + (firstTimer ? 'first-time customers' : 'not first-time only') + ' (token match on this field)'
-            : undefined} />))}
-    </WmGroup>
-
-    <div style={{ background:P.surface, border:`1px solid ${P.hairline2}`, borderRadius:P.r10, padding:'12px 14px' }}>
-      <div style={{ fontSize:10, fontWeight:800, letterSpacing:'.07em', textTransform:'uppercase', color:P.warn, marginBottom:4 }}>Not available from Weedmaps · {WM_NO_SOURCE.length} figures</div>
-      <div style={{ fontSize:11.5, color:P.ink2, lineHeight:1.55, marginBottom:8 }}>
-        Wanted by the business, and <b>not published</b> by <code>ApplicableDiscountAttributes</code>, which has no monetary field of any kind. These are listed rather than shown as numbers because we have no source for them — and <b>not</b> shown as 0, because 0 would be an answer.
-      </div>
-      <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
-        {WM_NO_SOURCE.map((n) => (
-          <span key={n} style={{ fontSize:11, fontWeight:600, color:P.inkDim, background:P.surface2, border:`1px dashed ${P.hairline2}`, borderRadius:20, padding:'2px 9px' }}>{n}</span>))}
-      </div>
-    </div>
-
-    <WmGroup title="Hyperwolf-side record" sub="Ours, not Weedmaps’. Never presented as discount data.">
-      <WmField label="Discount id" value={wmId} mono
-        hint={wmId ? undefined : '`id` is optional in the schema — this element genuinely has none'} />
-      <WmField label="Element shape" value={sh.label} hint={sh.note} wide />
-      <WmField label="Listing we polled" value={wmListingName(p.listing)} />
-      <WmField label="Mirror state" value={mirror.state || null} />
-      <WmField label="First seen by us" value={mirror.firstSeen || null} mono />
-      <WmField label="Last seen by us" value={mirror.lastSeen || null} mono />
-      <WmField label="Mapping" value={p.mapping.state} />
-      <WmField label="Mapped to" value={p.mapping.internal || null} />
-      <WmField label="Overlap with" value={p.mapping.overlap_with || null} />
-    </WmGroup>
-
-    {p.mapping.note && <div style={{ fontSize:11.5, color:P.inkDim, lineHeight:1.5, fontStyle:'italic' }}>{p.mapping.note}</div>}
-    <div style={{ display:'flex', gap:6, flexWrap:'wrap', paddingTop:2 }}>
-      <PBtn variant="secondary" size="sm" icon="eye" onClick={() => onOpenWm && onOpenWm(p)}>Open in builder (read-only)</PBtn>
-      {p.mapping.state === 'mapped' ? <><PBtn variant="secondary" size="sm" onClick={() => onOpen && onOpen(p.mapping.internal_id)}>View internal promo</PBtn><PBtn variant="ghost" size="sm">Unlink</PBtn></> :
-        <><PBtn variant="primary" size="sm">Link to an internal promo</PBtn><PBtn variant="secondary" size="sm">Merge into new promo</PBtn><PBtn variant="ghost" size="sm">Keep standalone</PBtn></>}
-    </div>
-  </div>;
-}
-function WmPromoTable({ onOpen, onOpenWm }) {
-  const P = useP();
-  const [open, setOpen] = React.useState(null);
-  const rows = window.WM_PROMOS || [];
-  // Every column is either one of the eight published attributes or a fact of
-  // our own. The old Type / Discount / Scope / Redeemed columns are gone —
-  // Weedmaps publishes no such field, so there was nothing behind them.
-  const th = (t, ours) => <th style={{ textAlign:'left', padding:'9px 14px', fontSize:10, fontWeight:700, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkDim, borderBottom:`1px solid ${P.hairline2}`, whiteSpace:'nowrap' }}>
-    {t}{ours && <span style={{ fontWeight:500, color:P.inkFaint, textTransform:'none', letterSpacing:0 }}> · ours</span>}</th>;
-  const td = { padding:'12px 14px', borderTop:`1px solid ${P.hairline}`, verticalAlign:'middle' };
-  return <div style={{ overflowX:'auto' }}>
-    <table style={{ width:'100%', minWidth:900, borderCollapse:'collapse', fontSize:12.5 }}>
-      <thead><tr style={{ background:P.surface2 }}>{th('Weedmaps promotion')}{th('Auto apply')}{th('Customer type')}{th('End date')}{th('Element shape', true)}{th('Listing', true)}{th('Mapping', true)}{th('')}</tr></thead>
-      <tbody>
-        {rows.map((p) => {
-          const isOpen = open === p.row_id;
-          const { inner, attrs, shape } = wmUnwrapDiscount(p.element);
-          const sh = WM_SHAPE[shape];
-          const wmId = wmIdOf(inner);
-          const t = wmTitleOf(attrs, wmId);
-          const cell = (v) => v == null
-            ? <span style={{ color:P.inkFaint, fontStyle:'italic' }}>Not provided</span> : v;
-          return <React.Fragment key={p.row_id}>
-            <tr onClick={() => setOpen(isOpen ? null : p.row_id)} style={{ cursor:'pointer', background: isOpen ? P.surface2 : 'transparent' }}>
-              <td style={td}>
-                <div style={{ fontWeight:600, color: t.real ? P.ink : P.inkFaint, fontStyle: t.real ? 'normal' : 'italic' }}>{t.text}</div>
-                <div style={{ fontSize:10, color:P.inkMute, fontFamily:P.fontMono }}>{wmId || 'no id on this element'}</div>
-              </td>
-              <td style={td}>{cell(wmAttr(attrs, { key:'auto_apply', bool:true }))}</td>
-              <td style={td}>{cell(wmAttr(attrs, { key:'prerequisite_customer_type' }))}</td>
-              <td style={{ ...td, fontFamily:P.fontMono, fontSize:11.5 }}>{cell(wmAttr(attrs, { key:'end_date' }))}</td>
-              <td style={td}><Pill kind={sh.kind}>{sh.label}</Pill></td>
-              <td style={{ ...td, fontSize:11.5, color:P.ink2 }}>{cell(wmListingName(p.listing))}</td>
-              <td style={td}><div style={{ display:'flex', flexDirection:'column', gap:2 }}>{wmMapPill(p.mapping)}{p.mapping.internal && <span style={{ fontSize:10, color:P.inkMute, whiteSpace:'nowrap' }}>→ {p.mapping.internal}</span>}</div></td>
-              <td style={{ ...td, textAlign:'right', color:P.inkMute }}><Icon name="chevron-down" size={15} stroke={2.2} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition:'transform .15s' }} /></td>
-            </tr>
-            {isOpen && <tr><td colSpan={8} style={{ padding:0 }}><WmPromoDetail p={p} onOpen={onOpen} onOpenWm={onOpenWm} /></td></tr>}
-          </React.Fragment>;
-        })}
-        {rows.length === 0 && <tr><td colSpan={8} style={{ padding:34, textAlign:'center', color:P.inkMute }}>No Weedmaps discounts mirrored.</td></tr>}
-      </tbody>
-    </table>
-  </div>;
-}
-
-// ── Our promotions ⇄ Weedmaps ───────────────────────────────────────────────
-// The actual sync surface: every Hyperwolf promotion, what state it is in on
-// Weedmaps, and the one button that changes it. Pushing writes the state back
-// onto the promo, so the Studio and the dashboard see it too.
-const WM_STATE = {
-  synced: { label:'Synced', kind:'good', dot:true },
-  syncing: { label:'Pushing…', kind:'info', dot:true },
-  not_pushed: { label:'Not pushed', kind:'neutral' },
-  paused: { label:'Paused on WM', kind:'warn', dot:true },
-  overlap: { label:'Overlaps a WM promo', kind:'bad', dot:true },
-  ended: { label:'Ended', kind:'neutral' } };
-
-function OurPromosOnWm({ promos, setPromos, onOpen }) {
-  const P = useP();
-  const [busy, setBusy] = React.useState({});
-  const stateOf = (p, i) => busy[p.id] || (p.wm && p.wm.state) || wmStateFor(p, i);
-  const patch = (id, wm) => setPromos && setPromos((prev) => prev.map((x) => x.id === id ? { ...x, wm: { ...x.wm, ...wm } } : x));
-  const stamp = () => new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
-  const push = (p, next) => {
-    setBusy((b) => ({ ...b, [p.id]: 'syncing' }));
-    setTimeout(() => {
-      setBusy((b) => {const n = { ...b };delete n[p.id];return n;});
-      patch(p.id, { state: next, pushedAt: stamp(), wmId: (p.wm && p.wm.wmId) || 'wmp_' + String(p.id).replace(/\D/g, '').slice(-6).padStart(6, '0') });
-    }, 900);
+  const save = () => {
+    const iid = locked ? internalId : Number(chosen);
+    if (!iid) { setErr('Pick an internal promo to link.'); return; }
+    const live = window.HW_PROMOS_LIVE;
+    if (!live) { setErr('shared/hw-live-promos.js is not on this page — there is no write path to call.'); return; }
+    setBusy(true); setErr(null);
+    live.link(wmId, iid, relation).then((r) => {
+      if (!r.ok || !r.body || r.body.error) {
+        setBusy(false);
+        setErr((r.body && r.body.error) || r.error || ('HTTP ' + r.code));
+        return;
+      }
+      const linkId = r.body.id;
+      onSaved(linkId, iid).then((confirmed) => {
+        setBusy(false);
+        if (confirmed) { onClose(); }
+        else {
+          setErr('The write was accepted, but a fresh read of the registry does not show this link yet. Reopen the panel before assuming it failed — do not retry blindly.');
+        }
+      });
+    });
   };
-  const th = (t, r) => <th style={{ textAlign: r ? 'right' : 'left', padding:'9px 14px', fontSize:10, fontWeight:700, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkDim, borderBottom:`1px solid ${P.hairline2}`, whiteSpace:'nowrap' }}>{t}</th>;
-  const td = { padding:'11px 14px', borderTop:`1px solid ${P.hairline}`, verticalAlign:'middle' };
 
-  return <div style={{ overflowX:'auto' }}>
-    <table style={{ width:'100%', minWidth:860, borderCollapse:'collapse', fontSize:12.5 }}>
-      <thead><tr style={{ background:P.surface2 }}>{th('Hyperwolf promotion')}{th('Runs on')}{th('Weedmaps ID')}{th('Sync state')}{th('Last push', true)}{th('')}</tr></thead>
-      <tbody>
-        {promos.map((p, i) => {
-          const st = stateOf(p, i), m = WM_STATE[st] || WM_STATE.not_pushed;
-          const live = p.status === 'active' || p.status === 'live';
-          return <tr key={p.id}>
-            <td style={td}>
-              <div onClick={() => onOpen && onOpen(p.id)} style={{ fontWeight:600, color:P.ink, cursor:'pointer' }}>{p.name}</div>
-              <div style={{ fontSize:10, color:P.inkMute, fontFamily:P.fontMono }}>{p.code || p.id}</div>
-            </td>
-            <td style={td}><div style={{ display:'flex', gap:5 }}>
-              <Pill kind={live ? 'warn' : 'ghost'}>Pickup</Pill><Pill kind={live ? 'info' : 'ghost'}>Delivery</Pill>
-            </div></td>
-            <td style={{ ...td, fontFamily:P.fontMono, color: p.wm && p.wm.wmId ? P.ink2 : P.inkFaint }}>{p.wm && p.wm.wmId || '—'}</td>
-            <td style={td}><Pill kind={m.kind} dot={m.dot}>{m.label}</Pill></td>
-            <td style={{ ...td, textAlign:'right', fontFamily:P.fontMono, color:P.inkMute }}>{p.wm && p.wm.pushedAt || '—'}</td>
-            <td style={{ ...td, textAlign:'right' }}>
-              {st === 'syncing' ? <span style={{ fontSize:11.5, color:P.info, fontWeight:600 }}>Pushing…</span> :
-              st === 'overlap' ? <PBtn variant="primary" size="xs" icon="shield" onClick={() => push(p, 'synced')}>Resolve &amp; push</PBtn> :
-              st === 'not_pushed' ? <PBtn variant="accent" size="xs" icon="arrow-up" onClick={() => push(p, 'synced')}>Push to WM</PBtn> :
-              st === 'paused' ? <PBtn variant="secondary" size="xs" icon="refresh" onClick={() => push(p, 'synced')}>Resume</PBtn> :
-              st === 'ended' ? <span style={{ fontSize:11.5, color:P.inkFaint }}>—</span> :
-              <div style={{ display:'inline-flex', gap:5 }}>
-                <PBtn variant="secondary" size="xs" icon="refresh" onClick={() => push(p, 'synced')}>Re-sync</PBtn>
-                <PBtn variant="ghost" size="xs" onClick={() => patch(p.id, { state:'paused' })}>Pause</PBtn>
-              </div>}
-            </td>
-          </tr>;
-        })}
-        {promos.length === 0 && <tr><td colSpan={6} style={{ padding:34, textAlign:'center', color:P.inkMute }}>No promotions yet.</td></tr>}
-      </tbody>
-    </table>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z:200, padding:'32px 20px', animate:true })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width:'min(520px, 96vw)', background:P.surface, border:`1px solid ${P.hairline2}`, borderRadius:P.r16, boxShadow:P.shadowLg, overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 18px', borderBottom:`1px solid ${P.hairline}` }}>
+        <span style={{ flex:1, minWidth:0, fontSize:13.5, fontWeight:700, color:P.ink }}>Link {wmName}</span>
+        <IconBtn icon="x" size={17} onClick={onClose} />
+      </div>
+      <div style={{ padding:'14px 18px', display:'flex', flexDirection:'column', gap:12 }}>
+        <div style={{ fontSize:12, color:P.inkDim, lineHeight:1.55 }}>
+          {locked
+            ? <>An overlap exists between <b>{wmName}</b> (Weedmaps) and <b>{internalName}</b> (internal). Pick what these two rows mean to each other — this does not change what a customer pays; pricing.quote_cart() still applies exactly one price effect per line either way.</>
+            : <>Pick an internal promo to pair with <b>{wmName}</b>, and what the pairing means.</>}
+        </div>
+        {!locked && <div>
+          <div style={{ fontSize:10, fontWeight:800, letterSpacing:'.05em', textTransform:'uppercase', color:P.inkMute, marginBottom:5 }}>Internal promo</div>
+          <select value={chosen} onChange={(e) => setChosen(e.target.value)}
+            style={{ width:'100%', padding:'9px 11px', borderRadius:P.r10, border:`1px solid ${P.hairline2}`, background:P.surface2, color:P.ink, fontSize:12.5 }}>
+            <option value="" disabled>Choose one…</option>
+            {(internalOptions || []).map((o) => <option key={o.id} value={o.id}>{o.name}{o.code ? ' (' + o.code + ')' : ''}</option>)}
+          </select>
+        </div>}
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {PROMO_RELATIONS.map((r) => (
+            <label key={r.value} onClick={() => setRelation(r.value)} style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'10px 12px', borderRadius:P.r10, border:`1px solid ${relation === r.value ? P.accentBorder : P.hairline2}`, background: relation === r.value ? P.accentSoft : P.surface2, cursor:'pointer' }}>
+              <input type="radio" checked={relation === r.value} onChange={() => setRelation(r.value)} style={{ marginTop:3 }} />
+              <div><div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>{r.title}</div><div style={{ fontSize:11, color:P.inkDim, marginTop:2, lineHeight:1.4 }}>{r.sub}</div></div>
+            </label>))}
+        </div>
+        {err && <div style={{ fontSize:11.5, color:P.ink2, background:P.badSoft, border:`1px solid ${P.bad}`, borderRadius:P.r10, padding:'8px 10px', lineHeight:1.45 }}>{err}</div>}
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 18px', borderTop:`1px solid ${P.hairline}` }}>
+        <PBtn variant="ghost" onClick={onClose} disabled={busy}>Cancel</PBtn>
+        <PBtn variant="accent" onClick={save} busy={busy} disabled={busy || (!locked && !chosen)}>Save link</PBtn>
+      </div>
+    </div>
   </div>;
 }
 
-window.WeedmapsView = function WeedmapsView({ promos = [], setPromos, onOpen, onOpenWm }) {
+function RegistryRow({ row, onUnlink, unlinkBusy, unlinkErr, internalOptions, openManualLink }) {
   const P = useP();
-  const withWm = promos.map((p, i) => ({ p, state: p.wm && p.wm.state || wmStateFor(p, i) }));
-  const synced = withWm.filter((x) => x.state === 'synced').length;
-  const notPushed = withWm.filter((x) => x.state === 'not_pushed').length;
+  const td = { padding:'11px 14px', borderTop:`1px solid ${P.hairline}`, verticalAlign:'middle' };
+  const codeKind = row.side === 'wm'
+    ? (row.kind === 'auto' ? 'auto-apply' : 'code' + (row.code ? ' · ' + row.code : ''))
+    : (row.kind || '—') + (row.code ? ' · ' + row.code : '');
+  const unresolved = (row.overlaps || []).filter((o) => !o.linked);
+  return <>
+    <tr>
+      <td style={td}><Pill kind={row.side === 'wm' ? 'info' : 'neutral'} size="sm">{row.side === 'wm' ? 'weedmaps' : 'internal'}</Pill></td>
+      <td style={td}>
+        <div style={{ fontWeight:600, color:P.ink }}>{row.name}</div>
+        {row.side === 'internal' && row.state === 'inactive' && <div style={{ fontSize:10, color:P.inkFaint }}>inactive</div>}
+      </td>
+      <td style={{ ...td, fontSize:11.5, color:P.ink2 }}>{codeKind}</td>
+      <td style={{ ...td, fontFamily:P.fontMono, fontSize:11 }}>{fmtPromoWindow(row.window)}</td>
+      <td style={td}>
+        {row.links.length > 0
+          ? <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              {row.links.map((l) => <div key={l.link_id} style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                <span style={{ fontSize:11.5, color:P.good, fontWeight:700 }}>{l.relation}</span>
+                <span style={{ fontSize:10.5, color:P.inkMute }}>&rarr; {l.other_name}</span>
+                <PBtn variant="ghost" size="xs" busy={!!unlinkBusy[l.link_id]} onClick={() => onUnlink(l.link_id)}>Unlink</PBtn>
+              </div>)}
+              {unlinkErr && <div style={{ fontSize:10.5, color:P.bad }}>{unlinkErr}</div>}
+            </div>
+          : unresolved.length > 0
+            ? <span style={{ fontSize:11.5, color:P.bad, fontWeight:700 }}>unlinked overlap · {unresolved[0].severity}</span>
+            : row.side === 'wm'
+              ? <PBtn variant="ghost" size="xs" onClick={() => openManualLink(row)}>Link…</PBtn>
+              : <span style={{ color:P.inkFaint, fontStyle:'italic' }}>—</span>}
+      </td>
+    </tr>
+  </>;
+}
+
+// The real sync surface. Everything on it is either the server's own value
+// (promos.promo_registry()) or the direct result of a write this page just
+// made and re-read back to confirm.
+function WmPromoRegistry({ registry }) {
+  const P = useP();
+  const { loading, error, data, refresh } = registry;
+  const [pullBusy, setPullBusy] = React.useState(false);
+  const [pullMsg, setPullMsg] = React.useState(null);
+  const [modal, setModal] = React.useState(null);
+  const [unlinkBusy, setUnlinkBusy] = React.useState({});
+  const [unlinkErrs, setUnlinkErrs] = React.useState({});
+
+  const doPull = () => {
+    const live = window.HW_PROMOS_LIVE;
+    if (!live) { setPullMsg({ ok:false, text:'shared/hw-live-promos.js is not on this page.' }); return; }
+    setPullBusy(true); setPullMsg(null);
+    // source:'live' — the real behaviour an operator means by "Pull from
+    // Weedmaps". Matches what the server's own background sync loop does
+    // every PROMO_POLL_S (wmdemo/server.py:_promo_sync_loop); the route's
+    // OWN default when `source` is omitted is 'fixture', which exists as a
+    // conservative fallback for a stray call, not what this button should send.
+    live.pull({ source:'live' }).then((r) => {
+      if (!r.ok || !r.body || r.body.error) {
+        setPullBusy(false);
+        setPullMsg({ ok:false, text:(r.body && r.body.error) || r.error || ('HTTP ' + r.code) });
+        return;
+      }
+      const b = r.body;
+      // Write-then-read-back: re-read the registry so the table reflects
+      // what the mirror actually holds now, not a summary of the call.
+      refresh().then(() => {
+        setPullBusy(false);
+        const bits = [(b.pulled || 0) + ' discount row(s) pulled'];
+        if ((b.appeared || []).length) bits.push(b.appeared.length + ' appeared');
+        if ((b.disappeared || []).length) bits.push(b.disappeared.length + ' disappeared');
+        if ((b.alerts || []).length) bits.push('alerts: ' + b.alerts.join('; '));
+        setPullMsg({ ok:true, text:bits.join(' · ') });
+      });
+    });
+  };
+
+  const confirmLinked = (linkId, wmId) => refresh().then((fresh) => {
+    if (!fresh) { return false; }
+    const row = fresh.rows.find((r) => r.side === 'wm' && r.id === wmId);
+    return !!(row && row.links.some((l) => l.link_id === linkId));
+  });
+
+  const doUnlink = (linkId) => {
+    const live = window.HW_PROMOS_LIVE;
+    if (!live) { return; }
+    setUnlinkBusy((b) => ({ ...b, [linkId]: true }));
+    setUnlinkErrs((e) => { const n = { ...e }; delete n[linkId]; return n; });
+    live.unlink(linkId).then((r) => refresh().then((fresh) => {
+      setUnlinkBusy((b) => { const n = { ...b }; delete n[linkId]; return n; });
+      // Read-back confirm: if the link is STILL in the fresh registry, the
+      // delete did not land, whatever HTTP code came back.
+      const stillThere = fresh && fresh.rows.some((row) => row.links.some((l) => l.link_id === linkId));
+      if (stillThere || !r.ok) {
+        setUnlinkErrs((e) => ({ ...e, [linkId]: (r.body && r.body.error) || r.error ||
+          (stillThere ? 'Still shows linked after a fresh read — the delete did not land.' : ('HTTP ' + r.code)) }));
+      }
+    }));
+  };
+
+  if (loading && !data) {
+    return <WmPanel title="Promo registry" sub="Reading /api/promos/registry…">
+      <div style={{ padding:24, textAlign:'center', color:P.inkMute, fontSize:12.5 }}>Loading…</div>
+    </WmPanel>;
+  }
+  if (error && !data) {
+    return <WmPanel title="Promo registry" sub="Could not read the registry.">
+      <div style={{ padding:'13px 15px', background:P.badSoft, border:`1px solid ${P.bad}`, borderRadius:P.r10, color:P.ink2, fontSize:12.5, lineHeight:1.5 }}>{error}</div>
+    </WmPanel>;
+  }
+
+  const counters = data.counters;
+  const inRows = data.rows.filter((r) => r.side === 'internal');
+  const internalOptions = inRows.filter((r) => r.state !== 'inactive');
+  const onWmCount = inRows.filter(onWeedmapsChannel).length;
+
+  return <>
+    <WmPanel title="Promo registry" pad={0}
+      sub="One-way pull, side-by-side registry, and the three real relations you can declare between a Weedmaps promo and one of ours. No control here claims Weedmaps can be pushed to — its partner API has no promo-push endpoint."
+      right={<div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+        <PBtn variant="secondary" size="sm" icon="refresh" busy={pullBusy} onClick={doPull}>Pull from Weedmaps</PBtn>
+        {pullMsg && <span style={{ fontSize:10.5, color: pullMsg.ok ? P.good : P.bad, maxWidth:340, textAlign:'right' }}>{pullMsg.text}</span>}
+      </div>}>
+      <div style={{ padding:18 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom: counters.unlinked_overlaps ? 18 : 14 }}>
+          <KPI label="WM promos mirrored" value={String(counters.wm)} sublabel="live on the mirror" icon="gift" />
+          <KPI label="Internal promos" value={String(counters.internal)} sublabel={onWmCount + ' also run on Weedmaps'} icon="tag" />
+          <KPI label="Linked pairs" value={String(counters.linked)} sublabel="acknowledged, no longer alertable" icon="link" />
+          <KPI label="Unlinked overlaps" value={String(counters.unlinked_overlaps)} sublabel="need a decision" icon="shield" accent={counters.unlinked_overlaps > 0} />
+        </div>
+
+        {counters.unlinked_overlaps > 0 && <div style={{ marginBottom:18 }}>
+          <div style={{ fontSize:10, fontWeight:800, letterSpacing:'.07em', textTransform:'uppercase', color:P.inkDim, marginBottom:9 }}>Unlinked overlaps — need a decision</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {data.unlinked_overlaps.map((o) => {
+              const sm = severityMeta(o.severity);
+              return <div key={o.wm_promo_id + '|' + o.internal_promo_id} style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'10px 12px', background:P.surface2, border:`1px solid ${P.hairline2}`, borderRadius:P.r10 }}>
+                <Pill kind={sm.kind} size="sm">{sm.label} · {overlapKindLabel(o.kind)}</Pill>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:12.5, color:P.ink }}><b>{o.wm_name}</b> (Weedmaps) overlaps <b>{o.internal_name}</b> (internal)</div>
+                  <div style={{ fontSize:11, color:P.inkDim, marginTop:2, lineHeight:1.4 }}>{(o.reasons || [])[0]}</div>
+                </div>
+                <PBtn variant="secondary" size="xs" onClick={() => setModal({ wmId:o.wm_promo_id, wmName:o.wm_name, internalId:o.internal_promo_id, internalName:o.internal_name, defaultRelation: o.kind === 'code' ? 'mirrors' : 'conflict' })}>Resolve</PBtn>
+              </div>;
+            })}
+          </div>
+        </div>}
+
+        <div>
+          <div style={{ fontSize:10, fontWeight:800, letterSpacing:'.07em', textTransform:'uppercase', color:P.inkDim, marginBottom:9 }}>Full registry</div>
+          <div style={{ overflowX:'auto' }}>
+            <table style={{ width:'100%', minWidth:820, borderCollapse:'collapse', fontSize:12.5 }}>
+              <thead><tr style={{ background:P.surface2 }}>
+                {['Side', 'Name', 'Code / kind', 'Window', 'Links'].map((h) => <th key={h} style={{ textAlign:'left', padding:'9px 14px', fontSize:10, fontWeight:700, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkDim, borderBottom:`1px solid ${P.hairline2}` }}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {data.rows.map((r) => <RegistryRow key={r.side + r.id} row={r} onUnlink={doUnlink}
+                  unlinkBusy={unlinkBusy} unlinkErr={r.links.some((l) => unlinkErrs[l.link_id]) ? Object.values(unlinkErrs)[0] : null}
+                  internalOptions={internalOptions}
+                  openManualLink={(row) => setModal({ wmId:row.id, wmName:row.name })} />)}
+                {data.rows.length === 0 && <tr><td colSpan={5} style={{ padding:34, textAlign:'center', color:P.inkMute }}>Nothing mirrored yet — pull from Weedmaps, or add an internal promo.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </WmPanel>
+
+    {modal && <LinkModal {...modal} internalOptions={internalOptions}
+      onClose={() => setModal(null)}
+      onSaved={(linkId) => confirmLinked(linkId, modal.wmId)} />}
+  </>;
+}
+
+window.WeedmapsView = function WeedmapsView({ onOpen, onOpenWm }) {
+  const P = useP();
+  const registry = useWmPromoRegistry();
+  const rc = registry.data && registry.data.counters;
 
   const kpis = [
     { label:'Products mapped', value:`${WM_SYNC.productsMapped}/${WM_SYNC.productsTotal}`, sublabel:`${WM_SYNC.review} in review`, icon:'package' },
-    { label:'Promos synced', value:`${synced}/${promos.length}`, sublabel:`${notPushed} not pushed`, icon:'gift' },
+    { label:'Unlinked promo overlaps',
+      value: rc ? String(rc.unlinked_overlaps) : (registry.loading ? '…' : '—'),
+      sublabel: rc ? `${rc.linked} linked · ${rc.wm} WM mirrored` : (registry.error ? 'registry unavailable' : ''),
+      icon:'gift', accent: !!(rc && rc.unlinked_overlaps > 0) },
     { label:'WM orders today', value:pfmt.num(WM_SYNC.ordersToday), sublabel:'auto-routed', icon:'truck' },
     { label:'Push latency', value:`${WM_SYNC.p50}ms`, sublabel:`p95 ${WM_SYNC.p95}ms`, icon:'refresh' },
     { label:'Sync errors 60s', value:WM_SYNC.errors, sublabel:`reconcile ${WM_SYNC.lastReconcile}`, icon:'shield', accent:WM_SYNC.errors > 0 },
@@ -406,11 +436,7 @@ window.WeedmapsView = function WeedmapsView({ promos = [], setPromos, onOpen, on
       </div>
 
       <div style={{ marginBottom:22 }}>
-        <WmPanel title="Your promotions on Weedmaps" pad={0}
-          sub={`Every Hyperwolf promotion and where it stands on the channel. Pushing sends the offer to both listings — it lands inside the five-second Draft window, so a cart being built right now picks it up.`}
-          right={<div style={{ display:'flex', gap:6 }}><Pill kind="good" dot>{synced} synced</Pill><Pill kind="neutral">{notPushed} not pushed</Pill></div>}>
-          <OurPromosOnWm promos={promos} setPromos={setPromos} onOpen={onOpen} />
-        </WmPanel>
+        <WmPromoRegistry registry={registry} />
       </div>
 
       <div style={{ marginBottom:22 }}>
@@ -470,11 +496,5 @@ window.WeedmapsView = function WeedmapsView({ promos = [], setPromos, onOpen, on
         </WmPanel>
       </div>
 
-      <div>
-        <WmPanel title="Weedmaps discounts we mirror" sub="Whether mapped to one of ours, kept standalone, or unmapped and awaiting a decision. Open a row for the eight attributes Weedmaps actually publishes, which of them arrived, and the figures — revenue, ROI, discount amount — that it does not publish at all." pad={0}
-          right={<div style={{ display:'flex', gap:6 }}><Pill kind="good" dot>{(window.WM_PROMOS||[]).filter(p=>p.mapping.state==='mapped').length} mapped</Pill><Pill kind="info" dot>{(window.WM_PROMOS||[]).filter(p=>p.mapping.state==='standalone').length} standalone</Pill><Pill kind="warn" dot>{(window.WM_PROMOS||[]).filter(p=>p.mapping.state==='unmapped').length} unmapped</Pill></div>}>
-          <WmPromoTable onOpen={onOpen} onOpenWm={onOpenWm} />
-        </WmPanel>
-      </div>
     </div>);
 };
