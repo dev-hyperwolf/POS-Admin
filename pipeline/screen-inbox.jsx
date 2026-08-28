@@ -460,7 +460,7 @@
                 <PBtn variant="ghost" onClick={() => setConfirmOpen(false)}>Cancel</PBtn>
                 <PBtn variant="accent" icon="check-circle" onClick={() => {
                   setConfirmOpen(false); setBatchDismissed(true);
-                  window.hdToast?.({ title: `Approved ${smartBatchTarget.invoices.length} invoices`, description: `${smartBatchTarget.vendor} · ${HD.formatCurrency(batchTotal, { showCents: false })} posted to AP.`, tone: 'ok' });
+                  window.hdToast?.({ title: `Approved ${smartBatchTarget.invoices.length} invoices — nothing posted to AP`, description: `${smartBatchTarget.vendor} · ${HD.formatCurrency(batchTotal, { showCents: false })} in this demo. No AP entry was created.`, tone: 'ok' });
                 }}>Approve all</PBtn>
               </div>
             </Card>

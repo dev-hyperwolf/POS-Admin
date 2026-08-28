@@ -158,7 +158,7 @@
     const blockedTone = HD.tone(P, 'blocked'), warnTone = HD.tone(P, 'warn'), okTone = HD.tone(P, 'ok');
 
     function submit() {
-      window.hdToast?.({ title: 'Merge submitted to METRC', description: `${left.qty + right.qty} units combined into new parent package.`, tone: 'ok' });
+      window.hdToast?.({ title: 'Merge staged — not sent to METRC', description: `${left.qty + right.qty} units combined in this demo. Nothing was filed with the state.`, tone: 'ok' });
       navigate('#/batches');
     }
 

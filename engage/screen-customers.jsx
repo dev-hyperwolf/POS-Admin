@@ -203,10 +203,10 @@
             <Icon name="phone" size={13} stroke={2} color={P.inkMute} />{revealed ? '+1 (310) 555-0142' : '+1 (•••) •••-••••'}
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            {revealed && <span style={{ fontSize: 11.5, color: info.fg, background: info.bg, borderRadius: 99, padding: '3px 8px' }}>reveal logged to audit</span>}
+            {revealed && <span style={{ fontSize: 11.5, color: info.fg, background: info.bg, borderRadius: 99, padding: '3px 8px' }}>demo · not logged</span>}
             <PBtn size="sm" variant={revealed ? 'ghost' : 'secondary'} icon={revealed ? 'eye-off' : 'eye'}
-              onClick={() => { setRevealed((v) => !v); if (!revealed) window.hdToast?.({ title: 'PII revealed', description: 'identity.pii.revealed written to the audit log.', tone: 'info' }); }}>
-              {revealed ? 'Hide' : 'Reveal (audited)'}
+              onClick={() => { setRevealed((v) => !v); if (!revealed) window.hdToast?.({ title: 'PII revealed — nothing was logged', description: 'Demo screen: no audit record was written. Nothing here makes this reveal accountable.', tone: 'info' }); }}>
+              {revealed ? 'Hide' : 'Reveal (not logged)'}
             </PBtn>
           </div>
         </div>

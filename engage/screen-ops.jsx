@@ -464,7 +464,7 @@
                   </div>
                   <p style={{ margin: '6px 0 0', fontSize: 12.5, color: P.inkDim, lineHeight: 1.45 }}>{f.description}</p>
                 </div>
-                <button onClick={() => { setFlags((cur) => cur.map((x) => (x.key === f.key ? { ...x, on: !x.on } : x))); window.hdToast?.({ title: `${f.key} ${f.on ? 'disabled' : 'enabled'}`, description: 'Change written to the tenant flag snapshot + audit log.', tone: f.on ? 'warn' : 'ok' }); }}
+                <button onClick={() => { setFlags((cur) => cur.map((x) => (x.key === f.key ? { ...x, on: !x.on } : x))); window.hdToast?.({ title: `${f.key} ${f.on ? 'disabled' : 'enabled'}`, description: 'Demo screen — the switch moved here only. No tenant snapshot or audit record was written.', tone: f.on ? 'warn' : 'ok' }); }}
                   role="switch" aria-checked={f.on} aria-label={`Toggle ${f.key}`}
                   style={{ flex: '0 0 auto', width: 40, height: 22, borderRadius: 99, border: `1px solid ${f.on ? P.accentBorder : P.hairline2}`, background: f.on ? P.accent : P.surface3, position: 'relative', cursor: 'pointer', padding: 0 }}>
                   <span style={{ position: 'absolute', top: 2, left: f.on ? 20 : 2, height: 16, width: 16, borderRadius: 99, background: f.on ? P.accentInk : P.inkMute, transition: 'left .15s' }} />
