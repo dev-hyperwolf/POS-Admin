@@ -429,6 +429,68 @@ const _hwNotify = () => _hwSubs.forEach((fn) => { try { fn(); } catch {} });
 let _hwSeq = 0;
 const _hwId = (prefix) => prefix + Date.now().toString(36) + (++_hwSeq).toString(36);
 
+// ── PHOTOS OF THE ID, ACROSS THE STORE HOP ─────────────────────────────────
+//
+// THE DEFECT THIS CLOSES IS AN ABSENCE RENDERED AS A SUCCESS. shared/id-photos.jsx
+// lets an operator attach photographs of the ID or passport at the counter, and
+// pos/checkin.jsx hands them to the store under their own key beside the
+// scanned document. Both writers below then dropped them: addMember is an
+// ALLOW-LIST with no `idPhotos` key, so the array it was handed was constructed
+// out of existence, and nothing said so. The operator watched the tiles appear,
+// pressed Create, got a customer record, and the photos they deliberately took
+// were gone — with no message, no empty state and nothing on screen to be
+// wrong. That is the identical shape as the first/last pair below, one field
+// later.
+//
+// ⚠️ WHAT CARRYING THEM ACTUALLY ACHIEVES, STATED EXACTLY.
+// The list survives the hop from the capture form into the store, and therefore
+// survives navigation within this session. THAT IS ALL IT ACHIEVES. It is not
+// storage, it is not an upload, and it is not a file against the customer:
+//
+//   · There is no server route for ID images in this build. Nothing here
+//     invents one. Retention, encryption at rest, who may view an ID image,
+//     what a deletion request does and whether the EXIF capture time is kept
+//     are policy questions the owner has not answered, and a route written
+//     before they are answered encodes an answer nobody gave.
+//   · MEMBERS is an in-memory array in this module. Only lane settings touch
+//     localStorage (see laneSettings below); nothing serialises a member. A
+//     reload rebuilds the book from the seed and the photos are gone with it.
+//   · The live seam does NOT ship these anywhere. shared/hw-live-identity.js
+//     leaves window.HW.MEMBERS alone on purpose and says so at its head, so a
+//     key written here is never POSTed and never reaches a server.
+//
+// So HWIdPhotos.STORAGE.line — "Held in this browser tab only. Nothing is
+// uploaded and nothing is filed against the customer … Reloading or closing
+// this page loses them." — is still true, word for word, after this change.
+// Every entry carries `stored: false` and `storage: 'memory'`, written by the
+// one place that knows (HWIdPhotos.makePhoto reading STORAGE.mode), so the
+// record states its own non-persistence rather than relying on a reader to
+// remember. THE DAY A REAL ROUTE LANDS, STORAGE.line AND STORAGE.mode MOVE
+// TOGETHER IN shared/id-photos.jsx — not here, and not one without the other.
+//
+// AN EMPTY LIST IS STORED AS AN EMPTY LIST, never left absent. "No photos were
+// attached" is a fact a reader can act on; a missing key makes every reader
+// guess whether the feature ran at all. Same reasoning pos/checkin.jsx gives
+// where it builds the customer object.
+const idPhotoList = (v) => Array.isArray(v) ? v.slice() : [];
+
+// Fold newly attached photos onto a record that already holds some.
+//
+// APPEND, NEVER REPLACE. A human deliberately captured every one of these and
+// nothing may silently destroy evidence — shared/id-photos.jsx makes the same
+// ruling where it refuses to drop photos on a re-scan, and stamps each one with
+// the document that was on screen instead, so a photo whose `docKey` no longer
+// matches SAYS SO rather than vanishing. De-duplicated on `id` so calling this
+// twice with one capture cannot make two photos out of it.
+function mergeIdPhotos(existing, incoming) {
+  const out = idPhotoList(existing);
+  const seen = new Set(out.map((p) => p && p.id));
+  idPhotoList(incoming).forEach((p) => {
+    if (p && !seen.has(p.id)) { seen.add(p.id); out.push(p); }
+  });
+  return out;
+}
+
 // ONE FIELD PER PARAMETER, ALL THE WAY TO THE STORE [OWNER RULING 2026-08-27].
 // This builder is an ALLOW-LIST — it constructs a fixed shape rather than
 // spreading its argument — so until these two keys were added it silently threw
@@ -452,6 +514,10 @@ function addMember(m) {
     delivery: m && m.delivery || 'Pick-up',
     visits: m && m.visits || 0, points: m && m.points || 0, wallet: +(m && m.wallet || 0),
     member: !!(m && m.member),
+    // THE ATTACHED PHOTOS. See the note above this function for what this key
+    // does and — more importantly — what it does not do. Copied rather than
+    // aliased so the caller's own state cannot mutate the record behind it.
+    idPhotos: idPhotoList(m && m.idPhotos),
   };
   MEMBERS.unshift(rec);
   _hwNotify();
@@ -510,7 +576,18 @@ function addCheckIn(p) {
   // two records are the same person (identity_match.py:176 fingerprints on
   // first, last and DOB), which is how one human ends up with four profiles. A
   // split dropped one hop after capture has fixed nothing.
-  if (!member) member = addMember({ name: c.name, first_name: c.first_name, last_name: c.last_name, email: c.email, phone: c.phone, type: wantType || c.type, group: c.group, member: c.member, delivery: wantDelivery || c.delivery });
+  // AND THE PHOTOS HAVE TO SURVIVE THIS HOP TOO, for exactly the reason the
+  // split pair does: this call site is a second allow-list, and a key it does
+  // not name is destroyed here even when addMember would have accepted it.
+  // pos/checkin.jsx captures them on the new-customer form and hands them over
+  // beside the scanned document; a counter operator who photographed an ID and
+  // pressed Create had them dropped at this line with nothing rendered wrong.
+  if (!member) member = addMember({ name: c.name, first_name: c.first_name, last_name: c.last_name, email: c.email, phone: c.phone, type: wantType || c.type, group: c.group, member: c.member, delivery: wantDelivery || c.delivery, idPhotos: c.idPhotos });
+  // A RETURNING CUSTOMER SKIPS addMember ENTIRELY, so photos attached during a
+  // check-in for someone already in the book would fall down the same hole one
+  // branch over. They are folded onto the existing record instead — appended,
+  // never replacing what is already there.
+  else if (idPhotoList(c.idPhotos).length) member.idPhotos = mergeIdPhotos(member.idPhotos, c.idPhotos);
   const rec = {
     id: _hwId('c'), memberId: member.id, name: member.name,
     group: member.group, type: wantType || member.type, delivery: wantDelivery || member.delivery || 'Pick-up',
@@ -528,6 +605,30 @@ function addCheckIn(p) {
   if (doc && doc.scannedAt && !IDV[member.id]) {
     IDV[member.id] = { doc: doc, phone: member.phone ? { value: member.phone, smsVerified: false } : null, remoteId: null };
   }
+  // ⚠️ AND THE ATTACHED PHOTOS DELIBERATELY DO NOT GET A SECOND HOME IN HERE.
+  // This is a decision, not the drop it looks like — recorded so the next
+  // reader does not "fix" it back.
+  //
+  //   1. TWO STORED COPIES OF ONE FACT DRIFT APART, and then nothing on screen
+  //      tells you which copy a surface read. The member record above is the
+  //      one home; the photos already carry their own link to this document,
+  //      because HWIdPhotos stamps every entry with `docKey` (type|num|
+  //      scannedAt) at capture and flags any whose stamp stops matching.
+  //   2. IDV IS THE LEDGER assurance() DERIVES A COMPLIANCE VERDICT FROM
+  //      (pos/verification.jsx). Operator-attached, unstored, unverified images
+  //      sitting inside that row invite the next reader to treat them as
+  //      verification evidence. `doc` is what a scanner read; `idPhotos` is
+  //      what a human photographed, and one must never be mistaken for the
+  //      other — pos/checkin.jsx makes the same ruling where it keeps them as
+  //      siblings rather than nesting one inside the other.
+  //   3. NOR DOES A PHOTO MINT A LEDGER ROW. Photos with no scan reach the
+  //      member record and stop there. Creating an IDV row for them would put
+  //      an identity-ledger entry on a person no document has been seen for,
+  //      and `!v` versus a row carrying no `doc` is a distinction every reader
+  //      of this ledger makes.
+  //
+  // Nothing is lost by this: every photo the caller handed over is on the
+  // member record by the time this line runs.
   _hwNotify();
   return rec;
 }
