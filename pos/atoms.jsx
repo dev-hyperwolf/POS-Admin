@@ -64,10 +64,23 @@ window.Card = function Card({ children, padding, density = 'default', elevation 
 //
 // `overscrollBehavior:'contain'` stops a scroll that reaches the end of the
 // overlay from chaining to the page underneath it.
+// THE DEFAULT READS THE LADDER, BECAUSE IT USED TO HAND-TYPE ONE.
+// This said `200` — a number that appears nowhere in shared/hw-z.js. So the
+// helper whose entire purpose is to stop people hand-typing a scrim was
+// hand-typing the most important value in it, and a modal built the correct
+// way (helper, no explicit `z`) would have landed BELOW the sixteen scrims
+// still hand-typed at the real rung, 300. Nobody had hit it yet only because
+// every existing call site passes an explicit `z`; it was a trap armed for the
+// next person who did the right thing.
+// Fall back through window.HW_Z and then a literal only so a page that forgot
+// <script src="shared/hw-z.js"> degrades to a sane layer instead of `undefined`
+// (which serialises to no z-index at all, i.e. a scrim UNDER the page it dims).
 window.overlayScrim = function overlayScrim(P, opts) {
   const o = opts || {};
+  const ladder = (P && P.z) || window.HW_Z || null;
+  const scrimZ = ladder && ladder.scrim != null ? ladder.scrim : 300;
   return {
-    position: 'fixed', inset: 0, zIndex: o.z == null ? 200 : o.z,
+    position: 'fixed', inset: 0, zIndex: o.z == null ? scrimZ : o.z,
     background: P.scrim, display: 'flex', justifyContent: 'center',
     // flex-start, NOT center: see the note above. The card's `margin:auto`
     // is what restores centring in the case where centring is safe.

@@ -457,8 +457,8 @@ function AddRegionModal({ regions, onClose, onSave }) {
   const inp = { width: '100%', height: 42, border: `1px solid ${P.hairline2}`, background: P.surface, borderRadius: P.r10, padding: '0 12px', fontSize: 13.5, color: P.ink, fontFamily: P.fontSans, outline: 'none' };
   const lbl = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim, marginBottom: 6, display: 'block' };
 
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px', overflowY: 'auto' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(480px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 90, padding: '60px 20px' })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(480px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '16px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
         <span style={{ width: 34, height: 34, borderRadius: 9, background: cty.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="map" size={17} stroke={1.9} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>Add region</div><div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>New sub-region · {id}</div></div>

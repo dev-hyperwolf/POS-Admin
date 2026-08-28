@@ -111,18 +111,27 @@ export function handTypedScrims(src) {
 const REGISTER = {
   // ── not centred modals; overlayScrim would destroy their geometry ──
   'pos/screen-brands.jsx':    { n: 1, why: 'right-edge side drawer: alignItems stretch, justifyContent flex-end', mustScrollItsOwnCard: true },
-  'mobile/screen-task.jsx':   { n: 1, why: 'bottom sheet: alignItems flex-end, card capped at 86%',                mustScrollItsOwnCard: true },
+  'mobile/screen-task.jsx':   { n: 1, why: 'bottom sheet: alignItems flex-end, card capped at 86%',                mustScrollItsOwnCard: true }
 
-  // ── centred modals that already carry overflowY; correct, not yet on the helper ──
-  'pos/screen-orders.jsx':    { n: 6, why: 'six correct copies; the three broken ones are migrated' },
-  'pos/product-shell.jsx':    { n: 3, why: 'three correct copies' },
-  'pos/checkin.jsx':          { n: 1, why: 'correct copy; file is owned by another worktree session' },
-  'pos/drawer.jsx':           { n: 1, why: 'correct copy' },
-  'pos/product-sheet.jsx':    { n: 1, why: 'correct copy' },
-  'pos/screen-cart.jsx':      { n: 1, why: 'correct copy' },
-  'pos/screen-catalog.jsx':   { n: 1, why: 'correct copy' },
-  'delivery/dapp.jsx':        { n: 1, why: 'correct copy; the broken one in this file is migrated' },
-  'pweb/carousel.jsx':        { n: 1, why: 'correct copy' }
+  // ── AND NOTHING ELSE. ────────────────────────────────────────────────────
+  // The sixteen "correct but hand-typed" centred modals that used to be listed
+  // here were migrated onto window.overlayScrim + window.overlayCard on
+  // 2026-08-27. Not one of them was broken — every one already carried
+  // `overflowY`, which is precisely why it survived the first pass. They were
+  // migrated because being correct today is not the same as staying correct
+  // through the next edit: each was a hand-copy of a ten-key object literal, and
+  // this register could only ever stop the list GROWING, never shrink it.
+  //
+  // Each site's z-index was carried across VERBATIM (`{ z: 120 }`, `{ z: 220 }`,
+  // …) instead of being collapsed onto P.z.scrim. That is deliberate: several
+  // are deliberately stacked against one another — screen-orders opens
+  // FindCustomerSheet at 130 over the 120 sheets, and product-sheet's 240 sits
+  // over product-shell's 220 — so flattening all sixteen onto one rung would
+  // have converted those orderings into DOM-order ties. Migrating the SHAPE and
+  // renumbering the LADDER are two different changes; this was only the first.
+  //
+  // The two entries above are now the entire list, and both are shapes the
+  // helper cannot express rather than work left undone.
 };
 
 /* ═══ 1. NO NEW HAND-TYPED SCRIM, ANYWHERE ═════════════════════════════════ */
@@ -183,6 +192,48 @@ test('every hand-typed scrim either scrolls itself or caps a card that does', ()
 
 /* ═══ 3. THE HELPER'S CONTRACT, INCLUDING THE PART THAT WAS WRONG ══════════ */
 
+/* THE DISEASE INSIDE THE CURE, NOW GUARDED.
+ *
+ * `overlayScrim`'s default z was the literal `200` — a rung that does not exist
+ * in shared/hw-z.js, written into the one helper whose entire purpose is to stop
+ * people hand-typing a scrim. A modal built the CORRECT way (helper, no explicit
+ * `z`) would have painted below every scrim still hand-typed at the real rung,
+ * 300, so doing the right thing was the way to get the wrong answer.
+ *
+ * It was invisible because every call site in the estate passes an explicit `z`,
+ * so the default was dead code — a trap armed for the next person, not a live
+ * bug. Reverting the fix to `200` on 2026-08-27 left all 846 tests green, which
+ * is why this test exists: without it the fix silently reverts. */
+test('overlayScrim defaults its z to the scrim rung, and never to a literal', async () => {
+  await withApp('pos', async (app) => {
+    const { HW_Z } = app.window;
+    const P = { scrim: 'rgba(0,0,0,.5)', z: HW_Z };
+
+    assert.equal(app.window.overlayScrim(P, {}).zIndex, HW_Z.scrim,
+      'a scrim built with no explicit z must land on P.z.scrim (' + HW_Z.scrim +
+      '). A hard-coded default is the exact defect this helper exists to remove, ' +
+      'and at 200 it would sit BELOW a hand-typed scrim on the real rung.');
+    assert.equal(app.window.overlayScrim(P).zIndex, HW_Z.scrim,
+      'omitting the opts object entirely must give the same rung');
+
+    // An explicit z is still honoured — the migrated call sites carry their own
+    // numbers deliberately, because several are stacked against each other.
+    assert.equal(app.window.overlayScrim(P, { z: 130 }).zIndex, 130,
+      'an explicit z must still win; flattening every modal onto one rung would ' +
+      'turn deliberate orderings (FindCustomerSheet 130 over the 120 sheets) ' +
+      'into DOM-order ties');
+
+    // And a page that forgot shared/hw-z.js must degrade to a sane layer rather
+    // than to `undefined`, which serialises to NO z-index — a scrim painted
+    // under the very page it is dimming.
+    const bare = app.window.overlayScrim({ scrim: 'rgba(0,0,0,.5)' }, {});
+    assert.equal(typeof bare.zIndex, 'number',
+      'with no P.z and no window.HW_Z the default must still be a number');
+    assert.ok(bare.zIndex >= HW_Z.chromeMenu,
+      `the no-ladder fallback (${bare.zIndex}) must still outrank the chrome band`);
+  });
+});
+
 test('overlayCard centres without shrink-locking the card', async () => {
   await withApp('pos', async (app) => {
     const card = app.window.overlayCard;
@@ -217,14 +268,22 @@ test('overlayCard centres without shrink-locking the card', async () => {
  * spread into a literal that then overrides the part that matters. */
 
 const MIGRATED = {
-  'pos/screen-orders.jsx': 3,
+  'pos/screen-orders.jsx': 9,     // 3 from the first pass + the 6 correct copies
   'pos/customer-extras.jsx': 3,
   'pos/screen-merch.jsx': 1,
   'pos/payment.jsx': 1,
   'pos/sales-panel.jsx': 1,
-  'delivery/dapp.jsx': 1,
+  'delivery/dapp.jsx': 2,         // 1 from the first pass + the 1 correct copy
   'logistics/lorder.jsx': 2,
-  'pos/screen-stubs.jsx': 5
+  'pos/screen-stubs.jsx': 5,
+  // ── the 2026-08-27 pass: correct-but-hand-typed, now on the helper ──
+  'pos/product-shell.jsx': 3,
+  'pos/checkin.jsx': 1,
+  'pos/drawer.jsx': 1,
+  'pos/product-sheet.jsx': 1,     // spreads the helper to keep its own fontFamily
+  'pos/screen-cart.jsx': 1,
+  'pos/screen-catalog.jsx': 1,
+  'pweb/carousel.jsx': 1
 };
 
 test('every migrated call site still calls the helper, and none overrides the scroll', () => {

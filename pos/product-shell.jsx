@@ -52,8 +52,8 @@ window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave })
   const id = shellId || (p ? SH.shellOf(p).id : null);
   const shell = SH.shellById(id);
   if (!shell) return null;
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 220, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 20px', overflowY: 'auto' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(900px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 220, padding: '32px 20px' })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(900px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}`, background: P.surface }}>
         <Thumb item={shell.variations[0] ? shell.variations[0].thumb : { hue: shell.hue }} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -181,8 +181,8 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   };
 
   // ── inline "create the shell first" ──
-  if (newShell) return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 220, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '32px 20px', overflowY: 'auto' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(900px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+  if (newShell) return <div onClick={onClose} style={window.overlayScrim(P, { z: 220, padding: '32px 20px' })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(900px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}`, background: P.surface }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="box-add" size={16} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>New shell first</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Define the family, then carry straight on to its first variation</div></div>
@@ -194,8 +194,8 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
     </div>
   </div>;
 
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 220, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '36px 20px', overflowY: 'auto' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: cur.k === 'variation' ? 'min(940px,96vw)' : 'min(640px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden', transition: 'width .2s' }} data-tour="add-product">
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 220, padding: '36px 20px' })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: cur.k === 'variation' ? 'min(940px,96vw)' : 'min(640px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden', transition: 'width .2s' }} data-tour="add-product">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="package" size={16} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>New product</div><div style={{ fontSize: 11.5, color: P.inkDim }}>A product is a <b>variation</b> of a shell — pick the shell, then name the flavour</div></div>

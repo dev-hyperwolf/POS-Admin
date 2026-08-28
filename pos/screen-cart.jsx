@@ -646,8 +646,8 @@ function DiscountApprovalModal({ P, amount, mode, subtotal, onClose, onApprove }
     onClose();
   };
   const lbl = { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 };
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 210, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(520px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }} data-tour="disc-approval">
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 210, padding: '40px 20px' })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(520px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }} data-tour="disc-approval">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 30, height: 30, borderRadius: 8, background: steep ? P.badSoft : P.warnSoft, color: steep ? P.bad : P.warn, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="lock" size={16} stroke={2} /></span>
         <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Manager approval required</div><div style={{ fontSize: 11.5, color: P.inkDim }}>Manual discounts are never applied without a sign-off</div></div>

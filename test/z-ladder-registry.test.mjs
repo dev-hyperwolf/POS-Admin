@@ -137,19 +137,14 @@ const RESERVED_FLOOR = Z.notePin;
 /* Deliberate exceptions. `why` is required — an exemption with no reason is the
  * drift starting again. Keep this list SHORT; if it grows, the rule is wrong and
  * should be changed on purpose rather than eroded. */
-const Z_EXCEPTIONS = {
-  'pos/sales-panel.jsx': {
-    lines: [219],
-    why: 'KNOWN DEFECT, NOT A DISPENSATION. The sale-confirmed flash toast is ' +
-      'hand-typed at 600, an exact tie with tourMask (600) — at equal z-index ' +
-      'the winner is DOM order, so which of the toast and the tour mask is on ' +
-      'top is decided by mount order and is not stable. The fix is one word: ' +
-      'zIndex: P.z.toast (400). It is left here because this file was being ' +
-      'edited by a concurrent session on the night this guard was written and ' +
-      'taking it would have meant fighting for the file. Registered so it ' +
-      'cannot be lost; §1b asserts this list does not grow.'
-  }
-};
+/* EMPTY, AND THAT IS THE POINT. The one entry that lived here — the
+ * pos/sales-panel.jsx sale-confirmed flash toast, hand-typed at 600, an exact
+ * tie with tourMask where the winner was DOM order — was fixed on 2026-08-27 to
+ * `zIndex: P.z.toast`. The register did its job: the defect was recorded rather
+ * than lost, and the entry was retired by fixing it rather than by widening the
+ * rule. An empty exception list is the strongest state this can be in; any hit
+ * at all is now new. */
+const Z_EXCEPTIONS = {};
 
 test('no screen hand-types a zIndex at or above the annotation layer', () => {
   const offenders = [];
@@ -184,12 +179,13 @@ test('no screen hand-types a zIndex at or above the annotation layer', () => {
 
 test('the reserved-floor exception list does not grow', () => {
   const n = Object.values(Z_EXCEPTIONS).reduce((a, e) => a + e.lines.length, 0);
-  assert.equal(n, 1,
-    `Z_EXCEPTIONS now covers ${n} call site(s), not 1. Every entry is a place ` +
+  assert.equal(n, 0,
+    `Z_EXCEPTIONS now covers ${n} call site(s), not 0. Every entry is a place ` +
     'where a screen outranks the annotation layer and the guided tour. Adding ' +
     'one is a decision about a shipped feature, not bookkeeping — if it is a ' +
     'real dispensation, change this number in the same commit and say why in ' +
-    'the entry; if it is the known sales-panel toast being fixed, lower it.');
+    'the entry. The list reached 0 when the sales-panel toast was migrated to ' +
+    'P.z.toast; going back up means a screen is outranking the tour again.');
 });
 
 /* ═══ 2. THE CHROME BAND IS THE CHROME'S ═════════════════════════════════════

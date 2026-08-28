@@ -216,7 +216,7 @@ window.OpenTickets = function OpenTickets() {
 
   return <div style={{ position: 'relative' }}>
     <IconBtn icon="receipt" badge={String(SALES_HELD.length)} badgeColor={P.warn} title={`Sales — ${SALES_HELD.length} on hold · look up any completed sale`} onClick={() => setOpen((o) => !o)} data-tour="sales-panel" />
-    {flash && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', background: P.ink, color: P.surface, borderRadius: 99, fontSize: 12.5, fontWeight: 600, boxShadow: P.shadowLg, zIndex: 600, whiteSpace: 'nowrap' }}>{flash}</div>}
+    {flash && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', padding: '10px 16px', background: P.ink, color: P.surface, borderRadius: 99, fontSize: 12.5, fontWeight: 600, boxShadow: P.shadowLg, zIndex: P.z.toast, whiteSpace: 'nowrap' }}>{flash}</div>}
     {detail && <SaleDetail s={detail} onClose={() => setDetail(null)} onFlash={setFlash} />}
     {open && <>
       <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 400 }} />

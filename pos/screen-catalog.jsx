@@ -1809,8 +1809,8 @@ function WmMatchModal({ p, onClose }) {
 
   const Row = ({ k, v, mono }) => <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span style={{ color: P.inkMute }}>{k}</span><span style={{ color: P.ink, fontWeight: 600, fontFamily: mono ? P.fontMono : P.fontSans, textAlign: 'right', minWidth: 0 }}>{v}</span></div>;
 
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(760px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 90, padding: '40px 20px' })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(760px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: `1px solid ${P.hairline2}` }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: P.info, background: P.infoSoft, padding: '3px 9px', borderRadius: 99 }}>Weedmaps</span>
         <span style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Product match & mapping</span>

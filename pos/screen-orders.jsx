@@ -710,8 +710,8 @@ function MatchSheet({ o, bind, onBind, onCheckInBind, onClose }) {
   checkins.forEach((ci) => (ci.guests || []).forEach((g) => partyGuests.push({ ci, name: window.guestName ? window.guestName(g) : g })));
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(640px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+    <div onClick={onClose} style={window.overlayScrim(P, { z: 120, padding: '48px 20px', animate: true })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(640px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.brand.weedmaps, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="link" size={15} stroke={2} color={P.brand.weedmapsInk} /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -1505,8 +1505,8 @@ function stopsFor(driverName, orders) {
 function SheetShell({ icon, title, sub, onClose, children }) {
   const P = useP();
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+    <div onClick={onClose} style={window.overlayScrim(P, { z: 120, padding: '48px 20px', animate: true })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon} size={16} stroke={2} color={P.accent} /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -1669,8 +1669,8 @@ function AssignDriverSheet({ o, onClose }) {
   // two are the same person but not the same string once a full name is kept.
   sameDriver(x.name, driverOf(o)) ? 'Already has this stop' : null;
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+    <div onClick={onClose} style={window.overlayScrim(P, { z: 120, padding: '48px 20px', animate: true })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="truck" size={16} stroke={2} color={P.accent} /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -1719,8 +1719,8 @@ function DriverRouteSheet({ d, orders, onClose }) {
   const stops = stopsFor(d.name, orders).slice().sort((a, b) => (dlv[a.id] ? dlv[a.id].dist : 99) - (dlv[b.id] ? dlv[b.id].dist : 99));
   const miles = stops.reduce((s, o) => s + ((dlv[o.id] || {}).dist || 0), 0);
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+    <div onClick={onClose} style={window.overlayScrim(P, { z: 120, padding: '48px 20px', animate: true })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
           <Avatar name={d.name} size={32} />
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -2418,8 +2418,8 @@ function FindCustomerSheet({ contact, onClose, onPick }) {
   const all = window.HW.MEMBERS;
   const hits = ql ? all.filter((m) => `${m.name} ${m.email} ${m.phone}`.toLowerCase().includes(ql)) : all.slice(0, 6);
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 130, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+    <div onClick={onClose} style={window.overlayScrim(P, { z: 130, padding: '48px 20px', animate: true })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '14px 18px', borderBottom: `1px solid ${P.hairline}` }}>
           <span style={{ width: 30, height: 30, borderRadius: 8, background: P.ink, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="search" size={15} stroke={2} color={P.accent} /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -3721,8 +3721,8 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
     </div>;
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 80, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '34px 20px', animation: 'fade .15s ease', overflowY: 'auto' }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(680px, 96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden', border: `1px solid ${P.hairline2}` }}>
+    <div onClick={onClose} style={window.overlayScrim(P, { z: 80, padding: '34px 20px', animate: true })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(680px, 96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden', border: `1px solid ${P.hairline2}` }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '15px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
           <Avatar name={o.name} size={38} crown={o.badge === 'Member'} />

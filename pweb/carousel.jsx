@@ -64,8 +64,8 @@ window.CarouselModal = function CarouselModal({ config, onClose, onSave }){
   const apChip=(t)=><span key={t} style={{ padding:'5px 10px', borderRadius:99, background:P.surface3, fontSize: 12.5, fontWeight:600 }}>{t}</span>;
   const clear=()=> up({ brands:[], cats:[], strains:[], traits:[], pages:[] });
 
-  return (<div style={{ position:'fixed', inset:0, zIndex:200, background:P.scrim, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'28px 20px', overflowY:'auto' }}>
-    <div style={{ width:'100%', maxWidth:1120, display:'flex', flexDirection:'column', gap:16 }}>
+  return (<div style={window.overlayScrim(P, { z: 200, padding: '28px 20px' })}>
+    <div style={{ ...window.overlayCard, width:'100%', maxWidth:1120, display:'flex', flexDirection:'column', gap:16 }}>
       {/* header */}
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
         <div style={{ flex:1 }}><div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.12em', textTransform:'uppercase', color:'rgba(255,255,255,.7)', fontFamily:P.fontMono }}>Product carousel</div><div style={{ fontSize: 21, fontWeight:800, color:'#fff', letterSpacing:'-.02em' }}>Build a carousel</div></div>

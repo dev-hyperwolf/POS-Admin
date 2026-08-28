@@ -88,8 +88,8 @@ function CountGrid({ counts, setCounts }) {
 }
 function RegModal({ title, sub, icon, children, footer, onClose }) {
   const P = useP();
-  return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 95, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '44px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
-    <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(460px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
+  return <div onClick={onClose} style={window.overlayScrim(P, { z: 95, padding: '44px 20px', animate: true })}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(460px,96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '15px 18px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ width: 32, height: 32, borderRadius: 9, background: P.accent, color: P.accentInk, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name={icon || 'cash'} size={17} stroke={1.9} /></span>
         <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 700, color: P.ink }}>{title}</div>{sub && <div style={{ fontSize: 11.5, color: P.inkDim }}>{sub}</div>}</div>

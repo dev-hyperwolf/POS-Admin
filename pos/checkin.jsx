@@ -911,8 +911,8 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   </div>;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', animation: 'fade .15s ease', overflowY: 'auto' }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden', border: `1px solid ${P.hairline2}` }}>
+    <div style={window.overlayScrim(P, { z: 90, padding: '40px 20px', animate: true })} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(560px, 96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden', border: `1px solid ${P.hairline2}` }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 20px', borderBottom: `1px solid ${P.hairline2}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -59,8 +59,8 @@ window.ProductSheet = function ProductSheet({ p, inCart, onAdd, onClose }) {
   const Chip = ({ children, color }) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99, background: (color || P.ink2) + '18', color: color || P.ink2, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap' }}>{children}</span>;
 
   return ReactDOM.createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 240, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '36px 20px', overflowY: 'auto', fontFamily: P.fontSans }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(720px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }} data-tour="product-sheet">
+    <div onClick={onClose} style={{ ...window.overlayScrim(P, { z: 240, padding: '36px 20px' }), fontFamily: P.fontSans }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(720px,96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }} data-tour="product-sheet">
         {/* Header — identity at a glance */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 20px', borderBottom: `1px solid ${P.hairline}` }}>
           <Thumb item={p} size={72} radius={12} />
