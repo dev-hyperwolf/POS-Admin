@@ -406,6 +406,15 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
             <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>New guest — onboarding</span>
             <span style={{ marginLeft: 'auto' }}><IconBtn icon="x" size={14} style={{ width: 26, height: 26 }} onClick={() => setAdding(false)} /></span>
           </div>
+          {/* NO PHOTO STRIP HERE YET, AND THAT IS DELIBERATE RATHER THAN
+              MISSED. This is the party's guest onboarding, a different form
+              with its own `nf`; the control it would adopt is the shared
+              window.IdPhotoCapture used by the check-in New-customer form
+              below (search this file for HWIdPhotos.docKeyOf). Adopting it is
+              three lines — a list on BLANK_NF, the component, and the key on
+              whatever this guest is committed as — and it is the aligning
+              pass's, so this file is not being edited from two directions at
+              once. It is NOT a second implementation. */}
           <div><CILabel>Government ID — scan to fill</CILabel>
             {window.IdScanPanel ? <window.IdScanPanel value={nf.doc} onChange={onScan} /> :
           <PBtn variant="accent" size="sm" icon="scan" onClick={() => onScan({ scannedAt: 'Just now', photo: true })}>Scan ID</PBtn>}
@@ -532,6 +541,28 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   // A document scanned against an ALREADY-SELECTED customer whose name (or
   // member id) it does not match. See onPrimaryScan.
   const [docMismatch, setDocMismatch] = React.useState(null);
+  // ── THE SCREEN ASKED FOR AN ACTION IT DID NOT OFFER ────────────────────────
+  // With enforcement OFF a lapsed document is ALLOWED, so `primaryDoc` is
+  // truthy and this card took the "document on file" branch — which renders one
+  // line of mono text and NO scanner. The soft-lapse banner directly above it
+  // says "Ask for a current ID anyway", and there was nowhere on the card to
+  // scan one. The only route was the Change button, which throws the selected
+  // customer away: not what the sentence points at, and not where the operator
+  // is looking.
+  //
+  // It was already true of every VALID document — the on-file branch has never
+  // carried a scanner — which is why it went unnoticed. That case is fine: a
+  // current document asks the operator for nothing. The soft lapse is what
+  // makes it a defect, because the screen is now actively requesting the one
+  // thing it withholds.
+  //
+  // `false` = the affordance is showing as a button; `true` = the SHARED
+  // scanner (window.IdScanPanel, never a copy) is open in its place. Any
+  // successful capture closes it again — see onPrimaryScan — so while it is
+  // open nothing has been captured yet, and the panel is therefore always
+  // handed `value={null}`: it opens ready to READ, rather than on the
+  // done-state card of the very document it exists to replace.
+  const [rescanOpen, setRescanOpen] = React.useState(false);
   // ONE FIELD PER PARAMETER [OWNER RULING 2026-08-27].
   //
   // `name` was one box and `street` was one box. Both are now the split pair
@@ -547,6 +578,13 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   // value's face. Danny Fitzgerald's NV licence is the case that makes it real.
   const BLANK_NF = { firstName: '', lastName: '', phone: '', email: '', dob: '', gender: '',
     streetNumber: '', streetName: '', city: '', state: '', zip: '', doc: null,
+    // PHOTOS OF THE PHYSICAL DOCUMENT, held beside the scan rather than inside
+    // it. The scanner produces `doc`; a human with a camera produces these, and
+    // conflating them would let a re-scan silently destroy a capture a person
+    // deliberately made. `[]` is an empty list, never null: "no photos" is a
+    // state this form is always in until somebody adds one, and it is not an
+    // absence anything has to reason about.
+    idPhotos: [],
     fromScan: {}, guessed: {}, guessNote: '' };
   const [nf, setNf] = React.useState(BLANK_NF);
   const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v,
@@ -605,6 +643,11 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   };
   // Seeding a customer is the ONE place type/delivery come from the record.
   const adoptCustomer = (c) => {
+    // A NEW PERSON GETS A CLOSED CONTROL. The re-scan disclosure belongs to the
+    // record that was on screen when it was opened; carrying it across to the
+    // next customer would show a scanner already open over somebody whose
+    // document nobody has looked at yet.
+    setRescanOpen(false);
     setCustomer(c);
     if (c && c.type) {setType(c.type);setTypeFrom('record');}
     if (c && c.delivery) {setDelivery(c.delivery);setDeliveryFrom('record');}
@@ -676,19 +719,39 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   // The scanner offered INSIDE an already-selected customer's card. What comes
   // back is a document about a PERSON; it only belongs on this record if it is
   // that person's. Compare before binding.
+  // IT REPLACES THE DOCUMENT'S CONTRIBUTION AND NOTHING ELSE — which on THIS
+  // record is exactly `doc`. The new-customer form has to work harder for the
+  // same guarantee (`fromScan` records which boxes the last scan filled, so a
+  // re-scan clears those and leaves what a human typed — see onCheckInScan),
+  // because a scan there fills eight fields. Here the card displays a record
+  // the operator did not type: `Object.assign({}, c, { doc: d })` withdraws the
+  // old document and writes the new one, and first_name / last_name / address /
+  // dob — whether they came from the book or were typed into createNew — are
+  // carried through untouched. Same rule, not a second one.
   const onPrimaryScan = (d) => {
     setDocMismatch(null);
-    if (!d) {setCustomer((c) => c ? Object.assign({}, c, { doc: null }) : c);return;}
+    if (!d) {setCustomer((c) => c ? Object.assign({}, c, { doc: null }) : c);setRescanOpen(false);return;}
     const c = customer;
     if (!c) return;
     const wrongMember = !!(d.memberId && c.id && c.id !== 'new' && d.memberId !== c.id);
     const wrongName = !!(d.name && c.name && !sameName(d.name, c.name));
+    // A MISMATCH LEAVES THE RE-SCAN OPEN ON PURPOSE. The document did not land,
+    // so the operator is not finished; closing the control here would hide the
+    // scanner at the exact moment they have to use it again.
     if (wrongMember || wrongName) {setDocMismatch({ doc: d });return;}
     setCustomer(Object.assign({}, c, { doc: d }));
+    // CAPTURED, SO THE CONTROL STANDS DOWN. If the replacement is CURRENT the
+    // soft lapse is gone honestly and the whole block unmounts with it. If the
+    // replacement is ALSO EXPIRED the block stays — now naming the NEW date —
+    // and the affordance is back as a button, because the instruction it serves
+    // is still on screen and still unsatisfied. Clearing the lapse is something
+    // a current document does; it is never something pressing a button does.
+    setRescanOpen(false);
   };
   const attachAnyway = () => {
     const d = docMismatch && docMismatch.doc;
     setDocMismatch(null);
+    setRescanOpen(false);
     if (d) setCustomer((c) => c ? Object.assign({}, c, { doc: d }) : c);
   };
   // Create the record anyway, as an explicit choice the operator makes.
@@ -765,7 +828,20 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
       address: { streetNumber, streetName, street: nfJoinStreet(streetNumber, streetName),
         city: nf.city.trim(), state: nf.state.trim().toUpperCase(), zip: nf.zip.trim() },
       dob: nf.dob,
-      doc: nf.doc });
+      doc: nf.doc,
+      // THE PHOTOS RIDE ALONG UNDER THEIR OWN KEY, beside the document and not
+      // inside it: `doc` is what the scanner read, `idPhotos` is what a human
+      // photographed, and one must never be mistaken for evidence of the other.
+      // An empty list is stored as an empty list — the record then says "no
+      // photos were attached", which is a fact, rather than leaving the key
+      // absent and making every reader guess whether the feature even ran.
+      //
+      // ⚠️ THIS DOES NOT FILE THEM ANYWHERE. Each entry is a Blob URL in this
+      // tab (HWIdPhotos.STORAGE.mode === 'memory', and every entry carries
+      // `stored: false` to say so on the record itself). There is no server
+      // route for ID images in this build; the card states that on screen and
+      // nothing here may imply otherwise.
+      idPhotos: nf.idPhotos });
     setNewOpen(false);
   };
 
@@ -809,6 +885,31 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   const nfEnforced = expirySwitch(null);
   const nfDocBlocks = nfDocExpired && nfEnforced !== false;
 
+  // ── THE MISMATCH PANEL, LIFTED OUT SO IT REACHES BOTH SCANNERS ─────────────
+  // It used to live inline in the no-document branch, which was the only branch
+  // that carried a scanner. The soft-lapse re-scan below is a second place a
+  // document can arrive and be REJECTED for belonging to somebody else, and a
+  // rejection with nothing on screen is the same defect this whole change is
+  // about: the operator scans, the card does not move, and nothing says why.
+  // Identical markup, one definition — not a copy that can drift.
+  //
+  // The two call sites are mutually exclusive by construction: a soft lapse
+  // makes `primaryDoc` truthy, which is exactly the condition under which the
+  // no-document branch does not render.
+  const docMismatchPanel = () => !docMismatch || !customer ? null :
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+      <Icon name="shield" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+      <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This document is not this customer’s. The barcode reads <b style={{ fontFamily: P.fontMono }}>{docMismatch.doc.name || 'no name'}</b>{docMismatch.doc.memberId ? <> (customer <b style={{ fontFamily: P.fontMono }}>{docMismatch.doc.memberId}</b>)</> : null}, and the record selected here is <b style={{ fontFamily: P.fontMono }}>{customer.name}</b>{customer.id && customer.id !== 'new' ? <> (<b style={{ fontFamily: P.fontMono }}>{customer.id}</b>)</> : null}. Attaching it would put one person's ID under another person's name.</span>
+    </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <PBtn variant="accent" size="xs" icon="user" onClick={() => {setDocMismatch(null);setRescanOpen(false);setCustomer(null);setTypeFrom(null);setDeliveryFrom(null);}}>Pick the right customer</PBtn>
+      <PBtn variant="secondary" size="xs" icon="refresh" onClick={() => setDocMismatch(null)}>Scan again</PBtn>
+      <div style={{ flex: 1 }} />
+      <PBtn variant="ghost" size="xs" onClick={attachAnyway}>Attach to {customer.name} anyway</PBtn>
+    </div>
+  </div>;
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 90, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', animation: 'fade .15s ease', overflowY: 'auto' }} onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, overflow: 'hidden', border: `1px solid ${P.hairline2}` }}>
@@ -841,7 +942,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                     same green as a current document is exactly the defect the
                     toggle work exists to close. */}
                 {primaryDoc ? primaryScanLapsedSoft ? <Pill kind="bad" dot>ID on file · EXPIRED</Pill> : <Pill kind="good" dot>ID on file</Pill> : <Pill kind="warn" dot>No ID on file</Pill>}
-                <PBtn variant="ghost" size="sm" icon="pencil" onClick={() => {setCustomer(null);setTypeFrom(null);setDeliveryFrom(null);}}>Change</PBtn>
+                <PBtn variant="ghost" size="sm" icon="pencil" onClick={() => {setCustomer(null);setRescanOpen(false);setDocMismatch(null);setTypeFrom(null);setDeliveryFrom(null);}}>Change</PBtn>
               </div>
               {/* THE REFUSAL THAT DID NOT HAPPEN. Without this the card shows
                   a document on file for somebody the gate refuses the moment
@@ -849,11 +950,77 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                   switch would block is the thing a default-OFF toggle exists to
                   let you COUNT before you turn it on. */}
               {primaryScanLapsedSoft &&
-              <div data-hw="soft-lapse-primary" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
-                <Icon name="alert" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
-                  <b>The ID scanned for this customer EXPIRED on {primaryScan.expires}.</b> WOULD HAVE BEEN REFUSED — expiry enforcement is OFF, so this check-in is allowed and the refusal is recorded instead of applied. Ask for a current ID anyway: turn enforcement on and this customer stops clearing.
-                </span>
+              <div data-hw="soft-lapse-primary" style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '10px 12px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <Icon name="alert" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                  <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+                    <b>The ID scanned for this customer EXPIRED on {primaryScan.expires}.</b> WOULD HAVE BEEN REFUSED — expiry enforcement is OFF, so this check-in is allowed and the refusal is recorded instead of applied. Ask for a current ID anyway: turn enforcement on and this customer stops clearing.
+                  </span>
+                </div>
+                {/* AND HERE IS THE ID THEY WERE JUST TOLD TO ASK FOR.
+                    The sentence above ends in an instruction; until now the card
+                    it sits on had no way to carry it out, because a soft-lapsed
+                    allow counts as a document ON FILE and that branch renders a
+                    line of text and nothing else. Change was the only route, and
+                    Change discards the customer.
+
+                    THE CONTROL IS window.IdScanPanel — the same one the
+                    no-document branch, the new-customer form and GuestEditor all
+                    render. A "re-scan" of its own would be a second scanner to
+                    keep in step with the first, and this file already says why
+                    that is not done (line ~949: "not a different control, not a
+                    copy"). What IS specific to this situation is the way IN: a
+                    labelled button rather than an always-open panel, because the
+                    panel is a 90px dashed box and this card already carries a
+                    pill, a document line and this banner. The affordance is
+                    visible and named for the act; only the reader is deferred.
+
+                    `value={null}`, deliberately: while this is open nothing has
+                    been captured (a capture closes it), so the panel opens READY
+                    TO READ instead of on the done-state card of the very
+                    document being replaced — which would print the expiry a
+                    third time and put a Re-scan button behind a Scan button. */}
+                {/* COLLAPSED, THE BUTTON CARRIES ITSELF. This first shipped with
+                    a line of reassurance beside it — "replaces the document and
+                    nothing else" — and measured in a real browser that line cost
+                    59px on a modal already 836px tall in an 800px viewport, paid
+                    on every soft-lapsed check-in to answer a question nobody has
+                    asked yet. The banner directly above ends "Ask for a current
+                    ID anyway", so the label needs no lead-in. The guarantee
+                    moved to where it earns its space: below, once the scanner is
+                    open and the operator is about to use it. jsdom called both
+                    shapes fine, because jsdom has no idea what 59px is. */}
+                {!rescanOpen ?
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1 }} />
+                  {/* SECONDARY, NOT ACCENT — "one accent per view" (CLAUDE.md
+                      design rule 1). It shipped gold and a browser check found
+                      two solid accents live at once: this and the footer's
+                      "Check in & start sale". The sibling alert blocks (the
+                      document mismatch, the unresolved match) DO use accent, and
+                      they are not a precedent: each of them only appears while
+                      the check-in is blocked, so the footer's accent is greyed
+                      out and theirs is the only one. A soft lapse is ALLOWED —
+                      the footer is live — so this is the one alert block on the
+                      card that has to yield. White on the alarm-red block is not
+                      quiet; it is the only button in the box. */}
+                  {window.IdScanPanel ?
+                  <PBtn variant="secondary" size="xs" icon="scan" onClick={() => setRescanOpen(true)}>Scan a current ID</PBtn> :
+                  <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The ID scanner is not loaded on this page, so a current document cannot be captured here.</span>}
+                </div> :
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {!docMismatch && <span style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>This replaces the document on the record and nothing else — the account, its history and every field already captured are kept.</span>}
+                  {!docMismatch && <window.IdScanPanel value={null} onChange={onPrimaryScan} />}
+                  {docMismatchPanel()}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1 }} />
+                    {/* NOT "Cancel". Backing out leaves an EXPIRED document on
+                        the record — allowed today, refused the moment the switch
+                        moves — and the button should say which state it returns
+                        the operator to. */}
+                    <PBtn variant="ghost" size="xs" onClick={() => {setDocMismatch(null);setRescanOpen(false);}}>Keep the expired ID for now</PBtn>
+                  </div>
+                </div>}
               </div>}
               {primaryDoc ?
               <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{docLine(primaryDoc)}</div> :
@@ -887,19 +1054,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                     was bound to a name nobody compared. Attaching anyway is
                     still available — as a choice someone makes, not as the
                     default. */}
-                {docMismatch &&
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <Icon name="shield" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                    <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>This document is not this customer’s. The barcode reads <b style={{ fontFamily: P.fontMono }}>{docMismatch.doc.name || 'no name'}</b>{docMismatch.doc.memberId ? <> (customer <b style={{ fontFamily: P.fontMono }}>{docMismatch.doc.memberId}</b>)</> : null}, and the record selected here is <b style={{ fontFamily: P.fontMono }}>{customer.name}</b>{customer.id && customer.id !== 'new' ? <> (<b style={{ fontFamily: P.fontMono }}>{customer.id}</b>)</> : null}. Attaching it would put one person's ID under another person's name.</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <PBtn variant="accent" size="xs" icon="user" onClick={() => {setDocMismatch(null);setCustomer(null);setTypeFrom(null);setDeliveryFrom(null);}}>Pick the right customer</PBtn>
-                    <PBtn variant="secondary" size="xs" icon="refresh" onClick={() => setDocMismatch(null)}>Scan again</PBtn>
-                    <div style={{ flex: 1 }} />
-                    <PBtn variant="ghost" size="xs" onClick={attachAnyway}>Attach to {customer.name} anyway</PBtn>
-                  </div>
-                </div>}
+                {docMismatchPanel()}
               </div>}
             </div> :
 
@@ -971,6 +1126,38 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                         <Icon name="scan" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
                         <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The ID scanner is not loaded on this page, so no document can be captured here.</span>
                       </div>}
+                      {/* THE PHOTOS BELONG TO THIS CARD, not to the address
+                          block below it: they are a second reading of the SAME
+                          document the panel above just read, and separating
+                          them would put "what the barcode said" and "what the
+                          document looks like" on two different subjects.
+
+                          `docKey` is what lets the strip notice that the
+                          document changed under photos already attached — see
+                          the long note at HWIdPhotos.docKeyOf. A re-scan does
+                          NOT delete them; it makes them say they no longer
+                          match, and leaves the operator holding the decision.
+
+                          THE CONTROL IS window.IdPhotoCapture, THE SHARED ONE.
+                          Every other scan/create modal adopts this same import;
+                          a fork here is a second copy of the storage sentence,
+                          and the storage sentence is the compliance-critical
+                          part of the whole feature. */}
+                      <div style={{ marginTop: 9 }}>
+                        <CILabel>Photos of the ID / passport</CILabel>
+                        {window.IdPhotoCapture ?
+                        <window.IdPhotoCapture
+                          photos={nf.idPhotos}
+                          onChange={(next) => setNf((p) => Object.assign({}, p, { idPhotos: next }))}
+                          docKey={window.HWIdPhotos ? window.HWIdPhotos.docKeyOf(nf.doc) : null} /> :
+                        /* Not loaded is not "none attached". Saying "no photos"
+                           here would be this screen reporting an absence it has
+                           no way to observe. */
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+                          <Icon name="camera" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                          <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The photo control is not loaded on this page, so no image of the document can be attached here — and this screen cannot tell you whether any exist.</span>
+                        </div>}
+                      </div>
                     </div>
                     {/* '· from ID' is a claim about PROVENANCE, and '· GUESSED'
                         is the retraction of that claim: a split we made from a

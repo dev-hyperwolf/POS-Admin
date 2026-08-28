@@ -51,6 +51,19 @@ If you add, rename or retire a file, update the hub in the same turn.
   ⚠️ `candidates()` must filter the pool BY CATEGORY itself: `buildCandidates` is the engine's
   shared core and ranks whatever pool it is given — `planSwap` is what slices by category. Without
   that slice the POS offers a Pre-Roll to replace Flower.
+- `shared/hw-wait.js` — **the one wait format** (`window.HW_WAIT.shortWait`). How long somebody
+  has been standing there, s → m → h → d. The POS register strip, the Order Queue check-in card
+  and the check-in seam's own dock panel all call it; none of them holds a copy. There were two
+  ladders once and they disagreed on screen at the same moment — 677,000s read `188.1h` on the
+  panel and `7d 20h` on the card beside it. Plain JS, loads before React. Call it inline, never
+  via a top-level `const` in a `.jsx` (Babel makes those globals and the last file wins).
+- `shared/id-photos.jsx` — **the one ID/passport photo control** (`window.IdPhotoCapture`) plus its
+  pure rules (`window.HWIdPhotos`: `accept`, `docKeyOf`, `docNote`, `docFlag`, `STORAGE`). Every
+  scan/create modal that captures a photo of a document adopts this — never a fork, because a fork
+  is a second copy of the storage sentence, and **nothing in this build persists these images**
+  (`STORAGE.mode === 'memory'`; the card says so on screen). Three preview outcomes are kept apart
+  on purpose: no photo · attached-but-no-preview · attached-and-broken. Self-wrapped in an IIFE, so
+  it leaks no globals but the two.
 - `shared/app-switcher.js` — floating cross-app launcher. Keep its list in sync with the hub.
 - `shared/tour-steps.js` + `shared/tour.js` — the guided walkthroughs, keyed by filename.
 - `shared/notes.js` — shared on-screen annotation layer (pins, threads, replies, resolve), synced
