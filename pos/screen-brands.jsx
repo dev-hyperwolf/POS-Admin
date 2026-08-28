@@ -518,6 +518,38 @@
     const searchCands = searchBlock && Array.isArray(searchBlock.candidates) ? searchBlock.candidates
       : (!proposal && propCands ? propCands : null);
     const searchTerm = searchBlock ? searchBlock.query : (body && body.query) || q;
+
+    // ── CAN ANY OF THESE BUTTONS ACTUALLY LAND ──────────────────────────────
+    //
+    // The live defect this answers, reproduced on a scratch DB 2026-08-27:
+    //   GET  /api/brands/candidates?brand=cann
+    //     -> wm_brand_id 11200, tier 1, 1.0000, "exact"   <-- CORRECT. WM
+    //        brand 11200 really is named 'Cann'.
+    //   POST /api/brands/approve {brand:'cann', wm_brand_id:11200}
+    //     -> HTTP 409 "no brand 'cann' in the catalogue"   <-- ALSO CORRECT.
+    //
+    // Both halves are right and the screen still lied, because it drew a live
+    // "Bind to Cann" button between them. The rows on this screen come from
+    // THREE sources and only two of them can be bound: shared/brands.js is a
+    // design roster of 16 names, while the bind precondition is the roster
+    // wmdemo/brands.py derives FROM PRODUCTS. Nine of the sixteen -- Cann,
+    // Kiva, Lowell Farms, Papa & Barkley, Connected, Select, Pax Labs, 710
+    // Labs, Cookies -- carry no product in the catalogue today and every one
+    // of them offered a working button.
+    //
+    // `bindable` is brands.bind_blocker(), the SAME check approve() makes, so
+    // the picker cannot offer what the route will refuse. It is not recomputed
+    // here: a second copy of that rule drifts, and the drift shows up as a
+    // button that works on one screen and 409s on another.
+    //
+    // STRICTLY `=== false`. `null` means the question was not asked (a
+    // free-text search binds nothing) and `undefined` means the server predates
+    // the field. Neither is a refusal, and disabling on either would turn an
+    // ABSENCE INTO A VERDICT -- which is the same mistake in the other
+    // direction, and would lock an operator out of a bind that works.
+    const cannotWrite = !!(body && body.bindable === false);
+    const writeBlock = (body && body.bind_blocked) || null;
+
     // The matcher's OWN collision verdict for this brand, plus the one this
     // screen folds for whatever the operator just typed. Either is a refusal.
     const propCollision = body && Array.isArray(body.collision) && body.collision.length
@@ -671,6 +703,37 @@
                     </div>}
               </Card>}
 
+            {/* THE MATCH IS RIGHT AND THE BIND STILL CANNOT HAPPEN. Rendered
+                immediately under the verdict, because it is the verdict that
+                makes the button look available. Saying it here rather than in
+                the 409 is the whole fix: the operator learns it by reading,
+                not by pressing something that cannot work. */}
+            {!busy && cannotWrite &&
+              <Card density="compact" style={{ marginTop: 14, background: P.warnSoft, borderColor: P.warn }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Icon name="ban" size={15} stroke={2} color={P.warn} />
+                  <span style={{ fontSize: P.type.strong, fontWeight: 700, color: P.warn }}>
+                    Nothing here can be bound to {row.ourName}
+                  </span>
+                </div>
+                <div style={{ fontSize: P.type.meta, color: P.ink2, marginTop: 6, lineHeight: 1.55 }}>
+                  {writeBlock ? writeBlock.reason
+                    : 'wmdemo/brands.py reports this brand cannot be bound, without a reason.'}
+                </div>
+                {proposal && proposal.wm_brand_id != null &&
+                  <div style={{ fontSize: P.type.meta, color: P.ink2, marginTop: 8, lineHeight: 1.55, padding: '8px 10px', background: P.surface, borderRadius: P.r8 }}>
+                    <strong>The match above is not wrong.</strong> Weedmaps really does have
+                    {' '}<strong>{proposal.wm_name}</strong> at <code style={{ fontFamily: P.fontMono }}>wm_brand_id {proposal.wm_brand_id}</code>,
+                    {' '}and {proposal.confidence == null ? 'the matcher accepted it' : Number(proposal.confidence).toFixed(4) + ' is the score it earned'}.
+                    {' '}What is missing is on <em>our</em> side, not theirs.
+                  </div>}
+                <div style={{ fontSize: P.type.meta, color: P.inkDim, marginTop: 8, lineHeight: 1.5 }}>
+                  This name reaches the screen from <code style={{ fontFamily: P.fontMono }}>shared/brands.js</code>,
+                  the POS design roster. The bind roster is derived from the brands that appear on products,
+                  and those two sets are not the same.
+                </div>
+              </Card>}
+
             {/* The list the VERDICT above was drawn from. Empty is meaningful
                 here and is never dressed up as a search result. */}
             {!busy && proposal && propCands && propCands.length > 0 &&
@@ -716,16 +779,33 @@
                 {' '}{writeOut.r && writeOut.r.ok ? 'Recorded.' : (writeOut.r && writeOut.r.error) || 'no reason given'}
                 {writeOut.r && writeOut.r.hint && <div style={{ color: P.ink2, marginTop: 4 }}>{writeOut.r.hint}</div>}
               </div>}
+            {/* EVERY WRITE IN THIS FOOTER NEEDS THE SAME ROW, so all three are
+                gated, not just the bind. `reject` is the reason it must be all
+                three: measured on a scratch DB 2026-08-27, POST
+                /api/brands/reject {brand:'cann'} answers HTTP 200 with
+                result:null -- an UPDATE that matched no row. The renderer above
+                keys its green "Recorded." banner off r.ok, so a decision that
+                was never stored reads as one that was. A silent no-op reported
+                as success is worse than the 409 that started this. */}
+            {cannotWrite &&
+              <div style={{ marginBottom: 10, fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5 }}>
+                Bind, reject and undo all write to the same brand row, and there is no such row,
+                so all three are held. <strong>Reject in particular would answer HTTP 200 having
+                changed nothing</strong> &mdash; the one outcome this screen must never show as recorded.
+              </div>}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <PBtn variant="accent" disabled={!pick} busy={!!(writeOut && writeOut.pending === 'approve')}
+              <PBtn variant="accent" disabled={!pick || cannotWrite} busy={!!(writeOut && writeOut.pending === 'approve')}
                 onClick={function () { write('/api/brands/approve', { brand: row.key, wm_brand_id: pick.id, reviewer: 'admin@hyperwolf.com' }, 'approve'); }}>
-                {pick ? 'Bind to ' + pick.name : 'Pick a brand to bind'}
+                {cannotWrite ? 'Cannot bind — no product carries this brand'
+                  : (pick ? 'Bind to ' + pick.name : 'Pick a brand to bind')}
               </PBtn>
-              <PBtn onClick={function () { write('/api/brands/reject', { brand: row.key, reviewer: 'admin@hyperwolf.com', reason: 'no_match' }, 'reject'); }}>
+              <PBtn disabled={cannotWrite}
+                onClick={function () { write('/api/brands/reject', { brand: row.key, reviewer: 'admin@hyperwolf.com', reason: 'no_match' }, 'reject'); }}>
                 None of these is my brand
               </PBtn>
               {isMapped(row) &&
-                <PBtn variant="ghost" onClick={function () { write('/api/brands/unmap', { brand: row.key, reviewer: 'admin@hyperwolf.com', reason: 'manual' }, 'unmap'); }}>
+                <PBtn variant="ghost" disabled={cannotWrite}
+                  onClick={function () { write('/api/brands/unmap', { brand: row.key, reviewer: 'admin@hyperwolf.com', reason: 'manual' }, 'unmap'); }}>
                   Undo this binding
                 </PBtn>}
               <div style={{ flex: 1 }} />
