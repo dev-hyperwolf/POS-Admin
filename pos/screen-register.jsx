@@ -689,30 +689,90 @@ window.RegisterScreen = function RegisterScreen() {
           </div>
         </div>
 
-        {/* RIGHT — cart */}
-        <CartPane P={P} lines={lines} merch={merch} discountOff={discountOff} sub={sub} tax={tax} total={total} count={count} pay={pay} setPay={setPay}
-        setQty={setQty} remove={remove} onClearCart={clearTicket} customer={customer} cartSkus={cart.map((c) => c.sku)}
-        discounts={discounts} onApplyDiscount={applyDiscount} onRemoveDiscount={removeDiscount}
-        onAdd={(p) => {add(p);flash(p.name + ' added');}}
-        upsellHidden={upsellHidden} onDismissUpsell={dismissUpsell}
-        tabs={multi ? <TicketTabs tickets={tickets} active={active} onPick={setActive} onDrop={dropTicket} totalOf={totalOf} /> : null}
-        footNote={multi ? <PartyTotalBar P={P} tickets={tickets} partyTotal={partyTotal} onPayAll={() => openPay('party')} /> : null}
-        discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => openPay('ticket')} />
+        {/* RIGHT — cart.
+
+            🔴 REFUSE, NOT CONTAIN, and the boundary is HERE rather than inside
+            CartPane. Both halves of that are load-bearing.
+
+            WHY REFUSE. CartPane's totals block and its TENDER button are gated
+            on `count` (screen-cart.jsx: `count === 0 ?` and `count > 0 &&`),
+            which is computed HERE at line ~150 from `lines` — not from whether
+            the line list actually rendered. So a boundary that contained a
+            failure in the cart's line list would leave the footer standing: a
+            live TENDER button over a real total, above a pane showing no items.
+            That is the catastrophe in the brief — a cart that renders EMPTY and
+            gets a sale rung against it. CriticalBoundary renders NONE of its
+            subtree and escalates, so the footer and the tender go with it.
+
+            WHY AT THE CALL SITE. A boundary written inside CartPane's own
+            return would not catch the throw that matters. `lines.map(...)` is
+            evaluated while CartPane's function body builds its element tree —
+            before any boundary in that tree mounts. Wrapping the CALL makes
+            CartPane a child of the boundary, so its body runs inside it.
+
+            The specific live throw this catches: `lines` carries `missing: true`
+            rows for a SKU the catalogue does not have (line ~141), and the line
+            renderer dereferences `l.p.name` with no guard. See the note there. */}
+        <window.CriticalBoundary name="Cart" flow="This sale">
+          <CartPane P={P} lines={lines} merch={merch} discountOff={discountOff} sub={sub} tax={tax} total={total} count={count} pay={pay} setPay={setPay}
+          setQty={setQty} remove={remove} onClearCart={clearTicket} customer={customer} cartSkus={cart.map((c) => c.sku)}
+          discounts={discounts} onApplyDiscount={applyDiscount} onRemoveDiscount={removeDiscount}
+          onAdd={(p) => {add(p);flash(p.name + ' added');}}
+          upsellHidden={upsellHidden} onDismissUpsell={dismissUpsell}
+          tabs={multi ? <TicketTabs tickets={tickets} active={active} onPick={setActive} onDrop={dropTicket} totalOf={totalOf} /> : null}
+          footNote={multi ? <PartyTotalBar P={P} tickets={tickets} partyTotal={partyTotal} onPayAll={() => openPay('party')} /> : null}
+          discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => openPay('ticket')} />
+        </window.CriticalBoundary>
       </div>
 
-      {showCheckIn && <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={onCheckIn} />}
+      {/* 🔴 REFUSE. The check-in modal's FOOTER IS A SIBLING of its body
+          (pos/checkin.jsx: body div ~925-1285, footer ~1288-1304), and the two
+          submit buttons are enabled from `customer` / `blocked` / `primaryNeedsId`
+          computed in CheckInModal's own scope — not from whether the body
+          rendered. Contain a failure in the body and you get a fully enabled
+          "Check in & start sale" over an empty modal: a compliance gate nobody
+          can read, still accepting the press. The same shape as the cart's
+          tender footer, one file over.
+
+          Do NOT move this inward. A boundary around the body div leaves the
+          footer live, and one around <GuestEditor> is worse than nothing —
+          checkin.jsx:854 computes `blocked` from the same guest array ABOVE the
+          child, so a contained GuestEditor hides the guest rows while the gate
+          keeps reporting the count it derived from them. */}
+      {showCheckIn &&
+      <window.CriticalBoundary name="Check-in" flow="This check-in">
+        <CheckInModal onClose={() => setShowCheckIn(false)} onCheckIn={onCheckIn} />
+      </window.CriticalBoundary>}
 
       {/* One tender for a party charges the OPEN half of the party, and is
           taken against the person the visit is on. Everything else is this
-          ticket. onClose is not a cancel — see closePay. */}
+          ticket. onClose is not a cancel — see closePay.
+
+          🔴 REFUSE — and read the limit before trusting it. The tender
+          arithmetic (payment.jsx ~209-216) is genuinely on the render path,
+          which is the right shape, so this boundary can see it. What it CANNOT
+          see is the part that takes the money: finalize() runs from a
+          setTimeout inside CardTerminal's approval chain, and every commit hop
+          below it — HW.addOrder, HW.updateOrder, HW.settleCheckIn in onPaid —
+          is an event handler. A throw there strands the operator on "Approved"
+          with no sale recorded, and no boundary anywhere will fire.
+
+          Refusing is still right: if the tender surface fails to render, the
+          whole frame must stop rather than offer a second attempt over a
+          payment that may already have been taken. But note what refusal costs
+          here — closePay() is the ONLY path that recovers an un-recorded sale
+          from window.POS.getLastSale(), and a refusal bypasses it. That
+          recovery needs a handler-level guard, not this. */}
       {showPay &&
-      <PaymentModal
-        total={payScope === 'party' ? partyDue : total}
-        sub={payScope === 'party' ? partySub : sub}
-        tax={payScope === 'party' ? partyTax : tax}
-        count={payScope === 'party' ? partyCount : count}
-        customer={payScope === 'party' ? tickets[0] && tickets[0].person : customer}
-        onClose={closePay} onDone={onPaid} />}
+      <window.CriticalBoundary name="Tender" flow="This payment">
+        <PaymentModal
+          total={payScope === 'party' ? partyDue : total}
+          sub={payScope === 'party' ? partySub : sub}
+          tax={payScope === 'party' ? partyTax : tax}
+          count={payScope === 'party' ? partyCount : count}
+          customer={payScope === 'party' ? tickets[0] && tickets[0].person : customer}
+          onClose={closePay} onDone={onPaid} />
+      </window.CriticalBoundary>}
 
       {toast && <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: P.ink, color: P.surface, padding: '11px 18px', borderRadius: P.r999, fontSize: 13.5, fontWeight: 600, boxShadow: P.shadowLg, display: 'flex', alignItems: 'center', gap: 9, zIndex: 60 }}><Icon name="check-circle" size={16} stroke={2} color={P.accent} />{toast}</div>}
     </div>);

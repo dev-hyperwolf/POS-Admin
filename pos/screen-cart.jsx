@@ -431,12 +431,33 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
   const custKey = customer ? customer.id || customer.name : '';
   const { recs, engineRanked } = React.useMemo(() => {
     const drop = new Set(hidden);
-    const ranked = window.HWPosUpsell && window.HWPosUpsell.offersFor({
-      surface: 'cart_add_to_order',
-      orderItems: (lines || []).map((l) => ({ sku: l.sku, qty: l.qty })),
-      customer,
-      hidden,
-    });
+    /* ⚠️ THE ENGINE IS CAUGHT, AND IT HAS TO BE CAUGHT HERE.
+     *
+     * This runs on the RENDER path, inside a CriticalBoundary that refuses the
+     * whole sale (see the boundary at the CartPane call site in
+     * pos/screen-register.jsx). Uncaught, a fault anywhere in the ranking engine
+     * would stop the till over a SUGGESTION RAIL — a decorative lane refusing
+     * the money it sits next to. That is the wrong trade, and it is not one the
+     * boundary can make for us: a ScreenBoundary nested inside a
+     * CriticalBoundary deliberately does not contain, it escalates.
+     *
+     * So the containment for this lane is a try/catch, not a boundary. The
+     * `engineRanked: false` path below is already the honest fallback for "the
+     * engine is not loaded" — a throwing engine is the same fact arriving by a
+     * different route, and `engineRanked` still records that this list is the
+     * hand-rolled one. */
+    let ranked = null;
+    try {
+      ranked = window.HWPosUpsell && window.HWPosUpsell.offersFor({
+        surface: 'cart_add_to_order',
+        orderItems: (lines || []).map((l) => ({ sku: l.sku, qty: l.qty })),
+        customer,
+        hidden,
+      });
+    } catch (e) {
+      try { console.error('[cart] upsell engine threw; falling back to HW.upsell', e); } catch (_) {}
+      ranked = null;
+    }
     if (ranked) return { recs: ranked, engineRanked: true };
     return {
       recs: window.HW.upsell(cartSkus || [], customer).

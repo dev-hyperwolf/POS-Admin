@@ -66,6 +66,52 @@ const useP = window.useP,useTheme = window.useTheme;
   NAV.all = NAV.items.concat([NAV.settings]);
 })();
 
+/* ── WHERE A FAILURE STOPS ───────────────────────────────────────────────────
+ *
+ * On 2026-08-27 `cart.map(...)` on an undefined cart — one line, on the render
+ * path of pos/screen-register.jsx — took the WHOLE application down. Not the
+ * cart pane: the register, the rail, the top bar, the check-in queue. There
+ * were no error boundaries anywhere in this estate, so the blast radius of any
+ * render error was everything.
+ *
+ * A boundary ABOVE the router would bound nothing — every screen is still one
+ * subtree, and the first throw still costs you all of them. So the boundaries
+ * go here, around each of the four things that can fail INDEPENDENTLY: the
+ * rail, the top bar, the routed screen, and the cash-drawer control.
+ *
+ * The screen boundary is KEYED BY ROUTE. Without the key, React keeps the same
+ * boundary instance across a navigation, so its error state survives and the
+ * user is stranded on a dead frame after moving to a screen that works.
+ *
+ * ⚠️ THIS CATCHES RENDER AND LIFECYCLE ERRORS ONLY. Not event handlers, not
+ * async callbacks, not the plain-JS chrome. The register's actual sale path is
+ * mostly onClick handlers and none of it is covered here. See the limits note
+ * in shared/error-boundary.jsx before treating any of this as a guarantee.
+ */
+
+/* If shared/error-boundary.jsx is ever dropped from Hyperwolf POS.html, a bare
+ * <ScreenBoundary> would be an undefined component — which white-screens the
+ * whole app, the exact failure this wiring exists to end. Fall back to a
+ * pass-through (the status quo, no worse) and SAY SO, rather than dying.
+ * Module scope, not inside App(): a component defined during render is a new
+ * component type every render, and React remounts the entire subtree. */
+if (!window.ScreenBoundary || !window.CriticalBoundary) {
+  try { console.error('[HW boundary] Hyperwolf POS.html did not load shared/error-boundary.jsx — '
+    + 'the POS is running with NO error boundaries. One render error will take the whole app down.'); }
+  catch (e) {}
+}
+const ScreenFrame = window.ScreenBoundary || function ScreenFrame(p) {return p.children;};
+const CriticalFrame = window.CriticalBoundary || function CriticalFrame(p) {return p.children;};
+
+/* The name a boundary prints. "Something went wrong" is the same defect in a
+ * friendlier font, so every route gets the words a person on the floor uses.
+ * An unlisted route falls back to its id — still named, never anonymous. */
+const POS_SCREEN_LABELS = {
+  home: 'Home', register: 'The register', orders: 'Orders', catalog: 'Catalog',
+  brands: 'Brands', cities: 'Cities', 'category-map': 'The category map',
+  'publish-gate': 'The publish gate', members: 'Members', merch: 'Merch',
+  settings: 'Settings' };
+
 const USER = { name: 'Manisha Saini', role: 'Floor Manager' };
 
 function App() {
@@ -112,16 +158,66 @@ function App() {
 
   const fullBleed = route === 'register'; // register manages its own scroll/height
 
+  const screenName = POS_SCREEN_LABELS[route] || ('The ' + route + ' screen');
+
   return (
     <div style={{ display: 'flex', height: '100vh', background: P.bg, color: P.ink, fontFamily: P.fontSans, overflow: 'hidden' }}>
-      <Rail active={route} onNav={go} />
+      {/* CONTAINED. What survives a dead rail is the screen you are already on,
+          and nothing about it becomes wrong — you lose the ability to NAVIGATE,
+          which is visible the instant you look at where the rail used to be. */}
+      <ScreenFrame name="The navigation rail">
+        <Rail active={route} onNav={go} />
+      </ScreenFrame>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-        <TopBar user={USER} mode={mode} onMode={onMode} />
+        {/* CONTAINED, same argument as the rail: the store picker and the
+            POS/Fulfillment switch stop being available, and their absence is
+            what you see. Nothing it reports is money. */}
+        <ScreenFrame name="The top bar">
+          <TopBar user={USER} mode={mode} onMode={onMode} />
+        </ScreenFrame>
         <main style={{ flex: 1, overflowY: fullBleed ? 'hidden' : 'auto', overflowX: 'hidden', padding: fullBleed ? 0 : '26px 30px 56px', zoom: 1.08 }}>
-          {screen}
+          {/* CONTAINED AT THE SCREEN, which for a money screen IS the refusal.
+              Nothing sellable survives inside this frame: when the register
+              throws, the whole register is replaced by a named failure and the
+              rail beside it still works. A CriticalBoundary placed INSIDE a
+              screen (around a cart or a tender pane) escalates to this
+              boundary, so a broken money pane takes its whole screen with it
+              rather than leaving a usable-looking shell around a hole.
+
+              key={route} so navigating away CLEARS the failure. Without it the
+              same boundary instance carries its error state onto the next
+              screen and the user is stranded. */}
+          <ScreenFrame key={route} name={screenName} onReset={() => go('home')} resetLabel="Go to Home">
+            {screen}
+          </ScreenFrame>
         </main>
       </div>
-      <window.CashDrawerOverlay />
+      {/* REFUSES. ⚠️ BE HONEST ABOUT HOW MUCH THIS BUYS TODAY — MEASURED, not
+          assumed. At the app root there is no ScreenBoundary to escalate to, so
+          CriticalFrame paints its own panel and a ScreenFrame here would paint
+          a very similar one. The two were compared by breaking this component
+          in memory both ways; the visible difference is small.
+
+          It is still the right one, for two reasons that are about the NEXT
+          edit rather than this one:
+            · nothing inside this subtree can re-contain the failure. A
+              ScreenBoundary nested in a CriticalBoundary escalates instead of
+              containing, so a well-meaning inner boundary cannot quietly turn
+              this back into a card.
+            · the moment this control moves inside a screen — or an ancestor
+              boundary appears — it takes that whole frame down instead of
+              leaving a working-looking POS around a dead cash control.
+
+          🔴 THE REAL QUESTION IS NOT SETTLED HERE. If this throws, POS.getDrawer()
+          is broken, which means drawer state is untrustworthy in the REGISTER
+          too — and the register would still take a cash sale. Whether a broken
+          drawer subsystem must block the cash tender path is a decision for
+          whoever owns pos/drawer.jsx and the sale path; it is not ours, and a
+          boundary here cannot make it for them. Do not read this wrapper as
+          having answered it. */}
+      <CriticalFrame name="The cash drawer control" flow="Cash handling">
+        <window.CashDrawerOverlay />
+      </CriticalFrame>
     </div>);
 
 }

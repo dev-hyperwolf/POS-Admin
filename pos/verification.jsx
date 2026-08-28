@@ -25,6 +25,42 @@
 // order the same human whose ID we inspected", so it is triggered by a delivery
 // order, not by a check-in. Walk-ins who later want delivery are asked once, at
 // the counter, as a courtesy — never as a condition of shopping in store.
+//
+// ── WHY THERE IS DELIBERATELY NO ERROR BOUNDARY IN THIS FILE ────────────────
+//
+// This is a recorded decision, not an oversight. Do not "fix" it by wrapping a
+// badge; read this first and then argue with it.
+//
+// The rule for this estate is that a compliance verdict must never survive its
+// own failure. The natural reading is "wrap the verdict in a CriticalBoundary".
+// That is the wrong tool HERE, for a specific reason: the verdict-bearing code
+// in this file does not fail. `assurance()` is total — every input traced,
+// including {}, null and garbage, returns a tier rather than throwing.
+// `AssuranceBadge` and `IdentityLadder` faithfully render whatever it decided.
+// So a boundary around them could only ever fire on an infrastructure fault (a
+// missing `useP`, a missing `Icon`) and would blank an otherwise-correct panel,
+// while every verdict that is actually WRONG renders straight through it, green.
+// A passing boundary test over that is worse than no boundary: it reads as cover
+// for a class of failure the mechanism cannot see.
+//
+// Omission is also not the unsafe default. Per shared/error-boundary.jsx, an
+// unbounded throw propagates to the nearest ScreenBoundary above and fails the
+// whole frame — so a genuine render fault here already stops the screen rather
+// than showing half a verdict. Adding a boundary would CONTAIN that, which is
+// the one outcome this surface must not have.
+//
+// The real defects here are verdicts built from truthiness. They need
+// predicates, not boundaries:
+//   · `docOk` / `phoneOk` below test truthiness only, so a record whose
+//     `phone.smsVerified` is the STRING 'pending' clears to T2 "Delivery ready".
+//   · `isExpiredDoc` fails OPEN on an unparseable date — unknown renders as
+//     clean. The `docExpiryUnknown` third state the comment at ~line 51 promises
+//     is not implemented anywhere in this repo.
+//   · `parseExpiry` reads a non-US `30/05/2026` as June 2028, so an expired
+//     document reads valid. shared/hw-live-checkin.js refuses to guess that
+//     ordering on the wire for exactly this reason; this screen guesses anyway.
+// Logged with the boundary pass; they are the next job on this file.
+// ────────────────────────────────────────────────────────────────────────────
 const useP = window.useP;
 // The remote ID-verification VENDOR is deliberately never named in the UI, so a
 // change of provider is a config change, not a redesign. Set this to a name if

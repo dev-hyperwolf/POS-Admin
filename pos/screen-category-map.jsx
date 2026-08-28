@@ -898,7 +898,14 @@
             fontSize: P.type.body, fontFamily: P.fontSans, color: P.ink,
             background: P.surface, border: '1px solid ' + P.hairline3,
             borderRadius: P.r8 }} />
-        <div style={{ maxHeight: 260, overflowY: 'auto', marginTop: 8,
+        {/* overscrollBehavior CONTAIN, and it is not cosmetic. This list holds
+            1,425px of nodes in a 260px box, INSIDE the page's own scroller. With
+            the browser default ('auto') the wheel scrolls this list, then CHAINS
+            to the page the instant it hits either end -- so the operator scrolls
+            the list, overshoots, and the whole screen lurches under them. That is
+            the "screen jumped around" the owner reported on 2026-08-28. */}
+        <div style={{ maxHeight: 260, overflowY: 'auto', overscrollBehavior: 'contain',
+          marginTop: 8,
           border: '1px solid ' + P.hairline2, borderRadius: P.r10,
           background: P.surface }}>
           {shown.length === 0 &&
@@ -1135,7 +1142,24 @@
     }
 
     const s = st(row);
+    // THE EDITOR OPENS INLINE IN A 4,886px TABLE, so it can appear entirely below
+    // the fold: measured on the live build, the trigger sat at y=1546 in an 800px
+    // viewport. Nothing told the operator anything had opened, which is why the
+    // buttons read as "not working" -- they were off-screen, not dead. Bring it to
+    // them. 'nearest' rather than 'center' so a card already in view does not move.
+    const editorRef = React.useRef(null);
+    React.useEffect(function () {
+      const el = editorRef.current;
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, []);
+    // The ref goes on a PLAIN DIV, not on Card. window.Card is a function
+    // component with no forwardRef (pos/atoms.jsx:12), so a ref handed to it is
+    // silently null and this effect would have been a no-op that looked fixed --
+    // the exact class of defect this screen is being repaired for.
     return (
+      <div ref={editorRef}>
       <Card density="roomy" data-hw-editor="binding"
         style={{ marginBottom: 18, border: '1px solid ' + P.accentBorder }}>
         <SectionHead level={3} eyebrow="Pick a Weedmaps node"
@@ -1177,7 +1201,8 @@
           <div style={{ fontSize: P.type.meta, color: P.inkMute }}>
             Choose a node above and this will show exactly what saving it would change.
           </div>}
-      </Card>);
+      </Card>
+      </div>);
   }
 
   // ── alias editor: add a spelling, repoint one, remove one ─────────────────
