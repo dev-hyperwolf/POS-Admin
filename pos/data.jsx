@@ -429,9 +429,23 @@ const _hwNotify = () => _hwSubs.forEach((fn) => { try { fn(); } catch {} });
 let _hwSeq = 0;
 const _hwId = (prefix) => prefix + Date.now().toString(36) + (++_hwSeq).toString(36);
 
+// ONE FIELD PER PARAMETER, ALL THE WAY TO THE STORE [OWNER RULING 2026-08-27].
+// This builder is an ALLOW-LIST — it constructs a fixed shape rather than
+// spreading its argument — so until these two keys were added it silently threw
+// away the first/last pair the Add-member form had just captured, and the record
+// landed carrying only the joined string. A capture surface that splits into a
+// store that re-joins has fixed nothing: the next reader still has to guess the
+// halves back. `first_name`/`last_name` are the key names the server uses
+// (wmdemo/server.py:4843) and the names pos/verification.jsx:807 already prefers
+// over splitting `name`, so a member created here scans back UNGUESSED.
 function addMember(m) {
   const rec = {
     id: (m && m.id) || _hwId('m'),
+    // A LEGACY ROW IS NOT BACKFILLED HERE. When a caller supplies no split pair
+    // these stay empty rather than being carved out of `name`: inventing a
+    // boundary nobody typed is the defect, not the fix. Empty reads as absent.
+    first_name: (m && m.first_name || '').trim(),
+    last_name: (m && m.last_name || '').trim(),
     name: (m && m.name || '').trim() || 'Unnamed customer',
     email: m && m.email || '—', phone: m && m.phone || '—',
     group: m && m.group || 'Standard', type: m && m.type || 'AdultUse',
@@ -447,9 +461,18 @@ function addMember(m) {
 function updateMember(id, patch) {
   const m = MEMBERS.find((x) => x.id === id);
   if (!m || !patch) return null;
-  ['name', 'phone', 'email', 'group', 'type'].forEach((k) => {
+  ['name', 'phone', 'email', 'group', 'type', 'first_name'].forEach((k) => {
     if (patch[k] != null && String(patch[k]).trim()) m[k] = String(patch[k]).trim();
   });
+  // `last_name` IS THE ONE FIELD WHERE EMPTY IS A REAL VALUE, so it cannot ride
+  // the loop above — that guard skips any blank, which is right for a phone or
+  // an email and wrong here. A mononym HAS no surname, and an operator clearing
+  // a wrong one is stating that. Under the loop's rule the old surname would
+  // simply have survived the edit, leaving a name the operator believed they had
+  // just corrected — and the pair is what the identity fingerprint is built
+  // from. The value is still only written when the caller actually sent the key,
+  // so an unrelated patch cannot blank a surname by omission.
+  if (patch.last_name != null) m.last_name = String(patch.last_name).trim();
   _hwNotify();
   return m;
 }
@@ -478,7 +501,16 @@ function addCheckIn(p) {
   const wantType = p && p.type != null ? p.type : null;
   const wantDelivery = p && p.delivery != null ? p.delivery : null;
   let member = c.id && MEMBERS.find((x) => x.id === c.id);
-  if (!member) member = addMember({ name: c.name, email: c.email, phone: c.phone, type: wantType || c.type, group: c.group, member: c.member, delivery: wantDelivery || c.delivery });
+  // AND THE PAIR HAS TO SURVIVE THIS HOP TOO [OWNER RULING 2026-08-27].
+  // addMember is an allow-list, and so is this call site: it listed `name` and
+  // not the split pair, so a buyer onboarded at the counter — where
+  // pos/checkin.jsx now captures a dedicated first and last name — landed in
+  // the book carrying only the joined string, and the very next scan of that
+  // person had to GUESS the halves back out of it. That guess decides whether
+  // two records are the same person (identity_match.py:176 fingerprints on
+  // first, last and DOB), which is how one human ends up with four profiles. A
+  // split dropped one hop after capture has fixed nothing.
+  if (!member) member = addMember({ name: c.name, first_name: c.first_name, last_name: c.last_name, email: c.email, phone: c.phone, type: wantType || c.type, group: c.group, member: c.member, delivery: wantDelivery || c.delivery });
   const rec = {
     id: _hwId('c'), memberId: member.id, name: member.name,
     group: member.group, type: wantType || member.type, delivery: wantDelivery || member.delivery || 'Pick-up',

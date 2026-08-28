@@ -76,12 +76,21 @@ test('the counter scan writes a real verification record, not just a form fill',
     await afterScan();
     await app.settle();
 
-    const name = fieldByLabel(app, 'Full name');
-    assert.ok(name, 'a no-match scan must open the new-customer form');
-    assert.match(app.text(), /Full name · from ID/,
+    const first = fieldByLabel(app, 'First name');
+    assert.ok(first, 'a no-match scan must open the new-customer form');
+    assert.ok(fieldByLabel(app, 'Last name'),
+      'the form must capture a first and a last name SEPARATELY [OWNER RULING 2026-08-27] — ' +
+      'the server accepts only `first_name`/`last_name` and the identity fingerprint is built ' +
+      'from the pair, so a joined box makes the client guess the split it then sends');
+    assert.match(app.text(), /First name · from ID/,
       'a value read off a government document and one typed by a colleague are different ' +
       'legal claims and must not render as the same grey box');
-    setValue(app, name, 'Scan Probe');
+    assert.match(app.text(), /Last name · from ID/,
+      'AAMVA PDF417 carries the family name as its own element — the surname is READ here, ' +
+      'not inferred, and the label has to say so or the guessed path is indistinguishable');
+    setValue(app, first, 'Scan');
+    await app.settle();
+    setValue(app, fieldByLabel(app, 'Last name'), 'Probe');
     await app.settle();
     assert.ok(app.click('Create customer'), 'no Create customer button');
     await app.settle();

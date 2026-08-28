@@ -66,18 +66,33 @@ const afterScan = (app) => new Promise((r) => setTimeout(r, 900));
  *  was tier 0 and would later be sent through a remote ID check they had
  *  already earned their way out of at the counter. The scan decides, opens the
  *  form pre-filled from the barcode, and attaches the document. The name is
- *  still typed here only because this test needs a known probe name. */
+ *  still typed here only because this test needs a known probe name.
+ *
+ *  ⚠️ IT CHANGED AGAIN, and again the change is the point. There is no "Full
+ *  name" box any more [OWNER RULING 2026-08-27]: first and last are separate
+ *  fields, because the server's only name keys are `first_name`/`last_name` and
+ *  the identity fingerprint is built from the two of them plus DOB. The probe
+ *  name is split here for the same reason the form does it — so that what is
+ *  stored is the pair, and the joined string the table renders is DERIVED from
+ *  it. The `Rosa Probe` the assertions below look for in the table is therefore
+ *  proof the join still works, not just that a string round-tripped. */
 async function newCustomerCheckIn(app, name) {
   assert.ok(app.click('New check-in'), 'the New check-in tile did not exist');
   await app.settle();
   assert.ok(app.click('Scan ID'), 'no ID scanner in the check-in modal — the scan IS the way in');
   await afterScan(app);
   await app.settle();
-  const field = fieldByLabel(app, 'Full name');
-  assert.ok(field, 'the scan did not open the new-customer form pre-filled');
-  assert.notEqual(field.value.trim(), '',
-    'the barcode carries the legal name — an empty box means the pre-fill was dropped');
-  setValue(app, field, name);
+  const first = fieldByLabel(app, 'First name');
+  const last = fieldByLabel(app, 'Last name');
+  assert.ok(first && last, 'the scan did not open the new-customer form with SPLIT name fields');
+  assert.notEqual(first.value.trim(), '',
+    'the barcode carries the given name as its own element — an empty box means the pre-fill was dropped');
+  assert.notEqual(last.value.trim(), '',
+    'the barcode carries the family name as its own element — an empty box means the pre-fill was dropped');
+  const parts = name.split(' ');
+  setValue(app, first, parts.slice(0, -1).join(' ') || parts[0]);
+  await app.settle();
+  setValue(app, fieldByLabel(app, 'Last name'), parts.length > 1 ? parts[parts.length - 1] : '');
   await app.settle();
   assert.ok(app.click('Create customer'), 'no Create customer button');
   await app.settle();
@@ -105,9 +120,12 @@ test('Check-in: the primary customer cannot be created from a typed name alone',
     await app.settle();
     assert.ok(app.click('Enter manually'), 'a search with no match must still offer a manual path');
     await app.settle();
-    const field = fieldByLabel(app, 'Full name');
-    assert.ok(field, 'no Full name field in the manual form');
-    setValue(app, field, 'Zzz Nobody Probe');
+    const field = fieldByLabel(app, 'First name');
+    assert.ok(field, 'no First name field in the manual form');
+    assert.ok(fieldByLabel(app, 'Last name'), 'no Last name field in the manual form');
+    setValue(app, field, 'Zzz');
+    await app.settle();
+    setValue(app, fieldByLabel(app, 'Last name'), 'Nobody Probe');
     await app.settle();
     const create = [...app.document.querySelectorAll('button')]
       .find((b) => (b.textContent || '').trim() === 'Create customer');
@@ -258,7 +276,17 @@ test('...and a completed form creates the member', async () => {
     await new Promise((r) => setTimeout(r, 1100));   // the simulated scanner takes 700ms
     setValue(app, byPlaceholder(app, '(951) 555-0100'), '(951) 555-0123');
     await app.settle();
-    setValue(app, byPlaceholder(app, 'Jane Doe'), 'Rosa Probe');
+    /* THE NAME IS TWO FIELDS NOW, and this test follows the change rather than
+     * being relaxed by it. [OWNER RULING 2026-08-27] "each customer parameter
+     * needs a dedicated input field": the single "Full name *" box became
+     * First name + Last name, because the server takes the two separately and
+     * matches identity on the pair, so the joined box was a detour something
+     * downstream had to reverse by guessing. The scan above already filled both
+     * halves off the document; typing over them is what an operator does when
+     * the barcode read is wrong. */
+    setValue(app, byPlaceholder(app, 'Jane'), 'Rosa');
+    await app.settle();
+    setValue(app, byPlaceholder(app, 'Doe'), 'Probe');
     await app.settle();
 
     const b = btn(app, /^Create member$/);
@@ -267,6 +295,12 @@ test('...and a completed form creates the member', async () => {
     await app.settle();
 
     assert.equal(app.window.HW.MEMBERS.length, before + 1, 'no member record was created');
+    const made = app.window.HW.MEMBERS.find((m) => m.first_name === 'Rosa');
+    assert.ok(made, 'the record was created without the split columns the server actually takes');
+    assert.equal(made.last_name, 'Probe', 'the surname was dropped between the box and the record');
+    assert.equal(made.name, 'Rosa Probe',
+      'the joined `name` must be DERIVED from the pair — every existing reader (the table, ' +
+      'search, the avatar, the CSV export) still uses it, and a second stored copy would drift');
     assert.match(app.text(), /Rosa Probe/, 'the new member is missing from the table');
   });
 });
@@ -281,13 +315,24 @@ test('Edit member: the edit is saved, and survives going back to the table', asy
 
     assert.ok(app.click('Edit member'), 'no Edit member button');
     await app.settle();
-    setValue(app, inputs(app).find((i) => i.value === 'Manisha Saini'), 'Manisha Sainz');
+    /* THE NAME IS TWO FIELDS NOW, and this test was updated to follow that, not
+     * weakened — same precedent, and the same ruling, as the address block
+     * further down. It asserts strictly MORE than it used to: that the two
+     * captured columns reached the record, that editing one half did not blank
+     * the other, and that the joined `name` every existing reader still uses
+     * was derived from the pair rather than stored beside it. */
+    setValue(app, byPlaceholder(app, 'Last name'), 'Sainz');
     await app.settle();
     assert.ok(app.click('Save changes'), 'no Save changes button');
     await app.settle();
 
-    assert.equal(app.window.HW.MEMBERS.find((m) => m.id === 'm2').name, 'Manisha Sainz',
-      'the edit lived in local state and was never written back');
+    const saved = app.window.HW.MEMBERS.find((m) => m.id === 'm2');
+    assert.equal(saved.last_name, 'Sainz', 'the surname the operator typed never reached the record');
+    assert.equal(saved.first_name, 'Manisha',
+      'the untouched half was lost on save — editing one field must not blank the other');
+    assert.equal(saved.name, 'Manisha Sainz',
+      'the edit lived in local state and was never written back, or `name` stopped being ' +
+      'derived from the pair — two independent copies of one fact is how they drift apart');
     assert.ok(app.click('Back to members'), 'no back button');
     await app.settle();
     assert.match(app.text(), /Manisha Sainz/,
@@ -302,12 +347,15 @@ test('...and Discard leaves the record alone', async () => {
     await app.settle();
     app.click('Edit member');
     await app.settle();
-    setValue(app, inputs(app).find((i) => i.value === 'Manisha Saini'), 'Wrong Name');
+    setValue(app, byPlaceholder(app, 'Last name'), 'Wrong');
     await app.settle();
     assert.ok(app.click('Discard'), 'no Discard button');
     await app.settle();
-    assert.equal(app.window.HW.MEMBERS.find((m) => m.id === 'm2').name, 'Manisha Saini',
-      'Discard wrote the edit anyway');
+    const kept = app.window.HW.MEMBERS.find((m) => m.id === 'm2');
+    assert.equal(kept.name, 'Manisha Saini', 'Discard wrote the edit anyway');
+    assert.equal(kept.last_name, undefined,
+      'Discard wrote split columns onto a record that had none — a legacy row that was only ' +
+      'LOOKED at must come away byte-identical, or the guessed split has been silently committed');
   });
 });
 

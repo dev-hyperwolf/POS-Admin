@@ -168,10 +168,30 @@ test('assigning a driver writes to the order and moves the load', async () => {
     fire(app, pick);
     await app.settle();
 
-    const assigned = HW.ORDERS.filter((o) => o.driver === 'Dev A.').map((o) => o.id);
-    assert.equal(assigned.length, 1, 'no order was written with the new driver');
+    /* WHAT IS STORED IS THE NAME; WHAT IS DRAWN IS THE ABBREVIATION.
+     * This assertion used to read `o.driver === 'Dev A.'` — it pinned the
+     * defect. `shortDriver()` produces the dispatcher's board form for a narrow
+     * column, and that truncation was being written back through updateOrder as
+     * though it were the driver's name, discarding the surname permanently:
+     * 'Dev A.' cannot be turned back into 'Dev Anand' by anything, and a second
+     * Dev on the roster is indistinguishable from the first.
+     * [OWNER RULING 2026-08-27] The record now keeps the roster's own name and
+     * id; the board form is produced at the glass. Both halves are asserted
+     * here, because fixing the write while breaking the label would trade one
+     * visible bug for a quieter one. */
+    const assigned = HW.ORDERS.filter((o) => o.driver === 'Dev Anand').map((o) => o.id);
+    assert.equal(assigned.length, 1,
+      'the order was not written with the driver\'s real name — a display abbreviation ' +
+      'stored as the name loses the surname for good');
+    assert.equal(HW.ORDERS.find((o) => o.id === assigned[0]).driverId, 'd3',
+      'the order points at no roster row — matching a driver back by the shape of a string ' +
+      'is what the id exists to stop');
+    assert.equal(HW.ORDERS.filter((o) => o.driver === 'Dev A.').length, 0,
+      'the truncation is still being persisted somewhere');
     assert.equal(HW.DRIVERS.find((d) => d.name === 'Dev Anand').stops, stops0 + 1, 'the driver did not pick up the load');
-    assert.ok(app.text().includes('Dev A.'), 'the table still shows the old driver');
+    assert.ok(app.text().includes('Dev A.'),
+      'the table stopped showing the dispatcher\'s board form — storing the full name must ' +
+      'not change what the board reads, or every column that fit now does not');
   });
 });
 

@@ -44,10 +44,52 @@ const SCO_TIP_STEPS = [
  */
 const SCO_STATE = {
   tip: { mode: 'none', pct: 0, customCents: 0 },
+  // ── ONE FIELD PER PARAMETER [OWNER RULING 2026-08-27] ─────────────────────
+  // This was ONE free-text box, placeholder "Street, city, ZIP", and whatever
+  // the customer typed became the delivery address of a real order verbatim.
+  // Every downstream question — which region routes it, which state's tax and
+  // compliance rules apply, whether the ZIP is even served — needs a specific
+  // part of that string, and there was no honest way to get one back out.
+  //
+  // NO PARSER WAS WRITTEN, DELIBERATELY. Reversing "Street, city, ZIP" by
+  // splitting on commas is exactly the guess-that-becomes-a-fact this ruling
+  // exists to stop: '221B Baker St', 'Apt 4, 1200 E Ocean Blvd' and
+  // 'PO Box 12, Corona, 92879' all come out wrong, and nothing downstream would
+  // ever know. The fix is fields, not a splitter.
+  addr: { streetNumber: '', streetName: '', city: '', state: '', zip: '' },
+  // DERIVED, never typed into. Three existing readers take `address` as a
+  // string — two truthiness gates and the order record's `deliverTo` — and they
+  // keep working unchanged. It is recomputed from `addr` on every save, so the
+  // joined line and the parts cannot drift apart.
   address: '',
   placed: [],          // order ids from the last successful placement
   placing: false,
 };
+
+/** Join the captured parts for display. Lossless, and it is the ONLY direction
+ *  this file goes: parts → line. A missing part is dropped, never guessed and
+ *  never printed as `undefined`. */
+function scoJoinAddress(a) {
+  if (!a) return '';
+  const street = [a.streetNumber, a.streetName].map((s) => String(s || '').trim()).filter(Boolean).join(' ');
+  const tail = [String(a.state || '').trim(), String(a.zip || '').trim()].filter(Boolean).join(' ');
+  return [street, String(a.city || '').trim(), tail].filter(Boolean).join(', ');
+}
+
+/** What the address is still missing, each parameter named on its own. The
+ *  wording matches the POS address book (pos/customer-extras.jsx) on purpose:
+ *  "a street address" never told anyone WHICH of the two street boxes was
+ *  empty, and the same refusal should read the same way on both surfaces. */
+function scoAddressMissing(a) {
+  a = a || {};
+  return [
+    !String(a.streetNumber || '').trim() && 'a street number',
+    !String(a.streetName || '').trim() && 'a street name',
+    !String(a.city || '').trim() && 'a city',
+    !/^[A-Za-z]{2}$/.test(String(a.state || '').trim()) && 'a 2-letter state',
+    !/^\d{5}$/.test(String(a.zip || '').trim()) && 'a 5-digit ZIP',
+  ].filter(Boolean);
+}
 
 /**
  * The driver tip, in cents, from the express lane's engine subtotal.
@@ -211,7 +253,21 @@ function scoPlace() {
           // different key was the storefront quoting one total and the order
           // panel pricing another — two money authorities across two surfaces.
           tip: +(laneTip / 100).toFixed(2),
+          // The joined line, kept as-is for anything that only displays it.
           deliverTo: SCO_STATE.address || null,
+          // AND THE PARTS, so the split does not die at this boundary. Capturing
+          // five fields and then filing one string would leave every downstream
+          // question — which region routes this, which state's rules apply,
+          // whether the ZIP is served — right back where it started, with a
+          // string to guess at. `null` when there is no address: an absence, not
+          // a blank shape that renders as an empty street nobody scrolled to.
+          // Gated on the PARTS being complete, not on the joined line being
+          // truthy. An address that reached this store as a bare string — a
+          // legacy caller, or a test that sets `address` directly — genuinely
+          // has no parts, and `{streetNumber:'', …}` would render as an empty
+          // street the reader assumes they just have not scrolled to. That is
+          // an absence wearing the face of a value, which is the whole defect.
+          deliverToAddr: scoAddressMissing(SCO_STATE.addr).length ? null : { ...SCO_STATE.addr },
         },
       });
       return rec;
@@ -277,22 +333,57 @@ window.ShopTipSelector = function ShopTipSelector({ lane, onChange }) {
 window.ShopAddressRow = function ShopAddressRow({ onChange }) {
   const P = scUseP();
   const [open, setOpen] = React.useState(false);
-  const [draft, setDraft] = React.useState(SCO_STATE.address);
+  // The draft is the PARTS, not a line of text. Nothing in this component ever
+  // parses a joined string back apart — the only conversion here is parts → line.
+  const [draft, setDraft] = React.useState(() => ({ ...SCO_STATE.addr }));
+  const set1 = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
   const has = !!SCO_STATE.address;
+  const missing = scoAddressMissing(draft);
+  const ok = missing.length === 0;
+  const needs = missing.length === 1 ? missing[0]
+    : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
+  const save = () => {
+    if (!ok) return;
+    const addr = { streetNumber: draft.streetNumber.trim(), streetName: draft.streetName.trim(),
+      city: draft.city.trim(), state: draft.state.trim().toUpperCase(), zip: draft.zip.trim() };
+    SCO_STATE.addr = addr;
+    SCO_STATE.address = scoJoinAddress(addr);   // derived, every time
+    setOpen(false);
+    onChange();
+  };
   return <div data-hw="address-row" style={{ padding: '12px 14px', borderTop: `1px solid ${P.hairline}` }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <Icon name="pin" size={16} stroke={1.9} color={has ? P.ink2 : P.inkMute} />
       <div style={{ flex: 1, minWidth: 0, fontSize: P.type.body, fontWeight: 600, color: has ? P.ink : P.inkMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {SCO_STATE.address || 'No Address'}
       </div>
-      <PBtn size="md" variant="ghost" icon="plus" onClick={() => { setDraft(SCO_STATE.address); setOpen((v) => !v); }}>
+      <PBtn size="md" variant="ghost" icon="plus" onClick={() => { setDraft({ ...SCO_STATE.addr }); setOpen((v) => !v); }}>
         {has ? 'Change Address' : 'Add Address'}
       </PBtn>
     </div>
-    {open && <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-      <Field icon="pin" placeholder="Street, city, ZIP" value={draft} onChange={(e) => setDraft(e.target.value)} />
-      <PBtn size="md" variant="secondary" style={{ flex: '0 0 auto' }}
-        onClick={() => { SCO_STATE.address = draft; setOpen(false); onChange(); }}>Save</PBtn>
+    {/* FIVE BOXES WHERE THERE WAS ONE. Street number is the narrow box and
+         street name the wide one; state is two characters. This is a real
+         layout change on a storefront that is used on a phone, and jsdom cannot
+         see any of it — it answers "is it wired", never "does it fit". */}
+    {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ width: 96 }}><Field mono placeholder="Street no." value={draft.streetNumber} onChange={(e) => set1('streetNumber', e.target.value)} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}><Field icon="pin" placeholder="Street name" value={draft.streetName} onChange={(e) => set1('streetName', e.target.value)} /></div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}><Field placeholder="City" value={draft.city} onChange={(e) => set1('city', e.target.value)} /></div>
+        <div style={{ width: 72 }}><Field mono placeholder="State" value={draft.state} onChange={(e) => set1('state', e.target.value.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} /></div>
+        <div style={{ width: 104 }}><Field mono placeholder="ZIP" value={draft.zip} onChange={(e) => set1('zip', e.target.value.replace(/[^0-9]/g, '').slice(0, 5))} /></div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Refused OUT LOUD, naming each parameter separately. A greyed button
+             with no stated reason makes the customer guess which of five boxes
+             is the blocker — and on a storefront, guessing means leaving. */}
+        {!ok && <span style={{ flex: 1, minWidth: 0, fontSize: P.type.meta, color: P.warn, lineHeight: 1.45 }}>Still needs {needs}.</span>}
+        <div style={{ flex: ok ? 1 : '0 0 auto' }} />
+        <PBtn size="md" variant="secondary" style={{ flex: '0 0 auto' }} disabled={!ok}
+          title={ok ? undefined : `Still needs ${needs}`} onClick={save}>Save</PBtn>
+      </div>
     </div>}
   </div>;
 };

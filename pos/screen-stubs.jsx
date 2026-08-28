@@ -169,17 +169,54 @@ function ExportMembersModal({ rows, total, narrowed, onClose }) {
 // ── Add member — creates the customer record; ID is still verified at check-in ─
 function AddMemberModal({ onClose, onAdd }) {
   const P = useP();
-  const [v, setV] = React.useState({ name: '', phone: '', email: '', dob: '', type: 'RecreationalUser', group: 'Standard', doc: null });
+  // ONE FIELD PER PARAMETER [OWNER RULING 2026-08-27]. This modal held a single
+  // "Full name *" box. The server takes `first_name`/`last_name` SEPARATELY
+  // (wmdemo/server.py:4843 has no joined-name key on any create path) and
+  // fingerprints identity on the pair, so the joined box was never the wire
+  // format — it was a lossy local detour that something downstream then had to
+  // reverse BY GUESSING, and that guess is what decides whether two records are
+  // the same person. Captured separately, nothing has to guess.
+  const [v, setV] = React.useState({ first: '', last: '', nameGuessed: false, nameGuessNote: '',
+    phone: '', email: '', dob: '', type: 'RecreationalUser', group: 'Standard', doc: null });
   const s1 = (k, x) => setV((o) => ({ ...o, [k]: x }));
-  // The scan IS the data entry. Reading the PDF417 barcode fills name and DOB
-  // in one action — typing them by hand is the fallback, not the path.
-  const onScan = (d) => setV((o) => ({ ...o, doc: d, name: o.name || d.name || 'Jordan A. Vasquez', dob: o.dob || d.dob || '09/02/1988' }));
+  // The scan IS the data entry. The PDF417 barcode carries family name and
+  // given name as DISTINCT elements, so the scan fills the two fields from the
+  // two document elements — no joining, no re-splitting.
+  //
+  // TWO INVENTED VALUES REMOVED HERE. This read `d.name || 'Jordan A. Vasquez'`
+  // and `d.dob || '09/02/1988'`: a scan that returned no name or no date of
+  // birth silently filled in a made-up person and a made-up birthday, on the
+  // COMPLIANCE path, and the gate below then saw a full form and let it
+  // through. A scan that yields nothing now leaves the fields empty and the
+  // gate refuses out loud, which is the honest outcome.
+  //
+  // `nameGuessed` travels WITH the document (pos/verification.jsx). It is true
+  // only on the book-matched branch, where the split was derived from a stored
+  // joined name; a document read has nothing to guess and arrives false. The
+  // flag is adopted only for halves the scan actually filled — a name the
+  // operator typed themselves is not a guess this modal gets to relabel.
+  const onScan = (d) => setV((o) => {
+    const first = o.first || d.firstName || '';
+    const last = o.last || d.lastName || '';
+    const filledFromDoc = (!o.first && !!d.firstName) || (!o.last && !!d.lastName);
+    return { ...o, doc: d, first, last,
+      nameGuessed: filledFromDoc ? !!d.nameGuessed : o.nameGuessed,
+      nameGuessNote: filledFromDoc ? d.nameGuessNote || '' : o.nameGuessNote,
+      dob: o.dob || d.dob || '' };
+  });
   // The gate was already right. What was missing was SAYING so: the button had
   // no `disabled` and no message, so clicking it did nothing and named no
   // reason — and the real blocker (the un-scanned ID) was never on screen.
+  //
+  // A LAST NAME IS NOT REQUIRED, DELIBERATELY. Mononyms exist, and refusing to
+  // create one is worse than creating it without a surname: the alternative an
+  // operator reaches for is typing the single name into BOTH boxes, which mints
+  // a fingerprint for a surname we do not have and collides that customer with
+  // every real person carrying it. Empty stays empty, and the note under the
+  // fields says what that costs.
   const missing = [
   !v.doc && 'scan the government ID',
-  !v.name.trim() && 'a full name',
+  !v.first.trim() && 'a first name',
   !v.dob.trim() && 'a date of birth',
   !v.phone.trim() && 'a phone number'].
   filter(Boolean);
@@ -187,7 +224,19 @@ function AddMemberModal({ onClose, onAdd }) {
   const needs = !missing.length ? '' : missing.length === 1 ? missing[0] : missing.slice(0, -1).join(', ') + ' and ' + missing[missing.length - 1];
   const submit = () => {
     if (!ok) return;
-    onAdd({ id: 'm' + Date.now(), name: v.name.trim(), phone: v.phone.trim(), email: v.email.trim() || '—', type: v.type, group: v.group, visits: 0, points: 0, wallet: 0, member: v.group === 'VIP' });
+    const first = v.first.trim(), last = v.last.trim();
+    // `first_name`/`last_name` are what was CAPTURED and what the server takes.
+    // The key names are not arbitrary: pos/verification.jsx:807 already prefers
+    // `m.first_name || m.last_name` over splitting `m.name`, so a member created
+    // here scans back with `nameGuessed:false` — the guess disappears at the
+    // source instead of being marked forever downstream.
+    // `name` is DERIVED and kept so every existing reader of `m.name` (the
+    // table, search, the avatar, the CSV export) keeps working. Two independent
+    // copies of one fact is how they drift apart; one derived from the other
+    // cannot.
+    onAdd({ id: 'm' + Date.now(), first_name: first, last_name: last,
+      name: window.HWName ? window.HWName.join(first, last) : [first, last].filter(Boolean).join(' '),
+      phone: v.phone.trim(), email: v.email.trim() || '—', type: v.type, group: v.group, visits: 0, points: 0, wallet: 0, member: v.group === 'VIP' });
   };
   const Lb = ({ children }) => <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 5 }}>{children}</div>;
   return <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: P.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
@@ -204,12 +253,33 @@ function AddMemberModal({ onClose, onAdd }) {
             <PBtn variant="accent" size="sm" icon="scan" onClick={() => onScan({ scannedAt: 'Just now', photo: true })}>Scan ID &amp; capture photo</PBtn>}
           <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 6, lineHeight: 1.45 }}>Scanning reads name, date of birth and expiry off the barcode and fills the fields below — no typing needed.</div>
         </div>
+        {/* ONE BOX PER PARAMETER. This grid held a single "Full name *"; it now
+             holds the two fields the server actually takes. Layout note that
+             jsdom cannot check: the two name boxes replace one box in the SAME
+             two-column grid, so the row count is unchanged and nothing below
+             moved — but that is a claim about pixels, and only a browser can
+             settle it. */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
-          <div><Lb>Full name *</Lb><Field placeholder="Jane Doe" value={v.name} onChange={(e) => s1('name', e.target.value)} /></div>
+          <div><Lb>First name *</Lb><Field placeholder="Jane" value={v.first} onChange={(e) => s1('first', e.target.value)} /></div>
+          <div><Lb>Last name</Lb><Field placeholder="Doe" value={v.last} onChange={(e) => s1('last', e.target.value)} /></div>
           <div><Lb>Date of birth *</Lb><Field placeholder="MM/DD/YYYY" value={v.dob} onChange={(e) => s1('dob', e.target.value)} /></div>
           <div><Lb>Phone *</Lb><Field icon="phone" placeholder="(951) 555-0100" value={v.phone} onChange={(e) => s1('phone', e.target.value)} /></div>
-          <div><Lb>Email</Lb><Field icon="mail" placeholder="jane@example.com" value={v.email} onChange={(e) => s1('email', e.target.value)} /></div>
+          <div style={{ gridColumn: '1 / -1' }}><Lb>Email</Lb><Field icon="mail" placeholder="jane@example.com" value={v.email} onChange={(e) => s1('email', e.target.value)} /></div>
         </div>
+        {/* A GUESSED SPLIT IS MARKED, AND THE MARK NAMES THE FAILURE MODE. This
+             fires only on the book-matched scan branch, where the two boxes were
+             carved out of one stored joined string. A document read arrives
+             already split and shows nothing here — if the easy case warned too,
+             the warning would be on screen permanently and mean nothing. */}
+        {v.nameGuessed &&
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.warnSoft, borderRadius: P.r10, border: `1px solid ${P.warn}40` }}>
+          <Icon name="alert" size={14} color={P.warn} style={{ marginTop: 1, flex: '0 0 auto' }} />
+          <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b>These two boxes are a guess, not a reading.</b> This customer was matched from the existing book, which stores one joined name and no separate columns — so the boundary between first and last was inferred here, not read off the document. {v.nameGuessNote} Check both against the ID and correct them before creating the record.</span>
+        </div>}
+        {/* An empty surname is allowed and is not an error, so it gets a plain
+             statement of consequence rather than a warning colour. */}
+        {!!v.first.trim() && !v.last.trim() &&
+        <div style={{ fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>No last name — saved as a single given name. That is correct for a mononym, and it means this record carries no name+DOB fingerprint, so it will not auto-match a returning customer. Do not copy the first name into the last name box to fill it.</div>}
         <div><Lb>Customer type</Lb><Seg full size="sm" value={v.type} onChange={(x) => s1('type', x)} options={[{ value: 'RecreationalUser', label: 'Recreational' }, { value: 'MedicinalUser', label: 'Medicinal' }]} /></div>
         <div><Lb>Group</Lb><Seg full size="sm" value={v.group} onChange={(x) => s1('group', x)} options={[{ value: 'Standard', label: 'Standard' }, { value: 'Delivery', label: 'Delivery' }, { value: 'VIP', label: 'VIP' }]} /></div>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.infoSoft, borderRadius: P.r10 }}>
@@ -248,7 +318,29 @@ function MemberDetailPage({ m, onBack }) {
   // off the store, not off a copy it made when it opened.
   window.useHW();
   const [editing, setEditing] = React.useState(false);
-  const [form, setForm] = React.useState({ name: m.name, phone: m.phone, email: m.email });
+  // ── EDITING A NAME THAT WAS STORED JOINED [OWNER RULING 2026-08-27] ───────
+  // This form held one `name` box. The two fields below are the ones the server
+  // takes, so they are what the operator must be able to edit.
+  //
+  // WHERE THE SPLIT COMES FROM DECIDES WHETHER IT IS A GUESS. A member created
+  // since the ruling carries real `first_name`/`last_name` columns: those are
+  // READ, and reading is not guessing. A legacy row carries only a joined
+  // `name`, so its two boxes are carved out of one string by
+  // `HWName.splitGuess` — an INFERENCE, and it is marked as one and stays
+  // editable. `Nina Alvarez` is marked too: if the easy case reported itself as
+  // certain, operators would learn to trust the mark and it would mean nothing
+  // on `Mary Jo Van Der Berg`.
+  //
+  // `name` is held separately and NOT re-derived while the form sits idle, so a
+  // legacy row displays byte-for-byte as it was saved. It is recomputed only on
+  // Save, from what the operator actually left in the two boxes.
+  const nameSplit0 = () => {
+    if (m.first_name || m.last_name) return { first: m.first_name || '', last: m.last_name || '', guessed: false, note: '' };
+    return window.HWName ? window.HWName.splitGuess(m.name) : { first: m.name || '', last: '', guessed: false, note: '' };
+  };
+  const blankForm = () => {const g = nameSplit0();
+    return { name: m.name, first: g.first, last: g.last, nameGuessed: !!g.guessed, nameGuessNote: g.note || '', phone: m.phone, email: m.email };};
+  const [form, setForm] = React.useState(blankForm);
   const [modal, setModal] = React.useState(null); // 'wallet' | 'note'
   const [openOrder, setOpenOrder] = React.useState(null);
   const [hotNotes, setHotNotes] = React.useState(() => window.HW_HOT.hotNotesFor(m.id));
@@ -268,7 +360,20 @@ function MemberDetailPage({ m, onBack }) {
   };
   // "Done editing" used to only flip a boolean — the edits lived in `form` and
   // died there, while the header went on showing them until you navigated away.
-  const saveEdits = () => {window.HW.updateMember(m.id, form);setEditing(false);};
+  // The whole `form` used to be spread onto the record, which would now also
+  // write the form's own bookkeeping (`nameGuessed`, `nameGuessNote`) into the
+  // member as if they were customer data. Only the captured parameters are
+  // written, and `name` is DERIVED from the pair so the two cannot drift.
+  const saveEdits = () => {
+    const first = String(form.first || '').trim(), last = String(form.last || '').trim();
+    const joined = window.HWName ? window.HWName.join(first, last) : [first, last].filter(Boolean).join(' ');
+    window.HW.updateMember(m.id, { first_name: first, last_name: last, name: joined, phone: form.phone, email: form.email });
+    // Saved. The split is no longer an inference waiting to be checked — the
+    // operator was shown the mark and committed these two values, so the record
+    // now HAS separate columns and nothing downstream needs to guess again.
+    setForm((f) => ({ ...f, name: joined, nameGuessed: false, nameGuessNote: '' }));
+    setEditing(false);
+  };
   const idv = (window.HW.IDV || {})[m.id] || null;
   // Was derived from the id's last character, which is why "Unlink Weedmaps
   // identity" had nothing to write to. HW.wmLinked keeps the derivation as the
@@ -364,7 +469,26 @@ function MemberDetailPage({ m, onBack }) {
   // it. The ID address is a COMPLIANCE field — it comes off the scanned
   // document or it does not exist.
   const idAddr = idDoc && idDoc.address || null;
-  const addrText = idAddr ? `${idAddr.street}, ${idAddr.city}, ${idAddr.state || 'CA'} ${idAddr.zip}` : NR;
+  // THE STATE IS READ, NOT ASSUMED [OWNER RULING 2026-08-27]. This line ended
+  // in `idAddr.state || 'CA'`, so an address whose state was missing rendered as
+  // Californian — on the COMPLIANCE card, the one place an operator goes to
+  // answer "what does the ID say". It is latent only because every fixture
+  // currently carries a real state (one of them NV), and it starts fabricating
+  // the moment a scanner emits a state-less address. The identical defect was
+  // already removed from pos/customer-extras.jsx, where it made every
+  // out-of-state address on file display as Californian.
+  //
+  // An absent part is now DROPPED, never printed as `undefined` and never
+  // invented. `street` is the joined value the scan derives from its own split
+  // pair (pos/verification.jsx), so this reader keeps working unchanged; a
+  // legacy row is rendered exactly as it was saved and is never re-split here.
+  const addrText = idAddr
+    ? [[idAddr.street, idAddr.city].filter(Boolean).join(', '),
+       [idAddr.state, idAddr.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') || NR
+    : NR;
+  // Said out loud rather than silently absorbed: a missing state on a
+  // compliance record is a gap someone has to close, not a formatting detail.
+  const addrStateMissing = !!(idAddr && !idAddr.state);
   // A PHOTO TILE IS A CLAIM THAT THE PHOTO WAS TAKEN.
   // This was a constant list computed from nothing but `m.type`, so a customer
   // whose ladder says "Nobody has seen a document yet" still got a captioned
@@ -409,7 +533,7 @@ function MemberDetailPage({ m, onBack }) {
         <div style={{ flex: 1 }} />
         <PBtn variant="secondary" size="md" icon="wallet" onClick={openWallet}>Adjust wallet</PBtn>
         <PBtn variant="secondary" size="md" icon="note" onClick={() => setModal('note')}>Add note</PBtn>
-        {editing && <PBtn variant="secondary" size="md" onClick={() => {setForm({ name: m.name, phone: m.phone, email: m.email });setEditing(false);}}>Discard</PBtn>}
+        {editing && <PBtn variant="secondary" size="md" onClick={() => {setForm(blankForm());setEditing(false);}}>Discard</PBtn>}
         <PBtn variant="accent" size="md" icon={editing ? 'check' : 'pencil'} onClick={() => editing ? saveEdits() : setEditing(true)}>{editing ? 'Save changes' : 'Edit member'}</PBtn>
       </div>
 
@@ -421,12 +545,30 @@ function MemberDetailPage({ m, onBack }) {
         <Avatar name={m.name} size={62} crown={m.member} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {editing ? <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={inp({ fontSize: 21, fontWeight: 800, maxWidth: 300 })} /> : <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{form.name}</span>}
+            {editing ?
+            <span style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap' }}>
+              <input value={form.first} placeholder="First name" onChange={(e) => setForm((f) => ({ ...f, first: e.target.value }))} style={inp({ fontSize: 21, fontWeight: 800, maxWidth: 190 })} />
+              <input value={form.last} placeholder="Last name" onChange={(e) => setForm((f) => ({ ...f, last: e.target.value }))} style={inp({ fontSize: 21, fontWeight: 800, maxWidth: 190 })} />
+            </span> :
+            /* NOT re-split for display. A legacy row renders exactly the joined
+               string it was saved with; re-splitting stored data on the way to
+               the screen would invent a boundary nobody typed. */
+            <span style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{form.name}</span>}
             {tier === 'VIP' ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 800, letterSpacing: '.03em', color: P.accentInk, background: P.accent, padding: '5px 13px', borderRadius: 99, boxShadow: P.shadowSm }}><Icon name="crown" size={16} stroke={2} />VIP</span> : <Pill kind="neutral" dot>Member</Pill>}
             <Pill kind="neutral">{m.group}</Pill>
             <span style={{ fontSize: 12.5, color: P.inkDim }}>{m.type}</span>
             {linked ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99 }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Weedmaps linked</span> : null}
           </div>
+          {/* THE MARK IS ON SCREEN WHILE THE GUESS IS EDITABLE, which is the
+               only moment it can still be acted on. It appears only for a
+               legacy row whose two boxes were carved out of one stored string —
+               a record with real first/last columns is read, not guessed, and
+               shows nothing here. */}
+          {editing && form.nameGuessed &&
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginTop: 10, background: P.warnSoft, borderRadius: P.r10, border: `1px solid ${P.warn}40` }}>
+            <Icon name="alert" size={14} color={P.warn} style={{ marginTop: 1, flex: '0 0 auto' }} />
+            <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b>These two boxes are a guess.</b> This record was saved with one joined name and no separate first/last columns, so the boundary between them was inferred just now — it is not what anyone typed and not what a document said. {form.nameGuessNote} Correct them before saving; saving is what turns the guess into two real columns.</span>
+          </div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: '12px 24px', marginTop: 14 }}>
             <HField icon="phone" label="Phone" editing={editing} value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} mono />
             <HField icon="mail" label="Email" editing={editing} value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} />
@@ -471,7 +613,7 @@ function MemberDetailPage({ m, onBack }) {
               <KV k="Date of birth" v={dob} />
               <KV k="ID expiration" v={idExp} mark={idDoc && idDoc.simulated} />
               <KV k="Gender" v={gender} mono={false} />
-              <KV k="Address" v={addrText} mono={false} mark={!!(idAddr && idDoc && idDoc.simulated)} />
+              <KV k="Address" v={addrText + (addrStateMissing ? ' · state not recorded' : '')} mono={false} mark={!!(idAddr && idDoc && idDoc.simulated)} />
             </div>
             <window.DeliveryAddressBook m={m} idAddr={idAddr} />
             {/* "Medical card · Active · Tax-exempt" is a TAX position. It was

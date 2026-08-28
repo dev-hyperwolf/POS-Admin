@@ -48,8 +48,17 @@
     const recencyDays = segment === 'hibernating' ? range(120, 320) : segment === 'at_risk' ? range(45, 110) : range(0, 30);
     return {
       id: uuid(),
-      name: `${first} ${last}`,
-      initials: `${first[0]}${last[0]}`,
+      // ONE FIELD PER PARAMETER [OWNER RULING 2026-08-27]. This generator held
+      // `first` and `last` and threw the pair away, keeping only the joined
+      // string — so every consumer that needed a half had to guess it back.
+      // engage/screen-customers.jsx did exactly that, with `name.split(' ')[1]`,
+      // which THROWS on a one-word name and blanks the whole detail screen.
+      // The pair is the captured fact; `name` is DERIVED from it and kept only
+      // for display and for the list-view search, so the two cannot drift.
+      firstName: first,
+      lastName: last,
+      name: [first, last].filter(Boolean).join(' '),
+      initials: `${first[0] || ''}${last[0] || ''}`,
       tierName: heavy ? pick(['Bloom', 'Diamond']) : pick(TIERS),
       rfmSegment: segment,
       lifetimeSpentCents,

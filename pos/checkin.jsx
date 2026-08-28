@@ -112,13 +112,146 @@ function expiryBlocks(doc, rec) {
   return docIsExpired(doc) && expirySwitch(rec) !== false;
 }
 
+// ── ONE FIELD PER CUSTOMER PARAMETER, ON THE CHECK-IN SURFACE ───────────────
+// [OWNER RULING 2026-08-27] "each customer parameter needs a dedicated input
+//  field, we cannot have dirty data — first name / last name / street number +
+//  street name / city / state / zip — everything needs to have its own separate
+//  field. fix it system-wide"
+//
+// THIS FILE WAS THE SCREENSHOT. One "FULL NAME" box, one "Street address" box,
+// and a `state: 'CA'` sitting in the initial state where a captured value
+// belongs. Each of those is a joined or assumed value the client then has to
+// take APART again before it can talk to the server — and the server has never
+// spoken joined: wmdemo/server.py:4843 accepts `first_name`/`last_name` and has
+// no joined `name` key on any create path, and identity_match.py:176 returns
+// None from name_dob_fp unless first, last and DOB are all present separately.
+// The box was never the wire format. It was a lossy local detour whose reversal
+// is a GUESS, and that guess decides whether two records are the same person.
+// This estate already has one Weedmaps customer id sitting on four live
+// identities with 458 orders between them.
+//
+// AND THE SCANNER HAD ALREADY BEEN FIXED. Every document IdScanPanel emits
+// carries `firstName`, `lastName`, `nameGuessed`, `nameGuessNote` and a SPLIT
+// `address` — and this form read `d.name` and `d.dob` and threw the rest away,
+// re-deriving by guesswork a split it was being handed for free.
+//
+// `nameGuessed` had NO RENDERER ANYWHERE in the estate until this change. A
+// flag nobody draws is not a safeguard, it is a field in an object.
+// NameSplitNote below is the renderer that turns it into one.
+const nfJoin = (first, last) => window.HWName ? window.HWName.join(first, last) :
+[String(first || '').trim(), String(last || '').trim()].filter(Boolean).join(' ');
+const nfJoinStreet = (n, s) => window.HWAddress ? window.HWAddress.joinStreet(n, s) :
+[String(n || '').trim(), String(s || '').trim()].filter(Boolean).join(' ');
+// A joined legacy string — a search query, a name off the waiting-room list —
+// split for prefill. Always marked, because the split is ours. An EMPTY seed is
+// an ABSENCE and is not marked: warning on a field nobody has filled in is how
+// operators learn to ignore the warning that matters.
+const nfSplitGuess = (s) => window.HWName ? window.HWName.splitGuess(s) :
+{ first: String(s || '').trim(), last: '', guessed: false, note: '' };
+
+// WHAT A DOCUMENT SAYS THIS PERSON IS CALLED, in the split the form needs.
+//
+// THREE PRODUCERS, THREE PROVENANCES, AND THE THIRD ONE NEARLY DEAD-ENDED THE
+// COUNTER. IdScanPanel emits `firstName`/`lastName` today, and a book match
+// emits them with `nameGuessed` set because it split a joined string to get
+// them. But a document carrying ONLY a joined `name` still exists — a producer
+// nobody has migrated, and the real PDF417 reader when it lands. Reading
+// `d.firstName` and stopping meant such a document produced an EMPTY first
+// name, and the form then refused to create the customer at all: a person
+// standing at the counter holding a valid ID, blocked by a field mapping.
+//
+// So the joined string is split — as a GUESS, marked and editable, which is the
+// one job splitGuess exists for. Same idiom as pos/verification.jsx:807, which
+// prefers a real pair and falls back to splitting only when there is none.
+// Caught by test/checkin-expiry-toggle.test.mjs, whose stub document carries
+// exactly this shape; it is a defect in this file, not in the fixture.
+const docName = (d) => {
+  if (!d) return { first: '', last: '', guessed: false, note: '' };
+  if (d.firstName || d.lastName) {
+    return { first: d.firstName || '', last: d.lastName || '',
+      guessed: !!d.nameGuessed, note: d.nameGuessNote || '' };
+  }
+  if (!d.name) return { first: '', last: '', guessed: false, note: '' };
+  const g = nfSplitGuess(d.name);
+  return { first: g.first, last: g.last, guessed: !!g.guessed, note: g.note || '' };
+};
+
+// The three things a name box can be, and they are NOT the same claim:
+//   · from ID   the barcode carried this field. A legal claim about provenance.
+//   · GUESSED   we split a joined string to get it. Ours, not the document's.
+//   · bare      a human typed it.
+// A guessed half must never wear "· from ID" — that would be claiming a
+// government document said something it never said, which is the exact defect
+// this workstream has spent the day removing everywhere else.
+function nameFieldLabel(base, guessed, fromScan) {
+  return guessed ? base + ' · GUESSED' : fromScan ? base + ' · from ID' : base;
+}
+
+// ── THE GUESS, RENDERED ─────────────────────────────────────────────────────
+// Shown ONLY while a half is still carrying the mark. Editing a box withdraws
+// the mark from THAT box and no other (setNf1), so this names which half is
+// still unchecked instead of hanging a permanent warning over a form the
+// operator has already corrected. A warning that never clears is a warning that
+// gets ignored — and then the one on the hard name means nothing.
+function NameSplitNote({ guessed, note }) {
+  const P = useP();
+  const still = [guessed && guessed.firstName && 'first name',
+  guessed && guessed.lastName && 'last name'].filter(Boolean);
+  if (!still.length) return null;
+  const many = still.length > 1;
+  return (
+    <div data-hw="name-split-guess" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+      <Icon name="alert" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+      <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>
+        {/* splitGuess's own note already ends by telling the operator to check
+             the value against the document, so this closes on the ACT instead
+             of repeating the instruction. Read on screen the two together said
+             "Check it against the document. Check them against the ID and
+             correct them…", and a warning nobody finishes reading is a warning
+             that does not work. Caught by looking at it rendered — jsdom
+             answers "is it wired", never "does it read". */}
+        <b>The {still.join(' and ')} {many ? 'are a GUESS' : 'is a GUESS'} — not something the document said.</b>{note ? ' ' + note : ''} Correct {many ? 'them' : 'it'} here before the record is created.
+      </span>
+    </div>);
+
+}
+
 window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
   const P = useP();
   const list = (guests || []).map(normGuest);
   const [q, setQ] = React.useState('');
   const [adding, setAdding] = React.useState(false);
-  const [nf, setNf] = React.useState({ name: '', dob: '', phone: '', doc: null });
-  const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v }));
+  // ONE FIELD PER PARAMETER. `name` is gone; first and last are captured
+  // separately, and the joined value is DERIVED at commit for the surfaces that
+  // only ever display one. Two stored copies of one fact is how they drift.
+  const BLANK_NF = { firstName: '', lastName: '', dob: '', phone: '', doc: null,
+    fromScan: {}, guessed: {}, guessNote: '' };
+  const [nf, setNf] = React.useState(BLANK_NF);
+  // Editing a field withdraws BOTH marks from that field and no other. Both are
+  // claims about where the value came from, and a human typing over it retires
+  // each of them: it is no longer the document's, and it is no longer our guess.
+  const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v,
+    fromScan: Object.assign({}, p.fromScan, { [k]: false }),
+    guessed: Object.assign({}, p.guessed, { [k]: false }) }));
+  // WHAT THE DOCUMENT ACTUALLY CARRIES, taken instead of re-derived. `d.name`
+  // is the scanner's own derived convenience and is deliberately NOT read here:
+  // reading it would put the split back where it was, in this file, as a guess.
+  const docFields = (d) => {
+    // A book-matched document carries a name we split ourselves (the customer
+    // book stores a joined string and nothing else), so it arrives flagged. A
+    // document READ has nothing to guess and must not cry wolf.
+    const n = docName(d);
+    return {
+      doc: d || null,
+      firstName: n.first, lastName: n.last,
+      dob: d && d.dob || '',
+      guessed: { firstName: !!n.guessed && !!n.first, lastName: !!n.guessed && !!n.last },
+      guessNote: n.note,
+      // A guessed half is NOT "from ID". The suffix is a legal claim.
+      fromScan: { firstName: !!n.first && !n.guessed,
+        lastName: !!n.last && !n.guessed, dob: !!(d && d.dob) }
+    };
+  };
 
   const taken = (n) => list.some((g) => gName(g).toLowerCase() === n.toLowerCase()) || n === primaryName;
   const push = (g) => onChange([...list, g]);
@@ -133,12 +266,30 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
   // fabricated compliance fact for every member the search box returned. It
   // reads the ledger now, and a member nobody has verified arrives as
   // linked-no-doc, which does not clear the gate.
-  const linkMember = (m) => {push({ key: m.id, id: m.id, name: m.name, dob: '', phone: m.phone, member: m.member, doc: docOnFileFor(m.id) });setQ('');};
-  const startNew = (seed) => {setNf({ name: seed || q.trim(), dob: '', phone: '', doc: null });setAdding(true);setQ('');};
+  // The linked guest carries whatever split the BOOK holds and does not
+  // manufacture one it does not: a legacy row with only a joined `name` stays
+  // that way here rather than being carved up on the way into the party.
+  const linkMember = (m) => {push({ key: m.id, id: m.id, name: m.name, first_name: m.first_name || '', last_name: m.last_name || '', dob: '', phone: m.phone, member: m.member, doc: docOnFileFor(m.id) });setQ('');};
+  // THE SEED IS NOT CARRIED, AND IT NEVER WAS. `startNew` used to write the
+  // typed query into `nf.name`, and no operator ever saw it: the name fields
+  // below render only once a document exists, and the scan overwrites them the
+  // moment it does. Prefilling a GUESSED split into boxes that cannot be seen
+  // and will be overwritten is the "flag nobody displays" defect in a second
+  // costume — a guess is only worth making where a human can check it, and here
+  // the barcode answers the question outright a second later.
+  const startNew = () => {setNf(BLANK_NF);setAdding(true);setQ('');};
   const commitNew = () => {
     if (!nf.doc) return;
-    push({ key: 'new-' + Date.now(), id: null, name: nf.name.trim(), dob: nf.dob, phone: nf.phone, member: false, doc: nf.doc });
-    setNf({ name: '', dob: '', phone: '', doc: null });setAdding(false);
+    const firstName = nf.firstName.trim(), lastName = nf.lastName.trim();
+    // `first_name`/`last_name` — the key names the store and the server both
+    // use, so a guest promoted to a customer record keeps its split.
+    push({ key: 'new-' + Date.now(), id: null, first_name: firstName, last_name: lastName,
+      // DERIVED, for the many surfaces that only ever display a name (the party
+      // row, the avatar, `taken`). The split pair is what was captured and what
+      // the server's only name keys want.
+      name: nfJoin(firstName, lastName),
+      dob: nf.dob, phone: nf.phone, member: false, doc: nf.doc });
+    setNf(BLANK_NF);setAdding(false);
   };
   // Scanning the ID IS the data entry — the PDF417 barcode carries the legal
   // name, DOB and expiry, so nobody retypes them. Phone is the only thing a
@@ -173,18 +324,18 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
     setUnresolved(null);
     if (d && d.returning && d.memberId) {
       const m = window.HW.memberById(d.memberId);
-      if (m) { linkMember(m); setAdding(false); setNf({ name: '', dob: '', phone: '', doc: null }); return; }
+      if (m) { linkMember(m); setAdding(false); setNf(BLANK_NF); return; }
       setUnresolved({ memberId: d.memberId, doc: d });
-      setNf({ name: '', dob: '', phone: '', doc: null });
+      setNf(BLANK_NF);
       return;
     }
-    setNf((p) => ({ ...p, doc: d, name: d && d.name || '', dob: d && d.dob || '' }));
+    setNf((p) => Object.assign({}, p, docFields(d)));
   };
   // Create the record anyway — an explicit choice, never a default.
   const forceNewFromUnresolved = () => {
     const d = unresolved && unresolved.doc;
     setUnresolved(null);
-    setNf({ name: d && d.name || '', dob: d && d.dob || '', phone: '', doc: d || null });
+    setNf(Object.assign({}, BLANK_NF, docFields(d)));
   };
   const bad = list.filter(guestBlocks).length;
   const noDoc = list.filter((g) => guestStatus(g) === 'linked-no-doc').length;
@@ -232,7 +383,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, marginBottom: 10 }}>
             <Icon name="user-plus" size={15} color={P.ink2} />
             <span style={{ flex: 1, fontSize: 11.5, color: P.ink2 }}>No customer called “{q.trim()}” — onboard them as new.</span>
-            <PBtn variant="accent" size="xs" onClick={() => startNew(q.trim())}>Start</PBtn>
+            <PBtn variant="accent" size="xs" onClick={() => startNew()}>Start</PBtn>
           </div>}
         {!ql && poolNames.length > 0 &&
         <div style={{ marginBottom: 11 }}>
@@ -240,7 +391,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {poolNames.map((n) => {
               const m = window.HW.MEMBERS.find((x) => x.name === n);
-              return <button key={n} type="button" onClick={() => m ? linkMember(m) : startNew(n)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, fontSize: 12.5, fontWeight: 600, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
+              return <button key={n} type="button" onClick={() => m ? linkMember(m) : startNew()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, fontSize: 12.5, fontWeight: 600, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
                   <Icon name="plus" size={12} stroke={2.2} />{n}{!m && <span style={{ fontSize: 10, color: P.warn, fontWeight: 700 }}>new</span>}
                 </button>;})}
             </div>
@@ -275,11 +426,20 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
             </div>
           </div>}
           {nf.doc ? <>
+            {/* FIRST AND LAST, SEPARATELY — and the label tells the truth about
+                each half on its own, because a scan can deliver one of them
+                read and the other guessed. The old single box was labelled
+                "Full name · from ID" unconditionally, so a value a colleague
+                typed over the top still claimed the document said it. */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <CIField label="Full name · from ID" value={nf.name} onChange={(v) => setNf1('name', v)} />
-              <CIField label="Date of birth · from ID" value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
+              <CIField label={nameFieldLabel('First name', nf.guessed.firstName, nf.fromScan.firstName)} value={nf.firstName} onChange={(v) => setNf1('firstName', v)} />
+              <CIField label={nameFieldLabel('Last name', nf.guessed.lastName, nf.fromScan.lastName)} value={nf.lastName} onChange={(v) => setNf1('lastName', v)} />
             </div>
-            <CIField label="Phone (optional)" value={nf.phone} onChange={(v) => setNf1('phone', v)} placeholder="(000) 000-0000" mono />
+            <NameSplitNote guessed={nf.guessed} note={nf.guessNote} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <CIField label={nameFieldLabel('Date of birth', false, nf.fromScan.dob)} value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
+              <CIField label="Phone (optional)" value={nf.phone} onChange={(v) => setNf1('phone', v)} placeholder="(000) 000-0000" mono />
+            </div>
           </> : unresolved ? null :
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.infoSoft, borderRadius: P.r10 }}>
             <Icon name="scan" size={14} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
@@ -372,12 +532,77 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   // A document scanned against an ALREADY-SELECTED customer whose name (or
   // member id) it does not match. See onPrimaryScan.
   const [docMismatch, setDocMismatch] = React.useState(null);
-  const [nf, setNf] = React.useState({ name: '', phone: '', email: '', dob: '', gender: '', street: '', city: '', state: 'CA', zip: '', doc: null, fromScan: {} });
+  // ONE FIELD PER PARAMETER [OWNER RULING 2026-08-27].
+  //
+  // `name` was one box and `street` was one box. Both are now the split pair
+  // the server actually accepts, and both joined values are DERIVED at create
+  // time so no existing consumer has to change and no second copy can drift.
+  //
+  // `state` STARTED AS 'CA' AND THAT WAS THE SAME DEFECT AS THE HARDCODED 'CA'
+  // just removed from customer-extras.jsx, one step earlier in the pipe: there
+  // a render line printed Californian for every out-of-state address on file;
+  // here the form pre-answered the question, so an operator who never looked at
+  // that box STORED California on a Nevada licence. An absence must read as an
+  // absence — a blank the operator fills, never a default wearing a captured
+  // value's face. Danny Fitzgerald's NV licence is the case that makes it real.
+  const BLANK_NF = { firstName: '', lastName: '', phone: '', email: '', dob: '', gender: '',
+    streetNumber: '', streetName: '', city: '', state: '', zip: '', doc: null,
+    fromScan: {}, guessed: {}, guessNote: '' };
+  const [nf, setNf] = React.useState(BLANK_NF);
   const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v,
     // A field typed over after the scan is no longer "from ID". The suffix is a
     // legal claim about where the value came from, so it has to be withdrawn
-    // the moment a human edits it.
-    fromScan: Object.assign({}, p.fromScan, { [k]: false }) }));
+    // the moment a human edits it. A GUESS mark is withdrawn the same way and
+    // for the same reason — the value is now the operator's, not our inference.
+    fromScan: Object.assign({}, p.fromScan, { [k]: false }),
+    guessed: Object.assign({}, p.guessed, { [k]: false }) }));
+  // Every field a document can fill. Used to withdraw exactly the scan's
+  // contribution on a re-scan, and nothing a human typed.
+  const SCAN_FIELDS = ['firstName', 'lastName', 'dob', 'streetNumber', 'streetName', 'city', 'state', 'zip'];
+  // WHAT THE DOCUMENT CARRIES, FIELD BY FIELD, taken rather than re-derived.
+  // The scanner has emitted `firstName`/`lastName`/`nameGuessed`/`address` since
+  // the split landed; this form read `d.name` and `d.dob` and dropped the rest,
+  // then made the client guess back out a split it was being handed.
+  // `d.name` is deliberately not read: it is the scanner's derived display
+  // convenience, and reading it would put the guess back in this file.
+  const applyDoc = (prev, d) => {
+    const a = d && d.address || null;
+    // A book match splits a joined string (pos/data.jsx:86 stores nothing else),
+    // so it arrives marked; a document READ has nothing to guess; a document
+    // carrying only a joined `name` is split here and marked — see docName.
+    const n = docName(d);
+    const next = Object.assign({}, prev, {
+      doc: d || null,
+      firstName: n.first || prev.firstName,
+      lastName: n.last || prev.lastName,
+      dob: d && d.dob || prev.dob,
+      guessed: { firstName: !!n.guessed && !!n.first, lastName: !!n.guessed && !!n.last },
+      guessNote: n.note,
+      fromScan: Object.assign({}, prev.fromScan, {
+        // A GUESSED half is not "from ID" — see nameFieldLabel.
+        firstName: !!n.first && !n.guessed,
+        lastName: !!n.last && !n.guessed,
+        dob: !!(d && d.dob) })
+    });
+    // THE ADDRESS ON THE DOCUMENT, SPLIT, WHICH THIS FORM NEVER READ AT ALL.
+    // AAMVA PDF417 carries street, city, jurisdiction and postal code as
+    // separate elements and the scanner emits them that way; the operator was
+    // retyping all four off a screen that already had them. A passport carries
+    // NO address and arrives as `null` — that leaves the fields untouched
+    // rather than blanking what somebody typed, because absent is not empty.
+    if (a) {
+      Object.assign(next, {
+        streetNumber: a.streetNumber || prev.streetNumber,
+        streetName: a.streetName || prev.streetName,
+        city: a.city || prev.city,
+        state: a.state || prev.state,
+        zip: a.zip || prev.zip });
+      next.fromScan = Object.assign({}, next.fromScan, {
+        streetNumber: !!a.streetNumber, streetName: !!a.streetName,
+        city: !!a.city, state: !!a.state, zip: !!a.zip });
+    }
+    return next;
+  };
   // Seeding a customer is the ONE place type/delivery come from the record.
   const adoptCustomer = (c) => {
     setCustomer(c);
@@ -403,7 +628,28 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     // Re-scan clears upward (verification.jsx calls onChange(null)), so a null
     // here means "discard the document", not "ignore me". Leaving the previous
     // person's document in nf is how a different name ends up wearing it.
-    if (!d) {setNf((p) => Object.assign({}, p, { doc: null, name: '', dob: '', fromScan: {} }));setUnresolved(null);return;}
+    // RE-SCAN DISCARDS THE DOCUMENT'S CONTRIBUTION — precisely that, and no
+    // more. It used to clear `name` and `dob` and reset `fromScan` wholesale,
+    // which was close enough while the scan filled only those two. It now fills
+    // five address fields as well, so "clear everything the scan touched" and
+    // "clear the form" have come apart: the first is required (the previous
+    // person's street must not sit under the next person's name), the second
+    // would throw away what a human typed. `fromScan` already records which is
+    // which, so it is the thing that decides.
+    if (!d) {
+      setNf((p) => {
+        const next = Object.assign({}, p, { doc: null, guessed: {}, guessNote: '' });
+        const fs = Object.assign({}, p.fromScan);
+        for (const k of SCAN_FIELDS) if (fs[k]) {next[k] = '';fs[k] = false;}
+        // A GUESSED half is not in `fromScan` (it is not from the ID), so it
+        // would survive a re-scan on that rule alone — and a guess derived from
+        // a document that has just been discarded is a guess about nobody.
+        for (const k of ['firstName', 'lastName']) if (p.guessed && p.guessed[k]) next[k] = '';
+        next.fromScan = fs;
+        return next;
+      });
+      setUnresolved(null);return;
+    }
     setUnresolved(null);
     if (d.returning && d.memberId) {
       const m = (window.HW.MEMBERS || []).find((x) => x.id === d.memberId);
@@ -421,14 +667,10 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     // No match: this is a new guest, and the barcode has already typed the
     // form for us. Open it PRE-FILLED rather than blank -- re-typing what the
     // scan just read is the waste the scanner exists to remove.
-    setNf((prev) => Object.assign({}, prev, {
-      name: d.name || prev.name,
-      dob: d.dob || prev.dob,
-      doc: d,
-      // Which fields the DOCUMENT filled. Document-backed and hand-typed are
-      // different legal claims and must not render as the same grey box.
-      fromScan: Object.assign({}, prev.fromScan, { name: !!d.name, dob: !!d.dob }),
-    }));
+    // Which fields the DOCUMENT filled, and which it only let us guess at.
+    // Document-backed, guessed and hand-typed are three different legal claims
+    // and must not render as the same grey box.
+    setNf((prev) => applyDoc(prev, d));
     setNewOpen(true);
   };
   // The scanner offered INSIDE an already-selected customer's card. What comes
@@ -453,8 +695,35 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   const forceNewFromUnresolved = () => {
     const d = unresolved && unresolved.doc;
     setUnresolved(null);
-    setNf((p) => Object.assign({}, p, { name: d && d.name || '', dob: d && d.dob || '', doc: d || null,
-      fromScan: { name: !!(d && d.name), dob: !!(d && d.dob) } }));
+    // The forced path is the ONE that most often carries a guessed split: a
+    // returning barcode names a member id we cannot load, and the record it
+    // came from stores a joined name. The mark travels with it.
+    setNf((p) => applyDoc(Object.assign({}, p, { fromScan: {} }), d));
+    setNewOpen(true);
+  };
+
+  // THE MANUAL PATH IS THE ONE PLACE A JOINED LEGACY STRING STILL REACHES THIS
+  // FORM. The operator has just typed a whole name into the search box and been
+  // told nobody by that name exists; opening a blank form threw that away and
+  // made them type it again, in two halves this time.
+  //
+  // So it is split and prefilled — AND MARKED, because splitting on whitespace
+  // is a guess and this is exactly the legacy case splitGuess exists for.
+  // 'Nina Alvarez' comes out right; 'Mary Jo Van Der Berg', 'Jean-Luc Picard',
+  // 'Robert Downey Jr.' and a mononym do not, and the operator is the only one
+  // in the building who can see which of those they are looking at. The mark is
+  // withdrawn per field the moment they correct it.
+  //
+  // An EMPTY query seeds nothing and marks nothing: an absence is not a guess,
+  // and a warning on an untouched field is how operators learn to ignore
+  // warnings.
+  const openManual = () => {
+    const g = nfSplitGuess(q.trim());
+    setNf((p) => Object.assign({}, p, { firstName: g.first, lastName: g.last,
+      guessed: { firstName: !!g.guessed && !!g.first, lastName: !!g.guessed && !!g.last },
+      guessNote: g.note || '',
+      // A guess is emphatically NOT "from ID" — there is no document here at all.
+      fromScan: Object.assign({}, p.fromScan, { firstName: false, lastName: false }) }));
     setNewOpen(true);
   };
 
@@ -469,13 +738,32 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     // gate allows this person, and refusing here would be the counter screen
     // overruling the server it is supposed to be showing. With enforcement ON —
     // or unpublished, which is not the same as off — this still refuses.
-    if (!nf.name.trim() || !nf.doc || expiryBlocks(nf.doc, null)) return;
-    setCustomer({ id: 'new', name: nf.name.trim(), email: nf.email || '—', phone: nf.phone || '—', points: 0,
+    // A MONONYM HAS NO LAST NAME, so the bar is a FIRST name, not both. The
+    // server agrees and is explicit about it: name_dob_fp returns None rather
+    // than a fingerprint when a half is missing, and no fingerprint beats a
+    // wrong one. Demanding a surname here would make the operator invent one to
+    // get past the button, which is the dirty data this ruling is about.
+    if (!nf.firstName.trim() || !nf.doc || expiryBlocks(nf.doc, null)) return;
+    const firstName = nf.firstName.trim(), lastName = nf.lastName.trim();
+    const streetNumber = nf.streetNumber.trim(), streetName = nf.streetName.trim();
+    setCustomer({ id: 'new',
+      // THE SPLIT PAIR IS WHAT IS STORED, UNDER THE KEY NAMES THE STORE AND THE
+      // SERVER BOTH USE — `first_name`/`last_name` (wmdemo/server.py:4843,
+      // pos/data.jsx addMember). A camelCase pair here would be dropped by the
+      // allow-list one hop later and the record would carry only the joined
+      // string again, which is the whole defect. `name` is DERIVED beside them
+      // for the surfaces that only display a name (avatar, party row, search);
+      // it is never the source, and it is never what gets fingerprinted.
+      first_name: firstName, last_name: lastName, name: nfJoin(firstName, lastName),
+      email: nf.email || '—', phone: nf.phone || '—', points: 0,
       type: type || 'AdultUse', member: false, gender: nf.gender,
       // `nf` was being dumped wholesale into `address`, which is how the
       // scanned document ended up as a stowaway at customer.address.doc where
       // nothing reads it. Address is an address; the document is the document.
-      address: { street: nf.street, city: nf.city, state: nf.state, zip: nf.zip },
+      // Split is the source of truth here too, `street` is derived, and `state`
+      // is whatever the operator captured — never a 'CA' nobody typed.
+      address: { streetNumber, streetName, street: nfJoinStreet(streetNumber, streetName),
+        city: nf.city.trim(), state: nf.state.trim().toUpperCase(), zip: nf.zip.trim() },
       dob: nf.dob,
       doc: nf.doc });
     setNewOpen(false);
@@ -684,32 +972,56 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                         <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The ID scanner is not loaded on this page, so no document can be captured here.</span>
                       </div>}
                     </div>
-                    {/* '· from ID' is a claim about PROVENANCE. GuestEditor
-                        labels these two fields that way and this form did not,
-                        so a value read off a government document and a value a
-                        colleague typed rendered as the same grey box. The
-                        suffix is withdrawn the moment the field is edited —
-                        see setNf1. */}
+                    {/* '· from ID' is a claim about PROVENANCE, and '· GUESSED'
+                        is the retraction of that claim: a split we made from a
+                        joined string is OURS, and labelling it "from ID" would
+                        say a government document named a surname it never
+                        contained. Both suffixes are withdrawn the moment the
+                        field is edited — see setNf1. */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      <CIField label={nf.fromScan && nf.fromScan.name ? 'Full name · from ID' : 'Full name'} value={nf.name} onChange={(v) => setNf1('name', v)} />
-                      <CIField label={nf.fromScan && nf.fromScan.dob ? 'Date of birth · from ID' : 'Date of birth'} value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
+                      <CIField label={nameFieldLabel('First name', nf.guessed.firstName, nf.fromScan.firstName)} value={nf.firstName} onChange={(v) => setNf1('firstName', v)} />
+                      <CIField label={nameFieldLabel('Last name', nf.guessed.lastName, nf.fromScan.lastName)} value={nf.lastName} onChange={(v) => setNf1('lastName', v)} />
+                      <CIField label={nameFieldLabel('Date of birth', false, nf.fromScan.dob)} value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
                       <CIField label="Phone" value={nf.phone} onChange={(v) => setNf1('phone', v)} placeholder="(000) 000-0000" mono />
-                      <CIField label="Email" value={nf.email} onChange={(v) => setNf1('email', v)} placeholder="name@email.com" />
                     </div>
+                    <NameSplitNote guessed={nf.guessed} note={nf.guessNote} />
+                    <CIField label="Email" value={nf.email} onChange={(v) => setNf1('email', v)} placeholder="name@email.com" />
                     {/* Gender (comment 2) */}
                     <div>
                       <CILabel>Gender</CILabel>
                       <Seg value={nf.gender} onChange={(v) => setNf1('gender', v)} size="sm" options={[{ value: 'Female', label: 'Female' }, { value: 'Male', label: 'Male' }, { value: 'Non-binary', label: 'Non-binary' }]} />
                     </div>
-                    {/* Address — separate fields for clean data (comment 1) */}
+                    {/* ADDRESS — ONE FIELD PER PARAMETER, INCLUDING THE STREET.
+                        "separate fields for clean data" was written above a
+                        single free-text "Street address" box, which is the
+                        claim and its own counter-example in five lines. The
+                        number and the name are two parameters; joining them
+                        pushes the split onto whoever reads it later, and
+                        splitStreetGuess exists precisely because that split
+                        cannot be done reliably ('221B Baker St', 'PO Box 12',
+                        'Apt 4, 1200 E Ocean Blvd').
+
+                        Street number is the small box and street name the wide
+                        one, matching the address book in customer-extras.jsx so
+                        an operator meets one layout. FIVE BOXES WHERE THERE
+                        WERE FOUR, in a modal that is already tall — jsdom
+                        cannot see that, it answers "is it wired", never "does
+                        it fit". Checked in a browser at 560px, the modal's own
+                        width, before this was called done. */}
                     <div>
                       <CILabel>Address</CILabel>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <CIField value={nf.street} onChange={(v) => setNf1('street', v)} placeholder="Street address" />
+                        <div style={{ display: 'grid', gridTemplateColumns: '.42fr 1fr', gap: 8 }}>
+                          <CIField value={nf.streetNumber} onChange={(v) => setNf1('streetNumber', v)} placeholder="Street no." mono />
+                          <CIField value={nf.streetName} onChange={(v) => setNf1('streetName', v)} placeholder="Street name" />
+                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .6fr .8fr', gap: 8 }}>
                           <CIField value={nf.city} onChange={(v) => setNf1('city', v)} placeholder="City" />
-                          <CIField value={nf.state} onChange={(v) => setNf1('state', v)} placeholder="State" mono />
-                          <CIField value={nf.zip} onChange={(v) => setNf1('zip', v)} placeholder="ZIP" mono />
+                          {/* NO 'CA' ANYWHERE — not as a value, not as a
+                              placeholder that looks like one. Two letters, and
+                              blank means blank. */}
+                          <CIField value={nf.state} onChange={(v) => setNf1('state', v.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} placeholder="State" mono />
+                          <CIField value={nf.zip} onChange={(v) => setNf1('zip', v.replace(/[^0-9]/g, '').slice(0, 5))} placeholder="ZIP" mono />
                         </div>
                       </div>
                     </div>
@@ -722,18 +1034,18 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                       {/* THE LAPSE IS NAMED IN ALL THREE POSITIONS; only the
                           consequence sentence changes. `nfDocExpired` still
                           drives the alarm colour whether or not it blocks. */}
-                      <span style={{ flex: 1, fontSize: 11.5, color: nfDocExpired ? P.bad : !nf.doc || !nf.name.trim() ? P.warn : P.inkDim, lineHeight: 1.4 }}>{
+                      <span style={{ flex: 1, fontSize: 11.5, color: nfDocExpired ? P.bad : !nf.doc || !nf.firstName.trim() ? P.warn : P.inkDim, lineHeight: 1.4 }}>{
                         !nf.doc ? 'Scan the ID first — a name on its own is not enough for the buyer either.' :
                         nfDocExpired ? (
                           nfEnforced === true ? `That document EXPIRED on ${nf.doc.expires}. Expiry enforcement is ON, so an expired ID cannot start a customer at ID-on-file — ask for a current one and re-scan.` :
                           nfEnforced === false ? `That document EXPIRED on ${nf.doc.expires}. WOULD HAVE BEEN REFUSED — expiry enforcement is OFF, so this customer can still be created and the refusal is recorded instead of applied. Ask for a current ID anyway: turn enforcement on and they stop clearing.` :
                           `That document EXPIRED on ${nf.doc.expires}. Whether expiry is enforced here is UNKNOWN — nothing published the switch to this screen, so it is refusing on the strict reading rather than guessing. Ask for a current one and re-scan.`
                         ) :
-                        !nf.name.trim() ? 'The document produced no name. Type the legal name to continue.' :
+                        !nf.firstName.trim() ? 'The document produced no first name. Type the legal first name to continue — the last name may legitimately be empty, and a copy of the first is not a surname.' :
                         'Document captured · this customer starts at ID-on-file.'
                       }</span>
                       <PBtn variant="secondary" size="sm" onClick={() => setNewOpen(false)}>Cancel</PBtn>
-                      <PBtn variant="accent" size="sm" icon="check" disabled={!nf.name.trim() || !nf.doc || nfDocBlocks} onClick={createNew}>Create customer</PBtn>
+                      <PBtn variant="accent" size="sm" icon="check" disabled={!nf.firstName.trim() || !nf.doc || nfDocBlocks} onClick={createNew}>Create customer</PBtn>
                     </div>
                   </div> :
               /* THREE OUTCOMES OF A LOOKUP, not one empty rectangle.
@@ -762,7 +1074,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
                     <Icon name="user-plus" size={15} color={P.ink2} />
                     <span style={{ flex: 1, fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>No customer called “{q.trim()}”. Scan their ID above — it onboards them and captures the document in one step. No ID to scan?</span>
-                    <PBtn variant="ghost" size="xs" onClick={() => setNewOpen(true)}>Enter manually</PBtn>
+                    <PBtn variant="ghost" size="xs" onClick={openManual}>Enter manually</PBtn>
                   </div>}
                 </div>}
               </>}

@@ -44,6 +44,16 @@ function setValue(app, el, value) {
   Object.getOwnPropertyDescriptor(app.window.HTMLInputElement.prototype, 'value').set.call(el, value);
   el.dispatchEvent(new app.window.Event('input', { bubbles: true }));
 }
+/** A CIField is a labelled input with NO placeholder, so the label sitting
+ *  immediately above it is the only handle on it. */
+function fieldByLabel(app, label) {
+  const wrap = [...app.document.querySelectorAll('div')].find((d) => {
+    const lab = d.firstElementChild;
+    return lab && (lab.textContent || '').trim().toLowerCase().startsWith(label.toLowerCase()) &&
+      d.querySelector(':scope > input');
+  });
+  return wrap && wrap.querySelector(':scope > input');
+}
 function openMember(app, name) {
   const row = [...app.document.querySelectorAll('tr')].find((r) => (r.textContent || '').includes(name));
   assert.ok(row, `no table row for ${name}`);
@@ -299,5 +309,271 @@ test('Save is refused OUT LOUD, naming the split fields it is still missing', as
       assert.ok(t.includes(frag), `the refusal does not name the missing "${frag}" — a greyed-out ` +
         'button with no stated reason makes the operator guess which of six fields is the blocker');
     }
+  });
+});
+
+/* ── 4. the check-in screen — the surface the ruling was pointed at ──────── */
+//
+// The owner's screenshot was THIS form: one "FULL NAME" box, one "Street
+// address" box. Everything below it was already waiting and was being thrown
+// away — the scanner has emitted `firstName`, `lastName`, `nameGuessed`,
+// `nameGuessNote` and a split `address` since the producer was migrated, and
+// pos/checkin.jsx read `d.name` and `d.dob` and dropped the rest, then made the
+// client re-derive by guesswork a split it was being handed for free.
+
+/** Open the check-in modal and reach the MANUAL new-customer form by searching
+ *  for somebody who does not exist. This is the one path a joined legacy string
+ *  still travels — the operator types a whole name, is told nobody has it, and
+ *  the form opens on the split. */
+async function manualForm(app, query) {
+  await app.mount('MembersScreen');
+  assert.ok(app.click('New check-in'), 'no New check-in tile');
+  await app.settle();
+  // Three inputs on this page match a shorter search fragment; this is the
+  // modal's own.
+  assert.ok(app.type('by name, e-mail or phone', query), 'no manual search field');
+  await app.settle();
+  assert.ok(app.click('Enter manually'), 'a search matching nobody must still offer a manual path');
+  await app.settle();
+}
+
+test('the check-in new-customer form has a dedicated field per parameter, and the joined boxes are GONE', async () => {
+  await withApp('pos', async (app) => {
+    await manualForm(app, 'Zzz Nobody Probe');
+
+    for (const l of ['First name', 'Last name', 'Date of birth', 'Phone', 'Email']) {
+      assert.ok(fieldByLabel(app, l), `no dedicated input labelled "${l}"`);
+    }
+    for (const ph of ['Street no.', 'Street name', 'City', 'State', 'ZIP']) {
+      assert.ok(byPlaceholder(app, ph), `no dedicated input for "${ph}"`);
+    }
+    // GONE, not merely joined by new siblings. Two ways to enter one parameter
+    // is the dirty-data bug wearing a bigger form.
+    assert.equal(inputs(app).filter((i) => (i.getAttribute('placeholder') || '') === 'Street address').length, 0,
+      'the joined "Street address" box is still present alongside the split pair');
+    assert.doesNotMatch(app.text(), /Full name/,
+      'the joined "Full name" box is still on the screen the owner sent back — the server has ' +
+      'no joined name key on any create path (wmdemo/server.py:4843), so this box was never ' +
+      'the wire format, only a lossy detour the client had to reverse by guessing');
+  });
+});
+
+test('the State box starts EMPTY — absent is not California', async () => {
+  await withApp('pos', async (app) => {
+    await manualForm(app, 'Zzz Nobody Probe');
+    const st = byPlaceholder(app, 'State');
+    assert.equal(st.value, '',
+      "the form's initial state carried `state: 'CA'`, so an operator who never looked at that " +
+      'box STORED California on an out-of-state licence. It is the identical defect removed ' +
+      'from customer-extras.jsx one step later in the pipe, where a hardcoded CA in a render ' +
+      'line made every out-of-state address on file display as Californian. An absence must ' +
+      'read as an absence — a default that looks like a captured value is a fabrication');
+    assert.doesNotMatch(app.text(), /\bCA\b/,
+      "no 'CA' may appear anywhere on an untouched new-customer form — not as a value and not " +
+      'as a placeholder that reads like one');
+  });
+});
+
+test('a name split out of a typed query is prefilled, MARKED as a guess, and never labelled from ID', async () => {
+  await withApp('pos', async (app) => {
+    // Three words: the case the last-token rule gets WRONG, which is the whole
+    // reason the mark exists. 'Nobody Probe' is not this person's surname.
+    await manualForm(app, 'Zzz Nobody Probe');
+
+    assert.equal(fieldByLabel(app, 'First name').value, 'Zzz Nobody');
+    assert.equal(fieldByLabel(app, 'Last name').value, 'Probe');
+
+    const t = app.text();
+    // THE RENDERER. `nameGuessed` has travelled on every document this estate
+    // scans since the producer was split, and until this change NOTHING drew
+    // it anywhere — a flag with no renderer is not a safeguard, it is a field
+    // in an object.
+    assert.ok(app.document.querySelector('[data-hw="name-split-guess"]'),
+      'the guessed split is presented with no mark at all, which is an inference rendered as a ' +
+      'measurement — the exact defect this file exists to stop');
+    assert.match(t, /is a GUESS|are a GUESS/,
+      'the mark must say the word: a subtle tint is not a warning');
+    assert.match(t, /Compound surnames|Van Der Berg|words/,
+      'the mark must NAME the failure mode. A flag with no reason beside it gets dismissed and ' +
+      'the operator never learns what to check');
+    // THE LABEL IS A LEGAL CLAIM. A guessed surname wearing "· from ID" would
+    // say a government document named something it never contained.
+    assert.match(t, /First name · GUESSED/, 'the guessed first name is not marked on its own label');
+    assert.match(t, /Last name · GUESSED/, 'the guessed last name is not marked on its own label');
+    assert.doesNotMatch(t, /First name · from ID|Last name · from ID/,
+      'there is no document on this path at all — claiming "from ID" here would be inventing a ' +
+      'provenance for a value the operator typed and we then cut in half');
+  });
+});
+
+test('correcting a guessed half withdraws the mark from THAT half and no other', async () => {
+  await withApp('pos', async (app) => {
+    await manualForm(app, 'Zzz Nobody Probe');
+    setValue(app, fieldByLabel(app, 'Last name'), 'Van Der Berg');
+    await app.settle();
+
+    const t = app.text();
+    assert.doesNotMatch(t, /Last name · GUESSED/,
+      'the operator has just typed this value, so it is theirs and no longer our inference');
+    assert.match(t, /First name · GUESSED/,
+      'correcting one half says NOTHING about the other. Clearing both marks on a single edit ' +
+      'would silently certify a field nobody has looked at');
+    // The note narrows rather than vanishing, so it keeps naming what is left.
+    assert.match(t, /first name is a GUESS/,
+      'the note must name the half that is still unchecked, not disappear on the first keystroke');
+
+    setValue(app, fieldByLabel(app, 'First name'), 'Mary Jo');
+    await app.settle();
+    assert.equal(app.document.querySelector('[data-hw="name-split-guess"]'), null,
+      'with both halves corrected there is no guess left to warn about — a warning that never ' +
+      'clears is a warning that gets ignored, and then it means nothing on the hard name');
+  });
+});
+
+test('an EMPTY manual form is an absence and is not flagged', async () => {
+  await withApp('pos', async (app) => {
+    // No query typed at all. Reached through the guest editor's own manual
+    // path, which seeds nothing.
+    await app.mount('MembersScreen');
+    assert.ok(app.click('New check-in'), 'no New check-in tile');
+    await app.settle();
+    assert.ok(app.type('by name, e-mail or phone', '   '), 'no manual search field');
+    await app.settle();
+    // A whitespace-only query matches everybody, so reach the form the other
+    // way: a query with no match, then clear the boxes it seeded.
+    assert.ok(app.type('by name, e-mail or phone', 'Zzzq'), 'no manual search field');
+    await app.settle();
+    app.click('Enter manually');
+    await app.settle();
+    setValue(app, fieldByLabel(app, 'First name'), '');
+    await app.settle();
+    setValue(app, fieldByLabel(app, 'Last name'), '');
+    await app.settle();
+    assert.equal(app.document.querySelector('[data-hw="name-split-guess"]'), null,
+      'an empty field is an ABSENCE, not a guess. Hanging a warning on every untouched box is ' +
+      'how operators learn to ignore the warning that matters');
+  });
+});
+
+test('the buyer is created from the SPLIT pair, with the joined name derived from it', async () => {
+  await withApp('pos', async (app) => {
+    const HW = app.window.HW;
+    const before = HW.MEMBERS.length;
+    await app.mount('MembersScreen');
+    assert.ok(app.click('New check-in'), 'no New check-in tile');
+    await app.settle();
+    assert.ok(app.click('Scan ID'), 'the modal must lead with the scanner');
+    await new Promise((r) => setTimeout(r, 900));
+    await app.settle();
+
+    setValue(app, fieldByLabel(app, 'First name'), 'Ng');
+    await app.settle();
+    // A MONONYM. Its last name stays empty — never a copy of the first, which
+    // would mint a name_dob_fp for a surname we do not have and collide with
+    // everyone genuinely carrying 'Ng' as one.
+    setValue(app, fieldByLabel(app, 'Last name'), '');
+    await app.settle();
+
+    const create = [...app.document.querySelectorAll('button')]
+      .find((b) => (b.textContent || '').trim() === 'Create customer');
+    assert.equal(create.disabled, false,
+      'a first name and a document is the bar. Demanding a surname makes the operator INVENT ' +
+      'one to get past the button, which is the dirty data this ruling is about — and the ' +
+      'server already says so, returning None from name_dob_fp rather than a wrong fingerprint');
+    app.click('Create customer');
+    await app.settle();
+    assert.ok(app.click('Check in'), 'no Check in button');
+    await app.settle();
+
+    assert.equal(HW.MEMBERS.length, before + 1, 'the check-in created no customer');
+    // addMember unshifts, so the new record is at the FRONT of the book.
+    const m = HW.MEMBERS.find((x) => x.name === 'Ng');
+    assert.ok(m, 'the created customer is not in the book under its derived joined name');
+    assert.equal(m.first_name, 'Ng', 'the record does not carry a dedicated first name');
+    assert.equal(m.last_name, '',
+      "a mononym's surname is EMPTY on the record too — no fingerprint beats a wrong one");
+    // WHAT THIS PROVES AND WHAT IT DOES NOT, stated rather than implied.
+    // It pins that the stored joined string AGREES with the stored pair — the
+    // drift check, which is what matters once both sit on one record. It does
+    // NOT prove the join drops an empty half rather than leaving a trailing
+    // space: addMember trims `name`, so a naive `first + ' ' + last` survives
+    // this line. Mutation-tested 2026-08-27, and it survived — which is why
+    // this says so instead of taking the credit. The trailing-space property is
+    // pinned where it can be: the `N.join('Ng', '')` assertion above.
+    assert.equal(m.name, app.window.HWName.join(m.first_name, m.last_name),
+      'the joined `name` on the record must agree with the split pair beside it. It is a ' +
+      'display convenience derived from them, and two stored copies of one fact drift apart — ' +
+      'at which point nothing on screen tells you which one the fingerprint used');
+    assert.equal(m.name, 'Ng', 'the derived display name is wrong for a mononym');
+  });
+});
+
+test('the scanned address fills the split fields, and the state is the document’s own', async () => {
+  await withApp('pos', async (app) => {
+    await app.mount('MembersScreen');
+    assert.ok(app.click('New check-in'), 'no New check-in tile');
+    await app.settle();
+    assert.ok(app.click('Scan ID'), 'the modal must lead with the scanner');
+    await new Promise((r) => setTimeout(r, 900));
+    await app.settle();
+
+    const st = byPlaceholder(app, 'State');
+    const num = byPlaceholder(app, 'Street no.');
+    const name = byPlaceholder(app, 'Street name');
+    assert.ok(st && num && name, 'the scanned form has no split address fields');
+    // The first read of a session is Marcus Webb — 1180 Grand Ave, Corona CA.
+    // Asserting the VALUES, not merely that something arrived: an address that
+    // prefilled from nothing would pass a presence check.
+    assert.equal(num.value, '1180',
+      'the house number was dropped — the scanner emits `streetNumber` as its own element and ' +
+      'this form used to read only the joined `street`, so the operator retyped what the ' +
+      'barcode had already handed over');
+    assert.equal(name.value, 'Grand Ave', 'the street name did not arrive split');
+    assert.equal(byPlaceholder(app, 'City').value, 'Corona');
+    assert.equal(st.value, 'CA',
+      'the state must come FROM THE DOCUMENT. It reads CA here because this licence is ' +
+      'Californian — not because the form assumed it');
+    assert.equal(byPlaceholder(app, 'ZIP').value, '92879');
+  });
+});
+
+test('a document carrying ONLY a joined name is split, MARKED, and does not dead-end the counter', async () => {
+  await withApp('pos', async (app) => {
+    // The producer this estate has not migrated yet — and the real PDF417
+    // reader on the day it lands. Driven through the scanner seam with a stub,
+    // because the simulator only ever emits already-split documents and this
+    // path would otherwise never run.
+    app.window.HW.MEMBERS = [];
+    const R = app.window.React;
+    const doc = { type: 'CA DL', num: '••••4821', expires: '2032-05-30', scannedAt: 'Just now',
+      by: 'Manisha Saini', photo: true, name: 'Mary Jo Van Der Berg', dob: '04/02/1988',
+      returning: false, lookup: 'ok', simulated: true };
+    app.window.IdScanPanel = function StubScan({ onChange }) {
+      return R.createElement('button', { onClick: () => onChange(doc) }, 'STUB SCAN');
+    };
+    app.window.__CheckInProbe = () =>
+      R.createElement(app.window.CheckInModal, { onClose() {}, onCheckIn() {} });
+    await app.mount('__CheckInProbe');
+    assert.ok(app.click('STUB SCAN'), 'the stub scanner was never rendered');
+    await app.settle();
+
+    // THE DEFECT THIS PINS: reading `d.firstName` and stopping left the first
+    // name EMPTY, and the form then refused to create the customer at all — a
+    // person at the counter holding a valid ID, blocked by a field mapping.
+    assert.equal(fieldByLabel(app, 'First name').value, 'Mary Jo Van Der');
+    assert.equal(fieldByLabel(app, 'Last name').value, 'Berg');
+    const create = [...app.document.querySelectorAll('button')]
+      .find((b) => (b.textContent || '').trim() === 'Create customer');
+    assert.equal(create.disabled, false,
+      'a document that carries a name in the old shape must not dead-end the check-in — ' +
+      'splitting it is the one job splitGuess exists for');
+
+    const t = app.text();
+    assert.match(t, /is a GUESS|are a GUESS/,
+      'the split is OURS here, not the document’s, and it has to say so');
+    assert.doesNotMatch(t, /First name · from ID|Last name · from ID/,
+      'the barcode named neither half. "· from ID" on a value we cut out of a joined string ' +
+      'would be claiming a government document said something it never said — and the ' +
+      'joined-name shape is exactly where that claim is most tempting and least true');
   });
 });

@@ -34,7 +34,7 @@
           </div>
           <div style={{ padding: 16, borderTop: `1px solid ${P.hairline2}`, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <PBtn variant="ghost" onClick={onClose}>Cancel</PBtn>
-            <PBtn variant="accent" icon="user-plus" onClick={() => { onClose(); window.hdToast?.({ title: 'Customer created', description: `${form.first || 'Unnamed'} ${form.last} added to the identity graph.`, tone: 'ok' }); }}>Add customer</PBtn>
+            <PBtn variant="accent" icon="user-plus" onClick={() => { onClose(); window.hdToast?.({ title: 'Customer created', description: `${[form.first, form.last].filter(Boolean).join(' ') || 'Unnamed'} added to the identity graph.`, tone: 'ok' }); }}>Add customer</PBtn>
           </div>
         </Card>
       </div>);
@@ -164,7 +164,30 @@
     const P = useP(), HD = window.HD;
     const [revealed, setRevealed] = React.useState(false);
     const info = HD.tone(P, 'info');
-    const email = `${customer.name.split(' ')[0].toLowerCase()}.${customer.name.split(' ')[1].toLowerCase()}@example.com`;
+    // ── THIS LINE USED TO CRASH THE WHOLE DETAIL SCREEN ──────────────────────
+    // It was `name.split(' ')[1].toLowerCase()`. On a ONE-WORD name — a
+    // mononym, or any record whose surname was never captured — `[1]` is
+    // `undefined` and `.toLowerCase()` throws, taking the entire customer page
+    // down to a blank. Nothing rendered: not the name, not the spend, not the
+    // consent log. It survived only because every generated fixture happens to
+    // carry two words, which is exactly the kind of luck this estate keeps
+    // mistaking for correctness.
+    //
+    // It is fixed by NOT SPLITTING AT ALL [OWNER RULING 2026-08-27]. The
+    // customer row now carries `firstName`/`lastName` as dedicated fields
+    // (engage/data.jsx), so the halves are read, never inferred. A missing
+    // surname drops out of the local part rather than being guessed at or
+    // crashing — `filter(Boolean)` is what makes a mononym produce `ng@…`
+    // instead of `ng.undefined@…`.
+    const localPart = [customer.firstName, customer.lastName]
+      .filter(Boolean).map((s) => String(s).toLowerCase()).join('.');
+    // AN ABSENT EMAIL IS NOT A HIDDEN ONE. `hasEncryptedEmail` is false on part
+    // of the book, and the dots rendered identically either way — so a row with
+    // no email on record looked like a row with one the operator simply had not
+    // revealed yet, and "Reveal" then produced an address out of the name. An
+    // absence now says it is an absence, before anyone clicks.
+    const hasEmail = customer.hasEncryptedEmail !== false && !!localPart;
+    const email = hasEmail ? `${localPart}@example.com` : null;
     return (
       <Card padding={16}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -172,7 +195,9 @@
             <Icon name="lock" size={11} stroke={2} />Encrypted identity
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontFamily: P.fontMono, color: P.ink2 }}>
-            <Icon name="mail" size={13} stroke={2} color={P.inkMute} />{revealed ? email : '••••••••••@•••••.com'}
+            <Icon name="mail" size={13} stroke={2} color={P.inkMute} />{
+              !hasEmail ? <span style={{ fontFamily: P.fontSans, color: P.inkMute }}>no email on record</span> :
+              revealed ? email : '••••••••••@•••••.com'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontFamily: P.fontMono, color: P.ink2 }}>
             <Icon name="phone" size={13} stroke={2} color={P.inkMute} />{revealed ? '+1 (310) 555-0142' : '+1 (•••) •••-••••'}

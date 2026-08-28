@@ -1031,7 +1031,7 @@ function DeliveryMap({ items, onStartSale, onOpen }) {
                   icon={ds.kind === 'mock' ? 'user-check' : 'shield'} full
                   title={ds.kind === 'mock' ? un ? 'Assign a driver to this demo stop (local only)' : 'Move this stop to another driver' : 'What the API says about this stop'}
                   onClick={(e) => {e.stopPropagation();setAssign(o);}}>{
-                  ds.kind === 'mock' ? un ? 'Assign driver' : driverOf(o) :
+                  ds.kind === 'mock' ? un ? 'Assign driver' : driverLabel(o) :
                   ds.kind === 'held' ? ds.hold.releasable ? 'Release & dispatch' : 'Held · ' + (ds.hold.block_code || ds.hold.held_for) : ds.text}</PBtn>
                     <PBtn variant="secondary" size="xs" icon="phone" title="Show the phone number on file"
                   onClick={(e) => {e.stopPropagation();setCall((c) => c === o.id ? null : o.id);}} />
@@ -1185,15 +1185,51 @@ function FleetBar({ P }) {
 // driverOf() reads the order first and falls back to the seed.
 //
 // The roster names people in full ("Theo Reyes") and the routing table names
-// them the way a dispatcher writes them on a board ("Theo R."). Writing the
-// full name would have invented a second driver that no view could match, so
-// one converter is used on every write and every comparison.
+// them the way a dispatcher writes them on a board ("Theo R."). One converter
+// produces that board form.
+//
+// ── A DISPLAY ABBREVIATION WAS BEING PERSISTED AS THE NAME ────────────────
+// [OWNER RULING 2026-08-27 — one field per parameter, no dirty data]
+// `assignDriverTo` used to write `{ driver: shortDriver(drv.name) }` through
+// HW.updateOrder, and updateOrder assigns straight onto the order record. So
+// "Theo R." — a truncation invented for a narrow column — was STORED as the
+// driver of that order, and the driver's real name was thrown away at the
+// moment of assignment. The surname was gone: "Theo R." cannot be turned back
+// into "Theo Reyes" by anything, and a second Theo on the roster is
+// indistinguishable from the first. It is the same defect as a joined name box,
+// inverted — not one field holding two parameters, but one field holding a
+// LOSSY RENDERING of one.
+//
+// The rule now: STORE THE IDENTITY, ABBREVIATE ONLY AT THE GLASS.
+//   · `driverId` is written alongside, so the record points at a roster row
+//     rather than at a string that has to be matched back by shape.
+//   · `driver` holds the full name as the roster gives it.
+//   · `shortDriver()` is a RENDERER, called at each display site.
+//   · `sameDriver()` is the comparator, because the seed rows in HW.DELIVERY
+//     were authored in board form ("Theo R.") and are not being rewritten.
+//     Comparing through the abbreviation is what lets a stored full name and a
+//     seeded short name still resolve to one person. It is idempotent —
+//     shortDriver('Theo R.') is 'Theo R.' — so both sides normalise cleanly.
 function shortDriver(name) {
   const p = String(name || '').trim().split(/\s+/);
   return p.length > 1 ? `${p[0]} ${p[1][0]}.` : p[0] || '';
 }
+/** Are these two references the same driver? Compares in board form so a stored
+ *  full name matches a seeded abbreviation without either being rewritten. */
+function sameDriver(a, b) {
+  const x = shortDriver(a), y = shortDriver(b);
+  return !!x && !!y && x.toLowerCase() === y.toLowerCase();
+}
+/** The driver as STORED — full name where we have one, the seed's board form
+ *  where that is all that exists. Never abbreviate here; callers that draw it
+ *  wrap it in shortDriver() themselves. */
 function driverOf(o) {
   return o.driver || (window.HW.DELIVERY[o.id] || {}).driver || 'Unassigned';
+}
+/** The driver as DRAWN — the dispatcher's board form. */
+function driverLabel(o) {
+  const d = driverOf(o);
+  return d === 'Unassigned' ? d : shortDriver(d);
 }
 
 // ── THE BOARD IS NOT THE DISPATCHER ────────────────────────────────────────
@@ -1414,7 +1450,7 @@ window.QueueHealthStrip = function QueueHealthStrip() {
 function isLiveOrder(o) {return !!(o && o._live);}
 // The ONE place that decides what a delivery row's driver slot may say.
 function dispatchStateOf(o) {
-  if (!isLiveOrder(o)) return { kind: 'mock', text: driverOf(o) };
+  if (!isLiveOrder(o)) return { kind: 'mock', text: driverLabel(o) };
   if (HOLDS.state === 'live') {
     const h = HOLDS.by[String(o.id)];
     // `held_for` is why it WAS held; `block_code` is why it still is. A hold
@@ -1452,14 +1488,17 @@ function DispatchCell({ o }) {
 // not-known into a 1, and the load meter then drew a bar off it. A number we
 // were never given stays not-given.
 function assignDriverTo(o, drv) {
-  const before = window.HW.DRIVERS.find((x) => shortDriver(x.name) === driverOf(o));
+  const before = window.HW.DRIVERS.find((x) => sameDriver(x.name, driverOf(o)));
   if (before && typeof before.stops === 'number' && before.stops > 0) before.stops -= 1;
   if (typeof drv.stops === 'number') drv.stops += 1;
-  return window.HW.updateOrder(o.id, { driver: shortDriver(drv.name) });
+  // THE NAME AS THE ROSTER HAS IT, plus the id. What used to be written here was
+  // `shortDriver(drv.name)` — the board abbreviation, stored as though it were
+  // the driver's name, discarding the surname permanently. The board form is
+  // still what gets DRAWN; it is just no longer what gets kept.
+  return window.HW.updateOrder(o.id, { driver: drv.name, driverId: drv.id || null });
 }
 function stopsFor(driverName, orders) {
-  const s = shortDriver(driverName);
-  return orders.filter((o) => driverOf(o) === s);
+  return orders.filter((o) => sameDriver(driverOf(o), driverName));
 }
 
 // ── Sheet chrome, shared by both sheets below ─────────────────────────────
@@ -1616,7 +1655,7 @@ function AssignDriverSheet({ o, onClose }) {
   // roster for it is the falsehood this split exists to end.
   if (isLiveOrder(o)) return <LiveDispatchSheet o={o} onClose={onClose} />;
   const d = window.HW.DELIVERY[o.id] || {};
-  const cur = driverOf(o);
+  const cur = driverLabel(o);           // drawn in the header, so board form
   const rank = (x) => (d.zone && x.region === d.zone ? 0 : 1);
   const list = window.HW.DRIVERS.slice().sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
   // `stops`/`cap` are null when the API supplied the roster — not zero. A
@@ -1626,7 +1665,9 @@ function AssignDriverSheet({ o, onClose }) {
   const refuse = (x) =>
   x.status === 'offline' ? `${x.name.split(' ')[0]} is off shift` :
   loadKnown(x) && x.stops >= x.cap ? `At capacity · ${x.stops}/${x.cap} stops` :
-  shortDriver(x.name) === cur ? 'Already has this stop' : null;
+  // Compared against what is STORED, not against the label drawn above — the
+  // two are the same person but not the same string once a full name is kept.
+  sameDriver(x.name, driverOf(o)) ? 'Already has this stop' : null;
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 120, background: P.scrim, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 20px', overflowY: 'auto', animation: 'fade .15s ease' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
@@ -3203,6 +3244,10 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   // assigning or re-routing a driver changed nothing in this modal, and an
   // order with nobody on it still named "Theo Reyes". driverOf() is the same
   // resolver every delivery view already uses: order first, seed second.
+  // Deliberately the STORED value, not the board abbreviation: a receipt should
+  // name the person, and since assignment now keeps the roster's full name there
+  // is one to give. A seeded row still reads "Theo R." because that is genuinely
+  // all that row has ever held — each shows exactly what is on the record.
   const driver = driverOf(o);
   const hasDriver = driver !== 'Unassigned';
   const placedBy = channel === 'delivery' ? driver : associate;
