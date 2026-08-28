@@ -27,6 +27,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # The drift check enumerates the entry points from the REPO, not from
+      # either host — a page that one host stopped serving must be a failure,
+      # and a list derived from a host can never show you that. That needs a
+      # checkout; without one `git ls-tree` exits 128 and the step dies before
+      # printing a single FAIL, which reads as green.
+      - uses: actions/checkout@v4
+
       - name: Require the deploy hook
         env:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
@@ -70,87 +77,198 @@ jobs:
           exit 1
 
       - name: Confirm the two hosts agree
+        env:
+          SHA: ${{ github.sha }}
         run: |
-          # ⚠️ THIS NO LONGER COMPARES BYTES, AND THAT IS DELIBERATE.
+          # ⚠️ REWRITTEN 2026-08-27. WHAT THE OLD VERSION OF THIS STEP MISSED.
           #
-          # It used to shasum this page on both hosts and require equality. That
-          # stopped being the right question when Render started PRECOMPILING the
-          # JSX at deploy time (wm-integration/render.yaml): Render now serves
-          # plain <script src="build/pos/x.<hash>.js"> where Pages, which has no
-          # build step and serves main verbatim, still serves
-          # <script type="text/babel" src="pos/x.jsx">. The two hosts SHOULD
-          # differ in those bytes now, and a check that fails on every single
-          # deploy is a check everybody turns off.
+          # It asked a real question and asked it of ONE page. Measured against
+          # both live hosts on 2026-08-27, here is what it could not see:
           #
-          # THE DRIFT QUESTION IS STILL ASKED, in two parts:
-          #   1. STRUCTURE — both hosts must load the same app sources, in the
-          #      same order. Render names each one in data-hw-src, Pages in the
-          #      src of its babel tag, so one extraction reads both. This catches
-          #      a stale clone that is missing a screen, which is the shape the
-          #      six-day drift in August actually had.
-          #   2. CONTENT — Render publishes build/precompiled-sources.txt, the
-          #      sha256 of every .jsx it compiled. We hash one of those files as
-          #      Pages serves it and require the sha to appear. That is a
-          #      STRONGER statement than the old byte compare: it says Render's
-          #      compiled output was built from the exact source Pages is serving.
+          #  1. IT CHECKED 1 ENTRY POINT OF 19. Only `Hyperwolf POS.html`. A
+          #     screen added to Promotions Suite, METRC Batch Pipeline or any of
+          #     the other 17 and present on only one host was invisible to it —
+          #     which is exactly the shape of drift its own comment claimed to
+          #     catch. 281 script tags exist across the 19 pages; it read 35.
           #
-          # Still a poll, for the reason the old comment gave: Pages publishes on
-          # its own schedule and is often still building when Render finishes.
+          #  2. IT COULD NOT HAVE BEEN EXTENDED AS WRITTEN. `cmp -s` on the raw
+          #     extraction goes red on 10 of the 19 pages for reasons that are
+          #     not drift at all:
+          #       · 5 pages (Customer Account, Hyperdrive Logistics, Hyperwolf
+          #         Shop, Members CRM, Shop at Home) carry an INLINE text/babel
+          #         block. Precompile hoists it to a file and names it
+          #         `<page> (inline #1)`; the un-precompiled side has no src to
+          #         extract. Render lists 281 sources, Pages 276 — a 5-source
+          #         gap that is pure representation.
+          #       · 5 pages under explorations/ and rfid-direction-{b,c} name
+          #         their shared sources RELATIVELY (`../pos/tokens.jsx`).
+          #         Precompile resolves them root-relative (`pos/tokens.jsx`).
+          #     Both are normalised below rather than compared raw.
+          #
+          #  3. IT NEVER ASKED WHETHER EITHER HOST WAS CURRENT. This is the one
+          #     that matters. The loop polled until the two lists MATCHED, then
+          #     broke. Most commits change JSX bodies and not the script list —
+          #     so against a Pages deployment still serving the PREVIOUS commit,
+          #     the lists match on attempt 1 and the step goes green. Pages
+          #     published no build stamp at all (build-info.json: 404 there,
+          #     200 on Render), so nothing else could have caught it either.
+          #     Now both hosts stamp, and both are asserted against THIS sha.
+          #
+          #  4. ITS CONTENT SPOT-CHECK WAS ONE FILE OF 281. `pos/data.jsx`. A
+          #     divergence in any of the other 280 passed. Now every source
+          #     Render compiled is checked against the copy Pages serves.
+          #
+          #  5. IT NEVER LOOKED AT index.html — where the hosts differ MOST.
+          #     Pages serves a 551-byte redirect to Hyperwolf.html; Render
+          #     serves a 114,629-byte Integration Control Center from
+          #     wmdemo.server, which shadows the static file. That is by design
+          #     (Render is the live demo, Pages the design reference) but it was
+          #     undocumented and invisible. It is now asserted as EXPECTED, so
+          #     it stays deliberate instead of becoming folklore.
+          #
+          # It still does NOT compare bytes, for the reason the old comment
+          # gave, plus one more found by measurement: two builds of the SAME
+          # commit produce byte-identical compiled .js but HTML that differs,
+          # because precompile injects `builtAt` into each rewritten page. Byte
+          # equality is therefore unreachable even in principle once both hosts
+          # build. Structure + content hashes are the right question.
+          set -u
           PAGES=https://dev-hyperwolf.github.io/POS-Admin
           RENDER=https://hyperwolf-wm-demo.onrender.com
-          # The extractor lives in a quoted heredoc, not inline in a shell function.
-          # The inline version needed five levels of escaping to get a regex through
-          # YAML -> shell -> python, and produced a SyntaxError that made this step
-          # fail for a reason with nothing to do with drift. A red check that lies
-          # about WHY is barely better than a green one that lies about whether.
-          #
-          # EVERY LINE OF THE HEREDOC CARRIES THIS BLOCK'S INDENT ON PURPOSE. A `run:`
-          # block scalar strips exactly this much; a heredoc body written at column 0
-          # leaves the block and YAML reads `import re, sys` as a new top-level key,
-          # breaking the whole workflow file rather than just this step.
+          fails=0
+
+          # EVERY LINE LEADS WITH PASS OR FAIL, and a crash in the python below
+          # exits non-zero and prints FAIL, because a probe that dies quietly
+          # reads as green.
           cat > /tmp/srclist.py <<'SRCLIST'
-          import re, sys
+          import re, sys, posixpath
+          page = sys.argv[1]
           h = sys.stdin.read()
-          # Render, precompiled: the source path rides along on the compiled tag.
+          # THE TWO SIDES SPEAK DIFFERENT DIALECTS AND ONLY ONE NEEDS RESOLVING.
+          # Precompiled host: data-hw-src is ALREADY root-relative, because
+          # precompile.mjs resolved it when it named the output. Verbatim host:
+          # the src is PAGE-relative, exactly as the author typed it, so
+          # `explorations/Studio - 3 Options.html` says `../pos/tokens.jsx`.
+          # Joining the page's dirname onto BOTH turns the already-resolved side
+          # into `rfid-direction-c/pos/tokens.jsx` and reports drift on 5 pages
+          # that have none — which is how this check earns a reputation for
+          # crying wolf and stops being read.
           r = re.findall(r'data-hw-src="([^"]+)"', h)
-          # Pages -- and a Render build that could not precompile -- carry the real thing.
+          rooted = bool(r)
           if not r:
               r = re.findall(r'<script[^>]*type="text/babel"[^>]*src="([^"]+)"', h)
-          print(chr(10).join(r))
+          # AND `<base href>` MOVES THE GOALPOSTS AGAIN. `rfid/index.html` and
+          # `rfid-direction-a/index.html` carry `<base href="../"/>`, so their
+          # src paths resolve from the REPO ROOT and not from the page's own
+          # directory — which is why they name `pos/tokens.jsx` while their
+          # siblings say `../pos/tokens.jsx`. precompile-verify.mjs honours this
+          # (baseDirFor); an extractor that does not will resolve them to
+          # `rfid/pos/tokens.jsx` and report drift on exactly the 2 pages where
+          # the raw lists already agreed.
+          base = posixpath.dirname(page)
+          m = re.search(r'<base\b[^>]*href\s*=\s*"([^"]*)"', h, re.I)
+          if m:
+              base = posixpath.normpath(posixpath.join(base, m.group(1)))
+              if base == '.':
+                  base = ''
+          out = []
+          for s in r:
+              if '(inline #' in s:
+                  continue          # no counterpart on the verbatim side
+              out.append(s if rooted else posixpath.normpath(posixpath.join(base, s)))
+          print(chr(10).join(out))
           SRCLIST
-          extract() { python3 /tmp/srclist.py; }
-          for i in $(seq 1 40); do
-            curl -sS -m 20 "$PAGES/Hyperwolf%20POS.html"  > /tmp/pages.html  || true
-            curl -sS -m 20 "$RENDER/Hyperwolf%20POS.html" > /tmp/render.html || true
-            extract < /tmp/pages.html  > /tmp/pages.list
-            extract < /tmp/render.html > /tmp/render.list
-            if [ -s /tmp/pages.list ] && cmp -s /tmp/pages.list /tmp/render.list; then
-              echo "Both hosts load the same $(wc -l < /tmp/pages.list) app sources, in the same order."
-              break
-            fi
-            echo "attempt $i: pages=$(wc -l < /tmp/pages.list) sources, render=$(wc -l < /tmp/render.list) -- waiting for Pages to publish"
-            sleep 15
-            if [ "$i" = "40" ]; then
-              echo "::error::the two hosts do not load the same app sources after 10 minutes."
-              diff /tmp/pages.list /tmp/render.list || true
-              exit 1
+
+          # ── 1. BOTH HOSTS ARE SERVING THIS COMMIT ────────────────────────
+          for host in PAGES RENDER; do
+            url=$(eval echo \$$host)
+            live=$(curl -sS -m 20 "$url/build-info.json" 2>/dev/null \
+                   | sed -n 's/.*"sha":"\([^"]*\)".*/\1/p')
+            if [ "$live" = "$SHA" ]; then
+              echo "PASS host-sha: $host is serving $SHA"
+            elif [ -z "$live" ] && [ "$host" = "PAGES" ]; then
+              echo "FAIL host-sha: PAGES publishes no build-info.json, so there is no way to"
+              echo "FAIL host-sha: tell a current deployment from one that is days behind."
+              echo "::error::Enable .github/workflows/pages.yml (Settings > Pages > Source: GitHub Actions)."
+              fails=$((fails+1))
+            else
+              echo "FAIL host-sha: $host is at ${live:-unreachable}, want $SHA"
+              fails=$((fails+1))
             fi
           done
 
-          # Content spot-check. Absent only when Render could not precompile --
-          # render.yaml says so out loud in that case and stamps it onto the page,
-          # so this reports rather than fails.
-          if curl -sSf -m 20 "$RENDER/build/precompiled-sources.txt" -o /tmp/sources.txt; then
-            want=$(curl -sS -m 20 "$PAGES/pos/data.jsx" | shasum -a 256 | cut -d" " -f1)
-            if grep -q "^$want  pos/data.jsx$" /tmp/sources.txt; then
-              echo "Render compiled pos/data.jsx from exactly the bytes Pages serves ($want)."
+          # ── 2. EVERY ENTRY POINT LOADS THE SAME SOURCES, IN ORDER ────────
+          # The list comes from the repo, not from either host, so a page that
+          # one host stopped serving entirely is a failure and not a shrug.
+          entries=$(git ls-tree -r --name-only HEAD | grep '\.html$')
+          n=0
+          while IFS= read -r page; do
+            [ -n "$page" ] || continue
+            enc=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$page")
+            pcode=$(curl -sS -m 25 -o /tmp/p.html -w '%{http_code}' "$PAGES/$enc"  || echo 000)
+            rcode=$(curl -sS -m 30 -o /tmp/r.html -w '%{http_code}' "$RENDER/$enc" || echo 000)
+            if [ "$pcode" != "$rcode" ]; then
+              echo "FAIL entry-point: $page — pages=$pcode render=$rcode (served by only ONE host)"
+              fails=$((fails+1)); continue
+            fi
+            if [ "$pcode" != "200" ]; then
+              # Both hosts agree — and both are wrong. The file is in git at this
+              # commit and NEITHER host will serve it. Skipping this as "they
+              # match" is how a page silently leaves the site: agreement is not
+              # the same as correctness, and this check exists to say which.
+              echo "FAIL entry-point: $page — in git at $SHA but BOTH hosts return $pcode"
+              fails=$((fails+1)); continue
+            fi
+            python3 /tmp/srclist.py "$page" < /tmp/p.html > /tmp/p.list
+            python3 /tmp/srclist.py "$page" < /tmp/r.html > /tmp/r.list
+            if cmp -s /tmp/p.list /tmp/r.list; then
+              n=$((n+1))
             else
-              echo "::error::Render's build of pos/data.jsx does not match the copy Pages serves."
-              echo "::error::pages sha=$want"
-              grep " pos/data.jsx$" /tmp/sources.txt || echo "::error::render has no record of pos/data.jsx at all"
-              exit 1
+              echo "FAIL entry-point: $page — the two hosts load different app sources:"
+              diff /tmp/p.list /tmp/r.list | sed 's/^/    /' || true
+              fails=$((fails+1))
+            fi
+          done <<< "$entries"
+          echo "PASS entry-point: $n pages load identical source lists on both hosts."
+
+          # ── 3. index.html DIFFERS ON PURPOSE — ASSERT THAT IT STILL DOES ─
+          pidx=$(curl -sS -m 25 "$PAGES/index.html"  | wc -c | tr -d ' ')
+          ridx=$(curl -sS -m 30 "$RENDER/index.html" | wc -c | tr -d ' ')
+          if [ "$pidx" = "$ridx" ]; then
+            echo "FAIL index: both hosts now serve the same index.html ($pidx B)."
+            echo "FAIL index: Render is meant to serve the Integration Control Center at /"
+            echo "FAIL index: and Pages the redirect to Hyperwolf.html. One of them regressed."
+            fails=$((fails+1))
+          else
+            echo "PASS index: pages=${pidx}B (redirect to the hub), render=${ridx}B (Control Center) — divergent by design."
+          fi
+
+          # ── 4. CONTENT: EVERY SOURCE RENDER COMPILED, AS PAGES SERVES IT ─
+          # Was 1 file of 281. Now all of them.
+          if curl -sSf -m 25 "$RENDER/build/precompiled-sources.txt" -o /tmp/sources.txt; then
+            bad=0; ok=0
+            while read -r want src; do
+              [ -n "${src:-}" ] || continue
+              enc=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1]))' "$src")
+              got=$(curl -sS -m 25 "$PAGES/$enc" | shasum -a 256 | cut -d' ' -f1)
+              if [ "$got" = "$want" ]; then ok=$((ok+1)); else
+                echo "FAIL content: $src — render built $want, pages serves $got"
+                bad=$((bad+1))
+              fi
+            done < /tmp/sources.txt
+            if [ "$bad" -gt 0 ]; then
+              echo "FAIL content: $bad of $((ok+bad)) sources differ between the hosts."
+              fails=$((fails+1))
+            else
+              echo "PASS content: all $ok sources Render compiled are byte-identical to what Pages serves."
             fi
           else
             echo "::warning::Render is serving a NON-PRECOMPILED build (no build/precompiled-sources.txt)."
             echo "::warning::The pages still transform their JSX in the browser. See the Render build log."
           fi
+
+          if [ "$fails" -gt 0 ]; then
+            echo "FAIL sync: $fails check(s) failed. The hosts are OUT OF SYNC."
+            exit 1
+          fi
+          echo "PASS sync: both hosts serve $SHA, the same entry points and the same sources."
