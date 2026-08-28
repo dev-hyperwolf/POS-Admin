@@ -433,6 +433,42 @@
       }));
     });
   }
+  // Generic field save for the product detail page's "Save changes" button —
+  // shares renameVariation's exact GET -> modify -> POST -> read-back
+  // discipline (fetchRawProduct + rawToPayload's `overrides` already carry
+  // every OTHER field through unmodified, so a caller here cannot
+  // accidentally erase a field it never named). `overrides` are flat
+  // POST /api/product keys (rawToPayload's own key list). `confirm(live)`
+  // decides whether the read-back proves the write actually landed — the
+  // caller names it because what counts as "landed" differs per field (e.g.
+  // genetics is titleCased on this page but stored lowercase server-side, so
+  // the two sides cannot be compared with plain equality without knowing
+  // that).
+  //
+  // Does NOT touch SHELLS the way renameVariation does. category/genetics
+  // are not shown on the shell list (name and sample are, which is what
+  // renameVariation patches), and HW.PRODUCTS is already correct after
+  // readBackProduct's refresh() rebuilds it — the next seed() naturally picks
+  // up the change. See screen-catalog.jsx's Save changes note for exactly
+  // which fields this is used for and why the others are not.
+  function updateVariationFields(shellId, sku, overrides, confirm) {
+    return fetchRawProduct(sku).then((g) => {
+      if (!g.ok) {
+        return { ok: false, sku, error: g.error || 'not_found',
+          hint: g.hint || ('Could not read the current record for ' + sku +
+            ' before saving — nothing was changed.') };
+      }
+      const body = rawToPayload(g.product, overrides);
+      return pushProduct(body).then((r) => readBackProduct(sku).then((live) => {
+        if (!live || (confirm && !confirm(live))) {
+          return { ok: false, sku, error: r.error || 'not_confirmed',
+            hint: r.hint || ('A fresh read of the catalog does not show the '
+              + 'change for ' + sku + ' — it may not have landed.') };
+        }
+        return { ok: true, sku, wm: r.wm ? wmPushSummary(r.wm) : null };
+      }));
+    });
+  }
   function addBox(name) {if (name && !BOXES.includes(name)) {BOXES = [...BOXES, name];emit();}}
   function renameBox(oldName, next) {
     if (!next || next === oldName) return;
@@ -503,6 +539,6 @@
   }
 
   window.HW_SHELL = { TAX, catDef, get BOXES() {return BOXES;}, KIT_BOXES: BOXES, SHELL_FORMATS, FORMAT_BY_CAT,
-    allShells, shellById, shellOf, useShells, saveShell, createVariation, renameVariation, addBox, renameBox,
+    allShells, shellById, shellOf, useShells, saveShell, createVariation, renameVariation, updateVariationFields, addBox, renameBox,
     parseSize, splitSize, mono1, mono2, slugify, familyPath, menuPath, totalStock, effectivePrice, aiDesc, sharedRows };
 })();

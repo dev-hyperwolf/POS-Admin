@@ -8,6 +8,7 @@ window.CatalogScreen = function CatalogScreen() {
   const [cat, setCat] = React.useState('All');
   const [strain, setStrain] = React.useState('All');
   const [sel, setSel] = React.useState(() => new Set());
+  const [bulkMsg, setBulkMsg] = React.useState(null); // {ok, t} — result of the last bulk Weedmaps action
   const [sort, setSort] = React.useState('name');
   const [view, setView] = React.useState('table');
   const [smart, setSmart] = React.useState('none');
@@ -184,17 +185,28 @@ window.CatalogScreen = function CatalogScreen() {
         </div>
       </div>
 
-      {/* Bulk action bar */}
+      {/* Bulk action bar. "Edit price" and "Delete" were dead (no onClick)
+          and stay that way rather than get a fake wire-up:
+            Edit price — bulk price edit has no backend route, and "edit"
+              across N SKUs is an underspecified feature (fixed value? a
+              percent? a delta off each SKU's own price?), not a button to
+              connect to something that already exists.
+            Delete — bulk product delete is IRREVOCABLE across an arbitrary
+              multi-select with no per-item confirmation. CLAUDE.md's own
+              decision-authority test (irreversible + touches a live
+              deployment -> escalate) puts this on the owner, not on a
+              mechanic Claude gets to decide alone tonight.
+          Activate/Deactivate DO have a real, reversible, per-sku primitive —
+          see BulkWmPublish below — so those two are wired. */}
       {sel.size > 0 &&
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 16px', marginBottom: 12, background: P.ink, borderRadius: P.r12, color: P.surface, boxShadow: P.shadowMd }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 16px', marginBottom: 12, background: P.ink, borderRadius: P.r12, color: P.surface, boxShadow: P.shadowMd, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, fontFamily: P.fontMono }}>{sel.size} selected</span>
           <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,.2)' }} />
-          <button style={bulkBtn(P)}><Icon name="tag" size={14} stroke={2} />Edit price</button>
-          <button style={bulkBtn(P)}><Icon name="check-circle" size={14} stroke={2} />Activate</button>
-          <button style={bulkBtn(P)}><Icon name="eye-off" size={14} stroke={2} />Deactivate</button>
-          <button style={bulkBtn(P)}><Icon name="trash" size={14} stroke={2} />Delete</button>
+          <BulkWmPublish skus={Array.from(sel)} published={true} label="Publish to Weedmaps" onDone={setBulkMsg} />
+          <BulkWmPublish skus={Array.from(sel)} published={false} label="Unpublish from Weedmaps" onDone={setBulkMsg} />
           <div style={{ flex: 1 }} />
-          <button onClick={() => setSel(new Set())} style={{ ...bulkBtn(P), opacity: .7 }}>Clear</button>
+          {bulkMsg && <span style={{ fontSize: 11.5, fontWeight: 600, color: bulkMsg.ok ? '#8FE3A6' : '#F3C77A', maxWidth: 380, textAlign: 'right' }}>{bulkMsg.t}</span>}
+          <button onClick={() => { setSel(new Set()); setBulkMsg(null); }} style={{ ...bulkBtn(P), opacity: .7 }}>Clear</button>
         </div>
       }
 
@@ -225,6 +237,67 @@ function tagTint(str, P) {
 }
 
 function bulkBtn(P) {return { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'rgba(255,255,255,.08)', color: P.surface, border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans };}
+
+// ── Bulk Weedmaps publish / unpublish ───────────────────────────────────────
+// Labeled "Publish to Weedmaps" / "Unpublish from Weedmaps", not a bare
+// "Activate" / "Deactivate" — this system has no general per-product active
+// flag to set in bulk or otherwise. `active` is DERIVED (qty>0 && !sample —
+// pos/data.jsx:55, shared/hw-live.js:642) on every row this app has ever
+// produced, and the products table in wm-demo is sku + a JSON blob with no
+// is_active column (wmdemo/catalog.py:77). Calling this button "Deactivate"
+// would promise a general on/off switch this or any backend cannot hold —
+// the same false precision that got the product-detail page's header
+// Deactivate/Activate button removed outright rather than wired.
+//
+// What IS real and reversible: Weedmaps publish/unpublish, the same override
+// WmPublishToggle already exposes per-product further down this file. POST
+// /api/product/publish/bulk (wmdemo/server.py, added alongside this) runs
+// engine.set_product_published once per sku — there is no bulk primitive on
+// the server, so N skus is N real writes and N real per-listing read-backs,
+// never one write standing in for all of them. Verified against a scratch
+// copy of wmdemo.sqlite3 (WM_DEMO_DB pointed at a throwaway copy, WM_API_BASE
+// pointed at a refused local port so no request could reach the real
+// Weedmaps API): a mapped sku's wm_manual_unpublish flag flips and clears
+// correctly, an unmapped sku reports no_wm_mapping, an unknown sku reports
+// unknown_sku, and a mix of the three lands in one `results` map keyed by
+// sku — never a single rolled-up boolean, for the same reason
+// set_product_published's own docstring gives: "the toggle failed" and "the
+// automatic gate still blocks this sku" are different sentences.
+function BulkWmPublish({ skus, published, label, onDone }) {
+  const P = useP();
+  const post = window.HW_LIVE && typeof window.HW_LIVE.post === 'function' ? window.HW_LIVE.post : null;
+  const [busy, setBusy] = React.useState(false);
+  const run = () => {
+    if (busy || !skus.length) return;
+    if (!post) {
+      onDone && onDone({ ok: false, t: 'shared/hw-live.js is not on this page — there is no write path to call.' });
+      return;
+    }
+    setBusy(true);
+    post('/api/product/publish/bulk', { skus, published }).then((r) => {
+      setBusy(false);
+      const body = r.body || {};
+      const entries = Object.entries(body.results || {});
+      if (!entries.length) {
+        onDone && onDone({ ok: false, t: `Refused (${r.code}): ${r.error || body.error || 'no reason given'}` });
+        return;
+      }
+      const confirmed = entries.filter(([, v]) => v && v.ok).length;
+      const noMapping = entries.filter(([, v]) => v && v.error === 'no_wm_mapping').length;
+      const unknown = entries.filter(([, v]) => v && v.error === 'unknown_sku').length;
+      const other = entries.length - confirmed - noMapping - unknown;
+      const parts = [`${confirmed} of ${entries.length} confirmed`];
+      if (noMapping) parts.push(`${noMapping} unmapped`);
+      if (unknown) parts.push(`${unknown} unknown`);
+      if (other) parts.push(`${other} not confirmed`);
+      onDone && onDone({ ok: confirmed === entries.length, t: parts.join(' · ') });
+      if (window.HW_LIVE && typeof window.HW_LIVE.refresh === 'function') window.HW_LIVE.refresh();
+    });
+  };
+  return <button onClick={run} disabled={busy || !skus.length} style={{ ...bulkBtn(P), opacity: busy || !skus.length ? .6 : 1, cursor: busy ? 'default' : 'pointer' }}>
+    <Icon name="globe" size={14} stroke={2} />{busy ? 'Working…' : label}
+  </button>;
+}
 
 // Profit-margin color: higher = healthier
 function marginColor(P, m) {return m >= 0.55 ? P.good : m >= 0.42 ? P.mode === 'light' ? '#B07A12' : P.warn : P.bad;}
@@ -727,6 +800,41 @@ function WmPublishToggle({ p }) {
   </div>;
 }
 
+// ── "View on Weedmaps" ──────────────────────────────────────────────────────
+// Opens the live consumer listing for this SKU's mapped Weedmaps product.
+// Wired to the ACTIVE, CONFIRMED mapping only (`wmRow.linked && wmRow.mapping`
+// — window.HW_MAPPING's own board, the same source wmBtnLabel below already
+// reads), never a mere candidate/suggestion: a suggestion is not yet a real
+// link, and sending an operator to it risks another team's product page or a
+// 404. Disabled with a named reason when there is no confirmed mapping,
+// rather than silently doing nothing.
+//
+// URL SHAPE: https://weedmaps.com/products/<wm_id>. This is Weedmaps' own
+// numeric product permalink. Nothing in this codebase or in wm-demo's API
+// surface carries a dispensary/product SLUG — grepped wmdemo/*.py for
+// slug/web_url/permalink and the only slugs anywhere are Weedmaps CATEGORY
+// slugs (taxonomy) and this app's own city slugs (cities.py) — so the
+// full dispensary-slug URL a browser eventually lands on cannot be built
+// honestly from anything this system holds. Verified live 2026-08-28: an
+// unauthenticated GET of weedmaps.com/products/&lt;a real mapped wm_id&gt;
+// returned 200 before the site's own bot-defenses started refusing repeat
+// requests from this box (subsequent requests, including a re-check of the
+// SAME id, came back 406 "Access Denied") — so this is a real, positive
+// signal on the one id tested, not a certainty backed by a stored fixture,
+// and it was not re-verified against a second id. It is the only URL shape
+// this system has actual evidence for; the numeric permalink is expected to
+// redirect server-side to the full slugged URL, which this page does not
+// need to know.
+function ViewOnWeedmaps({ wmRow }) {
+  const linked = !!(wmRow && wmRow.linked && wmRow.mapping && wmRow.mapping.wm_id != null);
+  const wmId = linked ? wmRow.mapping.wm_id : null;
+  return <PBtn variant="secondary" size="md" icon="link" disabled={!linked}
+    title={linked ? undefined : 'No confirmed Weedmaps mapping for this SKU — map it in Product match & mapping below before opening a listing.'}
+    onClick={linked ? () => window.open('https://weedmaps.com/products/' + wmId, '_blank', 'noopener,noreferrer') : undefined}>
+    View on Weedmaps
+  </PBtn>;
+}
+
 // On-shift driver kits carrying this SKU. `kits` and `on_shift` are both in
 // /api/state and shared/hw-live.js already joins them onto window.HW.DRIVERS
 // as `kit` (that driver's SKU list) and `status` ('offline' when off shift).
@@ -1226,6 +1334,62 @@ function ProductDetailPage({ p, onBack }) {
   const [subcat, setSubcat] = React.useState((SUBCATS[p.cat] || ['—'])[0]);
   const [ptype, setPtype] = React.useState(p.strain ? 'Cannabis' : 'Accessory');
   const [strainType, setStrainType] = React.useState(p.strain || 'Hybrid');
+  // ── Save changes ───────────────────────────────────────────────────────
+  // savedCat / savedStrainType, NOT p.cat / p.strain — the same staleness
+  // rule savedName documents below: `p` is a snapshot from when this row was
+  // clicked, and a confirmed save here does not push a new object into this
+  // already-open page.
+  const [savedCat, setSavedCat] = React.useState(cat);
+  const [savedStrainType, setSavedStrainType] = React.useState(strainType);
+  const detailDirty = cat !== savedCat || strainType !== savedStrainType;
+  const [saveBusy, setSaveBusy] = React.useState(false);
+  const [saveMsg, setSaveMsg] = React.useState(null); // {ok, t}
+  // strainType (Indica/Sativa/Hybrid/CBD/N/A) is this page's own vocabulary
+  // for what the live seam calls `genetics` (shared/hw-live.js:629 titleCases
+  // raw.genetics into p.strain) — NOT the server's `strain` field, which
+  // holds the cultivar NAME ("Zkittlez"), a fact this page never lets an
+  // operator touch. Saving "Indica" into `strain` would clobber a real
+  // cultivar name with a genetics label. CBD/N/A have no genetics equivalent
+  // server-side, so they clear the field rather than invent one.
+  const GENETICS_BY_STRAINTYPE = { Indica: 'indica', Sativa: 'sativa', Hybrid: 'hybrid' };
+  // Persists exactly two fields: category and genetics. Everything else this
+  // page LOOKS editable is either already saved by its own granular control
+  // (name -> saveName/renameVariation below; Weedmaps publish ->
+  // WmPublishToggle further down) or has nowhere honest to go:
+  //   subcategory / product type / delivery kit box — no column for any of
+  //     these exists anywhere in wm-demo's schema (rawToPayload and
+  //     catalog.py's upsert name every field the server keeps; none of these
+  //     three is one).
+  //   retail price override — this file already documents, at posPrice's
+  //     declaration below, that there is NO per-store price override in
+  //     /api/state: the server holds one global `price`, so saving posPrice
+  //     here would overwrite the SHELL's price for every other store rather
+  //     than add a local override.
+  //   meta title/description/slug/keywords — AI-drafted SEO copy with no
+  //     column on the product row at all.
+  // A generic "Save changes" that quietly dropped those on the floor while
+  // still claiming success would be exactly the false-success this file's
+  // comments spend so much effort refusing to ship, so it saves only what it
+  // can actually confirm landed.
+  const saveChanges = () => {
+    if (!detailDirty || saveBusy) return;
+    const SH = window.HW_SHELL;
+    if (!SH || typeof SH.updateVariationFields !== 'function') {
+      setSaveMsg({ ok: false, t: 'pos/shell-store.jsx is not on this page — there is no write path to call.' });
+      return;
+    }
+    const shell = SH.shellOf(p);
+    const genetics = GENETICS_BY_STRAINTYPE[strainType] || null;
+    setSaveBusy(true); setSaveMsg(null);
+    SH.updateVariationFields(shell && shell.id, p.sku, { category: cat, genetics },
+      (live) => live.catLive === cat && (genetics ? live.strain === strainType : !live.strain)
+    ).then((r) => {
+      setSaveBusy(false);
+      if (!r.ok) { setSaveMsg({ ok: false, t: r.hint || r.error || 'Save failed — nothing was changed.' }); return; }
+      setSavedCat(cat); setSavedStrainType(strainType);
+      setSaveMsg({ ok: true, t: 'Category and strain type saved.' });
+    });
+  };
   const [unit, setUnit] = React.useState(/mg/.test(p.wt || '') ? 'each' : 'gram');
   const [netW, setNetW] = React.useState(weightOnly === '—' ? '' : weightOnly.replace(/[^0-9.]/g, ''));
   const wUnitSuffix = { gram: 'g', mg: 'mg', oz: 'oz', ml: 'ml', each: '', pack: '' }[unit] || '';
@@ -1372,9 +1536,27 @@ function ProductDetailPage({ p, onBack }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 'none', cursor: 'pointer', color: P.ink2, fontSize: 13.5, fontWeight: 600, fontFamily: P.fontSans, padding: 0 }}><Icon name="chevron-left" size={17} stroke={2.2} />Back to catalog</button>
         <div style={{ flex: 1 }} />
-        <PBtn variant="secondary" size="md" icon="link">View on Weedmaps</PBtn>
-        <PBtn variant="secondary" size="md" icon={p.active ? 'eye-off' : 'check-circle'}>{p.active ? 'Deactivate' : 'Activate'}</PBtn>
-        <PBtn variant="accent" size="md" icon="check">Save changes</PBtn>
+        {saveMsg && <span style={{ fontSize: 11.5, fontWeight: 600, color: saveMsg.ok ? P.good : P.bad, maxWidth: 320, textAlign: 'right' }}>{saveMsg.t}</span>}
+        {/* Header Deactivate/Activate REMOVED — was dead (no onClick at all)
+            and there is nothing honest to wire it to. `p.active` is DERIVED
+            (qty>0 && !sample — pos/data.jsx:55, shared/hw-live.js:642), never
+            an independently stored flag, on this or any product row, in the
+            mock data or in wm-demo's schema (products table is sku + a JSON
+            blob, no is_active column — wmdemo/catalog.py:77). The one real
+            "take this off sale" lever this system has is Weedmaps publish/
+            unpublish, wired on this same page via WmPublishToggle below. A
+            second button promising a general deactivate no field can hold
+            would be the exact confusion pos/shell-store.jsx's own "active IS
+            NOT A STAND-IN" note already warns against. */}
+        {/* "View on Weedmaps" opens the CONFIRMED mapping's live listing —
+            never a mere candidate/suggestion, which is not yet a real link.
+            See ViewOnWeedmaps below for the URL shape and how it was
+            verified. */}
+        <ViewOnWeedmaps wmRow={wmRow} />
+        <PBtn variant="accent" size="md" icon="check" busy={saveBusy} disabled={saveBusy || !detailDirty} onClick={saveChanges}
+          title={detailDirty ? undefined : 'Nothing to save — category and strain type match what is stored.'}>
+          {detailDirty ? 'Save changes' : 'Saved'}
+        </PBtn>
       </div>
 
       {/* Identity header */}
