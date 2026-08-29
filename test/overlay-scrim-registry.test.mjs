@@ -104,14 +104,25 @@ export function handTypedScrims(src) {
  * still hand-typed. A file not in this map is allowed ZERO. Migrate one and the
  * count here must come down; write a new one and the suite goes red.
  *
- * The two `mustScrollItsOwnCard` entries are the shapes `overlayScrim` cannot
+ * The `mustScrollItsOwnCard` entries are the shapes `overlayScrim` cannot
  * express. They are not oversights and they are not broken — their cards carry
  * their own `overflowY:'auto'`, which is asserted below.
  */
 const REGISTER = {
   // ── not centred modals; overlayScrim would destroy their geometry ──
-  'pos/screen-brands.jsx':    { n: 1, why: 'right-edge side drawer: alignItems stretch, justifyContent flex-end', mustScrollItsOwnCard: true },
-  'mobile/screen-task.jsx':   { n: 1, why: 'bottom sheet: alignItems flex-end, card capped at 86%',                mustScrollItsOwnCard: true }
+  // screen-brands.jsx carries TWO of these: Picker's "map to a Weedmaps
+  // brand" drawer (line ~605) and HistoryDrawer's "audit trail" drawer (line
+  // ~902, added later in the needs-attention-queue work) — both hand-type the
+  // identical right-edge shape independently rather than sharing one drawer
+  // component. Neither is broken; both scroll their own card.
+  'pos/screen-brands.jsx':    { n: 2, why: 'right-edge side drawer: alignItems stretch, justifyContent flex-end', mustScrollItsOwnCard: true },
+  'mobile/screen-task.jsx':   { n: 1, why: 'bottom sheet: alignItems flex-end, card capped at 86%',                mustScrollItsOwnCard: true },
+  // pos/screen-identity-binding.jsx's BindingDrawer is the same right-edge
+  // drawer shape as screen-brands.jsx's pair above: overlayScrim hard-codes
+  // justifyContent:'center'/alignItems:'flex-start', which would destroy a
+  // drawer pinned to the right edge exactly the way the comment above already
+  // explains. Its own card carries `overflowY:'auto'` (asserted below).
+  'pos/screen-identity-binding.jsx': { n: 1, why: 'right-edge side drawer: alignItems stretch, justifyContent flex-end', mustScrollItsOwnCard: true }
 
   // ── AND NOTHING ELSE. ────────────────────────────────────────────────────
   // The sixteen "correct but hand-typed" centred modals that used to be listed
@@ -130,7 +141,7 @@ const REGISTER = {
   // have converted those orderings into DOM-order ties. Migrating the SHAPE and
   // renumbering the LADDER are two different changes; this was only the first.
   //
-  // The two entries above are now the entire list, and both are shapes the
+  // The three entries above are the entire list, and all three are shapes the
   // helper cannot express rather than work left undone.
 };
 
@@ -275,7 +286,7 @@ const MIGRATED = {
   'pos/sales-panel.jsx': 1,
   'delivery/dapp.jsx': 2,         // 1 from the first pass + the 1 correct copy
   'logistics/lorder.jsx': 2,
-  'pos/screen-stubs.jsx': 5,
+  'pos/screen-stubs.jsx': 6,   // 5 from the first pass + WeedmapsStatusPanel (2026-08-28)
   // ── the 2026-08-27 pass: correct-but-hand-typed, now on the helper ──
   'pos/product-shell.jsx': 3,
   'pos/checkin.jsx': 1,
