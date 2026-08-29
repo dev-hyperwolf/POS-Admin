@@ -176,7 +176,7 @@ function HubScreen({ go }){
       <IndexItem n="10" label="Notifications" onClick={()=>go('settings')}/>
       <IndexItem n="11" label="Support" onClick={()=>go('support')} last/>
     </div>
-    <div style={{ textAlign:'center', padding:'22px 0 26px' }} className="mono"><span style={{ fontSize: 11.5, color:P.inkFaint, letterSpacing:'.1em' }}>SIGN OUT</span></div>
+    <div style={{ textAlign:'center', padding:'22px 0 26px' }} className="mono"><button onClick={()=>{ window.location.href='Hyperwolf.html'; }} style={{ background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:'inherit', fontSize: 11.5, color:P.inkFaint, letterSpacing:'.1em' }}>SIGN OUT</button></div>
   </div>);
 }
 function Group({ title, children }){ const P=useP(); return (

@@ -183,7 +183,7 @@ function HubScreen({ go }){
       <Group title="Settings & help">
         <Row icon="bell" label="Notifications & privacy" onClick={()=>go('settings')}/>
         <Row icon="help" label="Support" sub="Chat with us" onClick={()=>go('support')}/>
-        <Row icon="lock" label="Sign out" danger onClick={()=>{}}/>
+        <Row icon="lock" label="Sign out" danger onClick={()=>{ window.location.href='Hyperwolf.html'; }}/>
       </Group>
       <div style={{ textAlign:'center', padding:'14px 0 4px', fontSize: 11.5, color:P.inkFaint }} className="mono">Hyperwolf · member since {ME.since}</div>
     </div>

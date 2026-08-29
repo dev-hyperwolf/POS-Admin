@@ -193,7 +193,7 @@ function HubScreen({ go }){
         <Row icon="shield" label="ID verification" sub={ME.idVerified?'Verified · exp '+ME.idExpires:'Not verified'} right={ME.idVerified&&<Icon name="check-circle" size={18} color={P.good}/>} onClick={()=>go('profile')}/>
         <Row icon="pin" label="Saved addresses" sub={`${ADDRESSES.length} saved`} onClick={()=>go('addresses')}/>
         <Row icon="bell" label="Notifications & privacy" onClick={()=>go('settings')}/>
-        <Row icon="lock" label="Sign out" danger onClick={()=>{}}/>
+        <Row icon="lock" label="Sign out" danger onClick={()=>{ window.location.href='Hyperwolf.html'; }}/>
       </Group>
       <div style={{ textAlign:'center', padding:'16px 0 4px', fontSize: 11.5, color:P.inkFaint }} className="mono">Hyperwolf · member since {ME.since}</div>
     </div>
