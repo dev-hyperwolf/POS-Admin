@@ -66,6 +66,28 @@ const useP = window.useP,useTheme = window.useTheme;
   NAV.all = NAV.items.concat([NAV.settings]);
 })();
 
+// ── Identity & binding tab registration (pos/screen-identity-binding.jsx) ─
+// Same rule as Brands above: MUTATE window.HW_NAV.items IN PLACE. Reassigning
+// window.HW_NAV would leave shared/app-rail.jsx and shared/app-switcher.js
+// pointing at the old object.
+//
+// wmdemo/wm_binding.py (GET/POST /api/identity/wm-binding[/unbind]) had zero
+// UI anywhere in POS-Admin before this — a support rep fixing "this Weedmaps
+// account is bound to the wrong customer" had only a raw API call. Placed
+// next to Members, the other customer-identity surface, rather than folded
+// into it: pos/screen-stubs.jsx's MembersScreen is still window.HW.MEMBERS
+// mock data with no server round-trip, and grafting a live-backed binding
+// panel onto it would make one screen half-real, half-fixture.
+(function () {
+  var NAV = window.HW_NAV;
+  if (!NAV || !Array.isArray(NAV.items)) { return; }
+  if (NAV.items.some(function (i) { return i.id === 'identity-binding'; })) { return; }
+  var at = NAV.items.findIndex(function (i) { return i.id === 'members'; });
+  NAV.items.splice(at < 0 ? NAV.items.length : at + 1, 0,
+    { id: 'identity-binding', label: 'Identity & binding', icon: 'link', pos: 'identity-binding' });
+  NAV.all = NAV.items.concat([NAV.settings]);
+})();
+
 /* ── WHERE A FAILURE STOPS ───────────────────────────────────────────────────
  *
  * On 2026-08-27 `cart.map(...)` on an undefined cart — one line, on the render
@@ -109,7 +131,8 @@ const CriticalFrame = window.CriticalBoundary || function CriticalFrame(p) {retu
 const POS_SCREEN_LABELS = {
   home: 'Home', register: 'The register', orders: 'Orders', catalog: 'Catalog',
   brands: 'Brands', cities: 'Cities', 'category-map': 'The category map',
-  'publish-gate': 'The publish gate', members: 'Members', merch: 'Merch',
+  'publish-gate': 'The publish gate', members: 'Members',
+  'identity-binding': 'Identity & binding', merch: 'Merch',
   settings: 'Settings' };
 
 const USER = { name: 'Manisha Saini', role: 'Floor Manager' };
@@ -152,6 +175,11 @@ function App() {
     <ErrorState title="The Cities screen did not load"
       body="pos/screen-city-listing.jsx defines window.CityListingScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   if (route === 'members') screen = <MembersScreen />;else
+  // Guarded the same way Brands is, and for the same reason: a dropped script
+  // tag must name the missing file rather than white-screening the whole app.
+  if (route === 'identity-binding') screen = window.IdentityBindingScreen ? <window.IdentityBindingScreen /> :
+    <ErrorState title="The Identity &amp; binding screen did not load"
+      body="pos/screen-identity-binding.jsx defines window.IdentityBindingScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   if (route === 'merch') screen = <window.MerchScreen />;else
   if (route === 'settings') screen = <SettingsScreen />;else
   screen = <RegisterScreen />;
