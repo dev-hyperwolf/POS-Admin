@@ -997,11 +997,12 @@ function useWmStatus() {
   return st;
 }
 
-function WmSettingCard({ P, pillKind, pillDot, pillLabel, title, source, children }) {
+function WmSettingCard({ P, pillKind, pillDot, pillLabel, extraPill, title, source, children }) {
   return (
     <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 16, background: P.surface }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
         {pillLabel && <Pill kind={pillKind} dot={pillDot} size="sm">{pillLabel}</Pill>}
+        {extraPill && <Pill kind={extraPill.kind} dot size="sm">{extraPill.label}</Pill>}
         <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{title}</span>
       </div>
       <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.6 }}>{children}</div>
@@ -1074,16 +1075,58 @@ function WeedmapsStatusPanel({ onClose }) {
               {partner.read_only_declared ? ' This process has declared itself read-only (WM_API_READONLY=1) — every non-GET to the partner is refused regardless of the write-mode verdict above.' : ' No read-only declaration is in effect for this process.'}
             </WmSettingCard>
 
-            <WmSettingCard P={P} pillKind={wh.signature_key_configured ? 'good' : 'bad'} pillDot
-              pillLabel={wh.signature_key_configured ? 'key configured' : 'not configured'} title="Webhook signature"
-              source="engine.verify_signature — keyed on config.CLIENT_SECRET">
-              <div>The inbound webhook HMAC is keyed on the same secret as the OAuth client credential — its value is never shown here, only whether one is set.</div>
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${P.hairline2}` }}>
-                <div style={kv}><span style={{ color: P.inkDim }}>Posture</span><span style={{ fontWeight: 600, color: P.ink }}>{posture.state || 'unknown'}</span></div>
-                <div style={kv}><span style={{ color: P.inkDim }}>Verified from Weedmaps</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{posture.external_verified ?? '—'}</span></div>
-                <div style={kv}><span style={{ color: P.inkDim }}>Rejected from Weedmaps</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{posture.external_rejected ?? '—'}</span></div>
-              </div>
-            </WmSettingCard>
+            {(() => {
+              // Ever-validated answer, in plain language, colored honestly —
+              // NOT tied to signature_key_configured. A key being SET and a
+              // key being CONFIRMED against a real callback are different
+              // facts, and rendering only the former (green, "key
+              // configured") let this card read as "fine" while
+              // wmdemo/webhook_forensics.posture() was reporting
+              // NO_EXTERNAL_TRAFFIC underneath — nobody would notice the
+              // scheme has never been tested against Weedmaps by scanning
+              // pills alone. See wmdemo/webhook_forensics.py posture().
+              const verified = posture.external_verified ?? 0;
+              const rejected = posture.external_rejected ?? 0;
+              const state = posture.state;
+              const everValidated = state === 'EXTERNAL_VERIFIED' || state === 'EXTERNAL_MIXED';
+              const postureKind = state === 'EXTERNAL_VERIFIED' ? 'good'
+                : state === 'EXTERNAL_MIXED' ? 'warn'
+                : state === 'ALL_EXTERNAL_REJECTED' ? 'bad'
+                : 'warn'; // NO_EXTERNAL_TRAFFIC or unrecognized — still an open question, not a green light
+              const postureLabel = state === 'EXTERNAL_VERIFIED' ? 'verified against real traffic'
+                : state === 'EXTERNAL_MIXED' ? 'partially verified'
+                : state === 'ALL_EXTERNAL_REJECTED' ? 'never verified — all rejected'
+                : 'never verified — no external traffic';
+              const bannerBg = postureKind === 'good' ? P.goodSoft : postureKind === 'bad' ? P.badSoft : P.warnSoft;
+              const bannerFg = postureKind === 'good' ? P.good : postureKind === 'bad' ? P.bad : P.warn;
+              const headline = everValidated
+                ? 'Yes — ' + verified + ' genuine Weedmaps callback' + (verified === 1 ? '' : 's') + ' verified.'
+                : state === 'ALL_EXTERNAL_REJECTED'
+                  ? 'No. ' + rejected + ' external callback' + (rejected === 1 ? '' : 's') + ' arrived and every one was rejected — this signature scheme has never been confirmed against real Weedmaps traffic.'
+                  : 'No — no real Weedmaps traffic has ever reached this receiver. Cannot confirm the signature scheme works against a live callback.';
+              return (
+                <WmSettingCard P={P} pillKind={wh.signature_key_configured ? 'good' : 'bad'} pillDot
+                  pillLabel={wh.signature_key_configured ? 'key configured' : 'not configured'}
+                  extraPill={{ kind: postureKind, label: postureLabel }}
+                  title="Webhook signature"
+                  source="engine.verify_signature — keyed on config.CLIENT_SECRET; posture from wmdemo.webhook_forensics.posture()">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: bannerBg, borderRadius: P.r10, marginBottom: 10 }}>
+                    <Icon name={everValidated ? 'check' : 'alert'} size={14} color={bannerFg} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                    <div style={{ fontSize: 12, lineHeight: 1.55 }}>
+                      <span style={{ fontWeight: 800, color: bannerFg }}>Ever validated a genuine Weedmaps signature? </span>
+                      <span style={{ color: P.ink2 }}>{headline}</span>
+                    </div>
+                  </div>
+                  <div>The inbound webhook HMAC is keyed on the same secret as the OAuth client credential — its value is never shown here, only whether one is set. A key being <i>configured</i> is a separate fact from the key being <i>confirmed</i>: nothing verifies the scheme actually works until a real Weedmaps callback lands.</div>
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed ${P.hairline2}` }}>
+                    <div style={kv}><span style={{ color: P.inkDim }}>Posture</span><span style={{ fontWeight: 600, color: P.ink }}>{state || 'unknown'}</span></div>
+                    <div style={kv}><span style={{ color: P.inkDim }}>Verified from Weedmaps</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{posture.external_verified ?? '—'}</span></div>
+                    <div style={kv}><span style={{ color: P.inkDim }}>Rejected from Weedmaps</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{posture.external_rejected ?? '—'}</span></div>
+                    {posture.means && <div style={{ marginTop: 8, fontSize: 11, color: P.inkDim, lineHeight: 1.5 }}>{posture.means}</div>}
+                  </div>
+                </WmSettingCard>
+              );
+            })()}
 
             <WmSettingCard P={P} title="Sync cadence"
               source="config.SYNC_DEBOUNCE_S / PROMO_POLL_S / RECONCILE_EVERY_S">
