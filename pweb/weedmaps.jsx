@@ -234,6 +234,288 @@ function LinkModal({ wmId, wmName, internalId, internalName, defaultRelation, in
   </div>;
 }
 
+// ── Promo Builder — create-from-scratch flow ────────────────────────────────
+// Matches explorations/"Promo Builder - Create Flow.html" (2026-08-29), the
+// research pass that scoped this. That mockup's own reality check is the
+// spec for what's real here: POST /api/promos/internal (wmdemo/server.py)
+// already whitelists exactly the fields this form collects and does an
+// insert-or-update keyed on id — store.upsert_internal_promo. A promo
+// created here is immediately linkable through the LinkModal flow above;
+// no new write path needed for that half. v1 scope, per that mockup's own
+// "recommended first-build scope": only percent/flat kinds (the schema's
+// single `amount REAL` column can't honestly represent BOGO/bundle/tiered —
+// those stay disabled tiles with the real reason, not fake form fields).
+const PROMO_KIND_TILES = [
+  { id:'percent', title:'Percent off', ready:true,
+    sub:'Stored as-is in the existing amount column.' },
+  { id:'amount', title:'Flat amount off', ready:true,
+    sub:'Same column, dollars instead of a percent.' },
+  { id:'bogo', title:'BOGO', ready:false,
+    sub:'No buy-qty / get-qty columns exist — nowhere to put the real rule.' },
+  { id:'bundle', title:'Bundle price', ready:false,
+    sub:'Needs a multi-SKU shape the schema does not have.' },
+  { id:'tiered', title:'Tiered', ready:false,
+    sub:"Needs per-tier thresholds — one amount column can't hold them." },
+];
+
+// Same convention detect_overlap() reads (promos.py:465, casefolded compare
+// against literal 'cart') — the segmented picker below just builds this
+// string instead of asking the operator to type it.
+function buildPromoTarget(type, value) {
+  if (type === 'cart') return 'cart';
+  return type + ':' + String(value || '').trim();
+}
+
+function PromoStepHead({ n, title }) {
+  const P = useP();
+  return <div style={{ display:'flex', alignItems:'center', marginBottom:12 }}>
+    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:20, height:20, borderRadius:99, background:P.ink, color:P.surface, fontFamily:P.fontMono, fontSize:10.5, fontWeight:700, marginRight:8, flex:'0 0 auto' }}>{n}</span>
+    <span style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>{title}</span>
+  </div>;
+}
+
+function PromoDivider() {
+  const P = useP();
+  return <div style={{ height:1, background:P.hairline, margin:'20px 0' }} />;
+}
+
+function PromoKindTile({ kind, selected, onSelect }) {
+  const P = useP();
+  const disabled = !kind.ready;
+  return <div onClick={disabled ? undefined : onSelect} style={{
+    border:`1.5px solid ${selected ? P.ink : P.hairline2}`, borderRadius:P.r12, padding:'12px 13px',
+    background: selected ? P.surface2 : P.surface, cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? .55 : 1, boxShadow: selected ? P.shadowMd : 'none' }}>
+    <div style={{ fontSize:12.5, fontWeight:700, color:P.ink }}>{kind.title}</div>
+    <div style={{ margin:'5px 0 6px' }}><Pill kind={kind.ready ? 'good' : 'bad'} size="sm">{kind.ready ? 'ready' : 'label only'}</Pill></div>
+    <div style={{ fontSize:10.5, color:P.inkDim, lineHeight:1.4 }}>{kind.sub}</div>
+  </div>;
+}
+
+function PromoChannelChip({ label, on, onToggle }) {
+  const P = useP();
+  return <label onClick={onToggle} style={{ display:'inline-flex', alignItems:'center', gap:7, padding:'8px 13px',
+    border:`1.5px solid ${on ? P.ink : P.hairline2}`, borderRadius:P.r999, cursor:'pointer', fontSize:12, fontWeight:600,
+    color: on ? P.ink : P.ink2, background: on ? P.surface2 : P.surface, marginRight:8, marginBottom:8, userSelect:'none' }}>
+    <input type="checkbox" readOnly checked={on} style={{ accentColor:P.ink, pointerEvents:'none' }} />{label}
+  </label>;
+}
+
+// Colored JSON preview of the exact POST /api/promos/internal body this form
+// will send — same purpose as the mockup's jsonPreview: prove the request
+// isn't hiding anything beyond what the fields above collected.
+function PromoJsonPreview({ body }) {
+  const P = useP();
+  const order = ['name', 'code', 'kind', 'amount', 'starts_at', 'ends_at', 'channels', 'target', 'active'];
+  return <div style={{ background:P.surface3, border:`1px solid ${P.hairline2}`, borderRadius:P.r10, padding:'13px 15px', fontFamily:P.fontMono, fontSize:11, lineHeight:1.6, whiteSpace:'pre-wrap', color:P.ink2, maxHeight:280, overflow:'auto' }}>
+    {'{\n'}
+    {order.map((k, i) => {
+      const v = body[k];
+      let vEl;
+      if (v === null || v === undefined) vEl = <span style={{ color:P.warnText }}>null</span>;
+      else if (typeof v === 'number') vEl = <span style={{ color:P.warnText }}>{String(v)}</span>;
+      else if (Array.isArray(v)) vEl = <>[{v.map((x, xi) => <React.Fragment key={xi}><span style={{ color:P.good }}>"{x}"</span>{xi < v.length - 1 ? ', ' : ''}</React.Fragment>)}]</>;
+      else vEl = <span style={{ color:P.good }}>"{String(v)}"</span>;
+      return <div key={k}>{'  '}<span style={{ color:P.info }}>"{k}"</span>{': '}{vEl}{i < order.length - 1 ? ',' : ''}</div>;
+    })}
+    {'}'}
+  </div>;
+}
+
+// The one write for this half: POST /api/promos/internal via
+// HW_PROMOS_LIVE.upsertInternal — same seam LinkModal uses for /link,
+// same write-then-read-back discipline (onSaved re-reads the registry
+// before this component ever claims success).
+function PromoBuilder({ onSaved, onCancel }) {
+  const P = useP();
+  const blank = () => ({ name:'', code:'', kind:'percent', amount:'',
+    targetType:'cart', targetValue:'', channels:{ POS:true, WEEDMAPS:false, WEB:false },
+    starts_at:'', ends_at:'', active:1 });
+  const [f, setF] = React.useState(blank);
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState(null);
+
+  const set = (patch) => setF((s) => ({ ...s, ...patch }));
+  const toggleChannel = (name) => set({ channels: { ...f.channels, [name]: !f.channels[name] } });
+
+  const amountNum = f.amount === '' ? null : Number(f.amount);
+  const kindReady = f.kind === 'percent' || f.kind === 'amount';
+  // Mirrors store.upsert_internal_promo's own bounds (2026-08-29): percent
+  // in (0, 99] — matching pricing.sale_descriptor's existing 1..99
+  // convention for a discount percent elsewhere in this codebase — and a
+  // flat amount > 0. Client-side so a bad value never reaches the server,
+  // but the server enforces the same thing if this is ever bypassed.
+  const amountOk = kindReady && amountNum !== null && !isNaN(amountNum) &&
+    (f.kind === 'percent' ? (amountNum > 0 && amountNum <= 99) : amountNum > 0);
+  const datesOk = !(f.starts_at && f.ends_at && f.starts_at > f.ends_at);
+  const nameOk = !!f.name.trim();
+  const canSave = nameOk && kindReady && amountOk && datesOk && !busy;
+
+  const target = buildPromoTarget(f.targetType, f.targetValue);
+  const channelList = Object.keys(f.channels).filter((c) => f.channels[c]);
+  const body = {
+    name: f.name.trim() || null, code: f.code.trim() || null,
+    kind: f.kind, amount: amountNum,
+    starts_at: f.starts_at || null, ends_at: f.ends_at || null,
+    channels: channelList, target, active: Number(f.active),
+  };
+
+  const save = () => {
+    if (!canSave) return;
+    const live = window.HW_PROMOS_LIVE;
+    if (!live) { setErr('shared/hw-live-promos.js is not on this page — there is no write path to call.'); return; }
+    setBusy(true); setErr(null);
+    live.upsertInternal(body).then((r) => {
+      setBusy(false);
+      if (!r.ok || !r.body || r.body.error) {
+        setErr((r.body && r.body.error) || r.error || ('HTTP ' + r.code));
+        return;
+      }
+      setF(blank());
+      onSaved(r.body);
+    });
+  };
+
+  const fieldStyle = { width:'100%', padding:'9px 11px', border:`1px solid ${P.fieldBorder}`, borderRadius:P.r8,
+    fontSize:12.5, fontFamily:P.fontSans, background:P.field, color:P.ink, outline:'none', boxSizing:'border-box' };
+  const monoFieldStyle = { ...fieldStyle, fontFamily:P.fontMono };
+  const labelStyle = { fontSize:10, fontWeight:700, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkMute, marginBottom:6, display:'block' };
+  const hintStyle = { fontSize:11, color:P.inkMute, marginTop:5, lineHeight:1.4 };
+  const errStyle = { color:P.bad, fontSize:11, marginTop:5, fontWeight:600 };
+
+  return <div style={{ background:P.surface, border:`1px solid ${P.hairline2}`, borderRadius:P.r12, padding:20, marginBottom:18 }}>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12, marginBottom:4 }}>
+      <div>
+        <div style={{ fontSize:10.5, fontWeight:600, letterSpacing:'.14em', textTransform:'uppercase', color:P.inkDim, fontFamily:P.fontMono, marginBottom:6 }}>New — the missing screen</div>
+        <div style={{ fontSize:15, fontWeight:600, letterSpacing:'-.01em', color:P.ink, marginBottom:4 }}>Build an internal promo</div>
+        <div style={{ fontSize:12.5, color:P.inkDim, lineHeight:1.5, maxWidth:760 }}>
+          This writes one row to <code style={{ fontFamily:P.fontMono, fontSize:11.5, background:P.surface3, padding:'1px 5px', borderRadius:6 }}>internal_promos</code>.
+          It is a registry entry for tracking &amp; overlap-detection against the WM mirror — <code style={{ fontFamily:P.fontMono, fontSize:11.5, background:P.surface3, padding:'1px 5px', borderRadius:6 }}>pricing.quote_cart()</code> remains
+          the only thing that ever actually prices a cart, and it does not read this table.
+        </div>
+      </div>
+      <PBtn variant="ghost" size="xs" onClick={onCancel}>Hide</PBtn>
+    </div>
+
+    <PromoDivider />
+
+    <PromoStepHead n={1} title="Basics" />
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:16 }}>
+      <div>
+        <label style={labelStyle}>Name — required</label>
+        <input style={fieldStyle} type="text" value={f.name} onChange={(e) => set({ name:e.target.value })} placeholder="e.g. Loyalty Tier 3 — 10% off" />
+        {!nameOk && <div style={errStyle}>Name is required.</div>}
+      </div>
+      <div>
+        <label style={labelStyle}>Code — optional</label>
+        <input style={fieldStyle} type="text" value={f.code} onChange={(e) => set({ code:e.target.value })} placeholder="e.g. TIER3 (blank = auto-apply, no code to type)" />
+        <div style={hintStyle}>No uniqueness check exists yet server-side — two promos could share a code.</div>
+      </div>
+    </div>
+
+    <PromoStepHead n={2} title="Kind of discount" />
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:10, marginBottom:14 }}>
+      {PROMO_KIND_TILES.map((k) => <PromoKindTile key={k.id} kind={k} selected={f.kind === k.id} onSelect={() => set({ kind:k.id })} />)}
+    </div>
+    {kindReady
+      ? <div style={{ maxWidth:220, marginBottom:6 }}>
+          <label style={labelStyle}>{f.kind === 'percent' ? 'Percent off — required' : 'Dollars off — required'}</label>
+          <input style={monoFieldStyle} type="number" min={f.kind === 'percent' ? 1 : 0.01} max={f.kind === 'percent' ? 99 : undefined} step={f.kind === 'percent' ? 1 : 0.01}
+            value={f.amount} onChange={(e) => set({ amount:e.target.value })} placeholder={f.kind === 'percent' ? 'e.g. 10' : 'e.g. 5.00'} />
+          {!amountOk && <div style={errStyle}>{f.kind === 'percent' ? 'Enter a percent greater than 0 and no more than 99.' : 'Enter a dollar amount greater than 0.'}</div>}
+        </div>
+      : <div style={{ background:P.warnSoft, border:`1px solid ${P.warnText}`, color:P.ink2, borderRadius:P.r10, padding:'9px 12px', fontSize:11.5, lineHeight:1.55, marginBottom:6 }}>
+          <b>{PROMO_KIND_TILES.find((k) => k.id === f.kind).title} isn't buildable yet.</b> The table has one generic <code style={{ fontFamily:P.fontMono }}>amount</code> number
+          and no fields for buy/get quantities or tiers, so there is nothing real for this form to save beyond a label. Cut from v1 until Hyperdrive's schema adds structured fields for it.
+        </div>}
+
+    <PromoDivider />
+
+    <PromoStepHead n={3} title="What it applies to" />
+    <div style={{ marginBottom:20 }}>
+      <Seg value={f.targetType} onChange={(t) => set({ targetType:t, targetValue:'' })} options={[
+        { value:'cart', label:'Cart-wide' }, { value:'category', label:'Category' }, { value:'sku', label:'Single SKU' } ]} />
+      {f.targetType !== 'cart' && <div style={{ marginTop:10, maxWidth:360 }}>
+        <input style={fieldStyle} type="text" value={f.targetValue} onChange={(e) => set({ targetValue:e.target.value })}
+          placeholder={f.targetType === 'category' ? 'e.g. Edibles' : 'e.g. SKU-10234'} />
+        <div style={hintStyle}>Free text — no {f.targetType === 'category' ? 'category list' : 'SKU lookup'} exists to autocomplete against yet.</div>
+      </div>}
+    </div>
+
+    <PromoDivider />
+
+    <PromoStepHead n={4} title="Channels it runs on" />
+    <div style={{ marginBottom:20 }}>
+      <PromoChannelChip label="POS (in-store / driver)" on={f.channels.POS} onToggle={() => toggleChannel('POS')} />
+      <PromoChannelChip label="Weedmaps" on={f.channels.WEEDMAPS} onToggle={() => toggleChannel('WEEDMAPS')} />
+      <PromoChannelChip label="Web / online menu" on={f.channels.WEB} onToggle={() => toggleChannel('WEB')} />
+      {f.channels.WEEDMAPS && <div style={{ background:P.warnSoft, border:`1px solid ${P.warnText}`, color:P.ink2, borderRadius:P.r10, padding:'9px 12px', fontSize:11.5, lineHeight:1.55, marginTop:6 }}>
+        <b>Checking Weedmaps does not put anything on Weedmaps.</b> WM's partner API has no promo-push endpoint — this box only tags the promo so overlap detection compares it against the WM mirror.
+        Check it when a matching deal already exists in Weedmaps' own merchant portal, and link the two afterward from the registry below.
+      </div>}
+    </div>
+
+    <PromoDivider />
+
+    <PromoStepHead n={5} title="Active window" />
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:6 }}>
+      <div>
+        <label style={labelStyle}>Starts</label>
+        <input style={monoFieldStyle} type="date" value={f.starts_at} onChange={(e) => set({ starts_at:e.target.value })} />
+        <div style={hintStyle}>Blank = effective immediately</div>
+      </div>
+      <div>
+        <label style={labelStyle}>Ends</label>
+        <input style={monoFieldStyle} type="date" value={f.ends_at} onChange={(e) => set({ ends_at:e.target.value })} />
+        <div style={hintStyle}>Blank = open-ended</div>
+      </div>
+      <div>
+        <label style={labelStyle}>Status</label>
+        <select style={fieldStyle} value={f.active} onChange={(e) => set({ active:Number(e.target.value) })}>
+          <option value={1}>Active</option>
+          <option value={0}>Inactive (saved, not live)</option>
+        </select>
+      </div>
+    </div>
+    {!datesOk && <div style={errStyle}>End date is before start date.</div>}
+
+    <PromoDivider />
+
+    <PromoStepHead n="&#10003;" title="Preview — what this saves, and the exact request it sends" />
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, alignItems:'start', marginBottom:18 }}>
+      <div>
+        <label style={labelStyle}>Registry row preview</label>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12.5, background:P.surface, border:`1px solid ${P.hairline2}`, borderRadius:P.r12, overflow:'hidden' }}>
+          <thead><tr style={{ background:P.surface2 }}>
+            {['Side', 'Name', 'Code / kind', 'Window', 'Links'].map((h) => <th key={h} style={{ textAlign:'left', padding:'9px 12px', fontSize:10, fontWeight:700, letterSpacing:'.06em', textTransform:'uppercase', color:P.inkDim, borderBottom:`1px solid ${P.hairline2}` }}>{h}</th>)}
+          </tr></thead>
+          <tbody><tr>
+            <td style={{ padding:'11px 12px' }}><Pill kind="neutral" size="sm">internal</Pill></td>
+            <td style={{ padding:'11px 12px' }}>
+              <div style={{ fontWeight:600, color:P.ink }}>{body.name || '(unnamed)'}</div>
+              {body.active === 0 && <div style={{ fontSize:10, color:P.inkFaint }}>inactive</div>}
+            </td>
+            <td style={{ padding:'11px 12px', fontSize:11.5, color:P.ink2 }}>{body.kind}{body.code ? ' · ' + body.code : ''}</td>
+            <td style={{ padding:'11px 12px', fontFamily:P.fontMono, fontSize:11 }}>{fmtPromoWindow({ start:body.starts_at, end:body.ends_at })}</td>
+            <td style={{ padding:'11px 12px' }}><span style={{ color:P.inkFaint, fontStyle:'italic' }}>— not yet linked —</span></td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div>
+        <label style={labelStyle}>POST /api/promos/internal — body</label>
+        <PromoJsonPreview body={body} />
+      </div>
+    </div>
+
+    {err && <div style={{ fontSize:11.5, color:P.ink2, background:P.badSoft, border:`1px solid ${P.bad}`, borderRadius:P.r10, padding:'8px 10px', lineHeight:1.45, marginBottom:12 }}>{err}</div>}
+
+    <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+      <PBtn variant="ghost" onClick={() => { setF(blank()); setErr(null); }} disabled={busy}>Reset</PBtn>
+      <PBtn variant="accent" onClick={save} busy={busy} disabled={!canSave}>Create internal promo</PBtn>
+    </div>
+  </div>;
+}
+
 function RegistryRow({ row, onUnlink, unlinkBusy, unlinkErr, internalOptions, openManualLink }) {
   const P = useP();
   const td = { padding:'11px 14px', borderTop:`1px solid ${P.hairline}`, verticalAlign:'middle' };
@@ -281,6 +563,27 @@ function WmPromoRegistry({ registry }) {
   const [modal, setModal] = React.useState(null);
   const [unlinkBusy, setUnlinkBusy] = React.useState({});
   const [unlinkErrs, setUnlinkErrs] = React.useState({});
+  const [builderOpen, setBuilderOpen] = React.useState(false);
+  const [createBanner, setCreateBanner] = React.useState(null);
+
+  // Write-then-read-back, same discipline as doPull/doUnlink above and
+  // LinkModal's confirmLinked: a 200 from upsertInternal means the write was
+  // accepted, not that the registry now shows it.
+  const handleCreated = (row) => {
+    refresh().then((fresh) => {
+      const present = !!(fresh && fresh.rows.some((r) => r.side === 'internal' && r.id === row.id));
+      const wmNote = onWeedmapsChannel(row)
+        ? ' Marked for Weedmaps, but nothing pushes there — link it to a real WM promo when one matches.'
+        : '';
+      setCreateBanner({
+        ok: present,
+        text: present
+          ? `Created internal promo "${row.name}" (#${row.id}) — not yet linked to any Weedmaps promo.${wmNote} Link it from the registry below.`
+          : `The write was accepted (#${row.id}), but a fresh read of the registry does not show it yet — reopen the panel before assuming it failed, do not retry blindly.`
+      });
+      setBuilderOpen(false);
+    });
+  };
 
   const doPull = () => {
     const live = window.HW_PROMOS_LIVE;
@@ -354,10 +657,20 @@ function WmPromoRegistry({ registry }) {
     <WmPanel title="Promo registry" pad={0}
       sub="One-way pull, side-by-side registry, and the three real relations you can declare between a Weedmaps promo and one of ours. No control here claims Weedmaps can be pushed to — its partner API has no promo-push endpoint."
       right={<div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
-        <PBtn variant="secondary" size="sm" icon="refresh" busy={pullBusy} onClick={doPull}>Pull from Weedmaps</PBtn>
+        <div style={{ display:'flex', gap:8 }}>
+          <PBtn variant="secondary" size="sm" icon="refresh" busy={pullBusy} onClick={doPull}>Pull from Weedmaps</PBtn>
+          <PBtn variant="accent" size="sm" icon="plus" onClick={() => { setBuilderOpen((o) => !o); setCreateBanner(null); }}>New internal promo</PBtn>
+        </div>
         {pullMsg && <span style={{ fontSize:10.5, color: pullMsg.ok ? P.good : P.bad, maxWidth:340, textAlign:'right' }}>{pullMsg.text}</span>}
       </div>}>
       <div style={{ padding:18 }}>
+        {createBanner && <div style={{ borderRadius:P.r10, padding:'11px 14px', fontSize:12.5, lineHeight:1.5, marginBottom:14, display:'flex', alignItems:'flex-start', gap:9,
+          background: createBanner.ok ? P.goodSoft : P.badSoft, border:`1px solid ${createBanner.ok ? P.good : P.bad}`, color:P.ink2 }}>
+          <span>{createBanner.ok ? '✓' : '⚠'}</span><span>{createBanner.text}</span>
+        </div>}
+
+        {builderOpen && <PromoBuilder onSaved={handleCreated} onCancel={() => setBuilderOpen(false)} />}
+
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom: counters.unlinked_overlaps ? 18 : 14 }}>
           <KPI label="WM promos mirrored" value={String(counters.wm)} sublabel="live on the mirror" icon="gift" />
           <KPI label="Internal promos" value={String(counters.internal)} sublabel={onWmCount + ' also run on Weedmaps'} icon="tag" />
