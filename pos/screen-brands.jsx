@@ -1121,6 +1121,132 @@
       </Card>);
   }
 
+  // ── how far brand ATTRIBUTION reaches into the catalogue ─────────────────
+  // Reads GET /api/brands/roster-coverage -- wmdemo/brands.roster_coverage(),
+  // wired this session. NOT the roster and NOT the queue: the table below
+  // already answers "what is every brand's state" and NeedsAttentionQueue
+  // above already answers "what do I act on today". This answers a question
+  // neither of those can: whether a roster showing "0 brands mapped" means
+  // nothing in the catalogue carries a brand, or the matcher is broken --
+  // indistinguishable without this, and it was the first one for weeks (see
+  // roster_coverage()'s own docstring).
+  //
+  // DELIBERATELY NOT A CRUD FORM. The brand roster is built by grouping
+  // catalog.products() -- a row exists because a product names it, so a
+  // manually-typed "add a brand" row would be invisible to every read that
+  // resolves brands from products (see _ensure_brand_row()'s docstring). The
+  // four SKU-state tiles are the whole shape of the answer this function
+  // gives, so the panel below is the classification, click-to-drill-in, and
+  // nothing that writes.
+  function RosterCoverage({ covHttp, onRecompute, busy }) {
+    const P = useP();
+    const [open, setOpen] = React.useState(null);
+    const data = covHttp && covHttp.parsed ? covHttp.body : null;
+    const refused = covHttp && covHttp.code === 503;
+
+    if (!covHttp) { return <Card density="roomy" style={{ marginBottom: 18 }}><SkeletonRows rows={2} avatar={false} /></Card>; }
+
+    if (refused) {
+      return (
+        <Card density="roomy" style={{ marginBottom: 18, background: P.warnSoft, borderColor: P.warn }}>
+          <SectionHead level={3} eyebrow="Roster coverage" title="The coverage route is not here" />
+          <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.55 }}>
+            <code style={{ fontFamily: P.fontMono }}>GET /api/brands/roster-coverage</code> answered <strong>503</strong>: {data && data.error}.
+          </div>
+        </Card>);
+    }
+    if (covHttp && !covHttp.ok) {
+      return (
+        <ErrorState style={{ marginBottom: 18 }} compact
+          title={'GET /api/brands/roster-coverage answered HTTP ' + (covHttp.code || 'nothing')}
+          body="This is the engine's own diagnosis of how far brand attribution reaches the catalogue. A failure here is not shown as full or empty coverage — nothing looked."
+          onRetry={onRecompute} />);
+    }
+    if (!data) { return null; }
+
+    // Same four states roster_coverage() itself classifies on, in the same
+    // order its docstring lists them -- id / name_only / unbranded / conflict
+    // -- and the same colour roles the owner's mockup used for each
+    // (explorations/Weedmaps Next-Tier Ops Surface.html, tab 4).
+    const TILES = [
+      { key: 'id', label: 'Carries an id', color: P.good, sub: 'told directly — nothing to infer' },
+      { key: 'name_only', label: 'Name only', color: P.info, sub: 'usable if the name resolves' },
+      { key: 'unbranded', label: 'Unbranded', color: P.warnText,
+        sub: "nobody has said whose product this is — not evidence it's off Weedmaps" },
+      { key: 'conflict', label: 'Conflict', color: P.bad, sub: 'name and id disagree about the brand' }
+    ];
+    const skus = data.skus || {};
+    const openTile = open && TILES.find(function (t) { return t.key === open; });
+    const openBucket = open ? (skus[open] || { count: 0, skus: [] }) : null;
+    const openShown = openBucket ? openBucket.skus.slice(0, 60) : [];
+
+    return (
+      <Card density="roomy" style={{ marginBottom: 18 }}>
+        <SectionHead level={3} eyebrow="Roster coverage"
+          title={data.sku_total + ' catalogue SKU' + (data.sku_total === 1 ? '' : 's') + ', ' +
+            data.sku_attributed + ' carrying a brand'}
+          subtitle="How far brand attribution reaches into the catalogue — not the roster's current state, which the table below already shows. Click a tile to see which SKUs are in it."
+          action={<PBtn size="xs" variant="secondary" icon="refresh" busy={busy} onClick={onRecompute}>Recompute</PBtn>} />
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginTop: 14 }}>
+          {TILES.map(function (t) {
+            const bucket = skus[t.key] || { count: 0, skus: [] };
+            const active = open === t.key;
+            return (
+              <div key={t.key} onClick={function () { setOpen(active ? null : t.key); }}
+                style={{ border: '1px solid ' + (active ? P.ink : P.hairline2), borderRadius: P.r12,
+                  padding: 14, background: P.surface, cursor: 'pointer',
+                  boxShadow: active ? P.shadowMd : 'none' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em',
+                  textTransform: 'uppercase', color: P.inkMute }}>{t.label}</div>
+                <div style={{ fontFamily: P.fontMono, fontSize: 24, fontWeight: 700, marginTop: 5,
+                  color: t.color }}>{bucket.count}</div>
+                <div style={{ fontSize: 11, color: P.inkDim, marginTop: 3, lineHeight: 1.4 }}>{t.sub}</div>
+              </div>);
+          })}
+        </div>
+
+        {openTile &&
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed ' + P.hairline2 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase',
+              color: P.inkDim, fontFamily: P.fontMono, marginBottom: 8 }}>
+              {openTile.label} &middot; {openBucket.count} SKU{openBucket.count === 1 ? '' : 's'}
+            </div>
+            {openShown.length === 0
+              ? <div style={{ fontSize: P.type.meta, color: P.inkMute }}>None.</div>
+              : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {openShown.map(function (s) {
+                    return <span key={s} style={{ fontFamily: P.fontMono, fontSize: 11, background: P.surface3,
+                      padding: '3px 8px', borderRadius: 6 }}>{s}</span>;
+                  })}
+                  {openBucket.count > openShown.length &&
+                    <span style={{ fontSize: 11, color: P.inkMute, alignSelf: 'center' }}>
+                      +{openBucket.count - openShown.length} more
+                    </span>}
+                </div>}
+          </div>}
+
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid ' + P.hairline }}>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase',
+            color: P.inkDim, fontFamily: P.fontMono, marginBottom: 4 }}>Brand-name resolution</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0',
+            borderBottom: '1px solid ' + P.hairline, fontSize: 12 }}>
+            <span style={{ color: P.inkDim }}>Distinct brand names in the catalogue</span>
+            <span style={{ fontFamily: P.fontMono, fontWeight: 500, color: P.ink }}>{data.brands && data.brands.total}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0',
+            borderBottom: '1px solid ' + P.hairline, fontSize: 12 }}>
+            <span style={{ color: P.inkDim }}>Resolve to a Weedmaps brand id</span>
+            <span style={{ fontFamily: P.fontMono, fontWeight: 500, color: P.ink }}>{data.brands && data.brands.resolved}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 12 }}>
+            <span style={{ color: P.inkDim }}>Verdict</span>
+            <span style={{ fontWeight: 500, color: P.ink, textAlign: 'right', maxWidth: 420 }}>{data.verdict}</span>
+          </div>
+        </div>
+      </Card>);
+  }
+
   // ── the screen ───────────────────────────────────────────────────────────
   window.BrandsScreen = function BrandsScreen() {
     const P = useP();
@@ -1136,6 +1262,9 @@
     const [naTick, setNaTick] = React.useState(0);
     const [naWrite, setNaWrite] = React.useState(null);
     const [refreshBusy, setRefreshBusy] = React.useState(false);
+    const [covHttp, setCovHttp] = React.useState(null);
+    const [covTick, setCovTick] = React.useState(0);
+    const [covBusy, setCovBusy] = React.useState(false);
 
     React.useEffect(function () {
       let dead = false;
@@ -1159,6 +1288,19 @@
       getJSON('/api/brands/needs-attention').then(function (r) { if (!dead) { setNaHttp(r); } });
       return function () { dead = true; };
     }, [naTick, tick]);
+
+    // ITS OWN TICK TOO, for the same reason as needs-attention above: the
+    // top-of-screen Reload button (`tick`) must also refresh this panel, and
+    // the panel's own "Recompute" button (`covTick`) must not force a refetch
+    // of the whole 90-row roster to do it.
+    React.useEffect(function () {
+      let dead = false;
+      setCovHttp(null);
+      getJSON('/api/brands/roster-coverage').then(function (r) { if (!dead) { setCovHttp(r); setCovBusy(false); } });
+      return function () { dead = true; };
+    }, [covTick, tick]);
+
+    function handleRecomputeCoverage() { setCovBusy(true); setCovTick(function (t) { return t + 1; }); }
 
     // A needs-attention row is the RAW brands table row (brand_key, our_name,
     // sku_count, wm_brand_id...), not buildRows()'s enriched shape. Picker only
@@ -1358,6 +1500,8 @@
           onMarkAbsent={handleMarkAbsent}
           onRetryPull={handleRetryPull}
           onRefreshIndex={handleRefreshIndex} />
+
+        <RosterCoverage covHttp={covHttp} busy={covBusy} onRecompute={handleRecomputeCoverage} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12, marginBottom: 18 }}>
           <KPI label="Our brands" value={tally.total} sublabel={(tally.mapped) + ' mapped · ' + tally.unmapped + ' not'} icon="database" />
