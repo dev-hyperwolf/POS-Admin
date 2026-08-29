@@ -1488,14 +1488,25 @@ function DispatchCell({ o }) {
 // not-known into a 1, and the load meter then drew a bar off it. A number we
 // were never given stays not-given.
 function assignDriverTo(o, drv) {
-  const before = window.HW.DRIVERS.find((x) => sameDriver(x.name, driverOf(o)));
-  if (before && typeof before.stops === 'number' && before.stops > 0) before.stops -= 1;
-  if (typeof drv.stops === 'number') drv.stops += 1;
+  // Read the outgoing driver BEFORE the write — `updateOrder` assigns straight
+  // onto `o`, so `driverOf(o)` would answer with the NEW driver if read after.
+  const prevName = driverOf(o);
   // THE NAME AS THE ROSTER HAS IT, plus the id. What used to be written here was
   // `shortDriver(drv.name)` — the board abbreviation, stored as though it were
   // the driver's name, discarding the surname permanently. The board form is
   // still what gets DRAWN; it is just no longer what gets kept.
-  return window.HW.updateOrder(o.id, { driver: drv.name, driverId: drv.id || null });
+  const updated = window.HW.updateOrder(o.id, { driver: drv.name, driverId: drv.id || null });
+  // The write must be CONFIRMED before the counters move. `updateOrder` returns
+  // `null` when the order id no longer resolves — the order left the board
+  // between the sheet rendering and the click, the same race 0bc0ea3 already
+  // made visible by keeping the sheet open on failure. Bumping stops on a
+  // failed write corrupted the fleet load numbers as though the reassignment
+  // had gone through, even while the UI correctly reported that it hadn't.
+  if (!updated) return updated;
+  const before = window.HW.DRIVERS.find((x) => sameDriver(x.name, prevName));
+  if (before && typeof before.stops === 'number' && before.stops > 0) before.stops -= 1;
+  if (typeof drv.stops === 'number') drv.stops += 1;
+  return updated;
 }
 function stopsFor(driverName, orders) {
   return orders.filter((o) => sameDriver(driverOf(o), driverName));

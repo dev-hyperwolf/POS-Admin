@@ -211,6 +211,43 @@ test('re-routing hands the stop back — capacity is not a decoration', async ()
   });
 });
 
+test('a failed reassignment does not touch either driver\'s stop count', async () => {
+  // Companion to 0bc0ea3 (the sheet no longer closes on a failed reassignment).
+  // That fix left `assignDriverTo` bumping the old/new driver's `stops` BEFORE
+  // confirming `updateOrder` actually wrote — so the same race it made visible
+  // in the UI was still silently corrupting the fleet load numbers underneath
+  // the correct-looking error. Reproduce the race the same way: splice the
+  // order out of window.HW.ORDERS between the sheet rendering and the click.
+  await withApp('pos', async (app) => {
+    await app.mount('OrdersScreen');
+    const HW = app.window.HW;
+    await toDelivery(app);
+    assert.ok(app.click('Re-route'), 'no Re-route action');
+    await app.settle();
+
+    const [pick] = byTitle(app, /^Give this stop to Dev Anand$/);
+    assert.ok(pick, 'the idle driver is not offered');
+    const idMatch = app.text().match(/#(\S+)\s*·/);
+    assert.ok(idMatch, 'could not find the order id in the sheet header');
+    const idx = HW.ORDERS.findIndex((o) => String(o.id) === idMatch[1]);
+    assert.ok(idx >= 0, 'could not find the order in window.HW.ORDERS');
+
+    const theo0 = HW.DRIVERS.find((d) => d.name === 'Theo Reyes').stops;
+    const dev0 = HW.DRIVERS.find((d) => d.name === 'Dev Anand').stops;
+    HW.ORDERS.splice(idx, 1);   // same array reference, only this element removed
+
+    fire(app, pick);
+    await app.settle();
+
+    assert.ok(app.text().includes('could not be reassigned'),
+    'the sheet does not report the failed reassignment');
+    assert.equal(HW.DRIVERS.find((d) => d.name === 'Theo Reyes').stops, theo0,
+    'the previous driver was docked a stop for a reassignment that never wrote');
+    assert.equal(HW.DRIVERS.find((d) => d.name === 'Dev Anand').stops, dev0,
+    'the new driver picked up a stop for a reassignment that never wrote');
+  });
+});
+
 test('a driver who cannot take the stop is refused out loud', async () => {
   await withApp('pos', async (app) => {
     await app.mount('OrdersScreen');
