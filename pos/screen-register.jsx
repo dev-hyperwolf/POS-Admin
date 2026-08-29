@@ -612,6 +612,17 @@ window.RegisterScreen = function RegisterScreen() {
               New check-in
             </button>
           </div>
+          {/* Search → select checks the customer in directly (checkInCustomer),
+              skipping the full New-check-in modal. This is the fast path for
+              someone who is NOT already on the waiting board — WaitingStrip
+              (to the right) only knows about people who already have a
+              CHECKINS row, so it cannot find someone walking straight up. */}
+          <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="search" size={13} stroke={1.9} />Find</span>
+            <div style={{ display: 'flex', alignItems: 'center', minHeight: 38 }}>
+              <CustomerSearch onSelect={checkInCustomer} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />
+            </div>
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <WaitingStrip onPick={loadCheckIn} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />
           </div>

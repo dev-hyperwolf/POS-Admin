@@ -47,14 +47,19 @@
  * A check that only fires on some later refactor is a check that would not have
  * caught this one. The register register is at the foot of this file.
  *
- * ── ON THE TWO SOURCE-SHAPE TESTS AT THE END ──────────────────────────────
- * `checkInCustomer` CANNOT BE DRIVEN. It is the `onSelect` of `CustomerSearch`
- * (pos/screen-register.jsx:1129), and CustomerSearch is defined and never
- * rendered — repo-wide it has exactly one reference, its own definition. So the
- * register's search→select check-in is an unreachable surface, and the only
- * honest test of it reads the source. Those two are labelled as such and are
- * deliberately the weakest things here; the fix that would let them be real
- * tests is wiring CustomerSearch, not writing a cleverer assertion.
+ * ── UPDATE 2026-08-29: CustomerSearch IS NOW WIRED ────────────────────────
+ * It used to be true that `checkInCustomer` COULD NOT BE DRIVEN — CustomerSearch
+ * (pos/screen-register.jsx, `function CustomerSearch`) was fully built and
+ * had exactly one reference repo-wide, its own definition, so the register's
+ * search→select check-in was an unreachable surface and the only honest test
+ * of it read the source. It is now rendered in the intake bar next to "New
+ * check-in" (a small icon-button titled "Check in a customer — search name,
+ * e-mail or phone"), wired to `onSelect={checkInCustomer}`. See
+ * `'search → select on the register actually checks the customer in'` below
+ * for the driven test this unlocked. The two `[source]` tests that follow it
+ * stay — they assert on checkInCustomer's internals (store calls, null-means-
+ * unchanged) which a screen-level test would only prove indirectly — but they
+ * are no longer the only witness.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -340,11 +345,47 @@ test('when the store refuses, the register does not report a check-in', async ()
   });
 });
 
-/* ── 4 · THE UNREACHABLE SURFACE, READ FROM SOURCE ───────────────────────── */
+/* ── 4 · THE SEARCH → SELECT PATH, DRIVEN FOR REAL ───────────────────────── */
 
-// ⚠️ SOURCE-SHAPE, NOT DRIVEN. See the header: CustomerSearch is never rendered,
-// so checkInCustomer has no path to it. This is the weakest test in the file and
-// is honest about being so.
+/**
+ * CustomerSearch is now rendered in the intake bar (the small search icon next
+ * to "New check-in"), wired to `onSelect={checkInCustomer}`. Dony Fernandez
+ * (m4) is chosen deliberately: he is the one seed member with NO existing
+ * CHECKINS row (c1-c4 cover m1, m2, m3, m5), so this exercises exactly the gap
+ * CustomerSearch fills — finding someone who is not already on the waiting
+ * board, which WaitingStrip by construction cannot do.
+ */
+test('search → select on the register actually checks the customer in', async () => {
+  await withApp('pos', async (app) => {
+    const HW = app.window.HW;
+    const before = HW.CHECKINS.length;
+
+    await app.mount('RegisterScreen');
+    assert.ok(app.click((t, el) => (el.title || '').includes('Check in a customer')),
+      `no customer-search trigger on the register — buttons: ${app.buttons().join(' | ')}`);
+    await app.settle();
+    assert.ok(app.type('Search a customer', 'Dony'),
+      'no search field in the customer-search dropdown');
+    await app.settle();
+    assert.ok(app.click((t) => t.includes('Dony Fernandez')),
+      `no search result for Dony Fernandez — buttons: ${app.buttons().join(' | ')}`);
+    await app.settle();
+
+    assert.equal(HW.CHECKINS.length, before + 1,
+      'selecting a search result did not write a CHECKINS row — the button looked wired but '
+      + 'checkInCustomer produced no store effect, the exact silent-no-op this file exists to catch');
+    const ci = HW.CHECKINS.find((c) => c.memberId === 'm4');
+    assert.ok(ci, 'a check-in row exists but it is not bound to the member that was selected');
+    assert.ok(app.text().includes('Dony Fernandez'),
+      'the register did not seat the customer selected out of search');
+  });
+});
+
+// ⚠️ SOURCE-SHAPE, NOT DRIVEN. The screen-level test above proves the wiring
+// end to end for one path (a fresh check-in for an unclaimed member); these
+// two keep asserting on checkInCustomer's internals directly — the null-means-
+// -unchanged contract on type/delivery, and the no-whitespace-guessing rule —
+// which a screen read would only prove indirectly.
 test('[source] checkInCustomer writes to the store', () => {
   const body = SRC.slice(SRC.indexOf('const checkInCustomer'));
   const fn = body.slice(0, body.indexOf('\n  };') + 5);
