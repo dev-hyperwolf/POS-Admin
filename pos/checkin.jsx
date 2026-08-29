@@ -225,7 +225,12 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
   // separately, and the joined value is DERIVED at commit for the surfaces that
   // only ever display one. Two stored copies of one fact is how they drift.
   const BLANK_NF = { firstName: '', lastName: '', dob: '', phone: '', doc: null,
-    fromScan: {}, guessed: {}, guessNote: '' };
+    fromScan: {}, guessed: {}, guessNote: '',
+    // THE THIRD LINE the adopting note below promises — a list on BLANK_NF, the
+    // component, and the key on whatever this guest is committed as (see
+    // commitNew). Same shape as the check-in New-customer form's `nf.idPhotos`,
+    // because it rides the same shared control and must reset the same way.
+    idPhotos: [] };
   const [nf, setNf] = React.useState(BLANK_NF);
   // Editing a field withdraws BOTH marks from that field and no other. Both are
   // claims about where the value came from, and a human typing over it retires
@@ -288,7 +293,13 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
       // row, the avatar, `taken`). The split pair is what was captured and what
       // the server's only name keys want.
       name: nfJoin(firstName, lastName),
-      dob: nf.dob, phone: nf.phone, member: false, doc: nf.doc });
+      dob: nf.dob, phone: nf.phone, member: false, doc: nf.doc,
+      // SAME KEY, SAME HONESTY AS THE PRIMARY CUSTOMER (pos/checkin.jsx:844,
+      // `idPhotos: nf.idPhotos`). This does not file anything anywhere — each
+      // entry is a Blob URL in this tab (HWIdPhotos.STORAGE.mode === 'memory',
+      // `stored: false` on every entry) — and an empty list here says "no
+      // photos were attached" rather than leaving a reader to guess.
+      idPhotos: nf.idPhotos });
     setNf(BLANK_NF);setAdding(false);
   };
   // Scanning the ID IS the data entry — the PDF417 barcode carries the legal
@@ -406,18 +417,30 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
             <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>New guest — onboarding</span>
             <span style={{ marginLeft: 'auto' }}><IconBtn icon="x" size={14} style={{ width: 26, height: 26 }} onClick={() => setAdding(false)} /></span>
           </div>
-          {/* NO PHOTO STRIP HERE YET, AND THAT IS DELIBERATE RATHER THAN
-              MISSED. This is the party's guest onboarding, a different form
-              with its own `nf`; the control it would adopt is the shared
-              window.IdPhotoCapture used by the check-in New-customer form
-              below (search this file for HWIdPhotos.docKeyOf). Adopting it is
-              three lines — a list on BLANK_NF, the component, and the key on
-              whatever this guest is committed as — and it is the aligning
-              pass's, so this file is not being edited from two directions at
-              once. It is NOT a second implementation. */}
           <div><CILabel>Government ID — scan to fill</CILabel>
             {window.IdScanPanel ? <window.IdScanPanel value={nf.doc} onChange={onScan} /> :
           <PBtn variant="accent" size="sm" icon="scan" onClick={() => onScan({ scannedAt: 'Just now', photo: true })}>Scan ID</PBtn>}
+          </div>
+          {/* THE ADOPTION PROMISED ABOVE, NOW DONE. `window.IdPhotoCapture` is
+              THE SHARED CONTROL — the same one the check-in New-customer form
+              below uses (search this file for HWIdPhotos.docKeyOf) — adopted
+              here rather than forked, because a second copy of the storage
+              sentence is a second place it can go stale. `docKey` lets the
+              strip notice this guest's document changed under photos already
+              attached; a re-scan does not delete them, it flags the mismatch
+              and leaves the operator holding the decision. */}
+          <div><CILabel>Photos of the ID / passport</CILabel>
+            {window.IdPhotoCapture ?
+            <window.IdPhotoCapture
+              photos={nf.idPhotos}
+              onChange={(next) => setNf((p) => Object.assign({}, p, { idPhotos: next }))}
+              docKey={window.HWIdPhotos ? window.HWIdPhotos.docKeyOf(nf.doc) : null} /> :
+            /* Not loaded is not "none attached" — see the identical guard on
+               the New-customer form's copy of this control. */
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+              <Icon name="camera" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+              <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The photo control is not loaded on this page, so no image of the document can be attached here — and this screen cannot tell you whether any exist.</span>
+            </div>}
           </div>
           {/* THE REFUSAL. A returning barcode naming a member id we cannot load
               is neither a match nor a miss, and it may not quietly become the
