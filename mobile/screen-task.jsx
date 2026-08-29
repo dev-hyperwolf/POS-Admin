@@ -88,13 +88,25 @@ function governedFor(base, items) {
 }
 
 // ── Media placeholders (drop real photos here later) ────────────────────────
+//
+// 🔴 THIS TILE USED TO SAY "ID ON FILE · 21+" FOR EVERY STOP, INCLUDING A
+// FIRST-TIME GUEST. `base.verified` is the same field that drives the
+// "First-time guest" / "Returning guest" banner text (mobile/data.jsx,
+// mobile/chrome.jsx VisitBanner) and the ID-readiness gate in
+// screen-appointment.jsx / screen-complete.jsx — it already distinguishes a
+// guest with a real prior ID check from one who has never been checked. This
+// tile is the only place on the screen that was NOT reading it, so a
+// first-timer saw a banner admitting no ID exists yet next to a tile
+// asserting one does. Gate on the same field the rest of the screen already
+// trusts; do not invent a new "has an ID photo" concept.
 function IDPhoto({ base, h = 150, onZoom }) {
   const P = useP();
+  const verified = !!(base && base.verified);
   return (
     <button onClick={onZoom} style={{ position: 'relative', width: '100%', height: h, borderRadius: P.r14, overflow: 'hidden', border: `1px solid ${P.hairline2}`, cursor: 'zoom-in', padding: 0, background: `linear-gradient(135deg, ${P.mode === 'dark' ? '#242a1c' : '#e9ecdd'}, ${P.mode === 'dark' ? '#1a1e14' : '#dfe3d2'})` }}>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Avatar name={base.name} size={h * 0.42} /></div>
-      <div style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', fontFamily: P.fontMono }}>ID ON FILE · 21+</div>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,.6))' }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{base.name}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,.75)', fontFamily: P.fontMono }}>DOB 09/14/1992 · CA</div></div>
+      <div style={{ position: 'absolute', top: 8, left: 8, padding: '2px 8px', borderRadius: 6, background: 'rgba(0,0,0,.5)', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '.06em', fontFamily: P.fontMono }}>{verified ? 'ID ON FILE · 21+' : 'ID VERIFICATION PENDING'}</div>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', background: 'linear-gradient(transparent, rgba(0,0,0,.6))' }}><div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff' }}>{base.name}</div>{verified ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,.75)', fontFamily: P.fontMono }}>DOB 09/14/1992 · CA</div> : <div style={{ fontSize: 10, color: 'rgba(255,255,255,.75)', fontFamily: P.fontMono }}>First-time guest — not yet checked</div>}</div>
       <div style={{ position: 'absolute', top: 8, right: 8, width: 24, height: 24, borderRadius: 99, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}><Icon name="search" size={13} stroke={2.2} /></div>
     </button>);
 }
