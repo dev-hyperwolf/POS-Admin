@@ -442,7 +442,7 @@
             <b><Mono>{S.rescan}</Mono></b> tag{S.rescan === 1 ? '' : 's'} in the rescan queue will never be located once the session closes.
             The floor cannot do this, and it cannot be undone from the handheld.
           </React.Fragment>}
-          onConfirm={(reason) => { dec.approveKit(reason); window.hdToast && window.hdToast({ title: 'Kit posted', description: `${kit.id} accepted at ${S.assigned} units.`, tone: 'ok' }); }} />
+          onConfirm={(reason) => { dec.approveKit(reason); window.hdToast && window.hdToast({ title: 'Kit posted — not written to inventory', description: `${kit.id} accepted at ${S.assigned} units in this browser tab only. Nothing was written to inventory.`, tone: 'ok' }); }} />
 
         <ReasonModal open={modal === 'reject'} onClose={() => setModal(null)}
           title="Reject the kit and send it back" tone="blocked" confirmLabel="Reject & re-scan"

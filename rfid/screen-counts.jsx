@@ -276,7 +276,7 @@
             decision, not a scan result: the tags stay in the registry with their history, but the units stop counting as on hand.
             The handheld cannot do this, and a second pass will no longer look for them.
           </React.Fragment>}
-          onConfirm={(reason) => { dec.closeStragglers(selected.map((s) => s.epc), reason); setSel({}); window.hdToast && window.hdToast({ title: 'Written off', description: `${selected.length} unit${selected.length === 1 ? '' : 's'} closed as missing on ${c.id}.`, tone: 'warn' }); }} />
+          onConfirm={(reason) => { dec.closeStragglers(selected.map((s) => s.epc), reason); setSel({}); window.hdToast && window.hdToast({ title: 'Written off — not synced to inventory', description: `${selected.length} unit${selected.length === 1 ? '' : 's'} closed as missing on ${c.id} in this session only. Nothing was written to inventory.`, tone: 'warn' }); }} />
       </div>);
   };
 })();

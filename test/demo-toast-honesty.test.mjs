@@ -50,6 +50,56 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
  * Both name their own limit ON SCREEN rather than hedging into "Saved". */
 const SITES = [
   {
+    rel: 'rfid/screen-kits.jsx',
+    what: 'the kit-verification approval',
+    banned: [
+      "title: 'Kit posted'",
+    ],
+    required: [
+      "title: 'Kit posted — not written to inventory'",
+      '`${kit.id} accepted at ${S.assigned} units in this browser tab only. Nothing was written to inventory.`',
+    ],
+  },
+  {
+    rel: 'rfid/handheld.jsx',
+    what: 'the handheld kit submission',
+    banned: [
+      "title: 'Kit submitted'",
+      'sent for supervisor approval',
+      "title: 'Sent to supervisor'",
+      'queued for binding review',
+    ],
+    required: [
+      "title: 'Kit submitted — not sent to the desk'",
+      '`${K.id} marked done on this device only. Nothing changed for the desk to review.`',
+      "title: 'Sent to supervisor — nothing was queued'",
+      '`${C.auditEventId} noted here only. No binding-review queue exists yet.`',
+    ],
+  },
+  {
+    rel: 'rfid/screen-counts.jsx',
+    what: 'the cycle-count write-off',
+    banned: [
+      "title: 'Written off'",
+    ],
+    required: [
+      "title: 'Written off — not synced to inventory'",
+      "Nothing was written to inventory.",
+    ],
+  },
+  {
+    rel: 'rfid/screen-system.jsx',
+    what: 'the audit-log export',
+    banned: [
+      "title: 'Audit export queued'",
+      '`${rows.length} events · CSV`',
+    ],
+    required: [
+      "title: 'Audit export queued — nothing was generated'",
+      '`${rows.length} events would be included. No CSV was created.`',
+    ],
+  },
+  {
     rel: 'engage/screen-customers.jsx',
     what: 'the PII reveal',
     banned: [

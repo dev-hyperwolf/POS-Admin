@@ -190,7 +190,7 @@
         <RfidPageHead
           title="Audit log"
           sub="Every state-changing operation in the module writes here — including the ones that were refused. Nothing is deleted, and a rejection is as much a record as a success."
-          actions={<PBtn size="sm" variant="secondary" icon="download" onClick={() => window.hdToast && window.hdToast({ title: 'Audit export queued', description: `${rows.length} events · CSV`, tone: 'ok' })}>Export</PBtn>} />
+          actions={<PBtn size="sm" variant="secondary" icon="download" onClick={() => window.hdToast && window.hdToast({ title: 'Audit export queued — nothing was generated', description: `${rows.length} events would be included. No CSV was created.`, tone: 'ok' })}>Export</PBtn>} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
           <StatTile icon="activity" label="Events (24h)" value={String(all.length)} hue="blue" />

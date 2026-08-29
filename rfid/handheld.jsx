@@ -237,7 +237,7 @@
         : 'Submitting asserts what you read. It does not post the counts.'}>
         <window.HHAction icon="check-circle" disabled={doneCount < total || submitted || locked}
           variant={doneCount < total || submitted || locked ? 'quiet' : 'accent'}
-          onClick={() => { setSubmitted(true); window.hdToast && window.hdToast({ title: 'Kit submitted', description: `${K.id} sent for supervisor approval.`, tone: 'ok' }); }}
+          onClick={() => { setSubmitted(true); window.hdToast && window.hdToast({ title: 'Kit submitted — not sent to the desk', description: `${K.id} marked done on this device only. Nothing changed for the desk to review.`, tone: 'ok' }); }}
           sub={`${doneCount} of ${total} moves confirmed`}>
           {locked ? `Kit ${dec.kit.status}` : submitted ? 'Awaiting the desk' : 'Submit kit'}
         </window.HHAction>
@@ -528,7 +528,7 @@
       <window.HHDock>
         <window.HHAction icon="printer" onClick={() => go('printing')} sub="run continues at the next label">Void label & continue</window.HHAction>
         <window.HHAction variant="outline" icon="send" disabled={resolved}
-          onClick={() => window.hdToast && window.hdToast({ title: 'Sent to supervisor', description: `${C.auditEventId} queued for binding review.`, tone: 'info' })}>
+          onClick={() => window.hdToast && window.hdToast({ title: 'Sent to supervisor — nothing was queued', description: `${C.auditEventId} noted here only. No binding-review queue exists yet.`, tone: 'info' })}>
           {resolved ? 'Resolved on the desk' : 'Send to supervisor'}
         </window.HHAction>
       </window.HHDock>
