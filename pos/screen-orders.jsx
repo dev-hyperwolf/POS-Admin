@@ -1651,6 +1651,11 @@ function LiveDispatchSheet({ o, onClose }) {
 // can't I give this to Aaron" is the question a disabled row has to answer.
 function AssignDriverSheet({ o, onClose }) {
   const P = useP();
+  // `assignDriverTo` returns `window.HW.updateOrder(...)` directly, which is
+  // `null` when the order id no longer resolves — e.g. the order left the
+  // board between this sheet rendering and the click. Closing unconditionally
+  // there reads as a successful reassignment when nothing actually changed.
+  const [assignError, setAssignError] = React.useState(null);
   // A live order has no assignment route anywhere in the API. Offering a
   // roster for it is the falsehood this split exists to end.
   if (isLiveOrder(o)) return <LiveDispatchSheet o={o} onClose={onClose} />;
@@ -1684,6 +1689,7 @@ function AssignDriverSheet({ o, onClose }) {
           <Note tone="warn">This is a <b>demo record</b>. #{o.id} exists in this browser only —
             it is not in the API, so this assignment is local to this tab and reaches no
             server. The Weedmaps rows on the same board behave differently, and say so.</Note>}
+          {assignError && <Note tone="bad">{assignError}</Note>}
           {d.zone && <Eyebrow>{d.zone} first · then the rest of the fleet</Eyebrow>}
           {list.map((x) => {
             const no = refuse(x);
@@ -1702,7 +1708,11 @@ function AssignDriverSheet({ o, onClose }) {
                   <BarMeter value={x.cap ? x.stops / x.cap : 0} color={col} height={6} /> :
                   <span style={{ fontSize: 10, color: P.inkFaint, fontFamily: P.fontMono }}>load n/k</span>}</div>
                 <PBtn variant="accent" size="md" icon="user-check" disabled={!!no} title={no || `Give this stop to ${x.name}`}
-                onClick={() => {assignDriverTo(o, x);onClose();}}>{cur === 'Unassigned' ? 'Assign' : 'Move here'}</PBtn>
+                onClick={() => {
+                  const updated = assignDriverTo(o, x);
+                  if (updated) { onClose(); }
+                  else { setAssignError(`#${o.id} could not be reassigned to ${x.name} — the order left the board before this went through. Nothing was changed.`); }
+                }}>{cur === 'Unassigned' ? 'Assign' : 'Move here'}</PBtn>
               </div>);
           })}
         </div>
