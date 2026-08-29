@@ -980,26 +980,33 @@ function LaneEconomicsSettings({ onClose }) {
  */
 function useWmStatus() {
   const [st, setSt] = React.useState({ status: 'idle', data: null, err: null });
+  // `gen` exists so a config-overlay write can force a fresh GET without a
+  // second, differently-shaped fetch path: bump it and the effect below
+  // re-runs. This is the write-then-read-back-confirm discipline used
+  // everywhere else in this estate tonight (screen-brands.jsx's onChanged,
+  // LaneEconomicsSettings' setF after a save) applied to a hook that used to
+  // only ever fetch once.
+  const [gen, setGen] = React.useState(0);
   React.useEffect(() => {
     if (!window.HW_LIVE || typeof window.HW_LIVE.get !== 'function') {
       setSt({ status: 'error', data: null, err: 'the live data seam (shared/hw-live.js) is not loaded on this page' });
       return;
     }
     let dead = false;
-    setSt({ status: 'pending', data: null, err: null });
+    setSt((s) => ({ status: 'pending', data: s.data, err: null }));
     window.HW_LIVE.get('/api/wm/status').then((r) => {
       if (dead) return;
       if (!r.ok || !r.body) { setSt({ status: 'error', data: null, err: r.error || ('HTTP ' + r.code) }); return; }
       setSt({ status: 'live', data: r.body, err: null });
     });
     return () => { dead = true; };
-  }, []);
-  return st;
+  }, [gen]);
+  return { ...st, refetch: () => setGen((g) => g + 1) };
 }
 
-function WmSettingCard({ P, pillKind, pillDot, pillLabel, extraPill, title, source, children }) {
+function WmSettingCard({ P, pillKind, pillDot, pillLabel, extraPill, title, source, settable, children }) {
   return (
-    <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 16, background: P.surface }}>
+    <div style={{ border: `1px solid ${settable ? P.accentBorder : P.hairline2}`, borderRadius: P.r12, padding: 16, background: P.surface }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
         {pillLabel && <Pill kind={pillKind} dot={pillDot} size="sm">{pillLabel}</Pill>}
         {extraPill && <Pill kind={extraPill.kind} dot size="sm">{extraPill.label}</Pill>}
@@ -1008,8 +1015,113 @@ function WmSettingCard({ P, pillKind, pillDot, pillLabel, extraPill, title, sour
       <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.6 }}>{children}</div>
       {source && <div style={{ marginTop: 10, fontSize: 10.5, color: P.inkFaint, fontFamily: P.fontMono, display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
         {source}
-        <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute, background: P.surface3, padding: '2px 7px', borderRadius: 99, letterSpacing: '.03em', textTransform: 'uppercase', fontFamily: P.fontSans }}>engineer only</span>
+        {settable
+          ? <span style={{ fontSize: 10, fontWeight: 700, color: P.accentText, background: P.accentSoft, padding: '2px 7px', borderRadius: 99, letterSpacing: '.03em', textTransform: 'uppercase', fontFamily: P.fontSans }}>operator-adjustable</span>
+          : <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute, background: P.surface3, padding: '2px 7px', borderRadius: 99, letterSpacing: '.03em', textTransform: 'uppercase', fontFamily: P.fontSans }}>engineer only</span>}
       </div>}
+    </div>
+  );
+}
+
+/* ── config-overlay editors ───────────────────────────────────────────────
+ *
+ * Exactly three settings are editable through this panel, and ONLY these
+ * three: ENFORCE_DOC_EXPIRY, MERCHANT_PREFLIGHT, RECONCILE_EVERY_S. That
+ * list is not enforced here — wmdemo/config_overlay.py's ALLOWLIST is the
+ * actual security boundary, and POST /api/config-overlay refuses anything
+ * else server-side regardless of what this UI offers. These controls only
+ * need to exist for the three keys the server already agreed to accept.
+ *
+ * Writes through window.HW_LIVE.post — the one token-aware POST path every
+ * other write in this estate uses — and follow the same write-then-read-
+ * back-confirm discipline as screen-brands.jsx's Picker: a write never
+ * declares success from its own echo, it calls onSaved() to force a fresh
+ * GET /api/wm/status and renders whatever THAT says.
+ */
+function OverlayWriteBanner({ P, out }) {
+  if (!out) return null;
+  const ok = out.r && out.r.ok;
+  return (
+    <div style={{ marginTop: 9, padding: '7px 9px', borderRadius: P.r8, fontSize: 11.5, lineHeight: 1.5,
+      background: ok ? P.goodSoft : P.badSoft, color: ok ? P.good : P.bad }}>
+      <b>{out.label}</b> &mdash; HTTP {out.r ? out.r.code : '?'}. {ok ? 'Recorded.' : ((out.r && (out.r.body && out.r.body.error || out.r.error)) || 'no reason given')}
+    </div>
+  );
+}
+
+function OverlayBoolEditor({ P, wmKey, onSaved, current }) {
+  const [busy, setBusy] = React.useState(null);   // null | 'true' | 'false' | 'clear'
+  const [out, setOut] = React.useState(null);
+  const effective = !!(current && current.effective_value);
+  const overlaid = !!(current && current.overlay);
+
+  function write(value, label, action) {
+    setBusy(label); setOut(null);
+    const body = action === 'clear'
+      ? { key: wmKey, action: 'clear', reviewer: 'admin@hyperwolf.com' }
+      : { key: wmKey, value, reviewer: 'admin@hyperwolf.com' };
+    Promise.resolve(window.HW_LIVE.post('/api/config-overlay', body)).then((r) => {
+      setBusy(null);
+      setOut({ label, r });
+      if (r && r.ok) onSaved();
+    });
+  }
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${P.hairline2}` }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <PBtn size="xs" variant={effective ? 'secondary' : 'accent'} busy={busy === 'off'}
+          onClick={() => write(false, 'off', 'set')}>Turn OFF</PBtn>
+        <PBtn size="xs" variant={effective ? 'accent' : 'secondary'} busy={busy === 'on'}
+          onClick={() => write(true, 'on', 'set')}>Turn ON</PBtn>
+        {overlaid && <PBtn size="xs" variant="ghost" busy={busy === 'reset'}
+          onClick={() => write(null, 'reset', 'clear')}>Reset to default</PBtn>}
+      </div>
+      <OverlayWriteBanner P={P} out={out} />
+    </div>
+  );
+}
+
+function OverlayIntEditor({ P, wmKey, onSaved, current, suffix, min, max }) {
+  const [val, setVal] = React.useState(String(current ? current.effective_value : ''));
+  const [busy, setBusy] = React.useState(null);
+  const [out, setOut] = React.useState(null);
+  const overlaid = !!(current && current.overlay);
+
+  React.useEffect(() => {
+    setVal(String(current ? current.effective_value : ''));
+  }, [current && current.effective_value]);
+
+  const n = parseInt(val, 10);
+  const bad = !Number.isFinite(n) || n < min || n > max;
+
+  function write(action) {
+    const label = action === 'clear' ? 'reset' : 'save';
+    setBusy(label); setOut(null);
+    const body = action === 'clear'
+      ? { key: wmKey, action: 'clear', reviewer: 'admin@hyperwolf.com' }
+      : { key: wmKey, value: n, reviewer: 'admin@hyperwolf.com' };
+    Promise.resolve(window.HW_LIVE.post('/api/config-overlay', body)).then((r) => {
+      setBusy(null);
+      setOut({ label, r });
+      if (r && r.ok) onSaved();
+    });
+  }
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${P.hairline2}` }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ maxWidth: 110 }}>
+          <Field mono size="sm" value={val} onChange={(e) => setVal(e.target.value.replace(/[^0-9]/g, ''))}
+            suffix={suffix && <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{suffix}</span>} />
+        </div>
+        <PBtn size="xs" variant="accent" disabled={bad} busy={busy === 'save'}
+          onClick={() => write('set')}>Save</PBtn>
+        {overlaid && <PBtn size="xs" variant="ghost" busy={busy === 'reset'}
+          onClick={() => write('clear')}>Reset to default</PBtn>}
+      </div>
+      {bad && <div style={{ marginTop: 6, fontSize: 11, color: P.bad, fontWeight: 600 }}>Must be a whole number between {min} and {max}.</div>}
+      <OverlayWriteBanner P={P} out={out} />
     </div>
   );
 }
@@ -1027,24 +1139,24 @@ function WeedmapsStatusPanel({ onClose }) {
           <div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>Weedmaps</div>
           <div style={{ fontSize: 11.5, color: P.inkDim }}>Environment &amp; write-mode status</div>
         </div>
-        <Pill kind="neutral" size="sm">Read-only</Pill>
+        <Pill kind="info" size="sm">3 settings editable</Pill>
         <IconBtn icon="x" size={16} onClick={onClose} />
       </div>
 
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
           <Icon name="info" size={14} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
-          <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Every card below states a fact this process already computed — nothing here is a control. Most of these values require a process restart to take effect, and one of them (OAuth token scopes) has already caused a real outage from a casual-looking edit, so there is no "change it here" for any of them yet.</div>
+          <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Most cards below state a fact this process already computed and are not controls — most of these values require a process restart to take effect, and one of them (OAuth token scopes) has already caused a real outage from a casual-looking edit. <b>Three are different</b>: document-expiry enforcement, the merchant pre-flight kill switch, and the reconcile cadence are backed by a DB overlay (POST /api/config-overlay) that every reader of these three already checks first, so a change here takes effect on the next read — no restart, usually within about 15 seconds. Everything else on this panel stays exactly what it always was.</div>
         </div>
 
-        {st.status === 'pending' && <div style={{ fontSize: 12.5, color: P.inkDim, padding: '20px 0', textAlign: 'center' }}>Asking GET /api/wm/status…</div>}
+        {st.status === 'pending' && !st.data && <div style={{ fontSize: 12.5, color: P.inkDim, padding: '20px 0', textAlign: 'center' }}>Asking GET /api/wm/status…</div>}
 
         {st.status === 'error' && <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.badSoft, borderRadius: P.r10 }}>
           <Icon name="alert" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
           <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b>Could not reach GET /api/wm/status</b> ({st.err}). Nothing below is invented to fill the gap — this panel shows a status, not a guess.</div>
         </div>}
 
-        {st.status === 'live' && (() => {
+        {st.data && (() => {
           const d = st.data;
           const lw = d.live_write || {};
           const op = d.order_push || {};
@@ -1053,8 +1165,14 @@ function WeedmapsStatusPanel({ onClose }) {
           const posture = wh.posture || {};
           const sync = d.sync || {};
           const mp = d.merchant_preflight || {};
+          const docExp = d.doc_expiry || {};
+          const co = d.config_overlay || {};
+          const covals = co.values || {};
+          const refreshing = st.status === 'pending';
 
-          return <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 14 }}>
+          return <div>
+          {refreshing && <div style={{ fontSize: 11, color: P.inkMute, marginBottom: 8 }}>Refreshing…</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 14 }}>
 
             <WmSettingCard P={P} pillKind={lw.mode === 'allowed' ? 'good' : 'bad'} pillDot
               pillLabel={lw.mode === 'allowed' ? 'allowed' : 'refused'} title="Live write mode"
@@ -1128,19 +1246,32 @@ function WeedmapsStatusPanel({ onClose }) {
               );
             })()}
 
-            <WmSettingCard P={P} title="Sync cadence"
-              source="config.SYNC_DEBOUNCE_S / PROMO_POLL_S / RECONCILE_EVERY_S">
-              <div style={kv}><span style={{ color: P.inkDim }}>Write debounce</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.debounce_s ?? '—'}s</span></div>
-              <div style={kv}><span style={{ color: P.inkDim }}>Promo poll (no push API exists)</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.promo_poll_s ?? '—'}s</span></div>
-              <div style={kv}><span style={{ color: P.inkDim }}>Reconcile safety net</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.reconcile_every_s ?? '—'}s</span></div>
+            <WmSettingCard P={P} settable pillKind={docExp.enforced ? 'warn' : 'neutral'} pillDot
+              pillLabel={docExp.enforced ? 'enforcing' : 'off'} title="Document expiry enforcement"
+              source="config.enforce_doc_expiry() · POST /api/config-overlay key=ENFORCE_DOC_EXPIRY">
+              {docExp.note || (docExp.enforced
+                ? 'An expired document REFUSES the verification gates.'
+                : 'An expired document is detected, stored, counted and shown, but does not refuse a sale.')}
+              <OverlayBoolEditor P={P} wmKey="ENFORCE_DOC_EXPIRY" current={covals.ENFORCE_DOC_EXPIRY} onSaved={st.refetch} />
             </WmSettingCard>
 
-            <WmSettingCard P={P} pillKind={mp.enabled ? 'good' : 'neutral'} pillDot
+            <WmSettingCard P={P} settable title="Sync cadence"
+              source="config.SYNC_DEBOUNCE_S / PROMO_POLL_S · config.reconcile_every_s()">
+              <div style={kv}><span style={{ color: P.inkDim }}>Write debounce</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.debounce_s ?? '—'}s</span></div>
+              <div style={kv}><span style={{ color: P.inkDim }}>Promo poll (no push API exists)</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.promo_poll_s ?? '—'}s</span></div>
+              <div style={kv}><span style={{ color: P.inkDim }}>Reconcile safety net</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{sync.reconcile_every_s ?? '—'}s{sync.reconcile_every_s === 0 ? ' (disabled)' : ''}</span></div>
+              <div style={{ fontSize: 11, color: P.inkDim, marginTop: 6, lineHeight: 1.5 }}>Only the reconcile safety net is editable here — 0 disables the sweep. Write debounce and promo poll stay engineer-only; they were not part of the owner's request and getting them wrong has a different, more coupled blast radius.</div>
+              <OverlayIntEditor P={P} wmKey="RECONCILE_EVERY_S" current={covals.RECONCILE_EVERY_S} onSaved={st.refetch} suffix="sec" min={0} max={86400} />
+            </WmSettingCard>
+
+            <WmSettingCard P={P} settable pillKind={mp.enabled ? 'good' : 'neutral'} pillDot
               pillLabel={mp.enabled ? 'on' : 'off'} title="Merchant pre-flight"
-              source="config.MERCHANT_PREFLIGHT / _TTL_KNOWN_S / _TTL_UNKNOWN_S">
+              source="config.merchant_preflight_enabled() / _TTL_KNOWN_S / _TTL_UNKNOWN_S">
               <div style={kv}><span style={{ color: P.inkDim }}>Known-merchant cache</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{mp.ttl_known_s ?? '—'}s</span></div>
               <div style={kv}><span style={{ color: P.inkDim }}>Unknown-merchant cache</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{mp.ttl_unknown_s ?? '—'}s</span></div>
               <div style={kv}><span style={{ color: P.inkDim }}>Pre-flight timeout</span><span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{mp.timeout_s ?? '—'}s</span></div>
+              <div style={{ fontSize: 11, color: P.inkDim, marginTop: 6, lineHeight: 1.5 }}>Only the on/off switch is editable. The three cache lifetimes stay engineer-only.</div>
+              <OverlayBoolEditor P={P} wmKey="MERCHANT_PREFLIGHT" current={covals.MERCHANT_PREFLIGHT} onSaved={st.refetch} />
             </WmSettingCard>
 
             <WmSettingCard P={P} pillKind={d.public_mode ? 'warn' : 'neutral'} pillDot
@@ -1151,6 +1282,29 @@ function WeedmapsStatusPanel({ onClose }) {
                 'This service is not in public mode, so the write-token gate is not in effect' + (d.write_token_configured ? ' (a token is configured anyway).' : '.')}
             </WmSettingCard>
 
+          </div>
+
+          {co.recent_events && co.recent_events.length > 0 &&
+            <div style={{ marginTop: 18, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 16, background: P.surface }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: P.ink, marginBottom: 8 }}>Recent overlay changes</div>
+              <div style={{ fontSize: 10.5, color: P.inkFaint, fontFamily: P.fontMono, marginBottom: 10 }}>config_overlay_events · GET /api/wm/status</div>
+              {co.recent_events.slice(0, 10).map((ev) => (
+                <div key={ev.id} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: `1px solid ${P.hairline}`, fontSize: 11.5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 99, marginTop: 5, flex: '0 0 auto', background: ev.action === 'cleared' ? P.inkFaint : P.accent }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{ev.key}</span>
+                    <span style={{ color: P.inkDim }}> &middot; {ev.action}</span>
+                    {ev.action === 'set' && <span style={{ fontFamily: P.fontMono, color: P.inkDim }}> &middot; {ev.old_value == null ? '(default)' : ev.old_value} &rarr; {ev.new_value}</span>}
+                    <div style={{ color: P.ink2, marginTop: 2 }}>by {ev.set_by}{ev.reason ? ' — ' + ev.reason : ''}</div>
+                    <div style={{ fontFamily: P.fontMono, fontSize: 10.5, color: P.inkMute, marginTop: 2 }}>{ev.ts}</div>
+                  </div>
+                </div>
+              ))}
+            </div>}
+          {co.error &&
+            <div style={{ marginTop: 18, padding: '11px 13px', background: P.warnSoft, borderRadius: P.r10, fontSize: 11.5, color: P.ink2 }}>
+              The config-overlay audit trail could not be read ({co.error}) — the three settings above still show their live effective values from config_overlay.status(), only the recent-changes list is affected.
+            </div>}
           </div>;
         })()}
       </div>
@@ -1185,7 +1339,7 @@ window.SettingsScreen = function SettingsScreen() {
                       to. It caps the deepest discount merchandising copy may ADVERTISE —
                       the guard that "Up to 97% off" got past. */}
                   {label === 'Claim Ceiling' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Max advertised {window.HWClaim ? window.HWClaim.get() : '—'}%{window.HWClaim && window.HWClaim.isDefault() ? ' · provisional' : ''}</span>}
-                  {label === 'Weedmaps Status' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>Read-only · GET /api/wm/status</span>}
+                  {label === 'Weedmaps Status' && <span style={{ display: 'block', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>3 settings editable · GET /api/wm/status</span>}
                 </span>
                 <Icon name="chevron-right" size={16} stroke={2} color={P.inkMute} />
               </Card>
