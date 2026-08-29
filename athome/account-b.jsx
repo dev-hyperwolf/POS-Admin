@@ -559,10 +559,6 @@ function SettingsScreen({ back }){ const P=useP();
     <div style={{ fontSize: 11.5, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', color:P.inkMute, padding:'18px 4px 2px' }}>Privacy</div>
     <Item k="loc" label="Location while ordering" sub="For accurate @ Home ETAs"/>
     <div style={{ borderTop:`1px solid ${P.hairline}` }}/><Item k="share" label="Share purchase data" sub="Personalized recommendations"/>
-    <div style={{ marginTop:16, display:'flex', flexDirection:'column', gap:2 }}>
-      <Row icon="download" label="Download my data" onClick={()=>{}}/>
-      <Row icon="trash" label="Delete account" danger onClick={()=>{}}/>
-    </div>
   </div>
 </div>); }
 
