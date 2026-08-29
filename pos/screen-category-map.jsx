@@ -659,6 +659,29 @@
       </span>);
   }
 
+  // ── several picks, one line each ────────────────────────────────────────
+  // Same treatment WmCell gives `r.bindings` (own chain + "(one of N)" /
+  // "(broken pick)"), factored out so PreviewPanel can give a multi-pick
+  // preview the identical grouped rendering rather than re-deriving it.
+  function WmPickList({ groups }) {
+    const P = useP();
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {groups.map(function (g, i) {
+          return (
+            <div key={(g.nodeId != null ? String(g.nodeId) : 'x') + '-' + i}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                opacity: g.broken ? 0.85 : 1 }}>
+              <WmPathChain nodes={g.nodes} broken={g.broken} nodeId={g.nodeId} />
+              {groups.length > 1 &&
+                <span style={{ fontSize: P.type.micro, color: P.inkMute }}>
+                  {g.broken ? '(broken pick)' : '(one of ' + groups.length + ')'}
+                </span>}
+            </div>);
+        })}
+      </div>);
+  }
+
   // ── the Weedmaps side of one row ──────────────────────────────────────────
   //
   // MULTIPLE EXPLICIT PICKS RENDER AS SEPARATE CHAINS, NOT ONE LONGER CHAIN.
@@ -1055,7 +1078,18 @@
   //                               printed. A button that discovers on submit
   //                               that it could never have worked is worse than
   //                               no button.
-  function PreviewPanel({ pv, http, busy, onSave, onCancel, refusal, saveLabel }) {
+  // `fromGroups`/`toGroups` are optional: an array of { nodes, broken, nodeId }
+  // per DISTINCT pick, exactly the shape WmPickList/WmCell already use. Passed
+  // only by callers that know a side can hold more than one independent pick
+  // (BindingEditor) -- AliasEditor never passes them and keeps the original
+  // flat from_path/to_path line, which is correct there: an alias remaps ONE
+  // category to ONE node, never several unrelated ones at once.
+  //
+  // Un-grouped (0 or 1 entries) falls back to the flat string too, on either
+  // side independently -- that string is already an unambiguous single path
+  // in that case, so there is nothing to separate and no reason to change how
+  // it looks.
+  function PreviewPanel({ pv, http, busy, onSave, onCancel, refusal, saveLabel, fromGroups, toGroups }) {
     const P = useP();
     const [echo, setEcho] = React.useState('');
     const [unk, setUnk] = React.useState(false);
@@ -1087,10 +1121,16 @@
             style={{ fontSize: P.type.body, color: P.ink, lineHeight: 1.55, marginTop: 6 }}>
             {pv.sentence}
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 9 }}>
-            <code style={mono}>{pv.from_path || 'no category_ids'}</code>
-            <Icon name="arrow-right" size={13} stroke={2} color={P.inkMute} />
-            <code style={mono}>{pv.to_path || 'no category_ids'}</code>
+          <div style={{ display: 'flex', gap: 10, alignItems: (fromGroups && fromGroups.length > 1)
+              || (toGroups && toGroups.length > 1) ? 'flex-start' : 'center', flexWrap: 'wrap', marginTop: 9 }}>
+            {fromGroups && fromGroups.length > 1
+              ? <WmPickList groups={fromGroups} />
+              : <code style={mono}>{pv.from_path || 'no category_ids'}</code>}
+            <Icon name="arrow-right" size={13} stroke={2} color={P.inkMute}
+              style={{ marginTop: (fromGroups && fromGroups.length > 1) ? 3 : 0 }} />
+            {toGroups && toGroups.length > 1
+              ? <WmPickList groups={toGroups} />
+              : <code style={mono}>{pv.to_path || 'no category_ids'}</code>}
           </div>
         </div>
 
@@ -1218,6 +1258,40 @@
             sentence: 'This cannot be previewed.', would_refuse: { code: http.body.code, error: http.body.error } }
         : null;
 
+    // ── grouped from/to for the preview caption, mirroring WmCell ──────────
+    // The server's from_path/to_path are one arrow-joined STRING built from a
+    // flat union of ids (wmdemo/category_edit.py `_path_of`), which is right
+    // for one pick and wrong once a category holds several independent ones —
+    // exactly the WmCell bug fixed on 2026-08-28, left as a known gap here.
+    // `row.bindings` already gives every CURRENT pick its own resolved path
+    // (`b.path`), the same shape WmPathChain/WmPickList expect; the only new
+    // node not already in that list is the one being added or removed here,
+    // whose own [parent, child] chain we resolve from `tree` (the same rule
+    // wmdemo/category_edit.py `_ids_for_node` applies server-side).
+    const fromGroups = bindings.length
+      ? bindings.map(function (b) { return { nodes: b.path, broken: b.broken, nodeId: b.node_id }; })
+      : null;
+    const toGroups = (function () {
+      if (mode === 'unbind_all') { return null; }
+      if (mode === 'unbind') {
+        if (unbindNode == null) { return null; }
+        const remaining = bindings.filter(function (b) { return b.node_id !== unbindNode; });
+        return remaining.map(function (b) { return { nodes: b.path, broken: b.broken, nodeId: b.node_id }; });
+      }
+      if (mode === 'bind') {
+        if (node == null) { return null; }
+        const byId = {};
+        (tree || []).forEach(function (n) { byId[n.id] = n; });
+        const picked = byId[node] || null;
+        const parent = picked && picked.parent_id != null ? byId[picked.parent_id] : null;
+        const ownChain = picked ? (parent ? [parent, picked] : [picked]) : null;
+        const kept = bindings.filter(function (b) { return !b.broken; })
+          .map(function (b) { return { nodes: b.path, broken: false, nodeId: b.node_id }; });
+        return kept.concat([{ nodes: ownChain, broken: !ownChain, nodeId: node }]);
+      }
+      return null;
+    })();
+
     function save(confirm) {
       setBusy(true); setRefusal(null);
       const path = ROUTE + (mode === 'unbind_all' ? '/unbind-all'
@@ -1322,6 +1396,7 @@
 
         {(mode === 'unbind_all' || (mode === 'unbind' && unbindNode != null) || (mode === 'bind' && node != null)) &&
           <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal}
+            fromGroups={fromGroups} toGroups={toGroups}
             saveLabel={mode === 'unbind_all' ? 'Remove all bindings'
               : mode === 'unbind' ? 'Remove this binding' : 'Add this node'}
             onSave={save} onCancel={onClose} />}
