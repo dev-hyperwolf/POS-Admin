@@ -376,7 +376,7 @@
           </div>
         </div>
 
-        <div style={{ position: 'sticky', bottom: 0, margin: '0 -20px', padding: '12px 20px', borderTop: `1px solid ${P.hairline2}`, background: P.surface2 }}>
+        <div style={{ position: 'sticky', bottom: 0, zIndex: P.z.sticky, margin: '0 -20px', padding: '12px 20px', borderTop: `1px solid ${P.hairline2}`, background: P.surface2 }}>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <PBtn variant="secondary" icon="refresh" onClick={() => navigate(`#/credits/new?invoiceId=${invoice.id}`)}>Open credit memo</PBtn>
             <PBtn variant="secondary" icon="mail" onClick={() => window.hdToast?.({ title: 'Corrected invoice requested', description: 'Vendor portal notification sent.', tone: 'info' })}>Request corrected invoice</PBtn>
