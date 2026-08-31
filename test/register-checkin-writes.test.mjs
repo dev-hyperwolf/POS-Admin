@@ -52,14 +52,25 @@
  * (pos/screen-register.jsx, `function CustomerSearch`) was fully built and
  * had exactly one reference repo-wide, its own definition, so the register's
  * search→select check-in was an unreachable surface and the only honest test
- * of it read the source. It is now rendered in the intake bar next to "New
- * check-in" (a small icon-button titled "Check in a customer — search name,
- * e-mail or phone"), wired to `onSelect={checkInCustomer}`. See
+ * of it read the source. It was wired into the intake bar that night as a
+ * SECOND, separate "Find" icon-button next to "New check-in". See
  * `'search → select on the register actually checks the customer in'` below
  * for the driven test this unlocked. The two `[source]` tests that follow it
  * stay — they assert on checkInCustomer's internals (store calls, null-means-
  * unchanged) which a screen-level test would only prove indirectly — but they
  * are no longer the only witness.
+ *
+ * ── UPDATE 2026-08-31: THE TWO BUTTONS ARE MERGED BACK INTO ONE ───────────
+ * The owner looked at the live result of the above and asked for it back the
+ * way it was: one visible control in the intake bar, not two side by side.
+ * CustomerSearch is now THE "New check-in" tile — its own collapsed trigger
+ * is restyled to the tile's old dashed look and label (pos/screen-register.jsx,
+ * `function CustomerSearch`), and opening it leads with the same search
+ * dropdown as before, whose existing "New + party" / "no match" fallback still
+ * reaches the full CheckInModal for a genuinely blank check-in. Nothing about
+ * checkInCustomer or the dropdown's own behaviour changed — only which button
+ * you click to reach it. The driven test below still exercises the real
+ * search→select path; it now opens it via the tile's restored label.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -86,16 +97,26 @@ function setValue(app, el, value) {
 }
 
 /**
- * Drive the REGISTER TILE end to end: New check-in → scan → name → Create → Check in.
+ * Drive the REGISTER TILE end to end: New check-in → New + party → scan →
+ * name → Create → Check in.
  *
  * Everything below goes through this and not through HW.addCheckIn directly,
  * because a test that calls the store itself would have stayed green through the
  * entire life of this bug. The store was never broken. The screen never called it.
+ *
+ * "New check-in" now opens the merged CustomerSearch dropdown [owner ruling
+ * 2026-08-31 — see the file header], not CheckInModal directly, so a genuinely
+ * blank check-in is one more click away: the dropdown's own "New + party"
+ * fallback, which still lands on the exact same CheckInModal this helper drove
+ * before the merge. Nothing past that click changed.
  */
 async function checkInFromRegisterTile(app, { first, last }) {
   await app.mount('RegisterScreen');
   assert.ok(app.click('New check-in'),
     'no New check-in tile on the register — the entry point this whole file is about');
+  await app.settle();
+  assert.ok(app.click('New + party'),
+    'no "New + party" fallback in the merged search dropdown — the blank check-in path is lost');
   await app.settle();
   assert.ok(app.click('Scan ID'), 'the check-in modal must lead with the scanner');
   await new Promise((r) => setTimeout(r, 900));   // the demo scanner's own delay
@@ -235,6 +256,11 @@ test('a returning customer is seated from the BOOK, not from the modal literal',
     await app.mount('RegisterScreen');
     assert.ok(app.click('New check-in'), 'no New check-in tile');
     await app.settle();
+    // "New check-in" now opens the merged CustomerSearch dropdown [owner ruling
+    // 2026-08-31]; this test deliberately drives the MODAL's own search field
+    // (not the dropdown's), so it goes one more click in via "New + party".
+    assert.ok(app.click('New + party'), 'no "New + party" fallback into the check-in modal');
+    await app.settle();
     assert.ok(app.type('Search by name', 'Manisha'), 'no search field in the check-in modal');
     await app.settle();
     assert.ok(app.click((t) => t.includes('Manisha Saini')),
@@ -348,12 +374,22 @@ test('when the store refuses, the register does not report a check-in', async ()
 /* ── 4 · THE SEARCH → SELECT PATH, DRIVEN FOR REAL ───────────────────────── */
 
 /**
- * CustomerSearch is now rendered in the intake bar (the small search icon next
- * to "New check-in"), wired to `onSelect={checkInCustomer}`. Dony Fernandez
- * (m4) is chosen deliberately: he is the one seed member with NO existing
- * CHECKINS row (c1-c4 cover m1, m2, m3, m5), so this exercises exactly the gap
- * CustomerSearch fills — finding someone who is not already on the waiting
- * board, which WaitingStrip by construction cannot do.
+ * CustomerSearch IS the register's "New check-in" tile now [owner ruling
+ * 2026-08-31] — the tile and the "Find" search button c292672 had rendered
+ * side by side are merged into the one control the intake bar carried before
+ * that commit, restyled so CustomerSearch's own collapsed trigger wears the
+ * old tile's look and label. Clicking it opens the SAME dropdown as before;
+ * this test still drives that dropdown directly, just by the tile's restored
+ * label instead of the old small icon-button's title.
+ *
+ * Dony Fernandez (m4) is chosen deliberately: he is the one seed member with
+ * NO existing CHECKINS row (c1-c4 cover m1, m2, m3, m5), so this exercises
+ * exactly the gap CustomerSearch fills — finding someone who is not already
+ * on the waiting board, which WaitingStrip by construction cannot do, AND
+ * checking them in with no document requirement (he also has no ID on file —
+ * IDV.m4.doc is null — so this path is the only one that can seat him without
+ * first scanning one; CheckInModal's own search would block "Check in" on
+ * exactly this member until a document is captured).
  */
 test('search → select on the register actually checks the customer in', async () => {
   await withApp('pos', async (app) => {
@@ -361,8 +397,8 @@ test('search → select on the register actually checks the customer in', async 
     const before = HW.CHECKINS.length;
 
     await app.mount('RegisterScreen');
-    assert.ok(app.click((t, el) => (el.title || '').includes('Check in a customer')),
-      `no customer-search trigger on the register — buttons: ${app.buttons().join(' | ')}`);
+    assert.ok(app.click('New check-in'),
+      `no New check-in tile on the register — buttons: ${app.buttons().join(' | ')}`);
     await app.settle();
     assert.ok(app.type('Search a customer', 'Dony'),
       'no search field in the customer-search dropdown');

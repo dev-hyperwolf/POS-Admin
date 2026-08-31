@@ -638,25 +638,29 @@ window.RegisterScreen = function RegisterScreen() {
       {/* Intake — collapsed search + sliding check-in queue inline */}
       <div style={{ flex: '0 0 auto', borderBottom: `1px solid ${P.hairline2}`, background: P.surface }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 22px 10px' }}>
+          {/* ONE control, not two. Until tonight this was a single "New
+              check-in" tile that opened CheckInModal — a modal which already
+              leads with the scanner and also carries its own "Search by
+              name, e-mail or phone" step, so "search for someone" and "start
+              fresh" were already one flow, reached one way.
+              c292672 bolted a second, separate top-level button next to it
+              (CustomerSearch, a "Find" column) for a real gap the modal can't
+              cover — checkInCustomer() checks a known member in immediately,
+              with no document requirement, which is the only way to seat
+              someone who is not on the waiting board AND has no ID on file
+              yet (see checkInCustomer's own comment). But two buttons side
+              by side for "check someone in" is exactly the clutter the owner
+              flagged: 2026-08-31, "I believe this is exactly how the ui
+              looked and worked before ... let's keep things simple".
+              The merge: CustomerSearch IS the tile now (restyled to match the
+              old dashed "New check-in" look exactly), and its own dropdown
+              already carries a "New + party" fallback straight into
+              CheckInModal — so the blank/fresh flow is still one click away,
+              just inside the single control's own flow instead of sitting
+              next to it as a second button. */}
           <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="users" size={13} stroke={1.9} />Waiting {window.HW.CHECKINS.filter((c) => !c.claimedBy).length}</span>
-            <button onClick={() => setShowCheckIn(true)} title="New check-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 96, padding: '14px 8px', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r12, background: P.surface, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5, fontWeight: 700, transition: 'background .12s, border-color .12s, color .12s' }}
-              onMouseEnter={(e) => {e.currentTarget.style.background = P.surface3;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink;}}
-              onMouseLeave={(e) => {e.currentTarget.style.background = P.surface;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink2;}}>
-              <span style={{ width: 28, height: 28, borderRadius: 99, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-plus" size={15} stroke={2.2} color={P.accentInk} /></span>
-              New check-in
-            </button>
-          </div>
-          {/* Search → select checks the customer in directly (checkInCustomer),
-              skipping the full New-check-in modal. This is the fast path for
-              someone who is NOT already on the waiting board — WaitingStrip
-              (to the right) only knows about people who already have a
-              CHECKINS row, so it cannot find someone walking straight up. */}
-          <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="search" size={13} stroke={1.9} />Find</span>
-            <div style={{ display: 'flex', alignItems: 'center', minHeight: 38 }}>
-              <CustomerSearch onSelect={checkInCustomer} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />
-            </div>
+            <CustomerSearch onSelect={checkInCustomer} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <WaitingStrip onPick={loadCheckIn} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />
@@ -1255,10 +1259,21 @@ function CustomerSearch({ onSelect, onNewCheckIn, activeName }) {
   const all = window.HW.MEMBERS;
   const results = q ? all.filter((m) => (m.name + m.email + m.phone).toLowerCase().includes(q.toLowerCase())) : all.slice(0, 5);
   const pick = (m) => {onSelect(m);setOpen(false);setQ('');};
+  // THE COLLAPSED TRIGGER IS THE ONE VISIBLE INTAKE-BAR CONTROL NOW [owner
+  // ruling 2026-08-31] — restyled to the exact dashed "New check-in" tile
+  // this screen carried before c292672 added a second, separate "Find"
+  // button next to it. Same label, same look, same prominence. What changed
+  // is only what opening it leads with: this dropdown's own search (below),
+  // with "New + party" / "no match" as the one-click fallback into the full
+  // CheckInModal — so search-first and start-fresh are one flow behind one
+  // control, not two buttons side by side.
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} title="Check in a customer — search name, e-mail or phone" style={{ flex: '0 0 auto', width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, color: P.ink2, cursor: 'pointer' }}>
-        <Icon name="search" size={17} stroke={1.9} />
+      <button onClick={() => setOpen(true)} title="New check-in — search an existing customer or start fresh" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 96, padding: '14px 8px', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r12, background: P.surface, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5, fontWeight: 700, transition: 'background .12s, border-color .12s, color .12s' }}
+        onMouseEnter={(e) => {e.currentTarget.style.background = P.surface3;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink;}}
+        onMouseLeave={(e) => {e.currentTarget.style.background = P.surface;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink2;}}>
+        <span style={{ width: 28, height: 28, borderRadius: 99, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-plus" size={15} stroke={2.2} color={P.accentInk} /></span>
+        New check-in
       </button>);
   }
   return (
