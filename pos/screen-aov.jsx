@@ -116,22 +116,28 @@ window.AovDashboardCard = function AovDashboardCard() {
   const board = useAovLeaderboard(scope, storeId, boardOpen);
 
   if (stats.loading) {
-    return <Card padding={16}><div style={{ fontSize: 12.5, color: P.inkDim }}>Loading AOV goals & leaderboard…</div></Card>;
+    // Same header the loaded card will show, so the card doesn't visually
+    // "pop" once data lands — only the body resolves from skeleton to real.
+    return <Card padding={0}>
+      <div style={{ padding: '13px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 9 }}>
+        <Icon name="target" size={15} color={P.ink2} />
+        <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: P.ink }}>Your AOV</span>
+      </div>
+      <div style={{ padding: 16 }}><SkeletonRows rows={2} avatar={false} /></div>
+    </Card>;
   }
   if (stats.error || !stats.data) {
     // HONEST DEGRADE. Never fall back to the pre-live fixture numbers here —
     // that would show $81.05/"rank 2 of 6" as if it were real when nothing
-    // answered. See module header.
+    // answered. See module header. ErrorState is the same shared/states.jsx
+    // atom every other "backend didn't answer" surface in this app uses
+    // (screen-brands.jsx, screen-publish-gate.jsx, …) — this card was
+    // hand-rolling its own instead of matching them.
     return (
-      <Card padding={16}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <Icon name="plug" size={16} color={P.inkMute} />
-          <div style={{ fontSize: 12.5, color: P.inkDim }}>
-            AOV goals & leaderboard needs the wmdemo backend — not reachable right now
-            {stats.error && stats.error !== 'no-live-seam' ? ` (${stats.error})` : ''}.
-            Real progress and rank will appear here once it connects.
-          </div>
-        </div>
+      <Card padding={0}>
+        <ErrorState compact title="AOV goals & leaderboard isn't connected"
+          body={`Needs the wmdemo backend — not reachable right now${stats.error && stats.error !== 'no-live-seam' ? ` (${stats.error})` : ''}. Real progress and rank will appear here once it connects.`}
+          onRetry={stats.refresh} />
       </Card>);
   }
 
@@ -143,32 +149,47 @@ window.AovDashboardCard = function AovDashboardCard() {
   const pct = goalCents ? Math.min(1, todayCents / goalCents) : 0;
   const meterColor = met ? P.good : P.info;
 
+  // Same ▲/▼ convention as the KPI atom's delta rendering (pos/atoms.jsx) —
+  // this card had its own +/- text instead of matching it.
   const Delta = ({ v, label }) => {
     if (v == null) return <span style={{ color: P.inkMute }}>{label}: no prior data</span>;
-    const c = v >= 0 ? P.good : P.bad;
-    return <span style={{ color: c }}>{v >= 0 ? '+' : ''}{v}% {label}</span>;
+    const c = v > 0 ? P.good : v < 0 ? P.bad : P.inkMute;
+    return <span style={{ color: c, fontWeight: 600 }}>{v > 0 ? '▲' : v < 0 ? '▼' : '—'} {Math.abs(v)}% {label}</span>;
   };
 
-  const RankChip = ({ rank, scope: s }) => (
-    <button onClick={() => { setScope(s); setBoardOpen(true); }} style={{
-      flex: 1, minWidth: 160, display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px',
-      background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, cursor: 'pointer',
-      fontFamily: P.fontSans, textAlign: 'left' }}>
-      <span style={{ fontFamily: P.fontMono, fontSize: 19, fontWeight: 800, color: P.ink, flex: '0 0 auto' }}>
-        {rank ? rank.rank : '—'}<span style={{ fontSize: 11, fontWeight: 600, color: P.inkMute }}>{rank ? `/${rank.of}` : ''}</span>
-      </span>
-      <span style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>
-          {s === 'store' ? 'Rank · this store' : 'Rank · all stores'}
-        </div>
-        <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 1 }}>
-          {rank ? 'today' : 'no sales yet today'}
-        </div>
-      </span>
-    </button>);
+  // Icon distinguishes the two ranking scopes at a glance (home = this store,
+  // globe = every store) instead of relying on reading the label text.
+  const RankChip = ({ rank, scope: s }) => {
+    const [h, setH] = React.useState(false);
+    return (
+      <button onClick={() => { setScope(s); setBoardOpen(true); }}
+        onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+        style={{
+          flex: 1, minWidth: 160, display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px',
+          background: P.surface2, border: `1px solid ${h ? P.hairline3 : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer',
+          fontFamily: P.fontSans, textAlign: 'left', boxShadow: h ? P.shadowSm : 'none',
+          transition: 'box-shadow .12s ease, border-color .12s ease' }}>
+        <span style={{ width: 28, height: 28, borderRadius: 8, flex: '0 0 auto', background: P.surface3, color: P.inkDim, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={s === 'store' ? 'home' : 'globe'} size={14} stroke={1.8} />
+        </span>
+        {rank
+          ? <span style={{ fontFamily: P.fontMono, fontSize: 19, fontWeight: 800, color: P.ink, flex: '0 0 auto' }}>
+              {rank.rank}<span style={{ fontSize: 11, fontWeight: 600, color: P.inkMute }}>{`/${rank.of}`}</span>
+            </span>
+          : <span style={{ fontFamily: P.fontMono, fontSize: 15, fontWeight: 700, color: P.inkFaint, flex: '0 0 auto' }}>—</span>}
+        <span style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>
+            {s === 'store' ? 'Rank · this store' : 'Rank · all stores'}
+          </div>
+          <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 1 }}>
+            {rank ? 'today' : 'no sales yet today'}
+          </div>
+        </span>
+      </button>);
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Card padding={0}>
         <div style={{ padding: '13px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 9 }}>
           <Icon name="target" size={15} color={P.ink2} />
@@ -176,30 +197,34 @@ window.AovDashboardCard = function AovDashboardCard() {
           <Pill kind="neutral" size="sm">{_storeName(storeId)}</Pill>
         </div>
         <div style={{ padding: '14px 16px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 9 }}>
-            <span style={{ fontSize: 14.5, fontWeight: 700, color: P.ink, flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15.5, fontWeight: 700, color: P.ink, flex: 1 }}>
+              {met && <Icon name="check-circle" size={16} color={P.good} />}
               {met ? 'AOV goal met' : `Add ${_money0(gapCents)} to hit today's goal`}
             </span>
-            <span style={{ fontSize: 13, color: P.inkDim, fontFamily: P.fontMono }}>
-              {_money0(todayCents)} / {_money0(goalCents)}
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums' }}>
+              {_money0(todayCents)} <span style={{ color: P.inkMute, fontWeight: 500 }}>/</span> {_money0(goalCents)}
             </span>
           </div>
-          <BarMeter value={pct} max={1} color={meterColor} height={7} />
+          <BarMeter value={pct} max={1} color={meterColor} height={8} />
         </div>
+        {/* Supporting detail, deliberately uniform now — the hero above is the
+            one place this card spends its accent colour and its largest type,
+            so "Today" here no longer repeats that emphasis on the same number. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 11, padding: '0 16px 14px' }}>
-          <div style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderLeft: `3px solid ${P.accent}`, borderRadius: P.r10, padding: '10px 12px' }}>
+          <div style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderLeft: `3px solid ${P.hairline2}`, borderRadius: P.r10, padding: '10px 12px' }}>
             <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>Today</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{_money0(todayCents)}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, marginTop: 3 }}>{_money0(todayCents)}</div>
             <div style={{ fontSize: 11, marginTop: 1 }}><Delta v={d.delta_day_vs_trailing7} label="vs 7d avg" /></div>
           </div>
           <div style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderLeft: `3px solid ${P.hairline2}`, borderRadius: P.r10, padding: '10px 12px' }}>
             <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>This week</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{_money0(d.week.aov_cents)}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, marginTop: 3 }}>{_money0(d.week.aov_cents)}</div>
             <div style={{ fontSize: 11, marginTop: 1 }}><Delta v={d.delta_week_vs_prior} label="vs prior 7d" /></div>
           </div>
           <div style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderLeft: `3px solid ${P.hairline2}`, borderRadius: P.r10, padding: '10px 12px' }}>
             <div style={{ fontSize: 9.5, color: P.inkMute, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>This month</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: P.ink, fontFamily: P.fontMono, marginTop: 3 }}>{_money0(d.month.aov_cents)}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: P.ink2, fontFamily: P.fontMono, marginTop: 3 }}>{_money0(d.month.aov_cents)}</div>
             <div style={{ fontSize: 11, marginTop: 1 }}><Delta v={d.delta_month_vs_prior} label="vs prior 30d" /></div>
           </div>
         </div>
@@ -208,49 +233,76 @@ window.AovDashboardCard = function AovDashboardCard() {
           <RankChip rank={d.rank_all} scope="all" />
         </div>
         <div style={{ padding: '0 16px 16px' }}>
-          <PBtn variant="secondary" size="sm" onClick={() => setBoardOpen((v) => !v)}>
+          <PBtn variant="secondary" size="sm" iconRight={boardOpen ? 'chevron-up' : 'chevron-down'} onClick={() => setBoardOpen((v) => !v)}>
             {boardOpen ? 'Hide leaderboard' : 'See full leaderboard'}
           </PBtn>
         </div>
         {boardOpen &&
         <div style={{ borderTop: `1px solid ${P.hairline}`, padding: 16 }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-            <PBtn size="sm" variant={scope === 'store' ? 'primary' : 'secondary'} onClick={() => setScope('store')}>This store</PBtn>
-            <PBtn size="sm" variant={scope === 'all' ? 'primary' : 'secondary'} onClick={() => setScope('all')}>All stores</PBtn>
+            <PBtn size="sm" icon="home" variant={scope === 'store' ? 'primary' : 'secondary'} onClick={() => setScope('store')}>This store</PBtn>
+            <PBtn size="sm" icon="globe" variant={scope === 'all' ? 'primary' : 'secondary'} onClick={() => setScope('all')}>All stores</PBtn>
           </div>
-          {board.loading && <div style={{ fontSize: 12, color: P.inkDim }}>Loading…</div>}
+          {board.loading && <SkeletonRows rows={3} avatar={false} />}
           {board.data &&
+          // Same bordered/rounded convention as the DataTable atom (header row
+          // on surface2, a hairline under it, a hairline between body rows) —
+          // this table was hand-styled with different spacing and no border at
+          // all, so it read as a different, less-finished surface than every
+          // other table in the app.
+          <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '0 10px 8px 0' }}>#</th>
-                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '0 10px 8px' }}>Associate</th>
-                {scope === 'all' && <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '0 10px 8px' }}>Store</th>}
-                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '0 10px 8px' }}>AOV today</th>
-                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '0 0 8px' }}>Orders</th>
+              <tr style={{ background: P.surface2 }}>
+                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '9px 12px', borderBottom: `1px solid ${P.hairline2}` }}>#</th>
+                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '9px 12px', borderBottom: `1px solid ${P.hairline2}` }}>Associate</th>
+                {scope === 'all' && <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '9px 12px', borderBottom: `1px solid ${P.hairline2}` }}>Store</th>}
+                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '9px 12px', borderBottom: `1px solid ${P.hairline2}` }}>AOV today</th>
+                <th style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, padding: '9px 12px', borderBottom: `1px solid ${P.hairline2}` }}>Orders</th>
               </tr>
             </thead>
             <tbody>
               {board.data.ranked.map((r) => (
                 <tr key={r.associate_id} style={{ background: r.associate_id === associateId ? P.accentSoft : 'transparent' }}>
-                  <td style={{ padding: '7px 10px 7px 0', fontFamily: P.fontMono, fontWeight: 700, color: P.inkDim, fontSize: 12.5, borderTop: `1px solid ${P.hairline}` }}>{r.rank}</td>
-                  <td style={{ padding: '7px 10px', fontSize: 13, fontWeight: 700, color: P.ink, borderTop: `1px solid ${P.hairline}` }}>
-                    {r.name}{r.associate_id === associateId && <span style={{ marginLeft: 6 }}><Pill kind="neutral" size="sm">you</Pill></span>}
+                  <td style={{ padding: '9px 12px', fontFamily: P.fontMono, fontWeight: 700, fontSize: 12.5, borderTop: `1px solid ${P.hairline}` }}>
+                    {r.rank === 1
+                      ? <span style={{ display: 'inline-flex', minWidth: 20, justifyContent: 'center', padding: '2px 6px', borderRadius: 6, background: P.accentSoft, color: P.accentText, fontWeight: 800 }}>{r.rank}</span>
+                      : <span style={{ color: P.inkDim }}>{r.rank}</span>}
                   </td>
-                  {scope === 'all' && <td style={{ padding: '7px 10px', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, borderTop: `1px solid ${P.hairline}` }}>{r.store_name}</td>}
-                  <td style={{ padding: '7px 10px', fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, borderTop: `1px solid ${P.hairline}` }}>{_money0(r.aov_cents)}</td>
-                  <td style={{ padding: '7px 0', fontSize: 12.5, color: P.inkMute, fontFamily: P.fontMono, borderTop: `1px solid ${P.hairline}` }}>{r.orders}</td>
+                  <td style={{ padding: '9px 12px', borderTop: `1px solid ${P.hairline}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                      <Avatar name={r.name} size={22} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</span>
+                      {r.associate_id === associateId && <Pill kind="neutral" size="sm">you</Pill>}
+                    </div>
+                  </td>
+                  {scope === 'all' && <td style={{ padding: '9px 12px', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, borderTop: `1px solid ${P.hairline}` }}>{r.store_name}</td>}
+                  <td style={{ padding: '9px 12px', fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono, borderTop: `1px solid ${P.hairline}` }}>{_money0(r.aov_cents)}</td>
+                  <td style={{ padding: '9px 12px', fontSize: 12.5, color: P.inkMute, fontFamily: P.fontMono, borderTop: `1px solid ${P.hairline}` }}>{r.orders}</td>
                 </tr>))}
               {board.data.no_sales.length > 0 &&
-              <tr><td colSpan={scope === 'all' ? 5 : 4} style={{ padding: '9px 0 0', fontSize: 11, color: P.inkFaint, fontFamily: P.fontMono, textAlign: 'center' }}>
+              <tr><td colSpan={scope === 'all' ? 5 : 4} style={{ padding: '10px 12px', fontSize: 11, color: P.inkFaint, fontFamily: P.fontMono, textAlign: 'center', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
                 {board.data.no_sales.length} associate{board.data.no_sales.length > 1 ? 's' : ''} with no sales yet today
               </td></tr>}
             </tbody>
-          </table>}
+          </table>
+          </div>
+          </div>}
         </div>}
       </Card>
 
-      {isManager && <AovManagerCard storeId={storeId} onGoalChanged={stats.refresh} />}
+      {/* A separate zone, not just a separate label. `elevation="sunken"`
+          (an existing Card treatment, previously unused anywhere in pos/)
+          recedes this card onto a duller fill so it visually reads as
+          "a different audience's panel" the instant it's on screen, before a
+          manager ever reads the header text — the two cards used to be
+          styled identically apart from their copy. */}
+      {isManager &&
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Eyebrow>Manager tools</Eyebrow>
+        <AovManagerCard storeId={storeId} onGoalChanged={stats.refresh} />
+      </div>}
     </div>);
 };
 
@@ -292,20 +344,25 @@ function AovManagerCard({ storeId, onGoalChanged }) {
   };
 
   return (
-    <Card padding={0}>
+    <Card padding={0} elevation="sunken">
       <div style={{ padding: '13px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 9 }}>
         <Icon name="shield" size={15} color={P.ink2} />
         <span style={{ flex: 1, fontSize: 13.5, fontWeight: 700, color: P.ink }}>Manage · AOV goals</span>
         <Pill kind="neutral" size="sm">Floor Manager only</Pill>
       </div>
 
-      {goals.loading && <div style={{ padding: 16, fontSize: 12.5, color: P.inkDim }}>Loading…</div>}
-      {!goals.loading && goals.error && <div style={{ padding: 16, fontSize: 12.5, color: P.inkDim }}>Goal settings need the wmdemo backend — not reachable right now.</div>}
+      {goals.loading && <div style={{ padding: 16 }}><SkeletonRows rows={3} /></div>}
+      {!goals.loading && goals.error &&
+      <div style={{ padding: 16 }}>
+        <ErrorState compact title="Goal settings aren't connected" body="Needs the wmdemo backend — not reachable right now." onRetry={goals.refresh} />
+      </div>}
 
       {!goals.loading && goals.data &&
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* store default */}
-        <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 14 }}>
+        {/* store default. Explicit `background: P.surface` on every sub-card
+            here (and below) so it stands crisp against this card's own
+            recessed `elevation="sunken"` fill instead of blending into it. */}
+        <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Store default</span>
             <PBtn size="xs" variant="secondary" style={{ marginLeft: 'auto' }}
@@ -314,19 +371,20 @@ function AovManagerCard({ storeId, onGoalChanged }) {
             </PBtn>
           </div>
           <div style={{ fontSize: 12, color: P.inkDim, marginBottom: 8 }}>Every associate at this store inherits this goal unless they have their own override below.</div>
-          <Row P={P} k="Current goal" v={_money0(goals.data.default.goal_cents)} />
-          <Row P={P} k="Set by" v={goals.data.default.set_by || '—'} />
-          <Row P={P} k="Last changed" v={goals.data.default.updated_at ? goals.data.default.updated_at.slice(0, 10) : '—'} />
+          <AovGoalRow P={P} k="Current goal" v={_money0(goals.data.default.goal_cents)} />
+          <AovGoalRow P={P} k="Set by" v={goals.data.default.set_by || '—'} />
+          <AovGoalRow P={P} k="Last changed" v={goals.data.default.updated_at ? goals.data.default.updated_at.slice(0, 10) : '—'} />
         </div>
 
         {/* roster */}
-        <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
+        <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden' }}>
           <div style={{ padding: '11px 14px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: P.ink }}>Associate roster</span>
             <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{goals.data.roster.length} associates · {goals.data.overridden} overridden</span>
           </div>
           {goals.data.roster.map((r, i) => (
             <div key={r.associate_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
+              <Avatar name={r.name} size={26} />
               <div style={{ flex: 1, fontSize: 13, fontWeight: 700, color: P.ink, minWidth: 0 }}>
                 {r.name}{r.associate_id === window.HW.STATS.associate.id && <span style={{ marginLeft: 6 }}><Pill kind="neutral" size="sm">you</Pill></span>}
               </div>
@@ -342,12 +400,16 @@ function AovManagerCard({ storeId, onGoalChanged }) {
         </div>
 
         {/* audit trail */}
-        <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 14 }}>
+        <div style={{ background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>Audit trail</span>
             <span style={{ marginLeft: 'auto', fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>newest first</span>
           </div>
-          {(hist.rows || []).length === 0 && <div style={{ fontSize: 12, color: P.inkMute }}>No changes recorded yet.</div>}
+          {/* Same EmptyState atom + icon/copy screen-brands.jsx already uses for
+              an empty change history — was plain unstyled text here. */}
+          {(hist.rows || []).length === 0 &&
+          <EmptyState compact icon="clock" title="No changes recorded yet"
+            body="Goal changes and overrides will show up here as they happen." />}
           {(hist.rows || []).map((ev) => {
             const who = ev.associate_id
               ? (goals.data.roster.find((r) => r.associate_id === ev.associate_id) || {}).name || ev.associate_id
@@ -369,10 +431,16 @@ function AovManagerCard({ storeId, onGoalChanged }) {
         </div>
       </div>}
 
+      {/* window.overlayScrim/overlayCard — the shared modal-shell helper
+          (pos/atoms.jsx) every other modal in this app uses. This one was
+          hand-typing the scrim object literal instead, which is the exact
+          anti-pattern that helper exists to retire: no `overflowY`, so on a
+          short viewport the Save/Cancel row could sit off-screen with no way
+          to reach it. */}
       {editing &&
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,18,12,.42)', zIndex: 300, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '60px 20px' }}
+      <div style={window.overlayScrim(P, { padding: '60px 20px' })}
         onClick={(e) => { if (e.target === e.currentTarget) setEditing(null); }}>
-        <div style={{ background: P.surface, borderRadius: P.r16, width: 'min(440px,100%)', border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
+        <div style={{ ...window.overlayCard, background: P.surface, borderRadius: P.r16, width: 'min(440px,96vw)', border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: `1px solid ${P.hairline2}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: 14.5 }}>{editing.associateId ? 'Set associate override' : 'Edit store default'}</h3>
             <button onClick={() => setEditing(null)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 14, color: P.inkMute }}>✕</button>
@@ -399,7 +467,7 @@ function AovManagerCard({ storeId, onGoalChanged }) {
     </Card>);
 }
 
-function Row({ P, k, v }) {
+function AovGoalRow({ P, k, v }) {
   return <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '6px 0', borderBottom: `1px solid ${P.hairline}`, fontSize: 12 }}>
     <span style={{ color: P.inkDim }}>{k}</span><span style={{ fontWeight: 600, color: P.ink }}>{v}</span>
   </div>;
