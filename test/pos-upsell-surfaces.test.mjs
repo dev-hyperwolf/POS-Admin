@@ -405,3 +405,64 @@ test('adding from a ranked grid does not re-sort the grid', async () => {
     } finally { open.close(); }
   });
 });
+
+/* ── 7. THE TWO "PAIRS WITH CART" CONTROLS NO LONGER DISAGREE ──────────────── *
+ *
+ * The bug this whole fix exists for: the register grid's chip and the cart's
+ * own CartPairs card carried the SAME "Pairs with cart" label but asked TWO
+ * DIFFERENT engines. RegisterScreen renders both surfaces in one tree (the
+ * grid on the left, CartPane — and inside it, CartPairs — on the right), so
+ * one seeded answer for the ticket's cart has to show up identically on both:
+ * the same products, named as pairing evidence, in the same order. */
+
+/** `[data-hw-cart-pairs]`'s own state/skus, exactly as pos/screen-cart.jsx
+ *  renders them — the second surface asking the same question as the grid. */
+function cartPairsCard(app) {
+  const el = app.document.querySelector('[data-hw-cart-pairs]');
+  if (!el) return null;
+  return {
+    state: el.getAttribute('data-hw-cart-pairs'),
+    skus: [...el.querySelectorAll('button[title^="Add "]')].
+      map((b) => b.getAttribute('title').replace(/^Add /, '')),
+  };
+}
+
+test('the register grid chip and the cart\'s CartPairs card agree on the same cart', async () => {
+  await withApp('pos', async (app) => {
+    const W = app.window;
+    const open = mounter(app);
+    try {
+      await open('RegisterScreen');
+      const before = gridSkus(app);
+      const cartSkus = W.HW.PRODUCTS.slice(0, 2).map((p) => p.sku);
+      const picks = before.filter((s) => !cartSkus.includes(s)).slice(0, 2);
+
+      // ONE seeded answer for this cart — the same object both `HW.
+      // cartPairings` call sites (the grid's rankRecs and CartPairs) read from
+      // window.HW_CART_PAIRS's cache, keyed only by the cart's own skus.
+      W.HW_CART_PAIRS.seed(cartSkus, pairAnswer([
+        pairItem(picks[0], `4 of the 11 baskets that contained ${cartSkus[0]} also contained this`),
+        pairItem(picks[1], `2 of the 11 baskets that contained ${cartSkus[0]} also contained this`),
+      ]));
+
+      // Surface 1: the cart's CartPairs card. It asks as soon as it mounts —
+      // no chip needed — so it should already show the seeded pairing.
+      await app.settle();
+      const card = cartPairsCard(app);
+      assert.ok(card, 'no [data-hw-cart-pairs] card on the register screen');
+      assert.equal(card.state, 'pairs', `the cart card is in state ${card.state}, not 'pairs'`);
+      assert.equal(card.skus.slice().sort().join(','), picks.slice().sort().join(','),
+        `the cart card offers ${card.skus.join(',')}, not the seeded pairing ${picks.join(',')}`);
+
+      // Surface 2: the grid chip, asking the identical question about the
+      // identical cart.
+      assert.ok(app.click('Pairs with cart'), 'no "Pairs with cart" chip');
+      await app.settle();
+      const reasoned = reasonedSkus(app);
+
+      assert.equal(reasoned.slice().sort().join(','), picks.slice().sort().join(','),
+        `the grid ranked ${reasoned.join(',')} where the cart card ranked ${picks.join(',')} — ` +
+        'the two "Pairs with cart" controls disagree about the same cart');
+    } finally { open.close(); }
+  });
+});
