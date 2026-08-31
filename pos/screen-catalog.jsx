@@ -1,6 +1,51 @@
 // ── Catalog screen — Master Catalog / Products ─────────────────────────────
 const useP = window.useP;
 
+// ── product-seam freshness, independent of the ambient dock's aggregate ────
+// shared/hw-seam-dock.js rolls EIGHT unrelated integrations (identity,
+// taxonomy, mapping, checkin, lines, regions, history, plus this one) into a
+// single "N seams · M live" pill. That pill cannot answer "is the table I am
+// looking at right now current": a stale products fetch can sit behind six
+// perfectly live siblings and the dock still reads mostly green, because none
+// of those siblings ever touch window.HW.PRODUCTS. Reproduced twice tonight —
+// two rows that do not exist server-side rendered as "live" while the dock's
+// aggregate looked healthy, and a bulk Weedmaps action against them correctly
+// reported unknown_sku.
+//
+// window.HW_LIVE (shared/hw-live.js) is the ONE seam that owns PRODUCTS, so
+// this reads ITS status and ITS own last-successful-fetch timestamp
+// (HW_LIVE.report.at, stamped once per apply() — shared/hw-live.js:1065)
+// directly. It never reads the dock, so it cannot be right for the wrong
+// seam, and it does not touch shared/hw-live.js or shared/hw-seam-dock.js —
+// both are load-bearing for every other screen and are not being changed
+// here.
+function relAge(iso) {
+  if (!iso) return null;
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  return Math.floor(s / 3600) + 'h ago';
+}
+// Past this, a fetch old enough that the server-side catalog could plausibly
+// have moved under it (a product deleted, a SKU retired) stops reading as
+// unqualified "live". Arbitrary but generous — nothing else on this page
+// depends on the number, and it only ever softens a true claim into a
+// hedged one, never the reverse.
+const PRODUCTS_STALE_AFTER_S = 600;
+function productFreshness(P) {
+  const L = window.HW_LIVE;
+  const status = L ? L.status : 'off';
+  const at = (L && L.report) ? L.report.at : null;
+  const ageS = at ? Math.round((Date.now() - new Date(at).getTime()) / 1000) : null;
+  if (status === 'pending') { return { text: 'checking product data…', tone: P.inkMute }; }
+  if (status !== 'live') { return { text: 'product data: MOCK — not read from /api/state', tone: P.bad }; }
+  if (ageS != null && ageS > PRODUCTS_STALE_AFTER_S) {
+    return { text: `product data may be stale — last confirmed ${relAge(at)}`, tone: P.warn };
+  }
+  return { text: `product data live${at ? ' · confirmed ' + relAge(at) : ''}`, tone: P.good };
+}
+
 window.CatalogScreen = function CatalogScreen() {
   const P = useP();
   const all = window.HW.PRODUCTS;
@@ -27,6 +72,7 @@ window.CatalogScreen = function CatalogScreen() {
   const active = all.filter((p) => p.active).length;
   const inactive = all.length - active;
   const lowStock = all.filter((p) => p.qty > 0 && p.qty < 10).length;
+  const freshness = productFreshness(P);
 
   const SMART = {
     none: () => true,
@@ -109,7 +155,16 @@ window.CatalogScreen = function CatalogScreen() {
     <div style={{ maxWidth: 1320, margin: '0 auto' }}>
       <SubNav />
       <SectionHead level={1} eyebrow="Master Catalog" title="Products"
-      subtitle={`${all.length} SKUs across ${window.HW.STORE.count} stores · ${active} active`}
+      subtitle={<>
+        {`${all.length} SKUs across ${window.HW.STORE.count} stores · ${active} active`}
+        {/* Deliberately NOT the shared/hw-seam-dock.js pill's "N seams · M
+            live" count — that number is an average across 8 seams this
+            screen never reads (identity, taxonomy, mapping, checkin, lines,
+            regions, history). This is the products/state seam's own status,
+            named as such, so it can never be read as vouching for a
+            different screen's data. */}
+        {' · '}<span style={{ color: freshness.tone, fontWeight: 600 }}>{freshness.text}</span>
+      </>}
       action={<div style={{ display: 'flex', gap: 9 }}>
           <PBtn variant="secondary" icon="grid" size="md" onClick={() => setShowCats(true)}>Categories</PBtn>
           <PBtn variant="secondary" icon="download" size="md">Export</PBtn>
