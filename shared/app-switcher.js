@@ -31,8 +31,25 @@
   wrap.setAttribute('data-hw-chrome', 'app-switcher');
   wrap.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:var(--hwz-chromeBar);font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace';
 
+  // `menu` is deliberately NOT appended inside `wrap`. `wrap` is
+  // `position:fixed` + `z-index:chromeBar`, which makes it its own stacking
+  // context -- a descendant's z-index only competes against other
+  // descendants of THAT context, never against a sibling widget's chrome.
+  // shared/demo-seed.js renders the exact same shape one gutter over
+  // (its own fixed wrap at chromeBar, its own menu at chromeMenu), so a
+  // chromeMenu nested inside a chromeBar here never actually outranks it --
+  // both wraps tie at chromeBar (66) and DOM order decides the overlap,
+  // regardless of either menu's higher (68) number. Appending `menu`
+  // straight to <body> as its own top-level fixed element is what lets
+  // chromeMenu really outrank chromeBar, on every page, for both widgets.
+  // right/bottom below are wrap's own right:16/bottom:16 plus the 52px this
+  // menu always sat above the button -- the same screen position as before,
+  // just no longer inherited from being a child of `wrap`.
   var menu = document.createElement('div');
-  menu.style.cssText = 'position:absolute;z-index:var(--hwz-chromeMenu);right:0;bottom:52px;width:222px;max-height:70vh;overflow:auto;background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .14s,transform .14s';
+  // data-hw-chrome moves onto `menu` directly: it's no longer inside `wrap`
+  // for notes.js's `closest('[data-hw-chrome]')` pin-exclusion walk to find.
+  menu.setAttribute('data-hw-chrome', 'app-switcher-menu');
+  menu.style.cssText = 'position:fixed;z-index:var(--hwz-chromeMenu);right:16px;bottom:68px;width:222px;max-height:70vh;overflow:auto;background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .14s,transform .14s';
   var head = document.createElement('div');
   head.textContent = 'Hyperwolf apps';
   head.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#726d61;padding:8px 10px 7px';
@@ -89,7 +106,7 @@
   document.addEventListener('click', function () { if (open) close(); });
   menu.addEventListener('click', function (e) { e.stopPropagation(); });
 
-  wrap.appendChild(menu); wrap.appendChild(btn);
-  function mount() { document.body.appendChild(wrap); }
+  wrap.appendChild(btn);
+  function mount() { document.body.appendChild(wrap); document.body.appendChild(menu); }
   if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
 })();

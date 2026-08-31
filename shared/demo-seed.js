@@ -361,8 +361,20 @@
     wrap.setAttribute('data-hw-chrome', 'demo-seed');
     wrap.style.cssText = 'position:fixed;right:74px;bottom:16px;z-index:var(--hwz-chromeBar);font-family:' + MONO;
 
+    // Same fix as shared/app-switcher.js's menu, for the same reason: `wrap`
+    // is `position:fixed` + `z-index:chromeBar`, its own stacking context, so
+    // a chromeMenu nested inside it never actually competes against
+    // app-switcher.js's own menu one gutter over -- both wraps tie at
+    // chromeBar (66) and DOM order decides any overlap, regardless of either
+    // menu's higher (68) number. Appending `menu` to <body> as its own
+    // top-level fixed element is what lets chromeMenu really outrank
+    // chromeBar. right/bottom below are wrap's own right:74/bottom:16 plus
+    // the 52px this menu always sat above the button.
     var menu = document.createElement('div');
-    menu.style.cssText = 'position:absolute;z-index:var(--hwz-chromeMenu);right:0;bottom:52px;width:290px;max-height:74vh;overflow:auto;'
+    // data-hw-chrome moves onto `menu` directly: it's no longer inside `wrap`
+    // for notes.js's `closest('[data-hw-chrome]')` pin-exclusion walk to find.
+    menu.setAttribute('data-hw-chrome', 'demo-seed-menu');
+    menu.style.cssText = 'position:fixed;z-index:var(--hwz-chromeMenu);right:74px;bottom:68px;width:290px;max-height:74vh;overflow:auto;'
       + 'background:#1c1b15;border:1px solid #3d3930;border-radius:13px;padding:6px;'
       + 'box-shadow:0 18px 44px rgba(0,0,0,.5);opacity:0;transform:translateY(8px) scale(.98);'
       + 'pointer-events:none;transition:opacity .14s,transform .14s';
@@ -426,12 +438,14 @@
       btn.style.background = v ? '#292720' : '#1c1b15';
     }
     btn.onclick = function (e) { e.stopPropagation(); setOpen(!open); };
-    document.addEventListener('click', function (e) { if (open && !wrap.contains(e.target)) setOpen(false); });
+    // `menu` is no longer a descendant of `wrap` (see above), so an outside
+    // click must check both to know it's actually outside this widget.
+    document.addEventListener('click', function (e) { if (open && !wrap.contains(e.target) && !menu.contains(e.target)) setOpen(false); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open) setOpen(false); });
 
-    wrap.appendChild(menu);
     wrap.appendChild(btn);
     document.body.appendChild(wrap);
+    document.body.appendChild(menu);
     setOpen(false);
   }
 
