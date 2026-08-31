@@ -135,7 +135,11 @@ const POS_SCREEN_LABELS = {
   'identity-binding': 'Identity & binding', merch: 'Merch',
   settings: 'Settings' };
 
-const USER = { name: 'Manisha Saini', role: 'Floor Manager' };
+// Kept in sync with window.HW.STATS.associate (pos/data.jsx) and
+// wmdemo/associates.py's roster row 'manisha-saini' — the same logged-in
+// person, one identity, three places it has to agree.
+const USER = { name: 'Manisha Saini', role: 'Floor Manager',
+  id: 'manisha-saini', storeId: 'elsinore' };
 
 function App() {
   const P = useP();

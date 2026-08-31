@@ -230,6 +230,27 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
     window.POS.setLastSale(rec);
     if (method === 'cash' || method === 'split') window.POS.popDrawer(`Cash sale · ${rec.id}`);
     setStage('done');
+
+    // ── attribution AT THE POINT OF SALE, not bolted on after ────────────
+    // wmdemo/pos_sales.py's own header explains why this is a new table
+    // rather than a column added after the fact: this call is the FIRST
+    // and only writer, wired in here, at the moment the register closes a
+    // ticket. Fire-and-forget on purpose — a slow or unreachable wmdemo
+    // backend (the public GitHub Pages demo, most of the time) must never
+    // block or fail a cash drawer pop that has already happened. The AOV
+    // dashboard (pos/screen-aov.jsx) simply shows nothing new until its own
+    // next poll if this never lands, exactly the same graceful-degrade
+    // rule every other window.HW_LIVE seam already follows.
+    try {
+      const a = window.HW.STATS.associate;
+      if (window.HW_LIVE && a && a.id && a.storeId) {
+        window.HW_LIVE.post('/api/pos/sale', {
+          order_id: rec.id, store_id: a.storeId, associate_id: a.id,
+          total_cents: Math.round(rec.total * 100), item_count: rec.items,
+          method: rec.method, customer_name: rec.name,
+        });
+      }
+    } catch (e) {}
   };
 
   // route the primary drawer action

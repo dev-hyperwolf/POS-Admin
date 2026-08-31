@@ -160,12 +160,20 @@ const STATS = {
   storeNetToday: 8420.55,
   storeOrdersToday: 142,
   associate: {
+    // id/storeId join this fixture to the real wmdemo roster (wmdemo/
+    // associates.py) and the real pos_sales ledger — see pos/screen-aov.jsx,
+    // which replaces netToday/ordersToday/aov/aovDelta/goal below IN PLACE
+    // (shared/hw-live.js's own convention) once GET /api/aov/stats answers.
+    // Everything else in this object is the pre-live fallback: what the
+    // screen shows before that fetch resolves, or if it never does (a
+    // public GitHub Pages load with no wmdemo backend reachable).
+    id:'manisha-saini', storeId:'elsinore', role:'Floor Manager',
     name:'Manisha Saini',
     netToday: 1864.20,
     ordersToday: 23,
     aov: { day:81.05, week:76.40, month:79.20 },
     aovDelta: { day:6, week:-2, month:3 },
-    goal: 90,            // AOV goal ($)
+    goal: 90,            // AOV goal ($) — fallback only, see pos/screen-aov.jsx
   },
 };
 

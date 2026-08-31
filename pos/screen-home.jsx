@@ -79,6 +79,17 @@ window.HomeScreen = function HomeScreen({ onNav }) {
         <Quick icon="package" label="Catalog" sub={`${outStock + lowStock} stock alerts`} to="catalog" />
       </div>
 
+      {/* AOV goals & leaderboard — pos/screen-aov.jsx. Real personal AOV, real
+          rank within this store and across all stores, and (only for a Floor
+          Manager) the goal-setting panel directly beneath it. Guarded the
+          same way Brands/Cities/etc. are in pos/app.jsx: a dropped script tag
+          must name the missing file, not white-screen the dashboard. */}
+      <div style={{ marginBottom: 16 }}>
+        {window.AovDashboardCard ? <window.AovDashboardCard /> :
+          <ErrorState title="AOV goals & leaderboard did not load"
+            body="pos/screen-aov.jsx defines window.AovDashboardCard and this page did not get it — check that Hyperwolf POS.html still loads that file." />}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1fr)', gap: 16, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           {/* order queue at a glance */}
