@@ -873,15 +873,21 @@ function DiscountCard({ P, discMode, setDiscMode, subtotal, discounts, onApply, 
  * own code and the lane's own sentence — never an empty rail, never a spinner
  * that stays forever, and never a filler list.
  *
- * 🔴 TWO CONTROLS NOW READ "PAIRS WITH CART" AND THEY ARE NOT THE SAME ENGINE.
- * The register's grid chip (pos/screen-register.jsx, `rankOn`) carries that
- * label and is ranked by @hyperwolf/commerce-logic through `HWPosUpsell` — the
- * same heuristics as the rail below this card. THIS card is the reco engine's
- * measured co-occurrence lane. So the two can disagree about the same cart, and
- * the chip will happily show a confident ordering in the exact situation this
- * card is refusing. That is a real hazard and it is REPORTED, not papered over
- * here: the fix is to point the grid chip at the same lane, which is a change to
- * a control this task was told to leave alone.
+ * ✅ FIXED 2026-08-31 — TWO CONTROLS READ "PAIRS WITH CART" AND THEY ARE NOW
+ * THE SAME ENGINE. Until then the register's grid chip (pos/screen-register.jsx,
+ * `rankOn`) carried that label but was ranked by @hyperwolf/commerce-logic
+ * through `HWPosUpsell` — the hardcoded category-affinity table, not this
+ * lane — so the two controls could disagree about the same cart. The grid
+ * chip now calls `HW.cartPairings` directly, same as this card, and a
+ * refusal here is a refusal there too. `HWPosUpsell`/`HWSwap` are UNCHANGED
+ * and still back the OTHER upsell surfaces that were never mislabelled
+ * "pairs with cart" — this card's own rail below (`AovBooster`, surface
+ * `cart_add_to_order`, labelled "Suggested for this sale"), screen-orders.jsx's
+ * "For this order", and mobile/screen-shop.jsx's customer recommendations.
+ * `promotion_gap` — the one genuinely useful piece of `HWPosUpsell`'s
+ * heuristics (closing an AOV/promotion threshold) — was ported INTO this lane
+ * as a new core.py contribution source rather than lost, so the register's
+ * grid keeps that signal without running a second, disagreeing engine.
  *
  * ⚠️ NO SUBSTITUTES, NO BESTSELLERS, NO BACKFILL. When the lane refuses this
  * card renders zero product tiles. It says how many substitutes exist, because

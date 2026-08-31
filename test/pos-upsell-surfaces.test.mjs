@@ -277,7 +277,36 @@ test('emptying the ticket line by line clears its dismissals too', async () => {
   });
 });
 
-/* ── 5. the register grid: "Pairs with cart" ORDERS, it never filters ─────── */
+/* ── 5. the register grid: "Pairs with cart" ORDERS, it never filters ─────── *
+ *
+ * FIXED 2026-08-31: this chip used to call `window.HWPosUpsell.offersFor`
+ * (the hardcoded category-affinity table), a SYNCHRONOUS answer against the
+ * mock catalogue with no network involved. It now calls `window.HW.
+ * cartPairings`, same as the cart's own CartPairs card — wmdemo/reco/core.py's
+ * `pairs_with_cart` lane, reached over HTTP. The harness is offline (see
+ * ui-harness.mjs), so these fixtures drive it the same way
+ * test/cart-pairs-lane.test.mjs does: `window.HW_CART_PAIRS.seed(skus,
+ * payload)` with a payload in core.rank's own shape, never one invented to
+ * make the seam pass. */
+
+/** `_items()`'s row shape (wmdemo/reco/core.py), trimmed to what the grid
+ *  reads: `sku` and `top_reason`. */
+const pairItem = (sku, reason) => ({
+  sku, name: sku, brand_name: null, category: null, price: 1, score: 3.2,
+  contributions: [{ source: 'cart_item_item', why: reason, support: 9, points: 1.5 }],
+  top_reason: reason, evidence_basis: 'similar_guests_or_products', personalised: false,
+  borrowed_signal: ['cart_item_item'], support_total: 9, stock: 'in_stock',
+  stock_known: true, business: null,
+});
+
+/** `core.rank`'s `recommends: true` payload for the cart lane. */
+const pairAnswer = (items) => ({
+  lane: 'pairs_with_cart', recommends: true, refusal: null, items,
+  personalised: false, basis: 'look_alike_or_similar_products',
+  basis_sentence: `${items.length} product(s) that pair with the cart, all ranked on `
+    + 'how often they have actually been bought together.',
+  meta: { cart: { size: 1, pairings_found: items.length, substitutes_found: 0 } },
+});
 
 test('"Pairs with cart" re-orders the grid without removing a single product', async () => {
   await withApp('pos', async (app) => {
@@ -289,8 +318,23 @@ test('"Pairs with cart" re-orders the grid without removing a single product', a
       assert.ok(before.length > 3, 'the grid is too small to tell a sort from a filter');
       assert.equal(reasonedSkus(app).length, 0, 'the grid is claiming a ranking nobody asked for');
 
+      // The default ticket's own cart (see the ticket seed at RegisterScreen's
+      // top) is the basis `rankBasis` freezes at chip-on.
+      const cartSkus = W.HW.PRODUCTS.slice(0, 2).map((p) => p.sku);
+
       assert.ok(app.click('Pairs with cart'),
         `no "Pairs with cart" chip — buttons: ${app.buttons().slice(0, 14).join(' | ')}`);
+      await app.settle();
+      assert.ok(W.HW_CART_PAIRS, 'the cart-pairing seam did not load on the page');
+
+      // Two products the lane says pair with the cart, out of a bigger grid —
+      // proving a sort, not just a coincidence of the fixture's size.
+      const picks = before.filter((s) => !cartSkus.includes(s)).slice(0, 2);
+      assert.ok(picks.length === 2, 'the grid is too small to pick two non-cart products from');
+      W.HW_CART_PAIRS.seed(cartSkus, pairAnswer([
+        pairItem(picks[0], `4 of the 11 baskets that contained ${cartSkus[0]} also contained this`),
+        pairItem(picks[1], `2 of the 11 baskets that contained ${cartSkus[0]} also contained this`),
+      ]));
       await app.settle();
 
       const after = gridSkus(app);
@@ -302,16 +346,15 @@ test('"Pairs with cart" re-orders the grid without removing a single product', a
       assert.equal([...after].sort().join(','), [...before].sort().join(','),
         'ranking changed WHICH products the grid holds, not just their order');
 
-      // The reasons belong to the top of the grid, and there are no more of them
-      // than the engine's config for this surface allows.
-      const slots = W.HWSwap.engine.defaultConfig.upsell.slotsBySurface.shop_grid_tile;
+      // The reasons belong to the top of the grid, and there are exactly as
+      // many of them as the lane returned pairings — no client-side slot cap,
+      // because the lane (not a surface config) decides what counts as a match.
       const reasoned = reasonedSkus(app);
-      assert.ok(reasoned.length > 0, 'the chip is on and not one tile says why it is up there');
-      assert.ok(reasoned.length <= slots,
-        `${reasoned.length} tiles carry a reason where the config allows ${slots} — ` +
-        'a reason line on every row is wallpaper, not a signal');
+      assert.equal(reasoned.length, 2, `expected exactly the 2 seeded pairings to carry a reason, got ${reasoned.join(',')}`);
+      assert.equal(reasoned.join(','), [picks[0], picks[1]].join(','),
+        'the tiles the lane picked are not the ones carrying a reason, in the lane\'s own order');
       assert.equal(after.slice(0, reasoned.length).join(','), reasoned.join(','),
-        'the tiles the engine picked are not the ones at the top of the grid');
+        'the tiles the lane picked are not the ones at the top of the grid');
       assert.ok(app.text().includes('Best match first'),
         'the grid is ranked and does not say so');
 
@@ -331,18 +374,29 @@ test('"Pairs with cart" re-orders the grid without removing a single product', a
 
 test('adding from a ranked grid does not re-sort the grid', async () => {
   await withApp('pos', async (app) => {
+    const W = app.window;
     const open = mounter(app);
     try {
       await open('RegisterScreen');
+      const before = gridSkus(app);
+      const cartSkus = W.HW.PRODUCTS.slice(0, 2).map((p) => p.sku);
+      const picks = before.filter((s) => !cartSkus.includes(s)).slice(0, 2);
+
       assert.ok(app.click('Pairs with cart'), 'no "Pairs with cart" chip');
+      await app.settle();
+      W.HW_CART_PAIRS.seed(cartSkus, pairAnswer([
+        pairItem(picks[0], `4 of the 11 baskets that contained ${cartSkus[0]} also contained this`),
+        pairItem(picks[1], `2 of the 11 baskets that contained ${cartSkus[0]} also contained this`),
+      ]));
       await app.settle();
 
       const ranked = gridSkus(app);
       const tapped = ranked[0];
+      assert.equal(tapped, picks[0], 'the fixture did not actually rank the grid — this proves nothing');
       assert.ok(addTile(app, tapped), `could not add the top-ranked tile ${tapped}`);
       await app.settle();
 
-      // The engine drops what is already in the cart, so re-deriving the
+      // The lane drops what is already in the cart, so re-deriving the
       // ranking from the live cart would pull the tile the cashier just tapped
       // out from under the next tap. The basis is frozen at chip-on for exactly
       // this reason.

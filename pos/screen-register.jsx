@@ -61,6 +61,12 @@ window.RegisterScreen = function RegisterScreen() {
   // state; the word "ticket" meant nothing to anyone who had not read the code.)
   const [rankOn, setRankOn] = React.useState(false);
   const [rankBasis, setRankBasis] = React.useState(null);
+  // `HW.cartPairings` answers asynchronously (it fetches once per cart key
+  // and caches), so the `useMemo` below that reads it needs a reason to
+  // re-run when the answer arrives — see the subscribe effect next to
+  // `rankRecs`. Bumped after every terminal outcome, refusals included,
+  // exactly like CartPairs' own `tick` in pos/screen-cart.jsx.
+  const [rankTick, setRankTick] = React.useState(0);
   // "Recommended" — ranking over the PERSON rather than the ticket: their own
   // order history, and customers who look like them. (It was labelled
   // "Suggested" until 2026-08-27. Same control, same behaviour, same state —
@@ -496,14 +502,29 @@ window.RegisterScreen = function RegisterScreen() {
   brands.size === 0 || brands.has(p.brand)) && (
   !q || (p.name + p.brand).toLowerCase().includes(q.toLowerCase())));
 
-  /* ── "FOR THIS TICKET" — the grid, ranked by the upsell engine ─────────────
+  /* ── "PAIRS WITH CART" — the grid, ranked by the SAME lane the cart card
+   *    uses ──────────────────────────────────────────────────────────────
    *
-   * The same call pos/screen-orders.jsx's AddItemPanel makes, on the surface a
-   * cashier actually spends the sale looking at. Nothing here decides what is
-   * worth suggesting: @hyperwolf/commerce-logic weighs favourite category,
-   * category affinity, sale, known brand, potency, stock depth, margin and —
-   * dominating all of them — whether an item unlocks a promotion this ticket is
-   * close to. The grid only re-orders.
+   * Until 2026-08-31 this called `window.HWPosUpsell.offersFor` —
+   * @hyperwolf/commerce-logic's hardcoded category-affinity table plus
+   * margin/promotion-gap heuristics — while pos/screen-cart.jsx's CartPairs
+   * card, under the SAME "Pairs with cart" label, called
+   * `window.HW.cartPairings` — wmdemo/reco/core.py's measured co-occurrence
+   * lane. Two different algorithms over two different data sources, reachable
+   * from one label. screen-cart.jsx's own header comment flagged this exact
+   * defect and named the fix: point this control at the other engine. This is
+   * that fix — both "Pairs with cart" controls now ask the same lane the same
+   * question about the same cart and can no longer disagree about the answer.
+   *
+   * `HW.cartPairings` is `wmdemo/reco/core.py`'s `pairs_with_cart` lane
+   * (co-occurrence — what has actually been bought TOGETHER with this cart —
+   * plus, as of the same date, a `promotion_gap` contribution ported from
+   * commerce-engine.js's `offerFromRule`/`productClosingGap`: a product that
+   * closes a promotion this cart is close to unlocking is worth more, but
+   * ONLY on top of real relevance evidence, never by itself — see core.py's
+   * `_promotion_gap_signal`). It ANSWERS ASYNCHRONOUSLY, unlike the old
+   * engine, so `rankTick` (bumped by `HW_CART_PAIRS.subscribe`, next door)
+   * is what makes this `useMemo` re-run once the lane actually replies.
    *
    * ⚠️ THE RANKING IS FROZEN WHILE THE CHIP IS ON, and this is not an
    * optimisation. Deriving it from `cart` re-ran the engine on every Add, the
@@ -511,34 +532,44 @@ window.RegisterScreen = function RegisterScreen() {
    * cart) and the WHOLE GRID re-sorted under the cashier's finger — the tile
    * they had just tapped moved and the next tap landed on something else.
    * AddItemPanel carries the same guard and the same scar; see its comment.
+   * (AddItemPanel and the cart card's rail ask a DIFFERENT question — "what
+   * else suits this sale" via `window.HWSwap` — and are unrelated to this
+   * fix; see the note at their call sites.)
    *
    * `rankBasis` is the ticket as it stood when the chip was switched on, or
    * when the party moved to another ticket. Toggling the chip off and on is the
    * deliberate way to re-rank against what is now on the ticket.
+   *
+   * ⚠️ A REFUSAL MEANS THE GRID DOES NOT REORDER, and that is correct, not a
+   * bug to route around. `HW.cartPairings` states other than 'pairs' (empty,
+   * loading, refused, unavailable) carry no items, so `rankRecs` is null and
+   * `list` below keeps catalogue order — the same "no list was invented"
+   * discipline the cart card's CartPairs renders as a sentence. This screen
+   * has no room for that sentence on a grid tile, so it says nothing rather
+   * than a fabricated ordering; an associate who wants the reason can open
+   * the cart panel, where CartPairs states it.
    */
   React.useEffect(() => {
     if (!rankOn) {setRankBasis(null);return;}
     setRankBasis(cart.map((c) => ({ sku: c.sku, qty: c.qty })));
   }, [rankOn, active]);
 
-  const rankRecs = React.useMemo(() => {
-    if (!rankOn || !rankBasis || !window.HWPosUpsell) return null;
-    // `shop_grid_tile` is a grid of product tiles, which is precisely what this
-    // is. Its slot count comes from the engine's config — ranking the whole
-    // catalogue would put a gold reason line on nearly every tile, which is
-    // wallpaper rather than a signal.
-    return window.HWPosUpsell.offersFor({
-      surface: 'shop_grid_tile',
-      orderItems: rankBasis,
-      customer,
-      catalogue: products.filter((p) => p.active),
-    });
-  }, [rankOn, rankBasis, customer && customer.id]);
+  React.useEffect(() => {
+    const S = window.HW_CART_PAIRS;
+    if (!S || typeof S.subscribe !== 'function') return undefined;
+    return S.subscribe(() => setRankTick((n) => n + 1));
+  }, []);
 
-  // sku → the engine's own reason copy, so a tile can say WHY it is up here.
+  const rankRecs = React.useMemo(() => {
+    if (!rankOn || !rankBasis || !window.HW || typeof window.HW.cartPairings !== 'function') return null;
+    const ans = window.HW.cartPairings(rankBasis.map((b) => b.sku));
+    return ans.state === 'pairs' ? ans.items : null;
+  }, [rankOn, rankBasis, rankTick]);
+
+  // sku → the lane's own reason copy, so a tile can say WHY it is up here.
   const rankReason = React.useMemo(() => {
     const m = new Map();
-    (rankRecs || []).forEach((r) => m.set(r.p.sku, r.reason));
+    (rankRecs || []).forEach((r) => m.set(r.sku, r.top_reason));
     return m;
   }, [rankRecs]);
 
@@ -578,7 +609,7 @@ window.RegisterScreen = function RegisterScreen() {
   // catalogue the cashier is mid-search in. Ranked tiles rise; everything else
   // keeps catalogue order beneath them (stable sort, equal keys).
   if (rankOn && rankRecs && rankRecs.length) {
-    const rk = new Map(rankRecs.map((r, i) => [r.p.sku, i]));
+    const rk = new Map(rankRecs.map((r, i) => [r.sku, i]));
     const at = (p) => rk.has(p.sku) ? rk.get(p.sku) : Number.MAX_SAFE_INTEGER;
     list = list.slice().sort((a, b) => at(a) - at(b));
   }
@@ -593,10 +624,14 @@ window.RegisterScreen = function RegisterScreen() {
   // apply, so a ranking can be live and have nothing left in view — and "Best
   // match first" over a grid where no tile is ranked is a claim about nothing.
   const rankedHere = rankOn && list.some((p) => rankReason.has(p.sku));
-  // The chip is DROPPED when the engine is absent rather than shown doing
-  // nothing: `slotsFor` returns 0 without window.HWSwap, and a control that is
-  // always there and sometimes inert is worse than one that is honestly missing.
-  const canRank = !!(window.HWPosUpsell && window.HWPosUpsell.slotsFor('shop_grid_tile') > 0);
+  // The chip is DROPPED when the lane is absent rather than shown doing
+  // nothing — same rule pos/screen-cart.jsx's CartPairs follows for the same
+  // seam, and a control that is always there and sometimes inert is worse
+  // than one that is honestly missing. This is a CAPABILITY check only
+  // (is the seam loaded), never a data check (did it find a pairing) — a
+  // refusal is a legitimate answer the chip should still be available to ask
+  // for, exactly as CartPairs still renders when the lane refuses.
+  const canRank = !!(window.HW && typeof window.HW.cartPairings === 'function');
 
   return (
     <div style={{ position: 'relative', height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
