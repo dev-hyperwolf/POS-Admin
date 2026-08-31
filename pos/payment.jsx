@@ -190,6 +190,23 @@ window.ReceiptActions = function ReceiptActions({ sale, compact }) {
   );
 };
 
+// After-the-fact honesty for the one thing finalize() intentionally never
+// blocks on: AOV attribution. Sale is already done and printed by the time
+// this can possibly show — see the aovFailed comment in finalize() below.
+// Dismissing just clears the flag on `sale` itself (no separate state to
+// keep in sync), and a brand-new sale is a brand-new record with no flag
+// set, so dismissal never leaks from one ticket into the next.
+function AovSyncNotice({ onDismiss }) {
+  const P = useP();
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 14px', background: P.warnSoft, borderRadius: P.r10, marginBottom: 16 }}>
+      <Icon name="alert" size={14} stroke={2} color={P.warnText} style={{ flex: '0 0 auto', marginTop: 1 }} />
+      <span style={{ flex: 1, fontSize: 12, lineHeight: 1.4, color: P.warnText }}>Sale completed and printed normally — but AOV attribution didn’t reach the server, so it won’t show on the leaderboard.</span>
+      <IconBtn icon="x" size={13} label="Dismiss" onClick={onDismiss} style={{ flex: '0 0 auto' }} />
+    </div>
+  );
+}
+
 // ── Main payment modal ─────────────────────────────────────────────────────
 window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, onClose, onDone }) {
   const P = useP();
@@ -204,6 +221,12 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
   const [feeOpt, setFeeOpt] = React.useState('flat6');
   const [stage, setStage] = React.useState('choose'); // choose | terminal | done
   const [sale, setSale] = React.useState(null);
+  // Guards the AOV-attribution .then() below: the operator can close this
+  // modal (Done · new sale) well before wmdemo answers, and setState on an
+  // unmounted component is a warning, not a crash, but there's no reason to
+  // court it for a result nobody is looking at any more.
+  const mountedRef = React.useRef(true);
+  React.useEffect(() => () => { mountedRef.current = false; }, []);
 
   const rw = CASH_REWARDS.find((r) => r.id === reward);
   const credits = _c2((rw ? rw.value : 0) + walletAmt);
@@ -235,12 +258,24 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
     // wmdemo/pos_sales.py's own header explains why this is a new table
     // rather than a column added after the fact: this call is the FIRST
     // and only writer, wired in here, at the moment the register closes a
-    // ticket. Fire-and-forget on purpose — a slow or unreachable wmdemo
+    // ticket. Fire-and-forget ON THE SALE — a slow or unreachable wmdemo
     // backend (the public GitHub Pages demo, most of the time) must never
-    // block or fail a cash drawer pop that has already happened. The AOV
-    // dashboard (pos/screen-aov.jsx) simply shows nothing new until its own
-    // next poll if this never lands, exactly the same graceful-degrade
-    // rule every other window.HW_LIVE seam already follows.
+    // block or delay a cash drawer pop that has already happened. Nothing
+    // below this comment can postpone `setStage('done')` above by even one
+    // tick; it already ran.
+    //
+    // It is NOT fire-and-forget on the OPERATOR, though. `post()` never
+    // rejects and resolves { ok, ... } specifically so a caller can tell a
+    // committed write from a refused one (shared/hw-live.js's own doc
+    // comment on post()) — this was the one seam in the estate that had
+    // that signal sitting right there and threw it away. A whole shift's
+    // sales could silently miss the AOV leaderboard with nobody able to
+    // tell, which is the gap 2026-08-31 QA flagged. So: still zero delay,
+    // but when the answer comes back not-ok, mark THIS sale (matched by id,
+    // in case the operator has already started the next one) so the done
+    // screen can say so — see the aovFailed banner below. Scoped down from
+    // "retry automatically": one attribution POST failing is worth a glance
+    // by whoever is on shift, not a background retry queue tonight.
     try {
       const a = window.HW.STATS.associate;
       if (window.HW_LIVE && a && a.id && a.storeId) {
@@ -248,6 +283,9 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
           order_id: rec.id, store_id: a.storeId, associate_id: a.id,
           total_cents: Math.round(rec.total * 100), item_count: rec.items,
           method: rec.method, customer_name: rec.name,
+        }).then((r) => {
+          if (!mountedRef.current || (r && r.ok)) return;
+          setSale((prev) => (prev && prev.id === rec.id) ? { ...prev, aovFailed: true } : prev);
         });
       }
     } catch (e) {}
@@ -305,6 +343,7 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
               <div style={{ textAlign: 'center' }}><div style={{ fontSize: 21, fontWeight: 700, color: P.ink }}>Payment complete</div><div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 3, fontFamily: P.fontMono }}>{sale.id} · receipt printed{(sale.method !== 'card') ? ' · drawer opened' : ''}</div></div>
               {sale.change > 0 && <div style={{ padding: '9px 18px', background: P.goodSoft, borderRadius: P.r12, fontSize: 15, fontWeight: 700, color: P.good, fontFamily: P.fontMono }}>Change due {_money(sale.change)}</div>}
             </div>
+            {sale.aovFailed && <AovSyncNotice onDismiss={() => setSale((prev) => prev ? { ...prev, aovFailed: false } : prev)} />}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
               <div style={{ background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <Eyebrow style={{ marginBottom: 2 }}>Tender</Eyebrow>
