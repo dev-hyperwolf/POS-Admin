@@ -517,11 +517,17 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
           {/* The pairs-with-cart lane. It renders its own refusal; see CartPairs. */}
           <CartPairs P={P} skus={(lines || []).map((l) => l.sku)} onAdd={onAdd} />
 
+          {/* The for_guest lane — this customer's own purchases, then the
+              look-alike cohort. It renders its own refusal; see GuestReco. */}
+          <GuestReco P={P} customer={customer} onAdd={onAdd} />
+
           {/* AOV booster — goal meter + engine-ranked up-sells (comment 8).
-              ⚠️ THIS IS NOT THE PAIRING LANE and must not be read as one — its
-              heading says "Suggested for this sale", the card above says "Pairs
-              with cart", and they are ranked by two different engines on two
-              different kinds of evidence. See CartPairs' header. */}
+              ⚠️ THIS IS NOT THE PAIRING LANE, AND NOT THE for_guest LANE EITHER
+              — its heading says "Suggested for this sale" / "Recommended for
+              this member", the two cards above say "Pairs with cart" and "For
+              this guest", and all three are ranked by DIFFERENT engines on
+              different kinds of evidence. See CartPairs' and GuestReco's
+              headers. */}
           <AovBooster P={P} total={total} goal={goal} gap={gap} goalPct={goalPct} recs={recs} onAdd={onAdd}
           engineRanked={engineRanked} onDismiss={onDismissUpsell} />
 
@@ -970,6 +976,150 @@ function CartPairs({ P, skus, onAdd }) {
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || (p && p.name) || it.sku}</div>
                 {/* THE EVIDENCE, COUNTED. "N of the M baskets that contained X
                     also contained this" — the lane's own words, not ours. */}
+                {it.top_reason && <div style={{ fontSize: P.type.micro, fontWeight: 700, color: P.accentText, lineHeight: 1.4 }}>{it.top_reason}</div>}
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 1 }}>{window.HW.fmt.money0(it.price != null ? it.price : (p ? p.price : 0))}</div>
+              </div>
+              {p && onAdd &&
+              <button onClick={() => onAdd(p)} title={`Add ${it.name || it.sku}`} style={{ flex: '0 0 auto', alignSelf: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, background: P.accent, color: P.accentInk, border: 'none', borderRadius: 10, cursor: 'pointer' }}><Icon name="plus" size={17} stroke={2.6} /></button>}
+            </div>);
+        })}
+      </div>}
+    </div>);
+}
+
+/* ── "FOR THIS GUEST", INSIDE THE CART ───────────────────────────────────────
+ *
+ * WHAT THIS CARD SHOWS: the `for_guest` lane of wmdemo/reco/core.py, through
+ * `HW.guestRecommendations` (shared/hw-live-guest-reco.js), and NOTHING ELSE.
+ * That lane ranks on what THIS PERSON has actually bought first, and only
+ * when that is thin does it borrow signal from a look-alike cohort — a
+ * k-means group over category mix (wmdemo/reco/fit.py). Nothing here is a
+ * hash, a hardcoded list, or the commerce-logic upsell rail below it.
+ *
+ * ⚠️ NOTHING RENDERS UNTIL A REAL CUSTOMER IS ON THE TICKET. A mock MEMBERS
+ * row with no identity_id / pos_customer_id / wm_customer_id has no key this
+ * lane can ask by — see hw-live-history.js's own note on why `customer.id`
+ * is deliberately not accepted as one. The card renders nothing at all for
+ * that case ('no-customer'), same as CartPairs renders nothing for an empty
+ * cart, rather than showing a permanently-broken placeholder.
+ *
+ * ⚠️ A LOOK-ALIKE COHORT IS THE INTERESTING CASE AND THE RARE ONE TODAY.
+ * Measured 2026-08-27 in wmdemo/reco/fit.py: 369 of 371 placeable guests on
+ * the real database share the IDENTICAL category-mix vector (100% flower), so
+ * the model is built with ZERO cohorts and `meta.cohort.code` comes back
+ * `no_cohorts_in_model` for nearly everyone. That is a data-sparsity fact,
+ * not this card lying — a guest can still get a perfectly real list ranked on
+ * their OWN purchases (basis `own_purchases`) or the house-brand/popularity
+ * fallback (basis `not_personalised`) with no cohort in sight. So the cohort
+ * status is shown as ITS OWN small line, separate from the headline list,
+ * exactly the way this codebase keeps a personalised list and a fallback list
+ * from ever reading as the same claim (see AovBooster's "Ranked" chip).
+ *
+ * ⚠️ A REFUSAL IS THE RENDER, NOT A HIDDEN STATE. `recommends: false` is a
+ * normal, first-class answer from this engine (core.py names ten refusal
+ * codes) and this card shows the engine's own sentence for it verbatim —
+ * never an empty rail that reads as "nothing to suggest", which is
+ * indistinguishable from the engine being broken.
+ */
+function GuestReco({ P, customer, onAdd }) {
+  // Re-asked only when the CUSTOMER changes. `customer` is not a stable
+  // reference across renders in every caller, so a string key is used for the
+  // same reason CartPairs' and AovBooster's are.
+  const key = customer ?
+  [customer.identity_id, customer.pos_customer_id, customer.wm_customer_id, customer.id, customer.name].
+  filter((v) => v != null && v !== '').join('|') :
+  '';
+  // ⚠️ AND WHEN THE LANE ANSWERS. The first ask returns 'loading' and the
+  // reply arrives later — including the history lookup this lane depends on
+  // — so a card memoised on the customer alone would show 'Asking…' forever.
+  // `tick` is bumped by the reco seam after every terminal outcome AND by the
+  // history seam it depends on: the first render typically catches
+  // HW.purchaseHistory still cold, this card fetches nothing yet (it has no
+  // subject to ask by), and HW_GUEST_RECO alone would never fire again once
+  // the history answer lands a moment later. Confirmed live: without this
+  // second subscription the card hangs on 'Asking…' forever the instant
+  // history resolves after this component's first render.
+  const [tick, setTick] = React.useState(0);
+  React.useEffect(() => {
+    const bump = () => setTick((n) => n + 1);
+    const unsubs = [];
+    const G = window.HW_GUEST_RECO;
+    if (G && typeof G.subscribe === 'function') unsubs.push(G.subscribe(bump));
+    const H = window.HW_HISTORY;
+    if (H && typeof H.subscribe === 'function') H.subscribe(bump); // no unsubscribe offered
+    return () => unsubs.forEach((fn) => fn && fn());
+  }, []);
+  const ans = React.useMemo(
+    () => (window.HW && typeof window.HW.guestRecommendations === 'function' ?
+      window.HW.guestRecommendations(customer || null) :
+      { state: 'unavailable', code: 'no_seam', items: [], cohort: null,
+        sentence: 'shared/hw-live-guest-reco.js is not loaded, so the '
+          + 'for_guest lane was never asked. Nothing is being claimed about '
+          + 'this customer.' }),
+    [key, tick]);
+
+  if (!ans || ans.state === 'no-customer') return null;
+
+  const items = ans.state === 'ranked' ? ans.items || [] : [];
+  const tone = ans.state === 'ranked' ? P.accentText : P.inkMute;
+  const cohort = ans.cohort || null;
+  // The cohort line is shown ONLY when it is informative: a real assignment,
+  // or a real reason none was made. `no_cohorts_in_model` on an artifact with
+  // zero cohorts fitted is the expected state on today's data — see header.
+  const cohortLine = cohort && cohort.code === 'assigned' ?
+  `Look-alike cohort ${cohort.cohort || cohort.nearest || ''} — built from ${cohort.members || 0} guests like this one.` :
+  cohort && cohort.why ? cohort.why : null;
+
+  return (
+    <div data-hw-guest-reco={ans.state} data-hw-guest-reco-code={ans.code || ''}
+      style={{ marginBottom: 10, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, overflow: 'hidden', background: P.surface }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 11px 6px' }}>
+        <Icon name="user" size={12} stroke={2} color={tone} style={{ flex: '0 0 auto' }} />
+        <Eyebrow>For this guest</Eyebrow>
+        {/* WHICH STATE THIS IS, in one word, next to the heading — same
+            discipline as CartPairs' chip. */}
+        <span style={{ marginLeft: 'auto', fontSize: P.type.micro, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: tone, whiteSpace: 'nowrap' }}>
+          {ans.state === 'ranked' ?
+          `${items.length} ${ans.personalised ? 'personalised' : cohort && cohort.code === 'assigned' ? 'look-alike' : 'suggested'}` :
+          ans.state === 'loading' ? 'Asking…' :
+          ans.state === 'refused' ? 'Not enough data yet' :
+          ans.state === 'ambiguous' ? 'Identity unclear' : 'Not available'}
+        </span>
+      </div>
+
+      {/* THE LANE'S OWN SENTENCE, VERBATIM, IN EVERY STATE — the part that
+          cannot be got wrong: rendering `items.length === 0` as blank space
+          is indistinguishable from the engine having died. */}
+      {ans.sentence &&
+      <div style={{ padding: '0 11px 8px', fontSize: P.type.micro, fontWeight: ans.state === 'ranked' ? 700 : 600, color: ans.state === 'ranked' ? P.accentText : P.ink2, lineHeight: 1.5 }}>
+        {ans.state !== 'ranked' &&
+        <span style={{ display: 'inline-block', marginRight: 5, padding: '0 5px', borderRadius: 5, background: P.surface3, color: P.inkDim, fontFamily: P.fontMono, fontSize: 10, fontWeight: 700 }}>{ans.code}</span>}
+        {ans.sentence}
+      </div>}
+
+      {/* THE LOOK-ALIKE STATUS, ON ITS OWN LINE. Never folded into the
+          sentence above — a cohort assignment and a purchase-history basis
+          are two different facts, and this card does not let one borrow the
+          other's confidence. See header. */}
+      {cohortLine && (ans.state === 'ranked' || ans.state === 'refused') &&
+      <div style={{ padding: '0 11px 9px', fontSize: P.type.micro, fontWeight: 600, color: cohort.code === 'assigned' ? P.accentText : P.inkMute, lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+        <Icon name={cohort.code === 'assigned' ? 'sparkle' : 'info'} size={11} stroke={2} color={cohort.code === 'assigned' ? P.accentText : P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
+        {cohortLine}
+      </div>}
+
+      {items.length > 0 &&
+      <div style={{ borderTop: `1px solid ${P.hairline}`, padding: '7px 11px 9px', background: P.surface2, display: 'flex', gap: 8, overflowX: 'auto' }}>
+        {items.slice(0, 6).map((it) => {
+          const p = (window.HW.PRODUCTS || []).find((x) => x.sku === it.sku) || null;
+          return (
+            <div key={it.sku} style={{ flex: '0 0 auto', width: 232, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, padding: 9, display: 'flex', gap: 9 }}>
+              {p && <Thumb item={p} size={44} radius={8} />}
+              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.brand_name || (p && p.brand) || ''}</span>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{it.name || (p && p.name) || it.sku}</div>
+                {/* THE EVIDENCE, IN THE LANE'S OWN WORDS — "this guest bought
+                    N unit(s) of X" or "N of the M guests in cohort-Y bought
+                    this", never a summary written here. */}
                 {it.top_reason && <div style={{ fontSize: P.type.micro, fontWeight: 700, color: P.accentText, lineHeight: 1.4 }}>{it.top_reason}</div>}
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 1 }}>{window.HW.fmt.money0(it.price != null ? it.price : (p ? p.price : 0))}</div>
               </div>

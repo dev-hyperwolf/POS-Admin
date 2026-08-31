@@ -98,6 +98,11 @@
      hw-live-history.js on purpose -- it WRAPS HW.purchaseHistory rather than
      publishing a second one, so the two never race for the property. -->
 <script src="shared/hw-live-suggest.js"></script>
+<!-- THE OTHER RECO LANE: `for_guest` (own purchases, then look-alike cohort)
+     over GET /api/reco/for-guest, for the "For this guest" card in the cart.
+     Depends on HW.purchaseHistory above for identity resolution only -- see
+     the file header for why it does not re-derive the merge rule itself. -->
+<script src="shared/hw-live-guest-reco.js"></script>
 <script src="shared/brands.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from

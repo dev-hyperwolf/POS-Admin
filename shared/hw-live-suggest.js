@@ -258,11 +258,20 @@
 
 // ── THE CART-PAIRING LANE, delivered to the register's cart ─────────────────
 //
-// WHAT THIS IS. `wmdemo/reco/core.py` publishes two lanes. `for_guest` ranks
-// over the PERSON and reaches this estate through the wrapper above. This
-// second block is the other one — `pairs_with_cart`, which answers "what goes
-// with what is already on the counter" — and it is the lane the in-cart
-// suggestion cards were asked to show.
+// WHAT THIS IS. `wmdemo/reco/core.py` publishes two lanes. This second block
+// is `pairs_with_cart`, which answers "what goes with what is already on the
+// counter" — the lane the in-cart suggestion cards were asked to show.
+//
+// CORRECTION 2026-08-31: this paragraph used to claim the OTHER lane,
+// `for_guest`, "reaches this estate through the wrapper above" (the block
+// directly above this one). That was never true — the wrapper above calls
+// GET /api/customer/suggestions (suggestion_rank.py: repeat purchase, then
+// category affinity, then brand affinity), a different engine with no
+// cohort/look-alike step at all. Grepped before writing this fix: the only
+// reference to `for_guest`/`for-guest` anywhere under POS-Admin was this one
+// stale sentence, and nothing called core.py's for_guest lane. It is now
+// wired at shared/hw-live-guest-reco.js -> GET /api/reco/for-guest, rendered
+// by the "For this guest" card in pos/screen-cart.jsx.
 //
 // ⚠️ THERE IS NO HTTP ROUTE FOR IT. Verified 2026-08-27, not assumed: wmdemo/
 // reco/ is a Python package (core.py, serve.py, build.py, fit.py) with a
