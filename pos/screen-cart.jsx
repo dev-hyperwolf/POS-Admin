@@ -401,7 +401,7 @@ window.HWSuggestBasis = (function () {
 // `merch` is what the goods cost; `sub` is what is left to tax after
 // `discountOff` comes off. They are separate props because the footer has to
 // show the customer both — a total that quietly shrank is a total nobody trusts.
-window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote, upsellHidden, onDismissUpsell }) {
+window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote }) {
   const walletAmt = customer?.wallet || 0;
   const [taxOpen, setTaxOpen] = React.useState(false);
   const goal = window.HW.STATS.associate.goal;
@@ -416,21 +416,18 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
    * behind the driver's "For {customer}" chip and the order picker — and not by
    * the local `HW.upsell` helper, which cannot see promotion unlocks.
    *
-   * ⚠️ THE STRING KEYS ARE DELIBERATE. `lines` and `upsellHidden` are new arrays
-   * on every render, so memoising on them directly would re-rank on every
-   * keystroke anywhere in the register.
+   * ⚠️ THE STRING KEY IS DELIBERATE. `lines` is a new array on every render,
+   * so memoising on it directly would re-rank on every keystroke anywhere in
+   * the register.
    *
    * When the engine has not loaded we fall back to `HW.upsell` rather than
    * showing an empty rail — the cart still has to sell something. `engine`
    * records WHICH list this is, because a hand-rolled list dressed as an
    * engine-ranked one is how nobody notices the engine stopped loading.
    */
-  const hidden = upsellHidden || [];
-  const hiddenKey = hidden.join(',');
   const cartKey = (lines || []).map((l) => l.sku + ':' + l.qty).join(',');
   const custKey = customer ? customer.id || customer.name : '';
   const { recs, engineRanked } = React.useMemo(() => {
-    const drop = new Set(hidden);
     /* ⚠️ THE ENGINE IS CAUGHT, AND IT HAS TO BE CAUGHT HERE.
      *
      * This runs on the RENDER path, inside a CriticalBoundary that refuses the
@@ -452,7 +449,6 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
         surface: 'cart_add_to_order',
         orderItems: (lines || []).map((l) => ({ sku: l.sku, qty: l.qty })),
         customer,
-        hidden,
       });
     } catch (e) {
       try { console.error('[cart] upsell engine threw; falling back to HW.upsell', e); } catch (_) {}
@@ -460,12 +456,11 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
     }
     if (ranked) return { recs: ranked, engineRanked: true };
     return {
-      recs: window.HW.upsell(cartSkus || [], customer).
-        filter((p) => !drop.has(p.sku)).slice(0, 4).
+      recs: window.HW.upsell(cartSkus || [], customer).slice(0, 4).
         map((p) => ({ p, reason: p._reason })),
       engineRanked: false,
     };
-  }, [cartKey, hiddenKey, custKey]);
+  }, [cartKey, custKey]);
 
   const payMethods = [
   ['cash', 'Cash', 'cash', null],
@@ -529,7 +524,7 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
               different kinds of evidence. See CartPairs' and GuestReco's
               headers. */}
           <AovBooster P={P} total={total} goal={goal} gap={gap} goalPct={goalPct} recs={recs} onAdd={onAdd}
-          engineRanked={engineRanked} onDismiss={onDismissUpsell} />
+          engineRanked={engineRanked} />
 
           {/* Discount + promo — committed to the compact layout */}
           <DiscountCard P={P} discMode={discMode} setDiscMode={setDiscMode} subtotal={merch == null ? sub : merch}
@@ -1147,7 +1142,7 @@ function GuestReco({ P, customer, onAdd }) {
  * The meter is a staff metric; the rail is the customer's. They share a card
  * and nothing else.
  */
-function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd, engineRanked, onDismiss }) {
+function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd, engineRanked }) {
   const met = gap <= 0;
   const meterColor = met ? P.good : P.info;
   const headColor = met ? P.good : P.warn;
@@ -1172,33 +1167,49 @@ function AovBooster({ P, total, goal, gap, goalPct, recs, onAdd, engineRanked, o
                 engine ranking is how nobody notices the engine stopped loading. */}
             {engineRanked && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: P.type.micro, fontWeight: 700, color: P.accentText, whiteSpace: 'nowrap' }}><Icon name="sparkle" size={11} stroke={2} />Ranked</span>}
           </div>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+          <div data-hw-aov-rail style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
             {recs.map(({ p: r, reason }) =>
-          <div key={r.sku} style={{ flex: '0 0 auto', width: 232, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, padding: 9, display: 'flex', gap: 9 }}>
+          // Small, on purpose — matches the density of the catalog grid's own
+          // ProductRow (pos/screen-register.jsx), not a bigger promoted card.
+          // Dropping the dismiss column freed width for the name to run a
+          // little longer before truncating; it did not free a mandate to
+          // grow the card.
+          // Three columns — thumb | info | price+Add — same shape as
+          // ProductRow (pos/screen-register.jsx). Price and Add sit in their
+          // OWN column now, sharing the row's height instead of stacking
+          // underneath the info column and adding a row's worth of height on
+          // top of it. Wider (216->248) to give that column real room.
+          <div key={r.sku} style={{ flex: '0 0 auto', width: 248, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, background: P.surface, padding: 7, display: 'flex', gap: 7, alignItems: 'center' }}>
                 <Thumb item={r} size={44} radius={8} />
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.brand}</span>
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: window.HW.CAT_COLOR[r.cat] || P.ink2, background: (window.HW.CAT_COLOR[r.cat] || P.ink2) + '1f', borderRadius: 5, padding: '1px 5px', flex: '0 0 auto', whiteSpace: 'nowrap' }}>{r.cat}</span>
+                    <span style={{ fontSize: 10, color: r.qty < 10 ? P.warn : P.inkFaint, fontFamily: P.fontMono, marginLeft: 'auto', whiteSpace: 'nowrap', flex: '0 0 auto' }}>{r.qty} left</span>
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</div>
                   {/* WHY this card is here, in the engine's own words. */}
                   {reason && <div style={{ fontSize: P.type.micro, fontWeight: 700, color: P.accentText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{reason}</div>}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                    {r.strain && <StrainPill type={r.strain} thc={r.thc} />}
-                    {r.wt && <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono }}>{r.wt}</span>}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 1 }}>
-                    {r.was && <span style={{ fontSize: 10, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{fmt0(r.was)}</span>}
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: r.was ? P.bad : P.ink, fontFamily: P.fontMono }}>{fmt0(r.price)}</span>
-                    <span style={{ fontSize: 10, color: r.qty < 10 ? P.warn : P.inkFaint, fontFamily: P.fontMono, marginLeft: 'auto' }}>{r.qty} left</span>
+                  {/* Plain dot+text, not StrainPill's padded badge — StrainPill's
+                      own 2px/7px chrome (pos/atoms.jsx) made this row visibly
+                      taller than every sibling row for no informational gain. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                    {r.strain && (() => {
+                      const c = r.strain.toLowerCase() === 'indica' ? P.indica : r.strain.toLowerCase() === 'sativa' ? P.sativa : P.hybrid;
+                      return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, letterSpacing: '.04em', color: c, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>
+                        <span style={{ width: 5, height: 5, borderRadius: 99, background: c, flex: '0 0 auto' }} />{r.strain.toUpperCase()}
+                      </span>;
+                    })()}
+                    {r.wt && <span style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{r.wt}</span>}
                   </div>
                 </div>
-                <div style={{ flex: '0 0 auto', alignSelf: 'center', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                  <button onClick={() => onAdd && onAdd(r)} title={`Add ${r.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, background: P.accent, color: P.accentInk, border: 'none', borderRadius: 10, cursor: 'pointer' }}><Icon name="plus" size={17} stroke={2.6} /></button>
-                  {/* "Not for them" — for THIS sale only. The next customer gets
-                      a clean slate, because the dismissal lives on the ticket. */}
-                  {onDismiss && <button onClick={() => onDismiss(r.sku)} title={`Not for this sale · ${r.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, background: P.surface, color: P.inkDim, border: `1px solid ${P.hairline2}`, borderRadius: 10, cursor: 'pointer' }}><Icon name="x" size={15} stroke={2.2} /></button>}
+                <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    {r.was && <span style={{ fontSize: 10, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{fmt0(r.was)}</span>}
+                    <span style={{ fontSize: 13.5, fontWeight: 700, color: r.was ? P.bad : P.ink, fontFamily: P.fontMono, whiteSpace: 'nowrap' }}>{fmt0(r.price)}</span>
+                  </div>
+                  <button onClick={() => onAdd && onAdd(r)} title={`Add ${r.name}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, background: P.accent, color: P.accentInk, border: 'none', borderRadius: 8, cursor: 'pointer', flex: '0 0 auto' }}>
+                    <Icon name="plus" size={14} stroke={2.6} />
+                  </button>
                 </div>
               </div>
           )}

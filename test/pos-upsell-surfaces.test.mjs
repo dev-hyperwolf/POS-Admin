@@ -52,9 +52,14 @@ function mounter(app) {
 /* ── reading the two surfaces ────────────────────────────────────────────── */
 
 /** The names on the cart's suggestion rail, in the order they are rendered.
- *  Read off the dismiss control's title, which names its own card. */
-const rail = (app) => [...app.document.querySelectorAll('button[title^="Not for this sale · "]')].
-  map((b) => b.getAttribute('title').replace('Not for this sale · ', ''));
+ *  Read off each card's own Add control, scoped to the rail's own container
+ *  (`data-hw-aov-rail`) so this never collides with the register grid's or
+ *  the CartPairs card's identically-prefixed "Add {name}" buttons — both
+ *  mount in the same tree as this rail (see test 7). The dismiss ("x")
+ *  button this used to read no longer exists: removed 2026-09-01, the owner
+ *  decided the card did not need it (see AovBooster in pos/screen-cart.jsx). */
+const rail = (app) => [...app.document.querySelectorAll('[data-hw-aov-rail] button[title^="Add "]')].
+  map((b) => b.getAttribute('title').replace(/^Add /, ''));
 
 /** Every product tile in the register grid, in grid order. */
 const gridSkus = (app) => [...app.document.querySelectorAll('[data-hw-sku]')].
@@ -65,41 +70,9 @@ const reasonedSkus = (app) => [...app.document.querySelectorAll('[data-hw-why]')
   map((e) => e.closest('[data-hw-sku]')).filter(Boolean).
   map((e) => e.getAttribute('data-hw-sku'));
 
-/** Dismiss the rail card for `name`. Returns whether anything was clicked. */
-const dismiss = (app, name) =>
-  app.click((t, el) => el.getAttribute('title') === `Not for this sale · ${name}`);
-
 /** Add the grid tile for `sku`. Returns whether anything was clicked. */
 const addTile = (app, sku) =>
   app.click((t, el) => t === 'Add' && !!el.closest(`[data-hw-sku="${sku}"]`));
-
-/** The Total the cart footer is showing, as a number. `app.text()` collapses
- *  whitespace and adjacent spans have none between them. */
-function totalShown(app) {
-  const m = app.text().match(/Items\s*(\d+)\s*Total\s*\$([\d,]+\.\d\d)/);
-  return m ? Number(m[2].replace(/,/g, '')) : null;
-}
-
-/** TENDER → Cash → quick cash → Complete → Done. The real end of a sale.
- *  ⚠️ NOT `app.click('Clear')`: the customer chip ALSO carries a control
- *  labelled Clear, it is earlier in the document, and it starts a whole new
- *  visit — so a dismissal test written against it passes without the ticket's
- *  own reset ever running. That mutation survived until this walked a tender. */
-async function tenderCash(app) {
-  const total = totalShown(app);
-  assert.ok(total > 0, 'nothing on the ticket to tender');
-  assert.ok(app.click('TENDER'), 'no TENDER button');
-  await app.settle();
-  assert.ok(app.click((t) => t.startsWith('Cash')), `no Cash tile — ${app.buttons().slice(0, 12).join(' | ')}`);
-  await app.settle();
-  const quick = '$' + Math.ceil(total).toFixed(2);
-  assert.ok(app.click(quick), `no quick-cash ${quick} — ${app.buttons().slice(0, 14).join(' | ')}`);
-  await app.settle();
-  assert.ok(app.click((t) => t.startsWith('Complete')), `no Complete — ${app.buttons().slice(0, 14).join(' | ')}`);
-  await app.settle();
-  assert.ok(app.click((t) => t.startsWith('Done · new sale')), `no Done — ${app.buttons().slice(0, 14).join(' | ')}`);
-  await app.settle();
-}
 
 /* ── 1. the rail is the ENGINE's list, at the ENGINE's slot count ─────────── */
 
@@ -173,109 +146,15 @@ test('a product the lane cannot fill is never offered — and the guard is the e
   });
 });
 
-/* ── 3. a dismissed offer goes, and its slot is refilled ──────────────────── */
-
-test('dismissing an offer removes it and backfills the slot it left', async () => {
-  await withApp('pos', async (app) => {
-    const W = app.window;
-    const open = mounter(app);
-    try {
-      const slots = W.HWSwap.engine.defaultConfig.upsell.slotsBySurface.cart_add_to_order;
-      await open('RegisterScreen');
-      const before = rail(app);
-      assert.equal(before.length, slots, 'the rail did not start full — the backfill claim is untestable');
-
-      assert.ok(dismiss(app, before[0]), `no dismiss control on the card for ${before[0]}`);
-      await app.settle();
-
-      const after = rail(app);
-      assert.ok(!after.includes(before[0]),
-        `${before[0]} was dismissed and is still on the rail`);
-      // The slot count is the config's, dismissed or not: the offer below the
-      // fold moves up. A rail that shrinks by one on every "no thanks" empties
-      // itself over a long sale.
-      assert.equal(after.length, slots,
-        `dismissing one card left ${after.length} of ${slots} slots filled — nothing moved up to take it`);
-      // And the dismissal is not a reshuffle: everything else that was showing
-      // is still showing.
-      for (const name of before.slice(1)) {
-        assert.ok(after.includes(name),
-          `dismissing ${before[0]} also took ${name} off the rail`);
-      }
-    } finally { open.close(); }
-  });
-});
-
-/* ── 4. a dismissal is worth ONE sale ─────────────────────────────────────── */
-
-test('a dismissal dies with the sale — the next customer is offered it again', async () => {
-  await withApp('pos', async (app) => {
-    const W = app.window;
-    const open = mounter(app);
-    try {
-      await open('RegisterScreen');
-      const before = rail(app);
-      const refused = before[0];
-      assert.ok(refused, 'nothing on the rail to refuse');
-
-      assert.ok(dismiss(app, refused), `no dismiss control for ${refused}`);
-      await app.settle();
-      assert.ok(!rail(app).includes(refused), `${refused} survived its own dismissal`);
-
-      // End the sale the way a sale actually ends: money at the drawer.
-      await tenderCash(app);
-      assert.equal(rail(app).length, 0, 'a tendered, emptied ticket is still being sold to');
-
-      // A new sale on the same terminal, on a screen that never unmounted.
-      // Ring up something that is NOT the refused product, so the refusal is
-      // the only thing that could still be keeping it off the rail.
-      const fresh = W.HW.PRODUCTS.find((x) => x.active && x.qty > 0 && x.name !== refused);
-      assert.ok(fresh, 'the catalogue has nothing to start a second sale with');
-      assert.ok(addTile(app, fresh.sku), `could not add ${fresh.sku} from the grid`);
-      await app.settle();
-
-      const next = rail(app);
-      assert.ok(next.length > 0, 'the second sale got no suggestions at all');
-      assert.ok(next.includes(refused),
-        `${refused} was refused by the PREVIOUS customer and is still being withheld from this one — ` +
-        `this sale is offered: ${next.join(', ')}`);
-    } finally { open.close(); }
-  });
-});
-
-/* ── 4b. …including when the ticket empties one line at a time ────────────── */
-
-test('emptying the ticket line by line clears its dismissals too', async () => {
-  await withApp('pos', async (app) => {
-    const W = app.window;
-    const open = mounter(app);
-    try {
-      await open('RegisterScreen');
-      const refused = rail(app)[0];
-      assert.ok(refused, 'nothing on the rail to refuse');
-      assert.ok(dismiss(app, refused), `no dismiss control for ${refused}`);
-      await app.settle();
-      assert.ok(!rail(app).includes(refused), `${refused} survived its own dismissal`);
-
-      // The trash icon on each cart line. This path never touches clearTicket —
-      // it is the OTHER way a ticket reaches empty, and it has its own reset.
-      let guard = 0;
-      while (app.click((t, el) => el.getAttribute('aria-label') === 'trash')) {
-        await app.settle();
-        assert.ok(++guard < 20, 'the cart lines will not go away');
-      }
-      assert.ok(guard > 0, 'no cart lines were removed — this fixture proves nothing');
-      assert.equal(rail(app).length, 0, 'an emptied ticket is still being sold to');
-
-      const fresh = W.HW.PRODUCTS.find((x) => x.active && x.qty > 0 && x.name !== refused);
-      assert.ok(addTile(app, fresh.sku), `could not add ${fresh.sku} from the grid`);
-      await app.settle();
-      assert.ok(rail(app).includes(refused),
-        `${refused} was refused on a ticket that no longer exists and is still being withheld — ` +
-        `this sale is offered: ${rail(app).join(', ')}`);
-    } finally { open.close(); }
-  });
-});
+/* ── 3/4/4b. dismissal tests REMOVED 2026-09-01 ────────────────────────────
+ *
+ * The dismiss ("x") control on each rail card, and everything it did — drop
+ * a card, backfill the slot, scope the refusal to one ticket, clear it when
+ * the ticket empties — is gone. The owner's own call: "we dont need the X
+ * button there" (the card should use the reclaimed space better instead).
+ * That is not a selector to patch; the behaviour these three tests asserted
+ * no longer exists in the product, so there is nothing left for them to
+ * hold the line on. See AovBooster in pos/screen-cart.jsx. */
 
 /* ── 5. the register grid: "Pairs with cart" ORDERS, it never filters ─────── *
  *

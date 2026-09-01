@@ -89,7 +89,7 @@ window.RegisterScreen = function RegisterScreen() {
   const setCart = (v) => setTickets((ts) => ts.map((x, i) => {
     if (i !== active) return x;
     const next = typeof v === 'function' ? v(x.cart) : v;
-    return next.length === 0 ? { ...x, cart: next, discounts: [], upsellHidden: [] } : { ...x, cart: next };
+    return next.length === 0 ? { ...x, cart: next, discounts: [] } : { ...x, cart: next };
   }));
   // A fresh check-in replaces the whole ticket set — new visit, new sale.
   const openVisit = (person, g) => {setTickets([{ id: 't1', person, cart: [], paid: false, discounts: [] }]);setActive(0);setGuests(g || []);};
@@ -105,17 +105,7 @@ window.RegisterScreen = function RegisterScreen() {
   const removeDiscount = (kind) => setDiscount(kind, null);
   // Emptying the cart empties the discounts with it — a $5 discount sitting on
   // an empty ticket is the next sale's mispriced surprise.
-  const clearTicket = () => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: [], discounts: [], upsellHidden: [] } : x));
-
-  // ── Dismissed suggestions ───────────────────────────────────────────────
-  // A "no thanks" is worth exactly one sale. It lives on the TICKET, next to
-  // the discounts, for the same reason they do: CartPane never unmounts between
-  // sales, so a dismissal held in its own state would follow the associate to
-  // the next customer — who never said no to anything. Every path that empties
-  // a ticket (clear, tender, party tender, last line removed) empties this too.
-  const upsellHidden = (t && t.upsellHidden) || [];
-  const dismissUpsell = (sku) => setTickets((ts) => ts.map((x, i) => i === active ?
-  { ...x, upsellHidden: (x.upsellHidden || []).includes(sku) ? x.upsellHidden : [...x.upsellHidden || [], sku] } : x));
+  const clearTicket = () => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: [], discounts: [] } : x));
 
   // Keep the floating switcher / tour launcher off the TENDER button.
   React.useEffect(() => {
@@ -412,7 +402,7 @@ window.RegisterScreen = function RegisterScreen() {
   // live TENDER button, and a second press writes a second real order for money
   // nobody collected — reproduced once as ORD-00240.
   const closeTicket = (idx, paidTotal) => setTickets((ts) => ts.map((x, i) =>
-  i === idx ? { ...x, paid: true, paidTotal, cart: [], discounts: [], upsellHidden: [] } : x));
+  i === idx ? { ...x, paid: true, paidTotal, cart: [], discounts: [] } : x));
 
   // Tender closes the ACTIVE ticket only, then lands on the next unpaid one.
   const onPaid = (sale) => {
@@ -454,7 +444,7 @@ window.RegisterScreen = function RegisterScreen() {
       if (rec) {ids.push(rec.id);paidTotals[e.i] = rec.total;}
     }
     setTickets((ts) => ts.map((x, i) => paidTotals[i] == null ? x :
-    { ...x, paid: true, paidTotal: paidTotals[i], cart: [], discounts: [], upsellHidden: [] }));
+    { ...x, paid: true, paidTotal: paidTotals[i], cart: [], discounts: [] }));
     flash(`One tender · ${ids.length} ticket${ids.length > 1 ? 's' : ''} paid · ${ids.join(', ')}`);
   };
 
@@ -768,7 +758,6 @@ window.RegisterScreen = function RegisterScreen() {
           setQty={setQty} remove={remove} onClearCart={clearTicket} customer={customer} cartSkus={cart.map((c) => c.sku)}
           discounts={discounts} onApplyDiscount={applyDiscount} onRemoveDiscount={removeDiscount}
           onAdd={(p) => {add(p);flash(p.name + ' added');}}
-          upsellHidden={upsellHidden} onDismissUpsell={dismissUpsell}
           tabs={multi ? <TicketTabs tickets={tickets} active={active} onPick={setActive} onDrop={dropTicket} totalOf={totalOf} /> : null}
           footNote={multi ? <PartyTotalBar P={P} tickets={tickets} partyTotal={partyTotal} onPayAll={() => openPay('party')} /> : null}
           discMode={discMode} setDiscMode={setDiscMode} tab={tab} setTab={setTab} onPay={() => openPay('ticket')} />
