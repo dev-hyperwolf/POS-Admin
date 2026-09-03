@@ -96,6 +96,11 @@ IS the handoff.
 
 ## Design-system rules (from the UI audit)
 
+These 7 rules are enforced project-wide — every app in the table above, not just the POS — by
+`.claude/agents/ui-ux-reviewer.md`, which also carries the broader UX/HCI law set (Fitts's, Hick's,
+Miller's, Jakob's, Gestalt principles, Postel's, Pareto, etc.) translated into checks against this
+repo's actual tokens/atoms. Run it on any new or changed screen before calling UI work done.
+
 1. **One accent per view.** Solid `accent` = the single most important action on screen. Selection is
    ink-filled, metadata is neutral, informational washes are `highlightSoft`. Loyalty keeps yellow.
 2. **Never write a colour literal.** `P.accentText` is the only gold; `accentHover`/`accentActive`
@@ -133,3 +138,6 @@ and there is no build step. Verify those by loading the page.
 4. New versions of a design go in as a toggle/tab inside the existing app, not as a new root file.
 5. Every app renders the shared rail and appears in it. If you add an app, it goes in
    `shared/app-nav.js`, `shared/app-switcher.js` and the hub — all three, same turn.
+6. UI/UX review is repo-wide, not POS-only. Any new or changed screen in any app runs through
+   `.claude/agents/ui-ux-reviewer.md` — logic bugs still go through code review, this is the
+   design/UX pass.
