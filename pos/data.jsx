@@ -562,6 +562,72 @@ function creditWallet(id, amount, reason) {
   return { member: m, amount: +amt.toFixed(2), reason: reason || 'Manual credit' };
 }
 
+// ── THE REAL BACKEND, ALONGSIDE THE MOCK — Bind Gate, Part 2 ────────────────
+//
+// EVERY CHECK-IN CREATED BELOW USED TO STOP AT THE ARRAY ABOVE. CHECKINS is a
+// frontend-only mock, and shared/hw-live-checkin.js's poll REPLACES its
+// contents wholesale off GET /api/checkin/board on a live page — so a walk-in
+// checked in through this form rendered for exactly one poll cycle and then
+// vanished, because nothing had told the wmdemo backend a check-in had
+// happened at all. Confirmed against real code: pos/screen-register.jsx's
+// CustomerSearch (screen-register.jsx:1244) is now the ONLY check-in entry
+// point (commits c292672 / 02d525b) and every path through it — a fresh
+// walk-in from pos/checkin.jsx AND a search-and-select of an existing member
+// — ends here, in addCheckIn, and went no further than this array.
+//
+// wmdemo/checkin_api.create_checkin_resolved (POST /api/checkin/walkin) is
+// the fix on that side: it runs the SAME 5-tier identity ladder every
+// order-bound path already runs BEFORE writing, so a returning customer who
+// walks in without a Weedmaps order is FOUND in hw_identities and LINKED,
+// never duplicated by a blind insert.
+//
+// FIRE-AND-FORGET, DELIBERATELY. Every caller of addCheckIn — screen-
+// register.jsx, screen-orders.jsx, screen-stubs.jsx, none of them touched by
+// this change — reads its RETURN VALUE SYNCHRONOUSLY to open the visit and
+// flash a toast. Making this call block that return would mean rewriting
+// every one of those call sites to await a promise, which is out of scope
+// here and risks the one thing this change was explicitly told not to break:
+// the existing check-in UI's rendering of the waiting list. So CHECKINS stays
+// exactly what it always was — this tab's own synchronous render source —
+// and this is purely an ADDITIONAL, best-effort attempt to also tell the real
+// backend. A failure here (offline demo, a static file server with no
+// backend at this origin, a network hiccup) is silent by design, the same
+// non-blocking shape every other live-write screen already uses via
+// window.HW_LIVE.post (pos/screen-identity-binding.jsx's post(), for one).
+function _hwLiveBase() {
+  try { if (window.HW_LIVE && window.HW_LIVE.base) return window.HW_LIVE.base; } catch (e) {}
+  try { return window.location.origin; } catch (e) { return ''; }
+}
+
+function postWalkInCheckIn(customer) {
+  try {
+    if (!customer) return;
+    const phone = customer.phone && customer.phone !== '—' ? customer.phone : '';
+    const body = {
+      first_name: customer.first_name || '',
+      last_name: customer.last_name || '',
+      dob: customer.dob || '',
+      phone: phone,
+    };
+    // A REAL HASH ONLY, NEVER A DOCUMENT NUMBER OR A MASKED FRAGMENT. Same
+    // ruling shared/hw-live-checkin.js's own create() makes: this file has no
+    // hasher (grepped — POS-Admin computes none), checkin_api's route refuses
+    // a raw document value outright, and IdScanPanel's masked '••••4821' is a
+    // fragment of a number, not a hash of one. So this forwards a hash only
+    // when something upstream genuinely computed one, and invents nothing.
+    const gov = customer.doc && customer.doc.gov_id_hash;
+    if (gov) body.gov_id_hash = gov;
+    const req = (window.HW_LIVE && typeof window.HW_LIVE.post === 'function')
+      ? window.HW_LIVE.post('/api/checkin/walkin', body)
+      : fetch(_hwLiveBase() + '/api/checkin/walkin', {
+          method: 'POST', credentials: 'omit', cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+    if (req && typeof req.catch === 'function') req.catch(() => {});
+  } catch (e) { /* best-effort only — the mock row is already recorded */ }
+}
+
 // The check-in IS the record. An unknown customer becomes a real member first —
 // a person waiting in the room who exists nowhere is not a check-in.
 function addCheckIn(p) {
@@ -603,6 +669,12 @@ function addCheckIn(p) {
     visit: (member.visits || 0) + 1, guests: (p.guests || []).slice(),
   };
   CHECKINS.push(rec);
+  // AND THE BACKEND HAS TO HEAR ABOUT IT TOO — see postWalkInCheckIn above
+  // for what this does and does not do. `c`, not `member`: the identity
+  // ladder fingerprints on what THIS ARRIVAL just typed or scanned, and a
+  // stale phone already on the local member record must not paper over a
+  // correction made at the counter this second.
+  postWalkInCheckIn(c);
   // THE SCAN HAS TO REACH THE LEDGER.
   // A counter scan captured a document and then the record was created without
   // it, so the person who had just handed over a physical ID looked
