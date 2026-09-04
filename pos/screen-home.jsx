@@ -4,6 +4,13 @@ window.HomeScreen = function HomeScreen({ onNav }) {
   const P = useP();
   const HW = window.HW;const fmt = HW.fmt;
   const S = HW.STATS;const a = S.associate;
+  // Real register/drawer state — window.POS (pos/store.jsx) is the one source
+  // of truth. openRegister()/closeRegister() (driven from the drawer controls,
+  // pos/drawer.jsx) write session.open there; this card must read it, not
+  // assume it.
+  const POS = window.usePOS();
+  const sess = POS.getSession();
+  const since = (ms) => { try { return new Date(ms).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); } catch { return ''; } };
   const hr = new Date().getHours();
   const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -138,11 +145,17 @@ window.HomeScreen = function HomeScreen({ onNav }) {
             <CardHead icon="wallet" title="Register" />
             <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 99, background: P.good }} />
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Drawer open</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>since 9:02 AM</span>
+                <span style={{ width: 8, height: 8, borderRadius: 99, background: sess.open ? P.good : P.inkMute }} />
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{sess.open ? 'Drawer open' : 'Drawer closed'}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>
+                  {sess.open && sess.openedAt ? 'since ' + since(sess.openedAt) : (!sess.open && sess.closedAt ? 'closed ' + since(sess.closedAt) : '')}
+                </span>
               </div>
-              <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.5 }}>You're signed in on <b style={{ color: P.ink2 }}>Register {S.registerId || '101'}</b>. Cash counts and close-out live in the drawer controls up top.</div>
+              <div style={{ fontSize: 12.5, color: P.inkDim, lineHeight: 1.5 }}>
+                {sess.open
+                  ? <>You're signed in on <b style={{ color: P.ink2 }}>Register {S.registerId || '101'}</b>. Cash counts and close-out live in the drawer controls up top.</>
+                  : <>No register is open on <b style={{ color: P.ink2 }}>Register {S.registerId || '101'}</b> right now. Open one from the drawer controls up top before ringing a sale.</>}
+              </div>
               <PBtn variant="secondary" size="md" icon="register" full onClick={() => onNav('register')}>Go to register</PBtn>
             </div>
           </Card>
