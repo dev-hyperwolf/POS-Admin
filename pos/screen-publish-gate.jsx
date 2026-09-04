@@ -369,7 +369,7 @@
         <div style={{ display: 'flex', alignItems: 'stretch', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
           {box('Our inventory locations', 'a safe, a driver’s kit, a counter — a real stock ledger', 'us')}
           {arrow('channel_map')}
-          {box('The binding', 'one location ↔ one menu channel. Staged until armed.', 'link')}
+          {box('The binding', 'one or more locations ↔ one menu channel. Staged until armed.', 'link')}
           {arrow('when armed')}
           {box('One Weedmaps menu channel', 'pickup · express · scheduled', 'them')}
           {arrow('publishes')}
@@ -524,9 +524,25 @@
   }
 
   // ── the bound-locations block ────────────────────────────────────────────
+  //
+  // MULTI-LOCATION BINDING, IN ONE ACTION.
+  // channel_map's own primary key is (wm_menu_id, channel, location_id) —
+  // nothing in the schema or in bind_channel()/unbind_channel() caps a
+  // channel at one location; each already accepts one location_id per call
+  // and INSERTs OR IGNOREs it. The one-at-a-time picker below was the actual
+  // limitation: a single <select> plus a single Bind button, so mapping five
+  // real locations to a channel took five separate reads-and-clicks with no
+  // way to select more than one before pressing Bind. This is the UI half of
+  // fixing that — a checklist that submits every checked location as ONE
+  // action. It still calls POST /api/inventory/bind once PER location under
+  // the hood (there is no bulk-bind route), sequentially, because the second
+  // call must see the first one's effect: bind_channel() forces the switch
+  // off on the FIRST bind to an unbound channel, and two binds racing in
+  // parallel could both read "not yet bound" and both try to flip it.
   function BoundLocations({ g, channel, locIndex, locHttp, canEdit, busy, onBind, onUnbind, onDisarm }) {
     const P = useP();
-    const [typed, setTyped] = React.useState('');
+    const [typed, setTyped] = React.useState('');          // no-picker fallback only
+    const [checked, setChecked] = React.useState({});       // picker mode: id -> true
     const bindings = g.bindings || [];
     const activeSet = {};
     (g.active_bindings || []).forEach(function (id) { activeSet[id] = true; });
@@ -534,6 +550,28 @@
     const options = havePicker
       ? locHttp.body.filter(function (l) { return bindings.indexOf(l.id) < 0; })
       : [];
+    const checkedIds = Object.keys(checked).filter(function (id) { return checked[id]; })
+      .filter(function (id) { return options.some(function (l) { return l.id === id; }); });
+
+    function toggle(id) {
+      setChecked(function (s) {
+        const n = Object.assign({}, s);
+        if (n[id]) { delete n[id]; } else { n[id] = true; }
+        return n;
+      });
+    }
+    function selectAll() {
+      const n = {};
+      options.forEach(function (l) { n[l.id] = true; });
+      setChecked(n);
+    }
+    function clearAll() { setChecked({}); }
+
+    // Without a picker there is nothing to check off, so the fallback field
+    // still accepts several ids at once — comma or whitespace separated —
+    // rather than forcing the degraded case back down to one at a time too.
+    const typedIds = typed.split(/[,\s]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    const pendingIds = havePicker ? checkedIds : typedIds;
 
     return (
       <div style={{ marginTop: 14 }}>
@@ -576,28 +614,65 @@
             is live, plus the affordance that actually unblocks it. An operator
             must not discover a refusal by hitting it — though the 409 handler
             still exists, for the case where state moved underneath. */}
+        {havePicker && options.length > 0 &&
+          <div data-hw-bind-picker="1" style={{ marginTop: 10, border: '1px solid ' + P.hairline2,
+            borderRadius: P.r10, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 11px',
+              background: P.surface3, borderBottom: '1px solid ' + P.hairline2 }}>
+              <span style={{ fontSize: P.type.meta, color: P.inkDim }}>
+                Check every location to bind — one action binds all of them.
+              </span>
+              <span style={{ flex: 1 }} />
+              <PBtn size="xs" disabled={!canEdit || busy || !canWrite()} onClick={selectAll}>Select all</PBtn>
+              <PBtn size="xs" disabled={!canEdit || busy || !checkedIds.length} onClick={clearAll}>Clear</PBtn>
+            </div>
+            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+              {options.map(function (l) {
+                const id = 'hw-bind-' + channel + '-' + l.id;
+                return (
+                  <label key={l.id} htmlFor={id} data-hw-bind-option={l.id}
+                    style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 11px',
+                      borderTop: '1px solid ' + P.hairline,
+                      cursor: (!canEdit || busy || !canWrite()) ? 'default' : 'pointer' }}>
+                    <input type="checkbox" id={id} checked={!!checked[l.id]}
+                      disabled={!canEdit || busy || !canWrite()}
+                      onChange={function () { toggle(l.id); }}
+                      // Same escape hatch pos/tokens' Field gives tests (see
+                      // publish-gate-states.test.mjs): a checkbox click DOES
+                      // reach onChange in this jsdom/React combination, but a
+                      // ref-exposed handler keeps this toggle testable even if
+                      // that ever stops being true, the same way Field's does.
+                      ref={function (n) { if (n) { n.__onToggle = function () { toggle(l.id); }; } }} />
+                    <span style={{ fontFamily: P.fontMono, fontSize: P.type.body, color: P.ink }}>{l.id}</span>
+                    <span style={{ fontSize: P.type.meta, color: P.inkDim }}>
+                      {l.name} ({l.kind}{l.active ? '' : ', inactive'})
+                    </span>
+                  </label>);
+              })}
+            </div>
+          </div>}
+        {havePicker && options.length === 0 &&
+          <div style={{ fontSize: P.type.meta, color: P.inkMute, marginTop: 10 }}>
+            Every known inventory location is already bound to this channel.
+          </div>}
+        {!havePicker &&
+          <div style={{ marginTop: 10 }}>
+            <Field size="sm" mono placeholder="location id, or several: id, id, id" value={typed}
+              onChange={function (e) { setTyped(e.target.value); }}
+              disabled={!canEdit || busy || !canWrite()} />
+          </div>}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 220px', minWidth: 200 }}>
-            {havePicker
-              ? <select value={typed} disabled={!canEdit || busy || !canWrite()}
-                  onChange={function (e) { setTyped(e.target.value); }}
-                  style={{ width: '100%', minHeight: 34, padding: '0 10px', background: P.field,
-                    border: '1px solid ' + P.fieldBorder, borderRadius: P.r8, color: P.ink,
-                    fontFamily: P.fontMono, fontSize: P.type.body }}>
-                  <option value="">Bind a location…</option>
-                  {options.map(function (l) {
-                    return <option key={l.id} value={l.id}>
-                      {l.id} — {l.name} ({l.kind}{l.active ? '' : ', inactive'})
-                    </option>;
-                  })}
-                </select>
-              : <Field size="sm" mono placeholder="location id" value={typed}
-                  onChange={function (e) { setTyped(e.target.value); }}
-                  disabled={!canEdit || busy || !canWrite()} />}
-          </div>
           <PBtn size="sm" variant="primary" busy={busy}
-            disabled={!canEdit || busy || !typed || !canWrite()}
-            onClick={function () { onBind(typed); setTyped(''); }}>Bind</PBtn>
+            disabled={!canEdit || busy || !pendingIds.length || !canWrite()}
+            title={pendingIds.length > 1 ? pendingIds.length + ' calls to POST /api/inventory/bind, one per location'
+                                          : 'POST /api/inventory/bind'}
+            onClick={function () {
+              onBind(pendingIds);
+              setChecked({}); setTyped('');
+            }}>
+            {pendingIds.length > 1 ? 'Bind ' + pendingIds.length + ' locations' : 'Bind'}
+          </PBtn>
           {!canEdit &&
             <PBtn size="sm" busy={busy} disabled={busy || !canWrite()} onClick={onDisarm}>Disarm to edit</PBtn>}
         </div>
@@ -611,7 +686,8 @@
           <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 6 }}>
             There is no picker because <Code>GET /api/inventory/locations</Code> answered
             {' '}<strong>{locHttp ? (locHttp.code === 0 ? 'no response' : 'HTTP ' + locHttp.code) : 'nothing yet'}</strong>.
-            {' '}Type the id exactly; a wrong one refuses with <Code>unknown_location</Code>.
+            {' '}Type the id exactly, or several separated by commas or spaces; an unknown one refuses with
+            {' '}<Code>unknown_location</Code> without touching the ones that are real.
           </div>}
       </div>);
   }
@@ -712,17 +788,50 @@
           padding: '9px 11px', fontFamily: P.fontMono, fontSize: P.type.meta, color: P.ink2, lineHeight: 1.55,
           whiteSpace: 'pre-wrap' }}>{ref_.sentence}</div>
 
+        {/* ONE ACTION BOUND SEVERAL LOCATIONS AND NOT ALL OF THEM TOOK. A
+            partial multi-bind must never render as either extreme — "it
+            worked" (some are still unbound) or "it failed" (some ARE now
+            bound). Every id this action touched is named, on the side it
+            actually landed on. */}
+        {ref_.multiBind &&
+          <div data-hw-multibind-result="1" style={{ marginTop: 10, fontSize: P.type.meta, color: P.ink2, lineHeight: 1.6 }}>
+            <div>
+              This one action tried to bind <strong>{ref_.multiBind.attempted.length}</strong> location
+              {ref_.multiBind.attempted.length === 1 ? '' : 's'}.
+            </div>
+            {ref_.multiBind.succeeded.length > 0 &&
+              <div style={{ marginTop: 4 }}>
+                <strong style={{ color: P.good }}>Bound:</strong>{' '}
+                <span style={{ fontFamily: P.fontMono }}>{ref_.multiBind.succeeded.join(', ')}</span>
+              </div>}
+            <div style={{ marginTop: 4 }}>
+              <strong style={{ color: toneColor(P, 'bad') }}>Not bound:</strong>{' '}
+              {ref_.multiBind.failed.map(function (f, i) {
+                return <span key={f.id} style={{ fontFamily: P.fontMono }}>
+                  {i > 0 ? ', ' : ''}{f.id}<span style={{ fontFamily: P.fontSans, color: P.inkDim }}> ({f.sentence})</span>
+                </span>;
+              })}
+            </div>
+            {ref_.multiBind.skipped.length > 0 &&
+              <div style={{ marginTop: 4 }}>
+                <strong style={{ color: P.inkDim }}>Not attempted</strong> — stopped after
+                {' '}<span style={{ fontFamily: P.fontMono }}>{ref_.multiBind.failed[0].id}</span> refused
+                {' '}<Code>channel_enforced</Code>, which every remaining id would refuse for the identical reason:{' '}
+                <span style={{ fontFamily: P.fontMono }}>{ref_.multiBind.skipped.join(', ')}</span>.
+              </div>}
+          </div>}
+
         {code === 'confirm_mismatch' &&
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.55 }}>
               This is the guard working. <Code>arm_channel</Code> recomputes the preview at the instant you press Arm, so
-              the number you typed was measured against a screen that had already moved.
+              the number this screen reviewed and confirmed was measured against a screen that had already moved again.
             </div>
             <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'auto auto 1fr', gap: '4px 14px',
               alignItems: 'baseline', fontSize: P.type.meta }}>
               <span style={{ color: P.inkDim }}>you confirmed</span>
               <span style={{ fontFamily: P.fontMono, fontWeight: 800, color: P.ink }}>{ref_.confirmed}</span>
-              <span style={{ color: P.inkMute }}>typed at {hhmmss(ref_.typedAt)}</span>
+              <span style={{ color: P.inkMute }}>reviewed and confirmed at {hhmmss(ref_.typedAt)}</span>
               {ref_.corrected != null &&
                 <React.Fragment>
                   <span style={{ color: P.inkDim }}>blocked now</span>
@@ -788,11 +897,58 @@
   }
 
   // ── the arm flow: preview, read, confirm ─────────────────────────────────
-  function ArmFlow({ g, channel, preview, previewBusy, armBusy, onPreview, onArm }) {
+  // ── Review -> Confirm, not "type the number back" ────────────────────────
+  //
+  // REPLACED 2026-09-04, on the owner's ask ("we already asked for this on the
+  // Category Mapper tonight — do the same thing here"). The pattern is copied
+  // from pos/screen-category-map.jsx's PreviewPanel (commit c0373ee,
+  // 2026-09-03), which the owner approved for exactly this complaint: typing a
+  // number back never verified freshness, it only verified the operator could
+  // read a digit off the screen and copy it a few inches. The number that
+  // matters is not what loaded this panel — it is what is true RIGHT NOW,
+  // asked twice: once when Review is pressed, once more when Confirm is.
+  //
+  // ADAPTED, NOT COPIED VERBATIM: category-map's PreviewPanel has no separate
+  // "the panel already loaded a preview" state to reconcile with a fresh
+  // Review click, because it always fetches on open. This screen already
+  // requires a look at the FULL preview (KPIs, the blocked-sku lists, the
+  // publishable table) before arming is even offered — that gate stays
+  // (`if (!preview)` below, unchanged). Review/Confirm below is the second,
+  // independent gate on TOP of that: it re-asks the same preview endpoint,
+  // live, via `onReview` — deliberately a SEPARATE fetch from the one that
+  // populated the KPIs above (parented by `onPreview`/`preview`), the same
+  // separation BindingEditor's `fetchLivePreview()` keeps from its own mount
+  // effect. Pressing Review does not silently refresh the lists above it;
+  // only the explicit "Re-read" button does that.
+  //
+  // `phase`: 'idle' -> 'reviewed' -> 'stale'.
+  //   idle      no live count has been locked in yet this preview.
+  //   reviewed  `reviewedBlocked` is what Review just measured, live. Confirm
+  //             re-measures ONE more time before calling onArm at all.
+  //   stale     Confirm's re-measurement disagreed with what Review locked in
+  //             — the sku universe moved in between. This is a state, not an
+  //             error: it asks for one more look, never a silent arm against
+  //             a number that stopped being true.
+  //
+  // The server's own recompute-at-write-time refusal (`confirm_mismatch`,
+  // rendered by RefusalPanel with its own warn tone) stays underneath this as
+  // the backstop for the one race this client-side check cannot close: the
+  // universe moving again in the gap between Confirm's check succeeding and
+  // the POST actually landing.
+  function ArmFlow({ g, channel, preview, previewBusy, armBusy, onPreview, onReview, onArm }) {
     const P = useP();
-    const [typed, setTyped] = React.useState('');
+    const [phase, setPhase] = React.useState('idle');
+    const [reviewedBlocked, setReviewedBlocked] = React.useState(null);
+    const [liveBlocked, setLiveBlocked] = React.useState(null);
+    const [checking, setChecking] = React.useState(false);
 
-    React.useEffect(function () { setTyped(''); }, [preview && preview.at, channel]);
+    // A fresh preview — the first read, or the explicit "Re-read" above — is a
+    // NEW measurement, so any lock the operator was holding is a claim about a
+    // world that may no longer exist. Same reset PreviewPanel does when its
+    // incoming preview prop changes shape.
+    React.useEffect(function () {
+      setPhase('idle'); setReviewedBlocked(null); setLiveBlocked(null); setChecking(false);
+    }, [preview && preview.at, channel]);
 
     if (!preview) {
       return (
@@ -822,8 +978,36 @@
       else { groups.other.push(r); }
     });
 
-    const typedInt = /^\d+$/.test(typed.trim()) ? parseInt(typed.trim(), 10) : null;
-    const armable = typedInt != null && typedInt === blocked;
+    /** "Review": ask the live question fresh — the same preview endpoint,
+     *  called again right now rather than trusting whatever loaded this
+     *  panel — and lock the answer in. */
+    function doReview() {
+      setChecking(true);
+      Promise.resolve(onReview()).then(function (h) {
+        setChecking(false);
+        const fresh = (h && h.ok && h.body && typeof h.body.blocked === 'number') ? h.body.blocked : blocked;
+        setReviewedBlocked(fresh);
+        setPhase('reviewed');
+      });
+    }
+
+    /** "Confirm": ask ONE more time before calling onArm at all. If the sku
+     *  universe moved since Review, this is where it shows — as a stale state
+     *  that asks for one more look, never as a silent arm of a number that
+     *  stopped being true. */
+    function doConfirm() {
+      setChecking(true);
+      Promise.resolve(onReview()).then(function (h) {
+        setChecking(false);
+        const fresh = (h && h.ok && h.body && typeof h.body.blocked === 'number') ? h.body.blocked : null;
+        if (fresh != null && fresh === reviewedBlocked) {
+          onArm(reviewedBlocked);
+        } else {
+          setLiveBlocked(fresh);
+          setPhase('stale');
+        }
+      });
+    }
 
     return (
       <div style={{ marginTop: 14 }}>
@@ -907,38 +1091,71 @@
             </div>
           </details>}
 
-        {/* Step 3 — confirm and arm. The field is NEVER pre-filled. */}
+        {/* Step 3 — Review, then Confirm. NO NUMBER TO TYPE: see the block
+            comment above ArmFlow for why, and screen-category-map.jsx's
+            PreviewPanel (commit c0373ee) for the pattern this copies. */}
         <div style={{ marginTop: 14, padding: '12px 13px', border: '1px solid ' + P.hairline2,
           background: P.surface2, borderRadius: P.r10 }}>
-          <div style={{ fontSize: P.type.body, color: P.ink, fontWeight: 600 }}>
-            Type the number of SKUs that will stop publishing:
-            {' '}<span style={{ fontFamily: P.fontMono, fontWeight: 800 }}>{blocked}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 9, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ width: 120 }}>
-              <Field size="sm" mono placeholder="" value={typed} inputMode="numeric"
-                onChange={function (e) { setTyped(e.target.value); }} />
-            </div>
-            <PBtn size="sm" variant="primary" busy={armBusy}
-              disabled={!armable || armBusy || !canWrite()}
-              title={armable ? 'POST /api/inventory/gate/arm' : 'the typed number must equal the blocked count above'}
-              onClick={function () { onArm(typedInt); }}>Arm this channel</PBtn>
-            {typed && !armable &&
-              <span style={{ fontSize: P.type.micro, color: P.inkDim }}>
-                {typedInt == null ? 'that is not a whole number' : 'that is not the number above'}
-              </span>}
-          </div>
-          <window.DevNote id="gate-confirm-guard" tone="info" title="Why Arm asks you to type a number you can see">
+          {phase === 'idle' &&
+            <div>
+              <PBtn size="sm" busy={checking} disabled={checking} onClick={doReview}>
+                {checking ? 'Reviewing…' : 'Review this count'}
+              </PBtn>
+              <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>
+                Nothing is armed until you review the live count and confirm &mdash; the sku universe moves while this
+                screen is open, so a stale review must not be able to confirm itself.
+              </div>
+            </div>}
+
+          {phase === 'reviewed' &&
+            <div>
+              <div style={{ padding: '10px 12px', background: P.surface3, border: '1px solid ' + P.hairline2,
+                borderRadius: P.r10 }}>
+                <span style={{ fontSize: P.type.body, color: P.ink2, lineHeight: 1.5 }}>
+                  <strong style={{ fontFamily: P.fontMono, color: P.ink }}>{reviewedBlocked}</strong> SKU
+                  {reviewedBlocked === 1 ? '' : 's'} reviewed just now &mdash; this is what arming <strong>{channel}</strong>
+                  {' '}would stop publishing.
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 9, flexWrap: 'wrap' }}>
+                <PBtn size="sm" variant="primary" busy={armBusy || checking} disabled={armBusy || checking || !canWrite()}
+                  title="POST /api/inventory/gate/arm"
+                  onClick={doConfirm}>
+                  {armBusy ? 'Arming…' : (checking ? 'Checking…' : 'Confirm and arm this channel')}
+                </PBtn>
+              </div>
+            </div>}
+
+          {phase === 'stale' &&
+            <div data-hw-arm-stale="1" style={{ padding: '10px 12px', background: P.warnSoft,
+              border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+              <div style={{ fontSize: P.type.meta, color: P.ink, lineHeight: 1.5 }}>
+                Count changed to <strong>{liveBlocked == null ? 'unknown' : liveBlocked}</strong> since you reviewed
+                {' '}&mdash; <strong>{reviewedBlocked}</strong> is no longer current. Review again before confirming.
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 9, flexWrap: 'wrap' }}>
+                <PBtn size="sm" variant="primary" disabled>Confirm and arm this channel</PBtn>
+                <PBtn size="sm" busy={checking} disabled={checking} onClick={doReview}>Review again</PBtn>
+              </div>
+            </div>}
+
+          <window.DevNote id="gate-confirm-guard" tone="info" title="Why Arm asks you to review, not retype">
             <window.DevNoteP>
-              Two different guards, doing two different jobs. This screen refusing an unmatched number checks that
-              <strong> you read the screen</strong>. The server recomputing the preview at the moment you press Arm checks
-              that <strong>the screen was still true</strong> &mdash; inventory moves while a person reads.
+              This used to ask you to type the blocked count back. Two guards were doing two different jobs under
+              that one field: retyping checked that <strong>you read the screen</strong>; the server recomputing the
+              preview at the instant you pressed Arm checked that <strong>the screen was still true</strong>.
+              Retyping never actually verified freshness &mdash; a stale memorised digit could still match a NEW,
+              also-stale count by coincidence. Review and Confirm each re-ask the server, live, so the mechanism now
+              verifies the thing it always claimed to. Same pattern, same reason, as the Category Mapper's
+              Review/Confirm (commit c0373ee) &mdash; the owner asked for one mechanism across the app, not two.
             </window.DevNoteP>
             <window.DevNoteP>
               Verified: the sku universe on one scratch instance went from 10 to 11 in twenty minutes, with nobody
-              touching the gate. The server&rsquo;s refusal is the one that matters and this screen cannot pre-empt it,
-              which is why a <window.DevNoteMono>confirm_mismatch</window.DevNoteMono> is rendered here as a designed
-              outcome rather than an error.
+              touching the gate. The server&rsquo;s own recompute-at-write-time refusal
+              (<window.DevNoteMono>confirm_mismatch</window.DevNoteMono>) is still the backstop underneath this for
+              the one race this screen&rsquo;s own check cannot close &mdash; the count moving again in the gap between
+              Confirm succeeding and the POST landing &mdash; which is why it is still rendered here as a designed
+              outcome, not an error.
             </window.DevNoteP>
           </window.DevNote>
         </div>
@@ -1112,7 +1329,7 @@
           Measured {hhmmss(live.at)} over <Code>GET /api/inventory/gate/preview</Code>, {b.skus_examined} sku
           {b.skus_examined === 1 ? '' : 's'} examined.
           {' '}<strong>This is a live read of what the armed gate is blocking</strong> &mdash; it is not the arm
-          confirmation, which is typed against its own explicit preview and never against this number.
+          confirmation, which is reviewed and confirmed against its own explicit preview and never against this number.
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 9,
           opacity: liveBusy ? 0.55 : 1 }}>
@@ -1145,7 +1362,7 @@
   // ── one channel card ─────────────────────────────────────────────────────
   function ChannelCard({ channel, gh, g, planMode, locIndex, locHttp, preview, previewBusy,
                         armBusy, busy, refusal, armed, live, liveBusy, onMeasure,
-                        onPreview, onArm, onDisarm, onBind, onUnbind, onDismiss, onRepreview,
+                        onPreview, onReview, onArm, onDisarm, onBind, onUnbind, onDismiss, onRepreview,
                         onScrollLocations, onReloadChannel }) {
     const P = useP();
 
@@ -1215,7 +1432,7 @@
               onScrollLocations={onScrollLocations} />
           : s.canArm
             ? <ArmFlow g={g} channel={channel} preview={preview} previewBusy={previewBusy}
-                armBusy={armBusy} onPreview={onPreview} onArm={onArm} />
+                armBusy={armBusy} onPreview={onPreview} onReview={onReview} onArm={onArm} />
             : s.canEdit === false
               ? <div style={{ fontSize: P.type.meta, color: P.inkDim, marginTop: 12, lineHeight: 1.55 }}>
                   <strong>Disarm keeps every binding.</strong> Publishing returns to catalog stock and the product price
@@ -1509,15 +1726,60 @@
       }
     }
 
-    function doBind(ch, location) {
+    // ONE ACTION, N CALLS. There is no bulk-bind route — bind_channel() takes
+    // one location_id per call — so binding several locations is still N
+    // POSTs, run SEQUENTIALLY rather than in parallel: bind_channel() forces
+    // the gate's switch off on the first bind to a channel with no existing
+    // binding, and two binds racing each other could both observe "nothing
+    // bound yet" and both try to do that. Sequential also means a systemic
+    // refusal (the channel is enforced) is discovered once and stops the
+    // rest, instead of five identical refusals for five identical reasons.
+    // A refusal specific to one id (unknown_location) does NOT stop the
+    // others — it says nothing about whether the rest would also fail.
+    function doBind(ch, locations) {
+      const ids = (Array.isArray(locations) ? locations : [locations])
+        .map(function (s) { return String(s || '').trim(); }).filter(Boolean);
+      if (!ids.length) { return Promise.resolve(null); }
       setBusy(true); setRefusal(null); setArmed(null);
-      return post('/api/inventory/bind', { menu: Number(menu), channel: ch, location: location })
-        .then(function (r) {
-          setBusy(false);
-          if (r.ok) { applyGate(ch, r.body); setPreview(null); return r; }
-          refuse(ch, 'bind', r);
-          return r;
+      const results = [];
+      let stopped = false;
+      let chain = Promise.resolve();
+      ids.forEach(function (id) {
+        chain = chain.then(function () {
+          if (stopped) { return null; }
+          return post('/api/inventory/bind', { menu: Number(menu), channel: ch, location: id })
+            .then(function (r) {
+              results.push({ id: id, r: r });
+              if (r.ok) {
+                applyGate(ch, r.body);
+              } else if ((r.body && r.body.code) === 'channel_enforced') {
+                stopped = true;
+              }
+              return r;
+            });
         });
+      });
+      return chain.then(function () {
+        setBusy(false);
+        const failed = results.filter(function (x) { return !x.r.ok; });
+        const succeeded = results.filter(function (x) { return x.r.ok; }).map(function (x) { return x.id; });
+        if (succeeded.length) { setPreview(null); }
+        if (failed.length) {
+          // Same refusal shape a single bind produces, PLUS which ids this one
+          // action actually touched — a partial multi-bind must never render
+          // as indistinguishable from either "all bound" or "nothing bound".
+          refuse(ch, 'bind', failed[0].r, ids.length > 1
+            ? { multiBind: { attempted: ids, succeeded: succeeded,
+                failed: failed.map(function (x) {
+                  return { id: x.id, sentence: (x.r.body && x.r.body.error) || x.r.error || ('HTTP ' + x.r.code) };
+                }),
+                skipped: ids.filter(function (id) {
+                  return succeeded.indexOf(id) < 0 && failed.every(function (x) { return x.id !== id; });
+                }) } }
+            : null);
+        }
+        return results;
+      });
     }
 
     function doUnbind(ch, location) {
@@ -1543,6 +1805,17 @@
           if (h.ok && h.body) { setPreview({ channel: ch, at: h.at, body: h.body }); }
           return h;
         });
+    }
+
+    // ArmFlow's Review/Confirm gate's own live re-ask. DELIBERATELY separate
+    // from doPreview: it must not touch `preview` or `http.preview`, or
+    // pressing Review would silently refresh the KPI/blocked-list panel above
+    // it too — only the explicit "Re-read" button (doPreview) does that. Same
+    // shape category-map's BindingEditor keeps between its mount-time fetch
+    // and its own fetchLivePreview().
+    function reviewGate(ch) {
+      return getJSON('/api/inventory/gate/preview?menu=' + encodeURIComponent(menu) +
+                     '&channel=' + encodeURIComponent(ch));
     }
 
     // Only ever called for a channel reading state='enforced'. On an unbound
@@ -1732,9 +2005,10 @@
               live={live[ch] || null} liveBusy={!!liveBusy[ch]}
               onMeasure={function () { doMeasure(menu, ch); }}
               onPreview={function () { doPreview(ch); }}
+              onReview={function () { return reviewGate(ch); }}
               onArm={function (n) { doArm(ch, n); }}
               onDisarm={function () { doDisarm(ch); }}
-              onBind={function (id) { doBind(ch, id); }}
+              onBind={function (ids) { doBind(ch, ids); }}
               onUnbind={function (id) { doUnbind(ch, id); }}
               onDismiss={function () { setRefusal(null); }}
               onRepreview={function () { doPreview(ch); }}

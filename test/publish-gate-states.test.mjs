@@ -648,34 +648,45 @@ test('...and on the ONE armable state it still does not promise HTTP 200', async
 // refusal is not reachable by reading, and a refusal nothing renders is a
 // refusal nobody designed.
 
-test('arm is gated on having SEEN a preview — no number to type before then', async () => {
+test('arm is gated on having SEEN a preview — Review/Confirm, not typing a number back', async () => {
   // BEFORE AND AFTER IN ONE TEST, ON PURPOSE. The first half asserts an
   // ABSENCE, and an absence assertion passes for free the day a label is
-  // reworded. The second half presses Preview and demands the same strings
-  // appear, so a rename breaks this test instead of quietly hollowing it out.
+  // reworded. The rest presses Preview then Review and demands the same
+  // strings appear, so a rename breaks this test instead of quietly
+  // hollowing it out. REDESIGNED 2026-09-04 to match ArmFlow's Review/Confirm
+  // gate (ported from screen-category-map.jsx's PreviewPanel, c0373ee) —
+  // there is no numeric field to type into any more.
   const { doc, click } = await mount(routeFor(STAGED, NO_STOCK_ONLY),
     { post: () => ({ ok: false, code: 409, body: {} }) });
 
   const before = card(doc, 'pickup');
   assert.match(before.textContent, /Arm is gated on a preview/);
   assert.match(before.textContent, /Preview what arming would do/);
-  assert.doesNotMatch(before.textContent, /Type the number of SKUs that will stop publishing/);
-  const armBefore = Array.from(before.querySelectorAll('[data-stub="pbtn"]'))
-    .filter((b) => b.textContent.indexOf('Arm this channel') >= 0);
-  assert.equal(armBefore.length, 0, 'an Arm button exists before any preview has been read');
+  assert.doesNotMatch(before.textContent, /Review this count/);
+  const confirmBefore = Array.from(before.querySelectorAll('[data-stub="pbtn"]'))
+    .filter((b) => b.textContent.indexOf('Confirm and arm this channel') >= 0);
+  assert.equal(confirmBefore.length, 0, 'a confirm button exists before any preview has been read');
   assert.equal(before.querySelectorAll('input[data-field-mode="numeric"]').length, 0,
-    'a confirm field exists before any preview has been read');
+    'a numeric confirm field exists at all — this screen no longer asks for one');
 
   await click('Preview what arming would do');
 
-  const after = card(doc, 'pickup');
-  assert.match(after.textContent, /Type the number of SKUs that will stop publishing/);
-  assert.equal(after.querySelectorAll('input[data-field-mode="numeric"]').length, 1);
-  const armAfter = Array.from(after.querySelectorAll('[data-stub="pbtn"]'))
-    .filter((b) => b.textContent.indexOf('Arm this channel') >= 0);
-  assert.equal(armAfter.length, 1, 'the Arm button did not appear after a preview');
-  // ...and it is still DISABLED, because nothing has been typed back yet.
-  assert.equal(armAfter[0].disabled, true, 'Arm is pressable with no confirmation typed');
+  const afterPreview = card(doc, 'pickup');
+  assert.match(afterPreview.textContent, /Review this count/);
+  assert.doesNotMatch(afterPreview.textContent, /reviewed just now/,
+    'the count reads as reviewed before Review has been clicked');
+  const confirmAfterPreview = Array.from(afterPreview.querySelectorAll('[data-stub="pbtn"]'))
+    .filter((b) => b.textContent.indexOf('Confirm and arm this channel') >= 0);
+  assert.equal(confirmAfterPreview.length, 0, 'Confirm is offered before Review has been pressed');
+
+  await click('Review this count');
+
+  const afterReview = card(doc, 'pickup');
+  assert.match(afterReview.textContent, /2 SKUs reviewed just now/);
+  const armAfter = Array.from(afterReview.querySelectorAll('[data-stub="pbtn"]'))
+    .filter((b) => b.textContent.indexOf('Confirm and arm this channel') >= 0);
+  assert.equal(armAfter.length, 1, 'the Confirm button did not appear after Review');
+  assert.equal(armAfter[0].disabled, false, 'Confirm is disabled right after a successful Review');
 });
 
 test('a stale confirmation renders as the guard holding, NOT as an alarm', async () => {
@@ -683,7 +694,7 @@ test('a stale confirmation renders as the guard holding, NOT as an alarm', async
   const SENTENCE = "confirm_blocked=2 does not match the 3 sku(s) this channel cannot publish " +
     "right now (0 with no price, 3 with no stock in corona-safe). Re-read arm_preview() and " +
     "confirm the current number.";
-  const { doc, click, type, posted, confirmBox } = await mount(
+  const { doc, click, posted } = await mount(
     routeFor(STAGED, NO_STOCK_ONLY),
     { post: (p) => {
         assert.equal(p, '/api/inventory/gate/arm');
@@ -695,9 +706,12 @@ test('a stale confirmation renders as the guard holding, NOT as an alarm', async
   const c = card(doc, 'pickup');
   assert.match(c.textContent, /2 SKUs would stop publishing on this channel/);
 
-  // Type the number the screen showed, then press Arm. The server has moved.
-  await type(confirmBox(c), '2');
-  await click('Arm this channel');
+  // Review locks in 2 (this scenario's canned preview never itself changes),
+  // then Confirm re-checks live one more time before the POST — matches, so
+  // it fires. The SERVER still refuses: its own recompute-at-write-time
+  // guard is a race this client-side check cannot close.
+  await click('Review this count');
+  await click('Confirm and arm this channel');
   assert.equal(posted.length, 1, 'Arm did not reach the write path');
   assert.equal(posted[0][1].confirm_blocked, 2);
 
@@ -724,15 +738,14 @@ test('a stale confirmation renders as the guard holding, NOT as an alarm', async
 });
 
 test('every OTHER refusal stays red — the tone split is not a blanket softening', async () => {
-  const { doc, click, type, confirmBox } = await mount(
+  const { doc, click } = await mount(
     routeFor(STAGED, NO_STOCK_ONLY),
     { post: () => ({ ok: false, code: 409,
         body: { error: 'menu 1 / channel pickup is bound only to INACTIVE location(s)',
                 code: 'all_bindings_inactive' } }) });
   await click('Preview what arming would do');
-  const c = card(doc, 'pickup');
-  await type(confirmBox(c), '2');
-  await click('Arm this channel');
+  await click('Review this count');
+  await click('Confirm and arm this channel');
   const panel = card(doc, 'pickup').querySelector('[data-gate-refusal]');
   assert.ok(panel);
   assert.equal(panel.getAttribute('data-gate-refusal'), 'all_bindings_inactive');
