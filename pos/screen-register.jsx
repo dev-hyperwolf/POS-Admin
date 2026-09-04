@@ -27,7 +27,10 @@ window.RegisterScreen = function RegisterScreen() {
   // money off THIS sale, so it has to survive a re-render, follow the ticket the
   // party is on, and be readable by the tender that records the order.
   const [tickets, setTickets] = React.useState(() => pending && pending.customer ?
-    [{ id: 't1', person: pending.customer, cart: [], paid: false, discounts: [] }] :
+    // A reorder hands over real line items (see FullOrderView) — seed the cart
+    // from those instead of opening empty. Every other pending-sale path (check-in
+    // "& start sale") carries no `items`, so it keeps opening empty as before.
+    [{ id: 't1', person: pending.customer, cart: pending.items || [], paid: false, discounts: [] }] :
     [{ id: 't1', person: window.HW.MEMBERS[2],
     // SEEDED FROM WHAT IS ACTUALLY IN THE CATALOGUE, not from two hardcoded skus.
     // 'H480PRO1' and 'F2Q4EN2C' are demo fixtures; this screen reads its products

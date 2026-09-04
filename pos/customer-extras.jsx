@@ -398,6 +398,13 @@ window.FullOrderView = function FullOrderView({ order, m, onClose, onNav }) {
   const P = useP();
   const fmt = window.HW.fmt;
   const o = order;
+  // No screen in this chain (MembersScreen -> MemberDetailPage) threads an
+  // onFlash prop down, and there is no app-wide toast host — every other
+  // simulated-print site (payment.jsx ReceiptActions, sales-panel.jsx
+  // SaleDetail) owns its own local toast the same way. Matching that here
+  // rather than inventing new prop-drilling for a single message.
+  const [toast, setToast] = React.useState(null);
+  const flash = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2200); };
   // ══ A RECEIPT MAY NOT INVENT THE BASKET IT IS A RECEIPT FOR ════════════════
   //
   // 🔴 `h = (o.id + m.id).charCodeSum` produced every line on this receipt:
@@ -483,9 +490,26 @@ window.FullOrderView = function FullOrderView({ order, m, onClose, onNav }) {
           <div style={{ marginTop: 6, fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{tender ? 'Paid by ' + String(tender).toLowerCase() : 'Tender not recorded'}</div>
         </div>
       </div>
+      {toast && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px 0', fontSize: 11.5, fontWeight: 600, color: P.good }}><Icon name="check-circle" size={13} stroke={2} />{toast}</div>}
       <div style={{ display: 'flex', gap: 9, padding: '13px 20px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
-        <PBtn variant="secondary" size="md" icon="printer">Reprint receipt</PBtn>
-        <PBtn variant="secondary" size="md" icon="refresh">Reorder</PBtn>
+        {/* No real printer integration exists anywhere in this app — every
+            "reprint" in the codebase (payment.jsx ReceiptActions, sales-panel.jsx
+            SaleDetail) is this same honest simulated flash, naming the real
+            order id. Not a new fake printer API. */}
+        <PBtn variant="secondary" size="md" icon="printer" onClick={() => flash(`Receipt ${o.id} sent to the printer`)}>Reprint receipt</PBtn>
+        {/* Reorder can only seed a real cart from real line items — see the
+            "A RECEIPT MAY NOT INVENT THE BASKET" note above `lines`. Every order
+            reached from member order history currently carries none (realHist /
+            memberHistory never set `.lines`), so this stays disabled rather than
+            starting a sale on invented products; it activates the moment an order
+            does carry real lines. */}
+        <PBtn variant="secondary" size="md" icon="refresh" disabled={!lines || !lines.length}
+        title={lines && lines.length ? undefined : 'No line items recorded for this order'}
+        onClick={() => {
+          window.HW.startSaleFor(m, [], lines.map((l) => ({ sku: l.p.sku, qty: l.qty, disc: 0 })));
+          if (onNav) onNav('register');
+          onClose();
+        }}>Reorder</PBtn>
         <div style={{ flex: 1 }} />
         <PBtn variant="secondary" size="md" icon="receipt" onClick={() => { if (onNav) onNav('orders'); onClose(); }}>Open in Orders</PBtn>
       </div>

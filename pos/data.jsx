@@ -1113,7 +1113,11 @@ function laneSettingsAreDefault() {
 }
 
 let _pendingSale = null;
-function startSaleFor(customer, guests) { _pendingSale = customer ? { customer, guests: (guests || []).slice() } : null; }
+// `items` is optional — cart lines to seed the register with (e.g. a reorder),
+// in the same {sku, qty, disc} shape the register's own cart uses. Omitted for
+// every existing caller (check-in "& start sale"), which still opens an empty
+// cart on the claimed customer exactly as before.
+function startSaleFor(customer, guests, items) { _pendingSale = customer ? { customer, guests: (guests || []).slice(), items: items && items.length ? items.slice() : null } : null; }
 function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
 
 window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, favCategoryBasis, fmt, visitLabel, visitOrdinal,
