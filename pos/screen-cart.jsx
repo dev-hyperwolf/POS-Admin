@@ -401,7 +401,7 @@ window.HWSuggestBasis = (function () {
 // `merch` is what the goods cost; `sub` is what is left to tax after
 // `discountOff` comes off. They are separate props because the footer has to
 // show the customer both — a total that quietly shrank is a total nobody trusts.
-window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote }) {
+window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, pendingRemoval, onUndoRemove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote }) {
   const walletAmt = customer?.wallet || 0;
   const [taxOpen, setTaxOpen] = React.useState(false);
   const goal = window.HW.STATS.associate.goal;
@@ -474,6 +474,23 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
       {tabs}
       {/* Scrollable body */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px 16px' }}>
+        {/* A line stepped to zero is gone from `lines` the instant it happens —
+            there is no "kept until saved" middle state here the way an order
+            edit has (pos/screen-orders.jsx's draft rows). So the ONLY trace
+            that a slot held something is this banner: it names what was just
+            removed, in the slot it left, and Undo puts it straight back. It
+            renders whether or not any lines are left, so zeroing the last item
+            does not erase the one place Undo could still be reached from. See
+            setQty in pos/screen-register.jsx for why the trash icon (`remove`)
+            does not go through this same path. */}
+        {pendingRemoval &&
+        <div data-hw-removed-line role="status" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', marginBottom: 10, background: P.surface, border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r10 }}>
+          <span style={{ flex: '0 0 auto', width: 34, height: 34, borderRadius: P.r8, background: P.surface3, display: 'flex', alignItems: 'center', justifyContent: 'center', color: P.inkMute }}><Icon name="trash" size={14} stroke={1.8} /></span>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: P.inkDim, lineHeight: 1.4 }}>
+            Removed <span style={{ fontWeight: 600, color: P.ink2 }}>{pendingRemoval.name}</span> — this slot is open again.
+          </div>
+          <PBtn variant="ghost" size="xs" icon="x" onClick={onUndoRemove}>Undo</PBtn>
+        </div>}
         {count === 0 ?
         <div style={{ padding: '60px 16px', textAlign: 'center', color: P.inkMute }}>
             <span style={{ display: 'inline-flex', width: 52, height: 52, borderRadius: 99, background: P.surface3, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}><Icon name="cart" size={24} stroke={1.6} /></span>

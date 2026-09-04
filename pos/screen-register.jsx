@@ -56,6 +56,11 @@ window.RegisterScreen = function RegisterScreen() {
   const [showDetails, setShowDetails] = React.useState(false); // member-details dropdown
   const [chipView, setChipView] = React.useState('bar'); // claimed-customer layout: bar | detailed | compact
   const [toast, setToast] = React.useState(null);
+  // The most recently zeroed-out cart line, kept around just long enough to
+  // undo — see setQty below for why this exists and what it deliberately does
+  // not cover (the trash icon is unchanged).
+  const [pendingRemoval, setPendingRemoval] = React.useState(null);
+  const removalTimer = React.useRef(null);
   // "Pairs with cart" — engine ranking over the product grid. See `rankRecs`.
   // (It was labelled "For this ticket". Same control, same behaviour, same
   // state; the word "ticket" meant nothing to anyone who had not read the code.)
@@ -105,7 +110,17 @@ window.RegisterScreen = function RegisterScreen() {
   const removeDiscount = (kind) => setDiscount(kind, null);
   // Emptying the cart empties the discounts with it — a $5 discount sitting on
   // an empty ticket is the next sale's mispriced surprise.
-  const clearTicket = () => setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: [], discounts: [] } : x));
+  const clearTicket = () => {clearPendingRemoval();setTickets((ts) => ts.map((x, i) => i === active ? { ...x, cart: [], discounts: [] } : x));};
+
+  // A pending Undo names a specific line on a specific ticket. Leaving it live
+  // across a Clear or a switch to another ticket would let Undo restore a line
+  // the operator can no longer see, onto whichever ticket happens to be open —
+  // so anything that walks away from the line clears it first.
+  const clearPendingRemoval = () => {
+    if (removalTimer.current) {clearTimeout(removalTimer.current);removalTimer.current = null;}
+    setPendingRemoval(null);
+  };
+  React.useEffect(() => clearPendingRemoval, [active]);
 
   // Keep the floating switcher / tour launcher off the TENDER button.
   React.useEffect(() => {
@@ -119,9 +134,45 @@ window.RegisterScreen = function RegisterScreen() {
   // second-order bug by another door.
   const add = (p) => {
     if (t && t.paid) {flash(`${t.person.name.split(' ')[0]}’s ticket is paid — open a new ticket to sell more`);return;}
+    // A fresh Add IS "adding it back" for whatever the pending-removal banner
+    // was about to offer — clear it rather than leave "Removed {name} — Undo"
+    // standing next to a line for that same product that just reappeared.
+    if (pendingRemoval && pendingRemoval.sku === p.sku) clearPendingRemoval();
     setCart((c) => {const e = c.find((x) => x.sku === p.sku);if (e) return c.map((x) => x.sku === p.sku ? { ...x, qty: x.qty + 1 } : x);return [...c, { sku: p.sku, qty: 1, disc: 0 }];});
   };
-  const setQty = (sku, qty) => setCart((c) => qty <= 0 ? c.filter((x) => x.sku !== sku) : c.map((x) => x.sku === sku ? { ...x, qty } : x));
+  // 🔴 STEPPING A LINE TO ZERO USED TO DELETE IT ON THE SPOT — no confirmation,
+  // no way back, same as any other qty change. That is the wrong trade for the
+  // one qty change that is also a delete: the minus button is easy to overshoot
+  // (tap it once too many adjusting a swap/upsell suggestion down from 2 to 1),
+  // and unlike every other qty step it cannot be corrected by tapping plus —
+  // the line is already gone, and so is what it was. So a step to zero still
+  // removes the line (the total and the tender are unaffected either way — see
+  // `count`/`merch` above, both sum `qty`), but leaves a brief "Removed — Undo"
+  // in CartPane naming what was just taken off, exactly as the door-scan Undo
+  // in pos/customer-extras.jsx works. The trash icon is a separate, explicit
+  // delete control and is UNCHANGED — see `remove` below.
+  const setQty = (sku, qty) => {
+    if (qty > 0) {setCart((c) => c.map((x) => x.sku === sku ? { ...x, qty } : x));return;}
+    const line = cart.find((x) => x.sku === sku);
+    if (!line) return;
+    const p = find(sku);
+    if (removalTimer.current) clearTimeout(removalTimer.current);
+    setCart((c) => c.filter((x) => x.sku !== sku));
+    setPendingRemoval({ sku, line: { ...line }, name: p ? p.name : sku });
+    removalTimer.current = setTimeout(() => {
+      removalTimer.current = null;
+      setPendingRemoval((cur) => cur && cur.sku === sku ? null : cur);
+    }, 6000);
+  };
+  const undoRemoval = () => {
+    if (!pendingRemoval) return;
+    const restore = pendingRemoval.line;
+    clearPendingRemoval();
+    // The sku may already be back on the cart by some other route (the operator
+    // re-added it from the grid while the banner was still up) — Undo must not
+    // fork a second line for the same product.
+    setCart((c) => c.some((x) => x.sku === restore.sku) ? c : [...c, restore]);
+  };
   const remove = (sku) => setCart((c) => c.filter((x) => x.sku !== sku));
 
   // AN UNKNOWN SKU MUST NOT TAKE THE APP DOWN. find() returns undefined when the
@@ -762,7 +813,7 @@ window.RegisterScreen = function RegisterScreen() {
             renderer dereferences `l.p.name` with no guard. See the note there. */}
         <window.CriticalBoundary name="Cart" flow="This sale">
           <CartPane P={P} lines={lines} merch={merch} discountOff={discountOff} sub={sub} tax={tax} total={total} count={count} pay={pay} setPay={setPay}
-          setQty={setQty} remove={remove} onClearCart={clearTicket} customer={customer} cartSkus={cart.map((c) => c.sku)}
+          setQty={setQty} remove={remove} pendingRemoval={pendingRemoval} onUndoRemove={undoRemoval} onClearCart={clearTicket} customer={customer} cartSkus={cart.map((c) => c.sku)}
           discounts={discounts} onApplyDiscount={applyDiscount} onRemoveDiscount={removeDiscount}
           onAdd={(p) => {add(p);flash(p.name + ' added');}}
           tabs={multi ? <TicketTabs tickets={tickets} active={active} onPick={setActive} onDrop={dropTicket} totalOf={totalOf} /> : null}
