@@ -1454,13 +1454,19 @@
     (collisions || []).forEach(function (c) {
       const k = String(c.name || '').toLowerCase();
       if (!k) { return; }
-      if (!collByName[k]) { collByName[k] = { name: c.name, ignored: [] }; }
+      if (!collByName[k]) { collByName[k] = { name: c.name, keptId: c.kept_id, ignored: [] }; }
       collByName[k].ignored.push(c.ignored_id);
     });
     const collisionCards = [];
     Object.keys(collByName).forEach(function (k) {
+      // `keptId`/`keptChain` are the node the name match actually reaches —
+      // same field (`kept_id`) NodePicker already reads off this same
+      // `collisions` array to write its own "SAME NAME AS..." note. Carried
+      // onto the card so the quick "Add to…" path on the queue explains
+      // itself without a person having to reach the full picker first.
       collByName[k].ignored.forEach(function (ignoredId) {
-        collisionCards.push({ nodeId: ignoredId, name: collByName[k].name, chain: chainFor(ignoredId) });
+        collisionCards.push({ nodeId: ignoredId, name: collByName[k].name, chain: chainFor(ignoredId),
+          keptId: collByName[k].keptId, keptChain: chainFor(collByName[k].keptId) });
       });
     });
     // ── every Weedmaps category type nobody has claimed ──────────────────
@@ -1484,7 +1490,7 @@
     return { resting: resting, unconfirmed: unconfirmed, collisionCards: collisionCards, unassigned: unassigned };
   }
 
-  function QueueCard({ kind, label, subtitle, nodeId, chain, productCount, categories,
+  function QueueCard({ kind, label, subtitle, nodeId, chain, keptChain, keptId, productCount, categories,
     selectMode, selected, onToggleSelect, onConfirm, onAddTo, draggable, isDragging, onDragStartCard, onDragEndCard }) {
     const P = useP();
     return (
@@ -1512,8 +1518,22 @@
           <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 3, lineHeight: 1.4 }}>
             {subtitle}{productCount != null ? ' · ' + num(productCount) + ' product row' + (productCount === 1 ? '' : 's') : ''}
           </div>
+          {/* Same context NodePicker already shows for this node ("SAME NAME
+              AS ANOTHER CATEGORY TYPE... picking it here is the only way to
+              bind it") — surfaced on the card itself, because the quick
+              "Add to…" shortcut below opens BindReviewModal with
+              allowPicker=false, which never mounts NodePicker and so never
+              shows that note. Without this line the fast path is the one
+              path through this whole screen where a collision's stakes are
+              invisible. `keptChain` is walked off the same `collisions`
+              array NodePicker itself reads — nothing fabricated. */}
+          {kind === 'collision' && keptChain &&
+            <div data-hw-queue-collision-note="1" style={{ fontSize: P.type.micro, color: P.warn, marginTop: 3, lineHeight: 1.4 }}>
+              kept elsewhere as <WmPathChain nodes={keptChain} broken={false} nodeId={keptId} /> — the name
+              match can never reach this one; picking it here is the only way to bind it.
+            </div>}
           {!selectMode && kind === 'unconfirmed' &&
-            <PBtn size="xs" style={{ marginTop: 6 }} icon="check" onClick={onConfirm}>Confirm</PBtn>}
+            <PBtn size="xs" style={{ marginTop: 6 }} icon="check" onClick={onConfirm}>Review &amp; confirm…</PBtn>}
           {!selectMode && (kind === 'collision' || kind === 'unassigned') &&
             <select data-hw-queue-add-to={label} defaultValue="" onChange={function (e) {
                 if (e.target.value) { onAddTo(e.target.value); e.target.value = ''; }
@@ -1532,15 +1552,41 @@
     onDragOverQueue, onDragLeaveQueue, onDropQueue }) {
     const P = useP();
     const q = buildQueue(rows, tree, collisions);
+    // TWO NUMBERS, NEVER ONE BADGE FOR BOTH. `actionable` (unconfirmed
+    // name-matches + name collisions) is what a person must actually decide
+    // something about. `q.unassigned` is an order of magnitude bigger on a
+    // live tree (83 vs 2) and renders as its own list further down — folding
+    // it into one badge is what let someone see "2", feel done, and then
+    // scroll into a list 40x the size the badge implied. Both numbers come
+    // straight off buildQueue(); nothing here is computed twice or guessed.
     const actionable = q.unconfirmed.length + q.collisionCards.length;
+    const unassignedCount = q.unassigned.length;
     return (
       <div data-hw-queue-lane="1" onDragOver={onDragOverQueue} onDragLeave={onDragLeaveQueue} onDrop={onDropQueue}
         style={{ flex: '0 0 300px', display: 'flex', flexDirection: 'column',
           background: P.surface2, border: '1px dashed ' + P.hairline3, borderRadius: P.r12, padding: 12,
           maxHeight: '78vh', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>Still unmapped</div>
-          <Pill kind={actionable ? 'warn' : 'good'} size="sm">{actionable}</Pill>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>Still unmapped</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
+            {/* Pill has no `...rest` spread, so a `data-hw-*` prop on it is
+                silently dropped — wrap each in a span so these two counts
+                stay individually queryable, the same way every other
+                data-hw-* hook on this screen is. */}
+            <span data-hw-queue-actionable-count="1">
+              <Pill kind={actionable ? 'warn' : 'good'} size="sm">
+                {actionable} need{actionable === 1 ? 's' : ''} a decision
+              </Pill>
+            </span>
+            {unassignedCount > 0 &&
+              <span data-hw-queue-unassigned-count="1">
+                <Pill kind="neutral" size="sm">
+                  {unassignedCount} unclaimed WM type{unassignedCount === 1 ? '' : 's'}
+                </Pill>
+              </span>}
+          </div>
         </div>
         {actionable > 0 &&
           <PBtn size="xs" variant={selectMode ? 'accent' : 'secondary'} style={{ marginBottom: 10, alignSelf: 'flex-start' }}
@@ -1561,7 +1607,7 @@
           {q.collisionCards.map(function (c) {
             return <QueueCard key={'c-' + c.nodeId} kind="collision" label={c.name}
               subtitle="shares this name with another category type" nodeId={c.nodeId} chain={c.chain}
-              categories={categories}
+              keptChain={c.keptChain} keptId={c.keptId} categories={categories}
               selectMode={selectMode} selected={selected.has(c.nodeId)} onToggleSelect={function () { onToggleSelect(c.nodeId); }}
               onAddTo={function (category) { onOpenBind(category, c.nodeId); }}
               draggable={!selectMode} isDragging={draggingNodeId === c.nodeId}
@@ -1669,7 +1715,7 @@
       </div>);
   }
 
-  function AutoResolvedCard({ category, wmPath, wmIds }) {
+  function AutoResolvedCard({ category, wmPath, wmIds, unconfirmed }) {
     const P = useP();
     return (
       <div data-hw-auto-resolved={category} style={{ padding: '9px 11px', borderRadius: P.r10,
@@ -1678,6 +1724,17 @@
           {wmPath || 'category type ' + (wmIds || []).join(', ')}
         </div>
         <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 3 }}>auto-resolved by name match</div>
+        {/* A calm card here does not mean the queue has stopped asking about
+            it. `unconfirmed` is bindingKind(row) === 'unconfirmed' — the same
+            test buildQueue uses to put this exact category in the "Still
+            unmapped" lane as "Confirm"-able. Without this line, someone
+            working column-by-column has no reason to ever check the queue
+            for a category whose own card already looks done. */}
+        {unconfirmed &&
+          <div data-hw-auto-resolved-unconfirmed="1" style={{ fontSize: P.type.micro, color: P.warn,
+            marginTop: 5, fontWeight: 600 }}>
+            not yet confirmed — see queue
+          </div>}
       </div>);
   }
 
@@ -1713,7 +1770,8 @@
           {bindings.length === 0 && row.state === 'NO_WM_NODE' &&
             <EmptyWmNodeCard category={row.category} onAddAnyway={function () { onOpenBind(row.category, null); }} />}
           {bindings.length === 0 && row.state !== 'NO_WM_NODE' && row.wm_ids && row.wm_ids.length > 0 &&
-            <AutoResolvedCard category={row.category} wmPath={row.wm_path} wmIds={row.wm_ids} />}
+            <AutoResolvedCard category={row.category} wmPath={row.wm_path} wmIds={row.wm_ids}
+              unconfirmed={bindingKind(row) === 'unconfirmed'} />}
         </div>
         <div style={{ padding: '8px 12px', borderTop: '1px solid ' + P.hairline, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <PBtn size="xs" icon="grid" onClick={function () { onOpenBind(row.category, null); }}>+ Add</PBtn>
