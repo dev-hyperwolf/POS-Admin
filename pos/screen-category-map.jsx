@@ -212,6 +212,20 @@
 
   function num(v) { return v == null ? '—' : Number(v).toLocaleString(); }
 
+  // window.HW.CAT_COLOR (pos/data.jsx) is the one real Hyperwolf-brand
+  // per-category accent palette — already used on the catalog, orders, and
+  // product-sheet screens. This screen's own canonical names sometimes
+  // spell the same category differently (`Pre Roll` vs that file's
+  // `Pre-Rolls`, `Vape Pens` vs `Vapes`) — CAT_COLOR_ALIASES bridges the
+  // two spellings rather than forking a second palette. `Drinks` and
+  // `Accessories` have no entry there at all; those fall through to the
+  // same neutral fallback every other CAT_COLOR call site already uses.
+  const CAT_COLOR_ALIASES = { 'Pre Roll': 'Pre-Rolls', 'Vape Pens': 'Vapes' };
+  function catColor(category) {
+    const table = (window.HW && window.HW.CAT_COLOR) || {};
+    return table[CAT_COLOR_ALIASES[category] || category] || null;
+  }
+
   // ── one Weedmaps node's own path (parent > child), arrow-joined ───────────
   // Factored out of WmCell so a name-match path and each EXPLICIT pick's own
   // path render with the exact same look — the only thing that changes below
@@ -1514,7 +1528,14 @@
           <input type="checkbox" checked={!!selected} onChange={onToggleSelect}
             style={{ marginTop: 2, width: 14, height: 14, cursor: 'pointer' }} />}
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: P.type.body, fontWeight: 700, color: P.ink }}>{label}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Only `unconfirmed`/`resting` cards are named after one of OUR
+                categories — a `collision` card's `label` is a Weedmaps node
+                name with no category of its own yet, so it gets no dot. */}
+            {kind !== 'collision' &&
+              <span style={{ width: 8, height: 8, borderRadius: 2, flex: '0 0 auto', background: catColor(label) || P.neutral }} />}
+            <span style={{ fontSize: P.type.body, fontWeight: 700, color: P.ink }}>{label}</span>
+          </div>
           {chain && <div style={{ marginTop: 2 }}><WmPathChain nodes={chain} broken={false} nodeId={nodeId} /></div>}
           <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 3, lineHeight: 1.4 }}>
             {subtitle}{productCount != null ? ' · ' + num(productCount) + ' product row' + (productCount === 1 ? '' : 's') : ''}
@@ -1656,9 +1677,13 @@
         style={{ flex: '0 0 260px', display: 'flex', flexDirection: 'column',
           background: P.surface, border: '1px solid ' + (isDropTarget ? P.accentBorder : P.hairline2),
           borderRadius: P.r12, maxHeight: '78vh', overflow: 'hidden' }}>
-        <div style={{ padding: '10px 12px', borderBottom: '1px solid ' + P.hairline }}>
-          <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{row.category}</div>
-          <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 2 }}>
+        <div style={{ padding: '10px 12px', borderBottom: '2px solid ' + (catColor(row.category) || P.hairline) }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 3, flex: '0 0 auto',
+              background: catColor(row.category) || P.neutral }} />
+            <span style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{row.category}</span>
+          </div>
+          <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 2, marginLeft: 16 }}>
             {row.product_count == null ? 'unknown products' : num(row.product_count) + ' product' + (row.product_count === 1 ? '' : 's')}
           </div>
         </div>
