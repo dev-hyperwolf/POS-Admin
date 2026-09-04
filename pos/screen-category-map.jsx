@@ -1645,6 +1645,308 @@
       </Card>);
   }
 
+  // ── bulk binding editor: several of OUR categories, one Weedmaps pick ─────
+  //
+  // THE OWNER'S ASK: binding one category to one Weedmaps category type at a
+  // time — pick a row, "Bindings", pick a node, Review, Confirm — is correct
+  // and stays exactly as it is above. It is also too slow to do nine times in
+  // a row when several categories all belong on the same category type. This
+  // is the ADDITIVE path: pick several rows' checkboxes in the table, pick
+  // ONE category type here, and this component calls the SAME
+  // `POST /bind` BindingEditor calls above, once per selected category — a
+  // real loop over the real write, never a new write path. There is no bulk
+  // route on the server (category_edit.py has `bind_category` for ONE
+  // category, nothing else) and this file cannot add one, so N categories is
+  // N real requests, same as BulkWmPublish on pos/screen-catalog.jsx accepts
+  // for its own bulk action and for the same reason: a fabricated single
+  // request standing in for nine real ones could not carry nine different
+  // refusals if the catalog only let some of them through.
+  //
+  // THE SAFETY NET DOES NOT SHRINK FOR DOING SEVERAL AT ONCE. Every category
+  // gets its OWN live preview (the same `GET /preview?op=bind` BindingEditor's
+  // own effect calls) and its own `confirm_products`, recomputed fresh a
+  // second time right before anything is written — the identical Review ->
+  // Confirm shape PreviewPanel enforces for a single bind, just carrying a
+  // list instead of one row. A category whose count moved between Review and
+  // Confirm makes the WHOLE batch go stale rather than silently saving the
+  // (n-1) categories that did not move and skipping the one that did —
+  // "some of nine saved, quietly, because one was stale" is a worse failure
+  // than asking for one more click.
+  //
+  // A category the preview REFUSES (already bound to this exact node —
+  // `no_change` — or anything else `preview_bind` can say) is EXCLUDED before
+  // Review ever fires, shown with its own reason, and never blocks the rest
+  // of the batch — the same "surfaced, never swallowed" rule BindingEditor's
+  // own reassign already keeps for a partial failure.
+  function BulkBindEditor({ categories, tree, collisions, onClose, onSaved }) {
+    const P = useP();
+    const [node, setNode] = React.useState(null);
+    const [previews, setPreviews] = React.useState(null); // null = not fetched yet for this node
+    const [phase, setPhase] = React.useState('idle'); // idle -> reviewed -> stale -> saving -> done
+    const [reviewed, setReviewed] = React.useState(null); // { category: count|null }
+    const [staleCats, setStaleCats] = React.useState([]);
+    const [checking, setChecking] = React.useState(false);
+    const [busy, setBusy] = React.useState(false);
+    const [unk, setUnk] = React.useState(false);
+    const [results, setResults] = React.useState(null); // { category: { ok, refusal, map } }
+    const mono = { fontFamily: P.fontMono, fontSize: P.type.meta };
+
+    function previewPathFor(cat) {
+      return ROUTE + '/preview?' + qs({ op: 'bind', category: cat, node: node });
+    }
+
+    function fetchAll() {
+      return Promise.all(categories.map(function (cat) {
+        return getJSON(previewPathFor(cat)).then(function (r) { return { category: cat, http: r }; });
+      }));
+    }
+
+    // A NEW NODE PICK RESETS EVERYTHING BELOW IT — the same rule BindingEditor
+    // applies to its own picker, and for the same reason: a stale preview for
+    // the PREVIOUS pick must never be readable as a live answer for this one.
+    React.useEffect(function () {
+      let live = true;
+      setPreviews(null); setPhase('idle'); setReviewed(null); setStaleCats([]);
+      setResults(null); setUnk(false);
+      if (node == null) { return function () { live = false; }; }
+      fetchAll().then(function (list) { if (live) { setPreviews(list); } });
+      return function () { live = false; };
+    }, [node, categories.join('|')]);
+
+    function pvOf(entry) {
+      const http = entry.http;
+      if (http && http.parsed && http.body && http.body.op) { return http.body; }
+      if (http && http.parsed && http.body && http.body.code) {
+        return { op: 'bind', subject: entry.category, products_affected: null, products_known: true,
+          would_refuse: { code: http.body.code, error: http.body.error } };
+      }
+      return null;
+    }
+
+    const entries = (previews || []).map(function (e) { return Object.assign({}, e, { pv: pvOf(e) }); });
+    const usable = entries.filter(function (e) { return e.pv && !e.pv.would_refuse; });
+    const refused = entries.filter(function (e) { return e.pv && e.pv.would_refuse; });
+    const anyUnknown = usable.some(function (e) { return e.pv.products_known === false; });
+
+    function byId(list) { const m = {}; (list || []).forEach(function (n) { m[n.id] = n; }); return m; }
+    function ownChainFor(nodeId) {
+      if (nodeId == null) { return null; }
+      const ids = byId(tree);
+      const picked = ids[nodeId] || null;
+      if (!picked) { return null; }
+      const parent = picked.parent_id != null ? ids[picked.parent_id] : null;
+      return parent ? [parent, picked] : [picked];
+    }
+
+    /** "Review": lock in a live count (or would_refuse) for every usable
+     *  category. Mirrors PreviewPanel's doReview, done once per category. */
+    function doReview() {
+      setChecking(true);
+      fetchAll().then(function (fresh) {
+        setChecking(false);
+        setPreviews(fresh);
+        const map = {};
+        fresh.forEach(function (e) {
+          const pv = pvOf(e);
+          if (pv && !pv.would_refuse) { map[e.category] = pv.products_affected; }
+        });
+        setReviewed(map);
+        setStaleCats([]);
+        setPhase('reviewed');
+      });
+    }
+
+    /** "Confirm": re-ask every category ONE more time, live, before writing
+     *  anything — PreviewPanel's own doConfirm guarantee, carried over a list
+     *  instead of one row. Any category whose answer moved since Review sends
+     *  the WHOLE batch stale; nothing is written until it is reviewed again. */
+    function doConfirm() {
+      setChecking(true);
+      fetchAll().then(function (fresh) {
+        setChecking(false);
+        const changed = [];
+        fresh.forEach(function (e) {
+          if (!reviewed || !Object.prototype.hasOwnProperty.call(reviewed, e.category)) { return; }
+          const pv = pvOf(e);
+          const now = pv && !pv.would_refuse ? pv.products_affected : '__refused__';
+          if (String(now) !== String(reviewed[e.category])) { changed.push(e.category); }
+        });
+        if (changed.length) {
+          setPreviews(fresh);
+          setStaleCats(changed);
+          setPhase('stale');
+          return;
+        }
+        doSave();
+      });
+    }
+
+    /** The actual writes — the SAME `/bind` BindingEditor's own save() calls,
+     *  once per category, one after another. Sequential, not parallel: easier
+     *  to reason about against a single sqlite-backed demo server, and it
+     *  means a screen reload mid-batch (onSaved below) always reflects a
+     *  batch that is either fully done or in a state every response so far
+     *  already told the operator about — never a half-applied Promise.all
+     *  none of them could see. A refusal on one category does NOT stop the
+     *  rest — see the file header comment: partial failure surfaced, not
+     *  swallowed, and not allowed to strand the categories that would have
+     *  gone through fine. */
+    function doSave() {
+      setBusy(true); setPhase('saving');
+      const targets = Object.keys(reviewed || {});
+      const out = {};
+      let chain = Promise.resolve();
+      targets.forEach(function (cat) {
+        chain = chain.then(function () {
+          return post(ROUTE + '/bind', { category: cat, node: node, confirm_products: reviewed[cat] })
+            .then(function (r) {
+              const ref = refusalOf(r);
+              out[cat] = { ok: !ref, refusal: ref, map: r && r.body && r.body.map };
+            });
+        });
+      });
+      chain.then(function () {
+        setBusy(false); setResults(out); setPhase('done');
+        // THE SERVER'S OWN LAST ANSWER, not a locally-guessed merge of nine
+        // recomputes — same rule the single-bind path follows (onSaved always
+        // takes the map the write response carried, never one this file built).
+        let lastMap = null;
+        for (let i = targets.length - 1; i >= 0; i--) {
+          if (out[targets[i]] && out[targets[i]].map) { lastMap = out[targets[i]].map; break; }
+        }
+        onSaved(lastMap);
+      });
+    }
+
+    const pickedChain = ownChainFor(node);
+
+    return (
+      <Card density="roomy" data-hw-editor="bulk-bind" style={{ border: '1px solid ' + P.accentBorder }}>
+        <SectionHead level={3} eyebrow={categories.length + ' categories selected'}
+          title="Bind all of them to one Weedmaps category type"
+          subtitle="Each one gets its own real bind and its own live review — this is the same write as picking one category at a time, just done back to back instead of nine separate trips through “Bindings”."
+          action={<PBtn icon="x" onClick={onClose}>Close</PBtn>} />
+
+        <div data-hw-bulk-editor-list="1" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          {categories.map(function (cat) {
+            return (
+              <span key={cat} style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.ink2,
+                padding: '3px 8px', background: P.surface2, border: '1px solid ' + P.hairline2, borderRadius: P.r8 }}>
+                {cat}
+              </span>);
+          })}
+        </div>
+
+        <NodePicker tree={tree} value={node} onPick={function (id) { setNode(id); }} collisions={collisions} />
+
+        {node != null && !previews &&
+          <div style={{ marginTop: 12, fontSize: P.type.meta, color: P.inkMute }}>
+            Reading what this would change for each of the {categories.length} categories…
+          </div>}
+
+        {node != null && previews &&
+          <div style={{ marginTop: 14 }}>
+            {refused.length > 0 &&
+              <div data-hw-bulk-skipped="1" style={{ padding: '10px 12px', marginBottom: 10,
+                background: P.warnSoft, border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+                <div style={{ fontSize: P.type.meta, fontWeight: 700, color: P.ink }}>
+                  {refused.length} of {categories.length} won&rsquo;t be included
+                </div>
+                {refused.map(function (e) {
+                  return (
+                    <div key={e.category} data-hw-bulk-skip-reason={e.category}
+                      style={{ fontSize: P.type.micro, color: P.ink2, marginTop: 4, lineHeight: 1.4 }}>
+                      <code style={mono}>{e.category}</code>: {e.pv.would_refuse.error}
+                    </div>);
+                })}
+              </div>}
+
+            {usable.length === 0 &&
+              <div style={{ fontSize: P.type.meta, color: P.inkMute }}>
+                None of the selected categories can be bound to this category type right now.
+              </div>}
+
+            {usable.length > 0 && phase === 'idle' &&
+              <div>
+                <div style={{ fontSize: P.type.meta, color: P.ink2, marginBottom: 8, lineHeight: 1.5 }}>
+                  Will bind <strong data-hw-bulk-usable-count="1">{usable.length}</strong> categor{usable.length === 1 ? 'y' : 'ies'} to
+                  {' '}{pickedChain ? <WmPathChain nodes={pickedChain} broken={false} nodeId={node} /> : <code style={mono}>category type {node}</code>}.
+                </div>
+                <PBtn icon="search" data-hw-bulk-review="1" disabled={checking} onClick={doReview}>
+                  {checking ? 'Reviewing…' : 'Review change'}
+                </PBtn>
+              </div>}
+
+            {usable.length > 0 && phase === 'reviewed' &&
+              <div>
+                <div data-hw-bulk-review-strip="1" style={{ padding: '10px 12px', background: P.surface3,
+                  border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
+                  {usable.map(function (e) {
+                    return (
+                      <div key={e.category} style={{ display: 'flex', justifyContent: 'space-between',
+                        gap: 8, fontSize: P.type.meta, color: P.ink2, padding: '3px 0' }}>
+                        <code style={mono}>{e.category}</code>
+                        <span>
+                          {reviewed[e.category] == null ? 'unknown' :
+                            num(reviewed[e.category]) + ' product row' + (reviewed[e.category] === 1 ? '' : 's')}
+                        </span>
+                      </div>);
+                  })}
+                </div>
+                {anyUnknown &&
+                  <label style={{ display: 'flex', gap: 7, alignItems: 'center', marginTop: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={unk} data-hw-bulk-echo-unknown="1"
+                      onChange={function (e) { setUnk(!!e.target.checked); }} />
+                    <span style={{ fontSize: P.type.meta, color: P.ink }}>
+                      I am saving without knowing how many products some of these affect.
+                    </span>
+                  </label>}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                  <PBtn variant="accent" icon="check" data-hw-bulk-confirm="1"
+                    disabled={busy || checking || (anyUnknown && !unk)} onClick={doConfirm}>
+                    {checking ? 'Checking…' : 'Confirm — bind ' + usable.length}
+                  </PBtn>
+                  <PBtn icon="x" onClick={onClose}>Cancel</PBtn>
+                </div>
+              </div>}
+
+            {usable.length > 0 && phase === 'stale' &&
+              <div data-hw-bulk-stale="1" style={{ padding: '10px 12px', background: P.warnSoft,
+                border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+                <div style={{ fontSize: P.type.meta, color: P.ink, lineHeight: 1.5 }}>
+                  {staleCats.length} categor{staleCats.length === 1 ? 'y' : 'ies'} changed since you
+                  reviewed (<code style={mono}>{staleCats.join(', ')}</code>) — nothing was written.
+                  Review again before confirming.
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <PBtn variant="accent" icon="check" disabled>Confirm — bind {usable.length}</PBtn>
+                  <PBtn icon="refresh" data-hw-bulk-review-again="1" onClick={doReview}>Review again</PBtn>
+                </div>
+              </div>}
+
+            {phase === 'saving' &&
+              <div style={{ fontSize: P.type.meta, color: P.inkMute }}>Saving…</div>}
+
+            {phase === 'done' && results &&
+              <div data-hw-bulk-done="1" style={{ marginTop: 4 }}>
+                {Object.keys(results).map(function (cat) {
+                  const r = results[cat];
+                  return (
+                    <div key={cat} data-hw-bulk-result={cat} style={{ padding: '8px 10px', marginBottom: 5,
+                      borderRadius: P.r8, background: r.ok ? P.goodSoft : P.badSoft,
+                      border: '1px solid ' + (r.ok ? P.hairline2 : P.bad) }}>
+                      <code style={mono}>{cat}</code>{' '}
+                      {r.ok
+                        ? <span style={{ color: P.good, fontWeight: 600 }}>bound</span>
+                        : <span style={{ color: P.bad, fontWeight: 600 }}>refused — {r.refusal.error}</span>}
+                    </div>);
+                })}
+                <PBtn icon="check" onClick={onClose} style={{ marginTop: 6 }}>Done</PBtn>
+              </div>}
+          </div>}
+      </Card>);
+  }
+
   // ── alias editor: add a spelling, repoint one, remove one ─────────────────
   //
   // A COLLISION REFUSES AND SAYS WHAT IT HIT. taxonomy._build_alias_index
@@ -1950,6 +2252,68 @@
       </Card>);
   }
 
+  // ── two independent scroll regions, not one shared with the table ─────────
+  //
+  // THE BUG (owner-reported, 2026-09-03): reaching the bottom of the right
+  // panel required scrolling the WHOLE PAGE, which drags the left-hand
+  // table's scroll position along with it. The panel below is pinned with
+  // `position:'sticky'` against <main>'s own scroller (pos/app.jsx) -- proven
+  // behaviour here, see the split-view comment above -- but it had NO HEIGHT
+  // LIMIT OF ITS OWN. Sticky only fixes WHERE an element's top edge sits; it
+  // does nothing about how tall the element is allowed to be. Once the panel's
+  // own content (every current binding, the 94-node picker, "Add another
+  // category type", the preview) grew taller than the visible viewport, the
+  // only way to reach the rest of it was to keep scrolling <main> -- the exact
+  // scroller the table rides on, so the table moved too.
+  //
+  // THE FIX IS NOT A SECOND PAGE SCROLLBAR: it is bounding the panel to
+  // whatever room is actually left below it in the viewport, right now, and
+  // giving that box its own `overflowY:'auto'` so the panel scrolls inside
+  // itself and <main> never has to move again once the panel is in view.
+  //
+  // THE BOUND IS MEASURED, NOT GUESSED. <main>'s own visible height depends on
+  // the top bar (pos/shell.jsx TopBar), which has no fixed pixel height -- it
+  // wraps store stats and reflows with content -- so a hardcoded
+  // `calc(100vh - Npx)` would be a number this file made up. Reading the
+  // panel's own `getBoundingClientRect().top` instead asks the one question
+  // that actually matters: how much vertical space is left below THIS
+  // element's current position, right now. `overscrollBehavior:'contain'` is
+  // the same fix NodePicker already carries a few hundred lines up, for the
+  // same reason: without it, scrolling this box to either end CHAINS into
+  // <main> the instant it runs out of room, which is the "screen jumped
+  // around" defect all over again, just moved one level in.
+  function useStickyPanelMaxHeight(ref, ready) {
+    const [maxHeight, setMaxHeight] = React.useState(null);
+    // `ready` is deliberately a dependency, not just a mount-time read. The
+    // panel sits behind `{d && ...}` (CategoryMapScreen, below) — it does not
+    // exist in the DOM at all until the first GET resolves, so an effect that
+    // only ran once on mount (`[]`) would capture `ref.current === null`
+    // forever and never get a second chance once the panel actually appears.
+    // `ready` flips from falsy to truthy exactly when that happens, which is
+    // what re-runs this effect against a real node.
+    React.useEffect(function () {
+      const el = ref.current;
+      if (!el) { return undefined; }
+      const scroller = (typeof el.closest === 'function' && el.closest('main')) || null;
+      const BOTTOM_GAP = 20;   // breathing room, echoes <main>'s own bottom padding intent
+      const MIN_USABLE = 220;  // never shrink to something no control can fit inside
+      function recompute() {
+        if (!ref.current || typeof ref.current.getBoundingClientRect !== 'function') { return; }
+        const top = ref.current.getBoundingClientRect().top;
+        const vh = (typeof window !== 'undefined' && window.innerHeight) || 0;
+        setMaxHeight(Math.max(MIN_USABLE, Math.floor(vh - top - BOTTOM_GAP)));
+      }
+      recompute();
+      window.addEventListener('resize', recompute);
+      if (scroller) { scroller.addEventListener('scroll', recompute, { passive: true }); }
+      return function () {
+        window.removeEventListener('resize', recompute);
+        if (scroller) { scroller.removeEventListener('scroll', recompute); }
+      };
+    }, [ready]);
+    return maxHeight;
+  }
+
   window.CategoryMapScreen = function CategoryMapScreen() {
     const P = useP();
     const [http, setHttp] = React.useState(null);
@@ -1967,6 +2331,23 @@
     // local edit — the shape that lets a UI show a binding the server declined.
     const [fresh, setFresh] = React.useState(null);
 
+    // ── bulk select: several of OUR categories, one Weedmaps category type ──
+    // Every write this screen makes (bind/unbind/alias) is one category at a
+    // time; that has not changed and is not being replaced. This is a SECOND,
+    // ADDITIVE path for the case the owner named as too slow today: pick N
+    // categories here, pick ONE category type once in the panel, and this
+    // screen calls the same `/bind` route once per category instead of making
+    // the operator open "Bindings (N)" and re-pick the same node N times.
+    // `sel` holds category NAMES (the same key `rowKey`/`bindingKind` already
+    // use), never row objects, so a reload that gives every row a fresh
+    // identity does not silently empty the selection out from under someone.
+    const [sel, setSel] = React.useState(function () { return new Set(); });
+    // Which right-panel view wins: a single row's "Bindings" editor, the bulk
+    // editor, or (neither) the queue. Opening one closes the other two —
+    // see the mutual resets below — so the panel is never asked to decide
+    // between two live edits at once.
+    const [bulkEditing, setBulkEditing] = React.useState(false);
+
     React.useEffect(function () {
       let live = true;
       setHttp(null); setFresh(null);
@@ -1978,7 +2359,39 @@
     const rows = (d && Array.isArray(d.rows)) ? d.rows : [];
     const c = (d && d.counts) || {};
 
+    const allSel = rows.length > 0 && rows.every(function (r) { return sel.has(r.category); });
+    const toggleAllSel = function () {
+      setSel(allSel ? new Set() : new Set(rows.map(function (r) { return r.category; })));
+    };
+    const toggleSel = function (category) {
+      setSel(function (s) {
+        const n = new Set(s);
+        if (n.has(category)) { n.delete(category); } else { n.add(category); }
+        return n;
+      });
+    };
+
+    // THE PANEL'S OWN SCROLL BOUND (fix for issue 1 — see
+    // useStickyPanelMaxHeight above for why this is measured, not a guessed
+    // pixel constant).
+    const panelRef = React.useRef(null);
+    const panelMaxHeight = useStickyPanelMaxHeight(panelRef, !!d);
+
+    // NOT rendered as `columns[0].label` — DataTable's own header row is real
+    // JSX in production, but this screen's OWN row-selection checkbox needs
+    // no table-header real estate to make sense, and keeping "select all" as
+    // a plain control above the table (with the bulk bar, below) means one
+    // fewer thing wedged into a 30px header cell next to nothing. The row
+    // checkboxes below are the multi-select affordance itself.
     const columns = [
+      { label: '', width: '30px', align: 'center', render: function (r) {
+          return (
+            <input type="checkbox" checked={sel.has(r.category)}
+              onChange={function () { toggleSel(r.category); }}
+              onClick={function (e) { e.stopPropagation(); }}
+              data-hw-select-row={r.category}
+              style={{ width: 15, height: 15, cursor: 'pointer' }} />);
+        } },
       { label: 'Our category', width: '19%', render: function (r) {
         const s = st(r);
         // data-hw-cat / data-hw-cat-state are TEST HOOKS, and they are on the
@@ -2032,7 +2445,11 @@
                         : 'matched by name, not chosen'}
               </span>
               <PBtn size="xs" icon="edit" data-hw-edit-binding={r.category}
-                onClick={function () { setEditing(editing === r.category ? null : r.category); setInitialNode(null); }}>
+                onClick={function () {
+                  setEditing(editing === r.category ? null : r.category);
+                  setInitialNode(null);
+                  setBulkEditing(false);
+                }}>
                 {rBindings.length ? 'Bindings (' + rBindings.length + ')' : 'Pick a category type'}
               </PBtn>
             </div>
@@ -2163,8 +2580,49 @@
                 <EmptyState icon="grid" title="The route answered and listed no categories"
                   body="wmdemo/taxonomy.TOP_LEVEL is the list this screen renders. An empty list means that tuple is empty, which would itself be the defect — it does not mean the categories are fine." />}
 
+              {/* THE BULK BAR — same shape pos/screen-catalog.jsx already uses for
+                  its own multi-select ("N selected", dark bar, a Clear button
+                  pinned right): checkboxes on rows are a pattern this estate
+                  already has, not a new one invented for this screen. It appears
+                  only once something is selected and never crowds the table when
+                  nobody has touched a checkbox. */}
+              {sel.size > 0 &&
+                <div data-hw-bulk-bar="1" style={{ display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '11px 16px', marginBottom: 12, background: P.ink, borderRadius: P.r12,
+                  color: P.surface, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: P.type.meta, fontWeight: 600, fontFamily: P.fontMono }}>
+                    {sel.size} selected
+                  </span>
+                  <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,.2)' }} />
+                  <button type="button" data-hw-bulk-bind="1"
+                    onClick={function () { setEditing(null); setInitialNode(null); setBulkEditing(true); }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px',
+                      background: 'rgba(255,255,255,.08)', color: P.surface, border: 'none', borderRadius: 8,
+                      fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+                    <Icon name="grid" size={13} stroke={2} />
+                    Bind {sel.size} to one category type
+                  </button>
+                  <div style={{ flex: 1 }} />
+                  <button type="button" data-hw-bulk-clear="1"
+                    onClick={function () { setSel(new Set()); setBulkEditing(false); }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px',
+                      background: 'transparent', color: P.surface, border: 'none', borderRadius: 8,
+                      fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, opacity: .75 }}>
+                    Clear
+                  </button>
+                </div>}
+
               {rows.length > 0 &&
-                <DataTable columns={columns} rows={rows} rowKey={function (r) { return r.category; }} stickyHead />}
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 8,
+                  fontSize: P.type.micro, color: P.inkDim, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={allSel} onChange={toggleAllSel}
+                    data-hw-select-all="1" style={{ width: 14, height: 14, cursor: 'pointer' }} />
+                  select all {rows.length} categories
+                </label>}
+
+              {rows.length > 0 &&
+                <DataTable columns={columns} rows={rows} rowKey={function (r) { return r.category; }}
+                  selectedKeys={sel} stickyHead />}
 
               <div style={{ marginTop: 22 }}>
                 <AliasEditor d={d}
@@ -2190,8 +2648,19 @@
             {/* THE PANEL. `top: 0` sticks it to <main>'s own padding edge --
                 the same scroll container DataTable's stickyHead already
                 sticks its header row against, so this is proven behaviour on
-                this exact page, not a new assumption about the shell. */}
-            <div style={{ position: 'sticky', top: 0 }} data-hw-binding-panel="1">
+                this exact page, not a new assumption about the shell.
+                `maxHeight` + `overflowY:'auto'` (issue 1's fix, see
+                useStickyPanelMaxHeight above) give the panel ITS OWN scroll
+                region, measured against the real viewport, so the operator
+                can reach the bottom of a long binding editor or a long picker
+                list without dragging the table's scroll position along with
+                it. `overscrollBehavior:'contain'` stops this box from
+                chaining into <main> once it runs out of room to scroll,
+                same fix NodePicker already carries for the identical reason. */}
+            <div ref={panelRef} data-hw-binding-panel="1"
+              style={{ position: 'sticky', top: 0,
+                maxHeight: panelMaxHeight || undefined, overflowY: 'auto',
+                overscrollBehavior: 'contain' }}>
               {(function () {
                 const r = editing ? rows.filter(function (x) { return x.category === editing; })[0] : null;
                 if (r) {
@@ -2207,6 +2676,19 @@
                     // different row's "Bindings" button leaves this one.
                     onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
                 }
+                // BULK EDITOR: several selected categories, one Weedmaps category
+                // type. Only shown when nothing is being edited one-at-a-time —
+                // see setEditing/setBulkEditing above, which keep the two mutually
+                // exclusive so the panel never has to arbitrate between them.
+                if (bulkEditing && sel.size > 0) {
+                  return <BulkBindEditor categories={Array.from(sel)}
+                    tree={(d.wm_tree && d.wm_tree.tree) || []}
+                    collisions={(d.wm_tree && d.wm_tree.collisions) || []}
+                    onClose={function () { setBulkEditing(false); }}
+                    onSaved={function (map) {
+                      if (map) { setFresh(map); } else { setTick(tick + 1); }
+                    }} />;
+                }
                 // EDITING SET BUT THE ROW IS GONE (a reload dropped it) reads the
                 // same as NOTHING SELECTED. Neither state is an error -- there is
                 // simply nothing here to bind right now. Both fall through to the
@@ -2217,6 +2699,7 @@
                     onConfirm={function (category) {
                       const target = rows.filter(function (x) { return x.category === category; })[0];
                       const ids = (target && target.wm_ids) || [];
+                      setBulkEditing(false);
                       setEditing(category);
                       setInitialNode(ids.length ? ids[ids.length - 1] : null);
                     }} />);
