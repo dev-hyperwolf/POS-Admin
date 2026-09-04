@@ -178,7 +178,7 @@ function App() {
   if (route === 'cities') screen = window.CityListingScreen ? <window.CityListingScreen /> :
     <ErrorState title="The Cities screen did not load"
       body="pos/screen-city-listing.jsx defines window.CityListingScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
-  if (route === 'members') screen = <MembersScreen />;else
+  if (route === 'members') screen = <MembersScreen onNav={go} />;else
   // Guarded the same way Brands is, and for the same reason: a dropped script
   // tag must name the missing file rather than white-screening the whole app.
   if (route === 'identity-binding') screen = window.IdentityBindingScreen ? <window.IdentityBindingScreen /> :

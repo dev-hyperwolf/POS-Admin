@@ -394,7 +394,7 @@ window.MemberVerificationCard = function MemberVerificationCard({ m, idv, onLog 
 // ── Full order view (opened from member order history) ──────────────────────
 // Was a four-tile summary that forced a second click into Orders. Now it is the
 // order: lines, the tax breakdown in the mandated order, tender and fulfilment.
-window.FullOrderView = function FullOrderView({ order, m, onClose }) {
+window.FullOrderView = function FullOrderView({ order, m, onClose, onNav }) {
   const P = useP();
   const fmt = window.HW.fmt;
   const o = order;
@@ -487,7 +487,7 @@ window.FullOrderView = function FullOrderView({ order, m, onClose }) {
         <PBtn variant="secondary" size="md" icon="printer">Reprint receipt</PBtn>
         <PBtn variant="secondary" size="md" icon="refresh">Reorder</PBtn>
         <div style={{ flex: 1 }} />
-        <PBtn variant="secondary" size="md" icon="receipt" onClick={onClose}>Open in Orders</PBtn>
+        <PBtn variant="secondary" size="md" icon="receipt" onClick={() => { if (onNav) onNav('orders'); onClose(); }}>Open in Orders</PBtn>
       </div>
     </div>
   </div>;

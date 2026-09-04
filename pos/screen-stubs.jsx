@@ -12,7 +12,7 @@ const SPAN = {
   ytd: { range: 'Jan 1 – Jul 20, 2026', sub: 'year to date', active: '412', activeD: 31, loyalty: '$9,180', fresh: '148', freshD: 27, vip: '34' }
 };
 
-window.MembersScreen = function MembersScreen() {
+window.MembersScreen = function MembersScreen({ onNav }) {
   const P = useP();
   // Subscribes to the member/check-in store: a record created here has to show
   // up here, or "it worked" and "it did nothing" look identical.
@@ -53,7 +53,7 @@ window.MembersScreen = function MembersScreen() {
   { label: 'Weedmaps', render: (m) => {const linked = window.HW.wmLinked(m);return linked ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5, fontWeight: 800, color: '#fff', background: '#1F5FC0', padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' }}><span style={{ width: 5, height: 5, borderRadius: 2, background: '#fff' }} />Linked</span> : <span style={{ fontSize: 11.5, color: P.inkMute }}>In-store</span>;} },
   { label: '', align: 'right', width: '56px', render: (m) => <IconBtn icon="chevron-right" size={16} style={{ width: 32, height: 32 }} onClick={() => setSel(m)} /> }];
 
-  if (sel) return <MemberDetailPage m={sel} onBack={() => setSel(null)} />;
+  if (sel) return <MemberDetailPage m={sel} onBack={() => setSel(null)} onNav={onNav} />;
   const FRow = ({ label, k, opts }) => <div style={{ marginBottom: 12 }}>
     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>{label}</div>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>{opts.map((o) => {const on = f[k] === o;return <button key={o} onClick={() => setF1(k, o)} style={{ padding: '5px 11px', borderRadius: 99, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>{o}</button>;})}</div>
@@ -336,7 +336,7 @@ function Sec({ icon, title, sub, right, children }) {
 }
 
 // ── Dedicated member page ──────────────────────────────────────────
-function MemberDetailPage({ m, onBack }) {
+function MemberDetailPage({ m, onBack, onNav }) {
   const P = useP();const fmt = window.HW.fmt;
   // A wallet credit and a member edit both WRITE — this page has to re-render
   // off the store, not off a copy it made when it opened.
@@ -805,7 +805,7 @@ function MemberDetailPage({ m, onBack }) {
         setNotes(() => window.HW_HOT.addNote(m.id, { text: n.text, by: n.by || 'Manisha Saini', at: n.at || 'Just now' }));
         setModal(null);
       }} />}
-      {openOrder && <window.FullOrderView order={openOrder} m={m} onClose={() => setOpenOrder(null)} />}
+      {openOrder && <window.FullOrderView order={openOrder} m={m} onClose={() => setOpenOrder(null)} onNav={onNav} />}
     </div>);
 
 }
