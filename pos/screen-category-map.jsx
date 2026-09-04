@@ -928,7 +928,7 @@
   // that tells 423 and 428 apart at a glance. `collisions` comes from
   // wm_tree.collisions -- the same capture every id on this screen resolved
   // against, so the picker and the map cannot disagree about who won.
-  function NodePicker({ tree, value, onPick, collisions }) {
+  function NodePicker({ tree, value, onPick, collisions, multi, selectedIds }) {
     const P = useP();
     const [q, setQ] = React.useState('');
     const nodes = tree || [];
@@ -1020,18 +1020,24 @@
             </div>}
           {shown.map(function (e) {
             const n = e.node;
-            const sel = value != null && Number(value) === Number(n.id);
+            const sel = multi
+              ? !!(selectedIds && selectedIds.has(Number(n.id)))
+              : (value != null && Number(value) === Number(n.id));
             return (
               <button key={String(n.id) + '-' + e.depth} type="button"
                 data-hw-node={String(n.id)}
                 data-hw-node-selected={sel ? '1' : '0'}
                 onClick={function () { onPick(n.id); }}
-                style={{ display: 'block', width: '100%', textAlign: 'left',
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 8, width: '100%', textAlign: 'left',
                   padding: e.depth ? '5px 10px 5px 26px' : '6px 10px',
                   background: sel ? P.accentSoft : 'transparent',
                   border: 0, borderBottom: '1px solid ' + P.hairline2,
                   cursor: 'pointer', font: 'inherit',
                   color: sel ? P.accentText : P.ink }}>
+                {multi &&
+                  <input type="checkbox" checked={sel} readOnly tabIndex={-1}
+                    style={{ marginTop: 3, flexShrink: 0, pointerEvents: 'none' }} />}
+                <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: P.type.body, fontWeight: e.depth ? 500 : 700 }}>{n.name}</span>
                 <code style={{ fontFamily: P.fontMono, fontSize: P.type.micro, color: P.inkDim, marginLeft: 6 }}>[{n.id}]</code>
                 {e.orphan &&
@@ -1056,6 +1062,7 @@
                       </span>
                     </span>);
                 })()}
+                </span>
               </button>);
           })}
         </div>
@@ -1328,6 +1335,16 @@
     // 'bind' | 'unbind' | 'unbind_all' | 'reassign'. Starts on 'bind' even when
     // picks already exist -- adding another is the common case a re-open is for.
     const [mode, setMode] = React.useState('bind');
+    // Owner-reported 2026-09-04: the single-node 'bind' flow above forces
+    // Save -> re-open -> pick next -> Save again for every category type
+    // this row needs. MultiNodeBindEditor (below) is the multi-select escape
+    // hatch: same NodePicker, checkbox mode, one Review/Confirm covering
+    // every pick at once. Kept as a SEPARATE panel rather than folded into
+    // 'bind' mode because the two have genuinely different save shapes (one
+    // preview + one write vs N previews + a review table + N writes) and
+    // forcing them through one state machine was how the reassign flow above
+    // got tangled the first time.
+    const [multiOpen, setMultiOpen] = React.useState(false);
     const [unbindNode, setUnbindNode] = React.useState(null); // which pick 'unbind' targets
     const [reassignFrom, setReassignFrom] = React.useState(null); // which pick 'reassign' replaces
     const [http, setHttp] = React.useState(null);
@@ -1345,6 +1362,7 @@
     React.useEffect(function () {
       setNode(initialNode != null ? initialNode : null);
       setMode('bind'); setUnbindNode(null); setReassignFrom(null);
+      setMultiOpen(false);
       setHttp(null); setRefusal(null);
     }, [row.category, initialNode]);
 
@@ -1531,6 +1549,12 @@
         });
     }
 
+    if (multiOpen) {
+      return <MultiNodeBindEditor row={row} tree={tree} collisions={collisions}
+        onClose={function () { setMultiOpen(false); }}
+        onSaved={function (map) { setMultiOpen(false); onSaved(map, row.category); }} />;
+    }
+
     const s = st(row);
     // NO LONGER SCROLLED INTO VIEW, ON PURPOSE. Before 2026-08-28's split-view
     // rework, this editor rendered inline in a 4,886px table -- it could open
@@ -1615,6 +1639,9 @@
             <PBtn active={mode === 'bind'} data-hw-add-node="1"
               onClick={function () { setMode('bind'); }} icon="grid">
               {bindings.length ? 'Add another category type' : 'Pick a category type'}
+            </PBtn>
+            <PBtn data-hw-add-multi="1" onClick={function () { setMultiOpen(true); }} icon="grid">
+              Add several at once
             </PBtn>
             {bindings.length > 1 &&
               <PBtn active={mode === 'unbind_all'} data-hw-unbind-all="1"
@@ -1936,6 +1963,266 @@
                       borderRadius: P.r8, background: r.ok ? P.goodSoft : P.badSoft,
                       border: '1px solid ' + (r.ok ? P.hairline2 : P.bad) }}>
                       <code style={mono}>{cat}</code>{' '}
+                      {r.ok
+                        ? <span style={{ color: P.good, fontWeight: 600 }}>bound</span>
+                        : <span style={{ color: P.bad, fontWeight: 600 }}>refused — {r.refusal.error}</span>}
+                    </div>);
+                })}
+                <PBtn icon="check" onClick={onClose} style={{ marginTop: 6 }}>Done</PBtn>
+              </div>}
+          </div>}
+      </Card>);
+  }
+
+  // ── multi-node bind: one of OUR categories, several Weedmaps category types ──
+  // The mirror image of BulkBindEditor above (many categories, one type): here
+  // the category is fixed (BindingEditor already has it open) and the picker
+  // is the thing that goes multi. Same review/confirm/results shape as
+  // BulkBindEditor on purpose -- an operator who has already learned "pick
+  // several, Review, Confirm, see each result" from one direction should not
+  // have to learn a second vocabulary for the other.
+  function MultiNodeBindEditor({ row, tree, collisions, onClose, onSaved }) {
+    const P = useP();
+    const [nodes, setNodes] = React.useState(function () { return new Set(); });
+    const [previews, setPreviews] = React.useState(null);
+    const [phase, setPhase] = React.useState('idle'); // idle -> reviewed -> stale -> saving -> done
+    const [reviewed, setReviewed] = React.useState(null); // { nodeId: count|null }
+    const [staleNodes, setStaleNodes] = React.useState([]);
+    const [checking, setChecking] = React.useState(false);
+    const [busy, setBusy] = React.useState(false);
+    const [unk, setUnk] = React.useState(false);
+    const [results, setResults] = React.useState(null); // { nodeId: { ok, refusal, map } }
+    const mono = { fontFamily: P.fontMono, fontSize: P.type.meta };
+    const nodeList = Array.from(nodes);
+    const nodeKey = nodeList.join('|');
+
+    function previewPathFor(nodeId) {
+      return ROUTE + '/preview?' + qs({ op: 'bind', category: row.category, node: nodeId });
+    }
+
+    function fetchAll() {
+      return Promise.all(nodeList.map(function (nodeId) {
+        return getJSON(previewPathFor(nodeId)).then(function (r) { return { nodeId: nodeId, http: r }; });
+      }));
+    }
+
+    React.useEffect(function () {
+      let live = true;
+      setPreviews(null); setPhase('idle'); setReviewed(null); setStaleNodes([]);
+      setResults(null); setUnk(false);
+      if (nodeList.length === 0) { return function () { live = false; }; }
+      fetchAll().then(function (list) { if (live) { setPreviews(list); } });
+      return function () { live = false; };
+    }, [nodeKey, row.category]);
+
+    function pvOf(entry) {
+      const http = entry.http;
+      if (http && http.parsed && http.body && http.body.op) { return http.body; }
+      if (http && http.parsed && http.body && http.body.code) {
+        return { op: 'bind', subject: row.category, products_affected: null, products_known: true,
+          would_refuse: { code: http.body.code, error: http.body.error } };
+      }
+      return null;
+    }
+
+    const entries = (previews || []).map(function (e) { return Object.assign({}, e, { pv: pvOf(e) }); });
+    const usable = entries.filter(function (e) { return e.pv && !e.pv.would_refuse; });
+    const refused = entries.filter(function (e) { return e.pv && e.pv.would_refuse; });
+    const anyUnknown = usable.some(function (e) { return e.pv.products_known === false; });
+
+    const treeById = {};
+    (tree || []).forEach(function (n) { treeById[n.id] = n; });
+    function chainFor(nodeId) {
+      const picked = treeById[nodeId] || null;
+      if (!picked) { return null; }
+      const parent = picked.parent_id != null ? treeById[picked.parent_id] : null;
+      return parent ? [parent, picked] : [picked];
+    }
+
+    /** Mirrors BulkBindEditor's doReview: lock in a live count (or
+     *  would_refuse) for every usable category type. */
+    function doReview() {
+      setChecking(true);
+      fetchAll().then(function (fresh) {
+        setChecking(false);
+        setPreviews(fresh);
+        const map = {};
+        fresh.forEach(function (e) {
+          const pv = pvOf(e);
+          if (pv && !pv.would_refuse) { map[e.nodeId] = pv.products_affected; }
+        });
+        setReviewed(map);
+        setStaleNodes([]);
+        setPhase('reviewed');
+      });
+    }
+
+    /** Mirrors BulkBindEditor's doConfirm: re-ask every pick live before
+     *  writing anything; any pick whose answer moved sends the whole batch
+     *  stale rather than writing half of it on old numbers. */
+    function doConfirm() {
+      setChecking(true);
+      fetchAll().then(function (fresh) {
+        setChecking(false);
+        const changed = [];
+        fresh.forEach(function (e) {
+          if (!reviewed || !Object.prototype.hasOwnProperty.call(reviewed, e.nodeId)) { return; }
+          const pv = pvOf(e);
+          const now = pv && !pv.would_refuse ? pv.products_affected : '__refused__';
+          if (String(now) !== String(reviewed[e.nodeId])) { changed.push(e.nodeId); }
+        });
+        if (changed.length) {
+          setPreviews(fresh);
+          setStaleNodes(changed);
+          setPhase('stale');
+          return;
+        }
+        doSave();
+      });
+    }
+
+    /** The same `/bind` BindingEditor's own save() calls, once per category
+     *  type, sequentially — see BulkBindEditor's doSave for why sequential
+     *  and why a refusal on one does not stop the rest. */
+    function doSave() {
+      setBusy(true); setPhase('saving');
+      const targets = Object.keys(reviewed || {});
+      const out = {};
+      let chain = Promise.resolve();
+      targets.forEach(function (nodeIdStr) {
+        chain = chain.then(function () {
+          return post(ROUTE + '/bind', { category: row.category, node: Number(nodeIdStr), confirm_products: reviewed[nodeIdStr] })
+            .then(function (r) {
+              const ref = refusalOf(r);
+              out[nodeIdStr] = { ok: !ref, refusal: ref, map: r && r.body && r.body.map };
+            });
+        });
+      });
+      chain.then(function () {
+        setBusy(false); setResults(out); setPhase('done');
+        let lastMap = null;
+        for (let i = targets.length - 1; i >= 0; i--) {
+          if (out[targets[i]] && out[targets[i]].map) { lastMap = out[targets[i]].map; break; }
+        }
+        onSaved(lastMap);
+      });
+    }
+
+    return (
+      <Card density="roomy" data-hw-editor="multi-node-bind" style={{ border: '1px solid ' + P.accentBorder }}>
+        <SectionHead level={3} eyebrow={row.category}
+          title="Add several category types at once"
+          subtitle="Pick as many Weedmaps category types as apply — each one gets its own real bind and its own live review, done back to back instead of one trip through this panel per pick."
+          action={<PBtn icon="x" onClick={onClose}>Close</PBtn>} />
+
+        <NodePicker tree={tree} collisions={collisions} multi selectedIds={nodes}
+          onPick={function (id) {
+            setNodes(function (s) {
+              const n = new Set(s);
+              const idNum = Number(id);
+              if (n.has(idNum)) { n.delete(idNum); } else { n.add(idNum); }
+              return n;
+            });
+          }} />
+
+        {nodeList.length > 0 && !previews &&
+          <div style={{ marginTop: 12, fontSize: P.type.meta, color: P.inkMute }}>
+            Reading what this would change for each of the {nodeList.length} category types…
+          </div>}
+
+        {nodeList.length > 0 && previews &&
+          <div style={{ marginTop: 14 }}>
+            {refused.length > 0 &&
+              <div data-hw-multi-skipped="1" style={{ padding: '10px 12px', marginBottom: 10,
+                background: P.warnSoft, border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+                <div style={{ fontSize: P.type.meta, fontWeight: 700, color: P.ink }}>
+                  {refused.length} of {nodeList.length} won&rsquo;t be included
+                </div>
+                {refused.map(function (e) {
+                  return (
+                    <div key={e.nodeId} data-hw-multi-skip-reason={e.nodeId}
+                      style={{ fontSize: P.type.micro, color: P.ink2, marginTop: 4, lineHeight: 1.4 }}>
+                      <code style={mono}>category type {e.nodeId}</code>: {e.pv.would_refuse.error}
+                    </div>);
+                })}
+              </div>}
+
+            {usable.length === 0 &&
+              <div style={{ fontSize: P.type.meta, color: P.inkMute }}>
+                None of the selected category types can be bound to {row.category} right now.
+              </div>}
+
+            {usable.length > 0 && phase === 'idle' &&
+              <div>
+                <div style={{ fontSize: P.type.meta, color: P.ink2, marginBottom: 8, lineHeight: 1.5 }}>
+                  Will bind {row.category} to <strong data-hw-multi-usable-count="1">{usable.length}</strong>{' '}
+                  category type{usable.length === 1 ? '' : 's'}.
+                </div>
+                <PBtn icon="search" data-hw-multi-review="1" disabled={checking} onClick={doReview}>
+                  {checking ? 'Reviewing…' : 'Review change'}
+                </PBtn>
+              </div>}
+
+            {usable.length > 0 && phase === 'reviewed' &&
+              <div>
+                <div data-hw-multi-review-strip="1" style={{ padding: '10px 12px', background: P.surface3,
+                  border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
+                  {usable.map(function (e) {
+                    const chain = chainFor(e.nodeId);
+                    return (
+                      <div key={e.nodeId} style={{ display: 'flex', justifyContent: 'space-between',
+                        gap: 8, fontSize: P.type.meta, color: P.ink2, padding: '3px 0' }}>
+                        {chain ? <WmPathChain nodes={chain} broken={false} nodeId={e.nodeId} /> : <code style={mono}>category type {e.nodeId}</code>}
+                        <span>
+                          {reviewed[e.nodeId] == null ? 'unknown' :
+                            num(reviewed[e.nodeId]) + ' product row' + (reviewed[e.nodeId] === 1 ? '' : 's')}
+                        </span>
+                      </div>);
+                  })}
+                </div>
+                {anyUnknown &&
+                  <label style={{ display: 'flex', gap: 7, alignItems: 'center', marginTop: 8, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={unk} data-hw-multi-echo-unknown="1"
+                      onChange={function (e) { setUnk(!!e.target.checked); }} />
+                    <span style={{ fontSize: P.type.meta, color: P.ink }}>
+                      I am saving without knowing how many products some of these affect.
+                    </span>
+                  </label>}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                  <PBtn variant="accent" icon="check" data-hw-multi-confirm="1"
+                    disabled={busy || checking || (anyUnknown && !unk)} onClick={doConfirm}>
+                    {checking ? 'Checking…' : 'Confirm — bind ' + usable.length}
+                  </PBtn>
+                  <PBtn icon="x" onClick={onClose}>Cancel</PBtn>
+                </div>
+              </div>}
+
+            {usable.length > 0 && phase === 'stale' &&
+              <div data-hw-multi-stale="1" style={{ padding: '10px 12px', background: P.warnSoft,
+                border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+                <div style={{ fontSize: P.type.meta, color: P.ink, lineHeight: 1.5 }}>
+                  {staleNodes.length} category type{staleNodes.length === 1 ? '' : 's'} changed since you
+                  reviewed — nothing was written. Review again before confirming.
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <PBtn variant="accent" icon="check" disabled>Confirm — bind {usable.length}</PBtn>
+                  <PBtn icon="refresh" data-hw-multi-review-again="1" onClick={doReview}>Review again</PBtn>
+                </div>
+              </div>}
+
+            {phase === 'saving' &&
+              <div style={{ fontSize: P.type.meta, color: P.inkMute }}>Saving…</div>}
+
+            {phase === 'done' && results &&
+              <div data-hw-multi-done="1" style={{ marginTop: 4 }}>
+                {Object.keys(results).map(function (nodeIdStr) {
+                  const r = results[nodeIdStr];
+                  const chain = chainFor(Number(nodeIdStr));
+                  return (
+                    <div key={nodeIdStr} data-hw-multi-result={nodeIdStr} style={{ padding: '8px 10px', marginBottom: 5,
+                      borderRadius: P.r8, background: r.ok ? P.goodSoft : P.badSoft,
+                      border: '1px solid ' + (r.ok ? P.hairline2 : P.bad) }}>
+                      {chain ? <WmPathChain nodes={chain} broken={false} nodeId={Number(nodeIdStr)} /> : <code style={mono}>category type {nodeIdStr}</code>}{' '}
                       {r.ok
                         ? <span style={{ color: P.good, fontWeight: 600 }}>bound</span>
                         : <span style={{ color: P.bad, fontWeight: 600 }}>refused — {r.refusal.error}</span>}
@@ -2282,7 +2569,7 @@
   // same reason: without it, scrolling this box to either end CHAINS into
   // <main> the instant it runs out of room, which is the "screen jumped
   // around" defect all over again, just moved one level in.
-  function useStickyPanelMaxHeight(ref, ready) {
+  function useStickyPanelMaxHeight(ref, ready, recomputeKey) {
     const [maxHeight, setMaxHeight] = React.useState(null);
     // `ready` is deliberately a dependency, not just a mount-time read. The
     // panel sits behind `{d && ...}` (CategoryMapScreen, below) — it does not
@@ -2291,6 +2578,19 @@
     // forever and never get a second chance once the panel actually appears.
     // `ready` flips from falsy to truthy exactly when that happens, which is
     // what re-runs this effect against a real node.
+    //
+    // `recomputeKey` (owner-reported, 2026-09-04) is the second half of that
+    // same lesson: `ready` only flips ONCE, at first load, when <main> is
+    // still scrolled to 0 and this page's own explainer text puts the panel
+    // ~1000px below the fold -- so the FIRST measurement of "top" is deeply
+    // negative and clamps to the 220px floor. Nothing re-measures after that
+    // until the next window resize or <main> scroll event fires, so opening
+    // a DIFFERENT row's editor (which changes what the panel shows but is
+    // neither of those two events) kept the stale 220px cap instead of using
+    // the position <main> is actually scrolled to right now -- which must
+    // already be correct, since the operator just clicked something on a
+    // visible row. Changing `editing`/`bulkEditing` (passed in as this key)
+    // forces an immediate fresh recompute exactly then.
     React.useEffect(function () {
       const el = ref.current;
       if (!el) { return undefined; }
@@ -2310,7 +2610,7 @@
         window.removeEventListener('resize', recompute);
         if (scroller) { scroller.removeEventListener('scroll', recompute); }
       };
-    }, [ready]);
+    }, [ready, recomputeKey]);
     return maxHeight;
   }
 
@@ -2375,7 +2675,7 @@
     // useStickyPanelMaxHeight above for why this is measured, not a guessed
     // pixel constant).
     const panelRef = React.useRef(null);
-    const panelMaxHeight = useStickyPanelMaxHeight(panelRef, !!d);
+    const panelMaxHeight = useStickyPanelMaxHeight(panelRef, !!d, editing + '|' + bulkEditing);
 
     // NOT rendered as `columns[0].label` — DataTable's own header row is real
     // JSX in production, but this screen's OWN row-selection checkbox needs
