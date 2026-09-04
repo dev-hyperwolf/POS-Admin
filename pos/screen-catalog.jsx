@@ -46,6 +46,24 @@ function productFreshness(P) {
   return { text: `product data live${at ? ' · confirmed ' + relAge(at) : ''}`, tone: P.good };
 }
 
+// Page-number list for the catalog footer's pager. Every page when there are
+// few; otherwise first/last plus a window around the current page with '…'
+// gaps, so a catalog with hundreds of SKUs at PAGE_SIZE=25 does not print
+// dozens of number buttons.
+function pageWindow(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const keep = new Set([1, total, current - 1, current, current + 1].filter((n) => n >= 1 && n <= total));
+  const sorted = [...keep].sort((a, b) => a - b);
+  const out = [];
+  let prev = null;
+  for (const n of sorted) {
+    if (prev != null && n - prev > 1) out.push('…');
+    out.push(n);
+    prev = n;
+  }
+  return out;
+}
+
 window.CatalogScreen = function CatalogScreen() {
   const P = useP();
   const all = window.HW.PRODUCTS;
@@ -56,6 +74,13 @@ window.CatalogScreen = function CatalogScreen() {
   const [bulkMsg, setBulkMsg] = React.useState(null); // {ok, t} — result of the last bulk Weedmaps action
   const [sort, setSort] = React.useState('name');
   const [view, setView] = React.useState('table');
+  // Pagination was fully decorative — Prev/Next/page-number buttons had no
+  // onClick at all, and the footer always sliced the SAME `rows` regardless
+  // of which page was "selected". `pageRaw` is the raw 1-based control state;
+  // it gets clamped against the current filtered set below (see `page`),
+  // never rendered directly, so a filter that shrinks the result set cannot
+  // strand the viewer on a page number that no longer exists.
+  const [pageRaw, setPageRaw] = React.useState(1);
   const [smart, setSmart] = React.useState('none');
   const [marginMin, setMarginMin] = React.useState(0); // profit-margin filter (%)
   const [metricMode, setMetricMode] = React.useState('ribbon'); // ribbon | compact | hidden
@@ -96,6 +121,17 @@ window.CatalogScreen = function CatalogScreen() {
     return r;
   }, [q, cat, strain, sort, smart, marginMin, all]);
 
+  // Narrowing a filter can leave `pageRaw` pointing past the new, smaller
+  // result set. Reset to page 1 whenever the FILTER inputs change — not on
+  // `sort` (same rows, new order) and not on `pageRaw` itself.
+  React.useEffect(() => { setPageRaw(1); }, [q, cat, strain, smart, marginMin]);
+
+  const PAGE_SIZE = 25;
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const page = Math.min(pageRaw, totalPages); // belt-and-suspenders clamp for the same reason as the effect above
+  const pageStart = (page - 1) * PAGE_SIZE;
+  const pageRows = rows.slice(pageStart, pageStart + PAGE_SIZE);
+
   const allSel = rows.length > 0 && rows.every((r) => sel.has(r.sku));
   const toggleAll = () => setSel(allSel ? new Set() : new Set(rows.map((r) => r.sku)));
   const toggle = (sku) => setSel((s) => {const n = new Set(s);n.has(sku) ? n.delete(sku) : n.add(sku);return n;});
@@ -130,8 +166,28 @@ window.CatalogScreen = function CatalogScreen() {
   { label: 'Status', render: (r) => r.active ? <Pill kind="good" dot>Active</Pill> : <Pill kind="neutral" dot>Inactive</Pill> },
   { label: '', align: 'right', width: '90px', render: (r) =>
     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-        <IconBtn icon="pencil" size={15} style={{ width: 32, height: 32 }} />
-        <IconBtn icon="trash" size={15} style={{ width: 32, height: 32 }} />
+        {/* Edit had no onClick at all. The real edit surface already exists —
+            clicking the product name/thumbnail two columns over does exactly
+            this (`setDetail(r)` -> ProductDetailPage, which is where a SKU's
+            fields are actually changed, e.g. the price override). Route the
+            pencil to the same place instead of building a second editor. */}
+        <IconBtn icon="pencil" size={15} label={`Edit ${r.name}`} title="Edit product" style={{ width: 32, height: 32 }} onClick={() => setDetail(r)} />
+        {/* Delete also had no onClick, and it stays that way — deliberately,
+            same call the bulk action bar above already makes out loud. There
+            is no product-delete route anywhere in this build: shell-store.jsx
+            has a real POST /api/product (create/upsert) and GET /api/product/
+            <sku>, and there is no corresponding DELETE. Wiring this to remove
+            the row from local state would "delete" it on screen while the
+            server still serves it on the next fetch — the exact
+            reports-success-writes-nothing shape this estate's own tests
+            (test/register-checkin-writes.test.mjs) exist to catch, just moved
+            to a different screen. Disabled + an honest tooltip beats a fake
+            button; see CLAUDE.md's decision-authority test — irreversible,
+            no live primitive to call — this is an owner/backend call, not a
+            client-side one. */}
+        <IconBtn icon="trash" size={15} label={`Delete ${r.name}`} disabled
+          title="No product-delete API exists in this build — there is nothing this button could call that would not just fake removing a live SKU."
+          style={{ width: 32, height: 32, opacity: .35, cursor: 'not-allowed' }} />
       </div> }];
 
 
@@ -265,17 +321,24 @@ window.CatalogScreen = function CatalogScreen() {
         </div>
       }
 
+      {/* Both branches now render PAGE_ROWS — the current page's slice of the
+          filtered `rows` — not `rows` itself. Before this, the table always
+          showed the same rows regardless of which page control was clicked,
+          because nothing sliced by page at all. */}
       {view === 'table' ?
-      <DataTable columns={cols} rows={rows} rowKey={(r) => r.sku} selectedKeys={sel} /> :
-      <CatalogGrid rows={rows} sel={sel} toggle={toggle} onOpen={setDetail} />}
+      <DataTable columns={cols} rows={pageRows} rowKey={(r) => r.sku} selectedKeys={sel} /> :
+      <CatalogGrid rows={pageRows} sel={sel} toggle={toggle} onOpen={setDetail} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, fontSize: 12.5, color: P.inkDim }}>
-        <span style={{ fontFamily: P.fontMono }}>Showing {rows.length} of {all.length}</span>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <PBtn variant="ghost" size="sm" icon="chevron-left" disabled>Prev</PBtn>
-          <PBtn variant="soft" size="sm">1</PBtn>
-          <PBtn variant="ghost" size="sm">2</PBtn>
-          <PBtn variant="ghost" size="sm" iconRight="chevron-right">Next</PBtn>
+        <span style={{ fontFamily: P.fontMono }}>
+          {rows.length ? `Showing ${pageStart + 1}–${pageStart + pageRows.length} of ${rows.length}` : 'Showing 0 of 0'}
+        </span>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <PBtn variant="ghost" size="sm" icon="chevron-left" disabled={page <= 1} onClick={() => setPageRaw((n) => Math.max(1, n - 1))}>Prev</PBtn>
+          {pageWindow(page, totalPages).map((n, i) => n === '…' ?
+          <span key={'gap' + i} style={{ padding: '0 2px', color: P.inkFaint, fontFamily: P.fontMono, fontSize: 12 }}>…</span> :
+          <PBtn key={n} variant={n === page ? 'soft' : 'ghost'} size="sm" onClick={() => setPageRaw(n)}>{n}</PBtn>)}
+          <PBtn variant="ghost" size="sm" iconRight="chevron-right" disabled={page >= totalPages} onClick={() => setPageRaw((n) => Math.min(totalPages, n + 1))}>Next</PBtn>
         </div>
       </div>
       {addOpen && <window.AddProductFlow entry="catalog" onClose={() => setAddOpen(false)} onDone={() => setAddOpen(false)} />}
