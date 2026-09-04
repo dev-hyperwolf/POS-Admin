@@ -599,7 +599,28 @@ function _hwLiveBase() {
   try { return window.location.origin; } catch (e) { return ''; }
 }
 
-function postWalkInCheckIn(customer) {
+// `member` — Bind Gate, Part 4, 2026-09-03 — is the LOCAL mock record this
+// arrival was just filed under (addCheckIn's `member`, below). Nothing about
+// the fire-and-forget contract above changes: addCheckIn's return value and
+// timing are untouched, this is purely a background `.then()` racing nobody.
+//
+// WHY IT EXISTS: the identity ladder's own answer — which real hw_identities
+// row (if any) this walk-in resolved to — used to be thrown away the instant
+// the response arrived; nothing on this side of the wire ever learned it.
+// That is fine for the check-in itself (the mock row is already the record a
+// human reads), but it leaves no way for a LATER action taken from this same
+// check-in — "this person says they have a waiting Weedmaps order" — to name
+// which backend identity to run the Bind Gate against. Stashing the resolved
+// id onto the member record the moment it is known is the minimum plumbing
+// that makes screen-register.jsx's "Bind to waiting order" action possible
+// without a second round-trip to re-resolve someone who was just resolved.
+//
+// STASHED, NEVER OVERWRITTEN WITH A GUESS. `identity_id` comes back null on
+// AMBIGUOUS / UNDETERMINED / ANONYMOUS (see checkin_api.create_checkin_resolved's
+// own docstring) — those are refusals to attribute, not identities, and this
+// leaves `hw_identity_id` alone rather than writing null over a value a prior
+// resolve may have set (a repeat arrival for someone already linked).
+function postWalkInCheckIn(customer, member) {
   try {
     if (!customer) return;
     const phone = customer.phone && customer.phone !== '—' ? customer.phone : '';
@@ -618,13 +639,28 @@ function postWalkInCheckIn(customer) {
     const gov = customer.doc && customer.doc.gov_id_hash;
     if (gov) body.gov_id_hash = gov;
     const req = (window.HW_LIVE && typeof window.HW_LIVE.post === 'function')
+      // window.HW_LIVE.post already resolves to { ok, body, ... } and never
+      // rejects (shared/hw-live.js settleWrite) -- read it directly.
       ? window.HW_LIVE.post('/api/checkin/walkin', body)
       : fetch(_hwLiveBase() + '/api/checkin/walkin', {
           method: 'POST', credentials: 'omit', cache: 'no-store',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
-        });
-    if (req && typeof req.catch === 'function') req.catch(() => {});
+        // Normalise the fallback branch to the SAME { ok, body } shape
+        // HW_LIVE.post already hands back, so the .then() below is one
+        // implementation, not two that can quietly disagree.
+        }).then((res) => res.json().then((j) => ({ ok: res.ok, body: j }),
+                                         () => ({ ok: res.ok, body: null })));
+    if (req && typeof req.then === 'function') {
+      req.then((r) => {
+        const idn = r && r.ok && r.body && r.body.identity;
+        if (member && idn && idn.identity_id != null) {
+          member.hw_identity_id = idn.identity_id;
+          member.hw_identity_outcome = idn.outcome;
+          _hwNotify();
+        }
+      }).catch(() => {});
+    }
   } catch (e) { /* best-effort only — the mock row is already recorded */ }
 }
 
@@ -670,11 +706,13 @@ function addCheckIn(p) {
   };
   CHECKINS.push(rec);
   // AND THE BACKEND HAS TO HEAR ABOUT IT TOO — see postWalkInCheckIn above
-  // for what this does and does not do. `c`, not `member`: the identity
-  // ladder fingerprints on what THIS ARRIVAL just typed or scanned, and a
-  // stale phone already on the local member record must not paper over a
-  // correction made at the counter this second.
-  postWalkInCheckIn(c);
+  // for what this does and does not do. `c`, not `member`, is what gets
+  // FINGERPRINTED: the identity ladder runs on what THIS ARRIVAL just typed
+  // or scanned, and a stale phone already on the local member record must
+  // not paper over a correction made at the counter this second. `member` is
+  // passed SEPARATELY, only as the place the resolved identity_id lands once
+  // the response comes back (Bind Gate, Part 4) — it is never read for input.
+  postWalkInCheckIn(c, member);
   // THE SCAN HAS TO REACH THE LEDGER.
   // A counter scan captured a document and then the record was created without
   // it, so the person who had just handed over a physical ID looked

@@ -1496,11 +1496,196 @@ function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
                 ? <><Icon name="x" size={12} stroke={2.3} />Unclaim</>
                 : <>Claim<Icon name="arrow-right" size={12} stroke={2.3} /></>}
             </button>
+            {/* Bind Gate, Part 4 — see BindWaitingOrderButton below for why
+                this is a SIBLING row and not a button nested inside the
+                header button above (nested <button>s are invalid HTML and
+                the click would double-fire on the wrong element). */}
+            <BindWaitingOrderButton checkin={c} />
           </div>);
       })}
     </div>
     </div>);
 
+}
+
+// ── BIND GATE, PART 4 — "this walk-in says they have a waiting order" ───────
+//
+// checkin_api.create_checkin_resolved (Bind Gate Part 2) already ran this
+// person through the 5-tier identity ladder before their check-in card ever
+// appeared here. This button needs that ladder's answer to name the
+// candidate identity the Bind Gate should run against — so a second document
+// scan is never asked for here, the walk-in already scanned one at check-in —
+// and there are TWO different places that answer can be sitting, because
+// window.HW.CHECKINS itself has two different origins:
+//
+//   LIVE (the normal case once a backend is attached): shared/hw-live-
+//   checkin.js's poll REPLACES CHECKINS wholesale off GET /api/checkin/board,
+//   and each of ITS rows already carries `identityId` straight off the
+//   checkins table column (checkin_api.create_checkin_resolved wrote it at
+//   check-in time). `memberId` is null on these rows — they were never routed
+//   through the local mock roster at all — so reading `member.hw_identity_id`
+//   here would always find nothing on a live board, which is exactly the
+//   deployment this feature has to work on.
+//
+//   MOCK (addCheckIn, pos/data.jsx, no live poll yet attached or a brand new
+//   walk-in the next poll hasn't folded in): the check-in row has a real
+//   `memberId` and no `identityId` of its own. postWalkInCheckIn (Part 4)
+//   stashes the resolved id onto that LOCAL member record the moment its
+//   fire-and-forget response lands, under `member.hw_identity_id`.
+//
+// `checkin.identityId` is tried FIRST for exactly that reason — it is the
+// live board's own, more authoritative answer when one exists — and the
+// member lookup is the fallback for the mock path.
+//
+// WHY THIS DOES NOT RENDER UNTIL AN IDENTITY ID EXISTS. There is a real
+// window — a slow network, an offline demo, an ambiguous/undetermined/
+// anonymous resolve (see checkin_api's own docstring for what each of those
+// means) — where neither source has an id yet. Rendering the button anyway
+// and refusing on click would be silent right up until the associate presses
+// it; not rendering it says the same thing without a wasted tap, and it
+// appears on its own the moment an identity resolves (a board poll, or
+// `_hwNotify()` after postWalkInCheckIn's response lands).
+function BindWaitingOrderButton({ checkin }) {
+  const P = useP();
+  const [open, setOpen] = React.useState(false);
+  const member = (window.HW.MEMBERS || []).find((m) => m.id === checkin.memberId);
+  const identityId = checkin.identityId != null ? checkin.identityId
+    : (member && member.hw_identity_id != null ? member.hw_identity_id : null);
+  if (identityId == null) return null;
+  return <>
+    <button onClick={() => setOpen(true)}
+      title={`${checkin.name} has a waiting Weedmaps order? Bind it to identity #${identityId}`}
+      style={{ width: '100%', padding: '4px 10px', background: P.surface, color: P.inkDim,
+        border: 'none', borderTop: `1px solid ${P.hairline}`, fontSize: 10.5, fontWeight: 600,
+        cursor: 'pointer', fontFamily: P.fontSans, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', gap: 4 }}>
+      <Icon name="link" size={10.5} stroke={2.2} />Has a waiting order?
+    </button>
+    {open && <BindWaitingOrderModal checkinName={checkin.name} identityId={identityId}
+      onClose={() => setOpen(false)} />}
+  </>;
+}
+
+// One review row, one candidate identity (the walk-in already resolved
+// above), one gate. See wmdemo/bind_gate.py's module docstring for the full
+// design: name+DOB, never a second ID scan, and BOTH outcomes past a refusal
+// (bound / gate_not_cleared) are shown here — a coincidental name+DOB miss is
+// not an error, but it is never allowed to read as nothing having happened.
+function BindWaitingOrderModal({ checkinName, identityId, onClose }) {
+  const P = useP();
+  const [http, setHttp] = React.useState(null);       // GET /api/identity/review/open
+  const [pickedId, setPickedId] = React.useState(null);
+  const [busy, setBusy] = React.useState(false);
+  const [result, setResult] = React.useState(null);    // POST /api/identity/review/bind outcome
+
+  React.useEffect(() => {
+    let dead = false;
+    if (window.HW_LIVE && typeof window.HW_LIVE.get === 'function') {
+      window.HW_LIVE.get('/api/identity/review/open').then((r) => { if (!dead) setHttp(r); });
+    } else {
+      setHttp({ ok: false, code: 0, body: null, error: 'window.HW_LIVE is not loaded on this page' });
+    }
+    return () => { dead = true; };
+  }, []);
+
+  const reviews = (http && http.ok && http.body && http.body.reviews) || [];
+  // wm_order_id-bearing rows only — a row queued from a WALK-IN (Part 1/2's
+  // `wm_order_id=None` shape) has no waiting Weedmaps order to attach, and
+  // offering it here would let an associate "bind" two people who both just
+  // walked in to each other. bind_gate.attempt_bind refuses that server-side
+  // too (no_wm_id_on_queued_order when context carries no wm_id), but the
+  // list should not offer a choice the gate will only refuse.
+  const bindable = reviews.filter((r) => r.wm_order_id && r.context && r.context.wm_id);
+
+  function runGate() {
+    if (pickedId == null || busy) return;
+    setBusy(true); setResult(null);
+    window.HW_LIVE.post('/api/identity/review/bind', {
+      review_id: pickedId, candidate_identity_id: identityId,
+      actor: (window.HW.STATS && window.HW.STATS.associate && window.HW.STATS.associate.name) || 'POS'
+    }).then((r) => {
+      setBusy(false);
+      const b = r && r.body;
+      if (!b) { setResult({ tone: 'bad', text: r.error || ('HTTP ' + r.code) }); return; }
+      if (b.ok === false) { setResult({ tone: 'bad', text: `Refused (${b.code}): ${b.error}` }); return; }
+      if (b.outcome === 'bound') {
+        setResult({ tone: 'good', text: `Bound — Weedmaps account ${b.wm_id} is now attached to identity #${b.candidate_identity_id}. ${b.why}` });
+      } else {
+        // gate_not_cleared: ok:true, nothing written, row stays open. NEVER
+        // rendered as a quiet no-op — see bind_gate.py's module docstring.
+        setResult({ tone: 'warn', text: `Gate did not clear: ${b.why} The review row was left open for a human to look at.` });
+      }
+    }).catch((e) => { setBusy(false); setResult({ tone: 'bad', text: String((e && e.message) || e) }); });
+  }
+
+  const toneBg = { good: P.goodSoft, bad: P.badSoft, warn: P.warnSoft };
+  const toneFg = { good: P.good, bad: P.bad, warn: P.warn };
+
+  // window.overlayScrim / window.overlayCard (pos/atoms.jsx), not a hand-typed
+  // scrim: test/overlay-scrim-registry.test.mjs refuses a 36th hand-typed copy
+  // of this object outright, and this modal is an ordinary centred card — none
+  // of the right-edge-drawer / bottom-sheet exemptions the register lists
+  // apply, so the helper is the correct shape, not a workaround.
+  return (
+    <div onClick={onClose} style={window.overlayScrim(P, { z: P.z.scrim })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard,
+        width: 'min(520px, 92vw)', maxHeight: '80vh',
+        display: 'flex', flexDirection: 'column', background: P.surface, borderRadius: P.r16,
+        boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${P.hairline2}` }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute }}>Bind waiting order</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: P.ink, marginTop: 4 }}>{checkinName} · identity #{identityId}</div>
+          <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 4, lineHeight: 1.5 }}>
+            Gated on name + date of birth against what the Weedmaps order captured — {checkinName} already scanned ID at check-in, so this never asks for a second scan.
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 18px' }}>
+          {!http && <div style={{ fontSize: 12, color: P.inkMute }}>Loading the review queue…</div>}
+          {http && !http.ok && <div style={{ fontSize: 12, color: P.bad }}>
+            GET /api/identity/review/open failed: {http.error || ('HTTP ' + http.code)}
+          </div>}
+          {http && http.ok && bindable.length === 0 && <div style={{ fontSize: 12.5, color: P.inkMute, lineHeight: 1.5 }}>
+            No Weedmaps order is currently sitting in the review queue with a customer id to bind. If {checkinName} is expecting one, it may still be resolving, or it may not need this at all (most orders bind on their own).
+          </div>}
+          {http && http.ok && bindable.map((r) => {
+            const ctx = r.context || {};
+            const attempts = r.bind_attempts || [];
+            return (
+              <label key={r.id} style={{ display: 'block', padding: '9px 10px', marginBottom: 6,
+                border: `1px solid ${pickedId === r.id ? P.ink : P.hairline2}`, borderRadius: P.r10,
+                cursor: 'pointer', background: pickedId === r.id ? P.surface2 : 'transparent' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <input type="radio" name="bg-review" checked={pickedId === r.id}
+                    onChange={() => setPickedId(r.id)} style={{ marginTop: 3 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>
+                      {[ctx.first, ctx.last].filter(Boolean).join(' ') || '(no name captured)'}
+                      {ctx.dob && <span style={{ fontWeight: 400, color: P.inkDim }}> · dob {ctx.dob}</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>
+                      order {r.wm_order_id} · wm id {ctx.wm_id} · {r.outcome}
+                    </div>
+                    {attempts.length > 0 && <div style={{ marginTop: 5, padding: '5px 8px', background: P.warnSoft, borderRadius: P.r8, fontSize: 10.5, color: P.ink2, lineHeight: 1.4 }}>
+                      {attempts.length} prior bind attempt{attempts.length > 1 ? 's' : ''} — last: {attempts[attempts.length - 1].cleared ? 'cleared' : 'did not clear'} ({attempts[attempts.length - 1].why})
+                    </div>}
+                  </div>
+                </div>
+              </label>);
+          })}
+        </div>
+
+        {result && <div style={{ margin: '0 18px 12px', padding: '9px 10px', borderRadius: P.r10,
+          background: toneBg[result.tone] || P.surface2, color: toneFg[result.tone] || P.ink,
+          fontSize: 12, lineHeight: 1.5 }}>{result.text}</div>}
+
+        <div style={{ padding: '10px 18px 16px', borderTop: `1px solid ${P.hairline2}`, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <PBtn variant="secondary" size="sm" onClick={onClose}>Close</PBtn>
+          <PBtn variant="primary" size="sm" icon="link" busy={busy} disabled={pickedId == null}
+            onClick={runGate}>Run Bind Gate</PBtn>
+        </div>
+      </div>
+    </div>);
 }
 
 /* ── ID PHOTOS ATTACHED FROM THE MEMBER PANEL, FOR THIS TAB ONLY ────────────

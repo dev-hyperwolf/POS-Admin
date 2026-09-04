@@ -13,31 +13,42 @@
 // binding() already embeds history() in its response -- no second call needed
 // for the audit trail.
 //
-// THERE IS NO BIND ROUTE, AND IT IS NOT AN OVERSIGHT. wm_binding.py's own
-// docstring, in full: "No re-attach / bind route. Re-attaching is not an
-// undo, it is the assertion 'this Weedmaps account IS this person' -- a new
-// claim, which belongs downstream of the document veto machinery
-// (engine._record_document_veto, store.merge_identities) and not in a
-// rollback button." store.add_wm_id_to_identity(identity_id, wm_id) exists
-// and IS the mechanical write a bind would need -- grep confirms it is called
-// from nowhere. Wiring a route to it here would silently reverse a documented
-// design decision, not close a gap, so this screen does not do that. It shows
-// what is bound, why the confidence in it is or isn't warranted, its full
-// audit trail, and the one write the backend actually offers: unbind, with a
-// mandatory reason and the same order-count acknowledgement gate the API
-// itself enforces.
+// THERE IS STILL NO RAW BIND ROUTE, AND THAT REMAINS DELIBERATE.
+// wm_binding.py's own docstring, in full: "No re-attach / bind route.
+// Re-attaching is not an undo, it is the assertion 'this Weedmaps account IS
+// this person' -- a new claim, which belongs downstream of the document veto
+// machinery (engine._record_document_veto, store.merge_identities) and not
+// in a rollback button." That principle is still true, and this screen still
+// does not expose store.add_wm_id_to_identity as a bare admin toggle where an
+// operator types any identity id next to any Weedmaps handle and it sticks.
 //
-// LISTING NEEDED NO NEW ROUTE EITHER. GET /api/identity/members (identity_api
-// .members / _member_row) already returns wm_ids + wm_id_count per customer --
-// it is the ledger the Members table would use if that screen were live-wired.
-// This screen reads it read-only and never duplicates its search logic.
+// 🔴 CORRECTED 2026-09-03 — Bind Gate, Part 3/4. A narrower, GATED bind now
+// exists and this screen wires it: wmdemo/bind_gate.py's
+// POST /api/identity/review/bind attaches ONE specific
+// identity_review_queue row's captured Weedmaps order to ONE candidate
+// identity, and ONLY when their name + date of birth match exactly (see that
+// module's docstring for why DOB is the gate and not a second ID scan). It
+// is not the rollback button the paragraph above refuses to build — it
+// supplies the one thing a re-attach needs and never had: a specific,
+// checkable piece of new evidence, tied to a specific queued order. The
+// REVIEW QUEUE PANEL below (GET /api/identity/review/open, new in the same
+// change) is where that evidence is presented; the paragraph above is
+// retained rather than deleted because the general principle it states —
+// no bare re-attach toggle — still governs everything else on this screen,
+// including the identity roster and the unbind flow.
+//
+// LISTING NEEDED NO NEW ROUTE FOR THE ROSTER. GET /api/identity/members
+// (identity_api.members / _member_row) already returns wm_ids + wm_id_count
+// per customer -- it is the ledger the Members table would use if that
+// screen were live-wired. This screen reads it read-only and never
+// duplicates its search logic.
 //
 // Self-wrapping IIFE, same discipline as pos/screen-brands.jsx: declares
 // nothing at top level, its only export is window.IdentityBindingScreen.
-// Reads GET /api/identity/members, GET /api/identity/wm-binding.
-// Writes through window.HW_LIVE.post (the one token-aware POST path) via the
-// same post() wrapper pos/screen-brands.jsx uses, falling back to a bare
-// fetch if HW_LIVE never loaded.
+// Reads GET /api/identity/members, GET /api/identity/wm-binding, GET
+// /api/identity/review/open. Writes through window.HW_LIVE.post (the one
+// token-aware POST path) via the same post() wrapper pos/screen-brands.jsx
+// uses, falling back to a bare fetch if HW_LIVE never loaded.
 ;(function () {
   'use strict';
   const useP = window.useP;
@@ -338,6 +349,145 @@
       </div>);
   }
 
+  // ── Bind Gate, Part 3/4: the review queue, and the one gated bind ────────
+  // Every row here is an identity_review_queue entry store.queue_identity_review
+  // wrote because engine.resolve_identity (an ambiguous/undetermined Weedmaps
+  // order) or checkin_api.create_checkin_resolved (an ambiguous/undetermined
+  // walk-in) refused to guess. Nothing here MATCHES anybody — bind_gate.py
+  // does that, server-side, on name+DOB — this panel only lists what is open,
+  // lets an operator name a candidate identity to try, and shows the gate's
+  // verdict PLAINLY, including a miss. A "gate did not clear" is a real
+  // answer, not a failed request, and it is never left off the screen.
+  const REVIEW_OUTCOME_TONE = { ambiguous: 'warn', undetermined: 'bad' };
+
+  function ReviewQueuePanel({ tick, onChanged }) {
+    const P = useP();
+    const [http, setHttp] = React.useState(null);
+    const [candidateById, setCandidateById] = React.useState({});   // review id -> typed identity id
+    const [busyId, setBusyId] = React.useState(null);
+    const [resultById, setResultById] = React.useState({});         // review id -> {tone, text}
+
+    React.useEffect(function () {
+      let dead = false;
+      setHttp(null);
+      getJSON('/api/identity/review/open').then(function (r) { if (!dead) { setHttp(r); } });
+      return function () { dead = true; };
+    }, [tick]);
+
+    const body = http && http.parsed ? http.body : null;
+    const reviews = (body && body.reviews) || [];
+
+    function runGate(reviewId) {
+      const raw = (candidateById[reviewId] || '').trim();
+      const candidateIdentityId = parseInt(raw, 10);
+      if (!raw || !Number.isFinite(candidateIdentityId)) {
+        setResultById(function (m) { return Object.assign({}, m, { [reviewId]: { tone: 'bad', text: 'Enter a numeric identity id first.' } }); });
+        return;
+      }
+      setBusyId(reviewId);
+      setResultById(function (m) { return Object.assign({}, m, { [reviewId]: null }); });
+      post('/api/identity/review/bind', {
+        review_id: reviewId, candidate_identity_id: candidateIdentityId, actor: ACTOR
+      }).then(function (r) {
+        setBusyId(null);
+        const b = r && r.body;
+        if (!b) {
+          setResultById(function (m) { return Object.assign({}, m, { [reviewId]: { tone: 'bad', text: r.error || ('HTTP ' + r.code) } }); });
+          return;
+        }
+        if (b.ok === false) {
+          setResultById(function (m) { return Object.assign({}, m, { [reviewId]: { tone: 'bad', text: 'Refused (' + b.code + '): ' + b.error } }); });
+          return;
+        }
+        if (b.outcome === 'bound') {
+          setResultById(function (m) { return Object.assign({}, m, { [reviewId]: { tone: 'good', text: 'Bound — wm id ' + b.wm_id + ' attached to identity #' + b.candidate_identity_id + '. ' + b.why } }); });
+          // The row is resolved server-side now; refresh so it drops off this
+          // open-only list rather than sitting here looking actionable.
+          onChanged && onChanged();
+        } else {
+          // gate_not_cleared: ok:true, nothing written, row stays OPEN.
+          // Shown here exactly like a success — never a silent no-op — and
+          // the row itself now also carries this attempt in bind_attempts,
+          // so a refresh keeps showing it even if this operator navigates
+          // away before reading the message below.
+          setResultById(function (m) { return Object.assign({}, m, { [reviewId]: { tone: 'warn', text: 'Gate did not clear: ' + b.why } }); });
+        }
+      }).catch(function (e) {
+        setBusyId(null);
+        setResultById(function (m) { return Object.assign({}, m, { [reviewId]: { tone: 'bad', text: String((e && e.message) || e) } }); });
+      });
+    }
+
+    const toneBg = { good: P.goodSoft, bad: P.badSoft, warn: P.warnSoft };
+    const toneFg = { good: P.good, bad: P.bad, warn: P.warn };
+
+    return (
+      <Card density="roomy" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute }}>
+            Review queue — orders the identity ladder refused to guess
+          </div>
+          {body && <span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{reviews.length} open</span>}
+        </div>
+        <div style={{ fontSize: 11.5, color: P.inkDim, marginBottom: 10, lineHeight: 1.5 }}>
+          Each row is a Weedmaps order (or walk-in) the ladder marked <code style={{ fontFamily: P.fontMono }}>ambiguous</code> or <code style={{ fontFamily: P.fontMono }}>undetermined</code> instead
+          of attributing to a guess. Binding one is gated on <b>name + date of birth</b> matching the candidate identity exactly — never a second ID scan — and a miss leaves the row open, visibly.
+        </div>
+
+        {!http && <SkeletonRows rows={2} avatar={false} />}
+        {http && !http.parsed && <ErrorState compact title={'GET /api/identity/review/open answered HTTP ' + (http.code || 'nothing')}
+          body="A failed read is not the same as an empty queue." detail={http.netError || http.raw} />}
+
+        {body && reviews.length === 0 && <div style={{ fontSize: 12, color: P.inkMute, padding: '6px 0' }}>Nothing open right now.</div>}
+
+        {body && reviews.map(function (r) {
+          const ctx = r.context || {};
+          const attempts = r.bind_attempts || [];
+          const last = attempts.length ? attempts[attempts.length - 1] : null;
+          const result = resultById[r.id];
+          const busy = busyId === r.id;
+          return (
+            <div key={r.id} style={{ padding: '10px 0', borderTop: '1px solid ' + P.hairline }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <Pill kind={REVIEW_OUTCOME_TONE[r.outcome] || 'neutral'} size="sm">{r.outcome}</Pill>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: P.ink }}>
+                    {[ctx.first, ctx.last].filter(Boolean).join(' ') || '(no name captured)'}
+                    {ctx.dob && <span style={{ fontWeight: 400, color: P.inkDim }}> &middot; dob {ctx.dob}</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>
+                    {r.wm_order_id ? ('order ' + r.wm_order_id) : '(walk-in, no order)'}
+                    {ctx.wm_id ? (' · wm id ' + ctx.wm_id) : ' · no wm id captured'}
+                    {' · queued ' + fmtTs(r.created_at ? Date.parse(r.created_at) / 1000 : null)}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: P.ink2, marginTop: 4, lineHeight: 1.45 }}>{r.reason}</div>
+
+                  {/* EVERY PRIOR ATTEMPT, NEVER JUST THE LAST — a human deciding
+                      whether to try again needs to know this has already been
+                      tried and refused, not just that it currently sits open. */}
+                  {attempts.length > 0 && <div style={{ marginTop: 6, padding: '7px 9px', background: last.cleared ? P.goodSoft : P.warnSoft, borderRadius: P.r8, fontSize: 11, color: P.ink2, lineHeight: 1.45 }}>
+                    <b>{attempts.length} prior bind attempt{attempts.length > 1 ? 's' : ''}.</b> Last: against identity #{last.candidate_identity_id}, {last.cleared ? 'CLEARED' : 'did NOT clear'} ({last.why}) by {last.actor || 'unknown'} at {last.ts}.
+                  </div>}
+
+                  {!ctx.wm_id && <div style={{ marginTop: 6, fontSize: 11, color: P.inkMute }}>
+                    No Weedmaps customer id was captured on this row — bind_gate.attempt_bind refuses these (<code style={{ fontFamily: P.fontMono }}>no_wm_id_on_queued_order</code>); nothing to bind to here.
+                  </div>}
+
+                  {!!ctx.wm_id && <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center' }}>
+                    <Field mono placeholder="candidate identity id, e.g. 233" style={{ maxWidth: 220 }}
+                      value={candidateById[r.id] || ''} disabled={busy}
+                      onChange={function (e) { const v = e.target.value; setCandidateById(function (m) { return Object.assign({}, m, { [r.id]: v }); }); }} />
+                    <PBtn variant="secondary" size="sm" icon="link" busy={busy} onClick={function () { runGate(r.id); }}>Run Bind Gate</PBtn>
+                  </div>}
+
+                  {result && <div style={{ marginTop: 6, padding: '7px 9px', borderRadius: P.r8, fontSize: 11.5, lineHeight: 1.45, background: toneBg[result.tone] || P.surface2, color: toneFg[result.tone] || P.ink }}>{result.text}</div>}
+                </div>
+              </div>
+            </div>);
+        })}
+      </Card>);
+  }
+
   // ── the roster: every identity, which Weedmaps handles it carries ────────
   window.IdentityBindingScreen = function IdentityBindingScreen() {
     const P = useP();
@@ -396,11 +546,15 @@
             <Icon name="info" size={15} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
             <div style={{ fontSize: 12, color: P.ink2, lineHeight: 1.55 }}>
               <b>What this screen can and cannot do.</b> <code style={{ fontFamily: P.fontMono, background: P.surface, padding: '1px 5px', borderRadius: 5 }}>GET/POST /api/identity/wm-binding[/unbind]</code> are
-              real, wired, careful routes — reading a binding and unbinding it both work exactly as shown below. There is <b>no bind control</b>, and that is deliberate on the backend's part:
-              re-attaching a Weedmaps account to a person is a new identity claim, not a rollback, and belongs with identity merge or document verification rather than a raw admin toggle. This screen does not fabricate one.
+              real, wired, careful routes — reading a binding and unbinding it both work exactly as shown below. There is still <b>no raw bind toggle</b> here: re-attaching any Weedmaps account to any
+              identity by admin fiat remains a new identity claim, not a rollback, and this screen does not fabricate one. What it does offer, below, is the narrower <b>Bind Gate</b> (
+              <code style={{ fontFamily: P.fontMono, background: P.surface, padding: '1px 5px', borderRadius: 5 }}>POST /api/identity/review/bind</code>): attaching ONE specific queued Weedmaps order
+              to ONE candidate identity, gated on an exact name+date-of-birth match — never a second ID scan — with a miss shown plainly rather than silently discarded.
             </div>
           </div>
         </Card>
+
+        <ReviewQueuePanel tick={tick} onChanged={function () { setTick(function (t) { return t + 1; }); }} />
 
         <Card density="roomy" style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 10 }}>Look up a Weedmaps customer id directly</div>
