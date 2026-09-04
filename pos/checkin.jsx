@@ -871,7 +871,12 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   // MEMBERS may not be loaded. `.filter` on undefined throws during render and
   // blanks the whole modal, and there is nothing on screen to say why.
   const book = window.HW.MEMBERS || null;
-  const results = (book || []).filter((m) => !q || (m.name + m.email + m.phone).toLowerCase().includes(q.toLowerCase()));
+  // [owner ruling 2026-09-03]: an empty query must return NOBODY. `!q ||`
+  // used to make this match every member, so real customer names appeared
+  // on screen before anyone typed a character — and the odds one of them is
+  // the actual walk-in are near zero. Only a typed query narrows this to
+  // real candidates.
+  const results = q.trim() ? (book || []).filter((m) => (m.name + m.email + m.phone).toLowerCase().includes(q.toLowerCase())) : [];
 
   const submit = (start) => onCheckIn && onCheckIn({ customer, guests, type, delivery, start });
   const blocked = window.guestIncomplete ? window.guestIncomplete(guests) : 0;
@@ -1258,16 +1263,26 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                       <PBtn variant="accent" size="sm" icon="check" disabled={!nf.firstName.trim() || !nf.doc || nfDocBlocks} onClick={createNew}>Create customer</PBtn>
                     </div>
                   </div> :
-              /* THREE OUTCOMES OF A LOOKUP, not one empty rectangle.
+              /* FOUR OUTCOMES OF A LOOKUP, not one empty rectangle.
                  `results.map` with no empty branch rendered a blank gap for a
                  search that matched nothing AND for a MEMBERS array that had
                  not loaded — so "this person is not in our system" and "the
                  book is not here" looked identical, and the wrong action
-                 (onboard a duplicate) was the faster one. */
+                 (onboard a duplicate) was the faster one. A fourth outcome
+                 was split out 2026-09-03: no query typed yet. That used to
+                 fall through to the "results found" branch showing every
+                 member — [owner ruling 2026-09-03] a default list of real
+                 names invites picking whoever is closest, and the chance any
+                 of them is the actual walk-in is near zero. */
               book == null ?
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 12px', background: P.badSoft, border: `1px solid ${P.bad}55`, borderRadius: P.r10 }}>
                 <Icon name="shield" size={14} color={P.bad} style={{ flex: '0 0 auto', marginTop: 1 }} />
                 <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}><b>The customer book is not loaded.</b> Nothing can be searched, and an empty result here would NOT mean this person is new. Scan their ID, or retry once the book is available.</span>
+              </div> :
+              !q.trim() ?
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10 }}>
+                <Icon name="search" size={15} color={P.inkMute} />
+                <span style={{ flex: 1, fontSize: 11.5, color: P.inkMute }}>Type a name, e-mail or phone to search — nobody is listed until you do.</span>
               </div> :
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 168, overflowY: 'auto' }}>
                   {results.map((m) =>

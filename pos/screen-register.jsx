@@ -628,29 +628,36 @@ window.RegisterScreen = function RegisterScreen() {
       {/* Intake — collapsed search + sliding check-in queue inline */}
       <div style={{ flex: '0 0 auto', borderBottom: `1px solid ${P.hairline2}`, background: P.surface }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 22px 10px' }}>
-          {/* ONE control, not two. Until tonight this was a single "New
-              check-in" tile that opened CheckInModal — a modal which already
-              leads with the scanner and also carries its own "Search by
-              name, e-mail or phone" step, so "search for someone" and "start
-              fresh" were already one flow, reached one way.
-              c292672 bolted a second, separate top-level button next to it
-              (CustomerSearch, a "Find" column) for a real gap the modal can't
-              cover — checkInCustomer() checks a known member in immediately,
-              with no document requirement, which is the only way to seat
-              someone who is not on the waiting board AND has no ID on file
-              yet (see checkInCustomer's own comment). But two buttons side
-              by side for "check someone in" is exactly the clutter the owner
-              flagged: 2026-08-31, "I believe this is exactly how the ui
-              looked and worked before ... let's keep things simple".
-              The merge: CustomerSearch IS the tile now (restyled to match the
-              old dashed "New check-in" look exactly), and its own dropdown
-              already carries a "New + party" fallback straight into
-              CheckInModal — so the blank/fresh flow is still one click away,
-              just inside the single control's own flow instead of sitting
-              next to it as a second button. */}
+          {/* ONE control, opening the real CheckInModal directly — reverted
+              2026-09-03 [owner ruling]. History: this was always a single
+              dashed "New check-in" tile until c292672 (2026-08-29) bolted a
+              second, separate button next to it (CustomerSearch, a "Find"
+              column) for a real gap CheckInModal doesn't cover —
+              checkInCustomer() checks a known member in immediately with NO
+              document requirement, the only way to seat someone with no ID
+              on file. 02d525b (2026-08-31) merged the two back into one
+              visible control per owner feedback that day, restyling
+              CustomerSearch's trigger to look like this tile — but its own
+              dropdown (a plain name/phone list, "Check in a customer") was
+              never the same UI as CheckInModal, and diverged further from
+              it every time either one changed. Reviewed together
+              2026-09-03 and reverted in full to this plain tile: one look,
+              one modal, no second search surface to keep in sync.
+              THE NO-ID-ON-FILE GAP IS REAL AND NOW UNHANDLED HERE AGAIN —
+              CheckInModal blocks its "Check in" button until a document is
+              scanned. checkInCustomer/CustomerSearch (below, still defined)
+              are the working fix for that; they are simply not wired to
+              anything right now. Re-wire them (or solve it inside
+              CheckInModal itself) before anyone relies on checking in a
+              no-ID member from this screen. */}
           <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', color: P.inkMute, fontFamily: P.fontMono }}><Icon name="users" size={13} stroke={1.9} />Waiting {window.HW.CHECKINS.filter((c) => !c.claimedBy).length}</span>
-            <CustomerSearch onSelect={checkInCustomer} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />
+            <button onClick={() => setShowCheckIn(true)} title="New check-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, width: 96, padding: '14px 8px', border: `1.5px dashed ${P.hairline3}`, borderRadius: P.r12, background: P.surface, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans, fontSize: 11.5, fontWeight: 700, transition: 'background .12s, border-color .12s, color .12s' }}
+              onMouseEnter={(e) => {e.currentTarget.style.background = P.surface3;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink;}}
+              onMouseLeave={(e) => {e.currentTarget.style.background = P.surface;e.currentTarget.style.borderColor = P.hairline3;e.currentTarget.style.color = P.ink2;}}>
+              <span style={{ width: 28, height: 28, borderRadius: 99, background: P.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="user-plus" size={15} stroke={2.2} color={P.accentInk} /></span>
+              New check-in
+            </button>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <WaitingStrip onPick={loadCheckIn} onNewCheckIn={() => setShowCheckIn(true)} activeName={customer?.name} />

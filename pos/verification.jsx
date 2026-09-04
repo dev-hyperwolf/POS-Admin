@@ -982,6 +982,19 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
     <div style={{ marginTop: 9, display: 'flex', gap: 7, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
       <PBtn variant="accent" size="sm" icon="scan" disabled={st === 'scanning'} onClick={scan}>{st === 'scanning' ? 'Scanning…' : 'Scan ID'}</PBtn>
     </div>
+    {/* [owner requirement 2026-09-03, called out here for whoever wires the
+        real reader]: a USB/Bluetooth barcode scanner acts like a keyboard —
+        it must be captured with a GLOBAL keydown listener (see PriceCheck's
+        F2/⌘K listener in customer-extras.jsx for the existing pattern this
+        codebase uses for that), so a scan works from anywhere on screen the
+        instant a check-in-capable screen is open. It must NOT require
+        clicking this "Scan ID" button first — the button is a manual
+        fallback, not the only path in. Not implemented yet: there is no real
+        reader to test a global listener against, so building one now would
+        be unverifiable, untested plumbing. */}
+    <div style={{ marginTop: 8, fontSize: 10.5, color: P.warn, lineHeight: 1.4 }}>
+      DEV: the real scanner must work from anywhere on screen, not only via this button — see the comment above this line.
+    </div>
   </div>;
 };
 

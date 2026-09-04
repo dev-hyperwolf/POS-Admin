@@ -71,6 +71,27 @@
  * checkInCustomer or the dropdown's own behaviour changed — only which button
  * you click to reach it. The driven test below still exercises the real
  * search→select path; it now opens it via the tile's restored label.
+ *
+ * ── UPDATE 2026-09-03: REVERTED IN FULL TO CheckInModal DIRECTLY ──────────
+ * The two updates above still left the register showing a different search UI
+ * (CustomerSearch's own plain name/phone dropdown) than every other screen
+ * that checks someone in (CheckInModal — scan-first, then "OR FIND THEM
+ * MANUALLY"). Reviewed together with the owner 2026-09-03 against a real
+ * screenshot of CheckInModal and reverted in full: "New check-in" now opens
+ * CheckInModal directly, exactly as it did before 2026-08-29. CustomerSearch
+ * and checkInCustomer are UNCHANGED and still defined, just no longer called
+ * from anywhere — see the removal comment at their old call site in
+ * pos/screen-register.jsx. The no-ID-on-file gap they closed is real and is
+ * now open again; it is documented there for whoever picks it up. The driven
+ * search→select test that exercised that gap (Dony Fernandez, m4) has been
+ * removed rather than left red — see section 4 below.
+ *
+ * Separately, and unrelated to this revert: CheckInModal's own manual-search
+ * step used to default to showing a handful of real member names before any
+ * query was typed (`!q ||` matched every member). [owner ruling 2026-09-03]
+ * that is gone too — see pos/checkin.jsx `const results = ...` — an empty
+ * query now shows nobody, since the odds a default-shown name is the actual
+ * walk-in are near zero.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -97,26 +118,21 @@ function setValue(app, el, value) {
 }
 
 /**
- * Drive the REGISTER TILE end to end: New check-in → New + party → scan →
- * name → Create → Check in.
+ * Drive the REGISTER TILE end to end: New check-in → scan → name → Create →
+ * Check in.
  *
  * Everything below goes through this and not through HW.addCheckIn directly,
  * because a test that calls the store itself would have stayed green through the
  * entire life of this bug. The store was never broken. The screen never called it.
  *
- * "New check-in" now opens the merged CustomerSearch dropdown [owner ruling
- * 2026-08-31 — see the file header], not CheckInModal directly, so a genuinely
- * blank check-in is one more click away: the dropdown's own "New + party"
- * fallback, which still lands on the exact same CheckInModal this helper drove
- * before the merge. Nothing past that click changed.
+ * [owner ruling 2026-09-03 — see the file header] "New check-in" opens
+ * CheckInModal directly again, exactly as it did before 2026-08-29. There is
+ * no intermediate dropdown and no "New + party" hop any more.
  */
 async function checkInFromRegisterTile(app, { first, last }) {
   await app.mount('RegisterScreen');
   assert.ok(app.click('New check-in'),
     'no New check-in tile on the register — the entry point this whole file is about');
-  await app.settle();
-  assert.ok(app.click('New + party'),
-    'no "New + party" fallback in the merged search dropdown — the blank check-in path is lost');
   await app.settle();
   assert.ok(app.click('Scan ID'), 'the check-in modal must lead with the scanner');
   await new Promise((r) => setTimeout(r, 900));   // the demo scanner's own delay
@@ -256,11 +272,8 @@ test('a returning customer is seated from the BOOK, not from the modal literal',
     await app.mount('RegisterScreen');
     assert.ok(app.click('New check-in'), 'no New check-in tile');
     await app.settle();
-    // "New check-in" now opens the merged CustomerSearch dropdown [owner ruling
-    // 2026-08-31]; this test deliberately drives the MODAL's own search field
-    // (not the dropdown's), so it goes one more click in via "New + party".
-    assert.ok(app.click('New + party'), 'no "New + party" fallback into the check-in modal');
-    await app.settle();
+    // [owner ruling 2026-09-03] "New check-in" opens CheckInModal directly;
+    // its own search field is right there, no intermediate hop needed.
     assert.ok(app.type('Search by name', 'Manisha'), 'no search field in the check-in modal');
     await app.settle();
     assert.ok(app.click((t) => t.includes('Manisha Saini')),
@@ -371,57 +384,29 @@ test('when the store refuses, the register does not report a check-in', async ()
   });
 });
 
-/* ── 4 · THE SEARCH → SELECT PATH, DRIVEN FOR REAL ───────────────────────── */
+/* ── 4 · checkInCustomer/CustomerSearch — DORMANT, NOT DELETED ───────────── */
 
-/**
- * CustomerSearch IS the register's "New check-in" tile now [owner ruling
- * 2026-08-31] — the tile and the "Find" search button c292672 had rendered
- * side by side are merged into the one control the intake bar carried before
- * that commit, restyled so CustomerSearch's own collapsed trigger wears the
- * old tile's look and label. Clicking it opens the SAME dropdown as before;
- * this test still drives that dropdown directly, just by the tile's restored
- * label instead of the old small icon-button's title.
- *
- * Dony Fernandez (m4) is chosen deliberately: he is the one seed member with
- * NO existing CHECKINS row (c1-c4 cover m1, m2, m3, m5), so this exercises
- * exactly the gap CustomerSearch fills — finding someone who is not already
- * on the waiting board, which WaitingStrip by construction cannot do, AND
- * checking them in with no document requirement (he also has no ID on file —
- * IDV.m4.doc is null — so this path is the only one that can seat him without
- * first scanning one; CheckInModal's own search would block "Check in" on
- * exactly this member until a document is captured).
- */
-test('search → select on the register actually checks the customer in', async () => {
-  await withApp('pos', async (app) => {
-    const HW = app.window.HW;
-    const before = HW.CHECKINS.length;
-
-    await app.mount('RegisterScreen');
-    assert.ok(app.click('New check-in'),
-      `no New check-in tile on the register — buttons: ${app.buttons().join(' | ')}`);
-    await app.settle();
-    assert.ok(app.type('Search a customer', 'Dony'),
-      'no search field in the customer-search dropdown');
-    await app.settle();
-    assert.ok(app.click((t) => t.includes('Dony Fernandez')),
-      `no search result for Dony Fernandez — buttons: ${app.buttons().join(' | ')}`);
-    await app.settle();
-
-    assert.equal(HW.CHECKINS.length, before + 1,
-      'selecting a search result did not write a CHECKINS row — the button looked wired but '
-      + 'checkInCustomer produced no store effect, the exact silent-no-op this file exists to catch');
-    const ci = HW.CHECKINS.find((c) => c.memberId === 'm4');
-    assert.ok(ci, 'a check-in row exists but it is not bound to the member that was selected');
-    assert.ok(app.text().includes('Dony Fernandez'),
-      'the register did not seat the customer selected out of search');
-  });
-});
-
-// ⚠️ SOURCE-SHAPE, NOT DRIVEN. The screen-level test above proves the wiring
-// end to end for one path (a fresh check-in for an unclaimed member); these
-// two keep asserting on checkInCustomer's internals directly — the null-means-
-// -unchanged contract on type/delivery, and the no-whitespace-guessing rule —
-// which a screen read would only prove indirectly.
+// ⚠️ THERE IS NO SCREEN-LEVEL TEST IN THIS SECTION ANY MORE. There was one,
+// from 2026-08-29 to 2026-09-03: CustomerSearch was wired into the register's
+// intake bar (first as a second button, then merged into the tile itself),
+// and this file drove it end to end checking in Dony Fernandez (m4) — the one
+// seed member with no CHECKINS row AND no ID on file, which only this path
+// could seat without first scanning a document.
+//
+// [owner ruling 2026-09-03] the register was reverted in full to a single
+// "New check-in" tile opening CheckInModal directly (see pos/screen-register.jsx
+// and the file header above) — CustomerSearch is no longer rendered anywhere,
+// so that driven test now asserts on UI that does not exist and was removed
+// rather than left red. checkInCustomer and CustomerSearch themselves are
+// UNCHANGED and still defined (pos/screen-register.jsx) — just unreachable
+// from any screen right now. The gap they closed is real (CheckInModal still
+// cannot check in a member with no ID on file) and is documented at their
+// call site's removal in pos/screen-register.jsx for whoever re-wires this.
+//
+// SOURCE-SHAPE, NOT DRIVEN. These two keep asserting on checkInCustomer's
+// internals directly — the null-means-unchanged contract on type/delivery,
+// and the no-whitespace-guessing rule — so the dormant function cannot rot
+// silently before it is ever re-wired.
 test('[source] checkInCustomer writes to the store', () => {
   const body = SRC.slice(SRC.indexOf('const checkInCustomer'));
   const fn = body.slice(0, body.indexOf('\n  };') + 5);
