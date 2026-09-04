@@ -5,6 +5,12 @@ const { RULE, ENTITIES, REWARDS, toneColor } = window;
 window.BuilderBlocks = function BuilderBlocks({ draft, set }) {
   const P = useP();const rule = draft.rule;
   if (draft.wmReadonly) return <WmReadonlyView promo={draft.wm} />;
+  // Points / tiered / dollar / bundle promos have real fields the rule/
+  // condition/reward model below cannot express -- see promo/builder-native.jsx
+  // for the full history. Route them to their own editor instead of letting
+  // them fall through to the generic IF/THEN canvas, which is what silently
+  // collapsed them into a "spend $X, get %off" rule on save.
+  if (draft.nativeOffer) return <window.NativeOfferEditor draft={draft} set={set} />;
   const setRule = (patch) => set({ rule: { ...rule, ...patch } });
   const [palette, setPalette] = React.useState(false);
   const [drag, setDrag] = React.useState(null);

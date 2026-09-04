@@ -4,6 +4,20 @@ const PROMO = window.PROMO;
 
 function brandName(id){ return (PROMO.BRANDS.find(b=>b.id===id)||{}).name || id; }
 
+// Offer kinds with a real field shape the rule/condition/reward model has no
+// slots for (points multiplier, tier breakpoints, a flat dollar amount, a
+// bundle's descriptive structure -- see pweb/module.jsx's OFFERS/seedPromos
+// and promo/builder-native.jsx). Before this fix EVERY promo, regardless of
+// kind, round-tripped through discountToRule()/ruleToOffer() below on
+// open+save, and ruleToOffer() can only produce 'percent' | 'bogo' | 'gift'
+// -- so a points/tiered/dollar/bundle promo's real structure was destroyed
+// the first time anyone opened and saved it in the Builder. These four kinds
+// now bypass the rule bridge entirely: mergedToDraft() copies the promo's
+// real `discount` object straight into draft.nativeOffer, and
+// draftToMerged() writes draft.nativeOffer straight back as `discount`,
+// untouched by ruleToOffer().
+const NATIVE_OFFER_KINDS = ['points', 'tiered', 'dollar', 'bundle'];
+
 // plain-English subhead from a rule (used as creative default)
 function ruleSubhead(rule){
   const pl = window.ruleToPlain(rule);
@@ -55,13 +69,18 @@ function draftToMerged(draft, base){
   base = base || {};
   const rule = draft.rule;
   const status = draft.status==='active' ? 'live' : 'draft';
+  // Native-kind promos (see NATIVE_OFFER_KINDS above) write their real
+  // discount object straight back -- never through ruleToOffer(), which
+  // cannot represent them and is exactly what was silently collapsing them.
+  const discount = draft.nativeOffer ? JSON.parse(JSON.stringify(draft.nativeOffer)) : ruleToOffer(rule);
+  const subhead = draft.nativeOffer ? PROMO.offerLabel({ discount }) : ruleSubhead(rule);
   return {
     id: base.id || ('p'+Date.now()),
     name: draft.name || 'Untitled promotion',
     code: draft.code || '',
     campaign: base.campaign || 'weekly',
     status,
-    discount: ruleToOffer(rule),
+    discount,
     audience: base.audience || 'all',
     regions: base.regions || 'all',
     stores: base.stores || 'all',
@@ -71,15 +90,22 @@ function draftToMerged(draft, base){
     cap: draft.totalLimit ? Number(draft.totalLimit) : (base.cap || null),
     rewards: base.rewards || { pointsMult:1, redeemable:false, wallet:0 },
     surfaces: base.surfaces || ['home_banner','shop_tile'],
-    creative: base.creative || { headline: draft.name || 'New promotion', subhead: ruleSubhead(rule), cta:'Shop now', color:'#FFD100' },
+    creative: base.creative || { headline: draft.name || 'New promotion', subhead, cta:'Shop now', color:'#FFD100' },
     layout: base.layout,
     perf: base.perf,
-    rule,
+    // Keep a rule on every promo for screens that still read one (e.g. the
+    // WM overlap/plain-sentence surfaces) -- but for native kinds this is
+    // COSMETIC ONLY, derived from the real discount, never the other way
+    // around. draftToMerged() above already wrote `discount` straight from
+    // draft.nativeOffer, so re-deriving `rule` here can't lose anything.
+    rule: draft.nativeOffer ? discountToRule({ discount }) : rule,
   };
 }
 
 // unified promo → MY builder draft
 function mergedToDraft(promo){
+  const kind = promo.discount && promo.discount.kind;
+  const native = NATIVE_OFFER_KINDS.includes(kind);
   return {
     name: promo.name || '', code: promo.code || '', platform:'Hyperwolf',
     status: promo.status==='live' ? 'active' : 'draft',
@@ -87,7 +113,8 @@ function mergedToDraft(promo){
     schedule:true, publishNow:false, expiry: !!(promo.schedule && promo.schedule.end),
     publishDate:'Jul 14, 2026 9:00 AM', expiryDate:'Aug 14, 2026 9:00 AM',
     totalLimit: promo.cap ? String(promo.cap) : '', userLimit:'',
-    rule: promo.rule ? JSON.parse(JSON.stringify(promo.rule)) : discountToRule(promo),
+    nativeOffer: native ? JSON.parse(JSON.stringify(promo.discount)) : null,
+    rule: native ? window.newRule() : (promo.rule ? JSON.parse(JSON.stringify(promo.rule)) : discountToRule(promo)),
   };
 }
 
