@@ -337,7 +337,7 @@ test('reassign moves a bound card to a DIFFERENT category, keeping the SAME node
   await m.click(q(card, 'button[title="Reassign"]'));
   const picker = q(m.doc, '[data-hw-modal="reassign-target"]');
   assert.ok(picker, 'clicking Reassign must open a category-target picker, not a Weedmaps-node picker');
-  assert.equal(q(picker, '[data-hw-reassign-target="Wellness"]'), null, 'the card\'s own category is not a valid reassign target');
+  assert.equal(!!q(picker, '[data-hw-reassign-target="Wellness"]'), false, 'the card\'s own category is not a valid reassign target');
   await m.click(q(picker, '[data-hw-reassign-target="Flower"]'));
   const modal = q(m.doc, '[data-hw-modal="move-card"]');
   assert.ok(modal, 'picking a target category must open the real move-card modal');

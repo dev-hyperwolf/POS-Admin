@@ -333,6 +333,6 @@ test('an explicit binding renders as a real card under its own category, never a
   const m = await mount(router({ map: payload([WELLNESS]) }));
   const col = q(m.doc, '[data-hw-column="Wellness"]');
   assert.ok(q(col, '[data-hw-wm-card="512"]'), 'Wellness has one explicit pick, node 512');
-  assert.equal(q(col, '[data-hw-auto-resolved]'), null);
+  assert.equal(!!q(col, '[data-hw-auto-resolved]'), false);
 });
 
