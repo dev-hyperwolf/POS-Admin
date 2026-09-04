@@ -412,9 +412,9 @@ test('filtering the picker narrows Weedmaps’ tree and never invents a node', a
     'an empty filter result must not read as "we have no categories"');
 });
 
-// ═══════════════════════════════ 2. the preview gates the save
+// ═══════════════════════════════ 2. Review locks a live count; Confirm re-checks it
 
-test('the save is refused until the operator echoes the exact count shown', async () => {
+test('Review locks the live count in; Confirm is what actually posts it', async () => {
   const m = await mount(router({ map: payload([DEALS]), pv: preview({ products_affected: 3 }) }));
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
@@ -423,25 +423,60 @@ test('the save is refused until the operator echoes the exact count shown', asyn
     /Binds 3 product rows under Deals to Flower \[2\]/,
     'the preview sentence must be the server’s, printed verbatim');
 
-  const save = () => btnByText(m.doc, /Add this node/);
-  assert.equal(save().getAttribute('data-disabled'), '1',
-    'the save must start disabled — nothing has been confirmed');
+  // NOTHING TO CONFIRM YET. There must be no "Add this category type" button
+  // reachable before a Review has happened — a button that could fire on the
+  // very first render is the same defect the old typed echo existed to stop.
+  assert.equal(btnByText(m.doc, /Add this category type/), undefined,
+    'the confirm control must not exist before Review has been clicked');
+  assert.equal(m.sent.length, 0);
 
-  await m.type(q(m.doc, '[data-hw-echo]'), '2');
-  assert.equal(save().getAttribute('data-disabled'), '1',
-    'a WRONG echo must not enable the save');
-  assert.equal(m.sent.length, 0, 'nothing may have been posted yet');
+  await m.click(q(m.doc, '[data-hw-review]'));
+  assert.match(q(m.doc, '[data-hw-review-strip]').textContent, /3 product rows reviewed just now/);
 
-  await m.type(q(m.doc, '[data-hw-echo]'), '3');
-  assert.equal(save().getAttribute('data-disabled'), '0',
-    'the matching echo must enable the save');
+  const confirm = () => btnByText(m.doc, /Add this category type/);
+  assert.ok(confirm(), 'Review must produce a Confirm control');
+  assert.equal(confirm().getAttribute('data-disabled'), '0',
+    'once reviewed, nothing further needs to be typed to enable Confirm');
 
-  await m.click(save());
+  await m.click(confirm());
   assert.equal(m.sent.length, 1, 'exactly one write');
   assert.equal(m.sent[0].path, ROUTE + '/bind');
   assert.deepEqual(m.sent[0].body,
     { category: 'Deals', node: 2, confirm_products: 3 },
-    'the confirmed number must travel with the write');
+    'the reviewed number must travel with the write, with nothing retyped');
+});
+
+test('a count that changes between Review and Confirm goes stale, not silent', async () => {
+  // First preview fetch (the mount effect) and the Review click's own live
+  // re-check both answer 3; the THIRD fetch — Confirm's own live re-check —
+  // answers 5. That third call is the one that must stop the write.
+  let calls = 0;
+  const m = await mount(router({
+    map: payload([DEALS]),
+    pv: () => { calls += 1; return [200, preview({ products_affected: calls >= 3 ? 5 : 3 })]; }
+  }));
+  await openEditor(m, 'Deals');
+  await m.click(q(m.doc, '[data-hw-node="2"]'));
+  await m.click(q(m.doc, '[data-hw-review]'));
+  assert.match(q(m.doc, '[data-hw-review-strip]').textContent, /3 product rows reviewed/);
+
+  await m.click(btnByText(m.doc, /Add this category type/));
+  assert.equal(m.sent.length, 0, 'a stale count must never reach the server');
+  const stale = q(m.doc, '[data-hw-review-stale]');
+  assert.ok(stale, 'a count that moved under Confirm must show its own stale state');
+  assert.match(stale.textContent, /Count changed to 5/);
+  assert.match(stale.textContent, /3.*no longer current/s);
+  assert.match(stale.textContent, /Review again/i);
+  assert.equal(btnByText(m.doc, /Add this category type/).getAttribute('data-disabled'), '1',
+    'Confirm must be disabled, never silently confirm the stale 3');
+
+  // "Review again" re-asks live (still 5, since calls is now pinned above 3)
+  // and the operator can proceed from there — never by retyping anything.
+  await m.click(q(m.doc, '[data-hw-review-again]'));
+  assert.match(q(m.doc, '[data-hw-review-strip]').textContent, /5 product rows reviewed/);
+  await m.click(btnByText(m.doc, /Add this category type/));
+  assert.equal(m.sent.length, 1);
+  assert.equal(m.sent[0].body.confirm_products, 5);
 });
 
 test('the map the screen shows after a save is the one the SERVER returned', async () => {
@@ -456,8 +491,8 @@ test('the map the screen shows after a save is the one the SERVER returned', asy
   }));
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
-  await m.type(q(m.doc, '[data-hw-echo]'), '1');
-  await m.click(btnByText(m.doc, /Add this node/));
+  await m.click(q(m.doc, '[data-hw-review]'));
+  await m.click(btnByText(m.doc, /Add this category type/));
 
   const src = q(m.doc, '[data-hw-binding-source]');
   assert.equal(src.getAttribute('data-hw-binding-source'), 'explicit');
@@ -489,7 +524,7 @@ test('an unreadable catalog offers no number to type, and confirms null', async 
   assert.doesNotMatch(panel.textContent, /\b0\b/,
     'an unknown must not print a zero anywhere in its own panel');
 
-  const save = () => btnByText(m.doc, /Add this node/);
+  const save = () => btnByText(m.doc, /Add this category type/);
   assert.equal(save().getAttribute('data-disabled'), '1');
   await m.check(q(m.doc, '[data-hw-echo-unknown]'));
   assert.equal(save().getAttribute('data-disabled'), '0');
@@ -514,8 +549,8 @@ test('a 409 refusal renders as a named refusal, not as a breakage', async () => 
   }));
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
-  await m.type(q(m.doc, '[data-hw-echo]'), '3');
-  await m.click(btnByText(m.doc, /Add this node/));
+  await m.click(q(m.doc, '[data-hw-review]'));
+  await m.click(btnByText(m.doc, /Add this category type/));
 
   const ref = q(m.doc, '[data-hw-server-refusal="confirm_mismatch"]');
   assert.ok(ref, 'the refusal must be rendered with its machine code');
@@ -534,7 +569,7 @@ test('a preview that already knows the save would be refused offers no save', as
     pv: preview({
       would_refuse: {
         code: 'no_such_node',
-        error: 'Weedmaps node 2 is not in the tree this deployment resolves against (94 nodes).'
+        error: 'Weedmaps category type 2 is not in the tree this deployment resolves against (94 category types).'
       }
     })
   }));
@@ -542,9 +577,10 @@ test('a preview that already knows the save would be refused offers no save', as
   await m.click(q(m.doc, '[data-hw-node="2"]'));
 
   assert.ok(q(m.doc, '[data-hw-refusal="no_such_node"]'));
-  assert.equal(btnByText(m.doc, /Add this node/), undefined,
+  assert.equal(btnByText(m.doc, /Add this category type/), undefined,
     'a button that discovers on submit that it could never work is worse than no button');
-  assert.equal(q(m.doc, '[data-hw-echo]'), null);
+  assert.equal(q(m.doc, '[data-hw-review]'), null,
+    'a refusal already known from the preview must not even offer a Review step');
   assert.match(q(m.doc, '[data-hw-refusal="no_such_node"]').textContent,
     /refusal, not a failure/i);
 });
@@ -563,10 +599,11 @@ test('adding a spelling previews it, then posts the confirmed count', async () =
 
   assert.match(q(m.doc, '[data-hw-preview="alias"]').textContent,
     /4 product rows spelled like 'Pre-rollz'/);
-  const save = () => btnByText(m.doc, /Add the alias/);
-  assert.equal(save().getAttribute('data-disabled'), '1');
-  await m.type(q(m.doc, '[data-hw-echo]'), '4');
-  await m.click(save());
+  assert.equal(btnByText(m.doc, /Add the alias/), undefined,
+    'nothing to confirm before Review has run');
+  await m.click(q(m.doc, '[data-hw-review]'));
+  assert.match(q(m.doc, '[data-hw-review-strip]').textContent, /4 product rows reviewed/);
+  await m.click(btnByText(m.doc, /Add the alias/));
   assert.equal(m.sent[0].path, ROUTE + '/alias');
   assert.equal(m.sent[0].body.alias, 'Pre-rollz');
   assert.equal(m.sent[0].body.confirm_products, 4);
@@ -711,7 +748,7 @@ test('a binding whose node has left the tree is neither RESOLVES nor NO WM NODE'
   assert.notDeepEqual(tone, dealsTone,
     'a broken binding and an allowed resting state must not render alike');
   assert.match(q(m.doc, '[data-hw-binding-source="explicit_missing_node"]').textContent,
-    /picked node 9999 is not in the tree/);
+    /picked category type 9999 is not in the tree/);
 });
 
 // ═══════════════════ 7. the two causes of "uncategorised" stay apart
@@ -746,30 +783,44 @@ test('a spelling nobody chose and a category Weedmaps lacks are counted apart', 
 
 // ═══════════════════════════ 8. MUTATION — prove the gate is the defence
 
-test('MUTATION: enabling the save without a matching echo breaks these tests', async () => {
-  // The gate is one expression: `ready` is false unless the typed number equals
-  // the number the preview showed. Patch it to `true` and the save must become
-  // pressable with nothing typed — if it does not, the assertions above are
-  // passing for some reason other than the gate they claim to test.
-  const m = await mount(router({ map: payload([DEALS]), pv: preview({ products_affected: 3 }) }), {
-    // Patched against the COMPILED source: esbuild flattens the nested ternary,
-    // so a patch written against the .jsx text matches nothing. mount() asserts
-    // the patch actually changed something, which is what caught that.
+test('MUTATION: confirming without matching the live re-check breaks these tests', async () => {
+  // The gate is one comparison in PreviewPanel's doConfirm(): the freshly
+  // re-fetched count must equal the number Review locked in, or the save must
+  // not fire. Patch it to `true` and Confirm must go on to save the STALE
+  // reviewed number even though the live re-check disagreed — if it does not,
+  // the assertions above are passing for some reason other than this check.
+  let calls = 0;
+  const m = await mount(router({
+    map: payload([DEALS]),
+    // 1st fetch (mount) and 2nd (Review) answer 3; the 3rd (Confirm's live
+    // re-check) answers 5 — the exact shape a moved catalog produces.
+    pv: () => { calls += 1; return [200, preview({ products_affected: calls >= 3 ? 5 : 3 })]; }
+  }), {
+    // Patched against the COMPILED source: esbuild reflows multi-line
+    // conditions onto one, so a patch written against the .jsx text may match
+    // nothing. mount() asserts the patch actually changed something.
     patch: (src) => src.replace(
-      'echo !== "" && Number(echo) === Number(n)',
+      'stillKnown === known && f.products_affected === reviewedCount',
       '(true)')
   });
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
-  assert.equal(btnByText(m.doc, /Add this node/).getAttribute('data-disabled'), '0',
-    'the mutation should have opened the gate with nothing confirmed; it did ' +
-    'not, so `ready` is not what is actually gating the button — find out what is');
+  await m.click(q(m.doc, '[data-hw-review]'));
+  await m.click(btnByText(m.doc, /Add this category type/));
+  assert.equal(m.sent.length, 1,
+    'the mutation should have let a stale reviewed count through Confirm; it ' +
+    'did not, so the equality check is not what is actually gating the save');
+  assert.equal(m.sent[0].body.confirm_products, 3,
+    'and specifically the STALE number 3 must be what was sent, proving the ' +
+    'live re-check answer (5) was ignored once the gate was disabled');
 });
 
-test('MUTATION: rendering an unknown count as a typable number breaks these tests', async () => {
+test('MUTATION: treating an unknown count as known breaks these tests', async () => {
   // The unknown branch is `products_known !== false`. Force it true and the
-  // screen must offer a number field for a count nobody could compute — which
-  // is exactly how an absence and an unknown reach the server identically.
+  // screen must fall into the ordinary Review/Confirm flow for a count that
+  // does not exist, rather than its own unknown-confirmation checkbox — which
+  // is exactly how an absence and an unknown would end up reaching the server
+  // the same way.
   const m = await mount(router({
     map: payload([DEALS]),
     pv: preview({ products_affected: null, products_known: false })
@@ -780,8 +831,8 @@ test('MUTATION: rendering an unknown count as a typable number breaks these test
   });
   await openEditor(m, 'Deals');
   await m.click(q(m.doc, '[data-hw-node="2"]'));
-  assert.ok(q(m.doc, '[data-hw-echo]'),
-    'the mutation should have produced a number field for an unknown count; it ' +
-    'did not, so the unknown branch is not what is suppressing it');
+  assert.ok(q(m.doc, '[data-hw-review]'),
+    'the mutation should have produced the ordinary Review control for an ' +
+    'unknown count; it did not, so the unknown branch is not what is suppressing it');
   assert.equal(q(m.doc, '[data-hw-confirm-unknown]'), null);
 });

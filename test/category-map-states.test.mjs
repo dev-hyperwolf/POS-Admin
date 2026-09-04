@@ -314,9 +314,9 @@ test('a category Weedmaps has no node for does not render like an unused one', a
   // screenshot in a report and a copy-paste into an email all lose the tone.
   const dealsText = rowOf(doc, 'Deals').textContent;
   const wellText = rowOf(doc, 'Wellness').textContent;
-  assert.match(dealsText, /NO WEEDMAPS NODE/,
+  assert.match(dealsText, /NO WEEDMAPS CATEGORY TYPE/,
     'the unfixable state must say so in words: ' + dealsText.slice(0, 200));
-  assert.doesNotMatch(wellText, /NO WEEDMAPS NODE/);
+  assert.doesNotMatch(wellText, /NO WEEDMAPS CATEGORY TYPE/);
   assert.match(wellText, /unused/i);
 });
 
@@ -335,7 +335,7 @@ test('the unfixable row says it cannot be fixed here, and the benign one does no
     'nothing is pending on an unbound category — the owner ruled it is not a problem');
   // And the row itself must not offer a node that does not exist.
   const dealsRow = rowOf(doc, 'Deals').textContent;
-  assert.match(dealsRow, /no node exists/i);
+  assert.match(dealsRow, /no category type exists/i);
   assert.doesNotMatch(dealsRow, /category_ids \[/,
     'a category with no node must not print a category_ids binding');
 });
@@ -442,7 +442,7 @@ test('SKUs publishing with no category are named, counted, and called unfixable'
 test('the uncategorised KPI counts SKUs, and reads clean when there are none', async () => {
   const withNone = await mount(serve(200, payload([row('Flower')])));
   assert.match(kpi(withNone.doc, 'SKUs publishing uncategorised'),
-    /\| 0 \| every spelling reaches a node/);
+    /\| 0 \| every spelling reaches a category type/);
 
   const body = payload([DEALS], {
     uncategorised_skus: [{ sku: 'DD-DL-BUNDLE-1', spelling: 'Deals',
@@ -497,6 +497,6 @@ test('MUTATION: collapsing NO_WM_NODE into UNUSED breaks these tests', async () 
   assert.deepEqual(dealsTone, wellTone,
     'the mutation should have made the two states identical; it did not, so the ' +
     'tone is coming from somewhere other than STATES — find out where');
-  assert.doesNotMatch(catCell(doc, 'Deals').textContent, /NO WEEDMAPS NODE/,
+  assert.doesNotMatch(catCell(doc, 'Deals').textContent, /NO WEEDMAPS CATEGORY TYPE/,
     'the mutation should have removed the distinguishing words');
 });

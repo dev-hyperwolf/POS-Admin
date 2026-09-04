@@ -150,7 +150,7 @@
     RESOLVES: {
       kind: 'good', icon: 'check-circle', label: 'resolves',
       short: 'publishes with these ids',
-      why: 'This name matches a real Weedmaps node, so every product under it publishes carrying category_ids. Nothing to do.',
+      why: 'This name matches a real Weedmaps category type, so every product under it publishes carrying category_ids. Nothing to do.',
       fixable: null
     },
     // TONE CHANGED DELIBERATELY, 2026-08-27, on the owner's ruling: "if we
@@ -166,10 +166,10 @@
     // operator who can now point any category at any node needs telling that
     // there is nothing correct to point this one at.
     NO_WM_NODE: {
-      kind: 'info', icon: 'ban', label: 'NO WEEDMAPS NODE',
-      short: 'no node to bind to — allowed',
-      why: 'Weedmaps carries no node with this name — not under a different parent, not under a different spelling, nowhere in its tree. Products under it publish with NO category at all, and Weedmaps accepts them anyway.',
-      fixable: 'NOT FIXABLE, AND NOT A FAULT. An alias re-spells our side; the node that is missing is on theirs. Unbound is an allowed resting state — nothing here is waiting on anybody. You can still point it at a node with the picker, but Weedmaps has no right answer to point it at.'
+      kind: 'info', icon: 'ban', label: 'NO WEEDMAPS CATEGORY TYPE',
+      short: 'no category type to bind to — allowed',
+      why: 'Weedmaps carries no category type with this name — not under a different parent, not under a different spelling, nowhere in its tree. Products under it publish with NO category at all, and Weedmaps accepts them anyway.',
+      fixable: 'NOT FIXABLE, AND NOT A FAULT. An alias re-spells our side; the category type that is missing is on theirs. Unbound is an allowed resting state — nothing here is waiting on anybody. You can still point it at a category type with the picker, but Weedmaps has no right answer to point it at.'
     },
     // A PICK THAT HAS STOPPED MEANING ANYTHING. Somebody chose a Weedmaps node
     // and that node is no longer in the tree we resolve against. It is NOT
@@ -178,9 +178,9 @@
     // decision that has quietly stopped applying.
     BINDING_BROKEN: {
       kind: 'warn', icon: 'alert', label: 'BINDING BROKEN',
-      short: 'the picked node has left the tree',
-      why: 'Someone bound this category to a specific Weedmaps node, and that node is not in the tree this deployment resolves against any more. Products under it publish with no category_ids — not because nothing was chosen, but because what was chosen is gone.',
-      fixable: 'FIXABLE HERE: pick a node again, or remove the binding to fall back to the name match.'
+      short: 'the picked category type has left the tree',
+      why: 'Someone bound this category to a specific Weedmaps category type, and that category type is not in the tree this deployment resolves against any more. Products under it publish with no category_ids — not because nothing was chosen, but because what was chosen is gone.',
+      fixable: 'FIXABLE HERE: pick a category type again, or remove the binding to fall back to the name match.'
     },
     // A CATEGORY CAN BIND SEVERAL NODES NOW (2026-08-28), and this state only
     // exists because that is true: with at most one pick there was no OTHER
@@ -191,13 +191,13 @@
     BINDING_PARTIAL: {
       kind: 'warn', icon: 'alert', label: 'PARTIALLY BROKEN',
       short: 'one of several picks has left the tree',
-      why: 'This category is explicitly bound to more than one Weedmaps node, and at least one of them is not in the tree this deployment resolves against any more. Products still publish under every pick that DOES resolve — the broken pick just contributes nothing until it is changed or removed.',
+      why: 'This category is explicitly bound to more than one Weedmaps category type, and at least one of them is not in the tree this deployment resolves against any more. Products still publish under every pick that DOES resolve — the broken pick just contributes nothing until it is changed or removed.',
       fixable: 'FIXABLE HERE: open the bindings below, remove the pick that is no longer in the tree, or pick a replacement for it.'
     },
     UNUSED: {
       kind: 'neutral', icon: 'circle', label: 'unused',
       short: 'resolves, no products carry it',
-      why: 'The name resolves to a real Weedmaps node. No product in the catalog carries this category, so nothing has ever published through it. Not a fault — but not a proven mapping either, because nothing has exercised it.',
+      why: 'The name resolves to a real Weedmaps category type. No product in the catalog carries this category, so nothing has ever published through it. Not a fault — but not a proven mapping either, because nothing has exercised it.',
       fixable: null
     },
     UNKNOWN_USE: {
@@ -277,11 +277,11 @@
       <Card density="roomy" style={{ marginBottom: 18 }}>
         <Eyebrow>Two taxonomies, one name lookup</Eyebrow>
         <div style={{ fontSize: P.type.title, fontWeight: 700, color: P.ink, margin: '8px 0 4px', letterSpacing: '-.01em' }}>
-          Our category names are matched against Weedmaps&rsquo; node <em>names</em>. That is the whole mechanism.
+          Our category names are matched against Weedmaps&rsquo; category type <em>names</em>. That is the whole mechanism.
         </div>
         <div style={{ fontSize: P.type.body, color: P.ink2, lineHeight: 1.6, maxWidth: 940 }}>
           A product&rsquo;s raw category string is folded to one of our nine canonical names, and that name is looked
-          up against Weedmaps&rsquo; own node names &mdash; {code('resolve_categories().get(name.lower())')}.
+          up against Weedmaps&rsquo; own category type names &mdash; {code('resolve_categories().get(name.lower())')}.
           {' '}On a hit the item publishes bound to {code('[parent_id, id]')}.
           {' '}<strong>On a miss the field is simply left off and the item publishes anyway</strong> &mdash; live, with
           no category, and nothing errors. A rejection would be visible; this is not. That silence is what this screen ends.
@@ -291,9 +291,9 @@
           {arrow('_norm_category')}
           {box('Our canonical name', 'one of nine · every other spelling is an alias of one of them', 'us')}
           {arrow('name.lower()')}
-          {box('The match', 'against Weedmaps’ node NAMES — first node wins a tie', 'link')}
+          {box('The match', 'against Weedmaps’ category type NAMES — first category type wins a tie', 'link')}
           {arrow('binds')}
-          {box('Weedmaps node ids', 'category_ids on the menu item — the only thing that publishes', 'them')}
+          {box('Weedmaps category type ids', 'category_ids on the menu item — the only thing that publishes', 'them')}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           {['RESOLVES', 'NO_WM_NODE', 'UNUSED'].map(function (k) {
@@ -339,16 +339,16 @@
             <span><code style={mono}>GET {ROUTE}</code> answered <strong>HTTP {http.code || 'no response'}</strong>{http.netError ? ' — ' + http.netError : ''}. Base <code style={mono}>{base()}</code>.</span>)}
           {tree && line('package', tree.error ? 'bad' : 'good',
             tree.error
-              ? <span><strong>Weedmaps&rsquo; tree did not load:</strong> {tree.error}. Nothing below can name a node id, and no row&rsquo;s state can be trusted.</span>
+              ? <span><strong>Weedmaps&rsquo; tree did not load:</strong> {tree.error}. Nothing below can name a category type id, and no row&rsquo;s state can be trusted.</span>
               : <span>Weedmaps&rsquo; side: <strong>{num(tree.nodes)}</strong> nodes collapsing to <strong>{num(tree.names)}</strong> distinct names, read from <code style={{ fontFamily: P.fontMono, fontSize: 10.5 }}>{tree.path}</code> &mdash; the verbatim capture of <code style={mono}>GET /categories</code> that seeds this repo. <strong>No live Weedmaps call is made to draw this screen.</strong></span>)}
           {cat && line('database', cat.error ? 'bad' : 'good',
             cat.error
               ? <span><strong>The catalog could not be read</strong> &mdash; {cat.error}. Every product count below is <code style={mono}>null</code>, which the rows render as &ldquo;unknown&rdquo;, never as zero.</span>
               : <span>Our side: <strong>{num(d && d.counts && d.counts.products)}</strong> product rows carrying <strong>{num(cat.spellings)}</strong> distinct category spellings between them.</span>)}
           {table && tree && !tree.error && table.available && table.nodes !== tree.nodes && line('alert', 'warn',
-            <span>This deployment&rsquo;s own <code style={mono}>wm_nodes</code> table holds <strong>{num(table.nodes)}</strong> nodes, not {num(tree.nodes)} &mdash; it was seeded from a shorter capture, and <code style={mono}>demo_seed</code> only re-seeds a table that is empty. <strong>This screen deliberately does not resolve against that table</strong>: doing so would report &ldquo;no Weedmaps node&rdquo; for categories that resolve perfectly well, which is a worse lie than showing nothing.</span>)}
+            <span>This deployment&rsquo;s own <code style={mono}>wm_nodes</code> table holds <strong>{num(table.nodes)}</strong> category types, not {num(tree.nodes)} &mdash; it was seeded from a shorter capture, and <code style={mono}>demo_seed</code> only re-seeds a table that is empty. <strong>This screen deliberately does not resolve against that table</strong>: doing so would report &ldquo;no Weedmaps category type&rdquo; for categories that resolve perfectly well, which is a worse lie than showing nothing.</span>)}
           {tree && tree.collisions && tree.collisions.length > 0 && line('alert', 'warn',
-            <span><strong>{tree.collisions.length}</strong> Weedmaps node name{tree.collisions.length === 1 ? ' is' : 's are'} used by more than one node, so a match on {tree.collisions.length === 1 ? 'it' : 'them'} is decided by order rather than by intent: {tree.collisions.map(function (col) {
+            <span><strong>{tree.collisions.length}</strong> Weedmaps category type name{tree.collisions.length === 1 ? ' is' : 's are'} used by more than one category type, so a match on {tree.collisions.length === 1 ? 'it' : 'them'} is decided by order rather than by intent: {tree.collisions.map(function (col) {
               return <span key={String(col.kept_id) + '-' + String(col.ignored_id)}><code style={mono}>{col.name}</code> keeps id {col.kept_id}, ignores {col.ignored_id}{' '}</span>;
             })}.{' '}
             {/* DERIVED, NEVER ASSERTED. This sentence used to be the literal
@@ -367,9 +367,9 @@
               return (
                 <strong data-hw-collision-ours="1" style={{ color: P.bad }}>
                   {hits.length} of our own names {hits.length === 1 ? 'is' : 'are'} one of them
-                  {' '}({hits.map(function (h) { return h.name; }).join(', ')}) &mdash; so which node
+                  {' '}({hits.map(function (h) { return h.name; }).join(', ')}) &mdash; so which category type
                   {' '}{hits.length === 1 ? 'it binds' : 'they bind'} to was decided by order. Pick the
-                  node explicitly to settle it.
+                  category type explicitly to settle it.
                 </strong>);
             })()}</span>)}
         </div>
@@ -443,7 +443,7 @@
               : 'No SKU publishes uncategorised right now'}
           subtitle={brokenSkus
             ? 'engine.py:919 sets category_ids only on a hit. On a miss it leaves the field off and publishes the item anyway — so this does not error, does not retry, and is invisible from our side. Every spelling below can be fixed from this screen by adding an alias.'
-            : 'Every category spelling in the catalog folds to a canonical name that resolves to a real Weedmaps node, or to one we have deliberately left unbound.'} />
+            : 'Every category spelling in the catalog folds to a canonical name that resolves to a real Weedmaps category type, or to one we have deliberately left unbound.'} />
         {groups.map(function (g) {
           return (
             <div key={g.spelling + g.why} style={{ padding: '11px 13px', marginBottom: 8,
@@ -457,7 +457,7 @@
               <div style={{ fontSize: P.type.meta, color: P.ink2, marginTop: 6, lineHeight: 1.5 }}>{g.why}.</div>
               <div style={{ fontSize: P.type.meta, color: P.bad, marginTop: 5, lineHeight: 1.5, fontWeight: 600 }}>
                 {g.canonical
-                  ? 'No alias can fix this. An alias changes how WE spell it; the node that is missing is on WEEDMAPS. This needs a decision — does it publish uncategorised, or not publish at all?'
+                  ? 'No alias can fix this. An alias changes how WE spell it; the category type that is missing is on WEEDMAPS. This needs a decision — does it publish uncategorised, or not publish at all?'
                   : 'No spelling we accept matches this string, so the product is not even filed under a category this system can reason about.'}
               </div>
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
@@ -475,11 +475,11 @@
             border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
             <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink, marginBottom: 3 }}>
               {restingSkus} SKU{restingSkus === 1 ? '' : 's'} publish{restingSkus === 1 ? 'es' : ''} with no category because
-              {' '}Weedmaps has no node for {resting.length === 1 ? 'that category' : 'those categories'} — which is allowed
+              {' '}Weedmaps has no category type for {resting.length === 1 ? 'that category' : 'those categories'} — which is allowed
             </div>
             <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5, maxWidth: 900 }}>
               This is not the same defect as the rows above and is not counted with them. These spellings fold to
-              one of our nine perfectly well; the node that is missing is on Weedmaps&rsquo; side, so no alias and
+              one of our nine perfectly well; the category type that is missing is on Weedmaps&rsquo; side, so no alias and
               no picker can reach it. <strong>Nothing here is waiting on anybody.</strong>
             </div>
             {resting.map(function (g) {
@@ -542,7 +542,7 @@
             : num(out) + ' of ' + num(m.skus) + ' SKUs are excluded before the matcher scores anything'}
           subtitle={unknown
             ? 'The catalogue or the match vocabulary could not be read. This panel will not print 0 here: 0 would say "nothing is shut out", and nothing has been looked at.'
-            : 'mapping.eval_candidate() compares our category string against Weedmaps\u2019 ROOT node name BY IDENTITY. A spelling that is not that exact word excludes every candidate for every SKU carrying it — permanently, whatever the thresholds or the feed do. A row can read `resolves` in the table below and still be counted here: that badge is about publishing, and this is not.'} />
+            : 'mapping.eval_candidate() compares our category string against Weedmaps\u2019 ROOT category type name BY IDENTITY. A spelling that is not that exact word excludes every candidate for every SKU carrying it — permanently, whatever the thresholds or the feed do. A row can read `resolves` in the table below and still be counted here: that badge is about publishing, and this is not.'} />
         {m.error &&
           <div style={{ fontSize: P.type.meta, color: P.bad, marginBottom: 10, lineHeight: 1.5 }}>
             The match vocabulary could not be derived: {m.error}
@@ -607,7 +607,7 @@
           title={rescued.length + ' SKU' + (rescued.length === 1 ? '' : 's')
             + ' would publish with no category, and ' + (rescued.length === 1 ? 'does' : 'do')
             + ' not, because the alias layer catches ' + (rescued.length === 1 ? 'it' : 'them')}
-          subtitle={'These raw spellings match no Weedmaps node name on their own. The publish path folds them through _norm_category first, so they resolve. This is a record of a repair, not a task — it is shown because the fix is recent, and because the same shape recurs the next time a spelling drifts.'} />
+          subtitle={'These raw spellings match no Weedmaps category type name on their own. The publish path folds them through _norm_category first, so they resolve. This is a record of a repair, not a task — it is shown because the fix is recent, and because the same shape recurs the next time a spelling drifts.'} />
         {rgroups.map(function (g) {
           return (
             <div key={g.spelling} data-hw-rescued-row={g.spelling}
@@ -638,7 +638,7 @@
       return (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           <span style={{ fontSize: P.type.body, fontWeight: 700, color: P.bad }}>
-            node {nodeId} — not in the tree
+            category type {nodeId} — not in the tree
           </span>
         </span>);
     }
@@ -700,10 +700,10 @@
     if (!r.wm_ids || !r.wm_ids.length) {
       return (
         <div style={{ minWidth: 0 }}>
-          {/* `info`, not `bad`. The words still say the node does not exist —
-              which is the fact — but nothing here is a fault or a task. See
-              STATES.NO_WM_NODE for the ruling this implements. */}
-          <Pill kind="info" size="sm" icon="ban">no node exists</Pill>
+          {/* `info`, not `bad`. The words still say the category type does not
+              exist — which is the fact — but nothing here is a fault or a
+              task. See STATES.NO_WM_NODE for the ruling this implements. */}
+          <Pill kind="info" size="sm" icon="ban">no category type exists</Pill>
           <div style={{ fontSize: P.type.micro, color: P.inkDim, marginTop: 4, lineHeight: 1.4 }}>
             not under another parent, not under another spelling
           </div>
@@ -768,13 +768,13 @@
         {r.match_differs === true &&
           <div data-hw-match-differs="1" style={{ fontSize: P.type.micro, color: P.warn, marginTop: 4, lineHeight: 1.45 }}>
             Not the same word as <strong>{r.category}</strong>. We publish under{' '}
-            <code style={mono}>{r.wm_path || 'no node'}</code>; the matcher compares on{' '}
-            <code style={mono}>{r.match_key}</code>, Weedmaps&rsquo; ROOT node name.{' '}
+            <code style={mono}>{r.wm_path || 'no category type'}</code>; the matcher compares on{' '}
+            <code style={mono}>{r.match_key}</code>, Weedmaps&rsquo; ROOT category type name.{' '}
             <strong>Renaming this category on screen would break the publish join and would not move the match key.</strong>
           </div>}
         {r.match_state === 'NO_MATCH_KEY' &&
           <div style={{ fontSize: P.type.micro, color: P.bad, marginTop: 4, lineHeight: 1.45 }}>
-            Our name resolves to no Weedmaps node, so no candidate can ever carry it. Every candidate
+            Our name resolves to no Weedmaps category type, so no candidate can ever carry it. Every candidate
             for every SKU here is excluded before scoring &mdash; whatever the thresholds or the feed do.
           </div>}
         {r.match_state === 'BROKEN_TREE' &&
@@ -787,7 +787,7 @@
             {r.match_ambiguous.map(function (a) {
               return (
                 <span key={String(a.kept_id) + '-' + String(a.ignored_id)}>
-                  <code style={mono}>{a.name}</code> is more than one Weedmaps node &mdash; kept [{a.kept_id}], ignored [{a.ignored_id}].{' '}
+                  <code style={mono}>{a.name}</code> is more than one Weedmaps category type &mdash; kept [{a.kept_id}], ignored [{a.ignored_id}].{' '}
                 </span>);
             })}
             Decided by order, not by intent.
@@ -998,7 +998,7 @@
     return (
       <div data-hw-picker="1">
         <input value={q} onChange={function (e) { setQ(e.target.value); }}
-          placeholder={'Filter ' + nodes.length + ' Weedmaps nodes by name, slug or id'}
+          placeholder={'Filter ' + nodes.length + ' Weedmaps category types by name, slug or id'}
           data-hw-picker-filter="1"
           style={{ width: '100%', boxSizing: 'border-box', padding: '7px 10px',
             fontSize: P.type.body, fontFamily: P.fontSans, color: P.ink,
@@ -1016,7 +1016,7 @@
           background: P.surface }}>
           {shown.length === 0 &&
             <div style={{ padding: '12px 10px', fontSize: P.type.meta, color: P.inkMute }}>
-              No Weedmaps node matches “{q}”. That is a statement about their tree, not about ours.
+              No Weedmaps category type matches “{q}”. That is a statement about their tree, not about ours.
             </div>}
           {shown.map(function (e) {
             const n = e.node;
@@ -1046,12 +1046,12 @@
                     <span data-hw-node-collision={String(n.id)}
                       data-hw-node-collision-side={kept ? 'kept' : 'ignored'}>
                       <span style={{ fontSize: P.type.micro, color: P.warn, marginLeft: 6, fontWeight: 700 }}>
-                        SAME NAME AS {col.ignored.length + 1 > 2 ? (col.ignored.length + 1) + ' NODES' : 'ANOTHER NODE'}
+                        SAME NAME AS {col.ignored.length + 1 > 2 ? (col.ignored.length + 1) + ' CATEGORY TYPES' : 'ANOTHER CATEGORY TYPE'}
                       </span>
                       <span style={{ display: 'block', fontSize: P.type.micro, color: P.inkDim, marginTop: 2, lineHeight: 1.45 }}>
                         {kept
-                          ? 'The name match lands here by ORDER, not by intent — it keeps the first node of this name and drops [' + col.ignored.join(', ') + '].'
-                          : 'The name match NEVER reaches this node — it keeps [' + col.kept_id + ']. Picking it here is the only way to bind it.'}
+                          ? 'The name match lands here by ORDER, not by intent — it keeps the first category type of this name and drops [' + col.ignored.join(', ') + '].'
+                          : 'The name match NEVER reaches this category type — it keeps [' + col.kept_id + ']. Picking it here is the only way to bind it.'}
                         {n.slug ? ' Slug: ' + n.slug + '.' : ''}
                       </span>
                     </span>);
@@ -1062,40 +1062,72 @@
       </div>);
   }
 
-  // ── the preview, and the echo that gates the save ─────────────────────────
+  // ── the preview, and the review that gates the save ───────────────────────
   //
-  // THREE CONFIRMATION SHAPES, NOT TWO, and this is the whole reason this
-  // component exists rather than a bare number input:
+  // REDESIGNED 2026-09-01, on the owner's ask to lose "type the number back"
+  // without losing the guarantee it existed for. THE GUARANTEE ITSELF DID NOT
+  // MOVE: a stale preview must never be able to confirm itself. What moved is
+  // WHO holds the number. Before: the operator retyped it, and a typo or a
+  // stale memorized digit could still match a NEW, also-stale count by
+  // coincidence. Now: this component re-fetches the count itself, once when
+  // "Review" is clicked and once more when "Confirm" is clicked, and refuses
+  // to save unless both reads agree. Retyping never verified freshness anyway
+  // — it only verified the operator could read a number off the screen and
+  // copy it a few inches. Re-asking the server does.
   //
-  //   products_known === true   → type the number you were shown.
+  // THREE CONFIRMATION SHAPES, NOT TWO, and this is still the whole reason
+  // this component exists rather than a bare "Confirm" button:
+  //
+  //   products_known === true   → Review locks in a live count; Confirm
+  //                               re-checks it live one more time before
+  //                               saving, and goes stale (not silent) if the
+  //                               two reads disagree.
   //   products_known === false  → the catalog could not be read, so the count
   //                               is UNKNOWN. You confirm the UNKNOWN itself
-  //                               (a separate control that sends null). There
-  //                               is deliberately NO way to type 0 here: an
+  //                               (a checkbox that sends null). There is
+  //                               deliberately NO way to type 0 here: an
   //                               absence and an unknown must not be able to
-  //                               produce the same request.
+  //                               produce the same request. Unaffected by this
+  //                               redesign — there is no number to go stale.
   //   would_refuse !== null     → no save control at all, and the reason is
   //                               printed. A button that discovers on submit
   //                               that it could never have worked is worse than
   //                               no button.
+  //
+  // `onReview` is the live re-ask: a caller-supplied () => Promise<preview |
+  // null> that hits the SAME preview URL the caller's own mount effect used,
+  // fresh. Every caller passes one (BindingEditor and AliasEditor each expose
+  // their own previewPath()/fetchLivePreview() for exactly this). Falling back
+  // to the already-loaded `pv` when it is missing keeps this component from
+  // crashing if one ever does not, but that path can never detect staleness —
+  // it is a safety net, not a supported configuration.
+  //
   // `fromGroups`/`toGroups` are optional: an array of { nodes, broken, nodeId }
   // per DISTINCT pick, exactly the shape WmPickList/WmCell already use. Passed
   // only by callers that know a side can hold more than one independent pick
-  // (BindingEditor) -- AliasEditor never passes them and keeps the original
-  // flat from_path/to_path line, which is correct there: an alias remaps ONE
-  // category to ONE node, never several unrelated ones at once.
+  // (BindingEditor's bind/unbind) -- AliasEditor never passes them, and
+  // BindingEditor's reassign flow deliberately does not either (it builds its
+  // own single old-> new swap string), which is correct there: an alias
+  // remaps ONE category to ONE category type, and a reassign replaces ONE
+  // pick, never several unrelated ones at once.
   //
   // Un-grouped (0 or 1 entries) falls back to the flat string too, on either
   // side independently -- that string is already an unambiguous single path
   // in that case, so there is nothing to separate and no reason to change how
   // it looks.
-  function PreviewPanel({ pv, http, busy, onSave, onCancel, refusal, saveLabel, fromGroups, toGroups }) {
+  function PreviewPanel({ pv, http, busy, onSave, onCancel, refusal, saveLabel, fromGroups, toGroups, onReview }) {
     const P = useP();
-    const [echo, setEcho] = React.useState('');
+    // 'idle' -> 'reviewed' -> 'stale'. See the block comment above for why a
+    // click replaced typing without weakening the guarantee it enforces.
+    const [phase, setPhase] = React.useState('idle');
+    const [reviewedCount, setReviewedCount] = React.useState(null);
+    const [liveCount, setLiveCount] = React.useState(null);
+    const [checking, setChecking] = React.useState(false);
     const [unk, setUnk] = React.useState(false);
     const mono = { fontFamily: P.fontMono, fontSize: P.type.meta };
-    React.useEffect(function () { setEcho(''); setUnk(false); },
-      [pv && pv.op, pv && pv.subject, pv && String(pv.to_ids), pv && pv.products_affected]);
+    React.useEffect(function () {
+      setPhase('idle'); setReviewedCount(null); setLiveCount(null); setChecking(false); setUnk(false);
+    }, [pv && pv.op, pv && pv.subject, pv && String(pv.to_ids), pv && pv.products_affected]);
 
     if (http && !http.ok && !(http.body && http.body.code)) {
       return (
@@ -1108,9 +1140,41 @@
     if (!pv) { return <div style={{ fontSize: P.type.meta, color: P.inkMute }}>Reading what this would change…</div>; }
 
     const known = pv.products_known !== false;
-    const n = pv.products_affected;
     const refuse = pv.would_refuse;
-    const ready = refuse ? false : (known ? (echo !== '' && Number(echo) === Number(n)) : unk);
+
+    /** "Review": ask the live question fresh and lock the answer in. */
+    function doReview() {
+      setChecking(true);
+      Promise.resolve(onReview ? onReview() : pv).then(function (fresh) {
+        setChecking(false);
+        const f = fresh || pv;
+        setReviewedCount(f.products_affected);
+        setPhase('reviewed');
+      });
+    }
+
+    /** "Confirm": ask ONE more time before calling onSave at all. If the
+     *  catalog moved since Review, this is where it shows — as a stale state
+     *  that asks for one more click, never as a silent save of a number that
+     *  stopped being true. The server's own recompute-at-write-time 409
+     *  (confirm_mismatch, handled below via `refusal`) is still the backstop
+     *  underneath this for the one race this check cannot close: the catalog
+     *  moving again in the gap between this check succeeding and the POST
+     *  actually landing. */
+    function doConfirm() {
+      setChecking(true);
+      Promise.resolve(onReview ? onReview() : pv).then(function (fresh) {
+        setChecking(false);
+        const f = fresh || pv;
+        const stillKnown = f.products_known !== false;
+        if (stillKnown === known && f.products_affected === reviewedCount) {
+          onSave(known ? reviewedCount : null);
+        } else {
+          setLiveCount(f.products_affected);
+          setPhase('stale');
+        }
+      });
+    }
 
     return (
       <div data-hw-preview={pv.op}>
@@ -1147,23 +1211,46 @@
 
         {!refuse && known &&
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5 }}>
-              Type <strong data-hw-echo-target="1">{num(n)}</strong> to confirm — the number of product rows this
-              affects, recomputed by the server when you save. The catalog moves while a screen is open, so a
-              stale preview must not be able to confirm itself.
-            </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-              <input value={echo} onChange={function (e) { setEcho(e.target.value); }}
-                data-hw-echo="1" inputMode="numeric" placeholder="count"
-                style={{ width: 96, padding: '7px 10px', fontFamily: P.fontMono,
-                  fontSize: P.type.body, color: P.ink, background: P.surface,
-                  border: '1px solid ' + P.hairline3, borderRadius: P.r8 }} />
-              <PBtn variant="accent" icon="check" disabled={!ready || busy}
-                onClick={function () { onSave(Number(echo)); }}>
-                {busy ? 'Saving…' : (saveLabel || 'Save')}
-              </PBtn>
-              <PBtn icon="x" onClick={onCancel}>Cancel</PBtn>
-            </div>
+            {phase === 'idle' &&
+              <div>
+                <PBtn icon="search" data-hw-review="1" disabled={busy || checking}
+                  onClick={doReview}>
+                  {checking ? 'Reviewing…' : 'Review change'}
+                </PBtn>
+                <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 8, lineHeight: 1.45 }}>
+                  Nothing is written until you review the live count and confirm — the catalog moves while a
+                  screen is open, so a stale review must not be able to confirm itself.
+                </div>
+              </div>}
+            {phase === 'reviewed' &&
+              <div>
+                <div data-hw-review-strip="1" style={{ padding: '10px 12px', background: P.surface3,
+                  border: '1px solid ' + P.hairline2, borderRadius: P.r10 }}>
+                  <span style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5 }}>
+                    <strong data-hw-reviewed-count="1" style={{ color: P.ink }}>{num(reviewedCount)}</strong>{' '}
+                    product row{reviewedCount === 1 ? '' : 's'} reviewed just now.
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                  <PBtn variant="accent" icon="check" data-hw-confirm="1" disabled={busy || checking}
+                    onClick={doConfirm}>
+                    {busy ? 'Saving…' : (checking ? 'Checking…' : (saveLabel || 'Confirm'))}
+                  </PBtn>
+                  <PBtn icon="x" onClick={onCancel}>Cancel</PBtn>
+                </div>
+              </div>}
+            {phase === 'stale' &&
+              <div data-hw-review-stale="1" style={{ padding: '10px 12px', background: P.warnSoft,
+                border: '1px solid ' + P.warn, borderRadius: P.r10 }}>
+                <div style={{ fontSize: P.type.meta, color: P.ink, lineHeight: 1.5 }}>
+                  Count changed to <strong data-hw-live-count="1">{num(liveCount)}</strong> since you reviewed
+                  {' '}— <strong>{num(reviewedCount)}</strong> is no longer current. Review again before confirming.
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                  <PBtn variant="accent" icon="check" disabled>{saveLabel || 'Confirm'}</PBtn>
+                  <PBtn icon="refresh" data-hw-review-again="1" onClick={doReview}>Review again</PBtn>
+                </div>
+              </div>}
           </div>}
 
         {!refuse && !known &&
@@ -1183,7 +1270,7 @@
               </span>
             </label>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <PBtn variant="accent" icon="check" disabled={!ready || busy}
+              <PBtn variant="accent" icon="check" disabled={!unk || busy}
                 onClick={function () { onSave(null); }}>
                 {busy ? 'Saving…' : (saveLabel || 'Save')}
               </PBtn>
@@ -1221,33 +1308,83 @@
   }
 
   // ── binding editor: one category, one node, one confirmed save ────────────
-  function BindingEditor({ row, tree, collisions, onSaved, onClose }) {
+  /** "Name [id] > Name [id]", the same flat shape the server's own from_path/
+   *  to_path use — built client-side ONLY for the reassign swap line, where the
+   *  server has no op that answers "what is the path of this ONE pick" (its
+   *  from_path/to_path are a union across every current binding, which is the
+   *  right answer for bind/unbind and the wrong one for "just this one"). */
+  function chainText(nodes) {
+    if (!nodes || !nodes.length) { return null; }
+    return nodes.map(function (n) { return (n && n.name ? n.name : '?') + ' [' + (n ? n.id : '?') + ']'; }).join(' > ');
+  }
+
+  function BindingEditor({ row, tree, collisions, onSaved, onClose, initialNode }) {
     const P = useP();
     // `bindings` -- one entry per EXPLICIT pick, oldest first. Multiple picks
-    // are the whole point of 2026-08-28's change: picking a node here ADDS to
-    // this list, it does not replace whatever was already in it.
+    // are the whole point of 2026-08-28's change: picking a category type here
+    // ADDS to this list, it does not replace whatever was already in it.
     const bindings = row.bindings || [];
-    const [node, setNode] = React.useState(null);       // the node being ADDED
-    // 'bind' | 'unbind' | 'unbind_all'. Starts on 'bind' even when picks
-    // already exist -- adding another is the common case a re-open is for.
+    const [node, setNode] = React.useState(initialNode != null ? initialNode : null); // the one being ADDED
+    // 'bind' | 'unbind' | 'unbind_all' | 'reassign'. Starts on 'bind' even when
+    // picks already exist -- adding another is the common case a re-open is for.
     const [mode, setMode] = React.useState('bind');
     const [unbindNode, setUnbindNode] = React.useState(null); // which pick 'unbind' targets
+    const [reassignFrom, setReassignFrom] = React.useState(null); // which pick 'reassign' replaces
     const [http, setHttp] = React.useState(null);
     const [busy, setBusy] = React.useState(false);
     const [refusal, setRefusal] = React.useState(null);
 
+    // A NEW ROW, OR A FRESH PRESET FROM THE QUEUE, RESETS THE PICKER. Keyed on
+    // the category STRING (not the row object, which gets a new identity on
+    // every reload/save while staying the SAME category) so that a save which
+    // deliberately keeps this editor open on the same category — see save()
+    // below — does not get its in-progress node/mode clobbered out from under
+    // it. `initialNode` lets the "Confirm" queue item (CategoryMapScreen) jump
+    // straight to previewing the category type it already resolves to, rather
+    // than making the operator re-pick something the screen already knows.
+    React.useEffect(function () {
+      setNode(initialNode != null ? initialNode : null);
+      setMode('bind'); setUnbindNode(null); setReassignFrom(null);
+      setHttp(null); setRefusal(null);
+    }, [row.category, initialNode]);
+
+    // ONE PLACE THAT KNOWS THE PREVIEW URL, used both by the mount/change
+    // effect below AND by the Review/Confirm live re-check in PreviewPanel —
+    // so those two can never drift into asking two different questions.
+    // 'reassign' previews as the ADD half only (binding `node`): the route has
+    // no op for "replace one pick with another" (see saveReassign for why),
+    // so the live count this shows is "how many rows would carry the new
+    // category type", which for a straight reassign is the same set of rows
+    // currently carrying the old one.
+    function previewPath() {
+      if (mode === 'unbind_all') { return ROUTE + '/preview?' + qs({ op: 'unbind_all', category: row.category }); }
+      if (mode === 'unbind') {
+        return unbindNode == null ? null
+          : ROUTE + '/preview?' + qs({ op: 'unbind', category: row.category, node: unbindNode });
+      }
+      return node == null ? null
+        : ROUTE + '/preview?' + qs({ op: 'bind', category: row.category, node: node });
+    }
+
     React.useEffect(function () {
       let live = true;
       setHttp(null); setRefusal(null);
-      if (mode === 'bind' && node == null) { return function () { live = false; }; }
-      if (mode === 'unbind' && unbindNode == null) { return function () { live = false; }; }
-      const path = ROUTE + '/preview?' + (
-        mode === 'unbind_all' ? qs({ op: 'unbind_all', category: row.category })
-        : mode === 'unbind' ? qs({ op: 'unbind', category: row.category, node: unbindNode })
-        : qs({ op: 'bind', category: row.category, node: node }));
+      const path = previewPath();
+      if (!path) { return function () { live = false; }; }
       getJSON(path).then(function (r) { if (live) { setHttp(r); } });
       return function () { live = false; };
     }, [row.category, node, mode, unbindNode]);
+
+    /** Re-asks the SAME question, live, right now. This is what "Review" and
+     *  "Confirm" call in PreviewPanel — never the number that happened to load
+     *  when the picker last changed. */
+    function fetchLivePreview() {
+      const path = previewPath();
+      if (!path) { return Promise.resolve(null); }
+      return getJSON(path).then(function (r) {
+        return (r && r.parsed && r.body && r.body.op) ? r.body : null;
+      });
+    }
 
     // A 409 on the PREVIEW is still a preview: the body is the refusal, and the
     // panel renders it as the reason a save is not offered.
@@ -1265,10 +1402,11 @@
     // exactly the WmCell bug fixed on 2026-08-28, left as a known gap here.
     // `row.bindings` already gives every CURRENT pick its own resolved path
     // (`b.path`), the same shape WmPathChain/WmPickList expect; the only new
-    // node not already in that list is the one being added or removed here,
-    // whose own [parent, child] chain we resolve from `tree` (the same rule
-    // wmdemo/category_edit.py `_ids_for_node` applies server-side).
-    const fromGroups = bindings.length
+    // category type not already in that list is the one being added or
+    // removed here, whose own [parent, child] chain we resolve from `tree`
+    // (the same rule wmdemo/category_edit.py `_ids_for_node` applies
+    // server-side). NOT used for 'reassign' — see the swap line below instead.
+    const fromGroups = mode !== 'reassign' && bindings.length
       ? bindings.map(function (b) { return { nodes: b.path, broken: b.broken, nodeId: b.node_id }; })
       : null;
     const toGroups = (function () {
@@ -1292,6 +1430,32 @@
       return null;
     })();
 
+    // ── reassign: the ONE swap this preview describes, and nothing else ────
+    // Built independently of fromGroups/toGroups on purpose: those show the
+    // WHOLE set of current + prospective picks, which is correct for "add
+    // another" but wrong for "replace this one" — a reassign of one pick on a
+    // category with three others must not read as "now bound to all four".
+    function ownChainFor(nodeId) {
+      if (nodeId == null) { return null; }
+      const byId = {};
+      (tree || []).forEach(function (n) { byId[n.id] = n; });
+      const picked = byId[nodeId] || null;
+      if (!picked) { return null; }
+      const parent = picked.parent_id != null ? byId[picked.parent_id] : null;
+      return parent ? [parent, picked] : [picked];
+    }
+    const reassignOldBinding = mode === 'reassign' && reassignFrom != null
+      ? bindings.filter(function (b) { return b.node_id === reassignFrom; })[0] || null
+      : null;
+    const reassignPv = (mode === 'reassign' && pv)
+      ? Object.assign({}, pv, {
+          sentence: 'Moves ' + row.category + ' from one Weedmaps category type to another. Removing the ' +
+            'old pick and adding the new one happen together — never a moment where ' + row.category + ' holds neither.',
+          from_path: chainText(reassignOldBinding && reassignOldBinding.path) || (row.wm_path || null),
+          to_path: chainText(ownChainFor(node))
+        })
+      : pv;
+
     function save(confirm) {
       setBusy(true); setRefusal(null);
       const path = ROUTE + (mode === 'unbind_all' ? '/unbind-all'
@@ -1306,13 +1470,65 @@
         const ref = refusalOf(r);
         if (ref) { setRefusal(ref); return; }
         // STAY OPEN, RESET TO 'bind'. Closing after every save (the pre-multi-
-        // bind behaviour) made adding a SECOND node a two-click round trip
-        // through "Bindings (N)" again; staying open with a cleared picker is
-        // what makes "bind Flower to two nodes" read as one continuous task
-        // rather than two unrelated edits.
+        // bind behaviour) made adding a SECOND category type a two-click round
+        // trip through "Bindings (N)" again; staying open with a cleared
+        // picker is what makes "bind Flower to two category types" read as one
+        // continuous task rather than two unrelated edits.
         setNode(null); setUnbindNode(null); setMode('bind');
         onSaved(r.body && r.body.map, row.category);
       });
+    }
+
+    // ── reassign: add the new pick, THEN remove the old one ────────────────
+    //
+    // ADAPTED FROM THE APPROVED MOCKUP ON PURPOSE, AND FLAGGED HERE BECAUSE OF
+    // IT. The design calls for "remove old + add new happen together, never a
+    // moment with neither" as ONE ATOMIC ACTION. This screen's backend
+    // (wmdemo/category_map.py, category_edit.py — not part of this file and
+    // not touched by this change) has no single route that does both in one
+    // database transaction; it has `/bind` and `/unbind`, each its own write,
+    // each its own confirm-count gate. A true single-transaction reassign
+    // would need a new server endpoint, which is out of scope here.
+    //
+    // The closest faithful equivalent reachable from this file alone: ADD
+    // first, REMOVE second, in that order and never the reverse. That
+    // guarantees the one invariant the design actually cares about by name —
+    // `row.category` is bound to at least one working category type at every
+    // instant between the two writes, because for however long the second
+    // request takes, it is bound to BOTH. What this does NOT give you is a
+    // single write nothing can observe half-done; if the ADD succeeds and the
+    // REMOVE is refused (a stale count, a dropped connection), the category is
+    // left bound to both the old and the new category type — surfaced below,
+    // never swallowed, because a silent partial reassign is exactly the kind
+    // of state this screen exists to make visible. Both writes are gated on
+    // the SAME reviewed count, since the design's own "Review" step already
+    // captures the number of rows that move as a single fact from one screen.
+    function saveReassign(confirm) {
+      setBusy(true); setRefusal(null);
+      post(ROUTE + '/bind', { category: row.category, node: node, confirm_products: confirm })
+        .then(function (addResult) {
+          const addRef = refusalOf(addResult);
+          if (addRef) { setBusy(false); setRefusal(addRef); return; }
+          return post(ROUTE + '/unbind', { category: row.category, node: reassignFrom, confirm_products: confirm })
+            .then(function (removeResult) {
+              setBusy(false);
+              const removeRef = refusalOf(removeResult);
+              if (removeRef) {
+                setRefusal(Object.assign({}, removeRef, {
+                  error: 'The new category type was added, but removing the old one was refused: ' +
+                    removeRef.error + ' Both are currently bound to ' + row.category +
+                    ' — remove the old one below when you are ready.'
+                }));
+                // Show the server's fresh map from the half that DID land, so
+                // the screen reflects reality (both bound) rather than the
+                // stale pre-write picture.
+                if (addResult.body && addResult.body.map) { onSaved(addResult.body.map, row.category); }
+                return;
+              }
+              setNode(null); setUnbindNode(null); setReassignFrom(null); setMode('bind');
+              onSaved(removeResult.body && removeResult.body.map, row.category);
+            });
+        });
     }
 
     const s = st(row);
@@ -1326,20 +1542,29 @@
     // nothing to scroll to. A scrollIntoView here would now fight the one
     // scroll position that matters, the operator's place in the table on the
     // left. See CategoryMapScreen for the panel that replaced the jump.
+    const reassigning = mode === 'reassign';
     return (
       <Card density="roomy" data-hw-editor="binding"
         style={{ border: '1px solid ' + P.accentBorder }}>
-        <SectionHead level={3} eyebrow="Weedmaps bindings"
-          title={row.category + '’s Weedmaps node' + (bindings.length === 1 ? '' : 's')}
-          subtitle={'Currently: ' + (bindings.length
-            ? bindings.length + ' explicit pick' + (bindings.length === 1 ? '' : 's') +
-              ' — a category can bind more than one node, and every one of them publishes'
-            : row.binding_source === 'name_match'
-              ? 'matched by name to ' + row.wm_path + ' — nobody picked this, the word simply hit a node of the same name'
-              : 'not bound to anything. Weedmaps has no node named “' + row.category + '”, and that is an allowed resting state.')}
-          action={<PBtn icon="x" onClick={onClose}>Close</PBtn>} />
+        <SectionHead level={3} eyebrow={reassigning ? 'Reassigning ' + row.category : 'Weedmaps bindings'}
+          title={reassigning ? row.category + '’s Weedmaps category type'
+            : row.category + '’s Weedmaps category type' + (bindings.length === 1 ? '' : 's')}
+          subtitle={reassigning
+            ? (reassignOldBinding
+                ? 'Moving off ' + (chainText(reassignOldBinding.path) || 'category type ' + reassignFrom) +
+                  '. Pick the category type it should point to instead — this replaces that one pick, it does not add a second.'
+                : 'Pick the category type this should point to instead.')
+            : 'Currently: ' + (bindings.length
+              ? bindings.length + ' explicit pick' + (bindings.length === 1 ? '' : 's') +
+                ' — a category can bind more than one category type, and every one of them publishes'
+              : row.binding_source === 'name_match'
+                ? 'matched by name to ' + row.wm_path + ' — nobody picked this, the word simply hit a category type of the same name'
+                : 'not bound to anything. Weedmaps has no category type named “' + row.category + '”, and that is an allowed resting state.')}
+          action={<PBtn icon="x" onClick={reassigning ? function () { setMode('bind'); setReassignFrom(null); setNode(null); } : onClose}>
+            {reassigning ? 'Cancel' : 'Close'}
+          </PBtn>} />
 
-        {row.binding_source === 'none' &&
+        {!reassigning && row.binding_source === 'none' &&
           <div data-hw-resting="1" style={{ padding: '10px 12px', marginBottom: 12,
             background: P.infoSoft, border: '1px solid ' + P.hairline2, borderRadius: P.r10,
             fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5 }}>
@@ -1348,10 +1573,12 @@
             Weedmaps accepts them. There is no decision to record and nothing is waiting on you.
           </div>}
 
-        {/* EVERY CURRENT PICK, EACH WITH ITS OWN REMOVE CONTROL. This is the
-            list a second (or third) bind ADDS to, and the thing that makes
-            "pick a node" additive rather than destructive legible on screen. */}
-        {bindings.length > 0 &&
+        {/* EVERY CURRENT PICK, EACH WITH ITS OWN REASSIGN AND REMOVE CONTROLS.
+            This is the list a second (or third) bind ADDS to, and the thing
+            that makes "pick a category type" additive rather than destructive
+            legible on screen. Hidden while reassigning ONE of them, so the
+            operator's attention is on the swap and not on the other picks. */}
+        {!reassigning && bindings.length > 0 &&
           <div data-hw-bindings-list="1" style={{ marginBottom: 12, display: 'flex',
             flexDirection: 'column', gap: 6 }}>
             {bindings.map(function (b) {
@@ -1369,41 +1596,51 @@
                       {b.broken ? ' — not in the tree any more' : ''}
                     </div>
                   </div>
-                  <PBtn size="xs" icon="x" data-hw-remove-node={b.node_id}
-                    onClick={function () { setMode('unbind'); setUnbindNode(b.node_id); }}>
-                    Remove
-                  </PBtn>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <PBtn size="xs" icon="swap" data-hw-reassign-node={b.node_id}
+                      onClick={function () { setMode('reassign'); setReassignFrom(b.node_id); setNode(null); }}>
+                      Reassign
+                    </PBtn>
+                    <PBtn size="xs" icon="x" data-hw-remove-node={b.node_id}
+                      onClick={function () { setMode('unbind'); setUnbindNode(b.node_id); }}>
+                      Remove
+                    </PBtn>
+                  </div>
                 </div>);
             })}
           </div>}
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-          <PBtn active={mode === 'bind'} data-hw-add-node="1"
-            onClick={function () { setMode('bind'); }} icon="grid">
-            {bindings.length ? 'Add another node' : 'Pick a node'}
-          </PBtn>
-          {bindings.length > 1 &&
-            <PBtn active={mode === 'unbind_all'} data-hw-unbind-all="1"
-              onClick={function () { setMode('unbind_all'); }} icon="x">
-              Clear all {bindings.length} bindings
-            </PBtn>}
-        </div>
+        {!reassigning &&
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            <PBtn active={mode === 'bind'} data-hw-add-node="1"
+              onClick={function () { setMode('bind'); }} icon="grid">
+              {bindings.length ? 'Add another category type' : 'Pick a category type'}
+            </PBtn>
+            {bindings.length > 1 &&
+              <PBtn active={mode === 'unbind_all'} data-hw-unbind-all="1"
+                onClick={function () { setMode('unbind_all'); }} icon="x">
+                Clear all {bindings.length} bindings
+              </PBtn>}
+          </div>}
 
-        {mode === 'bind' &&
+        {(mode === 'bind' || reassigning) &&
           <div style={{ marginBottom: 12 }}>
             <NodePicker tree={tree} value={node} onPick={setNode} collisions={collisions} />
           </div>}
 
-        {(mode === 'unbind_all' || (mode === 'unbind' && unbindNode != null) || (mode === 'bind' && node != null)) &&
-          <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal}
-            fromGroups={fromGroups} toGroups={toGroups}
+        {(mode === 'unbind_all' || (mode === 'unbind' && unbindNode != null)
+          || (mode === 'bind' && node != null) || (reassigning && node != null)) &&
+          <PreviewPanel pv={reassigning ? reassignPv : pv} http={http} busy={busy} refusal={refusal}
+            fromGroups={reassigning ? null : fromGroups} toGroups={reassigning ? null : toGroups}
+            onReview={fetchLivePreview}
             saveLabel={mode === 'unbind_all' ? 'Remove all bindings'
-              : mode === 'unbind' ? 'Remove this binding' : 'Add this node'}
-            onSave={save} onCancel={onClose} />}
+              : mode === 'unbind' ? 'Remove this binding'
+              : reassigning ? 'Confirm move' : 'Add this category type'}
+            onSave={reassigning ? saveReassign : save} onCancel={reassigning ? function () { setMode('bind'); setReassignFrom(null); setNode(null); } : onClose} />}
 
         {mode === 'bind' && node == null &&
           <div style={{ fontSize: P.type.meta, color: P.inkMute }}>
-            Choose a node above and this will show exactly what saving it would change.
+            Choose a category type above and this will show exactly what saving it would change.
           </div>}
       </Card>);
   }
@@ -1434,16 +1671,30 @@
     const [refusal, setRefusal] = React.useState(null);
     const mono = { fontFamily: P.fontMono, fontSize: P.type.micro };
 
+    function previewPath() {
+      if (!pending) { return null; }
+      return ROUTE + '/preview?' + (pending.kind === 'remove'
+        ? qs({ op: 'alias_remove', alias: pending.alias })
+        : qs({ op: 'alias', alias: pending.alias, category: pending.category }));
+    }
+
     React.useEffect(function () {
       let live = true;
       setHttp(null); setRefusal(null);
-      if (!pending) { return function () { live = false; }; }
-      const path = ROUTE + '/preview?' + (pending.kind === 'remove'
-        ? qs({ op: 'alias_remove', alias: pending.alias })
-        : qs({ op: 'alias', alias: pending.alias, category: pending.category }));
+      const path = previewPath();
+      if (!path) { return function () { live = false; }; }
       getJSON(path).then(function (r) { if (live) { setHttp(r); } });
       return function () { live = false; };
     }, [pending && pending.kind, pending && pending.alias, pending && pending.category]);
+
+    /** Same live re-ask as BindingEditor's — see PreviewPanel's Review/Confirm. */
+    function fetchLivePreview() {
+      const path = previewPath();
+      if (!path) { return Promise.resolve(null); }
+      return getJSON(path).then(function (r) {
+        return (r && r.parsed && r.body && r.body.op) ? r.body : null;
+      });
+    }
 
     const pv = (http && http.parsed && http.body && http.body.op) ? http.body
       : (http && http.parsed && http.body && http.body.code)
@@ -1516,7 +1767,7 @@
 
         {pending &&
           <div style={{ marginBottom: 14 }}>
-            <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal}
+            <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal} onReview={fetchLivePreview}
               saveLabel={pending.kind === 'remove' ? 'Remove the alias'
                 : pending.kind === 'repoint' ? 'Repoint it' : 'Add the alias'}
               onSave={save} onCancel={function () { setPending(null); }} />
@@ -1572,12 +1823,144 @@
       </Card>);
   }
 
+  // ── which of the three queue buckets a row belongs in ─────────────────────
+  //
+  // "CONFIRMED" MEANS A PERSON EXPLICITLY PICKED THE BINDING — not that the
+  // category happens to resolve. 8 of our 9 canonical names resolve by
+  // accidental name match today, which is the whole point of the alias layer;
+  // a literal "hide anything that resolves" filter would leave this queue
+  // almost always empty and would count a coincidence in spelling as a
+  // decision nobody made. `binding_source` already carries exactly this
+  // distinction (STATES/WmCell/BindingEditor all key off it the same way):
+  // anything starting with 'explicit' is a person's pick, 'name_match' is
+  // nobody's, and 'none' is Deals' own case — see below.
+  //
+  // `Deals` (no Weedmaps category type exists for it, anywhere) is its OWN
+  // bucket, 'resting', keyed off `state` rather than `binding_source` so it
+  // does not depend on that field being present at all (older payload shapes
+  // and this file's own older test fixtures omit it). It is never counted as
+  // unconfirmed and never hidden — folding it into "unmapped" is exactly the
+  // mistake this file's own top-of-file comment warns against, and hiding it
+  // would make the owner's "Deals doesn't publish, and that's fine" decision
+  // look like something that quietly vanished rather than something settled.
+  //
+  // A row with NO `binding_source` at all (fixtures written before the field
+  // existed) defaults to 'unconfirmed' rather than 'confirmed' — the safer
+  // direction when the fact is simply unknown is to keep asking, not to
+  // assume somebody already answered.
+  function bindingKind(r) {
+    if (r && r.state === 'NO_WM_NODE') { return 'resting'; }
+    const src = (r && r.binding_source) || 'name_match';
+    return src.indexOf('explicit') === 0 ? 'confirmed' : 'unconfirmed';
+  }
+
+  // ── the right panel's default view: a work queue, not an idle placeholder ─
+  //
+  // Replaces the old "No category selected" EmptyState. That placeholder sat
+  // in the panel every time nothing was being edited, which on a 9-row screen
+  // is most of the time — and said nothing about which of those 9 rows is
+  // actually worth a look. This queue is that answer: every category resolving
+  // only by accidental name match, grouped apart from the ones a person has
+  // already confirmed on purpose, with Deals' own permanent line never mixed
+  // into either.
+  function NeedsLookQueue({ rows, onConfirm }) {
+    const P = useP();
+    const [showConfirmed, setShowConfirmed] = React.useState(false);
+    const resting = rows.filter(function (r) { return bindingKind(r) === 'resting'; });
+    const unconfirmed = rows.filter(function (r) { return bindingKind(r) === 'unconfirmed'; });
+    const confirmed = rows.filter(function (r) { return bindingKind(r) === 'confirmed'; });
+
+    function item(r, opts) {
+      opts = opts || {};
+      return (
+        <div key={r.category} data-hw-queue-item={r.category}
+          style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10,
+            padding: '10px 12px', marginBottom: 8, borderRadius: P.r10,
+            border: '1px solid ' + P.hairline2,
+            background: opts.resting ? P.infoSoft : P.surface2,
+            opacity: opts.dim ? 0.6 : 1 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{r.category}</span>
+              {opts.resting && <Pill kind="info" size="sm">not fixable</Pill>}
+            </div>
+            <div style={{ fontSize: P.type.meta, color: P.inkDim, marginTop: 3, lineHeight: 1.45 }}>{opts.why}</div>
+          </div>
+          {opts.confirmable &&
+            <PBtn size="xs" data-hw-queue-confirm={r.category}
+              onClick={function () { onConfirm(r.category); }}>
+              Confirm
+            </PBtn>}
+        </div>);
+    }
+
+    function whyUnconfirmed(r) {
+      const base = 'Resolving only because the word happens to match a Weedmaps category type of the ' +
+        'same name — nobody has picked it on purpose.';
+      if (r.product_count == null) { return base; }
+      return base + ' ' + num(r.product_count) + ' product row' + (r.product_count === 1 ? '' : 's') + ' ride on that.';
+    }
+
+    return (
+      <Card density="roomy" data-hw-queue="1">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+          <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>Needs a look</div>
+          <span data-hw-queue-count="1">
+            <Pill kind={unconfirmed.length ? 'warn' : 'good'} size="sm">
+              {unconfirmed.length} unconfirmed
+            </Pill>
+          </span>
+        </div>
+
+        {resting.map(function (r) {
+          return item(r, { resting: true,
+            why: 'No Weedmaps category type exists, ever. Shown here so it is never mistaken for silently ' +
+              'hidden — but there is nothing to confirm.' });
+        })}
+
+        {unconfirmed.length === 0 &&
+          <div style={{ fontSize: P.type.meta, color: P.inkDim, padding: '2px 0 8px' }}>
+            Every category with a Weedmaps category type has been confirmed by someone.
+          </div>}
+        {unconfirmed.map(function (r) {
+          return item(r, { why: whyUnconfirmed(r), confirmable: true });
+        })}
+
+        {confirmed.length > 0 &&
+          <div>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid ' + P.hairline2 }}>
+              <button type="button" data-hw-queue-toggle="1"
+                onClick={function () { setShowConfirmed(!showConfirmed); }}
+                style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', font: 'inherit',
+                  color: P.info, fontWeight: 600, fontSize: P.type.meta,
+                  display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name={showConfirmed ? 'chevron-down' : 'chevron-right'} size={13} stroke={2} />
+                {confirmed.length} already confirmed — {showConfirmed ? 'hide' : 'show'}
+              </button>
+            </div>
+            {showConfirmed &&
+              <div data-hw-queue-settled="1" style={{ marginTop: 8 }}>
+                {confirmed.map(function (r) {
+                  const picker = (r.bindings && r.bindings[0] && r.bindings[0].actor) || null;
+                  return item(r, { dim: true,
+                    why: 'Confirmed' + (picker ? ' by ' + picker : '') + '.' });
+                })}
+              </div>}
+          </div>}
+      </Card>);
+  }
+
   window.CategoryMapScreen = function CategoryMapScreen() {
     const P = useP();
     const [http, setHttp] = React.useState(null);
     const [tick, setTick] = React.useState(0);
     const [open, setOpen] = React.useState({});
     const [editing, setEditing] = React.useState(null);
+    // Set only by the "Needs a look" queue's Confirm action (below), so the
+    // picker can jump straight to the category type a name-match row already
+    // resolves to instead of making the operator re-pick something the screen
+    // already knows. Cleared whenever the editor is opened any other way.
+    const [initialNode, setInitialNode] = React.useState(null);
     // THE MAP THE SERVER RETURNED WITH THE WRITE, not one this screen guessed.
     // Every write route answers with the whole recomputed map, so the row an
     // operator sees after saving is the server's answer and never an optimistic
@@ -1616,7 +1999,7 @@
               </div>}
           </div>);
       } },
-      { label: 'Weedmaps node', width: '26%', render: function (r) {
+      { label: 'Weedmaps category type', width: '26%', render: function (r) {
         // Guarded, not assumed: category_map.py always sends `bindings` now,
         // but a stale cached payload (or a map object built by hand, as in
         // this screen's own test fixtures) may not carry it yet.
@@ -1626,8 +2009,8 @@
             <WmCell r={r} />
             {/* WHO DECIDED, which is a different fact from WHETHER IT RESOLVES.
                 A name match is nobody's decision — the word happened to hit a
-                node of the same name — and an operator about to change it
-                should know which of the two they are looking at. */}
+                category type of the same name — and an operator about to
+                change it should know which of the two they are looking at. */}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
               <span data-hw-binding-source={r.binding_source || 'name_match'}
                 style={{ fontSize: P.type.micro, color: P.inkMute }}>
@@ -1642,15 +2025,15 @@
                         + ' of ' + rBindings.length + ' picks not in the tree')
                     : r.binding_source === 'explicit_missing_node'
                       ? (rBindings.length === 1
-                          ? 'picked node ' + (rBindings[0] ? rBindings[0].node_id : '?') + ' is not in the tree'
-                          : 'all ' + rBindings.length + ' picked nodes are not in the tree')
+                          ? 'picked category type ' + (rBindings[0] ? rBindings[0].node_id : '?') + ' is not in the tree'
+                          : 'all ' + rBindings.length + ' picked category types are not in the tree')
                       : r.binding_source === 'none'
                         ? 'nothing bound — allowed'
                         : 'matched by name, not chosen'}
               </span>
               <PBtn size="xs" icon="edit" data-hw-edit-binding={r.category}
-                onClick={function () { setEditing(editing === r.category ? null : r.category); }}>
-                {rBindings.length ? 'Bindings (' + rBindings.length + ')' : 'Pick a node'}
+                onClick={function () { setEditing(editing === r.category ? null : r.category); setInitialNode(null); }}>
+                {rBindings.length ? 'Bindings (' + rBindings.length + ')' : 'Pick a category type'}
               </PBtn>
             </div>
             {r.overrides_name_match &&
@@ -1695,7 +2078,7 @@
       <div>
         <SectionHead level={1} eyebrow="Our categories ↔ Weedmaps' categories"
           title="Category map"
-          subtitle="Every one of our nine canonical categories, every spelling that folds into it, the Weedmaps node it binds to with its ids, and how many of our products carry it."
+          subtitle="Every one of our nine canonical categories, every spelling that folds into it, the Weedmaps category type it binds to with its ids, and how many of our products carry it."
           action={<PBtn icon="refresh" onClick={function () { setTick(tick + 1); }}>Reload</PBtn>} />
 
         <Explainer />
@@ -1715,6 +2098,8 @@
         {/* SPLIT VIEW (2026-08-28), replacing the inline-in-the-table editor.
             The owner's words: "have to click on pick a node, then theres a
             bind button, to interface with the categories you have to scroll
+            (quoted verbatim — the screen has since renamed "node" to
+            "category type" in its own copy, this quote has not)
             to the top of the page." Both complaints traced to the same root
             cause -- the editor rendered in ONE fixed spot in this tree
             (originally right here, above TheDefect) no matter which row's
@@ -1741,17 +2126,17 @@
                     unbound category is an allowed resting state and there is no
                     ceremony to complete. The old sublabel was a standing to-do for
                     a question that has already been answered. */}
-                <KPI label="No Weedmaps node" value={num(c.no_wm_node)}
-                  sublabel={c.no_wm_node ? 'no node to bind to — allowed, not a task' : 'every category has a node'}
+                <KPI label="No Weedmaps category type" value={num(c.no_wm_node)}
+                  sublabel={c.no_wm_node ? 'no category type to bind to — allowed, not a task' : 'every category has a category type'}
                   icon="ban" />
                 {c.binding_broken
                   ? <KPI label="Bindings pointing nowhere" value={num(c.binding_broken)}
-                      sublabel="a picked node has left Weedmaps' tree" icon="alert" />
+                      sublabel="a picked category type has left Weedmaps' tree" icon="alert" />
                   : null}
                 <KPI label="SKUs publishing uncategorised" value={num(c.products_uncategorised)}
                   sublabel={c.products_uncategorised
                     ? 'live on Weedmaps with no category, silently'
-                    : 'every spelling reaches a node'}
+                    : 'every spelling reaches a category type'}
                   icon="alert" />
                 <KPI label="SKUs saved by the alias layer" value={num(c.products_rescued_by_alias)}
                   sublabel={c.products_rescued_by_alias
@@ -1812,21 +2197,29 @@
                 if (r) {
                   return <BindingEditor row={r} tree={(d.wm_tree && d.wm_tree.tree) || []}
                     collisions={(d.wm_tree && d.wm_tree.collisions) || []}
-                    onClose={function () { setEditing(null); }}
+                    initialNode={initialNode}
+                    onClose={function () { setEditing(null); setInitialNode(null); }}
                     // STAYS OPEN ON SAVE, deliberately: a category can hold several
                     // explicit picks now, and closing after every one (the pre-multi-
-                    // bind behaviour) turned "bind Flower to two nodes" into two
-                    // separate trips through "Bindings (N)". The editor resets its
+                    // bind behaviour) turned "bind Flower to two category types" into
+                    // two separate trips through "Bindings (N)". The editor resets its
                     // own picker/mode state after each save; only Close or picking a
                     // different row's "Bindings" button leaves this one.
                     onSaved={function (map) { if (map) { setFresh(map); } else { setTick(tick + 1); } }} />;
                 }
                 // EDITING SET BUT THE ROW IS GONE (a reload dropped it) reads the
                 // same as NOTHING SELECTED. Neither state is an error -- there is
-                // simply nothing here to bind right now.
+                // simply nothing here to bind right now. Both fall through to the
+                // SAME queue rather than an inert "nothing selected" placeholder —
+                // see NeedsLookQueue for why an idle right panel is a wasted panel.
                 return (
-                  <EmptyState icon="edit" title="No category selected"
-                    body={'Click “Pick a node” or “Bindings” on any row on the left to bind it to a Weedmaps node here — this panel stays put while the table scrolls.'} />);
+                  <NeedsLookQueue rows={rows}
+                    onConfirm={function (category) {
+                      const target = rows.filter(function (x) { return x.category === category; })[0];
+                      const ids = (target && target.wm_ids) || [];
+                      setEditing(category);
+                      setInitialNode(ids.length ? ids[ids.length - 1] : null);
+                    }} />);
               })()}
             </div>
           </div>}
@@ -1834,10 +2227,11 @@
         <DevNote id="catmap-what-green-means" tone="warn"
           title="What a green row here does and does not tell you">
           <DevNoteP>
-            A <DevNoteMono>resolves</DevNoteMono> row means our category NAME matched a Weedmaps node
-            NAME, and items will carry that node&rsquo;s ids. It does not mean the node is the RIGHT
-            one. The match is on a lowercased string, first node wins a tie, and Weedmaps&rsquo; tree
-            is not name-unique &mdash; <DevNoteMono>Diamonds</DevNoteMono> is two different nodes.
+            A <DevNoteMono>resolves</DevNoteMono> row means our category NAME matched a Weedmaps category
+            type NAME, and items will carry that category type&rsquo;s ids. It does not mean the category
+            type is the RIGHT one. The match is on a lowercased string, first category type wins a tie, and
+            Weedmaps&rsquo; tree is not name-unique &mdash; <DevNoteMono>Diamonds</DevNoteMono> is two
+            different category types.
           </DevNoteP>
           <DevNoteP>
             It also says nothing about sub-categories. A product bound to
@@ -1854,15 +2248,25 @@
         <DevNote id="catmap-writes"
           title="This screen writes now — what each write does, and the one control that is deliberately missing">
           <DevNoteP>
-            Two writes, both real: picking a Weedmaps node for a category
+            Two writes, both real: picking a Weedmaps category type for a category
             (<DevNoteMono>POST /api/taxonomy/categories/bind</DevNoteMono>) and adding, repointing or
             removing a spelling (<DevNoteMono>/alias</DevNoteMono>). Both change what goes live on the
-            owner&rsquo;s real Weedmaps listing, so both are gated on echoing back the number the
-            preview showed &mdash; recomputed by the server at save time, which is what stops a screen
-            that has gone stale from confirming itself. It is the publish gate&rsquo;s own mechanism.
+            owner&rsquo;s real Weedmaps listing, so both are gated on a live Review before Confirm can
+            fire &mdash; the count is recomputed by the server at save time regardless, which is what
+            stops a screen that has gone stale from confirming itself. It is the publish gate&rsquo;s own
+            mechanism; only the operator-facing shape of it changed on 2026-09-01 (see PreviewPanel).
           </DevNoteP>
           <DevNoteP>
-            A picked node beats the name match on the publish path itself
+            Reassign (BindingEditor, 2026-09-01) is NOT a third write route &mdash; it is the existing
+            <DevNoteMono>/bind</DevNoteMono> and <DevNoteMono>/unbind</DevNoteMono>, called back to back,
+            ADD then REMOVE, never the other order. There is no server-side transaction across the two, so
+            a failure of the second call leaves the category bound to BOTH the old and the new category
+            type rather than to neither &mdash; surfaced on screen, not swallowed. A true one-write reassign
+            would need a new server endpoint; this file cannot add one, so this is the closest equivalent
+            reachable from here alone.
+          </DevNoteP>
+          <DevNoteP>
+            A picked category type beats the name match on the publish path itself
             (<DevNoteMono>engine.build_item_payload</DevNoteMono> asks
             {' '}<DevNoteMono>category_edit.explicit_ids_for</DevNoteMono> first), and an added spelling
             folds through <DevNoteMono>taxonomy._norm_category</DevNoteMono> like any built-in alias.
@@ -1877,8 +2281,8 @@
           </DevNoteP>
           <DevNoteP>
             THE MISSING CONTROL, ON PURPOSE: there is no &ldquo;do not publish&rdquo; button, no
-            acknowledge, no decision to record for a category with no Weedmaps node. The owner asked
-            for a picker, aliases and a preview, and said &ldquo;if we decide NOT to map deals, then
+            acknowledge, no decision to record for a category with no Weedmaps category type. The owner
+            asked for a picker, aliases and a preview, and said &ldquo;if we decide NOT to map deals, then
             that shouldnt be a problem and the system should allow it&rdquo;. Unbound is the DEFAULT
             &mdash; you reach it by doing nothing &mdash; and a control that made you declare it would
             turn &ldquo;not a problem&rdquo; into a chore. Do not add one back.

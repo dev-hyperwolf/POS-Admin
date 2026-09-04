@@ -495,7 +495,7 @@ test('BOTH halves of a name collision are marked, and each says which half it is
 
   assert.match(flat(kept.textContent), /by ORDER, not by intent/,
     'the winner won arbitrarily and the screen must say so');
-  assert.match(flat(ignored.textContent), /never reaches this node/i,
+  assert.match(flat(ignored.textContent), /never reaches this category type/i,
     '428 is reachable ONLY by an explicit pick — that is the whole reason to show it');
 
   // The slug is the only field that tells 423 from 428 at a glance.
@@ -532,7 +532,7 @@ test('an unmapped category is expressible, and the screen does not nag about it'
   // `info`, not `bad`: the owner ruled that choosing not to map is a fact about
   // Weedmaps' taxonomy, not work anybody can do.
   assert.equal(cell.querySelector('[data-stub="pill"]').getAttribute('data-tone'), 'info');
-  assert.match(flat(text()), /no node to bind to — allowed, not a task/,
+  assert.match(flat(text()), /no category type to bind to — allowed, not a task/,
     'the KPI must not phrase an allowed resting state as an outstanding decision');
 });
 
