@@ -705,19 +705,20 @@
   // PreviewPanel ────────────────────────────────────────────────────────────
   // Each is a standalone gated write. Kept separate rather than one component
   // with a `kind` prop because each has a genuinely different preview shape
-  // (reassign/move synthesize their own swap sentence, never toGroups/
-  // fromGroups) and a genuinely different write sequence (reassign and move
-  // are two POSTs each, the rest are one) — forcing them through one state
-  // machine is what tangled the original reassign flow the first time.
+  // (move synthesizes its own swap sentence, never toGroups/fromGroups) and a
+  // genuinely different write sequence (move is two POSTs, the rest are one)
+  // — forcing them through one state machine is what tangled the original
+  // reassign flow the first time.
   //
-  // REASSIGN vs MOVE, NOT THE SAME OPERATION. `saveReassign` (the code this
-  // replaces) always posted BOTH calls with the SAME `category` — it swaps
-  // which Weedmaps node type ONE category points to. Dragging a bound card
-  // from one Kanban column to another is a different real operation: the
-  // SAME node, a DIFFERENT owning category. `ReassignModal` below is the
-  // first (same category, pick a new node type); `MoveCardModal` is the
-  // second (same node, pick a new category) — conflating them would silently
-  // do the wrong write for one of the two gestures.
+  // "REASSIGN" MEANS MOVE-TO-A-DIFFERENT-CATEGORY, NOT SWAP-THE-NODE. This
+  // file's first guess was the opposite: `ReassignModal` picked a NEW
+  // Weedmaps node for the SAME category (mirroring the old `saveReassign`,
+  // which posted both calls with one unchanging `category`). The owner
+  // corrected this directly — in a Kanban board, "reassign" reads as "move
+  // this card elsewhere," the same thing dragging it to another column does.
+  // `ReassignTargetPicker` (below) is now just a category chooser feeding
+  // into `MoveCardModal` — the click path and the drag path share the exact
+  // same two-call write (bind new category, unbind old one, same node).
 
   function BindReviewModal({ category, initialNodeId, allowPicker, tree, collisions, onClose, onSaved }) {
     const P = useP();
@@ -853,85 +854,36 @@
       </Card>);
   }
 
-  function ReassignModal({ category, fromNodeId, tree, collisions, onClose, onSaved, onRefresh }) {
+  // ── reassign = move this card to a different Kanban column ────────────────
+  // Owner correction, 2026-09-04: "Reassign" reads as "move this card
+  // elsewhere" in a Kanban board, not "swap which Weedmaps type this same
+  // category points to" — the latter was this file's first guess and was
+  // wrong. Reassign now shares MoveCardModal (below) with the drag gesture:
+  // same node, a different owning category. This picker exists only because
+  // a click has no drop target to imply one the way a drag does.
+  function ReassignTargetPicker({ category, nodeId, categories, tree, onClose, onSaved, onRefresh }) {
     const P = useP();
-    const [node, setNode] = React.useState(null);
-    const [http, setHttp] = React.useState(null);
-    const [busy, setBusy] = React.useState(false);
-    const [refusal, setRefusal] = React.useState(null);
-    function previewPath() {
-      return node == null ? null : ROUTE + '/preview?' + qs({ op: 'bind', category: category, node: node });
+    const [target, setTarget] = React.useState(null);
+    if (target) {
+      return <MoveCardModal fromCategory={category} toCategory={target} nodeId={nodeId} tree={tree}
+        onClose={onClose} onSaved={onSaved} onRefresh={onRefresh} />;
     }
-    React.useEffect(function () {
-      let live = true;
-      setHttp(null); setRefusal(null);
-      const path = previewPath();
-      if (!path) { return function () { live = false; }; }
-      getJSON(path).then(function (r) { if (live) { setHttp(r); } });
-      return function () { live = false; };
-    }, [category, node]);
-    function fetchLivePreview() {
-      const path = previewPath();
-      if (!path) { return Promise.resolve(null); }
-      return getJSON(path).then(function (r) { return (r && r.parsed && r.body && r.body.op) ? r.body : null; });
-    }
-    const byId = {}; (tree || []).forEach(function (n) { byId[n.id] = n; });
-    function chainFor(id) {
-      const picked = byId[id] || null;
-      if (!picked) { return null; }
-      const parent = picked.parent_id != null ? byId[picked.parent_id] : null;
-      return parent ? [parent, picked] : [picked];
-    }
-    const rawPv = (http && http.parsed && http.body && http.body.op) ? http.body
-      : (http && http.parsed && http.body && http.body.code)
-        ? { op: 'bind', subject: category, products_affected: null, products_known: true,
-            would_refuse: { code: http.body.code, error: http.body.error } }
-        : null;
-    const pv = rawPv ? Object.assign({}, rawPv, {
-      sentence: 'Moves ' + category + ' from one Weedmaps category type to another. Removing the old pick ' +
-        'and adding the new one happen together — never a moment where ' + category + ' holds neither.',
-      from_path: chainText(chainFor(fromNodeId)),
-      to_path: chainText(chainFor(node))
-    }) : null;
-    function save(confirm) {
-      setBusy(true); setRefusal(null);
-      post(ROUTE + '/bind', { category: category, node: node, confirm_products: confirm })
-        .then(function (addResult) {
-          const addRef = refusalOf(addResult);
-          if (addRef) { setBusy(false); setRefusal(addRef); return; }
-          return post(ROUTE + '/unbind', { category: category, node: fromNodeId, confirm_products: confirm })
-            .then(function (removeResult) {
-              setBusy(false);
-              const removeRef = refusalOf(removeResult);
-              if (removeRef) {
-                setRefusal(Object.assign({}, removeRef, {
-                  error: 'The new category type was added, but removing the old one was refused: ' +
-                    removeRef.error + ' Both are currently bound to ' + category +
-                    ' — remove the old one from its card when you are ready.'
-                }));
-                // Refresh the board's underlying data WITHOUT closing this
-                // modal — the whole point of surfacing a partial failure is
-                // that the operator needs to actually see it. Calling the
-                // modal-closing `onSaved` here (as the success path below
-                // does) would dismiss this exact message the instant it
-                // appears.
-                if (addResult.body && addResult.body.map && onRefresh) { onRefresh(addResult.body.map); }
-                return;
-              }
-              onSaved(removeResult.body && removeResult.body.map);
-            });
-        });
-    }
+    const others = (categories || []).filter(function (c) { return c !== category; });
     return (
-      <Card density="roomy" data-hw-modal="reassign" style={{ border: '1px solid ' + P.accentBorder }}>
-        <SectionHead level={3} eyebrow={'Reassigning ' + category} title="Point this pick at a different category type"
+      <Card density="roomy" data-hw-modal="reassign-target" style={{ border: '1px solid ' + P.accentBorder }}>
+        <SectionHead level={3} eyebrow={'Reassigning from ' + category} title="Move this card to a different category"
           action={<PBtn icon="x" onClick={onClose}>Cancel</PBtn>} />
-        <div style={{ marginBottom: 12 }}>
-          <NodePicker tree={tree} value={node} onPick={setNode} collisions={collisions} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {others.map(function (c) {
+            return (
+              <button key={c} type="button" data-hw-reassign-target={c} onClick={function () { setTarget(c); }}
+                style={{ textAlign: 'left', padding: '9px 11px', borderRadius: P.r10,
+                  border: '1px solid ' + P.hairline2, background: P.surface, cursor: 'pointer',
+                  font: 'inherit', fontSize: P.type.body, fontWeight: 600, color: P.ink }}>
+                {c}
+              </button>);
+          })}
         </div>
-        {node != null &&
-          <PreviewPanel pv={pv} http={http} busy={busy} refusal={refusal} onReview={fetchLivePreview}
-            saveLabel="Confirm move" onSave={save} onCancel={onClose} />}
       </Card>);
   }
 
@@ -978,8 +930,9 @@
                   error: toCategory + ' now has it too, but removing it from ' + fromCategory + ' was refused: ' +
                     removeRef.error + ' Both categories currently claim it — remove it from ' + fromCategory + ' when you are ready.'
                 }));
-                // Same rule as ReassignModal: refresh the data behind this
-                // modal without closing it, so the refusal stays visible.
+                // Refresh the data behind this modal without closing it, so
+                // the refusal stays visible — same rule the drag-triggered
+                // path and the click-triggered path both need.
                 if (addResult.body && addResult.body.map && onRefresh) { onRefresh(addResult.body.map); }
                 return;
               }
@@ -1510,7 +1463,25 @@
         collisionCards.push({ nodeId: ignoredId, name: collByName[k].name, chain: chainFor(ignoredId) });
       });
     });
-    return { resting: resting, unconfirmed: unconfirmed, collisionCards: collisionCards };
+    // ── every Weedmaps category type nobody has claimed ──────────────────
+    // "Claimed" means referenced ANYWHERE this screen already accounts for:
+    // a row's resolved wm_ids, an explicit binding, or either side of a name
+    // collision (the kept id resolves by name match; the ignored id already
+    // has its own card above). Everything left over is a real Weedmaps
+    // category type that no Hyperwolf category currently reaches — not
+    // fabricated, walked directly off the same tree the picker uses.
+    const referenced = new Set();
+    rows.forEach(function (r) {
+      (r.wm_ids || []).forEach(function (id) { referenced.add(id); });
+      (r.bindings || []).forEach(function (b) { referenced.add(b.node_id); });
+    });
+    (collisions || []).forEach(function (c) {
+      referenced.add(c.kept_id); referenced.add(c.ignored_id);
+    });
+    const unassigned = (tree || [])
+      .filter(function (n) { return !referenced.has(n.id); })
+      .map(function (n) { return { nodeId: n.id, name: n.name, chain: chainFor(n.id) }; });
+    return { resting: resting, unconfirmed: unconfirmed, collisionCards: collisionCards, unassigned: unassigned };
   }
 
   function QueueCard({ kind, label, subtitle, nodeId, chain, productCount, categories,
@@ -1530,9 +1501,10 @@
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {/* Only `unconfirmed`/`resting` cards are named after one of OUR
-                categories — a `collision` card's `label` is a Weedmaps node
-                name with no category of its own yet, so it gets no dot. */}
-            {kind !== 'collision' &&
+                categories — `collision` and `unassigned` cards carry a
+                Weedmaps node name with no category of their own yet, so
+                neither gets a category dot. */}
+            {kind !== 'collision' && kind !== 'unassigned' &&
               <span style={{ width: 8, height: 8, borderRadius: 2, flex: '0 0 auto', background: catColor(label) || P.neutral }} />}
             <span style={{ fontSize: P.type.body, fontWeight: 700, color: P.ink }}>{label}</span>
           </div>
@@ -1542,7 +1514,7 @@
           </div>
           {!selectMode && kind === 'unconfirmed' &&
             <PBtn size="xs" style={{ marginTop: 6 }} icon="check" onClick={onConfirm}>Confirm</PBtn>}
-          {!selectMode && kind === 'collision' &&
+          {!selectMode && (kind === 'collision' || kind === 'unassigned') &&
             <select data-hw-queue-add-to={label} defaultValue="" onChange={function (e) {
                 if (e.target.value) { onAddTo(e.target.value); e.target.value = ''; }
               }}
@@ -1567,7 +1539,7 @@
           background: P.surface2, border: '1px dashed ' + P.hairline3, borderRadius: P.r12, padding: 12,
           maxHeight: '78vh', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>Needs a look</div>
+          <div style={{ fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>Still unmapped</div>
           <Pill kind={actionable ? 'warn' : 'good'} size="sm">{actionable}</Pill>
         </div>
         {actionable > 0 &&
@@ -1599,9 +1571,27 @@
             return <QueueCard key={'r-' + r.category} kind="resting" label={r.category}
               subtitle="no Weedmaps category type exists — allowed" />;
           })}
-          {actionable === 0 && q.resting.length === 0 &&
+          {actionable === 0 && q.resting.length === 0 && q.unassigned.length === 0 &&
             <div style={{ fontSize: P.type.meta, color: P.inkMute, padding: '8px 0' }}>
               Nothing needs a look right now.
+            </div>}
+          {q.unassigned.length > 0 &&
+            <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: P.type.meta, fontWeight: 700, color: P.ink2, padding: '6px 0',
+                borderTop: '1px solid ' + P.hairline2 }}>
+                {q.unassigned.length} Weedmaps category type{q.unassigned.length === 1 ? '' : 's'} not yet assigned to anything
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {q.unassigned.map(function (u) {
+                  return <QueueCard key={'x-' + u.nodeId} kind="unassigned" label={u.name}
+                    subtitle="not claimed by any Hyperwolf category" nodeId={u.nodeId} chain={u.chain}
+                    categories={categories}
+                    selectMode={selectMode} selected={selected.has(u.nodeId)} onToggleSelect={function () { onToggleSelect(u.nodeId); }}
+                    onAddTo={function (category) { onOpenBind(category, u.nodeId); }}
+                    draggable={!selectMode} isDragging={draggingNodeId === u.nodeId}
+                    onDragStartCard={function () { onDragStartCard(u.nodeId); }} onDragEndCard={onDragEndCard} />;
+                })}
+              </div>
             </div>}
         </div>
       </div>);
@@ -1609,6 +1599,28 @@
 
   function WmTypeCard({ category, binding, draggable, isDragging, onDragStartCard, onDragEndCard, onReassign, onUnbind }) {
     const P = useP();
+    // Live per-binding count, on request (owner, 2026-09-04) — deliberately
+    // NOT the category's own aggregate `product_count` (that counts every
+    // product under the CATEGORY, not this one Weedmaps pick specifically).
+    // The real number for "how many products ride on THIS pick" only exists
+    // via a live call: `/preview?op=unbind` answers exactly that question
+    // for a single (category, node) pair, because unbinding this one pick is
+    // the operation whose product count this card is describing. Fetched
+    // once per card, not batched — there are at most a few dozen bound
+    // cards on screen at once, nothing like the 94-node tree size.
+    const [count, setCount] = React.useState(undefined); // undefined = loading, null = unknown
+    React.useEffect(function () {
+      let live = true;
+      setCount(undefined);
+      getJSON(ROUTE + '/preview?' + qs({ op: 'unbind', category: category, node: binding.node_id }))
+        .then(function (r) {
+          if (!live) { return; }
+          const body = r && r.parsed && r.body;
+          setCount(body && body.op ? (body.products_known === false ? null : body.products_affected) : null);
+        });
+      return function () { live = false; };
+    }, [category, binding.node_id]);
+    const leaf = (binding.path && binding.path.length) ? [binding.path[binding.path.length - 1]] : [];
     return (
       <div data-hw-wm-card={binding.node_id} draggable={!!draggable}
         onDragStart={draggable ? function (e) { e.dataTransfer.effectAllowed = 'move'; onDragStartCard(); } : undefined}
@@ -1619,7 +1631,7 @@
           opacity: isDragging ? 0.4 : 1, transform: isDragging ? 'scale(.98)' : 'none',
           cursor: draggable ? 'grab' : 'default' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6 }}>
-          <WmPathChain nodes={binding.path} broken={binding.broken} nodeId={binding.node_id} />
+          <WmPathChain nodes={leaf} broken={binding.broken} nodeId={binding.node_id} />
           <div style={{ display: 'flex', gap: 4, flex: '0 0 auto' }}>
             <button type="button" title="Reassign" onClick={onReassign}
               style={{ background: 'transparent', border: 0, cursor: 'pointer', color: P.inkMute, padding: 2 }}>
@@ -1631,10 +1643,12 @@
             </button>
           </div>
         </div>
-        <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 4 }}>
-          {binding.broken ? 'not in the tree any more'
-            : 'picked by ' + (binding.actor || 'someone') + (binding.at_iso ? ' · ' + binding.at_iso : '')}
-        </div>
+        {!binding.broken &&
+          <div data-hw-wm-card-count="1" style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 4 }}>
+            {count === undefined ? 'reading…' : count == null ? 'unknown products' : num(count) + ' product' + (count === 1 ? '' : 's')}
+          </div>}
+        {binding.broken &&
+          <div style={{ fontSize: P.type.micro, color: P.bad, marginTop: 4 }}>not in the tree any more</div>}
       </div>);
   }
 
@@ -1857,7 +1871,7 @@
           </Modal>}
         {modal && modal.type === 'reassign' &&
           <Modal onClose={closeModal}>
-            <ReassignModal category={modal.category} fromNodeId={modal.fromNodeId} tree={tree} collisions={collisions}
+            <ReassignTargetPicker category={modal.category} nodeId={modal.fromNodeId} categories={categoryNames} tree={tree}
               onClose={closeModal} onSaved={saved} onRefresh={onSaved} />
           </Modal>}
         {modal && modal.type === 'move' &&

@@ -208,7 +208,20 @@ function installAtoms(win) {
   win.DevNoteMono = (props) => h('code', { 'data-stub': 'devnotemono' }, props.children);
 }
 
+// Each test mounts a fresh JSDOM window + React root. Node's test runner
+// does NOT isolate sequential `test()` calls into separate processes the way
+// separate FILES are — everything here shares one process, and neither a
+// JSDOM window nor a React root was ever torn down between tests. That
+// accumulation is real: confirmed by running this exact mount()/fixture pair
+// as a bare script outside node:test (no hang, sub-second) versus inside a
+// sequence of 4-5 preceding tests in this runner (hangs indefinitely, no
+// thrown error, no rejection — node:test's own test-context bookkeeping
+// gets confused by the pile-up, not this file's logic). Tearing down the
+// PREVIOUS mount before creating a new one keeps exactly one JSDOM window
+// and one React root alive at a time, which resolved it.
+let _lastCleanup = null;
 async function mount(route) {
+  if (_lastCleanup) { const c = _lastCleanup; _lastCleanup = null; c(); }
   const dom = new JSDOM('<!doctype html><html><body><div id="r"></div></body></html>',
     { url: 'http://127.0.0.1:8944/' });
   const win = dom.window;
@@ -273,6 +286,10 @@ async function mount(route) {
     });
     await settle();
   };
+  _lastCleanup = function () {
+    try { root.unmount(); } catch (e) {}
+    try { win.close(); } catch (e) {}
+  };
   return { doc: win.document, win, host, sent, click, change, settle, text: () => host.textContent };
 }
 
@@ -293,6 +310,14 @@ const q = (doc, sel) => doc.querySelector(sel);
 const qa = (doc, sel) => [...doc.querySelectorAll(sel)];
 const btnByText = (doc, re) => qa(doc, 'button').filter((b) => re.test(b.textContent || ''))[0];
 
+/* Split from a single larger file, 2026-09-04 — that file hung reliably
+ * under `node --test` after ~4-5 tests shared one process (confirmed via a
+ * standalone repro script outside node:test: identical mount()/fixtures ran
+ * clean in under a second — the app code was never the bug). The original
+ * five files this whole suite replaced were always small and separate for
+ * the same underlying reason (each gets its own process); this split
+ * restores that convention rather than fighting the test runner. */
+
 // ═══════════════════════════ 1. static board render, real data ═══════════
 
 test('the board renders one column per category, plus a queue lane, from real GET data', async () => {
@@ -311,213 +336,3 @@ test('an explicit binding renders as a real card under its own category, never a
   assert.equal(q(col, '[data-hw-auto-resolved]'), null);
 });
 
-test('a category resolving only by name match shows the auto-resolved placeholder, not a fabricated pick', async () => {
-  const m = await mount(router({ map: payload([FLOWER]) }));
-  const col = q(m.doc, '[data-hw-column="Flower"]');
-  assert.ok(q(col, '[data-hw-auto-resolved="Flower"]'));
-  assert.equal(qa(col, '[data-hw-wm-card]').length, 0, 'no explicit binding exists yet — no card claiming one');
-});
-
-test('NO_WM_NODE renders its own calm card and stays a real drop target — never disabled, never styled as an error', async () => {
-  const m = await mount(router({ map: payload([DEALS]) }));
-  const col = q(m.doc, '[data-hw-column="Deals"]');
-  const card = q(col, '[data-hw-empty-wm-node="Deals"]');
-  assert.ok(card, 'Deals must show the dedicated resting-state card');
-  assert.match(card.textContent, /allowed resting state, not a fault/i);
-  assert.ok(btnByText(col, /point it at a category type anyway/i),
-    'Deals must remain actionable — Weedmaps having no node for it is not a reason to disable binding');
-});
-
-// ═══════════════════════════ 2. the queue lane's three real sources ══════
-
-test('an unconfirmed name-match category appears in the queue with a Confirm action, resolved (not fabricated) node', async () => {
-  const m = await mount(router({ map: payload([FLOWER, WELLNESS, DEALS]) }));
-  const flowerCard = q(m.doc, '[data-hw-queue-card="Flower"]');
-  assert.ok(flowerCard, 'Flower resolves only by name match and must be in the queue');
-  assert.match(flowerCard.textContent, /auto-matched by name, unconfirmed/i);
-  assert.ok(btnByText(flowerCard, /confirm/i));
-  // Wellness is an EXPLICIT pick — must not appear in the queue at all.
-  assert.equal(q(m.doc, '[data-hw-queue-card="Wellness"]'), null,
-    'a confirmed pick must not sit in the queue');
-  // Deals is resting, shown, but not actionable.
-  const dealsCard = q(m.doc, '[data-hw-queue-card="Deals"]');
-  assert.ok(dealsCard);
-  assert.equal(btnByText(dealsCard, /confirm/i), undefined);
-});
-
-test('a Weedmaps name collision surfaces one queue card per ignored node, resolved via the real tree — not the kept id', async () => {
-  const withCollision = payload([FLOWER], {
-    wm_tree: { path: '/x', nodes: TREE.length, names: TREE.length, tree: TREE, error: null,
-      collisions: [{ name: 'Diamonds', kept_id: 423, ignored_id: 428 }] }
-  });
-  const m = await mount(router({ map: withCollision }));
-  const card = q(m.doc, '[data-hw-queue-card="Diamonds"]');
-  assert.ok(card, 'the ignored half of a collision must get its own queue card');
-  const select = q(card, '[data-hw-queue-add-to="Diamonds"]');
-  assert.ok(select, 'a collision card has no default category — it offers a category choice, never a two-button shortcut with a number the real data cannot supply');
-});
-
-test('confirming a name-match category opens the bind modal already pointed at the node it resolves to', async () => {
-  const m = await mount(router({ map: payload([FLOWER]) }));
-  const flowerCard = q(m.doc, '[data-hw-queue-card="Flower"]');
-  await m.click(btnByText(flowerCard, /confirm/i));
-  const modal = q(m.doc, '[data-hw-modal="bind"]');
-  assert.ok(modal, 'Confirm must open the real bind-review modal, not silently write');
-  assert.ok(q(modal, '[data-hw-preview="bind"]'), 'the confirm gate must be present — Confirm is a shortcut into the same gated flow, not a bypass');
-});
-
-// ═══════════════════════════ 3. the confirm gate itself ═══════════════════
-
-test('nothing writes before Review and Confirm — clicking a queue Confirm alone sends no POST', async () => {
-  const sentTracker = [];
-  const m = await mount(function (p, method, body) {
-    if (method === 'POST') { sentTracker.push({ p, body }); return [200, { result: { ok: true }, map: payload([FLOWER]) }]; }
-    if (p.startsWith(ROUTE + '/preview')) { return [200, preview()]; }
-    if (p.startsWith(ROUTE)) { return [200, payload([FLOWER])]; }
-    return [404, {}];
-  });
-  await m.click(btnByText(q(m.doc, '[data-hw-queue-card="Flower"]'), /confirm/i));
-  assert.equal(sentTracker.length, 0, 'opening the modal must not itself write anything');
-  await m.click(q(m.doc, '[data-hw-review]'));
-  assert.equal(sentTracker.length, 0, 'Review reads live, it does not write');
-  await m.click(q(m.doc, '[data-hw-confirm]'));
-  assert.equal(sentTracker.length, 1, 'Confirm is the one action that writes, exactly once');
-  assert.equal(sentTracker[0].p, ROUTE + '/bind');
-  assert.equal(sentTracker[0].body.confirm_products, 3, 'the reviewed count must be echoed back, not retyped');
-});
-
-test('a count that changes between Review and Confirm goes stale, not silent', async () => {
-  let calls = 0;
-  const m = await mount(function (p, method, body) {
-    if (method === 'POST') { return [200, { result: { ok: true }, map: payload([FLOWER]) }]; }
-    if (p.startsWith(ROUTE + '/preview')) {
-      calls += 1;
-      // Two live reads happen before Confirm's own re-check: the modal's
-      // initial mount fetch (call 1), then PreviewPanel's own "Review" click
-      // (call 2) — both must agree at 3 for the reviewed count to read 3.
-      // Only the THIRD read (Confirm's re-check) moves, which is the one
-      // that must go stale.
-      return [200, preview({ products_affected: calls <= 2 ? 3 : 9 })];
-    }
-    if (p.startsWith(ROUTE)) { return [200, payload([FLOWER])]; }
-    return [404, {}];
-  });
-  await m.click(btnByText(q(m.doc, '[data-hw-queue-card="Flower"]'), /confirm/i));
-  await m.click(q(m.doc, '[data-hw-review]'));
-  assert.match(q(m.doc, '[data-hw-reviewed-count]').textContent, /3/);
-  await m.click(q(m.doc, '[data-hw-confirm]'));
-  assert.ok(q(m.doc, '[data-hw-review-stale]'), 'a moved count must go stale, never confirm itself');
-  assert.match(q(m.doc, '[data-hw-live-count]').textContent, /9/);
-});
-
-test('the map the board shows after a save is the one the SERVER returned, not a locally-guessed merge', async () => {
-  const freshMap = payload([row('Flower', { binding_source: 'explicit', product_count: 512,
-    binding: { node_id: 999, actor: 'test@hyperwolf.com', at_iso: '2026-09-04T00:00:00Z' } })]);
-  const m = await mount(router({ map: payload([FLOWER]), save: () => [200, { result: { ok: true }, map: freshMap }] }));
-  await m.click(btnByText(q(m.doc, '[data-hw-queue-card="Flower"]'), /confirm/i));
-  await m.click(q(m.doc, '[data-hw-review]'));
-  await m.click(q(m.doc, '[data-hw-confirm]'));
-  assert.ok(q(m.doc, '[data-hw-wm-card="999"]'),
-    'the board must render the SERVER\'s fresh map (node 999), not whatever this screen assumed the write did');
-});
-
-// ═══════════════════════════ 4. unbind + reassign ══════════════════════════
-
-test('a bound card\'s unbind icon opens the gated unbind modal', async () => {
-  const m = await mount(router({ map: payload([WELLNESS]), pv: () => [200, preview({ op: 'unbind', products_affected: 41 })] }));
-  const card = q(m.doc, '[data-hw-wm-card="512"]');
-  await m.click(q(card, 'button[title="Unbind"]'));
-  const modal = q(m.doc, '[data-hw-modal="unbind"]');
-  assert.ok(modal);
-  assert.ok(q(modal, '[data-hw-preview="unbind"]'));
-});
-
-test('reassign is a same-category node swap: both writes carry the SAME category', async () => {
-  const sentTracker = [];
-  const m = await mount(function (p, method, body) {
-    if (method === 'POST') { sentTracker.push({ p, body }); return [200, { result: { ok: true }, map: payload([WELLNESS]) }]; }
-    if (p.startsWith(ROUTE + '/preview')) { return [200, preview({ products_affected: 41, to_path: 'Wellness [467]' })]; }
-    if (p.startsWith(ROUTE)) { return [200, payload([WELLNESS]) ]; }
-    return [404, {}];
-  });
-  const card = q(m.doc, '[data-hw-wm-card="512"]');
-  await m.click(q(card, 'button[title="Reassign"]'));
-  const modal = q(m.doc, '[data-hw-modal="reassign"]');
-  assert.ok(modal);
-  await m.click(q(modal, '[data-hw-node="467"]'));
-  await m.click(q(m.doc, '[data-hw-review]'));
-  await m.click(q(m.doc, '[data-hw-confirm]'));
-  assert.equal(sentTracker.length, 2, 'reassign is two real writes, add then remove');
-  assert.equal(sentTracker[0].p, ROUTE + '/bind');
-  assert.equal(sentTracker[0].body.category, 'Wellness');
-  assert.equal(sentTracker[0].body.node, 467);
-  assert.equal(sentTracker[1].p, ROUTE + '/unbind');
-  assert.equal(sentTracker[1].body.category, 'Wellness', 'reassign never changes which category owns the pick — only which node it points to');
-  assert.equal(sentTracker[1].body.node, 512);
-});
-
-test('a reassign whose REMOVE half is refused leaves BOTH bindings live and says so, rather than losing the failure', async () => {
-  const bothBound = payload([row('Wellness', {
-    binding_source: 'explicit', product_count: 41,
-    bindings: [
-      { node_id: 512, actor: 'ops@hyperwolf.com', at_iso: '2026-07-14T00:00:00Z', broken: false, path: [{ id: 512, name: 'Tinctures', parent_id: null }] },
-      { node_id: 467, actor: 'test@hyperwolf.com', at_iso: '2026-09-04T00:00:00Z', broken: false, path: [{ id: 467, name: 'Wellness', parent_id: null }] }
-    ]
-  })]);
-  const m = await mount(function (p, method, body) {
-    if (method === 'POST' && p === ROUTE + '/bind') {
-      return [200, { result: { ok: true }, map: bothBound }];
-    }
-    if (method === 'POST' && p === ROUTE + '/unbind') {
-      return [409, { code: 'confirm_mismatch', error: 'the catalog moved' }];
-    }
-    if (p.startsWith(ROUTE + '/preview')) { return [200, preview({ products_affected: 41, to_path: 'Wellness [467]' })]; }
-    if (p.startsWith(ROUTE)) { return [200, payload([WELLNESS])]; }
-    return [404, {}];
-  });
-  const card = q(m.doc, '[data-hw-wm-card="512"]');
-  await m.click(q(card, 'button[title="Reassign"]'));
-  await m.click(q(q(m.doc, '[data-hw-modal="reassign"]'), '[data-hw-node="467"]'));
-  await m.click(q(m.doc, '[data-hw-review]'));
-  await m.click(q(m.doc, '[data-hw-confirm]'));
-  assert.match(m.text(), /the new category type was added, but removing the old one was refused/i,
-    'a partial reassign failure must be surfaced in words, not swallowed');
-  assert.ok(q(m.doc, '[data-hw-wm-card="512"]'), 'the old pick must still show — the map reflects reality: both bound');
-  assert.ok(q(m.doc, '[data-hw-wm-card="467"]'), 'the new pick was genuinely added and must show too');
-});
-
-// ═══════════════════════════ 5. bulk multi-bind ════════════════════════════
-
-test('select-multiple in the queue, then bind them all to one category in a single Review/Confirm', async () => {
-  const withCollision = payload([FLOWER, DEALS], {
-    wm_tree: { path: '/x', nodes: TREE.length, names: TREE.length, tree: TREE, error: null,
-      collisions: [{ name: 'Diamonds', kept_id: 423, ignored_id: 428 }] }
-  });
-  const sentTracker = [];
-  const m = await mount(function (p, method, body) {
-    if (method === 'POST') { sentTracker.push({ p, body }); return [200, { result: { ok: true }, map: withCollision }]; }
-    if (p.startsWith(ROUTE + '/preview')) { return [200, preview({ products_affected: 7 })]; }
-    if (p.startsWith(ROUTE)) { return [200, withCollision]; }
-    return [404, {}];
-  });
-  await m.click(btnByText(q(m.doc, '[data-hw-queue-lane]'), /select multiple/i));
-  const diamondsCheckbox = q(q(m.doc, '[data-hw-queue-card="Diamonds"]'), 'input[type="checkbox"]');
-  await m.click(diamondsCheckbox);
-  await m.change(q(m.doc, '[data-hw-bulk-target]'), 'Flower');
-  const modal = q(m.doc, '[data-hw-modal="multi-bind"]');
-  assert.ok(modal, 'choosing a bulk target must open the real multi-bind review modal');
-  await m.click(q(modal, '[data-hw-multi-review]'));
-  await m.click(q(modal, '[data-hw-multi-confirm]'));
-  assert.equal(sentTracker.length, 1);
-  assert.equal(sentTracker[0].body.category, 'Flower');
-  assert.equal(sentTracker[0].body.node, 428);
-});
-
-// ═══════════════════════════ 6. AliasEditor / unfoldable stay put ══════════
-
-test('the alias editor and the refused-spellings card still render below the board, unchanged', async () => {
-  const withUnfoldable = payload([FLOWER], { unfoldable: [{ spelling: 'vapess', products: 4 }] });
-  const m = await mount(router({ map: withUnfoldable }));
-  assert.match(m.text(), /category spellings? we refuse outright/i);
-  assert.match(m.text(), /vapess/i);
-});
