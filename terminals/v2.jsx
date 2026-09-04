@@ -268,10 +268,11 @@ window.VersionByLocation = function VersionByLocation() {
       </div>
 
       {add && <AddTerminal onClose={() => setAdd(false)} />}
-      {detail && <TerminalDetail t={detail} session={sessions[detail.id]} events={window.terminalEvents(detail, sessions[detail.id])}
+      {detail && <TerminalDetail t={{ ...detail, reader: readers[detail.id] }} session={sessions[detail.id]} events={window.terminalEvents(detail, sessions[detail.id])}
         onClose={() => setDetail(null)}
         onOpenSession={(t) => setOpening(t)}
-        onReconcile={(t) => setReconcile(t)} />}
+        onReconcile={(t) => setReconcile(t)}
+        onAssign={assign} />}
       {opening && <OpenDrawerModal t={opening} onClose={() => setOpening(null)} onOpened={(r) => openSession(opening.id, r)} />}
       {reconcile && <DrawerReconcile t={reconcile} onClose={() => setReconcile(null)} onDeposited={(d) => closeSession(reconcile.id, d)} />}
     </div>);

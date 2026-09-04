@@ -483,8 +483,9 @@ window.RegionReaderMap = function RegionReaderMap({ readers, onAssign, onClose }
 };
 
 // ── TERMINAL DETAIL (slide-over) ────────────────────────────────────────────
-window.TerminalDetail = function TerminalDetail({ t, onClose, onReconcile, onOpenSession, session, events }) {
+window.TerminalDetail = function TerminalDetail({ t, onClose, onReconcile, onOpenSession, onAssign, session, events }) {
   const P = useP();const tk = useTk();
+  const [assigningReader, setAssigningReader] = React.useState(false);
   const isDriver = t.kind !== 'station';
   const region = isDriver ? T_REGION_BY_ID[t.region] : null;
   const attn = attentionFor(t);
@@ -544,8 +545,11 @@ window.TerminalDetail = function TerminalDetail({ t, onClose, onReconcile, onOpe
           <KV k="Hardware tag" v={t.device.tag} mono />
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, padding: '8px 11px', background: P.surface2, borderRadius: P.r8 }}><Icon name="lock" size={13} color={P.inkDim} /><span style={{ fontSize: 11.5, color: P.inkDim }}>Locked to this device. Re-bind needs a manager confirm.</span></div>
         </Section>
-        <Section title="Credit card reader" action={<PBtn variant="ghost" size="xs" icon="refresh">Swap</PBtn>}>
-          {t.reader ? <PeriphChip icon="card" label={t.reader.model} sub={'SN ' + t.reader.sn} ok tag={isDriver ? 'Static · ' + regionName(t.region) : 'Static · this station'} /> :
+        <Section title="Credit card reader" action={!assigningReader && <PBtn variant={t.reader ? 'ghost' : 'accent'} size="xs" icon={t.reader ? 'refresh' : 'link'} onClick={() => setAssigningReader(true)}>{t.reader ? 'Swap' : 'Assign'}</PBtn>}>
+          {assigningReader ?
+            <TSelect size="sm" icon="card" placeholder="Pick a reader…" value={null} options={READER_POOL}
+              onChange={(v) => { const rd = READER_POOL.find((x) => x.value === v); onAssign && onAssign(t.id, { model: rd.model, sn: rd.sn }); setAssigningReader(false); }} /> :
+          t.reader ? <PeriphChip icon="card" label={t.reader.model} sub={'SN ' + t.reader.sn} ok tag={isDriver ? 'Static · ' + regionName(t.region) : 'Static · this station'} /> :
           <PeriphChip icon="card" label="Card reader" missing tag={isDriver ? 'Assign to ' + regionName(t.region) : 'Assign to station'} />}
         </Section>
         {!isDriver && <Section title="Receipt printer" action={<PBtn variant="ghost" size="xs" icon="link">Swap</PBtn>}>

@@ -269,6 +269,15 @@ export async function boot(which = 'pos', opts = {}) {
   // Real React, the same major version the pages load from unpkg.
   const React = (await import('react')).default;
   const ReactDOM = (await import('react-dom/client'));
+  // 'react-dom/client' is createRoot/hydrateRoot ONLY — it does not export
+  // createPortal. The browser's single react-dom UMD bundle has both, so any
+  // page whose modal/overlay is `ReactDOM.createPortal(...)` (pos/product-
+  // sheet.jsx, pos/verification.jsx, pos/customer-extras.jsx, every
+  // `window.Overlay` in the estate) threw `ReactDOM.createPortal is not a
+  // function` the instant it tried to render — six failures on the tree this
+  // was found on, in files that never mention "portal" anywhere, because the
+  // error surfaces as a dead screen, not as a missing-import message.
+  const ReactDOMFull = (await import('react-dom'));
   window.React = React;
   /* 🔴 A MUTABLE COPY, NOT THE MODULE NAMESPACE.
    *
@@ -283,7 +292,7 @@ export async function boot(which = 'pos', opts = {}) {
    * unfaithful to the browser it claims to imitate — the same category as the
    * IIFE wrapper that hid the STAGES collision.
    */
-  window.ReactDOM = { ...ReactDOM };
+  window.ReactDOM = { ...ReactDOMFull, ...ReactDOM };
   window.matchMedia = window.matchMedia || (() => ({ matches: false, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} }));
   window.scrollTo = () => {};
   /* rAF GOES THROUGH THE TRACKED window.setTimeout, DELIBERATELY.
