@@ -187,7 +187,7 @@ window.RewardInline = function RewardInline({ reward, onChange }) {
 };
 
 // ── shared: builder chrome (paradigm switch + save bar) ─────────────────────
-window.BuilderTopBar = function BuilderTopBar({ mode, setMode, onCancel, onSave, draft }) {
+window.BuilderTopBar = function BuilderTopBar({ mode, setMode, onCancel, onSave, onSaveDraft, draft }) {
   const P = useP();
   const [wmOn, setWmOn] = React.useState(true);
   const [wmOpen, setWmOpen] = React.useState(false);
@@ -211,7 +211,7 @@ window.BuilderTopBar = function BuilderTopBar({ mode, setMode, onCancel, onSave,
       <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>New promotion</span>
       <div style={{ flex: 1 }} />
       <span style={{ fontSize: 12.5, color: P.inkDim }}>{draft.name || 'Untitled promotion'}</span>
-      <PBtn variant="secondary" size="sm">Save draft</PBtn>
+      <PBtn variant="secondary" size="sm" onClick={onSaveDraft}>Save draft</PBtn>
       <PBtn variant="accent" icon="check" size="sm" onClick={onSave}>Publish</PBtn>
     </div>);
 };

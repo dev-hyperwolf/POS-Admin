@@ -56,7 +56,7 @@ if (!window.ScreenBoundary || !window.CriticalBoundary) {
 }
 const PromoFrame = window.ScreenBoundary || function PromoFrame(p) {return p.children;};
 const PromoCritical = window.CriticalBoundary || function PromoCritical(p) {return p.children;};
-const PROMO_VIEW_LABEL = { home: 'Promotions', weedmaps: 'The Weedmaps view', studio: 'The studio' };
+const PROMO_VIEW_LABEL = { home: 'Promotions', weedmaps: 'The Weedmaps view', studio: 'The studio', analytics: 'Analytics' };
 
 function Suite() {
   const P = useP();
@@ -78,14 +78,21 @@ function Suite() {
     setDraft({ wmReadonly: true, name: wm.name, code: wm.code || '', status: 'active', wm });
     setBmode('blocks');setWstep(0);setBuilderId('wm');
   };
-  const saveBuilder = () => {
+  // `statusOverride` lets Save-draft reuse this exact persistence path while
+  // forcing draft.status='draft' regardless of what the builder's own Status
+  // toggle is set to -- M.draftToMerged already maps any non-'active' status
+  // to 'draft' (pweb/merge.jsx), so this is the same data model the builder
+  // already understands, not a new mechanism.
+  const saveBuilder = (statusOverride) => {
     const base = builderId !== 'new' ? promos.find((p) => p.id === builderId) : null;
-    const merged = M.draftToMerged(draft, base);
+    const toSave = statusOverride ? { ...draft, status: statusOverride } : draft;
+    const merged = M.draftToMerged(toSave, base);
     setPromos((prev) => prev.find((p) => p.id === merged.id) ? prev.map((p) => p.id === merged.id ? merged : p) : [merged, ...prev]);
     setBuilderId(null);setView('studio');
   };
+  const saveDraft = () => saveBuilder('draft');
   const dup = (id) => {const s = promos.find((p) => p.id === id);const c = { ...JSON.parse(JSON.stringify(s)), id: 'p' + Date.now(), name: s.name + ' (copy)', status: 'draft', perf: undefined };setPromos((prev) => [c, ...prev]);openBuilder(c.id);};
-  const goAnalytics = (id) => {setAnalyticsId(id);setView('home');};
+  const goAnalytics = (id) => {setAnalyticsId(id);setView('analytics');};
 
   // ── builder overlay ───────────────────────────────────────────────────────
   if (builderId) {
@@ -96,7 +103,7 @@ function Suite() {
           Save button must disappear with it. */}
       <PromoFrame name="The promotion builder" onReset={() => setBuilderId(null)} resetLabel="Discard and go back">
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          <window.BuilderTopBar mode={bmode} setMode={setBmode} draft={draft} onCancel={() => setBuilderId(null)} onSave={saveBuilder} />
+          <window.BuilderTopBar mode={bmode} setMode={setBmode} draft={draft} onCancel={() => setBuilderId(null)} onSave={saveBuilder} onSaveDraft={saveDraft} />
           <div style={{ flex: 1, overflowY: 'auto' }}>
             <PromoCritical name="The promotion editor" flow="This promotion">
               <window.BuilderBlocks draft={draft} set={set} />
@@ -132,6 +139,7 @@ function Suite() {
         </>}
         {view === 'weedmaps' && <window.WeedmapsView promos={promos} setPromos={setPromos} onOpen={openBuilder} onOpenWm={openWmBuilder} />}
         {view === 'studio' && <window.StudioView promos={promos} setPromos={setPromos} onOpen={openBuilder} />}
+        {view === 'analytics' && <window.AnalyticsCenter />}
         </PromoFrame>
       </main>
     </div>
