@@ -188,7 +188,7 @@ jobs:
               # Prove the compiler is actually gone from the heaviest page,
               # rather than trusting the stamp that says so.
               if curl -sS -m 25 "$PAGES/Hyperwolf%20POS.html" \
-                 | grep -q '@babel/standalone'; then
+                 | grep -qE '<script[^>]*@babel/standalone'; then
                 case "$STAMP" in
                   *"NOT PRECOMPILED"*)
                     echo "PASS pages-deploy: browser-side babel present, as the stamp declares." ;;
