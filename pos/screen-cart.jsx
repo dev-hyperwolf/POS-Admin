@@ -513,6 +513,23 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
               <button onClick={() => onClearCart && onClearCart()} title={`Empty this ticket — removes all ${count} item${count > 1 ? 's' : ''} and any discount on it. The customer stays checked in and the rest of the party's tickets are untouched.`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minHeight: P.ctrlH.xs, padding: '0 4px', background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}><Icon name="x" size={12} stroke={2} />Clear cart</button>
             </div>
             {lines.map((l) =>
+            // `l.missing` (screen-register.jsx:191) is real: a line's SKU can
+            // stop resolving against the current catalog (a demo-seed reset,
+            // a re-map, a deleted product) while the line itself survives in
+            // the cart. This used to read `l.p.name` unconditionally and
+            // crash the whole sale the moment that happened — the one honest
+            // signal the data layer already computed (`missing`) was never
+            // consulted. Render the same way every other unresolved-data case
+            // in this app does: say so, don't fabricate, don't crash.
+            l.missing || !l.p ?
+            <div key={l.sku} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: P.badSoft, border: `1px solid ${P.bad}`, borderRadius: P.r10 }}>
+                <Icon name="alert-triangle" size={18} stroke={2} color={P.bad} style={{ flex: '0 0 auto' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: P.bad }}>Product no longer in catalog</div>
+                  <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{l.sku}</div>
+                </div>
+                <IconBtn icon="trash" size={14} style={{ width: 28, height: 28 }} onClick={() => remove(l.sku)} />
+              </div> :
             <div key={l.sku} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', background: P.surface, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
                 <Thumb item={l.p} size={38} />
                 <div style={{ flex: 1, minWidth: 0 }}>
