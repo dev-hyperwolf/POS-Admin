@@ -66,12 +66,22 @@
 // is an owner call about what counts as "the same product," not a bug to
 // silently paper over here.
 //
-// Verified against the live server on 2026-09-05: this key merges exactly the
-// STIIIZY Blue Dream 1g pair into one two-source group; every other row in the
-// 1,254-row live dataset lands in a group of one. That matches
-// OVERNIGHT-STATUS.md's own account of how rare real cross-source matches are
-// right now — degenerate (single-source) groups are the honest, expected
-// common case, not a bug in this screen.
+// Re-verified against the live server on 2026-09-05: across the 1,254-row
+// live dataset this key produces 4 multi-row groups, not 1 — and only 3 of
+// those are real cross-source matches (Do-Si-Dos: dutchie_embed+leafly;
+// Watermelon Z: dutchie_embed+stiiizy_dispensary_shop; Blue Dream:
+// leafly+stiiizy_dispensary_shop). The 4th is a SAME-SOURCE duplicate: two
+// dutchie_embed rows (id 100 "Kushy Punch Gummy Watermelon Indica 100mg" and
+// id 102 "Kushy Punch Original Gummy Watermelon Indica 100mg") merge only
+// because "Original" is in STOPWORDS — one store's own catalog scraped twice
+// under near-duplicate names, not a competitor match. A multi-row group is
+// therefore NOT the same thing as a multi-SOURCE group, and the code below
+// (groups.multiSource / distinctSources) keeps the two concepts separate
+// rather than treating row count as a proxy for cross-source evidence. Every
+// other row in the dataset lands in a group of one, matching
+// OVERNIGHT-STATUS.md's account of how rare real cross-source matches are —
+// degenerate (single-source) groups are still the honest, expected common
+// case.
 //
 // ── "YOUR PRICE" ─────────────────────────────────────────────────────────
 //
@@ -311,17 +321,25 @@
     const P = useP();
     const rows = group.rows;
     const multi = rows.length > 1;
+    const multiSource = group.multiSource; // 2+ DISTINCT sources — see header comment
     const knownRows = rows.filter(knownBasis);
     let headline = null;
-    if (multi && knownRows.length >= 2) {
+    if (multiSource && knownRows.length >= 2) {
       const lo = Math.min.apply(null, knownRows.map(function (r) { return r.pre_tax_price; }));
       const hi = Math.max.apply(null, knownRows.map(function (r) { return r.pre_tax_price; }));
       const spreadPct = lo > 0 ? Math.round(((hi - lo) / lo) * 100) : 0;
       headline = { kind: spreadPct > 0 ? 'info' : 'neutral', label: `${spreadPct}% spread across sources` };
-    } else if (multi && knownRows.length === 0) {
+    } else if (multiSource && knownRows.length === 0) {
       // Every sub-row is unknown-basis — the doc's exact rule, adapted:
       // never render a confident-looking pill over data that isn't.
       headline = { kind: 'info', label: 'Basis unverified' };
+    } else if (!multiSource && multi) {
+      // Same-source duplicate/near-duplicate listings (e.g. Kushy Punch
+      // Watermelon Indica 100mg — two dutchie_embed rows that merged only
+      // because "Original" is in STOPWORDS). This is real, useful
+      // information — this source has duplicate catalog entries — but it is
+      // NOT a competitor price spread, and must never be labeled as one.
+      headline = { kind: 'warn', label: `Same-source duplicate (${group.distinctSourceCount} source, ${rows.length} listings)` };
     }
 
     return (
@@ -342,8 +360,10 @@
               {group.category && <Pill kind="ghost" size="sm" label={group.category} />}
             </div>
             <div style={{ marginTop: 6, fontSize: P.type.meta, color: P.inkMute }}>
-              {rows.length} source{rows.length === 1 ? '' : 's'} tracked
+              {group.distinctSourceCount} source{group.distinctSourceCount === 1 ? '' : 's'} tracked
+              {rows.length !== group.distinctSourceCount && ` (${rows.length} listings)`}
               {!multi && ' — no cross-source match yet, this is the honest common case right now'}
+              {!multiSource && multi && ' — duplicate/near-duplicate listings from the same source, not a competitor match'}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flex: '0 0 auto' }}>
@@ -408,6 +428,13 @@
         const first = rows[0];
         const weight = extractWeight(first.product_name);
         const name = displayName(rows);
+        // A group with 2+ rows is not automatically a competitor match — the
+        // Kushy Punch Watermelon Indica 100mg group (id 100 vs id 102, both
+        // dutchie_embed) is 2 rows from ONE source, merged only because
+        // "Original" is in STOPWORDS. distinctSourceCount / multiSource is
+        // the only thing allowed to mean "spread across sources" anywhere in
+        // this file — rows.length alone must never be read that way again.
+        const sourceSet = new Set(rows.map(function (r) { return r.source; }));
         out.push({
           key: key,
           rows: rows,
@@ -415,7 +442,9 @@
           brandDisplay: first.brand ? titleCase(first.brand) : '(brand unknown)',
           nameDisplay: name || first.product_name,
           weight: weight ? weight.norm : '—',
-          category: first.category || null
+          category: first.category || null,
+          distinctSourceCount: sourceSet.size,
+          multiSource: sourceSet.size > 1
         });
       });
       return out;
@@ -432,9 +461,12 @@
         }
         return true;
       }).sort(function (a, b) {
-        // Multi-source groups first — that's the content this screen exists
-        // to surface — then alphabetically by brand + name for predictability.
-        if (a.rows.length !== b.rows.length) { return b.rows.length - a.rows.length; }
+        // Real cross-source matches first — that's the content this screen
+        // exists to surface — ranked by distinct source count, NOT row count
+        // (a 2-row same-source duplicate group must not outrank a 1-row
+        // solo group in this ordering). Alphabetical by brand + name after
+        // that, for predictability.
+        if (a.distinctSourceCount !== b.distinctSourceCount) { return b.distinctSourceCount - a.distinctSourceCount; }
         return (a.brandDisplay + a.nameDisplay).localeCompare(b.brandDisplay + b.nameDisplay);
       });
     }, [groups, q, sourceFilter, unverifiedOnly]);
@@ -448,7 +480,11 @@
     // stat is exactly the "someone reaches for `price` because it's always
     // populated" regression the redesign doc warns about, one level up.
     const preTaxKnown = allRows.filter(function (r) { return r.pre_tax_price != null; }).length;
-    const multiSourceGroups = groups.filter(function (g) { return g.rows.length > 1; }).length;
+    // Counts groups with 2+ DISTINCT sources only — a same-source duplicate
+    // group (e.g. Kushy Punch Watermelon Indica 100mg, 2 dutchie_embed rows
+    // merged only because "Original" is in STOPWORDS) is not a competitor
+    // match and must not inflate this KPI. See groupKey's multiSource field.
+    const multiSourceGroups = groups.filter(function (g) { return g.multiSource; }).length;
 
     const sourceOptions = [{ value: 'all', label: 'All sources' }].concat(
       (facets && Array.isArray(facets.sources) ? facets.sources : []).map(function (s) { return { value: s, label: sourceLabel(s) }; }));
