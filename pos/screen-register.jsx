@@ -231,28 +231,50 @@ window.RegisterScreen = function RegisterScreen() {
   // produces the identical event stream a real scanner would. It does not
   // steal keystrokes out of a focused text field — a scanner aimed at an open
   // input should type into that input, exactly like a person would.
+  //
+  // 🔴 THIS USED TO REBUILD THE LISTENER ON EVERY RENDER. `buf`/`last` were
+  // plain closure locals and the effect had NO dep array, so any unrelated
+  // setState anywhere in RegisterScreen — a toast, a cart edit, switching the
+  // active ticket, all of which fire constantly and none of which have
+  // anything to do with scanning — tore the listener down and recreated it
+  // with a fresh, empty `buf` mid-scan. A scan that straddled one of those
+  // re-renders lost its earlier keystrokes and either matched the wrong,
+  // truncated code or fell through to "No product matches" on a code that was
+  // scanned correctly. This is NOT the same shape as PriceCheck's F2/⌘K
+  // listener in customer-extras.jsx, which the original comment (above)
+  // pointed at as the pattern: that listener only ever calls `setOpen`, a
+  // stable setState function, so mounting it once with `[]` is already
+  // correct. This one calls `find`/`add`/`flash`, none of which are
+  // memoized, so `buf`/`last` now live in refs (survive every render) and the
+  // listener is registered ONCE at mount; `find`/`add`/`flash` are read back
+  // out of a ref that is refreshed every render, so the once-registered
+  // listener still always acts on the current product list/cart/ticket
+  // rather than going stale.
+  const scanBuf = React.useRef('');
+  const scanLast = React.useRef(0);
+  const scanFns = React.useRef({ find, add, flash });
+  scanFns.current = { find, add, flash };
   React.useEffect(() => {
-    let buf = '';
-    let last = 0;
     const onKey = (e) => {
       const el = document.activeElement;
       const tag = el && el.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
       const now = Date.now();
-      if (now - last > 75) buf = ''; // a gap this big is a person typing, not a wedge scanner
-      last = now;
+      if (now - scanLast.current > 75) scanBuf.current = ''; // a gap this big is a person typing, not a wedge scanner
+      scanLast.current = now;
       if (e.key === 'Enter') {
-        const code = buf;buf = '';
+        const code = scanBuf.current;scanBuf.current = '';
         if (code.length < 3) return; // too short to be a real scanned code
+        const { find, add, flash } = scanFns.current;
         const p = find(code);
         if (p) add(p);else flash(`No product matches scanned code “${code}”`);
         return;
       }
-      if (e.key.length === 1) buf += e.key;
+      if (e.key.length === 1) scanBuf.current += e.key;
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }); // no dep array — cart/ticket state changes every keystroke, and this listener is cheap to re-attach
+  }, []); // mounted once — buf/last are refs and survive every render; find/add/flash come from scanFns so this never goes stale
 
   // Open a separate ticket for someone already in the party. Only possible for
   // a guest whose ID is on record — a ticket is a legal transaction.
