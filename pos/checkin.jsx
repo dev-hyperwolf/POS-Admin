@@ -956,6 +956,12 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
             <Eyebrow style={{ marginBottom: 9 }}>Customer</Eyebrow>
             {customer ?
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              {/* Hot notes (safety/fraud/staff-conflict flags) — must be read at
+                  the earliest point of contact, not only once a sale is already
+                  underway. Previously wired only into the back-office Members
+                  directory; a flagged customer selected here showed nothing
+                  before the Check-in button was even enabled. */}
+              {window.HW_HOT && <window.HotNotesBanner notes={window.HW_HOT.hotNotesFor(customer.id)} />}
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 11px', background: P.surface2, border: `1px solid ${primaryDoc ? P.accentBorder : P.warn}`, borderRadius: P.r12 }}>
                 <Avatar name={customer.name} size={36} crown={customer.member} />
                 <div style={{ flex: 1, minWidth: 0 }}>

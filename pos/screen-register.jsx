@@ -719,6 +719,15 @@ window.RegisterScreen = function RegisterScreen() {
         </div>
         {customer &&
         <div style={{ padding: '11px 22px', background: P.canvas, borderTop: `1px solid ${P.hairline2}` }}>
+            {/* Hot notes (safety/fraud/staff-conflict flags) — read before serving.
+                Was wired into the back-office Members directory only; a flagged
+                customer on a live ticket showed nothing here. Scoped to the
+                ACTIVE ticket's person (`customer` === tickets[active].person), so
+                switching tickets re-reads the right person's flags — see the
+                ticket-switch note on window.HW_HOT.hotNotesFor's caller in the
+                audit for the known limit: a guest's own hazard only surfaces once
+                that guest's ticket is made active. */}
+            {window.HW_HOT && <window.HotNotesBanner notes={window.HW_HOT.hotNotesFor(customer.id)} />}
             <window.CustomerChip customer={customer} guests={guests} setGuests={setGuests} onClear={() => {openVisit(null, []);setShowDetails(false);}} detailsOpen={showDetails} onToggleDetails={() => setShowDetails((o) => !o)} view="detailed"
             tickets={tickets} onStartTicket={startTicket} hasTicket={hasTicket} onPickTicket={setActive} activeTicket={active} />
           </div>}
@@ -1039,6 +1048,15 @@ window.CustomerChip = function CustomerChip({ customer, guests, setGuests, onCle
     // read either off. They are null, and the sub-lines below say what the card
     // actually knows instead of dressing a hash as a date.
     const lastVisit = customer.lastVisitAt || null;
+    // ID/assurance tier — read the same ledger MemberDetails already reads
+    // (window.HW.IDV keyed by member id; see screen-register.jsx's own
+    // `const idv = (window.HW.IDV || {})[m.id] || null` inside MemberDetails).
+    // Promoted into the ALWAYS-VISIBLE chip: whether this customer's ID is
+    // verified matters immediately for an age-gated or manager-approval-needed
+    // sale, and was previously shown only after a click into MemberDetails
+    // (`showDetails` defaults false) while five lower-stakes stat cards sat
+    // here unconditionally.
+    const idv = (window.HW.IDV || {})[customer.id] || null;
     const ready = (window.HW.REWARDS || []).filter((r) => !r.bday && customer.points >= r.cost).sort((a, b) => b.value - a.value)[0];
     const nextR = (window.HW.REWARDS || []).filter((r) => !r.bday && customer.points < r.cost).sort((a, b) => a.cost - b.cost)[0];
     // A guest spun onto their own ticket usually has no history — say so instead
@@ -1067,6 +1085,7 @@ window.CustomerChip = function CustomerChip({ customer, guests, setGuests, onCle
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 5 }}>
               {tierPill}
               <VisitPill visit={customer.visits} />
+              {window.AssuranceBadge && <window.AssuranceBadge v={idv} size="sm" />}
               {!guestOf && guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: goldInk, background: P.accentSoft, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap' }}>+{guests.length}</span>}
               {guestOf && <span style={{ fontSize: 10, fontWeight: 700, color: P.ink2, background: P.surface3, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap' }}>OWN TICKET</span>}
             </div>
