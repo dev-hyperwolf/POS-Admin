@@ -27,6 +27,30 @@ const HOT_SEED = {
 };
 function hotNotesFor(id) {return (HOT_SEED[id] || []).slice();}
 
+// A guest riding on someone else's ticket (no ticket of their own) never hit
+// hotNotesFor at all — every call site keyed strictly off `customer.id`, i.e.
+// tickets[active].person, and guests[] was a separate array nothing fed into
+// this lookup. This is the party-wide version: the active ticket's own person
+// PLUS every guest who has a real record (an `id` — legacy string guests and
+// never-linked guests carry none, so there is nothing in HOT_SEED to find).
+// A guest who has since split into their own ticket is skipped here (their
+// notes surface via `customer.id` once THAT ticket is active) so the same
+// flag never double-counts across two banners for one person.
+// Notes about a guest are tagged `about: <name>` so the banner can say whose
+// flag is whose; the primary's own notes are left untagged since the banner
+// is already scoped to them by context.
+function notesForParty(primary, guests) {
+  const primaryId = primary && primary.id;
+  const primaryNotes = hotNotesFor(primaryId);
+  const guestNotes = (guests || []).reduce((acc, g) => {
+    const gid = g && typeof g === 'object' ? g.id : null;
+    if (!gid || gid === primaryId) return acc;
+    const name = window.guestName ? window.guestName(g) : g.name || '';
+    return acc.concat(hotNotesFor(gid).map((n) => Object.assign({}, n, { about: name })));
+  }, []);
+  return primaryNotes.concat(guestNotes);
+}
+
 // Plain internal notes. A hot note is a banner; a plain note is history — and
 // history that is thrown away the moment it is written is not history. Kept per
 // member here so it survives leaving the profile and coming back.
@@ -60,6 +84,7 @@ window.HotNotesBanner = function HotNotesBanner({ notes, onAdd, onResolve }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 2 }}>
               <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: kc }}>{k.label}</span>
+              {n.about && <span title="This flag is about a guest in the party, not the active ticket's own customer" style={{ fontSize: 10, fontWeight: 700, color: kc, background: '#fff', border: `1px solid ${kc}44`, borderRadius: 99, padding: '1px 8px' }}>Guest · {n.about}</span>}
               {n.block && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: kc, borderRadius: 99, padding: '1px 8px' }}>Do not assign · {n.block}</span>}
             </div>
             <div style={{ fontSize: 12.5, color: P.ink, lineHeight: 1.5, textWrap: 'pretty' }}>{n.text}</div>
@@ -594,5 +619,5 @@ window.PriceCheck = function PriceCheck() {
   </>;
 };
 
-window.HW_HOT = { HOT_KINDS, hotNotesFor, notesFor, addNote };
+window.HW_HOT = { HOT_KINDS, hotNotesFor, notesForParty, notesFor, addNote };
 Object.assign(window, {});

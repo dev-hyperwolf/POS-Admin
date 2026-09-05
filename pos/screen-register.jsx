@@ -785,8 +785,10 @@ window.RegisterScreen = function RegisterScreen() {
                 switching tickets re-reads the right person's flags — see the
                 ticket-switch note on window.HW_HOT.hotNotesFor's caller in the
                 audit for the known limit: a guest's own hazard only surfaces once
-                that guest's ticket is made active. */}
-            {window.HW_HOT && <window.HotNotesBanner notes={window.HW_HOT.hotNotesFor(customer.id)} />}
+                that guest's ticket is made active. FIXED: notesForParty also
+                covers every guest riding on THIS ticket (no ticket of their
+                own) — see customer-extras.jsx. */}
+            {window.HW_HOT && <window.HotNotesBanner notes={window.HW_HOT.notesForParty(customer, guests)} />}
             <window.CustomerChip customer={customer} guests={guests} setGuests={setGuests} onClear={() => {openVisit(null, []);setShowDetails(false);}} detailsOpen={showDetails} onToggleDetails={() => setShowDetails((o) => !o)} view="detailed"
             tickets={tickets} onStartTicket={startTicket} hasTicket={hasTicket} onPickTicket={setActive} activeTicket={active} />
           </div>}
