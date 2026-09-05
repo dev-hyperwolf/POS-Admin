@@ -52,6 +52,24 @@ const useP = window.useP,useTheme = window.useTheme;
   NAV.all = NAV.items.concat([NAV.settings]);
 })();
 
+// ── Pricing tab registration (pos/screen-pricing.jsx) ──────────────────────
+// Same rule as Brands above: MUTATE window.HW_NAV.items IN PLACE. Reassigning
+// window.HW_NAV would leave shared/app-rail.jsx and shared/app-switcher.js
+// pointing at the old object.
+//
+// Cross-source price comparison against the standalone hw-pricing-scraper
+// backend (localhost:8799) — a different live service from everything else
+// on this rail, but still a first-class POS destination, not a stub.
+(function () {
+  var NAV = window.HW_NAV;
+  if (!NAV || !Array.isArray(NAV.items)) { return; }
+  if (NAV.items.some(function (i) { return i.id === 'pricing'; })) { return; }
+  var at = NAV.items.findIndex(function (i) { return i.id === 'category-map'; });
+  NAV.items.splice(at < 0 ? NAV.items.length : at + 1, 0,
+    { id: 'pricing', label: 'Pricing', icon: 'tag', pos: 'pricing' });
+  NAV.all = NAV.items.concat([NAV.settings]);
+})();
+
 // ── Publish gate tab registration (pos/screen-publish-gate.jsx) ───────────
 // Same rule as Brands directly above: MUTATE window.HW_NAV.items IN PLACE.
 // Reassigning window.HW_NAV would leave shared/app-rail.jsx and
@@ -131,6 +149,7 @@ const CriticalFrame = window.CriticalBoundary || function CriticalFrame(p) {retu
 const POS_SCREEN_LABELS = {
   home: 'Home', register: 'The register', orders: 'Orders', catalog: 'Catalog',
   brands: 'Brands', cities: 'Cities', 'category-map': 'The category map',
+  pricing: 'Pricing',
   'publish-gate': 'The publish gate', members: 'Members',
   'identity-binding': 'Identity & binding', merch: 'Merch',
   settings: 'Settings' };
@@ -168,6 +187,11 @@ function App() {
   if (route === 'category-map') screen = window.CategoryMapScreen ? <window.CategoryMapScreen /> :
     <ErrorState title="The Category map screen did not load"
       body="pos/screen-category-map.jsx defines window.CategoryMapScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
+  // Guarded the same way Brands is, and for the same reason: a dropped script
+  // tag must name the missing file rather than white-screening the whole app.
+  if (route === 'pricing') screen = window.PricingScreen ? <window.PricingScreen /> :
+    <ErrorState title="The Pricing screen did not load"
+      body="pos/screen-pricing.jsx defines window.PricingScreen and this page did not get it — check that Hyperwolf POS.html still loads that file." />;else
   // Guarded the same way Brands is, and for the same reason: a dropped script
   // tag must name the missing file rather than white-screening the whole app.
   if (route === 'publish-gate') screen = window.PublishGateScreen ? <window.PublishGateScreen /> :
