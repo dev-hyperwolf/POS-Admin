@@ -217,6 +217,43 @@ window.RegisterScreen = function RegisterScreen() {
 
   const flash = (m) => {setToast(m);setTimeout(() => setToast(null), 1800);};
 
+  // Real barcode-scan capture. A USB/Bluetooth barcode scanner acts like a
+  // keyboard: it types every character of the code in a few milliseconds and
+  // then sends Enter — same requirement the owner already documented for the
+  // ID scanner (see the dev note next to IdScanPanel in verification.jsx),
+  // which points at PriceCheck's F2/⌘K listener in customer-extras.jsx as the
+  // established pattern: a GLOBAL keydown listener, not a click-first control.
+  // Unlike the ID scanner, this one IS wired for real rather than left honest-
+  // but-inert: there is a real product-lookup-by-sku function to call (`find`,
+  // above — exact match against the live catalogue) and the input shape
+  // itself (a burst of fast keystrokes ended by Enter) is fully testable
+  // without scanner hardware, since a scripted key-injection or a fast typist
+  // produces the identical event stream a real scanner would. It does not
+  // steal keystrokes out of a focused text field — a scanner aimed at an open
+  // input should type into that input, exactly like a person would.
+  React.useEffect(() => {
+    let buf = '';
+    let last = 0;
+    const onKey = (e) => {
+      const el = document.activeElement;
+      const tag = el && el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) return;
+      const now = Date.now();
+      if (now - last > 75) buf = ''; // a gap this big is a person typing, not a wedge scanner
+      last = now;
+      if (e.key === 'Enter') {
+        const code = buf;buf = '';
+        if (code.length < 3) return; // too short to be a real scanned code
+        const p = find(code);
+        if (p) add(p);else flash(`No product matches scanned code “${code}”`);
+        return;
+      }
+      if (e.key.length === 1) buf += e.key;
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }); // no dep array — cart/ticket state changes every keystroke, and this listener is cheap to re-attach
+
   // Open a separate ticket for someone already in the party. Only possible for
   // a guest whose ID is on record — a ticket is a legal transaction.
   const startTicket = (g) => {
@@ -1227,15 +1264,38 @@ function TicketTabs({ tickets, active, onPick, onDrop, totalOf }) {
 
 // Party total + one-tender shortcut. The host paying for everyone is the common
 // case — it stays N transactions, one card.
+//
+// This bar sits directly above the per-ticket TENDER footer, a few inches
+// away in the same 408px column — two dollar totals, two pay buttons, two
+// different charge scopes. A color wash alone was not enough to keep the two
+// apart under time pressure (audit finding, 2026-09-05): the fix here is
+// deliberately loud — a warn-toned (not accent-toned) block, a thick top
+// border that reads as a hard seam rather than a stacked card, an icon, and
+// a label that spells the scope out ("N open — not just this ticket")
+// instead of a bare paid/open count that read as just another totals row.
+// NOTE: the visible copy here is a test fixture as much as it is UI — "Party"
+// immediately followed by the dollar figure is parsed by a real money regex
+// in test/register-money-record.test.mjs and test/register-tender-integrity.test.mjs,
+// and the button's exact trimmed text "Pay all" is what those same tests click
+// on (ui-harness's `click()` matches exact text, not substring). Both tests
+// exercise the real order-writing behavior behind this button — they are not
+// testing the copy — so the distinctiveness fix below is deliberately carried
+// by everything BUT those two literal strings: color, a thick warn-toned seam,
+// an icon, and an explicit "not just this ticket" qualifier placed in the
+// label span (a different DOM node than the button, so it can't break the
+// click selector).
 function PartyTotalBar({ P, tickets, partyTotal, onPayAll }) {
   const paid = tickets.filter((t) => t.paid).length;
+  const open = tickets.length - paid;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 48px 8px 12px', background: P.highlightSoft, borderTop: `1px solid ${P.hairline2}`, flex: '0 0 auto' }}>
-      <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        Party <span style={{ fontFamily: P.fontMono, color: P.ink }}>{window.HW.fmt.money(partyTotal)}</span>
-        <span style={{ fontWeight: 600, opacity: .8 }}> · {paid} paid, {tickets.length - paid} open</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: P.warnSoft, borderTop: `3px solid ${P.warn}`, flex: '0 0 auto' }}>
+      <Icon name="users" size={15} stroke={2} color={P.warnText} />
+      <span style={{ flex: 1, fontSize: 11.5, fontWeight: 700, color: P.warnText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        Party <span style={{ fontFamily: P.fontMono }}>{window.HW.fmt.money(partyTotal)}</span>
+        <span style={{ fontWeight: 600, opacity: .85 }}> · {paid} paid, {open} open — not just this ticket</span>
       </span>
-      <PBtn variant="secondary" size="xs" icon="card" onClick={onPayAll} title={`One tender · charge every open ticket to ${tickets[0].person.name}`}>Pay all</PBtn>
+      <PBtn variant="secondary" size="sm" icon="card" onClick={onPayAll} style={{ background: P.warn, color: '#fff', borderColor: P.warn }}
+      title={`One tender · charges ALL ${open} open ticket${open === 1 ? '' : 's'} to ${tickets[0].person.name} — not just the active ticket`}>Pay all</PBtn>
     </div>);
 
 }

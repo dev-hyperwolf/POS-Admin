@@ -570,21 +570,26 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
       </div>
 
       {footNote}
-      {/* Totals + tender (sticky footer) — committed to the detailed view, height minimized */}
+      {/* Totals + tender (sticky footer) — committed to the detailed view, height minimized.
+        When `footNote` (the party bar) is present, this footer sits directly under a
+        second, DIFFERENT dollar total for a DIFFERENT charge scope — see PartyTotalBar
+        in screen-register.jsx. A thicker top border plus an explicit "This ticket only"
+        label keep the two from reading as one stacked total (audit finding, 2026-09-05). */}
       {count > 0 &&
-      <div style={{ flex: '0 0 auto', padding: '9px 11px 11px 18px', borderTop: `1px solid ${P.hairline2}`, background: P.surface }}>
+      <div style={{ flex: '0 0 auto', padding: '9px 11px 11px 18px', borderTop: footNote ? `1px solid ${P.ink}` : `1px solid ${P.hairline2}`, background: P.surface }}>
           {/* Totals column + the 52px vertical TENDER column, flush to the
             right edge. The three tax lines collapse into one summary row —
             they are the same every sale, so they only cost height. */}
           <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, fontSize: 11.5 }}>
+              {footNote && <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>This ticket only</span>}
               <Row P={P} k="Sub-total" v={window.HW.fmt.money(merch == null ? sub : merch)} />
               {discountOff > 0 && <Row P={P} k="Discount" v={`−${window.HW.fmt.money(discountOff)}`} tone={P.good} />}
               <TaxRow P={P} sub={sub} open={taxOpen} onToggle={() => setTaxOpen((o) => !o)} />
               <Row P={P} k="Items" v={count} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 2, paddingTop: 5, borderTop: `1px dashed ${P.hairline2}` }}><span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Total</span><span style={{ fontSize: 21, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{window.HW.fmt.money(total)}</span></div>
             </div>
-            <button onClick={onPay} title={`Tender · ${window.HW.fmt.money(total)}`} style={{ flex: '0 0 auto', width: 52, alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', background: P.accent, color: P.accentInk, border: 'none', borderRadius: P.r12, cursor: 'pointer', fontFamily: P.fontSans, padding: '10px 4px', overflow: 'hidden' }}>
+            <button onClick={onPay} title={footNote ? `Tender THIS ticket only · ${window.HW.fmt.money(total)} — does not charge the rest of the party` : `Tender · ${window.HW.fmt.money(total)}`} style={{ flex: '0 0 auto', width: 52, alignSelf: 'stretch', display: 'flex', alignItems: 'center', justifyContent: 'center', background: P.accent, color: P.accentInk, border: 'none', borderRadius: P.r12, cursor: 'pointer', fontFamily: P.fontSans, padding: '10px 4px', overflow: 'hidden' }}>
               <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 13.5, fontWeight: 800, letterSpacing: '.16em', whiteSpace: 'nowrap' }}>TENDER</span>
             </button>
           </div>
