@@ -543,6 +543,20 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
             )}
           </div>
 
+          {/* Rewards + Discount — moved directly under the cart lines, ahead of
+              the three recommendation rails (audit finding, 2026-09-05: "did my
+              discount apply" / "can I use my points" is what a customer at the
+              counter is actually asking, and it used to sit below CartPairs,
+              GuestReco AND AovBooster's own rail — three separately-headed
+              upsell blocks an associate had to scroll past first). Position
+              change only; every card below still renders itself independently
+              and takes no props from render order. */}
+          <RewardsCard P={P} customer={customer} discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} />
+
+          {/* Discount + promo — committed to the compact layout */}
+          <DiscountCard P={P} discMode={discMode} setDiscMode={setDiscMode} subtotal={merch == null ? sub : merch}
+          discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} />
+
           {/* The pairs-with-cart lane. It renders its own refusal; see CartPairs. */}
           <CartPairs P={P} skus={(lines || []).map((l) => l.sku)} onAdd={onAdd} />
 
@@ -559,13 +573,6 @@ window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax
               headers. */}
           <AovBooster P={P} total={total} goal={goal} gap={gap} goalPct={goalPct} recs={recs} onAdd={onAdd}
           engineRanked={engineRanked} />
-
-          {/* Discount + promo — committed to the compact layout */}
-          <DiscountCard P={P} discMode={discMode} setDiscMode={setDiscMode} subtotal={merch == null ? sub : merch}
-          discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} />
-
-          {/* Rewards — placed right by the payment types (comment: move rewards near payment) */}
-          <RewardsCard P={P} customer={customer} discounts={discounts} onApply={onApplyDiscount} onRemove={onRemoveDiscount} />
         </>}
       </div>
 
