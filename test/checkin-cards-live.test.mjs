@@ -410,8 +410,11 @@ test('a claim on the LIVE strip is POSTed, and survives a board refresh', async 
     // The live claim ASKS who is taking the customer and deliberately drops the
     // name the register could supply: HW.STATS.associate is one of
     // pos/data.jsx's invented people, and writing that against a real customer
-    // would look exactly like a real claim. So a person answers, here too.
-    app.window.prompt = () => 'QA Associate';
+    // would look exactly like a real claim. So a person answers, here too —
+    // via a real panel (askName(), shared/hw-live-checkin.js), not
+    // window.prompt (replaced 2026-09-04: a native dialog is invisible to and
+    // undismissable by browser automation, which made every Claim look like a
+    // frozen tab). Answer the panel the way a person would: type, click Confirm.
     await liveRegister(app);
 
     const WHO = 'Dane Whitfield';   // the one unambiguous name on this board
@@ -423,6 +426,17 @@ test('a claim on the LIVE strip is POSTed, and survives a board refresh', async 
     assert.doesNotMatch(pill.textContent, /Unclaim/);
 
     pill.dispatchEvent(new app.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    let askInput = null;
+    for (let i = 0; i < 40 && !askInput; i++) {
+      askInput = app.document.querySelector('[data-hw-ask-input]');
+      if (!askInput) await app.settle();
+    }
+    assert.ok(askInput, 'the ask-name panel never appeared after clicking Claim');
+    askInput.value = 'QA Associate';
+    app.document.querySelector('[data-hw-ask-ok]').dispatchEvent(
+      new app.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
     await untilPill(app, WHO, /Unclaim/);
 
     // 1. IT LEFT THE BROWSER. Under the `if (false)` mutation the mock handle

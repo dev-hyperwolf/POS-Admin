@@ -711,6 +711,63 @@
       });
   }
 
+  // NATIVE window.prompt() REPLACED WITH A REAL PANEL, 2026-09-04. Every
+  // decided_by capture below used W.prompt(), which blocks the page on a
+  // native browser dialog outside the DOM — invisible to and undismissable by
+  // browser-automation tooling (confirmed: an automated Claim click hung the
+  // whole tab, recoverable only by reload, because the harness had no way to
+  // answer a native dialog it couldn't see). A real human wasn't locked out,
+  // but a native OS dialog breaking this app's own design system for five
+  // different actions was never right either. askName() is a drop-in,
+  // promise-based replacement: same "ask, never default" guarantee, real
+  // DOM elements a script (or a person) can actually interact with.
+  function askName(message) {
+    return new Promise(function (resolve) {
+      var P = palette() || {};
+      var overlay = document.createElement('div');
+      overlay.setAttribute('data-hw-chrome', 'ask-name');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483000;display:flex;' +
+        'align-items:center;justify-content:center;background:rgba(0,0,0,.35)';
+      var box = document.createElement('div');
+      box.style.cssText = 'width:min(360px,calc(100vw - 32px));background:' + (P.surface || '#fff') +
+        ';border:1px solid ' + (P.hairline2 || '#ccc') + ';border-radius:' + (P.r12 || 12) +
+        'px;box-shadow:' + (P.shadowLg || '0 8px 30px rgba(0,0,0,.25)') + ';font-family:' +
+        (P.fontSans || 'sans-serif') + ';padding:16px';
+      box.innerHTML = '<div style="font-size:13px;line-height:1.4;font-weight:600;color:' +
+        (P.ink || '#111') + ';margin-bottom:10px;white-space:pre-wrap">' + esc(message) + '</div>' +
+        '<input type="text" data-hw-ask-input autocomplete="off" placeholder="Associate name" style="' +
+        'width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid ' + (P.hairline2 || '#ccc') +
+        ';border-radius:' + (P.r8 || 8) + 'px;font-size:13px;font-family:' + (P.fontSans || 'sans-serif') +
+        ';margin-bottom:12px" />' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px">' +
+        '<button data-hw-ask-cancel style="padding:6px 12px;border-radius:' + (P.r8 || 8) +
+        'px;border:1px solid ' + (P.hairline2 || '#ccc') + ';background:' + (P.surface2 || '#f2f2f2') +
+        ';color:' + (P.ink2 || '#333') + ';font-family:' + (P.fontSans || 'sans-serif') +
+        ';font-size:12.5px;cursor:pointer">Cancel</button>' +
+        '<button data-hw-ask-ok style="padding:6px 12px;border-radius:' + (P.r8 || 8) +
+        'px;border:none;background:' + (P.ink || '#111') + ';color:' + (P.surface || '#fff') +
+        ';font-family:' + (P.fontSans || 'sans-serif') + ';font-size:12.5px;font-weight:700;' +
+        'cursor:pointer">Confirm</button></div>';
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+      var input = box.querySelector('[data-hw-ask-input]');
+      input.focus();
+      function done(val) {
+        document.removeEventListener('keydown', onKey);
+        if (overlay.parentNode) { overlay.parentNode.removeChild(overlay); }
+        resolve(val);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') { done(null); }
+        else if (e.key === 'Enter') { done(input.value); }
+      }
+      document.addEventListener('keydown', onKey);
+      box.querySelector('[data-hw-ask-cancel]').addEventListener('click', function () { done(null); });
+      box.querySelector('[data-hw-ask-ok]').addEventListener('click', function () { done(input.value); });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) { done(null); } });
+    });
+  }
+
   // `decided_by` is ASKED FOR, never defaulted. checkin_api.py's docstring is
   // explicit: an adapter that helpfully defaults it defeats the guard silently —
   // the guard still exists, still passes its own test, and never fires again.
@@ -728,47 +785,51 @@
   //   bind()      -> state 'confirm', the computed conf, the real signals
   //   bindManual() -> state 'manual', conf 100, gov_id, and the prompt says so
   function bind(cid, oid) {
-    var who = W.prompt('Who is binding this bag?\n\n' +
+    return askName('Who is binding this bag?\n\n' +
       'Recorded as a HUMAN-CONFIRMED bind at the confidence the matcher computed. ' +
       'checkin.bind() refuses an unattended bind on anything but an AUTO verdict, ' +
-      'and this name is what makes it attended. It is written to the ledger.');
-    if (who == null || !String(who).trim()) { return Promise.resolve({ ok: false, why: 'cancelled at the prompt — nothing was sent' }); }
-    return act('/api/checkin/bind',
-      { checkin_id: cid, wm_order_id: oid, decided_by: String(who).trim(), manual: false },
-      function (j) { return j.why || ('bound ' + oid); }).then(after);
+      'and this name is what makes it attended. It is written to the ledger.').then(function (who) {
+        if (who == null || !String(who).trim()) { return { ok: false, why: 'cancelled at the prompt — nothing was sent' }; }
+        return act('/api/checkin/bind',
+          { checkin_id: cid, wm_order_id: oid, decided_by: String(who).trim(), manual: false },
+          function (j) { return j.why || ('bound ' + oid); }).then(after);
+      });
   }
 
   function bindManual(cid, oid) {
-    var who = W.prompt('You are recording that YOU LOOKED AT THIS PERSON\'S ID.\n\n' +
+    return askName('You are recording that YOU LOOKED AT THIS PERSON\'S ID.\n\n' +
       'This writes confidence 100 with the gov_id signal and the note "human ' +
       'verification of the document", and — if a document hash was scanned at ' +
       'check-in — stamps that hash onto the identity so every future order from ' +
       'them matches at 100 without being asked again.\n\n' +
-      'Only do this if you actually checked the licence. Your name:');
-    if (who == null || !String(who).trim()) { return Promise.resolve({ ok: false, why: 'cancelled at the prompt — nothing was sent' }); }
-    return act('/api/checkin/bind',
-      { checkin_id: cid, wm_order_id: oid, decided_by: String(who).trim(), manual: true },
-      function (j) { return j.why || ('bound ' + oid); }).then(after);
+      'Only do this if you actually checked the licence. Your name:').then(function (who) {
+        if (who == null || !String(who).trim()) { return { ok: false, why: 'cancelled at the prompt — nothing was sent' }; }
+        return act('/api/checkin/bind',
+          { checkin_id: cid, wm_order_id: oid, decided_by: String(who).trim(), manual: true },
+          function (j) { return j.why || ('bound ' + oid); }).then(after);
+      });
   }
 
   function reject(cid, oid) {
-    var who = W.prompt('Who is rejecting this pairing?\n\n' +
+    return askName('Who is rejecting this pairing?\n\n' +
       'A rejection is an append-only labelled negative example — this pair is ' +
-      'excluded from every later match for this person.');
-    if (who == null || !String(who).trim()) { return Promise.resolve({ ok: false, why: 'cancelled at the prompt — nothing was sent' }); }
-    return act('/api/checkin/reject',
-      { checkin_id: cid, wm_order_id: oid, decided_by: String(who).trim() },
-      function (j) { return j.why || ('rejected ' + oid); }).then(after);
+      'excluded from every later match for this person.').then(function (who) {
+        if (who == null || !String(who).trim()) { return { ok: false, why: 'cancelled at the prompt — nothing was sent' }; }
+        return act('/api/checkin/reject',
+          { checkin_id: cid, wm_order_id: oid, decided_by: String(who).trim() },
+          function (j) { return j.why || ('rejected ' + oid); }).then(after);
+      });
   }
 
   function handoff(oid) {
-    var who = W.prompt('Who handed the bag over?\n\n' +
+    return askName('Who handed the bag over?\n\n' +
       'This closes the check-in to `served`. It does NOT tell Weedmaps anything — ' +
-      'engine.py owns every WM write and neither checkin.py nor this seam makes one.');
-    if (who == null || !String(who).trim()) { return Promise.resolve({ ok: false, why: 'cancelled at the prompt — nothing was sent' }); }
-    return act('/api/checkin/handoff',
-      { wm_order_id: oid, decided_by: String(who).trim() },
-      function (j) { return j.why || ('handed off ' + oid); }).then(after);
+      'engine.py owns every WM write and neither checkin.py nor this seam makes one.').then(function (who) {
+        if (who == null || !String(who).trim()) { return { ok: false, why: 'cancelled at the prompt — nothing was sent' }; }
+        return act('/api/checkin/handoff',
+          { wm_order_id: oid, decided_by: String(who).trim() },
+          function (j) { return j.why || ('handed off ' + oid); }).then(after);
+      });
   }
 
   function claim(cid, who) {
@@ -776,10 +837,12 @@
     // knows. It is NOT defaulted: an unattended claim writes a name into the
     // ledger against a decision nobody made, and this file does not default
     // decided_by anywhere else either.
-    if (who == null) { who = W.prompt('Which associate is taking this person?'); }
-    if (who == null || !String(who).trim()) { return Promise.resolve({ ok: false, why: 'cancelled at the prompt — nothing was sent' }); }
-    return act('/api/checkin/state', { checkin_id: cid, claimed_by: String(who).trim() },
-      function (j) { return j.why || 'claimed'; }).then(after);
+    var ask = who == null ? askName('Which associate is taking this person?') : Promise.resolve(who);
+    return ask.then(function (name) {
+      if (name == null || !String(name).trim()) { return { ok: false, why: 'cancelled at the prompt — nothing was sent' }; }
+      return act('/api/checkin/state', { checkin_id: cid, claimed_by: String(name).trim() },
+        function (j) { return j.why || 'claimed'; }).then(after);
+    });
   }
 
   // ONE CLICK RELEASES. The approved design's claimed pill is "✕ Unclaim" and
