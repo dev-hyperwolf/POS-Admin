@@ -98,12 +98,20 @@ async function newCustomerCheckIn(app, name) {
   await app.settle();
 }
 
-/* THE BUYER IS HELD TO THE SAME BAR AS THEIR FRIEND.
- * "Create customer" was gated on a non-empty name alone, while a GUEST could
- * not join the party without a scanned document — so the person whose age
- * actually has to be verified for the sale cleared a weaker check than the
- * person standing behind them. */
-test('Check-in: the primary customer cannot be created from a typed name alone', async () => {
+/* RELAXED 2026-09-07 (id-scan-flow-concept-b.md §1/§4) — Concept B's mode
+ * toggle ("Scan ID" / "Enter manually") on the New-customer form. Manual mode
+ * has no document to give, so `createNew`'s guard dropped `!nf.doc`: a first
+ * name is now enough to CREATE the buyer, same bar as a guest (commitNew).
+ * This used to assert the opposite (name alone must NOT create the buyer) —
+ * that assertion is exactly the gap the toggle closes. What still MUST hold,
+ * and is the actual point of this test now: creating a doc-less buyer does
+ * NOT wave them through. `primaryNeedsId` already existed for an existing
+ * doc-less customer picked via search and needs no change — it evaluates
+ * true for a freshly-created one too, and the footer already disables BOTH
+ * Check-in buttons on it. No new status, no new gate: the same "Needs ID" /
+ * "No ID on file" vocabulary the rest of the screen already used for
+ * everyone else now covers the buyer created this way too. */
+test('Check-in: a doc-less primary customer can be created (Manual mode), but cannot check in', async () => {
   await withApp('pos', async (app) => {
     await app.mount('MembersScreen');
     assert.ok(app.click('New check-in'), 'the New check-in tile did not exist');
@@ -120,8 +128,11 @@ test('Check-in: the primary customer cannot be created from a typed name alone',
     await app.settle();
     assert.ok(app.click('Enter manually'), 'a search with no match must still offer a manual path');
     await app.settle();
+    // openManual pre-selects Manual mode (id-scan-flow-concept-b.md §1's
+    // stated exception) — the operator already asked to type once, so the
+    // field grid must be on screen with no second click into the toggle.
     const field = fieldByLabel(app, 'First name');
-    assert.ok(field, 'no First name field in the manual form');
+    assert.ok(field, 'no First name field in the manual form — Manual mode did not pre-select');
     assert.ok(fieldByLabel(app, 'Last name'), 'no Last name field in the manual form');
     setValue(app, field, 'Zzz');
     await app.settle();
@@ -130,9 +141,20 @@ test('Check-in: the primary customer cannot be created from a typed name alone',
     const create = [...app.document.querySelectorAll('button')]
       .find((b) => (b.textContent || '').trim() === 'Create customer');
     assert.ok(create, 'no Create customer button');
-    assert.ok(create.disabled, 'a typed name with no document must NOT create the buyer');
-    assert.match(app.text(), /Scan the ID first/,
-      'a disabled button with no stated reason makes the operator guess the blocker');
+    assert.ok(!create.disabled,
+      'a first name with no document must be enough to create the buyer — Manual mode has no document to give');
+    assert.ok(app.click('Create customer'), 'Create customer did not fire');
+    await app.settle();
+    assert.match(app.text(), /Zzz Nobody Probe/, 'the created buyer never appeared on the primary card');
+    assert.match(app.text(), /No ID on file/,
+      'a doc-less buyer must read as the same honest "No ID on file" state search-linked doc-less customers already get — not a fabricated clean pill');
+    assert.match(app.text(), /Scan the buyer.s ID/,
+      'primaryNeedsId already had this exact copy for an existing doc-less customer; a newly-created one must read identically');
+    const checkIn = btn(app, /^Check in$/);
+    const checkInStart = btn(app, /^Check in & start sale$/);
+    assert.ok(checkIn && checkInStart, 'footer Check-in buttons missing');
+    assert.ok(checkIn.disabled, 'primaryNeedsId must still disable Check in — creating without a doc must not get easier to check in with');
+    assert.ok(checkInStart.disabled, 'primaryNeedsId must still disable Check in & start sale');
   });
 });
 

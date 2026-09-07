@@ -232,6 +232,11 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
     // because it rides the same shared control and must reset the same way.
     idPhotos: [] };
   const [nf, setNf] = React.useState(BLANK_NF);
+  // SCAN vs MANUAL — a pure view switch. See CheckInModal's identical `mode`
+  // state for the full rationale (id-scan-flow-concept-b.md §1/§2): it never
+  // touches `nf`, so a scan captured before switching, or text typed before
+  // switching back, is never destroyed by toggling this control.
+  const [mode, setMode] = React.useState('scan');
   // Editing a field withdraws BOTH marks from that field and no other. Both are
   // claims about where the value came from, and a human typing over it retires
   // each of them: it is no longer the document's, and it is no longer our guess.
@@ -281,9 +286,14 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
   // and will be overwritten is the "flag nobody displays" defect in a second
   // costume — a guess is only worth making where a human can check it, and here
   // the barcode answers the question outright a second later.
-  const startNew = () => {setNf(BLANK_NF);setAdding(true);setQ('');};
+  const startNew = () => {setNf(BLANK_NF);setAdding(true);setQ('');setMode('scan');};
   const commitNew = () => {
-    if (!nf.doc) return;
+    // Relaxed 2026-09-07 (id-scan-flow-concept-b.md §4): a guest committed
+    // with no document is `incomplete` by guestStatus()'s own definition —
+    // the exact same honest "Needs ID" state a scan-abandoned guest already
+    // gets, and it already blocks check-in via guestBlocks. A first name is
+    // the bar, same as the buyer (see createNew below).
+    if (!nf.firstName.trim()) return;
     const firstName = nf.firstName.trim(), lastName = nf.lastName.trim();
     // `first_name`/`last_name` — the key names the store and the server both
     // use, so a guest promoted to a customer record keeps its split.
@@ -340,6 +350,7 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
       // lives (below), so open it to show the banner rather than leaving the
       // scan's result invisible behind the scan panel.
       setAdding(true);
+      setMode('scan');
       setUnresolved({ memberId: d.memberId, doc: d });
       setNf(BLANK_NF);
       return;
@@ -350,16 +361,40 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
     // carry the operator into the onboarding card itself, not just fill state
     // nobody is looking at.
     setAdding(true);
+    setMode('scan');
     setNf((p) => Object.assign({}, p, docFields(d)));
   };
   // Create the record anyway — an explicit choice, never a default.
   const forceNewFromUnresolved = () => {
     const d = unresolved && unresolved.doc;
     setUnresolved(null);
+    setMode('scan');
     setNf(Object.assign({}, BLANK_NF, docFields(d)));
   };
   const bad = list.filter(guestBlocks).length;
   const noDoc = list.filter((g) => guestStatus(g) === 'linked-no-doc').length;
+
+  // THE FIELD GRID, FACTORED ONCE. Scan mode and Manual mode render this exact
+  // same JSX — same CIField calls, same setNf1 wiring, same nameFieldLabel
+  // calls (id-scan-flow-concept-b.md §1) — so the two modes can never drift
+  // into two different field sets. Not a new design surface, just the
+  // grid that already existed pulled out from under a single call site.
+  const FieldGrid = () => <>
+    {/* FIRST AND LAST, SEPARATELY — and the label tells the truth about
+        each half on its own, because a scan can deliver one of them
+        read and the other guessed. The old single box was labelled
+        "Full name · from ID" unconditionally, so a value a colleague
+        typed over the top still claimed the document said it. */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <CIField label={nameFieldLabel('First name', nf.guessed.firstName, nf.fromScan.firstName)} value={nf.firstName} onChange={(v) => setNf1('firstName', v)} />
+      <CIField label={nameFieldLabel('Last name', nf.guessed.lastName, nf.fromScan.lastName)} value={nf.lastName} onChange={(v) => setNf1('lastName', v)} />
+    </div>
+    <NameSplitNote guessed={nf.guessed} note={nf.guessNote} />
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <CIField label={nameFieldLabel('Date of birth', false, nf.fromScan.dob)} value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
+      <CIField label="Phone (optional)" value={nf.phone} onChange={(v) => setNf1('phone', v)} placeholder="(000) 000-0000" mono />
+    </div>
+  </>;
 
   const StatusPill = ({ g }) => {
     const s = guestStatus(g);
@@ -444,10 +479,15 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
             <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>New guest — onboarding</span>
             <span style={{ marginLeft: 'auto' }}><IconBtn icon="x" size={14} style={{ width: 26, height: 26 }} onClick={() => setAdding(false)} /></span>
           </div>
+          {/* Scan ID / Enter manually — a pure view switch (id-scan-flow-
+              concept-b.md §1/§2). It never calls setNf and never touches
+              nf.doc, so nothing typed or scanned is lost by toggling it. */}
+          <Seg value={mode} onChange={setMode} size="sm" options={[{ value: 'scan', label: 'Scan ID' }, { value: 'manual', label: 'Enter manually' }]} />
+          {mode === 'scan' &&
           <div><CILabel>Government ID — scan to fill</CILabel>
             {window.IdScanPanel ? <window.IdScanPanel value={nf.doc} onChange={onScan} /> :
-          <PBtn variant="accent" size="sm" icon="scan" onClick={() => onScan({ scannedAt: 'Just now', photo: true })}>Scan ID</PBtn>}
-          </div>
+            <PBtn variant="accent" size="sm" icon="scan" onClick={() => onScan({ scannedAt: 'Just now', photo: true })}>Scan ID</PBtn>}
+          </div>}
           {/* THE ADOPTION PROMISED ABOVE, NOW DONE. `window.IdPhotoCapture` is
               THE SHARED CONTROL — the same one the check-in New-customer form
               below uses (search this file for HWIdPhotos.docKeyOf) — adopted
@@ -455,7 +495,10 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
               sentence is a second place it can go stale. `docKey` lets the
               strip notice this guest's document changed under photos already
               attached; a re-scan does not delete them, it flags the mismatch
-              and leaves the operator holding the decision. */}
+              and leaves the operator holding the decision.
+              Stays visible in BOTH modes (id-scan-flow-concept-b.md §1,
+              "Photos block") — a photographed physical document is real
+              evidence whether or not a barcode was ever read. */}
           <div><CILabel>Photos of the ID / passport</CILabel>
             {window.IdPhotoCapture ?
             <window.IdPhotoCapture
@@ -484,30 +527,35 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
               <PBtn variant="ghost" size="xs" onClick={forceNewFromUnresolved}>Create a new record anyway</PBtn>
             </div>
           </div>}
-          {nf.doc ? <>
-            {/* FIRST AND LAST, SEPARATELY — and the label tells the truth about
-                each half on its own, because a scan can deliver one of them
-                read and the other guessed. The old single box was labelled
-                "Full name · from ID" unconditionally, so a value a colleague
-                typed over the top still claimed the document said it. */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <CIField label={nameFieldLabel('First name', nf.guessed.firstName, nf.fromScan.firstName)} value={nf.firstName} onChange={(v) => setNf1('firstName', v)} />
-              <CIField label={nameFieldLabel('Last name', nf.guessed.lastName, nf.fromScan.lastName)} value={nf.lastName} onChange={(v) => setNf1('lastName', v)} />
-            </div>
-            <NameSplitNote guessed={nf.guessed} note={nf.guessNote} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <CIField label={nameFieldLabel('Date of birth', false, nf.fromScan.dob)} value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
-              <CIField label="Phone (optional)" value={nf.phone} onChange={(v) => setNf1('phone', v)} placeholder="(000) 000-0000" mono />
-            </div>
-          </> : unresolved ? null :
+          {/* FieldGrid — ONE shared render path (id-scan-flow-concept-b.md
+              §1): Scan mode shows it once `nf.doc` is set (unchanged from
+              before the toggle existed); Manual mode shows the same JSX with
+              no doc required. Byte-identical field markup either way, so the
+              two modes can never drift into two field sets. */}
+          {mode === 'scan' ?
+          nf.doc ? <FieldGrid /> : unresolved ? null :
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.infoSoft, borderRadius: P.r10 }}>
             <Icon name="scan" size={14} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
             <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Scan the ID and the name, date of birth and expiry fill themselves from the barcode. <b>Phone is the only thing you may need to add — and it is optional.</b></span>
-          </div>}
+          </div> :
+          <>
+            <FieldGrid />
+            {/* Text-style, not a second accent button — "one accent per
+                view" (id-scan-flow-concept-b.md §3). A stopgap for
+                click-triggered scanners until the global keydown listener
+                (verification.jsx:985-1004) lands. */}
+            <div style={{ display: 'flex' }}>
+              <PBtn variant="ghost" size="xs" icon="scan" onClick={() => setMode('scan')}>Scan ID instead</PBtn>
+            </div>
+          </>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11.5, color: P.inkMute, lineHeight: 1.4, flex: 1 }}>Adding a phone lets them order delivery later without ever verifying again.</span>
+            <span style={{ fontSize: 11.5, color: P.inkMute, lineHeight: 1.4, flex: 1 }}>{
+            !nf.firstName.trim() ? 'A first name is all it takes to add them — an ID scan can be attached before they’re rung up.' :
+            !nf.doc ? 'No ID scanned yet — that’s fine for now, it can be attached before they’re rung up.' :
+            'Adding a phone lets them order delivery later without ever verifying again.'
+            }</span>
             <PBtn variant="secondary" size="sm" onClick={() => setAdding(false)}>Cancel</PBtn>
-            <PBtn variant="accent" size="sm" icon="check" disabled={!nf.doc} onClick={commitNew}>Add to party</PBtn>
+            <PBtn variant="accent" size="sm" icon="check" disabled={!nf.firstName.trim()} onClick={commitNew}>Add to party</PBtn>
           </div>
         </div>}
 
@@ -637,6 +685,12 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     idPhotos: [],
     fromScan: {}, guessed: {}, guessNote: '' };
   const [nf, setNf] = React.useState(BLANK_NF);
+  // SCAN vs MANUAL — a pure view switch, same rule as GuestEditor's `mode`
+  // (id-scan-flow-concept-b.md §1/§2): never calls setNf, never clears
+  // nf.doc or anything typed. Defaults to 'scan' on every fresh onboarding
+  // EXCEPT openManual, whose whole point is the operator already asked to
+  // type — see openManual below, the one place this starts on 'manual'.
+  const [mode, setMode] = React.useState('scan');
   const setNf1 = (k, v) => setNf((p) => ({ ...p, [k]: v,
     // A field typed over after the scan is no longer "from ID". The suffix is a
     // legal claim about where the value came from, so it has to be withdrawn
@@ -764,6 +818,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     // Document-backed, guessed and hand-typed are three different legal claims
     // and must not render as the same grey box.
     setNf((prev) => applyDoc(prev, d));
+    setMode('scan');
     setNewOpen(true);
   };
   // The scanner offered INSIDE an already-selected customer's card. What comes
@@ -812,6 +867,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     // returning barcode names a member id we cannot load, and the record it
     // came from stores a joined name. The mark travels with it.
     setNf((p) => applyDoc(Object.assign({}, p, { fromScan: {} }), d));
+    setMode('scan');
     setNewOpen(true);
   };
 
@@ -837,6 +893,11 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
       guessNote: g.note || '',
       // A guess is emphatically NOT "from ID" — there is no document here at all.
       fromScan: Object.assign({}, p.fromScan, { firstName: false, lastName: false }) }));
+    // THE ONE EXCEPTION to defaulting on 'scan' (id-scan-flow-concept-b.md
+    // §1): the operator just clicked "Enter manually" off a failed search —
+    // that click is already a stated intent, no reason to make them click
+    // into Manual mode a second time.
+    setMode('manual');
     setNewOpen(true);
   };
 
@@ -856,7 +917,17 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
     // than a fingerprint when a half is missing, and no fingerprint beats a
     // wrong one. Demanding a surname here would make the operator invent one to
     // get past the button, which is the dirty data this ruling is about.
-    if (!nf.firstName.trim() || !nf.doc || expiryBlocks(nf.doc, null)) return;
+    //
+    // Relaxed 2026-09-07 (id-scan-flow-concept-b.md §4): `!nf.doc` dropped —
+    // Manual mode has no document to give. A customer created without one is
+    // NOT waved through: `primaryNeedsId = !!customer && !primaryDoc` already
+    // evaluates true the instant this customer is set (it does not care
+    // whether `customer` came from adoptCustomer or createNew), and the
+    // footer already disables BOTH Check-in buttons on that flag. No new
+    // status, no new gate — the honest "needs ID" state this screen already
+    // had for an existing doc-less customer is now reachable from creation
+    // too.
+    if (!nf.firstName.trim() || expiryBlocks(nf.doc, null)) return;
     const firstName = nf.firstName.trim(), lastName = nf.lastName.trim();
     const streetNumber = nf.streetNumber.trim(), streetName = nf.streetName.trim();
     setCustomer({ id: 'new',
@@ -939,6 +1010,64 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
   const nfDocExpired = docIsExpired(nf.doc);
   const nfEnforced = expirySwitch(null);
   const nfDocBlocks = nfDocExpired && nfEnforced !== false;
+
+  // THE FIELD GRID, FACTORED ONCE. Scan mode and Manual mode render this
+  // exact same JSX — same CIField calls, same setNf1 wiring, same
+  // nameFieldLabel calls (id-scan-flow-concept-b.md §1) — so the two modes
+  // can never drift into two different field sets. Not a new design
+  // surface, just the grid (name/dob/phone/email/gender/address) that
+  // already existed pulled out from under a single call site.
+  const FieldGrid = () => <>
+    {/* '· from ID' is a claim about PROVENANCE, and '· GUESSED'
+        is the retraction of that claim: a split we made from a
+        joined string is OURS, and labelling it "from ID" would
+        say a government document named a surname it never
+        contained. Both suffixes are withdrawn the moment the
+        field is edited — see setNf1. */}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <CIField label={nameFieldLabel('First name', nf.guessed.firstName, nf.fromScan.firstName)} value={nf.firstName} onChange={(v) => setNf1('firstName', v)} />
+      <CIField label={nameFieldLabel('Last name', nf.guessed.lastName, nf.fromScan.lastName)} value={nf.lastName} onChange={(v) => setNf1('lastName', v)} />
+      <CIField label={nameFieldLabel('Date of birth', false, nf.fromScan.dob)} value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
+      <CIField label="Phone" value={nf.phone} onChange={(v) => setNf1('phone', v)} placeholder="(000) 000-0000" mono />
+    </div>
+    <NameSplitNote guessed={nf.guessed} note={nf.guessNote} />
+    <CIField label="Email" value={nf.email} onChange={(v) => setNf1('email', v)} placeholder="name@email.com" />
+    {/* Gender (comment 2) */}
+    <div>
+      <CILabel>Gender</CILabel>
+      <Seg value={nf.gender} onChange={(v) => setNf1('gender', v)} size="sm" options={[{ value: 'Female', label: 'Female' }, { value: 'Male', label: 'Male' }, { value: 'Non-binary', label: 'Non-binary' }]} />
+    </div>
+    {/* ADDRESS — ONE FIELD PER PARAMETER, INCLUDING THE STREET.
+        "separate fields for clean data" was written above a
+        single free-text "Street address" box, which is the
+        claim and its own counter-example in five lines. The
+        number and the name are two parameters; joining them
+        pushes the split onto whoever reads it later, and
+        splitStreetGuess exists precisely because that split
+        cannot be done reliably ('221B Baker St', 'PO Box 12',
+        'Apt 4, 1200 E Ocean Blvd').
+
+        Street number is the small box and street name the wide
+        one, matching the address book in customer-extras.jsx so
+        an operator meets one layout. */}
+    <div>
+      <CILabel>Address</CILabel>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '.42fr 1fr', gap: 8 }}>
+          <CIField value={nf.streetNumber} onChange={(v) => setNf1('streetNumber', v)} placeholder="Street no." mono />
+          <CIField value={nf.streetName} onChange={(v) => setNf1('streetName', v)} placeholder="Street name" />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .6fr .8fr', gap: 8 }}>
+          <CIField value={nf.city} onChange={(v) => setNf1('city', v)} placeholder="City" />
+          {/* NO 'CA' ANYWHERE — not as a value, not as a
+              placeholder that looks like one. Two letters, and
+              blank means blank. */}
+          <CIField value={nf.state} onChange={(v) => setNf1('state', v.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} placeholder="State" mono />
+          <CIField value={nf.zip} onChange={(v) => setNf1('zip', v.replace(/[^0-9]/g, '').slice(0, 5))} placeholder="ZIP" mono />
+        </div>
+      </div>
+    </div>
+  </>;
 
   // ── THE MISMATCH PANEL, LIFTED OUT SO IT REACHES BOTH SCANNERS ─────────────
   // It used to live inline in the no-document branch, which was the only branch
@@ -1179,102 +1308,85 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                 {newOpen ?
               <div style={{ border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface2, padding: 13, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="user-plus" size={14} stroke={1.9} color={P.ink2} /><span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink }}>New customer</span></div>
+                    {/* Scan ID / Enter manually — a pure view switch (id-scan
+                        -flow-concept-b.md §1/§2). It never calls setNf and
+                        never touches nf.doc, so a scan captured before
+                        switching, or text typed before switching back, is
+                        never destroyed by toggling this control. */}
+                    <Seg value={mode} onChange={setMode} size="sm" options={[{ value: 'scan', label: 'Scan ID' }, { value: 'manual', label: 'Enter manually' }]} />
                     {/* THE SCAN RESULT STAYS VISIBLE, and the scanner is
                         reachable from inside this form — it can be opened by
                         hand (no ID to scan), and there has to be a way to
                         attach one without closing it. */}
+                    {mode === 'scan' &&
                     <div><CILabel>Government ID</CILabel>
                       {window.IdScanPanel ? <window.IdScanPanel value={nf.doc} onChange={onCheckInScan} /> :
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
                         <Icon name="scan" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
                         <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The ID scanner is not loaded on this page, so no document can be captured here.</span>
                       </div>}
-                      {/* THE PHOTOS BELONG TO THIS CARD, not to the address
-                          block below it: they are a second reading of the SAME
-                          document the panel above just read, and separating
-                          them would put "what the barcode said" and "what the
-                          document looks like" on two different subjects.
+                    </div>}
+                    {/* THE PHOTOS BELONG TO THIS CARD, not to the address
+                        block below it: they are a second reading of the SAME
+                        document the panel above just read, and separating
+                        them would put "what the barcode said" and "what the
+                        document looks like" on two different subjects.
 
-                          `docKey` is what lets the strip notice that the
-                          document changed under photos already attached — see
-                          the long note at HWIdPhotos.docKeyOf. A re-scan does
-                          NOT delete them; it makes them say they no longer
-                          match, and leaves the operator holding the decision.
+                        `docKey` is what lets the strip notice that the
+                        document changed under photos already attached — see
+                        the long note at HWIdPhotos.docKeyOf. A re-scan does
+                        NOT delete them; it makes them say they no longer
+                        match, and leaves the operator holding the decision.
 
-                          THE CONTROL IS window.IdPhotoCapture, THE SHARED ONE.
-                          Every other scan/create modal adopts this same import;
-                          a fork here is a second copy of the storage sentence,
-                          and the storage sentence is the compliance-critical
-                          part of the whole feature. */}
-                      <div style={{ marginTop: 9 }}>
-                        <CILabel>Photos of the ID / passport</CILabel>
-                        {window.IdPhotoCapture ?
-                        <window.IdPhotoCapture
-                          photos={nf.idPhotos}
-                          onChange={(next) => setNf((p) => Object.assign({}, p, { idPhotos: next }))}
-                          docKey={window.HWIdPhotos ? window.HWIdPhotos.docKeyOf(nf.doc) : null} /> :
-                        /* Not loaded is not "none attached". Saying "no photos"
-                           here would be this screen reporting an absence it has
-                           no way to observe. */
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
-                          <Icon name="camera" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                          <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The photo control is not loaded on this page, so no image of the document can be attached here — and this screen cannot tell you whether any exist.</span>
-                        </div>}
-                      </div>
-                    </div>
-                    {/* '· from ID' is a claim about PROVENANCE, and '· GUESSED'
-                        is the retraction of that claim: a split we made from a
-                        joined string is OURS, and labelling it "from ID" would
-                        say a government document named a surname it never
-                        contained. Both suffixes are withdrawn the moment the
-                        field is edited — see setNf1. */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      <CIField label={nameFieldLabel('First name', nf.guessed.firstName, nf.fromScan.firstName)} value={nf.firstName} onChange={(v) => setNf1('firstName', v)} />
-                      <CIField label={nameFieldLabel('Last name', nf.guessed.lastName, nf.fromScan.lastName)} value={nf.lastName} onChange={(v) => setNf1('lastName', v)} />
-                      <CIField label={nameFieldLabel('Date of birth', false, nf.fromScan.dob)} value={nf.dob} onChange={(v) => setNf1('dob', v)} placeholder="MM/DD/YYYY" mono />
-                      <CIField label="Phone" value={nf.phone} onChange={(v) => setNf1('phone', v)} placeholder="(000) 000-0000" mono />
-                    </div>
-                    <NameSplitNote guessed={nf.guessed} note={nf.guessNote} />
-                    <CIField label="Email" value={nf.email} onChange={(v) => setNf1('email', v)} placeholder="name@email.com" />
-                    {/* Gender (comment 2) */}
+                        THE CONTROL IS window.IdPhotoCapture, THE SHARED ONE.
+                        Every other scan/create modal adopts this same import;
+                        a fork here is a second copy of the storage sentence,
+                        and the storage sentence is the compliance-critical
+                        part of the whole feature.
+
+                        Stays visible in BOTH modes (id-scan-flow-concept-b.md
+                        §1, "Photos block") — a photographed physical document
+                        is real evidence whether or not a barcode was read. */}
                     <div>
-                      <CILabel>Gender</CILabel>
-                      <Seg value={nf.gender} onChange={(v) => setNf1('gender', v)} size="sm" options={[{ value: 'Female', label: 'Female' }, { value: 'Male', label: 'Male' }, { value: 'Non-binary', label: 'Non-binary' }]} />
+                      <CILabel>Photos of the ID / passport</CILabel>
+                      {window.IdPhotoCapture ?
+                      <window.IdPhotoCapture
+                        photos={nf.idPhotos}
+                        onChange={(next) => setNf((p) => Object.assign({}, p, { idPhotos: next }))}
+                        docKey={window.HWIdPhotos ? window.HWIdPhotos.docKeyOf(nf.doc) : null} /> :
+                      /* Not loaded is not "none attached". Saying "no photos"
+                         here would be this screen reporting an absence it has
+                         no way to observe. */
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 11px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10 }}>
+                        <Icon name="camera" size={14} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                        <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45 }}>The photo control is not loaded on this page, so no image of the document can be attached here — and this screen cannot tell you whether any exist.</span>
+                      </div>}
                     </div>
-                    {/* ADDRESS — ONE FIELD PER PARAMETER, INCLUDING THE STREET.
-                        "separate fields for clean data" was written above a
-                        single free-text "Street address" box, which is the
-                        claim and its own counter-example in five lines. The
-                        number and the name are two parameters; joining them
-                        pushes the split onto whoever reads it later, and
-                        splitStreetGuess exists precisely because that split
-                        cannot be done reliably ('221B Baker St', 'PO Box 12',
-                        'Apt 4, 1200 E Ocean Blvd').
-
-                        Street number is the small box and street name the wide
-                        one, matching the address book in customer-extras.jsx so
-                        an operator meets one layout. FIVE BOXES WHERE THERE
-                        WERE FOUR, in a modal that is already tall — jsdom
-                        cannot see that, it answers "is it wired", never "does
-                        it fit". Checked in a browser at 560px, the modal's own
-                        width, before this was called done. */}
-                    <div>
-                      <CILabel>Address</CILabel>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '.42fr 1fr', gap: 8 }}>
-                          <CIField value={nf.streetNumber} onChange={(v) => setNf1('streetNumber', v)} placeholder="Street no." mono />
-                          <CIField value={nf.streetName} onChange={(v) => setNf1('streetName', v)} placeholder="Street name" />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr .6fr .8fr', gap: 8 }}>
-                          <CIField value={nf.city} onChange={(v) => setNf1('city', v)} placeholder="City" />
-                          {/* NO 'CA' ANYWHERE — not as a value, not as a
-                              placeholder that looks like one. Two letters, and
-                              blank means blank. */}
-                          <CIField value={nf.state} onChange={(v) => setNf1('state', v.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase())} placeholder="State" mono />
-                          <CIField value={nf.zip} onChange={(v) => setNf1('zip', v.replace(/[^0-9]/g, '').slice(0, 5))} placeholder="ZIP" mono />
-                        </div>
+                    {/* FieldGrid — ONE shared render path (id-scan-flow-
+                        concept-b.md §1). Scan mode now adopts the same
+                        `nf.doc ? grid : hint` split GuestEditor already had —
+                        this card used to show the grid unconditionally the
+                        moment `newOpen` was true, regardless of whether a
+                        scan had landed. Manual mode shows the same JSX with
+                        no doc required — byte-identical field markup either
+                        way, so the two modes can never drift apart. */}
+                    {mode === 'scan' ?
+                    nf.doc ? <FieldGrid /> :
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: P.infoSoft, borderRadius: P.r10 }}>
+                      <Icon name="scan" size={14} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
+                      <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Scan the ID and the name, date of birth, address and expiry fill themselves from the barcode.</span>
+                    </div> :
+                    <>
+                      <FieldGrid />
+                      {/* Text-style, not a second accent button — "one
+                          accent per view" (id-scan-flow-concept-b.md §3). A
+                          stopgap for click-triggered scanners until the
+                          global keydown listener (verification.jsx:985-1004)
+                          lands. */}
+                      <div style={{ display: 'flex' }}>
+                        <PBtn variant="ghost" size="xs" icon="scan" onClick={() => setMode('scan')}>Scan ID instead</PBtn>
                       </div>
-                    </div>
+                    </>}
                     {/* THE REASON, BESIDE THE CONTROL. A greyed-out button
                         with no stated reason makes the operator guess which of
                         six fields is the blocker, at a counter, with five
@@ -1283,19 +1395,28 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {/* THE LAPSE IS NAMED IN ALL THREE POSITIONS; only the
                           consequence sentence changes. `nfDocExpired` still
-                          drives the alarm colour whether or not it blocks. */}
-                      <span style={{ flex: 1, fontSize: 11.5, color: nfDocExpired ? P.bad : !nf.doc || !nf.firstName.trim() ? P.warn : P.inkDim, lineHeight: 1.4 }}>{
-                        !nf.doc ? 'Scan the ID first — a name on its own is not enough for the buyer either.' :
+                          drives the alarm colour whether or not it blocks.
+                          Relaxed 2026-09-07 (id-scan-flow-concept-b.md §4/§5):
+                          `!nf.doc` no longer disables Create — a first name
+                          is the bar, same as a guest — so the copy leads with
+                          the actual blocking reason (missing first name, or
+                          an expiry that blocks) and states the no-doc case
+                          bluntly rather than as a refusal: the primary buyer
+                          is held to a worse consequence than a guest — it
+                          blocks the whole transaction, not just one person's
+                          compliance (see the footer, primaryNeedsId). */}
+                      <span style={{ flex: 1, fontSize: 11.5, color: nfDocExpired ? P.bad : !nf.firstName.trim() || !nf.doc ? P.warn : P.inkDim, lineHeight: 1.4 }}>{
+                        !nf.firstName.trim() ? (nf.doc ? 'The document produced no first name. Type the legal first name to continue — the last name may legitimately be empty, and a copy of the first is not a surname.' : 'A first name is required to create this customer.') :
                         nfDocExpired ? (
                           nfEnforced === true ? `That document EXPIRED on ${nf.doc.expires}. Expiry enforcement is ON, so an expired ID cannot start a customer at ID-on-file — ask for a current one and re-scan.` :
                           nfEnforced === false ? `That document EXPIRED on ${nf.doc.expires}. WOULD HAVE BEEN REFUSED — expiry enforcement is OFF, so this customer can still be created and the refusal is recorded instead of applied. Ask for a current ID anyway: turn enforcement on and they stop clearing.` :
                           `That document EXPIRED on ${nf.doc.expires}. Whether expiry is enforced here is UNKNOWN — nothing published the switch to this screen, so it is refusing on the strict reading rather than guessing. Ask for a current one and re-scan.`
                         ) :
-                        !nf.firstName.trim() ? 'The document produced no first name. Type the legal first name to continue — the last name may legitimately be empty, and a copy of the first is not a surname.' :
+                        !nf.doc ? 'Recorded, but this customer can’t be checked in until an ID is scanned — it blocks the whole transaction, not just this record.' :
                         'Document captured · this customer starts at ID-on-file.'
                       }</span>
                       <PBtn variant="secondary" size="sm" onClick={() => setNewOpen(false)}>Cancel</PBtn>
-                      <PBtn variant="accent" size="sm" icon="check" disabled={!nf.firstName.trim() || !nf.doc || nfDocBlocks} onClick={createNew}>Create customer</PBtn>
+                      <PBtn variant="accent" size="sm" icon="check" disabled={!nf.firstName.trim() || nfDocBlocks} onClick={createNew}>Create customer</PBtn>
                     </div>
                   </div> :
               /* FOUR OUTCOMES OF A LOOKUP, not one empty rectangle.
