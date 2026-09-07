@@ -923,6 +923,106 @@
       </Card>);
   }
 
+  // ── virtualized list ───────────────────────────────────────────────────
+  // The dataset outgrew "just .map() every card": a single statewide scrape
+  // added 5,180 rows in one pass, and this screen's own filter bar is built
+  // for a dataset that keeps growing, not a fixed size. Mounting one
+  // GroupCard (each with N SubRows) per group for a 9,000+-row, unfiltered
+  // "All sources" view is a real, measured cost — large DOM, slow initial
+  // paint. Height is estimated deterministically from each row's own known
+  // shape (sale line? pre-tax line?) rather than measured after render —
+  // this project's data makes exact height computable ahead of time, so
+  // there's no need for the reflow-and-remeasure dance a true "unknown
+  // content" virtualizer needs. A small overscan buffer absorbs the
+  // estimate's minor drift; it only has to be close, not exact.
+  const CARD_MARGIN = 14;
+  const HEADER_BASE = 80;
+  const HEADER_EXTRA = 46; // avg-price / headline pill stacked on the right
+  const ROW_BASE = 54;
+  const ROW_SALE_EXTRA = 16;
+  const ROW_PRETAX_EXTRA = 18;
+  function estimateGroupHeight(g) {
+    let h = HEADER_BASE + CARD_MARGIN + (g.multiSource ? HEADER_EXTRA : 0);
+    g.rows.forEach(function (r) {
+      let rh = ROW_BASE;
+      if (r.was_price != null && r.was_price > r.price) { rh += ROW_SALE_EXTRA; }
+      if (r.price_tax_basis === 'inclusive' && effectivePreTax(r) != null) { rh += ROW_PRETAX_EXTRA; }
+      h += rh;
+    });
+    return h;
+  }
+
+  // Walk up from a node to whatever ancestor actually scrolls (POS-Admin's
+  // own shell puts overflowY:auto on <main>, not the window) — falls back
+  // to the window/document if nothing closer scrolls.
+  function getScrollParent(el) {
+    let node = el ? el.parentElement : null;
+    while (node && node !== document.body) {
+      const cs = window.getComputedStyle(node);
+      if (/(auto|scroll)/.test(cs.overflowY)) { return node; }
+      node = node.parentElement;
+    }
+    return document.scrollingElement || document.documentElement;
+  }
+
+  function VirtualizedGroups({ groups, pinned, onTogglePin }) {
+    const rootRef = React.useRef(null);
+    const [scrollParent, setScrollParent] = React.useState(null);
+    const [viewport, setViewport] = React.useState({ scrollTop: 0, height: 900, topOffset: 0 });
+
+    const offsets = React.useMemo(function () {
+      const arr = new Array(groups.length + 1);
+      arr[0] = 0;
+      for (let i = 0; i < groups.length; i++) { arr[i + 1] = arr[i] + estimateGroupHeight(groups[i]); }
+      return arr;
+    }, [groups]);
+    const totalHeight = offsets[offsets.length - 1] || 0;
+
+    React.useEffect(function () {
+      if (!rootRef.current) { return; }
+      const sp = getScrollParent(rootRef.current);
+      setScrollParent(sp);
+      const isWin = sp === document.scrollingElement || sp === document.documentElement;
+      let ticking = false;
+      function measure() {
+        ticking = false;
+        if (!rootRef.current) { return; }
+        const rect = rootRef.current.getBoundingClientRect();
+        const spTop = isWin ? 0 : sp.getBoundingClientRect().top;
+        const scrollTop = isWin ? window.scrollY : sp.scrollTop;
+        const height = isWin ? window.innerHeight : sp.clientHeight;
+        setViewport({ scrollTop: scrollTop, height: height, topOffset: rect.top - spTop + scrollTop });
+      }
+      function onScroll() { if (!ticking) { ticking = true; window.requestAnimationFrame(measure); } }
+      measure();
+      const target = isWin ? window : sp;
+      target.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll);
+      return function () { target.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+    }, [groups.length]);
+
+    const OVERSCAN = 800;
+    function findIndex(target) {
+      let lo = 0, hi = Math.max(0, offsets.length - 2);
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (offsets[mid + 1] <= target) { lo = mid + 1; } else { hi = mid; } }
+      return lo;
+    }
+    const relTop = Math.max(0, viewport.scrollTop - viewport.topOffset - OVERSCAN);
+    const relBottom = viewport.scrollTop - viewport.topOffset + viewport.height + OVERSCAN;
+    const startIdx = groups.length ? findIndex(relTop) : 0;
+    const endIdx = groups.length ? Math.min(groups.length, findIndex(relBottom) + 1) : 0;
+
+    return (
+      <div ref={rootRef} style={{ position: 'relative', height: totalHeight }}>
+        {groups.slice(startIdx, endIdx).map(function (g, i) {
+          const idx = startIdx + i;
+          return <div key={g.key} style={{ position: 'absolute', top: offsets[idx], left: 0, right: 0 }}>
+            <GroupCard group={g} pinned={pinned} onTogglePin={onTogglePin} />
+          </div>;
+        })}
+      </div>);
+  }
+
   window.PricingScreen = function PricingScreen() {
     const P = useP();
     const [http, setHttp] = React.useState(null);
@@ -1167,9 +1267,8 @@
           <EmptyState icon="search" title="No product groups match these filters"
             body="Try clearing the source filter or the search box." />}
 
-        {http && http.ok && filtered.map(function (g) {
-          return <GroupCard key={g.key} group={g} pinned={pinned} onTogglePin={setPinned} />;
-        })}
+        {http && http.ok && filtered.length > 0 &&
+          <VirtualizedGroups groups={filtered} pinned={pinned} onTogglePin={setPinned} />}
       </div>);
   };
 })();
