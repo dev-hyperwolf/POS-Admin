@@ -115,108 +115,17 @@
   'use strict';
   const useP = window.useP;
 
-  // The pricing backend is a standalone service (server/README.md: "shares
-  // nothing with any other live service"). Unlike every other POS-Admin
-  // screen, base() must NOT fall back to window.HW_LIVE.base or
-  // window.location.origin — those point at the POS-Admin app itself, not
-  // this scraper's SQLite-backed API.
-  const PRICING_BASE = 'https://hw-pricing-scraper.onrender.com';
-  const ROUTE_LISTINGS = '/api/pricing/listings';
+  // PRICING_BASE, ROUTE_LISTINGS, getJSON, qs, normalizeBrand, extractWeight,
+  // coreWords, normalizeNameCore, and groupKey are shared with
+  // pos/product-shell.jsx (the shell editor's "Market Pricing" section) — see
+  // pos/pricing-shared.jsx (window.HW_PRICING) for the verbatim definitions
+  // and the rationale comments that used to live inline here. Destructured
+  // once, below, along with the other shared matching/tax functions.
   const ROUTE_FACETS = '/api/pricing/facets';
-
-  // ONE shape for every outcome, so a caller can never confuse "the route is
-  // not there" with "the route said there is nothing." Same pattern as
-  // pos/screen-brands.jsx and pos/screen-category-map.jsx.
-  function getJSON(path) {
-    const url = PRICING_BASE + path;
-    return fetch(url, { credentials: 'omit', cache: 'no-store' }).then(function (res) {
-      return res.text().then(function (txt) {
-        let body = null, parsed = false;
-        try { body = JSON.parse(txt); parsed = true; } catch (e) {}
-        return { url: url, code: res.status, ok: res.ok, body: body,
-          parsed: parsed, raw: String(txt || '').slice(0, 400) };
-      });
-    }).catch(function (e) {
-      return { url: url, code: 0, ok: false, body: null, parsed: false, raw: '',
-        netError: (e && e.message) || 'request failed — is the pricing server running on :8799?' };
-    });
-  }
-
-  function qs(params) {
-    return Object.keys(params)
-      .filter(function (k) { return params[k] != null && params[k] !== ''; })
-      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
-      .join('&');
-  }
-
-  // ── grouping key — see the file header comment for the full rationale ────
-
-  const STOPWORDS = { original: 1, the: 1, a: 1, an: 1 }; // purely decorative; see header
-
-  function normalizeBrand(brand) {
-    const b = String(brand || '').toLowerCase().trim().replace(/\s+/g, ' ');
-    return b || null; // null brand never merges — see header comment
-  }
-
-  // Matches "1g", "3.5g", "100mg", "[1G]", "7g", "1pc", "10pk", etc. Requires
-  // a leading digit, so ".5g" (present in real data) intentionally does NOT
-  // match — that row falls back to a solo group rather than guessing a
-  // weight. Piece-count units (pc/pack/ct/...) were missing entirely until a
-  // real bug report: every battery/accessory/multi-pack item measured in
-  // units rather than mass never matched across sources, even identical
-  // products from the same brand at different stores (verified live: STIIIZY
-  // - 510 Battery Koda Pro Green - 1PC showed as 3 separate solo groups, one
-  // per store, purely because "1PC" matched nothing). Unit counts pulled from
-  // the real dataset before adding these, not guessed: pk(232) pack(61)
-  // pc(8) ct(7) count(2) piece(2).
-  const WEIGHT_RE = /(\d+(?:\.\d+)?)\s?(mg|g|ml|oz|pcs|pc|pieces|piece|each|ea|pack|pk|count|ct)\b/i;
-  // True unit synonyms only (same physical quantity, different spelling) —
-  // folded so "1pc" and "1 each" match as the same weight key. Never merges
-  // across DIFFERENT units (a "pk" pack is not a "pc" single).
-  const UNIT_SYNONYMS = { pcs: 'pc', pieces: 'pc', piece: 'pc', each: 'pc', ea: 'pc', pack: 'pk', count: 'pk', ct: 'pk' };
-  function extractWeight(productName) {
-    const m = WEIGHT_RE.exec(String(productName || ''));
-    if (!m) { return null; }
-    const rawUnit = m[2].toLowerCase();
-    const unit = UNIT_SYNONYMS[rawUnit] || rawUnit;
-    return { raw: m[0], norm: (m[1] + unit).toLowerCase() };
-  }
-
-  function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-
-  // Strip brand + weight tokens, strip punctuation, drop the stoplist — but
-  // do NOT reorder. Shared by the (sorted) matching key and the (unsorted,
-  // readable) display name below, so the two never drift apart on anything
-  // but word order.
-  function coreWords(productName, brand, weight) {
-    let s = String(productName || '').toLowerCase();
-    if (brand) { s = s.replace(new RegExp('\\b' + escapeRe(brand.toLowerCase()) + '\\b', 'g'), ' '); }
-    if (weight) { s = s.replace(new RegExp(escapeRe(weight.raw.toLowerCase()), 'g'), ' '); }
-    s = s.replace(/[-–—,:;/|()\[\]*'".]+/g, ' ').replace(/\s+/g, ' ').trim();
-    const words = s.split(' ').filter(function (w) { return w && !STOPWORDS[w]; });
-    return words;
-  }
-
-  // Order-independent on purpose — "Blue Dream Pod" and "Pod Blue Dream" must
-  // produce the same key. This is for MATCHING only; it reads badly as a
-  // label (see displayName below for the readable version of the same words).
-  function normalizeNameCore(productName, brand, weight) {
-    const words = coreWords(productName, brand, weight);
-    if (words.length === 0) { return null; }
-    return words.slice().sort().join(' ');
-  }
-
-  // Returns the group key, or null if brand/weight/name couldn't be
-  // confidently extracted — a null key means "never merge this row with
-  // anything," which the caller turns into a guaranteed-unique solo key.
-  function groupKey(row) {
-    const brand = normalizeBrand(row.brand);
-    const weight = extractWeight(row.product_name);
-    if (!brand || !weight) { return null; }
-    const core = normalizeNameCore(row.product_name, brand, weight);
-    if (!core) { return null; }
-    return brand + '|' + weight.norm + '|' + core;
-  }
+  const { PRICING_BASE, ROUTE_LISTINGS, getJSON, qs, normalizeBrand, extractWeight,
+    coreWords, normalizeNameCore, groupKey, competitorKey, knownBasis, money,
+    effectivePreTax, fullPrice, comparableFullPrice, computeAvgFull, computeExtremes,
+    fetchAllListings } = window.HW_PRICING;
 
   // Display name: same word set as the matching key, but taken from whichever
   // group member phrases it with the FEWEST leftover words (after stripping
@@ -247,17 +156,7 @@
   };
   function sourceLabel(s) { return SOURCE_LABEL[s] || titleCase(String(s || '').replace(/_/g, ' ')); }
 
-  // The real, distinct COMPETITOR a row came from — NOT the scraping
-  // platform. A few platforms (dutchie_embed, weedmaps, leafly,
-  // stiiizy_dispensary_shop) are shared by multiple real, unrelated stores
-  // in different cities; `row.source` alone collapses all of them into one
-  // bucket. Real bug found live: STIIIZY - Wildomar and STIIIZY - Pomona
-  // both carry `source: "stiiizy_dispensary_shop"`, so a shared product
-  // between them showed as a "same-source duplicate" instead of two real
-  // competitor prices. store_name (added project-wide recently) is the
-  // real per-store identity; fall back to source only for the handful of
-  // older rows that predate that field.
-  function competitorKey(row) { return row.store_name || row.source; }
+  // competitorKey is shared (pos/pricing-shared.jsx) — destructured above.
 
   // Deterministic small palette for the source dot, cycling by source name —
   // not meant to encode meaning, only to let a scanning eye tell sources
@@ -269,13 +168,7 @@
     return palette[h % palette.length];
   }
 
-  function knownBasis(row) {
-    return row.price_tax_basis && row.price_tax_basis !== 'unknown' && row.pre_tax_price != null;
-  }
-
-  function money(n) {
-    return '$' + Number(n).toFixed(2);
-  }
+  // knownBasis and money are shared (pos/pricing-shared.jsx) — destructured above.
 
   // ── category filter — 46 raw strings, 13 sources, zero shared taxonomy ────
   // Verified live 2026-09-06 via GET /api/pricing/facets (see scratch/
@@ -296,12 +189,36 @@
     accessories: 'other', gear: 'other'
   };
   // Category values that are NOT product types at all — a strain name leaked
-  // into the category field at the source (weedmaps_adapter.py scrapes a real
-  // `edge_category` field for the actual product type, but it's dropped
-  // before reaching this API — see the audit doc). Deliberately NOT folded
-  // into any real category: that would fabricate a product type the source
-  // never actually gave us through this API.
+  // into the category field at the source. Historically this was blind
+  // (weedmaps' own category column is a STRAIN type, a mislabeling on
+  // Weedmaps' own side), but weedmaps_adapter.py now also scrapes a real
+  // `edge_category` field for the actual product type, and it IS returned by
+  // this API (see EDGE_CATEGORY_FOLD below) — categoryBucket() prefers it.
+  // This fold/misfiled table stays as the fallback for every row where
+  // edge_category is empty (every non-weedmaps source, plus any weedmaps row
+  // the scraper didn't get an edge_category for).
   const CATEGORY_MISFILED = { indica: 1, sativa: 1, hybrid: 1 };
+  // Weedmaps' real product-type taxonomy, scraped into `edge_category`.
+  // Verified live 2026-09-07 against all 40,137 weedmaps rows (full paged
+  // GET /api/pricing/listings?source=weedmaps) — every value below is a real
+  // value seen in that response; nothing here is invented. Folding this in
+  // place of the old category-only heuristic took weedmaps' row-level
+  // misfiled+uncategorized share from 37,747/40,137 (94.0%) to 0/40,137, and
+  // the "Not categorized" group-level filter tab (all 15 sources combined)
+  // from 38,128/48,571 groups (78.5%) to 381/48,571 (0.8%).
+  const EDGE_CATEGORY_FOLD = {
+    buds: 'flower', smalls: 'flower', flower: 'flower', ground: 'flower', 'infused flower': 'flower',
+    'all-in-one': 'vape', pods: 'vape', cartridge: 'vape', batteries: 'vape', 'vape pens': 'vape', 'push button': 'vape',
+    joints: 'preroll', minis: 'preroll', 'infused joints': 'preroll', 'infused minis': 'preroll',
+    'infused blunts': 'preroll', 'infused pre-rolls': 'preroll', 'pre-rolls': 'preroll',
+    gummies: 'edibles', capsules: 'edibles', drinks: 'edibles', chocolates: 'edibles', carbonated: 'edibles',
+    'non-carbonated': 'edibles', mints: 'edibles', 'baked goods': 'edibles', edibles: 'edibles', tablets: 'edibles',
+    concentrates: 'concentrate', sugar: 'concentrate', badder: 'concentrate', rosin: 'concentrate',
+    diamonds: 'concentrate', crumble: 'concentrate', solvent: 'concentrate', kief: 'concentrate', sauce: 'concentrate',
+    tinctures: 'tincture',
+    balms: 'topical', patches: 'topical',
+    gear: 'other', accessories: 'other', other: 'other', 'rolling papers': 'other', apparel: 'other'
+  };
   // P is only reachable via useP() inside a component — same convention this
   // file already uses for sourceDot(P, source) — so this is a function of P,
   // not a module-level constant.
@@ -317,23 +234,52 @@
       other: { label: 'Accessories', color: P.cat.other }
     };
   }
-  function categoryBucket(rawCategory) {
-    const key = String(rawCategory || '').toLowerCase().trim();
+  // Takes the row (or row-shaped object with .category / .edge_category) —
+  // NOT just the raw category string — because edge_category, when present,
+  // is a strictly better signal than category and must be checked first.
+  function categoryBucket(row) {
+    const edgeKey = String((row && row.edge_category) || '').toLowerCase().trim();
+    if (edgeKey && EDGE_CATEGORY_FOLD[edgeKey]) { return EDGE_CATEGORY_FOLD[edgeKey]; }
+    const key = String((row && row.category) || '').toLowerCase().trim();
     if (!key) { return 'uncategorized'; }
     if (CATEGORY_MISFILED[key]) { return 'misfiled'; }
     return CATEGORY_FOLD[key] || 'uncategorized';
   }
 
-  // ── strain filter — no structured field exists; literal text scan only ────
+  // ── strain filter — prefers the real structured field, text-scan as
+  // fallback only ──────────────────────────────────────────────────────────
+  // `strain_type` is a real scraped column (populated by most adapters;
+  // notably NOT weedmaps or leafly, which report nothing for it) — when a
+  // row has one, it beats guessing from the product name. Values are folded
+  // case-insensitively; verified live 2026-09-07 via GET /api/pricing/facets
+  // ("strain_types") and per-source samples — real values include mixed
+  // casing ("Indica" vs "indica"), hybrid-leaning labels ("Indica-Hybrid",
+  // "50/50"), and values that are not a strain family at all ("N/A", "THC",
+  // "1 to 1"/"2 to 1" CBD:THC ratios) — those honestly fall to 'unstated'
+  // rather than being guessed into a bucket.
+  // When strain_type is null/missing (weedmaps, leafly, and any row an
+  // adapter didn't populate it for), fall back to the original text scan.
   // A typo like "INDISA" (present in real data) intentionally does NOT match —
   // fuzzy-correcting it would fabricate a classification the source never
   // gave us. This screen's standing rule (see file header) is to under-
   // classify honestly rather than guess.
+  const STRAIN_TYPE_FOLD = {
+    indica: 'indica', sativa: 'sativa', hybrid: 'hybrid',
+    '50/50': 'hybrid', 'indica-hybrid': 'hybrid', 'sativa-hybrid': 'hybrid',
+    'indica-dom': 'indica', 'sativa-dom': 'sativa'
+    // 'n/a', 'thc', 'cbd', 'high cbd', '1 to 1', '2 to 1' intentionally left
+    // unmapped — real values, but not a strain family — fall to 'unstated'.
+  };
   const STRAIN_RE = /\b(indica|sativa|hybrid)\b/gi;
-  function strainBuckets(productName) {
+  function strainBuckets(row) {
+    const rawStrainType = row && row.strain_type;
+    if (rawStrainType != null && String(rawStrainType).trim() !== '') {
+      const key = String(rawStrainType).toLowerCase().trim();
+      return [STRAIN_TYPE_FOLD[key] || 'unstated'];
+    }
     const hits = new Set();
     let m;
-    while ((m = STRAIN_RE.exec(String(productName || ''))) !== null) { hits.add(m[1].toLowerCase()); }
+    while ((m = STRAIN_RE.exec(String((row && row.product_name) || ''))) !== null) { hits.add(m[1].toLowerCase()); }
     if (hits.size >= 2) { return ['mixed']; }
     if (hits.size === 1) { return [[...hits][0]]; }
     return ['unstated'];
@@ -346,45 +292,8 @@
   // inoperable on the ~76% of rows without a verified figure.
   function priceCompareValue(row) { return knownBasis(row) ? row.pre_tax_price : row.price; }
 
-  // The pre-tax figure worth SHOWING on a row, without fabricating anything:
-  // when basis is 'exclusive', the displayed price is BY DEFINITION already
-  // pre-tax (that's what "exclusive" means — tax is added afterward at
-  // checkout, on top of this number) — no computation needed, it's the same
-  // number. When basis is 'inclusive' and a city tax rate has been
-  // researched, pre_tax_price is the real, separately-computed figure. In
-  // every other case (basis unknown, or inclusive with no researched rate
-  // yet) there is genuinely nothing to show — returns null, never a guess.
-  function effectivePreTax(row) {
-    if (row.price_tax_basis === 'exclusive') { return row.price; }
-    if (row.price_tax_basis === 'inclusive' && row.pre_tax_price != null) { return row.pre_tax_price; }
-    return null;
-  }
-
-  // ── "average across retailers" — regular price only, no promo pricing ────
-  // The owner's explicit spec: average the NORMAL full price, never a
-  // discounted one. fullPrice() undoes an active sale by reading was_price
-  // (the pre-discount price every adapter already captures); it is NOT the
-  // number shown big-and-bold on the row when on sale, which stays the real
-  // current price — this is a separate, average-only figure.
-  function fullPrice(row) { return (row.was_price != null && row.was_price > row.price) ? row.was_price : row.price; }
-
-  // The full price, tax-normalized the same honest way effectivePreTax() is:
-  // 'exclusive' basis means the displayed (full) price already IS pre-tax,
-  // no computation needed. 'inclusive' with a researched pre_tax_price for
-  // the CURRENT price lets us derive the same store's effective tax
-  // multiplier (pre_tax_price / price) and apply it to the full price too —
-  // proportional math, not a guess, since a store's tax rate doesn't change
-  // between its sale price and its regular price. Every other case (basis
-  // unknown, or inclusive with no researched rate) returns null and is
-  // excluded from the average rather than mixing tax-in and tax-out numbers.
-  function comparableFullPrice(row) {
-    const full = fullPrice(row);
-    if (row.price_tax_basis === 'exclusive') { return full; }
-    if (row.price_tax_basis === 'inclusive' && row.pre_tax_price != null && row.price > 0) {
-      return full * (row.pre_tax_price / row.price);
-    }
-    return null;
-  }
+  // effectivePreTax, fullPrice, and comparableFullPrice are shared
+  // (pos/pricing-shared.jsx) — destructured above.
 
   const PRICE_BANDS = [
     { key: 'u15', label: 'Under $15', lo: 0, hi: 15 },
@@ -518,8 +427,12 @@
   }
 
   // ── Category filter — single-select tabs with real counts + honest "Not
-  // categorized" tab for the 71 rows where a strain name leaked into the
-  // category field at the source (see CATEGORY_MISFILED above).
+  // categorized" tab for whatever's left after categoryBucket() has tried
+  // edge_category first — a strain name leaked into the category field at
+  // the source (see CATEGORY_MISFILED / EDGE_CATEGORY_FOLD above). This
+  // bucket used to hold nearly every weedmaps row; now it only catches rows
+  // with no edge_category and a category value that isn't a real product
+  // type either.
   function CategoryFilter({ groups, value, onChange }) {
     const P = useP();
     const META = categoryMeta(P);
@@ -527,7 +440,7 @@
       const m = { uncategorized: 0, misfiled: 0 };
       Object.keys(META).forEach(function (k) { m[k] = 0; });
       groups.forEach(function (g) {
-        const buckets = new Set(g.rows.map(function (r) { return categoryBucket(r.category); }));
+        const buckets = new Set(g.rows.map(function (r) { return categoryBucket(r); }));
         buckets.forEach(function (b) { m[b] = (m[b] || 0) + 1; });
       });
       return m;
@@ -640,7 +553,12 @@
   }
 
   // ── Strain filter — five multi-select toggles, built to be loud about the
-  // fact that "Not stated" is 93.6% of the catalog, not a normal category.
+  // fact that "Not stated" is most of the catalog, not a normal category.
+  // Verified live 2026-09-07 against the full 48,571-group dataset: with
+  // strain_type preferred over the old product-name text scan, "Not stated"
+  // fell from 41,999 groups (86.5%) to 39,576 (81.5%) — real, structural
+  // progress, but still the honest majority since weedmaps and leafly (the
+  // two biggest sources) report no strain_type at all.
   function StrainFilter({ counts, value, onChange }) {
     const P = useP();
     const OPTS = [
@@ -875,63 +793,9 @@
     return null;
   }
 
-  // Average FULL (non-promotional) price across retailers — the owner's
-  // explicit spec: no sale pricing in the average. One value per DISTINCT
-  // real competitor (competitorKey, not the raw platform `source` — two
-  // different STIIIZY store locations must both count), only from rows
-  // where a tax-honest comparable figure exists (see comparableFullPrice).
-  function computeAvgFull(group) {
-    const comparableBySource = new Map();
-    group.rows.forEach(function (r) {
-      const key = competitorKey(r);
-      if (comparableBySource.has(key)) { return; }
-      const v = comparableFullPrice(r);
-      if (v != null) { comparableBySource.set(key, v); }
-    });
-    const values = [...comparableBySource.values()];
-    return { value: values.length >= 2 ? values.reduce(function (a, b) { return a + b; }, 0) / values.length : null, count: values.length };
-  }
-
-  // Cheapest / Most Expensive — a DIFFERENT question from the average
-  // ("what's the normal underlying price" vs. "what could someone pay a
-  // competitor today"), so deliberately sale-INCLUSIVE: with 57-80% of live
-  // rows on sale depending on platform, excluding sale prices would report a
-  // "floor" nobody can actually pay.
-  //
-  // REAL BUG FOUND live (2026-09-07) using priceCompareValue here: it falls
-  // back to raw `price` when a row has no resolved pre_tax_price, which
-  // silently compares one store's tax-normalized figure against another
-  // store's still-tax-inclusive raw number — e.g. STIIIZY Wildomar and
-  // STIIIZY Pomona sell the exact same product at the exact same $34.17
-  // tax-inclusive price, but only Wildomar has a researched tax rate, so the
-  // old code reported "$27.32 cheapest" vs "$34.17 most expensive" — a
-  // fabricated spread that was really just "who has a computed pre-tax
-  // figure," not a real price difference. Uses effectivePreTax instead,
-  // which returns null (excluded, never a silent raw fallback) whenever a
-  // row can't be honestly normalized to pre-tax — same rule this file
-  // already enforces everywhere else that touches tax basis. Deduped by
-  // competitorKey, same reasoning as the average.
-  function computeExtremes(group) {
-    const bySource = new Map();
-    group.rows.forEach(function (r) {
-      const key = competitorKey(r);
-      if (!bySource.has(key)) { bySource.set(key, r); }
-    });
-    let cheapest = null, priciest = null, comparableCount = 0;
-    bySource.forEach(function (r) {
-      const v = effectivePreTax(r);
-      if (v == null) { return; }
-      comparableCount++;
-      if (!cheapest || v < cheapest.value) { cheapest = { value: v, row: r }; }
-      if (!priciest || v > priciest.value) { priciest = { value: v, row: r }; }
-    });
-    // Fewer than 2 honestly-comparable prices means there's nothing to call
-    // "cheapest vs. most expensive" — a single value isn't a range, and
-    // showing one row's price as both extremes would look like a real
-    // comparison that never happened.
-    if (comparableCount < 2) { return { cheapest: null, priciest: null, comparableCount: comparableCount }; }
-    return { cheapest: cheapest, priciest: priciest, comparableCount: comparableCount };
-  }
+  // computeAvgFull and computeExtremes (including the 2026-09-07
+  // effectivePreTax tax-basis bug fix) are shared (pos/pricing-shared.jsx) —
+  // destructured above.
 
   // One cell of the Cheapest / Avg / Most-Expensive strip. Never a blanket
   // tax-basis label for the pair — each extreme can legitimately come from a
@@ -964,7 +828,7 @@
   function GroupCard({ group, pinned, onTogglePin, onExpand }) {
     const P = useP();
     const CATMETA = categoryMeta(P);
-    const catBucket = categoryBucket(group.category);
+    const catBucket = categoryBucket(group);
     const catLabel = CATMETA[catBucket] ? CATMETA[catBucket].label : group.category;
     const rows = group.rows;
     const multi = rows.length > 1;
@@ -1205,84 +1069,15 @@
     React.useEffect(function () {
       let live = true;
       setHttp(null);
-      // The server caps `limit` at 2000 per request (server/app.py) — the
-      // dataset has grown past that (3,071+ rows and counting as more
-      // sources/cities are added), so a single fetch silently truncates it.
-      // Page through with `total` from the first response until every row
-      // is in, rather than re-raising the single-request cap (which would
-      // just move this bug to the next time the dataset grows again).
-      //
-      // Pages 2..N fire with BOUNDED concurrency, not sequentially and not
-      // all-at-once. Real perf audit (scratch/performance-audit-2026-09-07.md
-      // in hw-pricing-scraper) measured full-sequential as costing ~2-2.6s of
-      // dead time at 9,783 rows (5 pages) — but firing every page in one
-      // Promise.all stopped being safe once the dataset grew past that: real
-      // load test against the live server the next morning (53,842 rows, 27
-      // pages) found firing all 27 at once produced 502s on ~40% of them —
-      // Render's proxy/instance in front of this stdlib ThreadingHTTPServer
-      // can't take 27 concurrent connections. 6-8 concurrent measured zero
-      // failures across repeated real runs; 10+ started failing. A per-page
-      // retry (once) absorbs an occasional transient blip on top of that
-      // margin, so a single flaky page doesn't fail the whole load the way it
-      // did before this fix (a screen full of real data with one retried page
-      // beats "answered nothing at all").
-      const PAGE = 2000;
-      const MAX_CONCURRENT_PAGES = 6;
-
-      function fetchPageWithRetry(offset) {
-        return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: offset })).then(function (r) {
-          const good = r.ok && r.parsed && r.body && Array.isArray(r.body.listings);
-          if (good) { return r; }
-          // one retry — a 502 under load is often gone a moment later
-          return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: offset }));
-        });
-      }
-
-      // Runs `tasks` (offset -> Promise) with at most `limit` in flight at
-      // once, preserving input order in the resolved array.
-      function runBounded(items, limit, task) {
-        return new Promise(function (resolve) {
-          const results = new Array(items.length);
-          let next = 0, inFlight = 0, done = 0;
-          function pump() {
-            if (done === items.length) { resolve(results); return; }
-            while (inFlight < limit && next < items.length) {
-              const i = next++;
-              inFlight++;
-              task(items[i]).then(function (r) {
-                results[i] = r;
-                inFlight--; done++;
-                pump();
-              });
-            }
-          }
-          pump();
-        });
-      }
-
-      function loadAll() {
-        return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: 0 })).then(function (first) {
-          if (!live) { return; }
-          if (!first.ok || !first.parsed || !first.body || !Array.isArray(first.body.listings)) { setHttp(first); return; }
-          const total = first.body.total;
-          const firstRows = first.body.listings;
-          const remainingOffsets = [];
-          for (let off = PAGE; off < total; off += PAGE) { remainingOffsets.push(off); }
-          if (remainingOffsets.length === 0) {
-            setHttp({ url: first.url, code: first.code, ok: true, body: { total: total, count: firstRows.length, limit: PAGE, offset: 0, listings: firstRows }, parsed: true, raw: first.raw });
-            return;
-          }
-          runBounded(remainingOffsets, MAX_CONCURRENT_PAGES, fetchPageWithRetry).then(function (rest) {
-            if (!live) { return; }
-            const bad = rest.filter(function (r) { return !r.ok || !r.parsed || !r.body || !Array.isArray(r.body.listings); })[0];
-            if (bad) { setHttp(bad); return; }
-            let rows = firstRows;
-            rest.forEach(function (r) { rows = rows.concat(r.body.listings); });
-            setHttp({ url: first.url, code: first.code, ok: true, body: { total: total, count: rows.length, limit: PAGE, offset: 0, listings: rows }, parsed: true, raw: first.raw });
-          });
-        });
-      }
-      loadAll();
+      // The full paginated fetch (bounded-concurrency, per-page retry — see
+      // that comment for the load-test numbers behind the tuning) is shared
+      // (pos/pricing-shared.jsx, fetchAllListings) with pos/product-shell.jsx,
+      // which needs the exact same "the server caps limit at 2000 but the
+      // live dataset is 50,000+ rows" fetch-all to match a shell's own price
+      // against it.
+      fetchAllListings({}).then(function (result) {
+        if (live) { setHttp(result); }
+      });
       return function () { live = false; };
     }, [tick]);
 
@@ -1331,6 +1126,7 @@
           nameDisplay: name || first.product_name,
           weight: weight ? weight.norm : '—',
           category: first.category || null,
+          edge_category: first.edge_category || null,
           distinctSourceCount: sourceSet.size,
           multiSource: sourceSet.size > 1
         });
@@ -1353,10 +1149,10 @@
       const needle = q.trim().toLowerCase();
       return groups.filter(function (g) {
         if (sourceFilter !== 'all' && !g.rows.some(function (r) { return r.source === sourceFilter; })) { return false; }
-        if (categoryFilter !== 'all' && !g.rows.some(function (r) { return categoryBucket(r.category) === categoryFilter || (categoryFilter === 'uncategorized' && ['uncategorized', 'misfiled'].indexOf(categoryBucket(r.category)) >= 0); })) { return false; }
+        if (categoryFilter !== 'all' && !g.rows.some(function (r) { return categoryBucket(r) === categoryFilter || (categoryFilter === 'uncategorized' && ['uncategorized', 'misfiled'].indexOf(categoryBucket(r)) >= 0); })) { return false; }
         if (brandFilter.size > 0 && !g.rows.some(function (r) { return brandFilter.has(normalizeBrand(r.brand) || '__unbranded__'); })) { return false; }
         if (regionFilter.size > 0 && !g.rows.some(function (r) { return regionFilter.has(primaryCity(r.store_city) || '__unknown__'); })) { return false; }
-        if (strainFilter.size > 0 && !g.rows.some(function (r) { return strainBuckets(r.product_name).some(function (b) { return strainFilter.has(b); }); })) { return false; }
+        if (strainFilter.size > 0 && !g.rows.some(function (r) { return strainBuckets(r).some(function (b) { return strainFilter.has(b); }); })) { return false; }
         if (priceFilter.bands.size > 0 && !g.rows.some(function (r) {
           const v = priceCompareValue(r);
           return [...priceFilter.bands].some(function (k) { const b = PRICE_BANDS.filter(function (pb) { return pb.key === k; })[0]; return v >= b.lo && v < b.hi; });
@@ -1400,7 +1196,7 @@
       const m = { indica: 0, sativa: 0, hybrid: 0, mixed: 0, unstated: 0 };
       groups.forEach(function (g) {
         const buckets = new Set();
-        g.rows.forEach(function (r) { strainBuckets(r.product_name).forEach(function (b) { buckets.add(b); }); });
+        g.rows.forEach(function (r) { strainBuckets(r).forEach(function (b) { buckets.add(b); }); });
         buckets.forEach(function (b) { m[b]++; });
       });
       return m;
