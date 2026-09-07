@@ -26,6 +26,25 @@ const matchTone = (P, s) => s == null ? P.inkMute : s >= MATCH_BANDS.auto ? P.go
 // earns it — never "the best of a bad set".
 const matchPromoted = (s) => s != null && s >= MATCH_BANDS.confirm;
 
+// ── GUEST NAME, GUARANTEED A STRING — never the raw guest value ────────────
+// Same defect class as the 2026-09-07 Register-screen crash (screen-register.jsx):
+// the old call sites here checked for window.guestName's existence, but on a
+// miss fell back to handing the raw guest value straight to Avatar's name
+// prop. That's fine for a legacy bare-string guest, but this app's guest
+// objects are also the richer `{key, id, name, dob, ...}` shape — an object
+// is truthy, so Avatar's own `(name || '?')` guard never catches it, and
+// `.split` throws. Mirrors `gName`/`normGuest` (pos/checkin.jsx) exactly, same
+// LOGIC as screen-register.jsx's safeGuestName — but NOT the same name.
+// screen-register.jsx and screen-orders.jsx are sibling <script type=
+// "text/babel"> tags with no module system (@babel/standalone runs without
+// data-presets), so a same-named top-level `const` in both files does not
+// scope-isolate or throw: Babel compiles it to a plain `var` on `window` and
+// the LAST file loaded silently clobbers the other's declaration — the exact
+// STAGES collision documented in test/global-collisions.test.mjs, which is
+// what actually caught this while wiring up this fix. `ordersSafeGuestName`
+// keeps this file's copy real without stepping on register's.
+const ordersSafeGuestName = (g) => (window.guestName ? window.guestName(g) : (typeof g === 'string' ? g : (g && g.name) || ''));
+
 window.OrdersScreen = function OrdersScreen({ onStartSale }) {
   const P = useP();
   const [tab, setTab] = React.useState('pickup');
@@ -402,7 +421,7 @@ function CheckInCard({ c, onStartSale }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 13px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Avatar name={c.name} size={36} crown={c.member} />
-          {guests.slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -11, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={window.guestName ? window.guestName(g) : g} size={26} /></span>)}
+          {guests.slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -11, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={ordersSafeGuestName(g)} size={26} /></span>)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}{guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '1px 6px', borderRadius: 99 }}>+{guests.length}</span>}</div>
@@ -717,7 +736,7 @@ function MatchSheet({ o, bind, onBind, onCheckInBind, onClose }) {
   const book = ql ? window.HW.MEMBERS.filter((m) => (m.name + m.email + m.phone).toLowerCase().includes(ql)) : window.HW.MEMBERS.slice(0, 5);
   // Guests already on record inside a party are bindable people too.
   const partyGuests = [];
-  checkins.forEach((ci) => (ci.guests || []).forEach((g) => partyGuests.push({ ci, name: window.guestName ? window.guestName(g) : g })));
+  checkins.forEach((ci) => (ci.guests || []).forEach((g) => partyGuests.push({ ci, name: ordersSafeGuestName(g) })));
 
   return (
     <div onClick={onClose} style={window.overlayScrim(P, { z: 120, padding: '48px 20px', animate: true })}>
