@@ -60,8 +60,21 @@
     modalPop: 320,        // popovers owned by an open modal
     toast: 400,           // transient confirmations
     notePin: 500,         // annotation — must sit above modals
-    notePop: 510,
-    notePanel: 520,
+    notePanel: 510,       // the "All pages" review list — a docked surface, not
+                          // the thing being read
+    notePop: 520,         // an open note/thread/composer. MUST outrank notePanel:
+                          // the panel's own `data-goto` card click opens a thread
+                          // while panelOpen stays true (shared/notes.js panel()),
+                          // and the panel is a 376px-wide, full-height dock — wide
+                          // enough to fully contain a thread popup positioned near
+                          // either edge. Measured live 2026-09-07 on Hyperwolf
+                          // POS.html: with both open, .hwn-pop's rect sat entirely
+                          // inside .hwn-panel's rect (pop 388-682w/475-697h,
+                          // panel 318-694w/0-795h) while pop was still z 510 <
+                          // panel's 520 — the panel painted over the note
+                          // completely. No stacking-context trap (transform/
+                          // filter/opacity/isolation) was involved; the two
+                          // numbers were just backwards for this interaction.
     tourMask: 600,        // the guided tour is the only true takeover
     tourCard: 610,
   };

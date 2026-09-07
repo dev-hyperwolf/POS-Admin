@@ -163,7 +163,7 @@ const SHARED = {
     }
     return { content: 0, sticky: 10, dropdown: 60, chromeDock: 64, chromeBar: 66,
       chromeMenu: 68, scrim: 300, modal: 310, modalPop: 320, toast: 400,
-      notePin: 500, notePop: 510, notePanel: 520, tourMask: 600, tourCard: 610 };
+      notePin: 500, notePanel: 510, notePop: 520, tourMask: 600, tourCard: 610 };
   })(),
   // Third-party brand marks. Not part of the palette and not themeable — a
   // brand's colour is the brand's, in both modes — but it still may not be a
