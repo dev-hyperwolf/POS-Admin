@@ -840,7 +840,110 @@
       </div>);
   }
 
-  function GroupCard({ group, pinned, onTogglePin }) {
+  // Above this many DISTINCT sources, a group collapses to the stat strip +
+  // "View all" trigger instead of listing every row inline. Grounded in the
+  // real distribution (scratch/pricing-collapsed-summary-design.md Part 0/4):
+  // 59% of real multi-source groups have <=8 sources and are completely
+  // unaffected by this; the 41% above it are exactly the population capable
+  // of producing a 40+-row wall (the owner's real Blue Dream example, 44
+  // sources). Threshold is on distinctSourceCount, never rows.length — same
+  // rule this file already enforces everywhere else that distinguishes a
+  // same-source duplicate from a real competitor spread.
+  const SOURCE_COLLAPSE_THRESHOLD = 8;
+
+  // headline: the existing spread/same-source-duplicate pill. Pulled out to
+  // its own pure function so GroupCard's render and estimateGroupHeight's
+  // estimate can never drift apart on when it renders.
+  function computeHeadline(group) {
+    const rows = group.rows;
+    const multi = rows.length > 1;
+    const knownRows = rows.filter(knownBasis);
+    if (group.multiSource && knownRows.length >= 2) {
+      const lo = Math.min.apply(null, knownRows.map(function (r) { return r.pre_tax_price; }));
+      const hi = Math.max.apply(null, knownRows.map(function (r) { return r.pre_tax_price; }));
+      const spreadPct = lo > 0 ? Math.round(((hi - lo) / lo) * 100) : 0;
+      return { kind: spreadPct > 0 ? 'info' : 'neutral', label: `${spreadPct}% spread across sources` };
+    }
+    if (!group.multiSource && multi) {
+      // Same-source duplicate/near-duplicate listings (e.g. Kushy Punch
+      // Watermelon Indica 100mg — two dutchie_embed rows that merged only
+      // because "Original" is in STOPWORDS). This is real, useful
+      // information — this source has duplicate catalog entries — but it is
+      // NOT a competitor price spread, and must never be labeled as one.
+      return { kind: 'warn', label: `Same-source duplicate (${group.distinctSourceCount} source, ${rows.length} listings)` };
+    }
+    return null;
+  }
+
+  // Average FULL (non-promotional) price across retailers — the owner's
+  // explicit spec: no sale pricing in the average. One value per DISTINCT
+  // real competitor (competitorKey, not the raw platform `source` — two
+  // different STIIIZY store locations must both count), only from rows
+  // where a tax-honest comparable figure exists (see comparableFullPrice).
+  function computeAvgFull(group) {
+    const comparableBySource = new Map();
+    group.rows.forEach(function (r) {
+      const key = competitorKey(r);
+      if (comparableBySource.has(key)) { return; }
+      const v = comparableFullPrice(r);
+      if (v != null) { comparableBySource.set(key, v); }
+    });
+    const values = [...comparableBySource.values()];
+    return { value: values.length >= 2 ? values.reduce(function (a, b) { return a + b; }, 0) / values.length : null, count: values.length };
+  }
+
+  // Cheapest / Most Expensive — a DIFFERENT question from the average
+  // ("what's the normal underlying price" vs. "what could someone pay a
+  // competitor today"), so deliberately sale-INCLUSIVE: with 57-80% of live
+  // rows on sale depending on platform, excluding sale prices would report a
+  // "floor" nobody can actually pay. Uses priceCompareValue — the same
+  // pre-tax-when-known/raw-otherwise preference SubRow already bolds and the
+  // price filter already keys on — never a second comparison rule. Deduped
+  // by competitorKey, same reasoning as the average.
+  function computeExtremes(group) {
+    const bySource = new Map();
+    group.rows.forEach(function (r) {
+      const key = competitorKey(r);
+      if (!bySource.has(key)) { bySource.set(key, r); }
+    });
+    let cheapest = null, priciest = null;
+    bySource.forEach(function (r) {
+      const v = priceCompareValue(r);
+      if (!cheapest || v < cheapest.value) { cheapest = { value: v, row: r }; }
+      if (!priciest || v > priciest.value) { priciest = { value: v, row: r }; }
+    });
+    return { cheapest: cheapest, priciest: priciest };
+  }
+
+  // One cell of the Cheapest / Avg / Most-Expensive strip. Never a blanket
+  // tax-basis label for the pair — each extreme can legitimately come from a
+  // row with a different basis, so each gets its own badge, same ternary
+  // SubRow already uses for its own price line.
+  function PriceLadderCell({ label, value, row, isAvg, avgMeta }) {
+    const P = useP();
+    const onSale = row && row.was_price != null && row.was_price > row.price;
+    const pct = onSale ? Math.round((1 - row.price / row.was_price) * 100) : 0;
+    const known = row && knownBasis(row);
+    const taxNote = !row ? null
+      : known ? 'pre-tax'
+      : row.price_tax_basis === 'inclusive' ? 'tax incl.'
+      : row.price_tax_basis === 'exclusive' ? '+ tax at checkout'
+      : null;
+    return (
+      <div style={{ flex: 1, minWidth: 0, padding: '12px 16px' }}>
+        <div style={{ fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.03em', color: P.inkMute, textTransform: 'uppercase' }}>{label}</div>
+        <div style={{ fontSize: P.type.strong, fontWeight: 800, fontFamily: P.fontMono, color: P.ink, whiteSpace: 'nowrap' }}>
+          {money(value)}
+          {taxNote && <span style={{ fontSize: P.type.micro, fontWeight: 600, color: known ? P.good : P.inkMute }}> {taxNote}</span>}
+        </div>
+        <div style={{ fontSize: P.type.micro, color: P.inkFaint, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {isAvg ? `${avgMeta.count} of ${avgMeta.total} sources · no promo pricing`
+            : <React.Fragment>{row.store_name || sourceLabel(row.source)}{onSale && <span style={{ color: P.bad, fontWeight: 700 }}> · {pct}% off</span>}</React.Fragment>}
+        </div>
+      </div>);
+  }
+
+  function GroupCard({ group, pinned, onTogglePin, onExpand }) {
     const P = useP();
     const CATMETA = categoryMeta(P);
     const catBucket = categoryBucket(group.category);
@@ -848,36 +951,10 @@
     const rows = group.rows;
     const multi = rows.length > 1;
     const multiSource = group.multiSource; // 2+ DISTINCT sources — see header comment
-    const knownRows = rows.filter(knownBasis);
-    let headline = null;
-    if (multiSource && knownRows.length >= 2) {
-      const lo = Math.min.apply(null, knownRows.map(function (r) { return r.pre_tax_price; }));
-      const hi = Math.max.apply(null, knownRows.map(function (r) { return r.pre_tax_price; }));
-      const spreadPct = lo > 0 ? Math.round(((hi - lo) / lo) * 100) : 0;
-      headline = { kind: spreadPct > 0 ? 'info' : 'neutral', label: `${spreadPct}% spread across sources` };
-    } else if (!multiSource && multi) {
-      // Same-source duplicate/near-duplicate listings (e.g. Kushy Punch
-      // Watermelon Indica 100mg — two dutchie_embed rows that merged only
-      // because "Original" is in STOPWORDS). This is real, useful
-      // information — this source has duplicate catalog entries — but it is
-      // NOT a competitor price spread, and must never be labeled as one.
-      headline = { kind: 'warn', label: `Same-source duplicate (${group.distinctSourceCount} source, ${rows.length} listings)` };
-    }
-
-    // Average FULL (non-promotional) price across retailers — the owner's
-    // explicit spec: no sale pricing in the average. One value per DISTINCT
-    // real competitor (competitorKey, not the raw platform `source` — two
-    // different STIIIZY store locations must both count), only from rows
-    // where a tax-honest comparable figure exists (see comparableFullPrice).
-    const comparableBySource = new Map();
-    rows.forEach(function (r) {
-      const key = competitorKey(r);
-      if (comparableBySource.has(key)) { return; }
-      const v = comparableFullPrice(r);
-      if (v != null) { comparableBySource.set(key, v); }
-    });
-    const avgValues = [...comparableBySource.values()];
-    const avgFull = avgValues.length >= 2 ? avgValues.reduce(function (a, b) { return a + b; }, 0) / avgValues.length : null;
+    const headline = computeHeadline(group);
+    const avg = multiSource ? computeAvgFull(group) : null;
+    const extremes = multiSource ? computeExtremes(group) : null;
+    const collapsed = multiSource && group.distinctSourceCount > SOURCE_COLLAPSE_THRESHOLD;
 
     return (
       <Card density="default" style={{ padding: 0, overflow: 'hidden', marginBottom: 14 }}>
@@ -903,24 +980,73 @@
               {!multiSource && multi && ' — duplicate/near-duplicate listings from the same source, not a competitor match'}
             </div>
           </div>
-          {(headline || avgFull != null) &&
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flex: '0 0 auto' }}>
-              {avgFull != null &&
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.03em', color: P.inkMute, textTransform: 'uppercase' }}>Avg full price</div>
-                  <div style={{ fontSize: P.type.strong, fontWeight: 800, fontFamily: P.fontMono, color: P.ink }}>
-                    {money(avgFull)} <span style={{ fontSize: P.type.micro, fontWeight: 600, color: P.inkMute }}>pre-tax</span>
-                  </div>
-                  <div style={{ fontSize: P.type.micro, color: P.inkFaint }}>{avgValues.length} of {group.distinctSourceCount} sources · no promo pricing</div>
-                </div>}
-              {headline && <Pill kind={headline.kind} label={headline.label} />}
-            </div>}
+          {headline && <Pill kind={headline.kind} label={headline.label} />}
         </div>
-        {group.sortedRows.map(function (r, i) {
-          return <SubRow key={r.id} row={r} pinned={pinned} onTogglePin={onTogglePin}
-            isLast={i === group.sortedRows.length - 1} />;
-        })}
+
+        {multiSource &&
+          <div style={{ display: 'flex', background: P.surface2, borderTop: `1px solid ${P.hairline}` }}>
+            <PriceLadderCell label="Cheapest" value={extremes.cheapest.value} row={extremes.cheapest.row} />
+            {avg.value != null &&
+              <div style={{ display: 'flex', borderLeft: `1px solid ${P.hairline}` }}>
+                <PriceLadderCell label="Avg full price" value={avg.value} isAvg avgMeta={{ count: avg.count, total: group.distinctSourceCount }} />
+              </div>}
+            <div style={{ display: 'flex', borderLeft: `1px solid ${P.hairline}` }}>
+              <PriceLadderCell label="Most expensive" value={extremes.priciest.value} row={extremes.priciest.row} />
+            </div>
+          </div>}
+
+        {collapsed
+          ? <button data-hw-i onClick={function () { onExpand(group.key); }} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%',
+              minHeight: P.ctrlH.sm, background: P.surface2, borderTop: `1px solid ${P.hairline}`,
+              borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
+              color: P.info, fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+              Show all {group.distinctSourceCount} stores <Icon name="chevron-down" size={13} stroke={2.2} />
+            </button>
+          : group.sortedRows.map(function (r, i) {
+              return <SubRow key={r.id} row={r} pinned={pinned} onTogglePin={onTogglePin}
+                isLast={i === group.sortedRows.length - 1} />;
+            })}
       </Card>);
+  }
+
+  // Full per-store list for a collapsed group, reached via "Show all N
+  // stores" — an overlay rather than growing the card in place. This keeps a
+  // collapsed group's rendered height fixed regardless of what the user does
+  // (the virtualizer below assumes exactly that), and reuses the same
+  // scrim/card pattern already powering every other "see full detail" modal
+  // in this app (drawer.jsx, product-sheet.jsx, etc) rather than inventing a
+  // second one.
+  function ExpandedGroupModal({ group, pinned, onTogglePin, onClose }) {
+    const P = useP();
+    React.useEffect(function () {
+      function onKey(e) { if (e.key === 'Escape') { onClose(); } }
+      window.addEventListener('keydown', onKey);
+      return function () { window.removeEventListener('keydown', onKey); };
+    }, [onClose]);
+    return (
+      <div onClick={onClose} style={overlayScrim(P, { padding: '40px 20px', animate: true })}>
+        <div onClick={function (e) { e.stopPropagation(); }}
+          style={{ ...overlayCard, width: 'min(680px, 96vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+            background: P.surface, borderRadius: P.r20, boxShadow: P.shadowLg, border: `1px solid ${P.hairline2}`, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', borderBottom: `1px solid ${P.hairline}` }}>
+            <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: P.type.strong, fontWeight: 800, color: P.ink, padding: '2px 9px', borderRadius: P.r8, background: P.accentSoft, border: `1px solid ${P.accentBorder}` }}>{group.brandDisplay}</span>
+              <span style={{ fontSize: P.type.title, fontWeight: 700, color: P.ink }}>{group.nameDisplay}</span>
+              <Pill kind="neutral" size="sm" label={group.weight} />
+            </div>
+            <button data-hw-i onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: P.inkMute, padding: 4 }}>
+              <Icon name="x" size={18} stroke={2} />
+            </button>
+          </div>
+          <div style={{ overflowY: 'auto', overscrollBehavior: 'contain' }}>
+            {group.sortedRows.map(function (r, i) {
+              return <SubRow key={r.id} row={r} pinned={pinned} onTogglePin={onTogglePin}
+                isLast={i === group.sortedRows.length - 1} />;
+            })}
+          </div>
+        </div>
+      </div>);
   }
 
   // ── virtualized list ───────────────────────────────────────────────────
@@ -937,12 +1063,26 @@
   // estimate's minor drift; it only has to be close, not exact.
   const CARD_MARGIN = 14;
   const HEADER_BASE = 80;
-  const HEADER_EXTRA = 46; // avg-price / headline pill stacked on the right
+  const HEADER_HEADLINE_EXTRA = 24; // the spread/duplicate pill, when present
+  const STRIP_HEIGHT = 72; // the Cheapest/Avg/Most-expensive band
+  const EXPAND_BAR_HEIGHT = 40; // "Show all N stores" bar, collapsed groups only
   const ROW_BASE = 54;
   const ROW_SALE_EXTRA = 16;
   const ROW_PRETAX_EXTRA = 18;
+  // Collapsed groups (see SOURCE_COLLAPSE_THRESHOLD) render a FIXED height
+  // regardless of distinctSourceCount — that's the entire point: a 44-source
+  // group and a 9-source group cost the virtualizer the same, because the
+  // expand action opens a modal (ExpandedGroupModal) rather than growing the
+  // card in place. Only non-collapsed groups (solo, same-source-duplicate,
+  // or multi-source at/under the threshold) still sum real row heights.
   function estimateGroupHeight(g) {
-    let h = HEADER_BASE + CARD_MARGIN + (g.multiSource ? HEADER_EXTRA : 0);
+    let h = HEADER_BASE + CARD_MARGIN + (computeHeadline(g) ? HEADER_HEADLINE_EXTRA : 0);
+    if (g.multiSource) {
+      h += STRIP_HEIGHT;
+      if (g.distinctSourceCount > SOURCE_COLLAPSE_THRESHOLD) {
+        return h + EXPAND_BAR_HEIGHT;
+      }
+    }
     g.rows.forEach(function (r) {
       let rh = ROW_BASE;
       if (r.was_price != null && r.was_price > r.price) { rh += ROW_SALE_EXTRA; }
@@ -965,7 +1105,7 @@
     return document.scrollingElement || document.documentElement;
   }
 
-  function VirtualizedGroups({ groups, pinned, onTogglePin }) {
+  function VirtualizedGroups({ groups, pinned, onTogglePin, onExpand }) {
     const rootRef = React.useRef(null);
     const [scrollParent, setScrollParent] = React.useState(null);
     const [viewport, setViewport] = React.useState({ scrollTop: 0, height: 900, topOffset: 0 });
@@ -1017,7 +1157,7 @@
         {groups.slice(startIdx, endIdx).map(function (g, i) {
           const idx = startIdx + i;
           return <div key={g.key} style={{ position: 'absolute', top: offsets[idx], left: 0, right: 0 }}>
-            <GroupCard group={g} pinned={pinned} onTogglePin={onTogglePin} />
+            <GroupCard group={g} pinned={pinned} onTogglePin={onTogglePin} onExpand={onExpand} />
           </div>;
         })}
       </div>);
@@ -1036,6 +1176,11 @@
     const [strainFilter, setStrainFilter] = React.useState(function () { return new Set(); });
     const [priceFilter, setPriceFilter] = React.useState(function () { return { bands: new Set(), custom: null }; });
     const [pinned, setPinned] = React.useState(null);
+    // Looked up against `groups` (the full, unfiltered set), not `filtered` —
+    // deliberate: a user narrowing an unrelated filter while a modal is open
+    // must never make it vanish out from under them. Only clears when the
+    // group truly no longer exists (a background refetch changed the data).
+    const [expandedGroupKey, setExpandedGroupKey] = React.useState(null);
 
     React.useEffect(function () {
       let live = true;
@@ -1114,6 +1259,10 @@
       });
       return out;
     }, [allRows]);
+
+    const expandedGroup = expandedGroupKey
+      ? groups.filter(function (g) { return g.key === expandedGroupKey; })[0] || null
+      : null;
 
     const priceBounds = React.useMemo(function () {
       if (!allRows.length) { return { min: 0, max: 0 }; }
@@ -1268,7 +1417,11 @@
             body="Try clearing the source filter or the search box." />}
 
         {http && http.ok && filtered.length > 0 &&
-          <VirtualizedGroups groups={filtered} pinned={pinned} onTogglePin={setPinned} />}
+          <VirtualizedGroups groups={filtered} pinned={pinned} onTogglePin={setPinned} onExpand={setExpandedGroupKey} />}
+
+        {expandedGroup &&
+          <ExpandedGroupModal group={expandedGroup} pinned={pinned} onTogglePin={setPinned}
+            onClose={function () { setExpandedGroupKey(null); }} />}
       </div>);
   };
 })();
