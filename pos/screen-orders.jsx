@@ -471,7 +471,17 @@ function CheckInCard({ c, onStartSale }) {
             </div>
             <p style={{ margin: '0 0 13px', fontSize: 11.5, color: P.inkDim, lineHeight: 1.45 }}>Add guests to this check-in. Guests are tracked as referrals; the sale stays on {c.name.split(' ')[0]}.</p>
             <GuestEditor primaryName={c.name} guests={guests} onChange={setGuests} />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}><PBtn variant="accent" size="md" icon="check" onClick={() => setOpen(false)}>Done</PBtn></div>
+            {/* SOFT, NOT ACCENT — "one accent per view" (CLAUDE.md design rule
+                1; see checkin.jsx ~1059, ~427 for the same call on this exact
+                rule). This shipped accent alongside GuestEditor's own scan
+                panel (IdScanPanel's "Scan ID" button, and the onboarding
+                card's "Add to party") — both are also accent, so the modal
+                showed two or three solid-gold buttons live at once. Done only
+                closes the modal (the header's X already does that); it never
+                submits anything, so it should not compete with the one
+                action that does. Matches the "Done" button's own precedent
+                elsewhere in this file (PackScanner, ~line 4132). */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}><PBtn variant="soft" size="md" icon="check" onClick={() => setOpen(false)}>Done</PBtn></div>
           </div>
         </div>
       }

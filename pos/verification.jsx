@@ -991,10 +991,16 @@ window.IdScanPanel = function IdScanPanel({ value, onChange, onLog }) {
         clicking this "Scan ID" button first — the button is a manual
         fallback, not the only path in. Not implemented yet: there is no real
         reader to test a global listener against, so building one now would
-        be unverifiable, untested plumbing. */}
-    <div style={{ marginTop: 8, fontSize: 10.5, color: P.warn, lineHeight: 1.4 }}>
-      DEV: the real scanner must work from anywhere on screen, not only via this button — see the comment above this line.
-    </div>
+        be unverifiable, untested plumbing.
+
+        THIS NOTE USED TO ALSO RENDER, as a permanent amber line under the
+        button, on every screen that mounts this panel — including
+        GuestEditor's now-default, scan-first view (checkin.jsx), so a floor
+        associate saw an engineering TODO on essentially every add-guest
+        modal. It was never gated behind a dev flag. A note for "whoever
+        wires the real reader" belongs in the comment, which they will read
+        when they do that work, not in front of every operator between now
+        and then. */}
   </div>;
 };
 
