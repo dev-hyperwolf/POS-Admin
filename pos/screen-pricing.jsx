@@ -1212,15 +1212,54 @@
       // is in, rather than re-raising the single-request cap (which would
       // just move this bug to the next time the dataset grows again).
       //
-      // Pages 2..N fire in PARALLEL, not sequentially — real perf audit
-      // (scratch/performance-audit-2026-09-07.md in hw-pricing-scraper)
-      // measured this as the single highest-value fix at this screen's real
-      // scale: sequential paging cost ~2-2.6s of dead time before anything
-      // rendered at 9,783 rows (5 pages), extrapolating to ~9.5-13s at 5x.
-      // Page 1 has to go first (it's the only page that reveals `total`),
-      // everything after that has a known, fixed offset and no reason to
-      // wait in line.
+      // Pages 2..N fire with BOUNDED concurrency, not sequentially and not
+      // all-at-once. Real perf audit (scratch/performance-audit-2026-09-07.md
+      // in hw-pricing-scraper) measured full-sequential as costing ~2-2.6s of
+      // dead time at 9,783 rows (5 pages) — but firing every page in one
+      // Promise.all stopped being safe once the dataset grew past that: real
+      // load test against the live server the next morning (53,842 rows, 27
+      // pages) found firing all 27 at once produced 502s on ~40% of them —
+      // Render's proxy/instance in front of this stdlib ThreadingHTTPServer
+      // can't take 27 concurrent connections. 6-8 concurrent measured zero
+      // failures across repeated real runs; 10+ started failing. A per-page
+      // retry (once) absorbs an occasional transient blip on top of that
+      // margin, so a single flaky page doesn't fail the whole load the way it
+      // did before this fix (a screen full of real data with one retried page
+      // beats "answered nothing at all").
       const PAGE = 2000;
+      const MAX_CONCURRENT_PAGES = 6;
+
+      function fetchPageWithRetry(offset) {
+        return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: offset })).then(function (r) {
+          const good = r.ok && r.parsed && r.body && Array.isArray(r.body.listings);
+          if (good) { return r; }
+          // one retry — a 502 under load is often gone a moment later
+          return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: offset }));
+        });
+      }
+
+      // Runs `tasks` (offset -> Promise) with at most `limit` in flight at
+      // once, preserving input order in the resolved array.
+      function runBounded(items, limit, task) {
+        return new Promise(function (resolve) {
+          const results = new Array(items.length);
+          let next = 0, inFlight = 0, done = 0;
+          function pump() {
+            if (done === items.length) { resolve(results); return; }
+            while (inFlight < limit && next < items.length) {
+              const i = next++;
+              inFlight++;
+              task(items[i]).then(function (r) {
+                results[i] = r;
+                inFlight--; done++;
+                pump();
+              });
+            }
+          }
+          pump();
+        });
+      }
+
       function loadAll() {
         return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: 0 })).then(function (first) {
           if (!live) { return; }
@@ -1233,7 +1272,7 @@
             setHttp({ url: first.url, code: first.code, ok: true, body: { total: total, count: firstRows.length, limit: PAGE, offset: 0, listings: firstRows }, parsed: true, raw: first.raw });
             return;
           }
-          Promise.all(remainingOffsets.map(function (off) { return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: off })); })).then(function (rest) {
+          runBounded(remainingOffsets, MAX_CONCURRENT_PAGES, fetchPageWithRetry).then(function (rest) {
             if (!live) { return; }
             const bad = rest.filter(function (r) { return !r.ok || !r.parsed || !r.body || !Array.isArray(r.body.listings); })[0];
             if (bad) { setHttp(bad); return; }
