@@ -158,14 +158,28 @@
     return b || null; // null brand never merges — see header comment
   }
 
-  // Matches "1g", "3.5g", "100mg", "[1G]", "7g", etc. Requires a leading
-  // digit, so ".5g" (present in real data) intentionally does NOT match —
-  // that row falls back to a solo group rather than guessing a weight.
-  const WEIGHT_RE = /(\d+(?:\.\d+)?)\s?(mg|g|ml|oz)\b/i;
+  // Matches "1g", "3.5g", "100mg", "[1G]", "7g", "1pc", "10pk", etc. Requires
+  // a leading digit, so ".5g" (present in real data) intentionally does NOT
+  // match — that row falls back to a solo group rather than guessing a
+  // weight. Piece-count units (pc/pack/ct/...) were missing entirely until a
+  // real bug report: every battery/accessory/multi-pack item measured in
+  // units rather than mass never matched across sources, even identical
+  // products from the same brand at different stores (verified live: STIIIZY
+  // - 510 Battery Koda Pro Green - 1PC showed as 3 separate solo groups, one
+  // per store, purely because "1PC" matched nothing). Unit counts pulled from
+  // the real dataset before adding these, not guessed: pk(232) pack(61)
+  // pc(8) ct(7) count(2) piece(2).
+  const WEIGHT_RE = /(\d+(?:\.\d+)?)\s?(mg|g|ml|oz|pcs|pc|pieces|piece|each|ea|pack|pk|count|ct)\b/i;
+  // True unit synonyms only (same physical quantity, different spelling) —
+  // folded so "1pc" and "1 each" match as the same weight key. Never merges
+  // across DIFFERENT units (a "pk" pack is not a "pc" single).
+  const UNIT_SYNONYMS = { pcs: 'pc', pieces: 'pc', piece: 'pc', each: 'pc', ea: 'pc', pack: 'pk', count: 'pk', ct: 'pk' };
   function extractWeight(productName) {
     const m = WEIGHT_RE.exec(String(productName || ''));
     if (!m) { return null; }
-    return { raw: m[0], norm: (m[1] + m[2]).toLowerCase() };
+    const rawUnit = m[2].toLowerCase();
+    const unit = UNIT_SYNONYMS[rawUnit] || rawUnit;
+    return { raw: m[0], norm: (m[1] + unit).toLowerCase() };
   }
 
   function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -232,6 +246,18 @@
     weedstoreanddeliveryie: 'Weed Store & Delivery'
   };
   function sourceLabel(s) { return SOURCE_LABEL[s] || titleCase(String(s || '').replace(/_/g, ' ')); }
+
+  // The real, distinct COMPETITOR a row came from — NOT the scraping
+  // platform. A few platforms (dutchie_embed, weedmaps, leafly,
+  // stiiizy_dispensary_shop) are shared by multiple real, unrelated stores
+  // in different cities; `row.source` alone collapses all of them into one
+  // bucket. Real bug found live: STIIIZY - Wildomar and STIIIZY - Pomona
+  // both carry `source: "stiiizy_dispensary_shop"`, so a shared product
+  // between them showed as a "same-source duplicate" instead of two real
+  // competitor prices. store_name (added project-wide recently) is the
+  // real per-store identity; fall back to source only for the handful of
+  // older rows that predate that field.
+  function competitorKey(row) { return row.store_name || row.source; }
 
   // Deterministic small palette for the source dot, cycling by source name —
   // not meant to encode meaning, only to let a scanning eye tell sources
@@ -334,6 +360,32 @@
     return null;
   }
 
+  // ── "average across retailers" — regular price only, no promo pricing ────
+  // The owner's explicit spec: average the NORMAL full price, never a
+  // discounted one. fullPrice() undoes an active sale by reading was_price
+  // (the pre-discount price every adapter already captures); it is NOT the
+  // number shown big-and-bold on the row when on sale, which stays the real
+  // current price — this is a separate, average-only figure.
+  function fullPrice(row) { return (row.was_price != null && row.was_price > row.price) ? row.was_price : row.price; }
+
+  // The full price, tax-normalized the same honest way effectivePreTax() is:
+  // 'exclusive' basis means the displayed (full) price already IS pre-tax,
+  // no computation needed. 'inclusive' with a researched pre_tax_price for
+  // the CURRENT price lets us derive the same store's effective tax
+  // multiplier (pre_tax_price / price) and apply it to the full price too —
+  // proportional math, not a guess, since a store's tax rate doesn't change
+  // between its sale price and its regular price. Every other case (basis
+  // unknown, or inclusive with no researched rate) returns null and is
+  // excluded from the average rather than mixing tax-in and tax-out numbers.
+  function comparableFullPrice(row) {
+    const full = fullPrice(row);
+    if (row.price_tax_basis === 'exclusive') { return full; }
+    if (row.price_tax_basis === 'inclusive' && row.pre_tax_price != null && row.price > 0) {
+      return full * (row.pre_tax_price / row.price);
+    }
+    return null;
+  }
+
   const PRICE_BANDS = [
     { key: 'u15', label: 'Under $15', lo: 0, hi: 15 },
     { key: '15-30', label: '$15–30', lo: 15, hi: 30 },
@@ -433,7 +485,15 @@
     const [pos, setPos] = React.useState({ left: 0, top: 0 });
     const openMenu = function () {
       const r = ref.current.getBoundingClientRect();
-      setPos({ left: Math.min(r.left, window.innerWidth - width - 16), top: r.bottom + 6 });
+      // clientWidth (not window.innerWidth) excludes the scrollbar, so the
+      // clamp math matches the actual usable viewport. Real bug found live:
+      // a trigger far enough right (Brand/Region/Price, after the category
+      // tab strip) put the panel's right edge past the window, invisible/
+      // unreachable with no scroll affordance — clamp BOTH edges, never just
+      // the right one, so a narrow window can't push it negative either.
+      const vw = document.documentElement.clientWidth || window.innerWidth;
+      const left = Math.max(12, Math.min(r.left, vw - width - 12));
+      setPos({ left: left, top: r.bottom + 6 });
       setOpen(true);
     };
     React.useEffect(function () {
@@ -804,6 +864,21 @@
       headline = { kind: 'warn', label: `Same-source duplicate (${group.distinctSourceCount} source, ${rows.length} listings)` };
     }
 
+    // Average FULL (non-promotional) price across retailers — the owner's
+    // explicit spec: no sale pricing in the average. One value per DISTINCT
+    // real competitor (competitorKey, not the raw platform `source` — two
+    // different STIIIZY store locations must both count), only from rows
+    // where a tax-honest comparable figure exists (see comparableFullPrice).
+    const comparableBySource = new Map();
+    rows.forEach(function (r) {
+      const key = competitorKey(r);
+      if (comparableBySource.has(key)) { return; }
+      const v = comparableFullPrice(r);
+      if (v != null) { comparableBySource.set(key, v); }
+    });
+    const avgValues = [...comparableBySource.values()];
+    const avgFull = avgValues.length >= 2 ? avgValues.reduce(function (a, b) { return a + b; }, 0) / avgValues.length : null;
+
     return (
       <Card density="default" style={{ padding: 0, overflow: 'hidden', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '14px 16px', background: P.surface }}>
@@ -828,9 +903,17 @@
               {!multiSource && multi && ' — duplicate/near-duplicate listings from the same source, not a competitor match'}
             </div>
           </div>
-          {headline &&
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flex: '0 0 auto' }}>
-              <Pill kind={headline.kind} label={headline.label} />
+          {(headline || avgFull != null) &&
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flex: '0 0 auto' }}>
+              {avgFull != null &&
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.03em', color: P.inkMute, textTransform: 'uppercase' }}>Avg full price</div>
+                  <div style={{ fontSize: P.type.strong, fontWeight: 800, fontFamily: P.fontMono, color: P.ink }}>
+                    {money(avgFull)} <span style={{ fontSize: P.type.micro, fontWeight: 600, color: P.inkMute }}>pre-tax</span>
+                  </div>
+                  <div style={{ fontSize: P.type.micro, color: P.inkFaint }}>{avgValues.length} of {group.distinctSourceCount} sources · no promo pricing</div>
+                </div>}
+              {headline && <Pill kind={headline.kind} label={headline.label} />}
             </div>}
         </div>
         {group.sortedRows.map(function (r, i) {
@@ -916,7 +999,7 @@
         // "Original" is in STOPWORDS. distinctSourceCount / multiSource is
         // the only thing allowed to mean "spread across sources" anywhere in
         // this file — rows.length alone must never be read that way again.
-        const sourceSet = new Set(rows.map(function (r) { return r.source; }));
+        const sourceSet = new Set(rows.map(competitorKey));
         out.push({
           key: key,
           rows: rows,
