@@ -117,7 +117,7 @@
   // screen, base() must NOT fall back to window.HW_LIVE.base or
   // window.location.origin — those point at the POS-Admin app itself, not
   // this scraper's SQLite-backed API.
-  const PRICING_BASE = 'http://localhost:8799';
+  const PRICING_BASE = 'https://hw-pricing-scraper.onrender.com';
   const ROUTE_LISTINGS = '/api/pricing/listings';
   const ROUTE_FACETS = '/api/pricing/facets';
 

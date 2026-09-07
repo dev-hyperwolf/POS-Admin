@@ -103,36 +103,6 @@ window.ProductSheet = function ProductSheet({ p, inCart, onAdd, onClose }) {
             </div>
           </Sec>
 
-          {/* Potency + terps */}
-          <Sec icon="lightning" title="Potency & terpenes">
-            <div style={{ display: 'flex', gap: 9, marginBottom: 11 }}>
-              {[['THC', p.thc != null ? p.thc + '%' : 'not recorded', p.thc != null ? P.ink : P.inkFaint],
-                ['CBD', cbd != null ? cbd + '%' : 'not recorded', cbd != null ? P.ink2 : P.inkFaint]].map(([k, v, c]) =>
-                <div key={k} style={{ flex: 1, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{k}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: c, fontFamily: P.fontMono, marginTop: 1 }}>{v}</div>
-                </div>)}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11.5, color: P.inkMute, lineHeight: 1.5 }}>
-              <Icon name="info" size={13} stroke={1.9} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
-              <span>No terpene profile is recorded for this product. The three terpenes that used to sit here — one of them ranked top of the profile — were chosen from a fixed list by the character sum of the SKU, so they described the spelling of the SKU and not the product.</span>
-            </div>
-          </Sec>
-
-          {/* Selling points */}
-          <div style={{ gridColumn: '1/-1' }}>
-            <Sec icon="star" title="Talking points" right={<span style={{ fontSize: 11.5, color: P.inkMute }}>for the counter</span>}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 9 }}>
-                {[['Pairs well with', 'A ' + (p.cat === 'Flower' ? 'pre-roll cone or grinder' : p.cat === 'Vapes' ? '510 battery' : 'lower-dose companion'), 'link'],
-                  ['Good for', effects[0].toLowerCase() + ' evenings · ' + (p.strain === 'Sativa' ? 'daytime use' : 'winding down'), 'user-check'],
-                  [p.was ? 'On sale' : 'Value', p.was ? money(p.was - p.price) + ' off — ends Sunday' : perGram ? money(perGram) + ' per gram' : 'Everyday price', 'tag']].map(([k, v, ic]) =>
-                  <div key={k} style={{ display: 'flex', gap: 9, padding: '10px 11px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10 }}>
-                    <Icon name={ic} size={14} color={P.inkMute} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                    <div><div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.inkMute }}>{k}</div><div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.45, marginTop: 1 }}>{v}</div></div>
-                  </div>)}
-              </div>
-            </Sec>
-          </div>
           {/* Availability — the thing that decides whether they can sell it */}
           <div style={{ gridColumn: '1/-1' }}>
             <Sec icon="package" title="On the shelf" right={<span style={{ fontSize: 11.5, fontWeight: 700, color: lowStock ? P.warn : P.good, fontFamily: P.fontMono }}>{p.qty} in stock</span>}>
