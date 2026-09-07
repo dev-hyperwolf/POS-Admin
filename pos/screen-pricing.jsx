@@ -309,7 +309,15 @@
           {known
             ? <div style={{ fontSize: P.type.numRow, fontWeight: 800, fontFamily: P.fontMono, color: P.ink }}>{money(row.pre_tax_price)}<span style={{ fontSize: P.type.micro, fontWeight: 600, color: P.inkMute }}> pre-tax</span></div>
             : <div style={{ fontSize: P.type.body, fontWeight: 600, color: P.inkMute, fontStyle: 'italic' }}>pre-tax unverified</div>}
-          <div style={{ fontSize: P.type.micro, color: P.inkFaint, fontFamily: P.fontMono }}>({money(row.price)} · raw)</div>
+          <div style={{ fontSize: P.type.micro, color: P.inkFaint, fontFamily: P.fontMono, display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 5 }}>
+            <span>({money(row.price)} · raw)</span>
+            {row.was_price != null && row.was_price > row.price &&
+              <span style={{ textDecoration: 'line-through' }}>{money(row.was_price)}</span>}
+          </div>
+          {row.was_price != null && row.was_price > row.price &&
+            <div style={{ marginTop: 2 }}>
+              <Pill kind="bad" size="sm" label={`SAVE ${money(row.was_price - row.price)} (${Math.round((1 - row.price / row.was_price) * 100)}% off)`} />
+            </div>}
         </div>
         <div style={{ flex: '0 0 auto' }}>
           <TaxChip row={row} pinned={pinned} onTogglePin={onTogglePin} />
@@ -391,10 +399,26 @@
     React.useEffect(function () {
       let live = true;
       setHttp(null);
-      // limit 2000 is the server's documented cap (server/README.md) and
-      // comfortably covers the live 1,254-row dataset in one call — no
-      // pagination UI needed for a dataset this size.
-      getJSON(ROUTE_LISTINGS + '?' + qs({ limit: 2000, offset: 0 })).then(function (r) { if (live) { setHttp(r); } });
+      // The server caps `limit` at 2000 per request (server/app.py) — the
+      // dataset has grown past that (3,071+ rows and counting as more
+      // sources/cities are added), so a single fetch silently truncates it.
+      // Page through with `total` from the first response until every row
+      // is in, rather than re-raising the single-request cap (which would
+      // just move this bug to the next time the dataset grows again).
+      const PAGE = 2000;
+      function loadAll(offset, acc, firstMeta) {
+        return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: offset })).then(function (r) {
+          if (!live) { return; }
+          if (!r.ok || !r.parsed || !r.body || !Array.isArray(r.body.listings)) { setHttp(r); return; }
+          const meta = firstMeta || r.body;
+          const rows = acc.concat(r.body.listings);
+          if (rows.length < meta.total && r.body.listings.length > 0) {
+            return loadAll(offset + PAGE, rows, meta);
+          }
+          setHttp({ url: r.url, code: r.code, ok: true, body: { total: meta.total, count: rows.length, limit: PAGE, offset: 0, listings: rows }, parsed: true, raw: r.raw });
+        });
+      }
+      loadAll(0, [], null);
       return function () { live = false; };
     }, [tick]);
 
