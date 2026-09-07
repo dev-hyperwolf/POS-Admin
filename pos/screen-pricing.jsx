@@ -122,7 +122,7 @@
   // and the rationale comments that used to live inline here. Destructured
   // once, below, along with the other shared matching/tax functions.
   const ROUTE_FACETS = '/api/pricing/facets';
-  const { PRICING_BASE, ROUTE_LISTINGS, getJSON, qs, normalizeBrand, extractWeight,
+  const { PRICING_BASE, ROUTE_LISTINGS, getJSON, qs, normalizeBrand, normalizeBrandSpaced, extractWeight,
     coreWords, normalizeNameCore, groupKey, competitorKey, knownBasis, money,
     effectivePreTax, fullPrice, comparableFullPrice, computeAvgFull, computeExtremes,
     fetchAllListings } = window.HW_PRICING;
@@ -455,9 +455,13 @@
       style={{ borderBottom: 'none' }} />;
   }
 
-  // ── Brand filter — multi-select popover with live counts. Reuses this
-  // file's own normalizeBrand/titleCase rather than a second normalizer, so
-  // the 22 pure-casing duplicates ("710 Labs" / "710 LABS") collapse for free.
+  // ── Brand filter — multi-select popover with live counts. Reuses the
+  // shared normalizeBrand/titleCase rather than a second normalizer, so the
+  // pure-casing AND pure-spacing duplicates ("710 Labs" / "710 LABS" /
+  // "AlienLabs" / "Alien Labs") collapse for free. normalizeBrand() is a
+  // matching KEY (whitespace stripped — "alienlabs"), which titleCase()
+  // would render as "Alienlabs"; normalizeBrandSpaced() is used only for the
+  // human-readable label so multi-word brands still show with spaces.
   // Generic searchable multi-select popover — Brand and Region are the same
   // shape (a name, a count, an optional "not listed" bucket pinned last), so
   // this is one implementation instead of two near-identical copies.
@@ -508,8 +512,17 @@
         g.rows.forEach(function (r) {
           const key = normalizeBrand(r.brand);
           const k = key || '__unbranded__';
-          const display = key ? titleCase(key) : 'Brand not listed';
-          if (!m.has(k)) { m.set(k, { key: k, display: display, count: 0, muted: !key }); }
+          if (!m.has(k)) {
+            const display = key ? titleCase(normalizeBrandSpaced(r.brand)) : 'Brand not listed';
+            m.set(k, { key: k, display: display, count: 0, muted: !key });
+          } else if (key) {
+            // Prefer a spaced label over a smushed one the first row for
+            // this key happened to use ("AlienLabs" before "Alien Labs" is
+            // seen) — purely cosmetic, doesn't affect grouping or counts.
+            const spaced = normalizeBrandSpaced(r.brand);
+            const cur = m.get(k);
+            if (spaced && spaced.indexOf(' ') >= 0 && cur.display.indexOf(' ') < 0) { cur.display = titleCase(spaced); }
+          }
           m.get(k).count++;
         });
       });

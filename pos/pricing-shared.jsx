@@ -51,9 +51,36 @@
 
   const STOPWORDS = { original: 1, the: 1, a: 1, an: 1 }; // purely decorative; see screen-pricing.jsx header
 
+  // Strips ALL whitespace (not just collapsing runs of it) so that the same
+  // real brand scraped by different source adapters as "Alien Labs",
+  // "ALIEN LABS", and "AlienLabs" (no space at all — confirmed live: 56,938-
+  // row dataset, 2026-09) produces one identical key. Casing already merged
+  // these; whether a space exists at all did not, so genuinely-identical
+  // brands were silently split into non-matching groups.
+  //
+  // Collision safety: audited against every one of the ~780 distinct live
+  // brand strings — every pair that collides once whitespace is removed is a
+  // same-brand casing/spacing variant (e.g. "Plug Play"/"PLUGPLAY",
+  // "Sun Smoke"/"SunSmoke"). No two distinct real brands were found to share
+  // a stripped form, so this is safe to apply unconditionally today. If a
+  // future brand is added that WOULD collide with another under this scheme,
+  // it must be caught by re-running that audit — not assumed away.
   function normalizeBrand(brand) {
-    const b = String(brand || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    const b = String(brand || '').toLowerCase().trim().replace(/\s+/g, '');
     return b || null; // null brand never merges — see header comment
+  }
+
+  // Human-readable form of the same brand — spacing COLLAPSED (multiple
+  // spaces -> one) rather than stripped, so "Alien   Labs" reads correctly.
+  // This is what normalizeBrand() itself returned before the whitespace-
+  // insensitive matching-key fix above; kept as its own function because two
+  // real callers need spaced text, not a matching key: screen-pricing.jsx's
+  // Brand filter dropdown label (titleCase() of a space-stripped key turns
+  // "Alien Labs" into "Alienlabs") and anywhere else a brand needs to be
+  // shown to a person rather than compared to another brand.
+  function normalizeBrandSpaced(brand) {
+    const b = String(brand || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    return b || null;
   }
 
   // Matches "1g", "3.5g", "100mg", "[1G]", "7g", "1pc", "10pk", etc. Requires
@@ -79,9 +106,32 @@
   // word order.
   function coreWords(productName, brand, weight) {
     let s = String(productName || '').toLowerCase();
-    if (brand) { s = s.replace(new RegExp('\\b' + escapeRe(brand.toLowerCase()) + '\\b', 'g'), ' '); }
+    if (brand) {
+      // `brand` is normalizeBrand()'s output, which now has ALL internal
+      // whitespace stripped (it's a matching key, not display text) — but
+      // productName has NOT had its whitespace stripped, so a literal
+      // substring match of the whitespace-free brand would never fire here,
+      // silently leaving the brand's own words stuck in the product name
+      // instead of being removed. Insert an optional-whitespace gap between
+      // every character of the brand key so it matches the brand however
+      // THIS row happens to space it ("Alien Labs", "AlienLabs", ...).
+      const flexBrand = brand.toLowerCase().split('').map(escapeRe).join('\\s*');
+      s = s.replace(new RegExp('\\b' + flexBrand + '\\b', 'g'), ' ');
+    }
     if (weight) { s = s.replace(new RegExp(escapeRe(weight.raw.toLowerCase()), 'g'), ' '); }
     s = s.replace(/[-–—,:;/|()\[\]*'".]+/g, ' ').replace(/\s+/g, ' ').trim();
+    // "preroll"/"pre roll"/"pre-roll" (already space-collapsed to "pre roll"
+    // by the punctuation strip above) are the exact same product type across
+    // adapters — confirmed live: STIIIZY, Cizi, Seed Junky, Dusties, Presha,
+    // Puff, Brite Labs, and Quiet Kings each list the identical product with
+    // one source writing "Preroll" and another "Pre-Roll"/"Pre Roll", which
+    // otherwise silently fails to merge under the sorted-word matching key.
+    // Scoped to this one well-known compound term rather than stripping all
+    // internal spacing from product names generally — the latter risks
+    // merging genuinely different strain names that happen to share letters
+    // (see e.g. the live "GM-UhOh" / "GMUH-OH" strain, a real but much lower-
+    // volume, higher-risk case left alone deliberately).
+    s = s.replace(/\bpre\s*rolls\b/g, 'prerolls').replace(/\bpre\s*roll\b/g, 'preroll');
     const words = s.split(' ').filter(function (w) { return w && !STOPWORDS[w]; });
     return words;
   }
@@ -278,7 +328,7 @@
 
   window.HW_PRICING = {
     PRICING_BASE, ROUTE_LISTINGS, getJSON, qs,
-    normalizeBrand, extractWeight, coreWords, normalizeNameCore, groupKey, competitorKey,
+    normalizeBrand, normalizeBrandSpaced, extractWeight, coreWords, normalizeNameCore, groupKey, competitorKey,
     knownBasis, money, effectivePreTax, fullPrice, comparableFullPrice,
     computeAvgFull, computeExtremes, fetchAllListings
   };
