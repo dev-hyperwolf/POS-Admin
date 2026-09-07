@@ -86,10 +86,10 @@
 // ── "YOUR PRICE" ─────────────────────────────────────────────────────────
 //
 // POS-Admin's own catalog has no real match against these listings yet — no
-// product-mapping pipeline exists. Every "our price" surface on this screen
-// reads "Not yet mapped." Never computed, never estimated, never left blank
-// (blank reads as "loading" or "n/a," which both imply a real value is
-// coming). This also means the redesign doc's group-header pill — described
+// product-mapping pipeline exists. There is genuinely no "our price" to show
+// (owner's explicit call: don't show a "Not yet mapped" label for it either —
+// it's always true today and adds nothing but noise). This also means the
+// redesign doc's group-header pill — described
 // there as "our price vs. best competitor price" — cannot be built as
 // written, because "our price" does not exist. The pill here instead reports
 // the SPREAD across the sources actually present in the group, which is the
@@ -102,9 +102,12 @@
 // basis). The raw `price` column is always populated, which is exactly why
 // the redesign doc calls out the regression risk by name: "someone reaches
 // for `price` because it's always populated." Rows with a null pre_tax_price
-// or price_tax_basis === 'unknown' still render (never hidden), but sort to
-// the bottom of their group, unranked, and never receive a good/bad pill.
-// STIIIZY's own $23.00 listing is the proof case: raw price $23.00, but
+// or price_tax_basis === 'unknown' still render (never hidden), and sort to
+// the bottom of their group — but the owner's explicit call is to never show
+// the word "unverified" anywhere in this UI, so that sort order is the only
+// signal; there is no visible badge for the unresolved case. STIIIZY's own
+// $23.00 listing is the proof case for why the two prices matter: raw price
+// $23.00, but
 // pre_tax_price is $17.19 (inclusive tax basis, arithmetic-verified) — the
 // two are not interchangeable and the UI must never suggest they are.
 //
@@ -248,75 +251,527 @@
     return '$' + Number(n).toFixed(2);
   }
 
-  function taxChipTone(basis) {
-    if (basis === 'inclusive') { return { label: '✓ Tax incl.', kind: 'good' }; }
-    if (basis === 'exclusive') { return { label: '+ Tax at cart', kind: 'warn' }; }
-    return { label: '? Unverified', kind: 'neutral' };
+  // ── category filter — 46 raw strings, 13 sources, zero shared taxonomy ────
+  // Verified live 2026-09-06 via GET /api/pricing/facets (see scratch/
+  // pricing-filters-data-audit.md and scratch/pricing-filters-elite-design.md
+  // for the full raw-value table this was built from). Folds case/plural/
+  // synonym variants into one canonical bucket per real product type.
+  const CATEGORY_FOLD = {
+    flower: 'flower', flowers: 'flower',
+    vape: 'vape', vapes: 'vape', vaporizers: 'vape', pods: 'vape', 'vapes pods': 'vape',
+    cartridge: 'vape', cartridges: 'vape', '510 cartridges': 'vape', disposables: 'vape', battery: 'vape',
+    'pre-roll': 'preroll', 'pre-rolls': 'preroll', preroll: 'preroll', prerolls: 'preroll',
+    'pre-roll infused': 'preroll', 'infused prerolls': 'preroll', 'pre-roll flower': 'preroll',
+    edible: 'edibles', edibles: 'edibles', capsules: 'edibles',
+    concentrate: 'concentrate', concentrates: 'concentrate', extract: 'concentrate', extracts: 'concentrate',
+    diamonds: 'concentrate', batter: 'concentrate', crumble: 'concentrate', hash: 'concentrate',
+    tinctures: 'tincture',
+    topical: 'topical', topicals: 'topical',
+    accessories: 'other', gear: 'other'
+  };
+  // Category values that are NOT product types at all — a strain name leaked
+  // into the category field at the source (weedmaps_adapter.py scrapes a real
+  // `edge_category` field for the actual product type, but it's dropped
+  // before reaching this API — see the audit doc). Deliberately NOT folded
+  // into any real category: that would fabricate a product type the source
+  // never actually gave us through this API.
+  const CATEGORY_MISFILED = { indica: 1, sativa: 1, hybrid: 1 };
+  // P is only reachable via useP() inside a component — same convention this
+  // file already uses for sourceDot(P, source) — so this is a function of P,
+  // not a module-level constant.
+  function categoryMeta(P) {
+    return {
+      flower: { label: 'Flower', color: P.cat.flower },
+      vape: { label: 'Vapes', color: P.cat.vape },
+      preroll: { label: 'Pre-Rolls', color: P.cat.preroll },
+      edibles: { label: 'Edibles', color: P.cat.edibles },
+      concentrate: { label: 'Concentrates', color: P.cat.concentrate },
+      tincture: { label: 'Tinctures', color: P.cat.tincture },
+      topical: { label: 'Topicals', color: P.cat.wellness },
+      other: { label: 'Accessories', color: P.cat.other }
+    };
+  }
+  function categoryBucket(rawCategory) {
+    const key = String(rawCategory || '').toLowerCase().trim();
+    if (!key) { return 'uncategorized'; }
+    if (CATEGORY_MISFILED[key]) { return 'misfiled'; }
+    return CATEGORY_FOLD[key] || 'uncategorized';
   }
 
-  // ── tax-basis chip: click-to-pin, never hover-only ────────────────────────
+  // ── strain filter — no structured field exists; literal text scan only ────
+  // A typo like "INDISA" (present in real data) intentionally does NOT match —
+  // fuzzy-correcting it would fabricate a classification the source never
+  // gave us. This screen's standing rule (see file header) is to under-
+  // classify honestly rather than guess.
+  const STRAIN_RE = /\b(indica|sativa|hybrid)\b/gi;
+  function strainBuckets(productName) {
+    const hits = new Set();
+    let m;
+    while ((m = STRAIN_RE.exec(String(productName || ''))) !== null) { hits.add(m[1].toLowerCase()); }
+    if (hits.size >= 2) { return ['mixed']; }
+    if (hits.size === 1) { return [[...hits][0]]; }
+    return ['unstated'];
+  }
+
+  // ── price filter ───────────────────────────────────────────────────────
+  // Same preference order the screen already uses to decide what number to
+  // show large-and-bold in SubRow: pre-tax when verified, raw otherwise.
+  // Filtering on pre_tax_price alone would make the filter silently
+  // inoperable on the ~76% of rows without a verified figure.
+  function priceCompareValue(row) { return knownBasis(row) ? row.pre_tax_price : row.price; }
+
+  // The pre-tax figure worth SHOWING on a row, without fabricating anything:
+  // when basis is 'exclusive', the displayed price is BY DEFINITION already
+  // pre-tax (that's what "exclusive" means — tax is added afterward at
+  // checkout, on top of this number) — no computation needed, it's the same
+  // number. When basis is 'inclusive' and a city tax rate has been
+  // researched, pre_tax_price is the real, separately-computed figure. In
+  // every other case (basis unknown, or inclusive with no researched rate
+  // yet) there is genuinely nothing to show — returns null, never a guess.
+  function effectivePreTax(row) {
+    if (row.price_tax_basis === 'exclusive') { return row.price; }
+    if (row.price_tax_basis === 'inclusive' && row.pre_tax_price != null) { return row.pre_tax_price; }
+    return null;
+  }
+
+  const PRICE_BANDS = [
+    { key: 'u15', label: 'Under $15', lo: 0, hi: 15 },
+    { key: '15-30', label: '$15–30', lo: 15, hi: 30 },
+    { key: '30-50', label: '$30–50', lo: 30, hi: 50 },
+    { key: '50-100', label: '$50–100', lo: 50, hi: 100 },
+    { key: '100+', label: '$100+', lo: 100, hi: Infinity }
+  ];
+
+  // Raw price is heavily right-skewed (verified live: p95 ~$100, max $370) —
+  // a linear slider spends most of its drag length on the top 5% of listings.
+  // sqrt spreads out the crowded low end and compresses the long tail; must
+  // stay exact inverses of each other.
+  function sqrtToPos(price, lo, hi) { return Math.sqrt((price - lo) / (hi - lo || 1)); }
+  function sqrtToValue(pos, lo, hi) { return lo + pos * pos * (hi - lo); }
+
+  const TAX_BASIS_PLAIN = {
+    inclusive: {
+      headline: 'Tax is already included in this price.',
+      body: 'We found this store’s own site saying tax is baked into the sticker price — what you see is what the customer pays.'
+    },
+    exclusive: {
+      headline: 'Tax gets added at checkout, on top of this price.',
+      body: 'This store’s site says tax is charged separately at the register — the price shown here is before that’s added.'
+    },
+    unknown: {
+      headline: 'We checked this store’s website for a tax policy and didn’t find one.',
+      body: 'No page said whether tax is included or added at checkout, so we’re not guessing — this price’s tax status is genuinely unverified, not assumed either way.'
+    }
+  };
+
+  // ── tax-basis info trigger: click-to-pin, never hover-only ────────────────
   // Fix carried forward from the adversarial review of the redesign doc: a
   // hover-only popover is unreachable on touch and disappears the instant a
   // mouse moves toward it. Click toggles a pinned detail panel instead.
+  //
+  // The owner's explicit direction: no visible "unverified" labels anywhere
+  // in this UI. When we genuinely don't know the tax basis, this renders
+  // NOTHING — not a quieter badge, not an icon, nothing — rather than putting
+  // the word "unverified" in front of a floor manager. The row's own price
+  // display already reflects the same honesty without the word (see SubRow:
+  // no tax note, no pre-tax line, just the plain price). For the two KNOWN
+  // cases, a small inline info icon (not a colored pill) opens a panel that
+  // leads with a plain-English sentence — every word of the real evidence
+  // string is still preserved verbatim behind "Show technical detail."
   function TaxChip({ row, pinned, onTogglePin }) {
     const P = useP();
-    const tone = taxChipTone(row.price_tax_basis);
+    if (row.price_tax_basis !== 'inclusive' && row.price_tax_basis !== 'exclusive') { return null; }
     const isPinned = pinned === row.id;
+    const [showRaw, setShowRaw] = React.useState(false);
+    const plain = TAX_BASIS_PLAIN[row.price_tax_basis];
     return (
       <span style={{ position: 'relative', display: 'inline-block' }}>
-        <button data-hw-i onClick={function (e) { e.stopPropagation(); onTogglePin(isPinned ? null : row.id); }}
-          title="Click to see tax-basis evidence"
+        <button data-hw-i onClick={function (e) { e.stopPropagation(); onTogglePin(isPinned ? null : row.id); if (isPinned) { setShowRaw(false); } }}
+          title="How do we know?"
           style={{
-            font: 'inherit', fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.02em',
-            padding: '2px 7px', borderRadius: P.r999, border: '1px solid transparent', cursor: 'pointer',
-            background: tone.kind === 'good' ? P.goodSoft : tone.kind === 'warn' ? P.warnSoft : P.neutralSoft,
-            color: tone.kind === 'good' ? P.good : tone.kind === 'warn' ? P.warnText : P.neutral,
-            outline: isPinned ? `2px solid ${P.ink}` : 'none', outlineOffset: 1
-          }}>{tone.label}</button>
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22,
+            borderRadius: P.r999, border: 'none', cursor: 'pointer', background: isPinned ? P.surface3 : 'transparent',
+            color: P.inkMute
+          }}><Icon name="info" size={14} stroke={1.9} /></button>
         {isPinned &&
           <div onClick={function (e) { e.stopPropagation(); }}
-            style={{ position: 'absolute', zIndex: 20, top: '120%', left: 0, minWidth: 220, maxWidth: 300,
+            style={{ position: 'absolute', zIndex: 20, top: '120%', left: 0, minWidth: 240, maxWidth: 320,
               background: P.surface, border: `1px solid ${P.hairline3}`, borderRadius: P.r10, boxShadow: '0 6px 20px rgba(0,0,0,.18)',
-              padding: 10, fontSize: P.type.meta, color: P.ink }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>price_tax_basis: {row.price_tax_basis}</div>
-            <div style={{ color: P.inkDim, marginBottom: 6 }}>
-              {row.price_tax_basis_evidence || 'No evidence string recorded for this row.'}
-            </div>
+              padding: 12, fontSize: P.type.meta, color: P.ink }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>{plain.headline}</div>
+            <div style={{ color: P.inkDim, lineHeight: 1.5 }}>{plain.body}</div>
+            {row.price_tax_basis_evidence &&
+              <React.Fragment>
+                <button data-hw-i onClick={function () { setShowRaw(function (v) { return !v; }); }}
+                  style={{ marginTop: 8, font: 'inherit', fontSize: P.type.micro, fontWeight: 600, color: P.info,
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  {showRaw ? 'Hide technical detail' : 'Show technical detail'}
+                </button>
+                {showRaw &&
+                  <div style={{ marginTop: 6, padding: '8px 9px', background: P.surface2, border: `1px solid ${P.hairline}`,
+                    borderRadius: P.r8, fontFamily: P.fontMono, fontSize: 10.5, color: P.inkDim, lineHeight: 1.5,
+                    wordBreak: 'break-word' }}>
+                    {row.price_tax_basis_evidence}
+                  </div>}
+              </React.Fragment>}
             <button data-hw-i onClick={function (e) { e.stopPropagation(); onTogglePin(null); }}
-              style={{ font: 'inherit', fontSize: P.type.micro, color: P.inkMute, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              style={{ marginTop: 8, display: 'block', font: 'inherit', fontSize: P.type.micro, color: P.inkMute, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               unpin
             </button>
           </div>}
       </span>);
   }
 
-  function SubRow({ row, pinned, onTogglePin, isLast, unranked }) {
+  // ── FilterPopover — shared trigger+panel shell for Brand and Price ────────
+  // Same fixed-position / getBoundingClientRect / click-catcher pattern as
+  // BrandFilter in screen-register.jsx, factored into one place instead of
+  // copy-pasted twice, since Brand and Price both need it here.
+  function FilterPopover({ trigger, width, children }) {
     const P = useP();
-    const known = knownBasis(row);
+    const [open, setOpen] = React.useState(false);
+    const ref = React.useRef(null);
+    const [pos, setPos] = React.useState({ left: 0, top: 0 });
+    const openMenu = function () {
+      const r = ref.current.getBoundingClientRect();
+      setPos({ left: Math.min(r.left, window.innerWidth - width - 16), top: r.bottom + 6 });
+      setOpen(true);
+    };
+    React.useEffect(function () {
+      if (!open) { return; }
+      function onKey(e) { if (e.key === 'Escape') { setOpen(false); } }
+      window.addEventListener('keydown', onKey);
+      return function () { window.removeEventListener('keydown', onKey); };
+    }, [open]);
+    return (
+      <div ref={ref} style={{ position: 'relative', flex: '0 0 auto' }}>
+        {React.cloneElement(trigger, { onClick: function (e) { e.stopPropagation(); open ? setOpen(false) : openMenu(); } })}
+        {open && <React.Fragment>
+          <div onClick={function (e) { e.stopPropagation(); setOpen(false); }} style={{ position: 'fixed', inset: 0, zIndex: P.z.dropdown }} />
+          <div onClick={function (e) { e.stopPropagation(); }}
+            style={{ position: 'fixed', left: pos.left, top: pos.top, width: width, background: P.surface,
+              border: `1px solid ${P.hairline2}`, borderRadius: P.r12, boxShadow: P.shadowLg, padding: 10,
+              zIndex: P.z.dropdown + 1 }}>
+            {typeof children === 'function' ? children({ close: function () { setOpen(false); } }) : children}
+          </div>
+        </React.Fragment>}
+      </div>);
+  }
+
+  // ── Category filter — single-select tabs with real counts + honest "Not
+  // categorized" tab for the 71 rows where a strain name leaked into the
+  // category field at the source (see CATEGORY_MISFILED above).
+  function CategoryFilter({ groups, value, onChange }) {
+    const P = useP();
+    const META = categoryMeta(P);
+    const counts = React.useMemo(function () {
+      const m = { uncategorized: 0, misfiled: 0 };
+      Object.keys(META).forEach(function (k) { m[k] = 0; });
+      groups.forEach(function (g) {
+        const buckets = new Set(g.rows.map(function (r) { return categoryBucket(r.category); }));
+        buckets.forEach(function (b) { m[b] = (m[b] || 0) + 1; });
+      });
+      return m;
+    }, [groups]);
+    const order = ['flower', 'vape', 'preroll', 'edibles', 'concentrate', 'tincture', 'topical', 'other'];
+    const options = [{ value: 'all', label: 'All', count: groups.length }]
+      .concat(order.filter(function (k) { return counts[k] > 0; }).map(function (k) { return { value: k, label: META[k].label, count: counts[k] }; }))
+      .concat(counts.misfiled + counts.uncategorized > 0
+        ? [{ value: 'uncategorized', label: 'Not categorized', count: counts.misfiled + counts.uncategorized }]
+        : []);
+    return <Tabs value={value} onChange={onChange} options={options}
+      style={{ borderBottom: 'none' }} />;
+  }
+
+  // ── Brand filter — multi-select popover with live counts. Reuses this
+  // file's own normalizeBrand/titleCase rather than a second normalizer, so
+  // the 22 pure-casing duplicates ("710 Labs" / "710 LABS") collapse for free.
+  // Generic searchable multi-select popover — Brand and Region are the same
+  // shape (a name, a count, an optional "not listed" bucket pinned last), so
+  // this is one implementation instead of two near-identical copies.
+  function MultiSelectPopover({ icon, label, placeholder, options, value, onChange }) {
+    const P = useP();
+    const [q, setQ] = React.useState('');
+    const shown = options.filter(function (o) { return !q || o.display.toLowerCase().indexOf(q.toLowerCase()) >= 0; });
+    const toggle = function (k) { onChange(function (prev) { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; }); };
+    return (
+      <FilterPopover width={244} trigger={
+        <button data-hw-i style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: P.ctrlH.sm, padding: '0 12px',
+          borderRadius: P.r999, border: `1px solid ${value.size ? P.hairline3 : P.hairline2}`, background: value.size ? P.highlightSoft : P.surface,
+          color: value.size ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+          <Icon name={icon} size={12.5} stroke={1.9} />{label}
+          {value.size > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: P.accentInk, background: P.accent, padding: '0 6px', borderRadius: 99, fontFamily: P.fontMono }}>{value.size}</span>}
+          <Icon name="chevron-down" size={12} stroke={2.2} />
+        </button>}>
+        {function (popover) { return <React.Fragment>
+          <Field icon="search" placeholder={placeholder} size="sm" value={q} autoFocus onChange={function (e) { setQ(e.target.value); }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 220, overflowY: 'auto', margin: '8px 0' }}>
+            {shown.map(function (o) {
+              const on = value.has(o.key);
+              return <button key={o.key} data-hw-i onClick={function () { toggle(o.key); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', background: on ? P.surface3 : 'transparent',
+                  border: 'none', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
+                <Check on={on} onChange={function () { toggle(o.key); }} size={16} />
+                <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: o.muted ? P.inkMute : P.ink,
+                  fontStyle: o.muted ? 'italic' : 'normal', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.display}</span>
+                <span style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{o.count}</span>
+              </button>;
+            })}
+            {shown.length === 0 && <div style={{ padding: 16, textAlign: 'center', fontSize: 12.5, color: P.inkMute }}>No matches</div>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: `1px solid ${P.hairline}` }}>
+            <button data-hw-i onClick={function () { onChange(new Set()); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+              <Icon name="x" size={12} stroke={2} />Clear all
+            </button>
+            <PBtn variant="accent" size="xs" onClick={popover.close}>Done · {value.size}</PBtn>
+          </div>
+        </React.Fragment>; }}
+      </FilterPopover>);
+  }
+
+  function BrandFilterPricing({ groups, value, onChange }) {
+    const options = React.useMemo(function () {
+      const m = new Map();
+      groups.forEach(function (g) {
+        g.rows.forEach(function (r) {
+          const key = normalizeBrand(r.brand);
+          const k = key || '__unbranded__';
+          const display = key ? titleCase(key) : 'Brand not listed';
+          if (!m.has(k)) { m.set(k, { key: k, display: display, count: 0, muted: !key }); }
+          m.get(k).count++;
+        });
+      });
+      return [...m.values()].sort(function (a, b) {
+        if (a.key === '__unbranded__') { return 1; }
+        if (b.key === '__unbranded__') { return -1; }
+        return a.display.localeCompare(b.display);
+      });
+    }, [groups]);
+    return <MultiSelectPopover icon="tag" label="Brand" placeholder="Search brands…" options={options} value={value} onChange={onChange} />;
+  }
+
+  // A store's real city, stripped of any parenthetical caveat kept for the
+  // detail panel (e.g. "Eagle Rock (delivery marketed to Pasadena; ...)") —
+  // the caveat is real and important, but not filter-option-label material.
+  function primaryCity(storeCity) {
+    const s = String(storeCity || '').trim();
+    const idx = s.indexOf(' (');
+    return idx > 0 ? s.slice(0, idx) : (s || null);
+  }
+
+  function RegionFilterPricing({ groups, value, onChange }) {
+    const options = React.useMemo(function () {
+      const m = new Map();
+      groups.forEach(function (g) {
+        g.rows.forEach(function (r) {
+          const city = primaryCity(r.store_city);
+          const k = city || '__unknown__';
+          const display = city || 'City unknown';
+          if (!m.has(k)) { m.set(k, { key: k, display: display, count: 0, muted: !city }); }
+          m.get(k).count++;
+        });
+      });
+      return [...m.values()].sort(function (a, b) {
+        if (a.key === '__unknown__') { return 1; }
+        if (b.key === '__unknown__') { return -1; }
+        return a.display.localeCompare(b.display);
+      });
+    }, [groups]);
+    return <MultiSelectPopover icon="map-pin" label="Region" placeholder="Search cities…" options={options} value={value} onChange={onChange} />;
+  }
+
+  // ── Strain filter — five multi-select toggles, built to be loud about the
+  // fact that "Not stated" is 93.6% of the catalog, not a normal category.
+  function StrainFilter({ counts, value, onChange }) {
+    const P = useP();
+    const OPTS = [
+      { key: 'indica', label: 'Indica', color: P.indica },
+      { key: 'sativa', label: 'Sativa', color: P.sativa },
+      { key: 'hybrid', label: 'Hybrid', color: P.hybrid },
+      { key: 'mixed', label: 'Mixed', color: P.neutral },
+      { key: 'unstated', label: 'Not stated', color: P.inkMute }
+    ];
+    const toggle = function (k) { onChange(function (prev) { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; }); };
+    return (
+      <div style={{ display: 'inline-flex', background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, padding: 3, gap: 2 }}>
+        {OPTS.map(function (o) {
+          const on = value.has(o.key);
+          const c = counts[o.key] || 0;
+          return <button key={o.key} data-hw-i onClick={function () { toggle(o.key); }} aria-pressed={on}
+            title={o.key === 'unstated' ? 'No strain word found in the product name — not the same as "no strain."' : undefined}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: P.ctrlH.sm, padding: '5px 10px',
+              background: on ? P.surface : 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer',
+              fontFamily: P.fontSans, fontSize: 12.5, fontWeight: 600, color: on ? o.color : P.inkDim,
+              boxShadow: on ? P.shadowSm : 'none', transition: 'background .12s, color .12s' }}>
+            <span style={{ width: 6, height: 6, borderRadius: 99, background: o.color, opacity: o.key === 'unstated' || o.key === 'mixed' ? 0.5 : 1 }} />
+            {o.label}
+            <span style={{ fontFamily: P.fontMono, fontSize: 10.5, fontWeight: 700, color: o.color,
+              background: o.color + (P.mode === 'dark' ? '28' : '1f'), padding: '1px 6px', borderRadius: 99 }}>{c}</span>
+          </button>;
+        })}
+      </div>);
+  }
+
+  // ── Price filter — preset bands for the common case (95% of the catalog
+  // sits under $100), a sqrt-scaled dual slider for an exact custom range.
+  function PriceRangeFilter({ groups, bounds, value, onChange }) {
+    const P = useP();
+    const bandCounts = React.useMemo(function () {
+      const m = {};
+      PRICE_BANDS.forEach(function (b) { m[b.key] = 0; });
+      groups.forEach(function (g) {
+        const inBand = {};
+        g.rows.forEach(function (r) {
+          const v = priceCompareValue(r);
+          PRICE_BANDS.forEach(function (b) { if (v >= b.lo && v < b.hi) { inBand[b.key] = true; } });
+        });
+        Object.keys(inBand).forEach(function (k) { m[k]++; });
+      });
+      return m;
+    }, [groups]);
+    const priceHistogram = React.useMemo(function () {
+      const buckets = new Array(15).fill(0);
+      groups.forEach(function (g) {
+        g.rows.forEach(function (r) {
+          const idx = Math.min(buckets.length - 1, Math.floor(priceCompareValue(r) / 25));
+          if (idx >= 0) { buckets[idx]++; }
+        });
+      });
+      return buckets;
+    }, [groups]);
+    const [customOpen, setCustomOpen] = React.useState(!!value.custom);
+    const [draftMin, setDraftMin] = React.useState(value.custom ? value.custom.min : bounds.min);
+    const [draftMax, setDraftMax] = React.useState(value.custom ? value.custom.max : bounds.max);
+    const label = value.custom ? ('$' + value.custom.min + '–$' + value.custom.max)
+      : value.bands.size ? [...value.bands].map(function (k) { return PRICE_BANDS.filter(function (b) { return b.key === k; })[0].label; }).join(', ')
+      : 'Price';
+    const active = value.bands.size > 0 || !!value.custom;
+    return (
+      <FilterPopover width={300} trigger={
+        <button data-hw-i style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: P.ctrlH.sm, padding: '0 12px',
+          borderRadius: P.r999, border: `1px solid ${active ? P.hairline3 : P.hairline2}`, background: active ? P.highlightSoft : P.surface,
+          color: active ? P.ink : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, whiteSpace: 'nowrap' }}>
+          <Icon name="tag" size={12.5} stroke={1.9} />{label}
+          <Icon name="chevron-down" size={12} stroke={2.2} />
+        </button>}>
+        {function (popover) { return <React.Fragment>
+          <Spark data={priceHistogram} color={P.accent} fill height={28} width={280} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0' }}>
+            {PRICE_BANDS.map(function (b) {
+              const on = value.bands.has(b.key);
+              return <PBtn key={b.key} size="xs" variant={on ? 'accent' : 'secondary'}
+                onClick={function () {
+                  const n = new Set(value.bands);
+                  n.has(b.key) ? n.delete(b.key) : n.add(b.key);
+                  setCustomOpen(false);
+                  onChange({ bands: n, custom: null });
+                }}>
+                {b.label} <span style={{ fontFamily: P.fontMono, opacity: 0.7 }}>{bandCounts[b.key]}</span>
+              </PBtn>;
+            })}
+          </div>
+          <button data-hw-i onClick={function () { setCustomOpen(function (v) { return !v; }); }}
+            style={{ font: 'inherit', fontSize: P.type.meta, fontWeight: 600, color: P.info, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}>
+            {customOpen ? 'Hide custom range' : 'Custom range…'}
+          </button>
+          {customOpen && <React.Fragment>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '6px 0', gap: 8 }}>
+              <Field size="sm" mono value={draftMin} onChange={function (e) { setDraftMin(+e.target.value || 0); }} style={{ width: 90 }} />
+              <span style={{ color: P.inkMute }}>–</span>
+              <Field size="sm" mono value={draftMax} onChange={function (e) { setDraftMax(+e.target.value || 0); }} style={{ width: 90 }} />
+            </div>
+            <DualRange min={bounds.min} max={bounds.max} valueMin={draftMin} valueMax={draftMax}
+              toPos={sqrtToPos} toValue={sqrtToValue} formatLabel={function (v) { return '$' + Math.round(v); }}
+              onChange={function (lo, hi) { setDraftMin(Math.round(lo)); setDraftMax(Math.round(hi)); }} />
+          </React.Fragment>}
+          <div style={{ fontSize: P.type.micro, color: P.inkMute, marginTop: 8, lineHeight: 1.5 }}>
+            Matches a product if any of its listed prices fall in range — using the verified pre-tax
+            price where we have it, the listed price otherwise ({groups.length ? Math.round(1000 * groups.filter(function (g) { return g.rows.some(knownBasis); }).length / groups.length) / 10 : 0}% of groups have one).
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+            <PBtn variant="ghost" size="xs" onClick={function () { onChange({ bands: new Set(), custom: null }); setCustomOpen(false); }}>Reset</PBtn>
+            {customOpen &&
+              <PBtn variant="accent" size="xs" onClick={function () { onChange({ bands: new Set(), custom: { min: draftMin, max: draftMax } }); popover.close(); }}>Apply custom range</PBtn>}
+          </div>
+        </React.Fragment>; }}
+      </FilterPopover>);
+  }
+
+  // ── Active filter chips — one chip per applied VALUE, not per dimension ───
+  function ActiveFilterChips({ chips, onRemove, onClearAll }) {
+    const P = useP();
+    if (chips.length === 0) { return null; }
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+        {chips.map(function (c) {
+          return <button key={c.id} data-hw-i onClick={function () { onRemove(c.id); }} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px',
+            borderRadius: P.r999, border: `1px solid ${P.hairline3}`, background: P.highlightSoft,
+            color: P.ink, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+            <span style={{ color: P.inkMute, fontWeight: 500 }}>{c.dimensionLabel}:</span> {c.valueLabel}
+            <Icon name="x" size={11} stroke={2.2} color={P.inkMute} />
+          </button>;
+        })}
+        <button data-hw-i onClick={onClearAll} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
+          color: P.inkDim, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, padding: '5px 6px' }}>
+          <Icon name="x" size={12} stroke={2} />Clear all ({chips.length})
+        </button>
+      </div>);
+  }
+
+  function ResultCount({ shown, total, activeCount }) {
+    const P = useP();
+    return (
+      <div style={{ fontSize: P.type.meta, color: P.inkDim }}>
+        {activeCount === 0
+          ? `${total} product group${total === 1 ? '' : 's'}`
+          : `Showing ${shown} of ${total} product group${total === 1 ? '' : 's'}`}
+      </div>);
+  }
+
+  // Price hierarchy, top to bottom, highest to lowest — no strikethrough
+  // (the owner's explicit call: hard to read, not worth it). Each line is a
+  // real number that exists in the data, in the order a person would explain
+  // the price out loud: what it used to cost, why it's cheaper now, what it
+  // costs today, and — only when it adds real information — what that comes
+  // out to before tax.
+  function SubRow({ row, pinned, onTogglePin }) {
+    const P = useP();
+    const onSale = row.was_price != null && row.was_price > row.price;
+    const pct = onSale ? Math.round((1 - row.price / row.was_price) * 100) : 0;
+    const preTax = effectivePreTax(row);
+    const showPreTaxLine = preTax != null && row.price_tax_basis === 'inclusive';
+    const taxNote = row.price_tax_basis === 'inclusive' ? 'tax incl.'
+      : row.price_tax_basis === 'exclusive' ? '+ tax at checkout'
+      : null;
     return (
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px 10px 30px',
-        borderTop: unranked ? `1px dashed ${P.hairline3}` : `1px solid ${P.hairline}`,
-        background: P.surface2, opacity: unranked ? 0.72 : 1
+        borderTop: `1px solid ${P.hairline}`, background: P.surface2
       }}>
         <span style={{ width: 8, height: 8, borderRadius: 999, background: sourceDot(P, row.source), flex: '0 0 auto' }} />
         <div style={{ minWidth: 0, flex: '1 1 240px' }}>
-          <div style={{ fontSize: P.type.body, fontWeight: 600, color: P.ink }}>{sourceLabel(row.source)}</div>
+          <div style={{ fontSize: P.type.body, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {row.store_name || sourceLabel(row.source)}
+            {row.store_city &&
+              <span title={row.store_city} style={{ fontSize: P.type.micro, fontWeight: 700, color: P.inkMute,
+                background: P.surface3, padding: '1px 6px', borderRadius: 99, whiteSpace: 'nowrap' }}>{primaryCity(row.store_city)}</span>}
+          </div>
           <div style={{ fontSize: P.type.meta, color: P.inkDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             title={row.product_name}>{row.product_name}</div>
         </div>
-        <div style={{ flex: '0 0 auto', textAlign: 'right', minWidth: 150 }}>
-          {known
-            ? <div style={{ fontSize: P.type.numRow, fontWeight: 800, fontFamily: P.fontMono, color: P.ink }}>{money(row.pre_tax_price)}<span style={{ fontSize: P.type.micro, fontWeight: 600, color: P.inkMute }}> pre-tax</span></div>
-            : <div style={{ fontSize: P.type.body, fontWeight: 600, color: P.inkMute, fontStyle: 'italic' }}>pre-tax unverified</div>}
-          <div style={{ fontSize: P.type.micro, color: P.inkFaint, fontFamily: P.fontMono, display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: 5 }}>
-            <span>({money(row.price)} · raw)</span>
-            {row.was_price != null && row.was_price > row.price &&
-              <span style={{ textDecoration: 'line-through' }}>{money(row.was_price)}</span>}
+        <div style={{ flex: '0 0 auto', textAlign: 'right', minWidth: 160 }}>
+          {onSale &&
+            <div style={{ fontSize: P.type.micro, color: P.inkMute, fontFamily: P.fontMono }}>
+              List {money(row.was_price)} <span style={{ color: P.bad, fontWeight: 700 }}>· {pct}% off</span>
+            </div>}
+          <div style={{ fontSize: P.type.numRow, fontWeight: 800, fontFamily: P.fontMono, color: P.ink }}>
+            {money(row.price)}
+            {taxNote && <span style={{ fontSize: P.type.micro, fontWeight: 600, color: P.inkMute }}> {taxNote}</span>}
           </div>
-          {row.was_price != null && row.was_price > row.price &&
-            <div style={{ marginTop: 2 }}>
-              <Pill kind="bad" size="sm" label={`SAVE ${money(row.was_price - row.price)} (${Math.round((1 - row.price / row.was_price) * 100)}% off)`} />
+          {showPreTaxLine &&
+            <div style={{ fontSize: P.type.body, fontWeight: 700, fontFamily: P.fontMono, color: P.good }}>
+              {money(preTax)} <span style={{ fontSize: P.type.micro, fontWeight: 600, color: P.inkMute }}>pre-tax</span>
             </div>}
         </div>
         <div style={{ flex: '0 0 auto' }}>
@@ -327,6 +782,9 @@
 
   function GroupCard({ group, pinned, onTogglePin }) {
     const P = useP();
+    const CATMETA = categoryMeta(P);
+    const catBucket = categoryBucket(group.category);
+    const catLabel = CATMETA[catBucket] ? CATMETA[catBucket].label : group.category;
     const rows = group.rows;
     const multi = rows.length > 1;
     const multiSource = group.multiSource; // 2+ DISTINCT sources — see header comment
@@ -337,10 +795,6 @@
       const hi = Math.max.apply(null, knownRows.map(function (r) { return r.pre_tax_price; }));
       const spreadPct = lo > 0 ? Math.round(((hi - lo) / lo) * 100) : 0;
       headline = { kind: spreadPct > 0 ? 'info' : 'neutral', label: `${spreadPct}% spread across sources` };
-    } else if (multiSource && knownRows.length === 0) {
-      // Every sub-row is unknown-basis — the doc's exact rule, adapted:
-      // never render a confident-looking pill over data that isn't.
-      headline = { kind: 'info', label: 'Basis unverified' };
     } else if (!multiSource && multi) {
       // Same-source duplicate/near-duplicate listings (e.g. Kushy Punch
       // Watermelon Indica 100mg — two dutchie_embed rows that merged only
@@ -365,7 +819,7 @@
               }}>{group.brandDisplay}</span>
               <span style={{ fontSize: P.type.title, fontWeight: 700, color: P.ink }}>{group.nameDisplay}</span>
               <Pill kind="neutral" size="sm" label={group.weight} />
-              {group.category && <Pill kind="ghost" size="sm" label={group.category} />}
+              {catLabel && <Pill kind="ghost" size="sm" label={catLabel} />}
             </div>
             <div style={{ marginTop: 6, fontSize: P.type.meta, color: P.inkMute }}>
               {group.distinctSourceCount} source{group.distinctSourceCount === 1 ? '' : 's'} tracked
@@ -374,14 +828,14 @@
               {!multiSource && multi && ' — duplicate/near-duplicate listings from the same source, not a competitor match'}
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flex: '0 0 auto' }}>
-            <Pill kind="neutral" label="Not yet mapped" />
-            {headline && <Pill kind={headline.kind} label={headline.label} />}
-          </div>
+          {headline &&
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flex: '0 0 auto' }}>
+              <Pill kind={headline.kind} label={headline.label} />
+            </div>}
         </div>
         {group.sortedRows.map(function (r, i) {
           return <SubRow key={r.id} row={r} pinned={pinned} onTogglePin={onTogglePin}
-            isLast={i === group.sortedRows.length - 1} unranked={!knownBasis(r) && knownRows.length > 0 ? false : !knownBasis(r) && rows.length > 1} />;
+            isLast={i === group.sortedRows.length - 1} />;
         })}
       </Card>);
   }
@@ -393,7 +847,11 @@
     const [tick, setTick] = React.useState(0);
     const [q, setQ] = React.useState('');
     const [sourceFilter, setSourceFilter] = React.useState('all');
-    const [unverifiedOnly, setUnverifiedOnly] = React.useState(false);
+    const [categoryFilter, setCategoryFilter] = React.useState('all');
+    const [brandFilter, setBrandFilter] = React.useState(function () { return new Set(); });
+    const [regionFilter, setRegionFilter] = React.useState(function () { return new Set(); });
+    const [strainFilter, setStrainFilter] = React.useState(function () { return new Set(); });
+    const [priceFilter, setPriceFilter] = React.useState(function () { return { bands: new Set(), custom: null }; });
     const [pinned, setPinned] = React.useState(null);
 
     React.useEffect(function () {
@@ -474,11 +932,26 @@
       return out;
     }, [allRows]);
 
+    const priceBounds = React.useMemo(function () {
+      if (!allRows.length) { return { min: 0, max: 0 }; }
+      let min = Infinity, max = -Infinity;
+      allRows.forEach(function (r) { if (r.price < min) { min = r.price; } if (r.price > max) { max = r.price; } });
+      return { min: min, max: max };
+    }, [allRows]);
+
     const filtered = React.useMemo(function () {
       const needle = q.trim().toLowerCase();
       return groups.filter(function (g) {
         if (sourceFilter !== 'all' && !g.rows.some(function (r) { return r.source === sourceFilter; })) { return false; }
-        if (unverifiedOnly && !g.rows.some(function (r) { return !knownBasis(r); })) { return false; }
+        if (categoryFilter !== 'all' && !g.rows.some(function (r) { return categoryBucket(r.category) === categoryFilter || (categoryFilter === 'uncategorized' && ['uncategorized', 'misfiled'].indexOf(categoryBucket(r.category)) >= 0); })) { return false; }
+        if (brandFilter.size > 0 && !g.rows.some(function (r) { return brandFilter.has(normalizeBrand(r.brand) || '__unbranded__'); })) { return false; }
+        if (regionFilter.size > 0 && !g.rows.some(function (r) { return regionFilter.has(primaryCity(r.store_city) || '__unknown__'); })) { return false; }
+        if (strainFilter.size > 0 && !g.rows.some(function (r) { return strainBuckets(r.product_name).some(function (b) { return strainFilter.has(b); }); })) { return false; }
+        if (priceFilter.bands.size > 0 && !g.rows.some(function (r) {
+          const v = priceCompareValue(r);
+          return [...priceFilter.bands].some(function (k) { const b = PRICE_BANDS.filter(function (pb) { return pb.key === k; })[0]; return v >= b.lo && v < b.hi; });
+        })) { return false; }
+        if (priceFilter.custom && !g.rows.some(function (r) { const v = priceCompareValue(r); return v >= priceFilter.custom.min && v <= priceFilter.custom.max; })) { return false; }
         if (needle) {
           const hay = (g.brandDisplay + ' ' + g.nameDisplay + ' ' + g.rows.map(function (r) { return r.product_name; }).join(' ')).toLowerCase();
           if (hay.indexOf(needle) < 0) { return false; }
@@ -493,7 +966,7 @@
         if (a.distinctSourceCount !== b.distinctSourceCount) { return b.distinctSourceCount - a.distinctSourceCount; }
         return (a.brandDisplay + a.nameDisplay).localeCompare(b.brandDisplay + b.nameDisplay);
       });
-    }, [groups, q, sourceFilter, unverifiedOnly]);
+    }, [groups, q, sourceFilter, categoryFilter, brandFilter, regionFilter, strainFilter, priceFilter]);
 
     const totalListings = facets ? facets.total_listings : allRows.length;
     const taxVerified = allRows.filter(function (r) { return r.price_tax_basis && r.price_tax_basis !== 'unknown'; }).length;
@@ -512,6 +985,53 @@
 
     const sourceOptions = [{ value: 'all', label: 'All sources' }].concat(
       (facets && Array.isArray(facets.sources) ? facets.sources : []).map(function (s) { return { value: s, label: sourceLabel(s) }; }));
+
+    const strainCounts = React.useMemo(function () {
+      const m = { indica: 0, sativa: 0, hybrid: 0, mixed: 0, unstated: 0 };
+      groups.forEach(function (g) {
+        const buckets = new Set();
+        g.rows.forEach(function (r) { strainBuckets(r.product_name).forEach(function (b) { buckets.add(b); }); });
+        buckets.forEach(function (b) { m[b]++; });
+      });
+      return m;
+    }, [groups]);
+
+    const CATEGORY_META_LOOKUP = categoryMeta(P);
+    const activeChips = [];
+    if (categoryFilter !== 'all') {
+      activeChips.push({ id: 'cat', dimensionLabel: 'Category',
+        valueLabel: categoryFilter === 'uncategorized' ? 'Not categorized' : CATEGORY_META_LOOKUP[categoryFilter].label,
+        onRemove: function () { setCategoryFilter('all'); } });
+    }
+    [...brandFilter].forEach(function (k) {
+      activeChips.push({ id: 'brand:' + k, dimensionLabel: 'Brand', valueLabel: k === '__unbranded__' ? 'Not listed' : titleCase(k),
+        onRemove: function () { setBrandFilter(function (prev) { const n = new Set(prev); n.delete(k); return n; }); } });
+    });
+    [...regionFilter].forEach(function (k) {
+      activeChips.push({ id: 'region:' + k, dimensionLabel: 'Region', valueLabel: k === '__unknown__' ? 'Unknown' : k,
+        onRemove: function () { setRegionFilter(function (prev) { const n = new Set(prev); n.delete(k); return n; }); } });
+    });
+    [...strainFilter].forEach(function (k) {
+      activeChips.push({ id: 'strain:' + k, dimensionLabel: 'Strain', valueLabel: k.charAt(0).toUpperCase() + k.slice(1),
+        onRemove: function () { setStrainFilter(function (prev) { const n = new Set(prev); n.delete(k); return n; }); } });
+    });
+    if (priceFilter.custom) {
+      activeChips.push({ id: 'price:custom', dimensionLabel: 'Price', valueLabel: `$${priceFilter.custom.min}–$${priceFilter.custom.max}`,
+        onRemove: function () { setPriceFilter({ bands: new Set(), custom: null }); } });
+    }
+    [...priceFilter.bands].forEach(function (k) {
+      const b = PRICE_BANDS.filter(function (pb) { return pb.key === k; })[0];
+      activeChips.push({ id: 'price:' + k, dimensionLabel: 'Price', valueLabel: b.label,
+        onRemove: function () { setPriceFilter(function (prev) { const n = new Set(prev.bands); n.delete(k); return { bands: n, custom: null }; }); } });
+    });
+    if (sourceFilter !== 'all') {
+      activeChips.push({ id: 'source', dimensionLabel: 'Source', valueLabel: sourceLabel(sourceFilter),
+        onRemove: function () { setSourceFilter('all'); } });
+    }
+    const clearAllFilters = function () {
+      setCategoryFilter('all'); setBrandFilter(new Set()); setRegionFilter(new Set());
+      setStrainFilter(new Set()); setPriceFilter({ bands: new Set(), custom: null }); setSourceFilter('all');
+    };
 
     return (
       <div onClick={function () { if (pinned) { setPinned(null); } }}>
@@ -532,7 +1052,7 @@
 
         {http && http.ok &&
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(168px,1fr))', gap: 12, marginBottom: 18 }}>
-            <KPI label="Listings tracked" value={String(totalListings)} sublabel="across 5 sources" />
+            <KPI label="Listings tracked" value={String(totalListings)} sublabel={`across ${sourceOptions.length - 1} sources`} />
             <KPI label="Tax basis known" value={`${taxVerified} / ${allRows.length}`} sublabel="basis known ≠ pre-tax price known — never conflate the two" />
             <KPI label="Pre-tax price known" value={`${preTaxKnown} / ${allRows.length}`} sublabel="only this figure is ever ranked or compared" />
             <KPI label="Product groups" value={String(groups.length)} sublabel="brand + name + weight" />
@@ -540,14 +1060,20 @@
           </div>}
 
         {http && http.ok &&
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16 }} onClick={function (e) { e.stopPropagation(); }}>
-            <Seg value={sourceFilter} onChange={setSourceFilter} options={sourceOptions} size="sm" />
-            <PBtn variant={unverifiedOnly ? 'accent' : 'secondary'} size="sm" icon="flag"
-              onClick={function () { setUnverifiedOnly(!unverifiedOnly); }}>
-              Unverified tax basis only
-            </PBtn>
-            <div style={{ flex: 1 }} />
-            <Field icon="search" placeholder="Search brand or product…" value={q} onChange={(e) => setQ(e.target.value)} size="sm" style={{ maxWidth: 260 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }} onClick={function (e) { e.stopPropagation(); }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <CategoryFilter groups={groups} value={categoryFilter} onChange={setCategoryFilter} />
+              <BrandFilterPricing groups={groups} value={brandFilter} onChange={setBrandFilter} />
+              <RegionFilterPricing groups={groups} value={regionFilter} onChange={setRegionFilter} />
+              <StrainFilter counts={strainCounts} value={strainFilter} onChange={setStrainFilter} />
+              <PriceRangeFilter groups={groups} bounds={priceBounds} value={priceFilter} onChange={setPriceFilter} />
+              <Seg value={sourceFilter} onChange={setSourceFilter} options={sourceOptions} size="sm" />
+              <div style={{ flex: 1 }} />
+              <Field icon="search" placeholder="Search brand or product…" value={q} onChange={(e) => setQ(e.target.value)} size="sm" style={{ maxWidth: 260 }} />
+            </div>
+            {activeChips.length > 0 &&
+              <ActiveFilterChips chips={activeChips} onRemove={function (id) { const c = activeChips.filter(function (x) { return x.id === id; })[0]; if (c) { c.onRemove(); } }} onClearAll={clearAllFilters} />}
+            <ResultCount shown={filtered.length} total={groups.length} activeCount={activeChips.length} />
           </div>}
 
         {http && http.ok && groups.length === 0 &&
@@ -556,7 +1082,7 @@
 
         {http && http.ok && groups.length > 0 && filtered.length === 0 &&
           <EmptyState icon="search" title="No product groups match these filters"
-            body="Try clearing the source filter, the unverified-only toggle, or the search box." />}
+            body="Try clearing the source filter or the search box." />}
 
         {http && http.ok && filtered.map(function (g) {
           return <GroupCard key={g.key} group={g} pinned={pinned} onTogglePin={setPinned} />;

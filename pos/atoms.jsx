@@ -332,6 +332,46 @@ window.Field = function Field({ icon, placeholder, value, onChange, size = 'md',
 };
 
 // Qty stepper
+// Dual-handle range — two native <input type="range"> stacked in one relative
+// box, each fully keyboard-operable on its own (arrow keys, Home/End, Page
+// Up/Down), which a hand-rolled drag-only slider would not be. Optional
+// toPos/toValue let a caller map the 0-1 slider position onto a non-linear
+// value scale (e.g. sqrt, for a right-skewed price distribution) — default is
+// linear. The underlying <input> itself always runs over a fixed 0-1000
+// position space so the transform can be arbitrary without needing float step.
+window.DualRange = function DualRange({ min, max, valueMin, valueMax, onChange, step = 1, formatLabel,
+  toPos = (v, lo, hi) => (v - lo) / (hi - lo || 1),
+  toValue = (p, lo, hi) => lo + p * (hi - lo) }) {
+  const P = useP();
+  const pct = (v) => toPos(v, min, max) * 100;
+  const fromPct = (p) => toValue(p / 100, min, max);
+  const clampMin = (v) => Math.min(v, valueMax - step);
+  const clampMax = (v) => Math.max(v, valueMin + step);
+  const trackStyle = { position: 'absolute', top: '50%', height: 4, borderRadius: 99, transform: 'translateY(-50%)' };
+  const thumbCss = `
+    .hw-dual-range { -webkit-appearance:none; appearance:none; background:transparent; pointer-events:none; position:absolute; top:0; left:0; width:100%; height:24px; margin:0; }
+    .hw-dual-range::-webkit-slider-thumb { -webkit-appearance:none; pointer-events:auto; width:18px; height:18px; border-radius:99px; background:${P.surface}; border:2px solid ${P.ink}; box-shadow:${P.shadowSm}; cursor:grab; margin-top:3px; }
+    .hw-dual-range::-moz-range-thumb { pointer-events:auto; width:18px; height:18px; border-radius:99px; background:${P.surface}; border:2px solid ${P.ink}; box-shadow:${P.shadowSm}; cursor:grab; }
+    .hw-dual-range::-webkit-slider-thumb:active { cursor:grabbing; border-color:${P.accentBorder}; }
+    .hw-dual-range::-moz-range-track, .hw-dual-range::-webkit-slider-runnable-track { background:transparent; }
+  `;
+  const POS_MAX = 1000;
+  const posMin = Math.round(pct(valueMin) * 10);
+  const posMax = Math.round(pct(valueMax) * 10);
+  return (
+    <div style={{ position: 'relative', height: 24, margin: '4px 2px 0' }}>
+      <style>{thumbCss}</style>
+      <div style={{ ...trackStyle, left: 0, right: 0, background: P.surface3 }} />
+      <div style={{ ...trackStyle, left: pct(valueMin) + '%', right: (100 - pct(valueMax)) + '%', background: P.accent }} />
+      <input className="hw-dual-range" type="range" min={0} max={POS_MAX} value={posMin}
+        aria-label={'Minimum ' + (formatLabel ? formatLabel(valueMin) : valueMin)}
+        onChange={(e) => onChange(clampMin(fromPct(+e.target.value / 10)), valueMax)} />
+      <input className="hw-dual-range" type="range" min={0} max={POS_MAX} value={posMax}
+        aria-label={'Maximum ' + (formatLabel ? formatLabel(valueMax) : valueMax)}
+        onChange={(e) => onChange(valueMin, clampMax(fromPct(+e.target.value / 10)))} />
+    </div>);
+};
+
 window.Stepper = function Stepper({ value, onChange, min = 0, size = 'md' }) {
   const P = useP();
   const s = { sm: { h: 30, w: 30, fs: 13 }, md: { h: 36, w: 36, fs: 14 }, lg: { h: 44, w: 44, fs: 16 } }[size];
