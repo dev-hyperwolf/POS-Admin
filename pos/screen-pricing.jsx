@@ -523,7 +523,7 @@
               Unverified tax basis only
             </PBtn>
             <div style={{ flex: 1 }} />
-            <Field icon="search" placeholder="Search brand or product…" value={q} onChange={setQ} size="sm" style={{ maxWidth: 260 }} />
+            <Field icon="search" placeholder="Search brand or product…" value={q} onChange={(e) => setQ(e.target.value)} size="sm" style={{ maxWidth: 260 }} />
           </div>}
 
         {http && http.ok && groups.length === 0 &&
