@@ -2108,9 +2108,15 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
   };
 
   return (
-    <div style={{ flex: '0 0 auto', borderBottom: `1px solid ${P.hairline2}`, background: P.surface2, animation: 'fade .15s ease' }}>
-      <div style={{ padding: '13px 22px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+    <div style={{ flex: '0 0 auto', borderBottom: `1px solid ${P.hairline2}`, background: P.surface2, animation: 'fade .15s ease',
+      // Capped and internally scrollable so this panel can never push the Split
+      // body (cart / product browser) below it out of the fixed-height column —
+      // same pattern as the check-in party popover at line ~1210. 48vh leaves
+      // room for the intake strip + CustomerChip above and a usable slice of
+      // the cart below at a normal ~800-900px laptop viewport, while still
+      // showing most of a typical member's details without scrolling.
+      maxHeight: '48vh', overflowY: 'auto' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: P.surface2, padding: '13px 22px 12px', display: 'flex', alignItems: 'center', gap: 9 }}>
           <Icon name="user" size={15} stroke={1.9} color={P.ink2} />
           <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>Member details</span>
           <span style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>· {m.name}</span>
@@ -2130,7 +2136,8 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
             <span title="pos/verification.jsx is not loaded, so this screen cannot read the identity ledger — it is not claiming the check passed or failed" style={{ fontSize: 10, fontWeight: 700, color: P.inkMute }}>ID STATUS UNAVAILABLE</span>}
           <div style={{ flex: 1 }} />
           <PBtn variant="ghost" size="xs" icon="x" onClick={onClose}>Close</PBtn>
-        </div>
+      </div>
+      <div style={{ padding: '0 22px 16px' }}>
 
         {/* ID photos — captured here, never assumed */}
         {/* `flex-start`, NOT `stretch`. The old row held two fixed-height
