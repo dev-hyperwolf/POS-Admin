@@ -1211,20 +1211,39 @@
       // Page through with `total` from the first response until every row
       // is in, rather than re-raising the single-request cap (which would
       // just move this bug to the next time the dataset grows again).
+      //
+      // Pages 2..N fire in PARALLEL, not sequentially — real perf audit
+      // (scratch/performance-audit-2026-09-07.md in hw-pricing-scraper)
+      // measured this as the single highest-value fix at this screen's real
+      // scale: sequential paging cost ~2-2.6s of dead time before anything
+      // rendered at 9,783 rows (5 pages), extrapolating to ~9.5-13s at 5x.
+      // Page 1 has to go first (it's the only page that reveals `total`),
+      // everything after that has a known, fixed offset and no reason to
+      // wait in line.
       const PAGE = 2000;
-      function loadAll(offset, acc, firstMeta) {
-        return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: offset })).then(function (r) {
+      function loadAll() {
+        return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: 0 })).then(function (first) {
           if (!live) { return; }
-          if (!r.ok || !r.parsed || !r.body || !Array.isArray(r.body.listings)) { setHttp(r); return; }
-          const meta = firstMeta || r.body;
-          const rows = acc.concat(r.body.listings);
-          if (rows.length < meta.total && r.body.listings.length > 0) {
-            return loadAll(offset + PAGE, rows, meta);
+          if (!first.ok || !first.parsed || !first.body || !Array.isArray(first.body.listings)) { setHttp(first); return; }
+          const total = first.body.total;
+          const firstRows = first.body.listings;
+          const remainingOffsets = [];
+          for (let off = PAGE; off < total; off += PAGE) { remainingOffsets.push(off); }
+          if (remainingOffsets.length === 0) {
+            setHttp({ url: first.url, code: first.code, ok: true, body: { total: total, count: firstRows.length, limit: PAGE, offset: 0, listings: firstRows }, parsed: true, raw: first.raw });
+            return;
           }
-          setHttp({ url: r.url, code: r.code, ok: true, body: { total: meta.total, count: rows.length, limit: PAGE, offset: 0, listings: rows }, parsed: true, raw: r.raw });
+          Promise.all(remainingOffsets.map(function (off) { return getJSON(ROUTE_LISTINGS + '?' + qs({ limit: PAGE, offset: off })); })).then(function (rest) {
+            if (!live) { return; }
+            const bad = rest.filter(function (r) { return !r.ok || !r.parsed || !r.body || !Array.isArray(r.body.listings); })[0];
+            if (bad) { setHttp(bad); return; }
+            let rows = firstRows;
+            rest.forEach(function (r) { rows = rows.concat(r.body.listings); });
+            setHttp({ url: first.url, code: first.code, ok: true, body: { total: total, count: rows.length, limit: PAGE, offset: 0, listings: rows }, parsed: true, raw: first.raw });
+          });
         });
       }
-      loadAll(0, [], null);
+      loadAll();
       return function () { live = false; };
     }, [tick]);
 
