@@ -265,7 +265,6 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
   // Existing customers + people already waiting (they are customers too)
   const ql = q.trim().toLowerCase();
   const matches = ql ? window.HW.MEMBERS.filter((m) => !taken(m.name) && (m.name + m.email + m.phone).toLowerCase().includes(ql)).slice(0, 4) : [];
-  const poolNames = window.HW.GUEST_POOL.filter((n) => !taken(n));
 
   // `doc: { onFile: true }` used to be written here unconditionally — a
   // fabricated compliance fact for every member the search box returned. It
@@ -336,10 +335,21 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
     if (d && d.returning && d.memberId) {
       const m = window.HW.memberById(d.memberId);
       if (m) { linkMember(m); setAdding(false); setNf(BLANK_NF); return; }
+      // Matched a returning id this device cannot resolve — not a link, not a
+      // blank form. The onboarding card is where that refusal banner already
+      // lives (below), so open it to show the banner rather than leaving the
+      // scan's result invisible behind the scan panel.
+      setAdding(true);
       setUnresolved({ memberId: d.memberId, doc: d });
       setNf(BLANK_NF);
       return;
     }
+    // No match: this is a new guest and the barcode already typed the form.
+    // Open it PRE-FILLED, same as CheckInModal's onCheckInScan (checkin.jsx
+    // ~739) — scanning is now reachable from the default view, so it has to
+    // carry the operator into the onboarding card itself, not just fill state
+    // nobody is looking at.
+    setAdding(true);
     setNf((p) => Object.assign({}, p, docFields(d)));
   };
   // Create the record anyway — an explicit choice, never a default.
@@ -372,9 +382,29 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
         <span style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Everyone in the party is recorded as a customer — link them if they already exist, or onboard them here. <b>A name on its own is not enough.</b></span>
       </div>
 
-      {/* Add: search existing, or start the new-customer flow */}
+      {/* Add: scan first — same primary action and same panel as any other
+          check-in (window.CheckInModal's no-customer screen, checkin.jsx
+          ~1101) — then fall back to search/manual entry below the divider.
+          This used to bury the scanner inside the "New guest" onboarding
+          card, one click away from a form nobody had to fill out by hand. */}
       {!adding && <>
-        <div style={{ display: 'flex', gap: 8, marginBottom: matches.length || poolNames.length ? 9 : 11 }}>
+        {window.IdScanPanel ?
+        <div style={{ marginBottom: 11 }}>
+          <window.IdScanPanel value={nf.doc} onChange={onScan} />
+          <div style={{ fontSize: 11, color: P.inkDim, marginTop: 7, lineHeight: 1.45, textAlign: 'center' }}>
+            Scanning identifies the guest and captures their ID in one step. A match links them to their existing record; no match starts a new one with the name and date of birth already filled.
+          </div>
+        </div> :
+        <div style={{ marginBottom: 11, padding: '11px 13px', background: P.warnSoft, border: `1px solid ${P.warn}55`, borderRadius: P.r10, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+          <Icon name="scan" size={15} color={P.warn} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <span style={{ flex: 1, fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>The ID scanner is not loaded on this page. The manual search below is the only path available, and it captures no verification — the document still has to be recorded before this guest can be added.</span>
+        </div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 0 10px' }}>
+          <div style={{ flex: 1, height: 1, background: P.hairline2 }} />
+          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.06em', color: P.inkMute }}>OR FIND THEM MANUALLY</span>
+          <div style={{ flex: 1, height: 1, background: P.hairline2 }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: matches.length ? 9 : 11 }}>
           <Field icon="search" placeholder="Search guest by name, e-mail or phone" value={q} onChange={(e) => setQ(e.target.value)} size="sm" />
           <PBtn variant="soft" size="sm" icon="user-plus" onClick={() => startNew()}>New guest</PBtn>
         </div>
@@ -394,18 +424,15 @@ window.GuestEditor = function GuestEditor({ primaryName, guests, onChange }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 11px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, marginBottom: 10 }}>
             <Icon name="user-plus" size={15} color={P.ink2} />
             <span style={{ flex: 1, fontSize: 11.5, color: P.ink2 }}>No customer called “{q.trim()}” — onboard them as new.</span>
-            <PBtn variant="accent" size="xs" onClick={() => startNew()}>Start</PBtn>
-          </div>}
-        {!ql && poolNames.length > 0 &&
-        <div style={{ marginBottom: 11 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>Already in the waiting room</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {poolNames.map((n) => {
-              const m = window.HW.MEMBERS.find((x) => x.name === n);
-              return <button key={n} type="button" onClick={() => m ? linkMember(m) : startNew()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r999, fontSize: 12.5, fontWeight: 600, color: P.ink2, cursor: 'pointer', fontFamily: P.fontSans }}>
-                  <Icon name="plus" size={12} stroke={2.2} />{n}{!m && <span style={{ fontSize: 10, color: P.warn, fontWeight: 700 }}>new</span>}
-                </button>;})}
-            </div>
+            {/* GHOST, NOT ACCENT — "one accent per view" (CLAUDE.md design rule
+                1, checkin.jsx:1032). The scan panel above is now this view's
+                one accent element (its own "Scan ID" button, verification.jsx
+                ~984), matching how CheckInModal's own manual-empty-state
+                button stays ghost for the same reason ("Enter manually",
+                checkin.jsx ~1309). This was accent before the scan panel
+                moved up here, which would have put two solid accents on
+                screen the moment a search came back empty. */}
+            <PBtn variant="ghost" size="xs" onClick={() => startNew()}>Start</PBtn>
           </div>}
       </>}
 

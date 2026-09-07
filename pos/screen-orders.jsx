@@ -438,7 +438,7 @@ function CheckInCard({ c, onStartSale }) {
       {/* Party — add guest to this existing check-in */}
       <div style={{ padding: '0 13px 11px' }}>
         <button onClick={() => setOpen((o) => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px', background: open ? P.accentSoft : P.surface2, border: `1px solid ${open ? P.accentBorder : P.hairline2}`, borderRadius: P.r10, color: P.ink2, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
-          <Icon name="user-plus" size={13} stroke={2} />{guests.length > 0 ? `Party of ${1 + guests.length} · edit` : 'Add guest to check-in'}
+          <Icon name="user-plus" size={13} stroke={2} />{guests.length > 0 ? `Party of ${1 + guests.length} · edit` : 'Add guest to party'}
         </button>
       </div>
       {err && <div role="alert" style={{ margin: '0 13px 9px', fontSize: 10.5, color: P.bad, background: P.badSoft, borderRadius: P.r10, padding: '6px 9px', fontFamily: P.fontMono, lineHeight: 1.4 }}>{err}</div>}

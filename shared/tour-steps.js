@@ -161,7 +161,7 @@
         { title: 'Now: who the customer actually is', ey: 'Identity',
           body: 'The rest of this walkthrough is about <b>identity</b> — how a person becomes a verified customer, how a Weedmaps stranger gets mapped onto one, and why a customer never has to verify twice.',
           before: go('Orders', { tag: 'button', scope: 'aside' }), wait: 600 },
-        { text: 'Add guest to check-in', place: 'top',
+        { text: 'Add guest to party', place: 'top',
           title: 'Every guest is a customer', body: 'A party is not a headcount. Anyone who walks in with a buyer is either <b>linked to an existing customer</b> or onboarded through the full new-customer flow.',
           act: 'A name on its own is not enough — compliance requires a real record for every person.' },
         { title: 'What onboarding a guest requires', ey: 'Compliance',
