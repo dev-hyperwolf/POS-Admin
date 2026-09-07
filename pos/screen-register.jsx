@@ -10,6 +10,22 @@ const round2 = (n) => Math.round((+n || 0) * 100) / 100;
 const taxOn = (base) => window.HW.taxBreakdown(base).total;
 const PAY_LABEL = { cash: 'Cash', card: 'Card', split: 'Split', wallet: 'Wallet' };
 
+// ── GUEST NAME, GUARANTEED A STRING — never the raw guest value ────────────
+// 🔴 THIS CRASHED THE REGISTER ON A FRESH LOAD, EVERY GUEST AVATAR ON SCREEN.
+// Every call site here used to read `window.guestName ? window.guestName(g) :
+// g` — a defensive existence-check on the global checkin.jsx installs, with
+// an UNSAFE fallback: `g` itself. That is fine when `g` is a legacy bare
+// string, and a `(name || '?').split is not a function` TypeError inside
+// window.Avatar the instant `g` is the richer `{key, id, name, dob, ...}`
+// object shape (screen-register.jsx's own default guest state four lines
+// below this one carries exactly that shape) — an object is truthy, so
+// Avatar's `(name || '?')` guard never catches it, and `.split` throws.
+// `window.guestName` (checkin.jsx) IS the real name extractor and already
+// handles both shapes correctly; this only had to stop trusting `g` as its
+// OWN fallback. Mirrors `gName`/`normGuest` (checkin.jsx) exactly, so the
+// output matches whether or not the global is present.
+const safeGuestName = (g) => (window.guestName ? window.guestName(g) : (typeof g === 'string' ? g : (g && g.name) || ''));
+
 window.RegisterScreen = function RegisterScreen() {
   const P = useP();
   // Reads HW.* AND writes to it (a completed sale creates an order), so it has
@@ -279,7 +295,7 @@ window.RegisterScreen = function RegisterScreen() {
   // Open a separate ticket for someone already in the party. Only possible for
   // a guest whose ID is on record — a ticket is a legal transaction.
   const startTicket = (g) => {
-    const gn = window.guestName ? window.guestName(g) : g;
+    const gn = safeGuestName(g);
     const m = window.HW.MEMBERS.find((x) => x.name === gn) || (g && g.id ? window.HW.memberById(g.id) : null);
     const person = m || { id: (g && g.key) || 'g-' + gn, name: gn, email: '—', phone: g && g.phone || '—',
       points: 0, visits: 1, wallet: 0, type: 'AdultUse', member: false, guestOf: customer && customer.name };
@@ -1060,7 +1076,7 @@ window.CustomerChip = function CustomerChip({ customer, guests, setGuests, onCle
   const Avatars = ({ solo }) =>
   <div style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
       <Avatar name={customer.name} size={32} crown={customer.member} />
-      {!solo && guests.slice(0, 3).map((g, i) => <span key={i} style={{ marginLeft: -10, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface2}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={26} /></span>)}
+      {!solo && guests.slice(0, 3).map((g, i) => <span key={i} style={{ marginLeft: -10, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface2}` }}><Avatar name={safeGuestName(g)} size={26} /></span>)}
     </div>;
 
   const NameRow = () =>
@@ -1233,7 +1249,7 @@ window.CustomerChip = function CustomerChip({ customer, guests, setGuests, onCle
                   <PBtn variant="secondary" size="xs" onClick={() => onPickTicket && onPickTicket(0)}>Switch</PBtn>}
                 </div>
                 {guests.map((g, i) => {
-                const gn = window.guestName ? window.guestName(g) : g;
+                const gn = safeGuestName(g);
                 const ok = !(window.guestIncomplete && window.guestIncomplete([g]) > 0);
                 const owns = hasTicket && hasTicket(gn);
                 const idx = tickets.findIndex((x) => x.person && x.person.name === gn);
@@ -1486,7 +1502,7 @@ function WaitRow({ c, active, onPick }) {
     <button onClick={onPick} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 9px', background: active ? P.surface3 : P.surface, border: `1px solid ${active ? P.ink : P.hairline2}`, borderRadius: P.r10, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <Avatar name={c.name} size={30} crown={c.member} />
-        {(c.guests || []).slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -9, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={(window.guestName?window.guestName(g):g)} size={22} /></span>)}
+        {(c.guests || []).slice(0, 2).map((g, i) => <span key={i} style={{ marginLeft: -9, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={safeGuestName(g)} size={22} /></span>)}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, display: 'flex', alignItems: 'center', gap: 6 }}>{c.name}<VisitPill visit={c.visit} history={c.history} />{c.guests && c.guests.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: P.ink2, background: P.surface3, padding: '0 6px', borderRadius: 99 }}>+{c.guests.length}</span>}</div>
@@ -1628,7 +1644,7 @@ function WaitingStrip({ onPick, onNewCheckIn, activeName }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <div style={{ position: 'relative', flex: '0 0 auto' }}>
                   <Avatar name={c.name} size={34} crown={c.member} />
-                  {c.guests && c.guests.length > 0 && <span style={{ position: 'absolute', bottom: -3, right: -3, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={window.guestName?window.guestName(c.guests[0]):c.guests[0]} size={18} /></span>}
+                  {c.guests && c.guests.length > 0 && <span style={{ position: 'absolute', bottom: -3, right: -3, borderRadius: 99, boxShadow: `0 0 0 2px ${P.surface}` }}><Avatar name={safeGuestName(c.guests[0])} size={18} /></span>}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}{c.guests && c.guests.length > 0 ? <span style={{ color: P.inkMute, fontWeight: 600 }}> +{c.guests.length}</span> : ''}</div>
@@ -1994,7 +2010,7 @@ window.MemberDetails = function MemberDetails({ customer, guests, onClose }) {
   ({ id: o.id, date: o.age || '—', items: o.items, total: o.total, tag: `${o.source} · ${o.channel} · ${o.pay}`, live: true }));
   const ARCHIVE = [{ id: '00219', date: 'Jun 8', items: 3, total: 41.0, tag: window.HW_BRANDS.name.jeeter + ' · Pre-Rolls' }, { id: '00204', date: 'Jun 1', items: 2, total: 28.5, tag: window.HW_BRANDS.name.lowell + ' · Flower' }, { id: '00188', date: 'May 24', items: 5, total: 96.2, tag: 'KIVA · Edibles' }, { id: '00171', date: 'May 18', items: 1, total: 15.0, tag: 'Allswell · Flower' }, { id: '00150', date: 'May 9', items: 4, total: 62.4, tag: 'West Coast Cure · Concentrates' }, { id: '00132', date: 'Apr 30', items: 2, total: 33.2, tag: 'AMMO · Vapes' }];
   const orders = [...liveOrders, ...ARCHIVE.filter((a) => !liveOrders.some((l) => l.id === 'ORD-' + a.id))];
-  const referrals = (guests && guests.length ? guests.map((g)=>window.guestName?window.guestName(g):g) : ['Dev Anand', 'Mia Tran']).slice(0, 4);
+  const referrals = (guests && guests.length ? guests.map(safeGuestName) : ['Dev Anand', 'Mia Tran']).slice(0, 4);
 
   // THE LIGHTBOX IS GONE WITH THE TILES IT MAGNIFIED. It had exactly one
   // subject — a 300px-tall version of the same gradient — and two entry points
