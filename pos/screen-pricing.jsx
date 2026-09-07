@@ -896,23 +896,41 @@
   // ("what's the normal underlying price" vs. "what could someone pay a
   // competitor today"), so deliberately sale-INCLUSIVE: with 57-80% of live
   // rows on sale depending on platform, excluding sale prices would report a
-  // "floor" nobody can actually pay. Uses priceCompareValue — the same
-  // pre-tax-when-known/raw-otherwise preference SubRow already bolds and the
-  // price filter already keys on — never a second comparison rule. Deduped
-  // by competitorKey, same reasoning as the average.
+  // "floor" nobody can actually pay.
+  //
+  // REAL BUG FOUND live (2026-09-07) using priceCompareValue here: it falls
+  // back to raw `price` when a row has no resolved pre_tax_price, which
+  // silently compares one store's tax-normalized figure against another
+  // store's still-tax-inclusive raw number — e.g. STIIIZY Wildomar and
+  // STIIIZY Pomona sell the exact same product at the exact same $34.17
+  // tax-inclusive price, but only Wildomar has a researched tax rate, so the
+  // old code reported "$27.32 cheapest" vs "$34.17 most expensive" — a
+  // fabricated spread that was really just "who has a computed pre-tax
+  // figure," not a real price difference. Uses effectivePreTax instead,
+  // which returns null (excluded, never a silent raw fallback) whenever a
+  // row can't be honestly normalized to pre-tax — same rule this file
+  // already enforces everywhere else that touches tax basis. Deduped by
+  // competitorKey, same reasoning as the average.
   function computeExtremes(group) {
     const bySource = new Map();
     group.rows.forEach(function (r) {
       const key = competitorKey(r);
       if (!bySource.has(key)) { bySource.set(key, r); }
     });
-    let cheapest = null, priciest = null;
+    let cheapest = null, priciest = null, comparableCount = 0;
     bySource.forEach(function (r) {
-      const v = priceCompareValue(r);
+      const v = effectivePreTax(r);
+      if (v == null) { return; }
+      comparableCount++;
       if (!cheapest || v < cheapest.value) { cheapest = { value: v, row: r }; }
       if (!priciest || v > priciest.value) { priciest = { value: v, row: r }; }
     });
-    return { cheapest: cheapest, priciest: priciest };
+    // Fewer than 2 honestly-comparable prices means there's nothing to call
+    // "cheapest vs. most expensive" — a single value isn't a range, and
+    // showing one row's price as both extremes would look like a real
+    // comparison that never happened.
+    if (comparableCount < 2) { return { cheapest: null, priciest: null, comparableCount: comparableCount }; }
+    return { cheapest: cheapest, priciest: priciest, comparableCount: comparableCount };
   }
 
   // One cell of the Cheapest / Avg / Most-Expensive strip. Never a blanket
@@ -983,16 +1001,18 @@
           {headline && <Pill kind={headline.kind} label={headline.label} />}
         </div>
 
-        {multiSource &&
+        {multiSource && (extremes.cheapest || avg.value != null) &&
           <div style={{ display: 'flex', background: P.surface2, borderTop: `1px solid ${P.hairline}` }}>
-            <PriceLadderCell label="Cheapest" value={extremes.cheapest.value} row={extremes.cheapest.row} />
+            {extremes.cheapest &&
+              <PriceLadderCell label="Cheapest" value={extremes.cheapest.value} row={extremes.cheapest.row} />}
             {avg.value != null &&
-              <div style={{ display: 'flex', borderLeft: `1px solid ${P.hairline}` }}>
+              <div style={{ display: 'flex', borderLeft: extremes.cheapest ? `1px solid ${P.hairline}` : 'none' }}>
                 <PriceLadderCell label="Avg full price" value={avg.value} isAvg avgMeta={{ count: avg.count, total: group.distinctSourceCount }} />
               </div>}
-            <div style={{ display: 'flex', borderLeft: `1px solid ${P.hairline}` }}>
-              <PriceLadderCell label="Most expensive" value={extremes.priciest.value} row={extremes.priciest.row} />
-            </div>
+            {extremes.priciest &&
+              <div style={{ display: 'flex', borderLeft: `1px solid ${P.hairline}` }}>
+                <PriceLadderCell label="Most expensive" value={extremes.priciest.value} row={extremes.priciest.row} />
+              </div>}
           </div>}
 
         {collapsed
