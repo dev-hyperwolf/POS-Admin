@@ -835,4 +835,4 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   </div>;
 };
 
-Object.assign(window, {});
+Object.assign(window, { MarketPricingSection, useShellMarketPricing, shellProbeKeys, MarketLadder, marketCaption, MarketStoreList, MarketSoloLine });

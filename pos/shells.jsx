@@ -183,9 +183,9 @@
       </div>
       {shared.map((f, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', marginBottom: 8, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: 9 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 11.5, fontWeight: 600, color: P.inkDim }}>{f.label}{f.flag && <FTag>{f.flag}</FTag>}</span>
-        <span style={{ textAlign: 'right', flex: '0 0 auto' }}>
+        <span style={{ textAlign: 'right', flex: '0 1 auto', minWidth: 0, maxWidth: '62%' }}>
           <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{f.value}</span>
-          {f.sub && <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>{f.sub}</span>}
+          {f.sub && <span style={{ display: 'block', fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2, wordBreak: 'break-word' }}>{f.sub}</span>}
         </span>
       </div>)}
       {(s.traits || []).length > 0 && <div style={{ marginTop: 14 }}>
@@ -232,7 +232,10 @@
 
       {layout === 'split' ?
       <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20, alignItems: 'start' }}>
-        {SharedCard}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {SharedCard}
+          <window.MarketPricingSection shell={s} />
+        </div>
         <div style={{ minWidth: 0 }}>
           {VarHead}
           <Card padding={0} style={{ overflow: 'hidden' }}>
@@ -273,7 +276,7 @@
             {shared.map((f, i) => <div key={i} style={{ background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, padding: '11px 13px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Ey style={{ fontSize: 10 }}>{f.label}</Ey>{f.flag && <FTag>{f.flag}</FTag>}</div>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, marginTop: 4 }}>{f.value}</div>
-              {f.sub && <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2 }}>{f.sub}</div>}
+              {f.sub && <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginTop: 2, wordBreak: 'break-word' }}>{f.sub}</div>}
             </div>)}
             {(s.traits || []).map((t, i) => <div key={'t' + i} style={{ background: P.surface2, border: `1px dashed ${P.hairline2}`, borderRadius: P.r10, padding: '11px 13px' }}>
               <Ey style={{ fontSize: 10 }}>{t.label}</Ey>
@@ -281,6 +284,7 @@
             </div>)}
           </div>
         </Card>
+        <window.MarketPricingSection shell={s} />
         {VarHead}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
           {s.variations.map((v) => <Card key={v.sku} hover padding={14}>
