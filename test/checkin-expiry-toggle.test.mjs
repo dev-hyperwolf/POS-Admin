@@ -418,6 +418,23 @@ const inSoftLapse = (app, label) => {
   return !!b && [...b.querySelectorAll('button')]
     .some((x) => (x.textContent || '').trim() === label);
 };
+/* SCOPED TO THE PRIMARY CARD, DELIBERATELY. 01647c9 ("Guest-add: rename
+ * button, lead with ID scan, drop waiting-room pool") gave Step 3's
+ * GuestEditor its own always-on window.IdScanPanel, so a stubbed
+ * window.IdScanPanel now renders a SECOND "STUB SCAN" button on this same
+ * screen — one that has nothing to do with the primary customer's document.
+ * `app.buttons()` / `app.click()` see the whole document and cannot tell the
+ * two apart; a check for the primary card's own scanner has to stay inside
+ * `[data-hw="primary-card"]` (checkin.jsx ~985) or it starts asserting
+ * against a control Step 3 owns. */
+const primaryCardButtons = (app) => {
+  const el = app.document.querySelector('[data-hw="primary-card"]');
+  return el ? [...el.querySelectorAll('button')].map((b) => (b.textContent || '').trim()) : [];
+};
+const primaryCardStub = (app) => {
+  const el = app.document.querySelector('[data-hw="primary-card"]');
+  return el && el.querySelector('[data-hw-stub-value]');
+};
 
 test('THE DEAD END: a soft-lapsed allow offers the scanner the sentence beside it just asked for', async () => {
   await withApp('pos', async (app) => {
@@ -449,16 +466,16 @@ test('the control is the SHARED scanner, and it opens ready to READ rather than 
   await withApp('pos', async (app) => {
     setSwitch(app, { contract: false });
     await primaryCard(app, LAPSED, { ...CURRENT, name: 'Marcus Webb' });
-    assert.ok(!app.buttons().includes('STUB SCAN'),
+    assert.ok(!primaryCardButtons(app).includes('STUB SCAN'),
       'the scanner is behind the affordance, not always open — this card already carries a ' +
       'pill, a document line and a banner');
     assert.ok(app.click('Scan a current ID'));
     await app.settle();
-    assert.ok(app.buttons().includes('STUB SCAN'),
+    assert.ok(primaryCardButtons(app).includes('STUB SCAN'),
       'window.IdScanPanel is what opens — the same control the no-document branch, the ' +
       'new-customer form and GuestEditor all render. A second scanner would be a second thing ' +
       'to keep in step');
-    assert.equal(app.document.querySelector('[data-hw-stub-value]').getAttribute('data-hw-stub-value'), 'null',
+    assert.equal(primaryCardStub(app).getAttribute('data-hw-stub-value'), 'null',
       'and it is handed NOTHING, so it opens ready to read. Handed the lapsed document it ' +
       'would open on its own done-state card — the expiry printed a third time, with a ' +
       'Re-scan button hidden behind a Scan button');
@@ -548,7 +565,7 @@ test('a re-scan that reads SOMEBODY ELSE says so, instead of the card not moving
       'the operator scans, the card does not move, and nothing says why');
     assert.match(t, /Dana Vance/, 'naming what the barcode read');
     assert.equal(hasSoftLapse(app), true, 'and the lapse is untouched, because nothing was bound');
-    assert.ok(!app.buttons().includes('STUB SCAN'),
+    assert.ok(!primaryCardButtons(app).includes('STUB SCAN'),
       'the mismatch takes the scanner\'s place rather than sitting under it — one question at a time');
   });
 });

@@ -982,7 +982,7 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
           <div>
             <Eyebrow style={{ marginBottom: 9 }}>Customer</Eyebrow>
             {customer ?
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div data-hw="primary-card" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {/* Hot notes (safety/fraud/staff-conflict flags) — must be read at
                   the earliest point of contact, not only once a sale is already
                   underway. Previously wired only into the back-office Members
