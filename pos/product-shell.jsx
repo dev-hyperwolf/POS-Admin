@@ -63,6 +63,272 @@ function MiniSwitch({ on, onChange, color }) {
   </button>;
 }
 
+// ── Market Pricing — built into the shell editor, never a modal-on-a-modal ──
+// Owner's own words: "I want to build this into the shell page design vs it
+// being a modal that pops up - less clicks is better and I want to include
+// the meter from the second design". So: Concept A's PLACEMENT (a permanent
+// section inside ShellEditModal, rendered the instant the modal opens, never
+// a click-to-expand toggle) + Concept B's VISUAL (a horizontal price ladder
+// with a marker for Hyperwolf's own price, instead of a 4-box stat strip).
+//
+// All matching/tax logic is reused verbatim from pos/pricing-shared.jsx
+// (window.HW_PRICING) — the exact same groupKey()/effectivePreTax()/
+// computeExtremes()/computeAvgFull() the Pricing screen (pos/screen-
+// pricing.jsx) uses. No second matcher, no second tax-basis rule.
+//
+// Hyperwolf's own shelf price IS pre-tax, by the same definition
+// effectivePreTax() already uses for a competitor row with
+// price_tax_basis === 'exclusive' — this is verified, not assumed:
+// pos/sales-panel.jsx's SALES_TAX table (local cannabis + state excise +
+// state sales tax) is computed ON TOP of the line price at checkout
+// (`sub * (1 + SALES_TAX_RATE)`), never baked into it. So
+// SH.effectivePrice(shell) is already the pre-tax figure this comparison
+// needs — no computation, no guess.
+
+// One probe per distinct flavor/variation concept the shell represents, fed
+// through groupKey() exactly as a real competitor row would be — never a
+// second matching algorithm. A shell with zero variations yet still gets one
+// probe from brand + weight alone. A shell can resolve to more than one live
+// group (each flavor is its own product); every group that matches
+// contributes its rows to one combined comparison, since the number being
+// compared (SH.effectivePrice) is a single, shell-level price, not per-
+// variation.
+function shellProbeKeys(shell) {
+  const HP = window.HW_PRICING;
+  const variations = (shell.variations && shell.variations.length) ? shell.variations : [null];
+  const keys = new Set();
+  variations.forEach(function (v) {
+    const productName = [shell.brand, v && v.name, shell.weight].filter(Boolean).join(' ');
+    const key = HP.groupKey({ brand: shell.brand, product_name: productName });
+    if (key) { keys.add(key); }
+  });
+  return keys;
+}
+
+// Fetches the full live listing set once per shell and reduces it to exactly
+// the shape the render below needs. Three real outcomes, matching the
+// honest match-rate reality this codebase has already measured live
+// (multi-source matches are a small fraction of the catalog):
+//   0  — no competitor listings matched this shell at all.
+//   1  — comparableCount < 2 (mirrors computeExtremes' own "a single value
+//        isn't a range" rule EXACTLY, so this can trigger even with 2+ raw
+//        listings if fewer than 2 of them have a resolvable tax basis).
+//   2+ — a real range: full ladder + caption + store list.
+function useShellMarketPricing(shell) {
+  const [http, setHttp] = React.useState(null); // null = still loading
+  React.useEffect(function () {
+    let live = true;
+    setHttp(null);
+    window.HW_PRICING.fetchAllListings({}).then(function (r) { if (live) { setHttp(r); } });
+    return function () { live = false; };
+  }, [shell.id]);
+
+  return React.useMemo(function () {
+    if (!http) { return { status: 'loading' }; }
+    if (!http.ok || !http.parsed || !http.body || !Array.isArray(http.body.listings)) {
+      return { status: 'error', http: http };
+    }
+    const HP = window.HW_PRICING;
+    const keys = shellProbeKeys(shell);
+    const rows = keys.size ? http.body.listings.filter(function (row) {
+      const k = HP.groupKey(row);
+      return k != null && keys.has(k);
+    }) : [];
+    const distinctStores = new Set(rows.map(HP.competitorKey)).size;
+    if (distinctStores === 0) { return { status: 'ready', storeCount: 0 }; }
+
+    const group = { rows: rows };
+    const extremes = HP.computeExtremes(group);
+    if (extremes.comparableCount < 2) {
+      // Not a range — find the single best row to cite as plain text: prefer
+      // one with a resolvable pre-tax figure, otherwise just the first
+      // distinct store found (still honestly labeled with its own tax note).
+      const bySource = new Map();
+      rows.forEach(function (r) { const k = HP.competitorKey(r); if (!bySource.has(k)) { bySource.set(k, r); } });
+      const candidates = [...bySource.values()];
+      const solo = candidates.filter(function (r) { return HP.effectivePreTax(r) != null; })[0] || candidates[0];
+      return { status: 'ready', storeCount: distinctStores, solo: solo };
+    }
+    return { status: 'ready', storeCount: distinctStores, rows: rows, extremes: extremes, avg: HP.computeAvgFull(group) };
+  }, [http, shell.id, shell.brand, shell.weight, shell.variations]);
+}
+
+// A store's platform id, human-readable, without pulling in screen-
+// pricing.jsx's private SOURCE_LABEL table (that stays there — this only
+// needs a readable fallback for the rare row with no store_name).
+function marketSourceLabel(row) {
+  if (row.store_name) { return row.store_name; }
+  return String(row.source || 'Unknown source').replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+}
+
+function MarketTaxNote({ row }) {
+  const P = useP();
+  const HP = window.HW_PRICING;
+  const known = HP.knownBasis(row);
+  const note = known ? 'pre-tax'
+    : row.price_tax_basis === 'inclusive' ? 'tax incl.'
+    : row.price_tax_basis === 'exclusive' ? '+ tax at checkout'
+    : null;
+  if (!note) { return null; }
+  return <span style={{ fontSize: 10, fontWeight: 600, color: known ? P.good : P.inkMute }}> {note}</span>;
+}
+
+// Exactly one competitor matched — a ladder needs two ends to mean anything,
+// so this is deliberately plain text, no marker graphic, no color coding.
+function MarketSoloLine({ row }) {
+  const P = useP();
+  const HP = window.HW_PRICING;
+  const preTax = HP.effectivePreTax(row);
+  const value = preTax != null ? preTax : row.price;
+  return (
+    <div style={{ fontSize: 13, color: P.ink }}>
+      <span style={{ fontFamily: P.fontMono, fontWeight: 800 }}>{HP.money(value)}</span>
+      <MarketTaxNote row={row} />
+      {' at '}
+      <strong>{marketSourceLabel(row)}</strong>
+      {row.store_city ? ', ' + row.store_city : ''}
+      {' — nearest listing found.'}
+    </div>
+  );
+}
+
+// Concept B's horizontal price ladder: low/high labels from the comparable
+// competitor extremes ONLY (never widened by Hyperwolf's own price — a
+// price cheaper or pricier than every competitor still renders at the 0%/
+// 100% end of the same track, per Concept B's own spec), with a marker for
+// Hyperwolf's own pre-tax price. Good/bad/accent color follows position:
+// cheapest end reads good, priciest end reads bad, in between reads as the
+// shell's own accent color — a labeled participant, never just another
+// competitor.
+function MarketLadder({ extremes, ownPreTax }) {
+  const P = useP();
+  const HP = window.HW_PRICING;
+  const lo = extremes.cheapest.value, hi = extremes.priciest.value;
+  const span = hi - lo;
+  const pct = span > 0 ? Math.min(1, Math.max(0, (ownPreTax - lo) / span)) : 0.5;
+  const ownColor = ownPreTax <= lo ? P.good : ownPreTax >= hi ? P.bad : P.accent;
+  return (
+    <div style={{ margin: '2px 0 10px' }}>
+      <div style={{ position: 'relative', height: 22, margin: '0 2px 4px' }}>
+        <div style={{ position: 'absolute', top: 9, left: 0, right: 0, height: 3, borderRadius: 99, background: P.hairline2 }} />
+        <div title={'Hyperwolf ' + HP.money(ownPreTax) + ' pre-tax'}
+          style={{ position: 'absolute', top: 2, left: `calc(${pct * 100}% - 8px)`, width: 16, height: 16, borderRadius: 99,
+            background: ownColor, border: `2px solid ${P.bg}`, boxShadow: '0 1px 4px rgba(0,0,0,.35)' }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontSize: 10, color: P.inkMute, lineHeight: 1.3 }}>
+          <span style={{ fontFamily: P.fontMono, fontWeight: 800, fontSize: 12.5, color: P.ink }}>{HP.money(lo)}</span><br />nearby low
+        </div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: ownColor, textAlign: 'center', lineHeight: 1.3 }}>
+          Hyperwolf<br /><span style={{ fontFamily: P.fontMono, fontWeight: 800, fontSize: 12.5 }}>{HP.money(ownPreTax)}</span>
+        </div>
+        <div style={{ fontSize: 10, color: P.inkMute, textAlign: 'right', lineHeight: 1.3 }}>
+          <span style={{ fontFamily: P.fontMono, fontWeight: 800, fontSize: 12.5, color: P.ink }}>{HP.money(hi)}</span><br />nearby high
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// One honest sentence, computed by inserting Hyperwolf's own value into the
+// exact same comparable set computeExtremes() already built (one resolvable
+// pre-tax figure per distinct store) — never a second, looser ranking.
+function marketCaption(rows, ownPreTax) {
+  const HP = window.HW_PRICING;
+  const bySource = new Map();
+  rows.forEach(function (r) { const k = HP.competitorKey(r); if (!bySource.has(k)) { bySource.set(k, r); } });
+  const values = [...bySource.values()].map(HP.effectivePreTax).filter(function (v) { return v != null; });
+  const M = values.length;
+  const cheaperThanOwn = values.filter(function (v) { return v > ownPreTax; }).length; // stores we're below
+  const pricierThanOwn = values.filter(function (v) { return v < ownPreTax; }).length; // stores we're above
+  const tied = M - cheaperThanOwn - pricierThanOwn;
+  if (cheaperThanOwn === M) { return `The lowest of ${M} nearby stores.`; }
+  if (tied === M) { return `Tied with ${M} of ${M} nearby stores.`; }
+  if (cheaperThanOwn >= pricierThanOwn) { return `Priced below ${cheaperThanOwn} of ${M} nearby stores.`; }
+  return `Priced above ${pricierThanOwn} of ${M} nearby stores.`;
+}
+
+// The detail list under the ladder — the owner didn't ask to drop this, only
+// to replace the stat-strip with a meter, so every real competitor stays
+// visible (the "less clicks" point: nothing hidden behind another click).
+// Collapses past 8 distinct stores (same threshold screen-pricing.jsx uses
+// for its own overflow case) so a 44-store match doesn't turn the modal into
+// a wall of rows.
+function MarketStoreList({ rows }) {
+  const P = useP();
+  const HP = window.HW_PRICING;
+  const [expanded, setExpanded] = React.useState(false);
+  const bySource = new Map();
+  rows.forEach(function (r) { const k = HP.competitorKey(r); if (!bySource.has(k)) { bySource.set(k, r); } });
+  const sorted = [...bySource.values()].sort(function (a, b) {
+    const va = HP.effectivePreTax(a), vb = HP.effectivePreTax(b);
+    if ((va != null) !== (vb != null)) { return va != null ? -1 : 1; }
+    if (va != null && vb != null) { return va - vb; }
+    return 0;
+  });
+  const THRESHOLD = 8;
+  const visible = expanded ? sorted : sorted.slice(0, THRESHOLD);
+  return (
+    <div style={{ borderTop: `1px solid ${P.hairline}`, marginTop: 2 }}>
+      {visible.map(function (row, i) {
+        const preTax = HP.effectivePreTax(row);
+        const value = preTax != null ? preTax : row.price;
+        return (
+          <div key={HP.competitorKey(row) + ':' + i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 2px', borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{marketSourceLabel(row)}</span>
+              {row.store_city && <span style={{ fontSize: 10, color: P.inkMute }}> · {row.store_city}</span>}
+            </div>
+            <div style={{ fontSize: 12.5, fontWeight: 800, fontFamily: P.fontMono, color: P.ink, flex: '0 0 auto' }}>
+              {HP.money(value)}<MarketTaxNote row={row} />
+            </div>
+          </div>
+        );
+      })}
+      {!expanded && sorted.length > THRESHOLD &&
+        <button onClick={function (e) { e.stopPropagation(); setExpanded(true); }}
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 2px', background: 'none', border: 'none', borderTop: `1px solid ${P.hairline}`, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: P.info }}>
+          Show all {sorted.length} stores
+        </button>}
+    </div>
+  );
+}
+
+function MarketPricingSection({ shell }) {
+  const P = useP();
+  const HP = window.HW_PRICING;
+  const state = useShellMarketPricing(shell);
+  const ownPreTax = SH.effectivePrice(shell); // pre-tax by definition — see file comment above
+
+  return (
+    <div style={{ marginBottom: 18, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: `1px solid ${P.hairline}` }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Market pricing</span>
+        {state.status === 'ready' && state.storeCount > 0 &&
+          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono }}>
+            {state.storeCount} store{state.storeCount === 1 ? '' : 's'} tracked
+          </span>}
+      </div>
+      <div style={{ padding: '12px 14px' }}>
+        {state.status === 'loading' &&
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>Checking live competitor pricing…</div>}
+        {state.status === 'error' &&
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>Competitor pricing unavailable right now{state.http && state.http.netError ? ' — ' + state.http.netError : ''}.</div>}
+        {state.status === 'ready' && state.storeCount === 0 &&
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>No competitor listings matched for this shell yet.</div>}
+        {state.status === 'ready' && state.storeCount > 0 && state.solo &&
+          <MarketSoloLine row={state.solo} />}
+        {state.status === 'ready' && state.rows &&
+          <React.Fragment>
+            <MarketLadder extremes={state.extremes} ownPreTax={ownPreTax} />
+            <div style={{ fontSize: 12, fontWeight: 600, color: P.inkDim, marginBottom: 8 }}>{marketCaption(state.rows, ownPreTax)}</div>
+            <MarketStoreList rows={state.rows} />
+          </React.Fragment>}
+      </div>
+    </div>
+  );
+}
+
 // ── Edit a shell — the same form the Shells module uses, in a modal ────────
 window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave }) {
   const P = useP();
@@ -81,6 +347,7 @@ window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave })
         <IconBtn icon="x" size={16} onClick={onClose} />
       </div>
       <div style={{ padding: 20, maxHeight: '72vh', overflowY: 'auto' }}>
+        <MarketPricingSection shell={shell} />
         <window.ShellForm editingId={shell.id} compact onCancel={onClose} onSaved={() => {onSave && onSave();onClose();}} />
       </div>
     </div>
