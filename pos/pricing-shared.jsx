@@ -326,10 +326,250 @@
     });
   }
 
+  // ── category filter — 46 raw strings, 13 sources, zero shared taxonomy ────
+  // Verified live 2026-09-06 via GET /api/pricing/facets (see scratch/
+  // pricing-filters-data-audit.md and scratch/pricing-filters-elite-design.md
+  // for the full raw-value table this was built from). Folds case/plural/
+  // synonym variants into one canonical bucket per real product type.
+  const CATEGORY_FOLD = {
+    flower: 'flower', flowers: 'flower',
+    vape: 'vape', vapes: 'vape', vaporizers: 'vape', pods: 'vape', 'vapes pods': 'vape',
+    cartridge: 'vape', cartridges: 'vape', '510 cartridges': 'vape', disposables: 'vape', battery: 'vape',
+    'pre-roll': 'preroll', 'pre-rolls': 'preroll', preroll: 'preroll', prerolls: 'preroll',
+    'pre-roll infused': 'preroll', 'infused prerolls': 'preroll', 'pre-roll flower': 'preroll',
+    edible: 'edibles', edibles: 'edibles', capsules: 'edibles',
+    concentrate: 'concentrate', concentrates: 'concentrate', extract: 'concentrate', extracts: 'concentrate',
+    diamonds: 'concentrate', batter: 'concentrate', crumble: 'concentrate', hash: 'concentrate',
+    tinctures: 'tincture',
+    topical: 'topical', topicals: 'topical',
+    accessories: 'other', gear: 'other'
+  };
+  // Category values that are NOT product types at all — a strain name leaked
+  // into the category field at the source. Historically this was blind
+  // (weedmaps' own category column is a STRAIN type, a mislabeling on
+  // Weedmaps' own side), but weedmaps_adapter.py now also scrapes a real
+  // `edge_category` field for the actual product type, and it IS returned by
+  // this API (see EDGE_CATEGORY_FOLD below) — categoryBucket() prefers it.
+  // This fold/misfiled table stays as the fallback for every row where
+  // edge_category is empty (every non-weedmaps source, plus any weedmaps row
+  // the scraper didn't get an edge_category for).
+  const CATEGORY_MISFILED = { indica: 1, sativa: 1, hybrid: 1 };
+  // Weedmaps' real product-type taxonomy, scraped into `edge_category`.
+  // Verified live 2026-09-07 against all 40,137 weedmaps rows (full paged
+  // GET /api/pricing/listings?source=weedmaps) — every value below is a real
+  // value seen in that response; nothing here is invented. Folding this in
+  // place of the old category-only heuristic took weedmaps' row-level
+  // misfiled+uncategorized share from 37,747/40,137 (94.0%) to 0/40,137, and
+  // the "Not categorized" group-level filter tab (all 15 sources combined)
+  // from 38,128/48,571 groups (78.5%) to 381/48,571 (0.8%).
+  const EDGE_CATEGORY_FOLD = {
+    buds: 'flower', smalls: 'flower', flower: 'flower', ground: 'flower', 'infused flower': 'flower',
+    'all-in-one': 'vape', pods: 'vape', cartridge: 'vape', batteries: 'vape', 'vape pens': 'vape', 'push button': 'vape',
+    joints: 'preroll', minis: 'preroll', 'infused joints': 'preroll', 'infused minis': 'preroll',
+    'infused blunts': 'preroll', 'infused pre-rolls': 'preroll', 'pre-rolls': 'preroll',
+    gummies: 'edibles', capsules: 'edibles', drinks: 'edibles', chocolates: 'edibles', carbonated: 'edibles',
+    'non-carbonated': 'edibles', mints: 'edibles', 'baked goods': 'edibles', edibles: 'edibles', tablets: 'edibles',
+    concentrates: 'concentrate', sugar: 'concentrate', badder: 'concentrate', rosin: 'concentrate',
+    diamonds: 'concentrate', crumble: 'concentrate', solvent: 'concentrate', kief: 'concentrate', sauce: 'concentrate',
+    tinctures: 'tincture',
+    balms: 'topical', patches: 'topical',
+    gear: 'other', accessories: 'other', other: 'other', 'rolling papers': 'other', apparel: 'other'
+  };
+
+  // Takes the row (or row-shaped object with .category / .edge_category) —
+  // NOT just the raw category string — because edge_category, when present,
+  // is a strictly better signal than category and must be checked first.
+  function categoryBucket(row) {
+    const edgeKey = String((row && row.edge_category) || '').toLowerCase().trim();
+    if (edgeKey && EDGE_CATEGORY_FOLD[edgeKey]) { return EDGE_CATEGORY_FOLD[edgeKey]; }
+    const key = String((row && row.category) || '').toLowerCase().trim();
+    if (!key) { return 'uncategorized'; }
+    if (CATEGORY_MISFILED[key]) { return 'misfiled'; }
+    return CATEGORY_FOLD[key] || 'uncategorized';
+  }
+
+  // ── shell-level matching ─────────────────────────────────────────────────
+
+  // shell.cat is one of TAX's seven keys (pos/shell-store.jsx:8-31). categoryBucket()
+  // returns one of ten values. This is the bridge, and it is explicit on purpose —
+  // a fuzzy match here reintroduces exactly the 31.4%-of-rows cross-category
+  // conflation that requiring a category is meant to prevent.
+  const SHELL_CAT_BUCKETS = {
+    'Flower':       ['flower'],
+    'Pre-Rolls':    ['preroll'],
+    'Vapes':        ['vape'],
+    'Concentrates': ['concentrate'],
+    'Edibles':      ['edibles'],
+    'Accessories':  ['other']
+    // 'Wellness' is deliberately absent — resolved by shell.sub below.
+  };
+  // TAX's Wellness subs are six different real product forms
+  // (pos/shell-store.jsx:26-28). Three map to one bucket each. The other three
+  // ('CBD', 'Ratio Products', 'Pet') name a cannabinoid profile, not a form, and
+  // honestly could be any of the three wellness buckets — so they accept all three.
+  // Collision-checked live: of 235 (brand, weight) pairs that appear in
+  // {tincture, topical, edibles}, exactly ONE spans more than one of them
+  // (papa&barkley 15ml: topical 5, edibles 1 — the same brand's own line), so the
+  // permissive set is safe.
+  const WELLNESS_SUB_BUCKETS = {
+    'Tinctures': ['tincture'],
+    'Topicals':  ['topical'],
+    'Capsules':  ['edibles']
+  };
+  const WELLNESS_FALLBACK = ['tincture', 'topical', 'edibles'];
+
+  function shellCategoryBuckets(shell) {
+    const cat = shell && shell.cat;
+    if (!cat) { return null; }
+    if (cat === 'Wellness') {
+      return WELLNESS_SUB_BUCKETS[shell.sub] || WELLNESS_FALLBACK;
+    }
+    return SHELL_CAT_BUCKETS[cat] || null;
+  }
+
+  // The SHELL's own identity — the three attributes every variation under one
+  // shell shares by definition (pos/product-shell.jsx:1-16). This is NOT
+  // groupKey(): groupKey() additionally requires the product-name core to match,
+  // which is the thing that made this feature return zero for all 12 real shells.
+  //
+  // Returns null when any of the three cannot be resolved. A null key means
+  // "there is nothing here to compare" and MUST degrade to a stated
+  // not-enough-information state — never to a looser match, never to a number.
+  function shellIdentityKey(shell) {
+    if (!shell) { return null; }
+    const brand = normalizeBrand(shell.brand);
+    if (!brand) { return null; }
+    // shell.weight is written as amount+unit by BOTH writers — seed()
+    // (pos/shell-store.jsx:90) and saveShell() (pos/shell-store.jsx:170) — e.g.
+    // "3.5g", "100mg", "5ct". It MUST be run through extractWeight(), not
+    // compared as a raw string: extractWeight folds ct -> pk via UNIT_SYNONYMS
+    // (pos/pricing-shared.jsx:92), so a "5ct" shell must become "5pk" to match a
+    // listing that says "5 count". Verified round-trip for every preset in TAX
+    // (pos/shell-store.jsx:8-31): 1g/3.5g/7g/14g/28g/0.5g/1.75g/2.5g/5g/0.3g/2g
+    // /10mg/100mg/200mg/1000mg/30ml/60ml/500mg all map to themselves;
+    // 1ct/2ct/5ct map to 1pk/2pk/5pk.
+    const w = extractWeight(shell.weight);
+    if (!w) { return null; }
+    const buckets = shellCategoryBuckets(shell);
+    if (!buckets || !buckets.length) { return null; }
+    return { brand: brand, weight: w.norm, buckets: buckets };
+  }
+
+  // Field-by-field, with no fallbacks:
+  //   brand    — normalizeBrand(row.brand) must EQUAL key.brand. row.brand is null
+  //              on a large share of rows; normalizeBrand(null) returns null and
+  //              null !== any string, so those rows are excluded. That is correct:
+  //              a row with no brand cannot be proven to be this brand.
+  //   weight   — extractWeight(row.product_name).norm must EQUAL key.weight. Note
+  //              the weight comes from the product NAME TEXT, exactly as groupKey()
+  //              (pos/pricing-shared.jsx:150-157) already reads it. There is no
+  //              structured weight column on a listing.
+  //   category — categoryBucket(row) must be one of key.buckets. categoryBucket
+  //              prefers row.edge_category over row.category (commit fc9c4ff); rows
+  //              that resolve to 'uncategorized' or 'misfiled' match NOTHING and are
+  //              excluded, because a row whose product type is unknown cannot be
+  //              proven to be this shell's type. Cost measured live: 798 of 13,632
+  //              brand+weight-resolvable rows (5.9%), and only 40 of 1,114 brand+
+  //              weight pairs are 100% uncategorized.
+  // Product NAME is deliberately NOT compared. That is the whole change.
+  function listingMatchesShell(row, key) {
+    if (!row || !key) { return false; }
+    if (normalizeBrand(row.brand) !== key.brand) { return false; }
+    const w = extractWeight(row.product_name);
+    if (!w || w.norm !== key.weight) { return false; }
+    return key.buckets.indexOf(categoryBucket(row)) >= 0;
+  }
+
+  // Shell-level average. One vote per distinct competitor (competitorKey), where a
+  // competitor's vote is the MEAN of its own matching listings — not whichever row
+  // the fetch happened to return first, which at shell level is arbitrary and was
+  // measured to move the answer by up to $3.83.
+  // Exact (product_name, price) repeats within one store are collapsed first:
+  // 16,707 of 56,938 live rows (29.3%) are exact duplicates and would otherwise
+  // double-weight one product inside a store's own mean.
+  // Return shape is IDENTICAL to computeAvgFull()'s — { value, count } — so any
+  // caller reading .value / .count needs no change. `count` is the number of
+  // DISTINCT COMPETITORS contributing, same meaning as before.
+  function computeAvgFullAcross(rows) {
+    const byStore = new Map();          // competitorKey -> Map(dedupKey -> value)
+    (rows || []).forEach(function (r) {
+      const v = comparableFullPrice(r);
+      if (v == null) { return; }
+      const sk = competitorKey(r);
+      if (!byStore.has(sk)) { byStore.set(sk, new Map()); }
+      byStore.get(sk).set(String(r.product_name) + '|' + r.price, v);
+    });
+    const storeMeans = [];
+    byStore.forEach(function (m) {
+      const vs = [...m.values()];
+      storeMeans.push(vs.reduce(function (a, b) { return a + b; }, 0) / vs.length);
+    });
+    // Same "a single value is not an average across retailers" rule as
+    // computeAvgFull() — fewer than 2 distinct competitors returns null, never a
+    // one-store number dressed up as a market average.
+    return {
+      value: storeMeans.length >= 2
+        ? storeMeans.reduce(function (a, b) { return a + b; }, 0) / storeMeans.length
+        : null,
+      count: storeMeans.length
+    };
+  }
+
+  // Shell-level extremes. Sale-inclusive, effectivePreTax-normalized, same as
+  // computeExtremes(). Min/max are taken over ALL matching rows — deduping to one
+  // row per store before a min/max throws away the actual cheapest and priciest
+  // listing (measured: wrong range in 27 of 330 live shell-level groups, e.g.
+  // alteredalchemy 1g concentrate, whose real high is $27.76 and whose deduped
+  // high is $12.00).
+  // The >= 2 gate counts DISTINCT COMPETITORS with at least one comparable price —
+  // four prices at one store is one store, and is not a market range.
+  // Return shape is IDENTICAL to computeExtremes()'s:
+  //   { cheapest: {value, row} | null, priciest: {value, row} | null,
+  //     comparableCount: <distinct competitors>, comparableRows: <row count> }
+  // (comparableRows is new and additive; MarketLadder at product-shell.jsx:203
+  //  reads only .cheapest.value / .priciest.value and needs no change.)
+  function computeExtremesAcross(rows) {
+    let cheapest = null, priciest = null, comparableRows = 0;
+    const stores = new Set();
+    (rows || []).forEach(function (r) {
+      const v = effectivePreTax(r);
+      if (v == null) { return; }
+      comparableRows++;
+      stores.add(competitorKey(r));
+      if (!cheapest || v < cheapest.value) { cheapest = { value: v, row: r }; }
+      if (!priciest || v > priciest.value) { priciest = { value: v, row: r }; }
+    });
+    if (stores.size < 2) {
+      return { cheapest: null, priciest: null, comparableCount: stores.size, comparableRows: comparableRows };
+    }
+    return { cheapest: cheapest, priciest: priciest, comparableCount: stores.size, comparableRows: comparableRows };
+  }
+
+  // One full listing load per page session, shared by every Market Pricing mount.
+  // The matched set now depends only on (brand, weight, category) — nothing
+  // per-shell — so there is nothing to key a per-shell fetch on. TTL guards against
+  // a long-lived tab going stale.
+  let _allCache = null, _allCacheAt = 0;
+  const ALL_CACHE_MS = 5 * 60 * 1000;
+  function fetchAllListingsCached() {
+    const now = Date.now();
+    if (_allCache && (now - _allCacheAt) < ALL_CACHE_MS) { return _allCache; }
+    _allCacheAt = now;
+    _allCache = fetchAllListings({}).then(function (r) {
+      // Never cache a failure — a transient 502 must not pin an error for 5 minutes.
+      if (!r || !r.ok) { _allCache = null; _allCacheAt = 0; }
+      return r;
+    });
+    return _allCache;
+  }
+
   window.HW_PRICING = {
     PRICING_BASE, ROUTE_LISTINGS, getJSON, qs,
     normalizeBrand, normalizeBrandSpaced, extractWeight, coreWords, normalizeNameCore, groupKey, competitorKey,
     knownBasis, money, effectivePreTax, fullPrice, comparableFullPrice,
-    computeAvgFull, computeExtremes, fetchAllListings
+    computeAvgFull, computeExtremes, fetchAllListings,
+    CATEGORY_FOLD, CATEGORY_MISFILED, EDGE_CATEGORY_FOLD, categoryBucket,
+    shellCategoryBuckets, shellIdentityKey, listingMatchesShell,
+    computeAvgFullAcross, computeExtremesAcross, fetchAllListingsCached
   };
 })();

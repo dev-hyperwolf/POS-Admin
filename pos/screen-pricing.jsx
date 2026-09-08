@@ -125,7 +125,7 @@
   const { PRICING_BASE, ROUTE_LISTINGS, getJSON, qs, normalizeBrand, normalizeBrandSpaced, extractWeight,
     coreWords, normalizeNameCore, groupKey, competitorKey, knownBasis, money,
     effectivePreTax, fullPrice, comparableFullPrice, computeAvgFull, computeExtremes,
-    fetchAllListings } = window.HW_PRICING;
+    fetchAllListings, categoryBucket } = window.HW_PRICING;
 
   // Display name: same word set as the matching key, but taken from whichever
   // group member phrases it with the FEWEST leftover words (after stripping
@@ -170,55 +170,9 @@
 
   // knownBasis and money are shared (pos/pricing-shared.jsx) — destructured above.
 
-  // ── category filter — 46 raw strings, 13 sources, zero shared taxonomy ────
-  // Verified live 2026-09-06 via GET /api/pricing/facets (see scratch/
-  // pricing-filters-data-audit.md and scratch/pricing-filters-elite-design.md
-  // for the full raw-value table this was built from). Folds case/plural/
-  // synonym variants into one canonical bucket per real product type.
-  const CATEGORY_FOLD = {
-    flower: 'flower', flowers: 'flower',
-    vape: 'vape', vapes: 'vape', vaporizers: 'vape', pods: 'vape', 'vapes pods': 'vape',
-    cartridge: 'vape', cartridges: 'vape', '510 cartridges': 'vape', disposables: 'vape', battery: 'vape',
-    'pre-roll': 'preroll', 'pre-rolls': 'preroll', preroll: 'preroll', prerolls: 'preroll',
-    'pre-roll infused': 'preroll', 'infused prerolls': 'preroll', 'pre-roll flower': 'preroll',
-    edible: 'edibles', edibles: 'edibles', capsules: 'edibles',
-    concentrate: 'concentrate', concentrates: 'concentrate', extract: 'concentrate', extracts: 'concentrate',
-    diamonds: 'concentrate', batter: 'concentrate', crumble: 'concentrate', hash: 'concentrate',
-    tinctures: 'tincture',
-    topical: 'topical', topicals: 'topical',
-    accessories: 'other', gear: 'other'
-  };
-  // Category values that are NOT product types at all — a strain name leaked
-  // into the category field at the source. Historically this was blind
-  // (weedmaps' own category column is a STRAIN type, a mislabeling on
-  // Weedmaps' own side), but weedmaps_adapter.py now also scrapes a real
-  // `edge_category` field for the actual product type, and it IS returned by
-  // this API (see EDGE_CATEGORY_FOLD below) — categoryBucket() prefers it.
-  // This fold/misfiled table stays as the fallback for every row where
-  // edge_category is empty (every non-weedmaps source, plus any weedmaps row
-  // the scraper didn't get an edge_category for).
-  const CATEGORY_MISFILED = { indica: 1, sativa: 1, hybrid: 1 };
-  // Weedmaps' real product-type taxonomy, scraped into `edge_category`.
-  // Verified live 2026-09-07 against all 40,137 weedmaps rows (full paged
-  // GET /api/pricing/listings?source=weedmaps) — every value below is a real
-  // value seen in that response; nothing here is invented. Folding this in
-  // place of the old category-only heuristic took weedmaps' row-level
-  // misfiled+uncategorized share from 37,747/40,137 (94.0%) to 0/40,137, and
-  // the "Not categorized" group-level filter tab (all 15 sources combined)
-  // from 38,128/48,571 groups (78.5%) to 381/48,571 (0.8%).
-  const EDGE_CATEGORY_FOLD = {
-    buds: 'flower', smalls: 'flower', flower: 'flower', ground: 'flower', 'infused flower': 'flower',
-    'all-in-one': 'vape', pods: 'vape', cartridge: 'vape', batteries: 'vape', 'vape pens': 'vape', 'push button': 'vape',
-    joints: 'preroll', minis: 'preroll', 'infused joints': 'preroll', 'infused minis': 'preroll',
-    'infused blunts': 'preroll', 'infused pre-rolls': 'preroll', 'pre-rolls': 'preroll',
-    gummies: 'edibles', capsules: 'edibles', drinks: 'edibles', chocolates: 'edibles', carbonated: 'edibles',
-    'non-carbonated': 'edibles', mints: 'edibles', 'baked goods': 'edibles', edibles: 'edibles', tablets: 'edibles',
-    concentrates: 'concentrate', sugar: 'concentrate', badder: 'concentrate', rosin: 'concentrate',
-    diamonds: 'concentrate', crumble: 'concentrate', solvent: 'concentrate', kief: 'concentrate', sauce: 'concentrate',
-    tinctures: 'tincture',
-    balms: 'topical', patches: 'topical',
-    gear: 'other', accessories: 'other', other: 'other', 'rolling papers': 'other', apparel: 'other'
-  };
+  // categoryBucket and its tables (CATEGORY_FOLD, CATEGORY_MISFILED, EDGE_CATEGORY_FOLD)
+  // are shared (pos/pricing-shared.jsx) — destructured above.
+
   // P is only reachable via useP() inside a component — same convention this
   // file already uses for sourceDot(P, source) — so this is a function of P,
   // not a module-level constant.
@@ -233,17 +187,6 @@
       topical: { label: 'Topicals', color: P.cat.wellness },
       other: { label: 'Accessories', color: P.cat.other }
     };
-  }
-  // Takes the row (or row-shaped object with .category / .edge_category) —
-  // NOT just the raw category string — because edge_category, when present,
-  // is a strictly better signal than category and must be checked first.
-  function categoryBucket(row) {
-    const edgeKey = String((row && row.edge_category) || '').toLowerCase().trim();
-    if (edgeKey && EDGE_CATEGORY_FOLD[edgeKey]) { return EDGE_CATEGORY_FOLD[edgeKey]; }
-    const key = String((row && row.category) || '').toLowerCase().trim();
-    if (!key) { return 'uncategorized'; }
-    if (CATEGORY_MISFILED[key]) { return 'misfiled'; }
-    return CATEGORY_FOLD[key] || 'uncategorized';
   }
 
   // ── strain filter — prefers the real structured field, text-scan as
