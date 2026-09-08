@@ -68,6 +68,7 @@
   };
   const CONTEST_DETAIL_SOURCE = ['incentives/screen-contest-detail.jsx', 'window.IncScreenContestDetail'];
   function sourceFor(path) {
+    if (/^\/contests\/[^/]+\/edit$/.test(path)) return SCREEN_SOURCE['/contests/new'];
     if (path.startsWith('/contests/') && path !== '/contests/new') return CONTEST_DETAIL_SOURCE;
     return SCREEN_SOURCE[path] || ['incentives/screen' + path.replace(/\//g, '-') + '.jsx', 'that screen'];
   }
@@ -244,7 +245,8 @@
     const ctx = { navigate, query, route, path, session, isManager, previewing, seat: isManager && !previewing ? 'console' : 'seat', me };
 
     let Screen = null;
-    if (path.startsWith('/contests/') && path !== '/contests/new') Screen = window.IncScreenContestDetail;
+    if (/^\/contests\/[^/]+\/edit$/.test(path)) Screen = window.IncScreenContestBuilder;
+    else if (path.startsWith('/contests/') && path !== '/contests/new') Screen = window.IncScreenContestDetail;
     else Screen = (ROUTES().find(([p]) => p === path) || [])[1];
 
     const source = sourceFor(path);

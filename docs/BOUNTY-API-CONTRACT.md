@@ -165,3 +165,7 @@ Run               { "id", "kind": "csv|api", "source", "store_id", "filename", "
 - `video_url` cards carry the URL in `media_url` (no separate field).
 - Snap list items carry `"views": {"count": int, "completed": int}` for managers (budtenders get the same key with their own counts only) so the list needs no N+1.
 - `GET /api/incentives/contests` also accepts `?status=active` etc.; the Learn author reads it for the linked-bounty picker.
+- `GET /api/incentives/contests/{id}` also returns `"sources": [Source]` for the bounty's stores (not only `trail.sources`).
+- `POST /api/incentives/contests/preview` also returns `"fragments": [ {"text": "...", "field": "threshold|brands|window|reward|tie_rule|...", "answered": true} ]` in reading order; `sentence` is their concatenation.
+- `submit` on a **store-funded** bounty goes draft → active directly (a manager created it; there is nobody else to approve). `submit` on a brand-funded bounty goes draft → pending_approval. `apply` is a manual re-evaluation only.
+- `#/contests/:id/edit` is a real route in `incentives/app.jsx` (renders the builder with the draft loaded).
