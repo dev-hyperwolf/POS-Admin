@@ -346,7 +346,7 @@
     const [reloadTick, setReloadTick] = React.useState(0);
     const [settings, setSettings] = React.useState(null);
     const [roster, setRoster] = React.useState(null);
-    const [preview, setPreview] = React.useState({ loading: false, error: null, sentence: null, fragments: null, would: null });
+    const [preview, setPreview] = React.useState({ loading: false, error: null, incomplete: null, sentence: null, fragments: null, would: null });
     const [saving, setSaving] = React.useState(null); // 'draft' | 'submit'
     const [brandQuery, setBrandQuery] = React.useState('');
     const [productText, setProductText] = React.useState('');
@@ -416,10 +416,20 @@
         window.HWInc.post('/api/incentives/contests/preview', draft).then((r) => {
           if (mine !== serial.current) return;
           if (!r.ok) {
-            setPreview({ loading: false, error: (r.body && r.body.error) || r.error || ('HTTP ' + r.code), sentence: null, fragments: null, would: null });
+            // A 400 that carries a sentence is an INCOMPLETE draft, not a
+            // dead backend: the route wrote the sentence around the blanks and
+            // named the first thing it cannot score. Only a response with no
+            // sentence at all (network, 404, 5xx) means not connected.
+            const b = r.body || {};
+            if (b.sentence) {
+              setPreview({ loading: false, error: null, incomplete: b.error || null, sentence: b.sentence,
+                fragments: Array.isArray(b.fragments) ? b.fragments : null, would: null });
+              return;
+            }
+            setPreview({ loading: false, error: b.error || r.error || ('HTTP ' + r.code), incomplete: null, sentence: null, fragments: null, would: null });
             return;
           }
-          setPreview({ loading: false, error: null, sentence: r.body.sentence || null,
+          setPreview({ loading: false, error: null, incomplete: null, sentence: r.body.sentence || null,
             fragments: Array.isArray(r.body.fragments) ? r.body.fragments : null, would: r.body.would_have_counted || null });
         });
       }, 400);
@@ -850,6 +860,8 @@
               <div style={{ fontSize: P.type.body, color: P.inkMute }}>
                 Needs the backend — the dry run is scored server-side against the real ledger, never estimated here.
               </div>
+            ) : preview.incomplete ? (
+              <div style={{ fontSize: P.type.body, color: P.inkMute }}>Not scorable yet — {preview.incomplete}.</div>
             ) : preview.loading && !would ? <Skeleton lines={3} /> : !would ? (
               <div style={{ fontSize: P.type.body, color: P.inkMute }}>Nothing to score yet — the dry run fills in as the rule takes shape.</div>
             ) : (
