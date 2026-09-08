@@ -261,7 +261,7 @@ function MarketLadder({ extremes, ownPreTax }) {
 // Two sentences: standing relative to competitors, then what was actually compared.
 // Sentence 1: insertion of Hyperwolf's value into the per-store-mean comparable set.
 // Sentence 2: what product+store scope the average covers.
-function marketCaption(rows, ownPreTax, shell) {
+function marketCaption(rows, ownPreTax, shell, storeCount) {
   const HP = window.HW_PRICING;
   // Per-store mean: collapse exact duplicates (product_name|price) within each store,
   // then average those deduplicated prices per store.
@@ -298,8 +298,8 @@ function marketCaption(rows, ownPreTax, shell) {
     if (core) { cores.add(core); }
   });
   const productCount = cores.size;
-  const storeCount = byStore.size;
-  const displayBrand = HP.normalizeBrandSpaced(shell.brand);
+  const displayBrandSpaced = HP.normalizeBrandSpaced(shell.brand);
+  const displayBrand = displayBrandSpaced ? displayBrandSpaced.split(' ').map(function (w) { return w[0].toUpperCase() + w.slice(1); }).join(' ') : displayBrandSpaced;
   const sentence2 = `Across ${productCount} ${displayBrand} ${shell.weight} products at ${storeCount} store${storeCount === 1 ? '' : 's'}.`;
 
   return { sentence1: sentence1, sentence2: sentence2 };
@@ -457,7 +457,7 @@ function MarketPricingSection({ shell }) {
           <React.Fragment>
             <MarketLadder extremes={state.extremes} ownPreTax={ownPreTax} />
             {function () {
-              const caption = marketCaption(state.rows, ownPreTax, shell);
+              const caption = marketCaption(state.rows, ownPreTax, shell, state.storeCount);
               return (
                 <React.Fragment>
                   <div style={{ fontSize: 12, fontWeight: 600, color: P.ink, marginBottom: 2 }}>{caption.sentence1}</div>
