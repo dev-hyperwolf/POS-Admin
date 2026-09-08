@@ -160,6 +160,11 @@
 <script type="text/babel" src="pos/screen-merch.jsx"></script>
 <script type="text/babel" src="pos/screen-home.jsx"></script>
 <script type="text/babel" src="pos/screen-aov.jsx"></script>
+<!-- Bounty's Home card — window.IncHomeCard, mounted by pos/screen-home.jsx in the exact slot
+     AovDashboardCard used to occupy. Loads after screen-aov.jsx (that file keeps loading too,
+     just unmounted from Home) so a stray reference to window.AovDashboardCard elsewhere on
+     this page still resolves. -->
+<script type="text/babel" src="pos/screen-incentives-card.jsx"></script>
 <!-- Brands: our brand DB <-> Weedmaps' brand DB. Upstream of product mapping,
      because Weedmaps serves products per brand. -->
 <script type="text/babel" src="pos/screen-brands.jsx"></script>
