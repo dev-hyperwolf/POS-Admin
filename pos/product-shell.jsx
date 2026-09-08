@@ -71,10 +71,19 @@ function MiniSwitch({ on, onChange, color }) {
 // a click-to-expand toggle) + Concept B's VISUAL (a horizontal price ladder
 // with a marker for Hyperwolf's own price, instead of a 4-box stat strip).
 //
-// All matching/tax logic is reused verbatim from pos/pricing-shared.jsx
-// (window.HW_PRICING) — the exact same groupKey()/effectivePreTax()/
-// computeExtremes()/computeAvgFull() the Pricing screen (pos/screen-
-// pricing.jsx) uses. No second matcher, no second tax-basis rule.
+// Matching is now at the SHELL IDENTITY level, not the exact product name level.
+// A shell's identity is three attributes it shares with all its variations:
+// brand + weight + category. The matcher finds every competitor listing that
+// shares those three attributes, regardless of the product name. This fixes the
+// original "zero matches for all 12 seeded shells" bug — requiring an exact
+// product name match against another retailer's often-different naming was never
+// going to work (verified live: 100% no-match rate on the original seed data).
+//
+// The matched set is now an AGGREGATE: storeCount (distinct competitors),
+// productCount (distinct product-name cores across those competitors),
+// listingCount (raw matched rows). Prices are aggregated per-store-mean via
+// computeAvgFullAcross and computeExtremesAcross — same tax basis as the
+// Pricing screen, reused exactly from pos/pricing-shared.jsx.
 //
 // Hyperwolf's own shelf price IS pre-tax, by the same definition
 // effectivePreTax() already uses for a competitor row with
@@ -84,15 +93,6 @@ function MiniSwitch({ on, onChange, color }) {
 // (`sub * (1 + SALES_TAX_RATE)`), never baked into it. So
 // SH.effectivePrice(shell) is already the pre-tax figure this comparison
 // needs — no computation, no guess.
-
-// One probe per distinct flavor/variation concept the shell represents, fed
-// through groupKey() exactly as a real competitor row would be — never a
-// second matching algorithm. A shell with zero variations yet still gets one
-// probe from brand + weight alone. A shell can resolve to more than one live
-// group (each flavor is its own product); every group that matches
-// contributes its rows to one combined comparison, since the number being
-// compared (SH.effectivePrice) is a single, shell-level price, not per-
-// variation.
 function shellProbeKeys(shell) {
   const HP = window.HW_PRICING;
   const variations = (shell.variations && shell.variations.length) ? shell.variations : [null];
@@ -105,23 +105,23 @@ function shellProbeKeys(shell) {
   return keys;
 }
 
-// Fetches the full live listing set once per shell and reduces it to exactly
-// the shape the render below needs. Three real outcomes, matching the
-// honest match-rate reality this codebase has already measured live
-// (multi-source matches are a small fraction of the catalog):
-//   0  — no competitor listings matched this shell at all.
-//   1  — comparableCount < 2 (mirrors computeExtremes' own "a single value
-//        isn't a range" rule EXACTLY, so this can trigger even with 2+ raw
-//        listings if fewer than 2 of them have a resolvable tax basis).
-//   2+ — a real range: full ladder + caption + store list.
+// Fetches the full live listing set once per page session (shared cache, no
+// per-shell refetch) and reduces it to the shell-level aggregation the render
+// below needs. Six possible outcomes:
+//   unmatchable — the shell's identity cannot be resolved (brand/weight/category)
+//   none        — identity resolved, but 0 rows matched
+//   solo        — matched rows exist, but < 2 distinct competitors with prices
+//   ready       — >= 2 competitors, full ladder + caption + store list
+//   loading     — fetch in flight
+//   error       — fetch failed
 function useShellMarketPricing(shell) {
   const [http, setHttp] = React.useState(null); // null = still loading
   React.useEffect(function () {
     let live = true;
     setHttp(null);
-    window.HW_PRICING.fetchAllListings({}).then(function (r) { if (live) { setHttp(r); } });
+    window.HW_PRICING.fetchAllListingsCached().then(function (r) { if (live) { setHttp(r); } });
     return function () { live = false; };
-  }, [shell.id]);
+  }, []);
 
   return React.useMemo(function () {
     if (!http) { return { status: 'loading' }; }
@@ -129,28 +129,55 @@ function useShellMarketPricing(shell) {
       return { status: 'error', http: http };
     }
     const HP = window.HW_PRICING;
-    const keys = shellProbeKeys(shell);
-    const rows = keys.size ? http.body.listings.filter(function (row) {
-      const k = HP.groupKey(row);
-      return k != null && keys.has(k);
-    }) : [];
-    const distinctStores = new Set(rows.map(HP.competitorKey)).size;
-    if (distinctStores === 0) { return { status: 'ready', storeCount: 0 }; }
 
-    const group = { rows: rows };
-    const extremes = HP.computeExtremes(group);
+    // Check if the shell identity can be resolved (brand + weight + category)
+    const key = HP.shellIdentityKey(shell);
+    if (!key) {
+      // Determine why the shell is unmatchable
+      const why = !HP.normalizeBrand(shell.brand)         ? 'brand'
+                : !HP.extractWeight(shell.weight)          ? 'weight'
+                : 'category';
+      return { status: 'unmatchable', why: why };
+    }
+
+    // Filter rows that match the shell identity (brand + weight + category)
+    const rows = http.body.listings.filter(function (row) {
+      return HP.listingMatchesShell(row, key);
+    });
+
+    // Compute the three counts: distinct stores, distinct products, raw listings
+    const storeSet = new Set(rows.map(HP.competitorKey));
+    const storeCount = storeSet.size;
+
+    const productNameCores = new Set();
+    rows.forEach(function (r) {
+      const core = HP.normalizeNameCore(r.product_name, HP.normalizeBrand(r.brand), HP.extractWeight(r.product_name));
+      if (core) { productNameCores.add(core); }
+    });
+    const productCount = productNameCores.size;
+    const listingCount = rows.length;
+
+    // No matches — the identity is valid but the live data has nothing for it
+    if (storeCount === 0) {
+      return { status: 'none', storeCount: 0, productCount: 0, listingCount: 0 };
+    }
+
+    // Compute pricing aggregates using the shell-level functions
+    const extremes = HP.computeExtremesAcross(rows);
+
+    // Exactly one comparable competitor — a range needs two endpoints
     if (extremes.comparableCount < 2) {
-      // Not a range — find the single best row to cite as plain text: prefer
-      // one with a resolvable pre-tax figure, otherwise just the first
-      // distinct store found (still honestly labeled with its own tax note).
       const bySource = new Map();
       rows.forEach(function (r) { const k = HP.competitorKey(r); if (!bySource.has(k)) { bySource.set(k, r); } });
       const candidates = [...bySource.values()];
       const solo = candidates.filter(function (r) { return HP.effectivePreTax(r) != null; })[0] || candidates[0];
-      return { status: 'ready', storeCount: distinctStores, solo: solo };
+      return { status: 'solo', storeCount: storeCount, productCount: productCount, listingCount: listingCount, solo: solo };
     }
-    return { status: 'ready', storeCount: distinctStores, rows: rows, extremes: extremes, avg: HP.computeAvgFull(group) };
-  }, [http, shell.id, shell.brand, shell.weight, shell.variations]);
+
+    // Full aggregate: >= 2 distinct competitors
+    const avg = HP.computeAvgFullAcross(rows);
+    return { status: 'ready', storeCount: storeCount, productCount: productCount, listingCount: listingCount, rows: rows, extremes: extremes, avg: avg };
+  }, [http, shell.id, shell.brand, shell.weight, shell.cat, shell.sub]);
 }
 
 // A store's platform id, human-readable, without pulling in screen-
@@ -175,11 +202,12 @@ function MarketTaxNote({ row }) {
 
 // Exactly one competitor matched — a ladder needs two ends to mean anything,
 // so this is deliberately plain text, no marker graphic, no color coding.
-function MarketSoloLine({ row }) {
+function MarketSoloLine({ row, shell }) {
   const P = useP();
   const HP = window.HW_PRICING;
   const preTax = HP.effectivePreTax(row);
   const value = preTax != null ? preTax : row.price;
+  const displayBrand = HP.normalizeBrandSpaced(shell.brand);
   return (
     <div style={{ fontSize: 13, color: P.ink }}>
       <span style={{ fontFamily: P.fontMono, fontWeight: 800 }}>{HP.money(value)}</span>
@@ -187,7 +215,7 @@ function MarketSoloLine({ row }) {
       {' at '}
       <strong>{marketSourceLabel(row)}</strong>
       {row.store_city ? ', ' + row.store_city : ''}
-      {' — nearest listing found.'}
+      {` — the only tracked store listing ${displayBrand} ${shell.weight}.`}
     </div>
   );
 }
@@ -230,65 +258,163 @@ function MarketLadder({ extremes, ownPreTax }) {
   );
 }
 
-// One honest sentence, computed by inserting Hyperwolf's own value into the
-// exact same comparable set computeExtremes() already built (one resolvable
-// pre-tax figure per distinct store) — never a second, looser ranking.
-function marketCaption(rows, ownPreTax) {
+// Two sentences: standing relative to competitors, then what was actually compared.
+// Sentence 1: insertion of Hyperwolf's value into the per-store-mean comparable set.
+// Sentence 2: what product+store scope the average covers.
+function marketCaption(rows, ownPreTax, shell) {
   const HP = window.HW_PRICING;
-  const bySource = new Map();
-  rows.forEach(function (r) { const k = HP.competitorKey(r); if (!bySource.has(k)) { bySource.set(k, r); } });
-  const values = [...bySource.values()].map(HP.effectivePreTax).filter(function (v) { return v != null; });
-  const M = values.length;
-  const cheaperThanOwn = values.filter(function (v) { return v > ownPreTax; }).length; // stores we're below
-  const pricierThanOwn = values.filter(function (v) { return v < ownPreTax; }).length; // stores we're above
+  // Per-store mean: collapse exact duplicates (product_name|price) within each store,
+  // then average those deduplicated prices per store.
+  const byStore = new Map();
+  rows.forEach(function (r) {
+    const v = HP.effectivePreTax(r);
+    if (v == null) { return; }
+    const sk = HP.competitorKey(r);
+    if (!byStore.has(sk)) { byStore.set(sk, new Map()); }
+    byStore.get(sk).set(String(r.product_name) + '|' + r.price, v);
+  });
+  const storeMeans = [];
+  byStore.forEach(function (m) {
+    const vs = [...m.values()];
+    storeMeans.push(vs.reduce(function (a, b) { return a + b; }, 0) / vs.length);
+  });
+  const M = storeMeans.length;
+  const cheaperThanOwn = storeMeans.filter(function (v) { return v > ownPreTax; }).length;
+  const pricierThanOwn = storeMeans.filter(function (v) { return v < ownPreTax; }).length;
   const tied = M - cheaperThanOwn - pricierThanOwn;
-  if (cheaperThanOwn === M) { return `The lowest of ${M} nearby stores.`; }
-  if (tied === M) { return `Tied with ${M} of ${M} nearby stores.`; }
-  if (cheaperThanOwn >= pricierThanOwn) { return `Priced below ${cheaperThanOwn} of ${M} nearby stores.`; }
-  return `Priced above ${pricierThanOwn} of ${M} nearby stores.`;
+
+  let sentence1 = '';
+  if (cheaperThanOwn === M) { sentence1 = `The lowest of ${M} nearby stores.`; }
+  else if (tied === M) { sentence1 = `Tied with ${M} of ${M} nearby stores.`; }
+  else if (cheaperThanOwn >= pricierThanOwn) { sentence1 = `Priced below ${cheaperThanOwn} of ${M} nearby stores.`; }
+  else { sentence1 = `Priced above ${pricierThanOwn} of ${M} nearby stores.`; }
+
+  // Sentence 2: distinct product cores in the matched set
+  const cores = new Set();
+  rows.forEach(function (r) {
+    const brand = HP.normalizeBrand(r.brand);
+    const weight = HP.extractWeight(r.product_name);
+    const core = HP.normalizeNameCore(r.product_name, brand, weight);
+    if (core) { cores.add(core); }
+  });
+  const productCount = cores.size;
+  const storeCount = byStore.size;
+  const displayBrand = HP.normalizeBrandSpaced(shell.brand);
+  const sentence2 = `Across ${productCount} ${displayBrand} ${shell.weight} products at ${storeCount} store${storeCount === 1 ? '' : 's'}.`;
+
+  return { sentence1: sentence1, sentence2: sentence2 };
 }
 
-// The detail list under the ladder — the owner didn't ask to drop this, only
-// to replace the stat-strip with a meter, so every real competitor stays
-// visible (the "less clicks" point: nothing hidden behind another click).
-// Collapses past 8 distinct stores (same threshold screen-pricing.jsx uses
-// for its own overflow case) so a 44-store match doesn't turn the modal into
-// a wall of rows.
+// The detail list under the ladder — grouped by store, showing all products
+// and price ranges for each store. Collapses past 8 distinct stores (same
+// threshold screen-pricing.jsx uses for its own overflow case) so a large
+// match doesn't turn the modal into a wall of rows.
 function MarketStoreList({ rows }) {
   const P = useP();
   const HP = window.HW_PRICING;
   const [expanded, setExpanded] = React.useState(false);
-  const bySource = new Map();
-  rows.forEach(function (r) { const k = HP.competitorKey(r); if (!bySource.has(k)) { bySource.set(k, r); } });
-  const sorted = [...bySource.values()].sort(function (a, b) {
-    const va = HP.effectivePreTax(a), vb = HP.effectivePreTax(b);
-    if ((va != null) !== (vb != null)) { return va != null ? -1 : 1; }
-    if (va != null && vb != null) { return va - vb; }
-    return 0;
+
+  // Group rows by store, collecting all products and prices per store
+  const byStore = new Map();
+  rows.forEach(function (r) {
+    const sk = HP.competitorKey(r);
+    if (!byStore.has(sk)) { byStore.set(sk, []); }
+    byStore.get(sk).push(r);
   });
+
+  // For each store, compute: lowest pre-tax price, all distinct products, all pre-tax prices
+  const storeData = [];
+  byStore.forEach(function (storeRows, storeKey) {
+    const preTaxPrices = [];
+    const productCores = new Map(); // core -> cheapest-product-name by word count
+    storeRows.forEach(function (r) {
+      const v = HP.effectivePreTax(r);
+      if (v != null) { preTaxPrices.push(v); }
+      const brand = HP.normalizeBrand(r.brand);
+      const weight = HP.extractWeight(r.product_name);
+      const core = HP.normalizeNameCore(r.product_name, brand, weight);
+      if (core) {
+        if (!productCores.has(core)) {
+          productCores.set(core, r.product_name);
+        } else {
+          // Keep the version with fewest core words (displayName rule)
+          const existing = productCores.get(core);
+          const existingWords = HP.coreWords(existing, brand, weight).length;
+          const newWords = HP.coreWords(r.product_name, brand, weight).length;
+          if (newWords < existingWords) { productCores.set(core, r.product_name); }
+        }
+      }
+    });
+
+    if (preTaxPrices.length > 0) {
+      const lowestPrice = Math.min(...preTaxPrices);
+      const highestPrice = Math.max(...preTaxPrices);
+      const uniquePrices = preTaxPrices.length > 0
+        ? [...new Set(preTaxPrices.map(function (p) { return p.toFixed(2); }))].length
+        : 0;
+      storeData.push({
+        key: storeKey,
+        row: storeRows[0], // for store_name/city
+        lowestPrice: lowestPrice,
+        highestPrice: highestPrice,
+        uniquePrices: uniquePrices,
+        productCores: productCores
+      });
+    }
+  });
+
+  // Sort by lowest price ascending; stores with no comparable price go last
+  storeData.sort(function (a, b) {
+    return a.lowestPrice - b.lowestPrice;
+  });
+
   const THRESHOLD = 8;
-  const visible = expanded ? sorted : sorted.slice(0, THRESHOLD);
+  const visible = expanded ? storeData : storeData.slice(0, THRESHOLD);
+
   return (
     <div style={{ borderTop: `1px solid ${P.hairline}`, marginTop: 2 }}>
-      {visible.map(function (row, i) {
-        const preTax = HP.effectivePreTax(row);
-        const value = preTax != null ? preTax : row.price;
+      {visible.map(function (store, i) {
+        const isRange = store.uniquePrices > 1;
+        const priceDisplay = isRange
+          ? `${HP.money(store.lowestPrice)}–${HP.money(store.highestPrice)}`
+          : HP.money(store.lowestPrice);
+
+        // Product names: limit to 3 with "+N more" overflow
+        const productNames = [...store.productCores.values()]
+          .map(function (pn) {
+            const brand = HP.normalizeBrand(store.row.brand);
+            const weight = HP.extractWeight(pn);
+            return HP.coreWords(pn, brand, weight).join(' ');
+          })
+          .map(function (s) { return s.charAt(0).toUpperCase() + s.slice(1); });
+        const displayProducts = productNames.slice(0, 3);
+        const moreCount = productNames.length - 3;
+        const productText = displayProducts.length === 1
+          ? displayProducts[0]
+          : (displayProducts.join(', ') + (moreCount > 0 ? ` +${moreCount} more` : ''));
+
         return (
-          <div key={HP.competitorKey(row) + ':' + i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 2px', borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{marketSourceLabel(row)}</span>
-              {row.store_city && <span style={{ fontSize: 10, color: P.inkMute }}> · {row.store_city}</span>}
+          <div key={store.key + ':' + i} style={{ padding: '7px 2px', borderTop: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: displayProducts.length > 0 ? 3 : 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink }}>{marketSourceLabel(store.row)}</span>
+                {store.row.store_city && <span style={{ fontSize: 10, color: P.inkMute }}> · {store.row.store_city}</span>}
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 800, fontFamily: P.fontMono, color: P.ink, flex: '0 0 auto', whiteSpace: 'nowrap' }}>
+                {priceDisplay}<MarketTaxNote row={store.row} />
+              </div>
             </div>
-            <div style={{ fontSize: 12.5, fontWeight: 800, fontFamily: P.fontMono, color: P.ink, flex: '0 0 auto' }}>
-              {HP.money(value)}<MarketTaxNote row={row} />
-            </div>
+            {displayProducts.length > 0 &&
+              <div style={{ fontSize: 10.5, color: P.inkMute, lineHeight: 1.4, marginLeft: 0 }}>
+                {productText}
+              </div>}
           </div>
         );
       })}
-      {!expanded && sorted.length > THRESHOLD &&
+      {!expanded && storeData.length > THRESHOLD &&
         <button onClick={function (e) { e.stopPropagation(); setExpanded(true); }}
           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 2px', background: 'none', border: 'none', borderTop: `1px solid ${P.hairline}`, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: P.info }}>
-          Show all {sorted.length} stores
+          Show all {storeData.length} stores
         </button>}
     </div>
   );
@@ -304,9 +430,9 @@ function MarketPricingSection({ shell }) {
     <div style={{ marginBottom: 18, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, background: P.surface, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: `1px solid ${P.hairline}` }}>
         <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Market pricing</span>
-        {state.status === 'ready' && state.storeCount > 0 &&
+        {state.status === 'ready' && state.storeCount > 0 && state.productCount != null &&
           <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: P.inkMute, fontFamily: P.fontMono }}>
-            {state.storeCount} store{state.storeCount === 1 ? '' : 's'} tracked
+            {state.storeCount} store{state.storeCount === 1 ? '' : 's'} · {state.productCount} product{state.productCount === 1 ? '' : 's'}
           </span>}
       </div>
       <div style={{ padding: '12px 14px' }}>
@@ -314,14 +440,31 @@ function MarketPricingSection({ shell }) {
           <div style={{ fontSize: 12.5, color: P.inkMute }}>Checking live competitor pricing…</div>}
         {state.status === 'error' &&
           <div style={{ fontSize: 12.5, color: P.inkMute }}>Competitor pricing unavailable right now{state.http && state.http.netError ? ' — ' + state.http.netError : ''}.</div>}
+        {state.status === 'unmatchable' &&
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>
+            {state.why === 'brand' &&
+              'This shell has no brand set, so there is nothing to compare it against.'}
+            {state.why === 'weight' &&
+              `This shell's size ("${shell.weight}") can't be read as a comparable size, so there is not enough information to compare it.`}
+            {state.why === 'category' &&
+              `This shell's category ("${shell.cat}") doesn't map to a tracked product type, so there is not enough information to compare it.`}
+          </div>}
         {state.status === 'ready' && state.storeCount === 0 &&
-          <div style={{ fontSize: 12.5, color: P.inkMute }}>No competitor listings matched for this shell yet.</div>}
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>No live listings for any {HP.normalizeBrandSpaced(shell.brand)} {shell.weight} {shell.cat} at any tracked store.</div>}
         {state.status === 'ready' && state.storeCount > 0 && state.solo &&
-          <MarketSoloLine row={state.solo} />}
+          <MarketSoloLine row={state.solo} shell={shell} />}
         {state.status === 'ready' && state.rows &&
           <React.Fragment>
             <MarketLadder extremes={state.extremes} ownPreTax={ownPreTax} />
-            <div style={{ fontSize: 12, fontWeight: 600, color: P.inkDim, marginBottom: 8 }}>{marketCaption(state.rows, ownPreTax)}</div>
+            {function () {
+              const caption = marketCaption(state.rows, ownPreTax, shell);
+              return (
+                <React.Fragment>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: P.ink, marginBottom: 2 }}>{caption.sentence1}</div>
+                  <div style={{ fontSize: 11, color: P.inkMute, marginBottom: 8 }}>{caption.sentence2}</div>
+                </React.Fragment>
+              );
+            }()}
             <MarketStoreList rows={state.rows} />
           </React.Fragment>}
       </div>
