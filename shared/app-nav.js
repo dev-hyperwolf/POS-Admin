@@ -20,6 +20,9 @@
     // People-adjacent to Members on purpose: Bounty scores and pays budtenders,
     // the same people Members tracks identity for. docs/INCENTIVES-PLAN-2026-09-07.md §0/§5.
     { id: 'bounty', label: 'Bounty', icon: 'trophy', href: 'Hyperwolf Bounty.html' },
+    // Identity-adjacent to Members and Bounty on purpose: Verify is the ID
+    // check/liveness/review console. docs/IDV-PLAN-2026-09-08.md §10.
+    { id: 'idv', label: 'Verify', icon: 'shield', href: 'Hyperwolf Verify.html' },
     { id: 'terminals', label: 'Terminals', icon: 'card', href: 'POS Terminal Configuration.html' },
     { id: 'delivery', label: 'Delivery', icon: 'pin', href: 'Hyperwolf Delivery.html' },
     { id: 'logistics', label: 'Dispatch', icon: 'truck', href: 'Hyperdrive Logistics.html' },

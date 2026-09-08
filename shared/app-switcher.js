@@ -11,6 +11,7 @@
     ['Promotions Suite.html', 'Promotions', 'promo'],
     ['Hyperwolf Engage.html', 'Engage', 'eng'],
     ['Hyperwolf Bounty.html', 'Bounty', 'bty'],
+    ['Hyperwolf Verify.html', 'Verify', 'idv'],
     ['Hyperwolf Delivery.html', 'Delivery', 'del'],
     ['Hyperdrive Logistics.html', 'Logistics', 'log'],
     ['Hyperwolf Driver App.html', 'Driver App', 'drv'],
