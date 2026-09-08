@@ -1234,6 +1234,29 @@ window.CheckInModal = function CheckInModal({ onClose, onCheckIn, initialCustome
                 <window.IdScanPanel value={customer.doc || null} onChange={onPrimaryScan} /> :
                 docMismatch ? null :
                 <span style={{ fontSize: 11.5, color: P.ink2 }}>The ID scanner is not loaded on this page, so the document cannot be captured here.</span>}
+                {/* ── HYPERWOLF VERIFY, THE SECOND WAY TO CAPTURE THIS DOCUMENT ──
+                    The whole of Verify lives in pos/checkin-verify-seam.jsx
+                    (window.IdvCheckinSeam); this is the only line of this screen
+                    that knows it exists, and it is deliberately one guarded
+                    element with no state and no imports.
+
+                    IT IS ADDITIVE. The barcode scanner directly above is
+                    untouched and is still the primary path; this is the camera
+                    path for a customer whose barcode will not read, or who has no
+                    US PDF417 at all. `onVerified` is onPrimaryScan — the SAME
+                    document-verified path a scan takes, not a second one — so
+                    every name/member comparison, every expiry rule and every
+                    footer state below behaves identically either way, and
+                    pos/screen-register.jsx sees no difference whatsoever.
+
+                    Absent the seam file (Hyperwolf POS.html does not load it yet)
+                    this renders nothing at all and this screen is exactly what it
+                    was before. docs/IDV-PLAN-2026-09-08.md §5.1 expected
+                    window.HW_CHECKIN to carry a mount hook; it does not — it is
+                    the dev/QA data seam and has no render surface — which is why
+                    this one element exists. See the seam file's header. */}
+                {!docMismatch && window.IdvCheckinSeam ?
+                <window.IdvCheckinSeam customer={customer} onVerified={onPrimaryScan} /> : null}
                 {/* THE DOCUMENT IS BOUND TO WHOEVER WAS ALREADY SELECTED.
                     This was `Object.assign({}, c, { doc: d })` with no
                     comparison at all — neither d.name against customer.name nor

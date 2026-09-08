@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<!-- <base href="../"> — LOAD-BEARING, AND THE SAME CONVENTION rfid/index.html
+     AND rfid-direction-a/index.html ALREADY USE. Two different resolvers have to
+     agree on where "pos/tokens.jsx" is, and they start from different places:
+       · THE BROWSER resolves against the URL, and this page is served at
+         /verify/{token} — NOT at /idv/capture.html. Without a base, a src of
+         "idv-client.jsx" is fetched from /verify/idv-client.jsx and 404s.
+       · tools/precompile.mjs resolves against the HTML file's own directory,
+         and REFUSES anything landing outside the repo root, so an
+         origin-absolute "/pos/tokens.jsx" resolves to the filesystem path
+         /pos/tokens.jsx, falls outside the tree, and the page is reported as
+         still shipping @babel/standalone. test/precompile.test.mjs catches
+         exactly that — measured, twice, on this file.
+     `<base href="../">` makes both answer the same thing: the precompiler
+     honours it (baseDirFor, tools/precompile.mjs L158-163) and lands on the
+     repo root; the browser lands on the origin root from either URL. So every
+     src below is written root-relative, exactly as it is on the console page. -->
+<base href="../"/>
+<title>Verify your ID — Hyperwolf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body { font-family:"Inter",-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  #root { height:100%; }
+  button, select, input, textarea { font-family:inherit; }
+  /* NO `a { color: ... }` RULE HERE, unlike every other entry page in this
+     estate. Those pages hard-code the gold link colour as a hex literal, which
+     the zero-hex rule forbids outside pos/tokens.jsx — and this page has no
+     anchors at all: the Terms open in a Sheet, not a link. */
+  /* Same three keyframes every app HTML in this estate declares for itself —
+     shared/states.jsx's Skeleton depends on `shimmer` and PBtn's busy spinner on
+     `hwspin`; neither is inherited from anywhere. */
+  @keyframes fade { from { opacity:0; } to { opacity:1; } }
+  @keyframes hwspin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+</style>
+</head>
+<body>
+<!-- ── idv/capture.html ── the hosted capture page ─────────────────────────────
+     Served by wm-demo at /verify/{session_token} (wmdemo/idv_api.py
+     _capture_page, which also sets `Content-Security-Policy: frame-ancestors`
+     from IDV_FRAME_ANCESTORS). Deliberately minimal: NO app rail, NO app
+     switcher, NO seam dock, NO connectivity badge, NO screen-existence probe.
+     This is a page a customer's phone loads, so everything on it either takes a
+     photo or says what is happening.
+
+     IT MUST WORK INSIDE AN IFRAME AND MAKES NO ATTEMPT TO ESCAPE ONE. There is
+     no `window.top`, no `window.parent`, no postMessage and no top-level
+     navigation anywhere in this page or in idv/capture.jsx: the site embeds a
+     raw iframe and polls the status API on its own (Concept D tab 4: "It must
+     complete without postMessage, because the site embeds a raw iframe and
+     always has"). Reading window.top from a cross-origin frame would throw, and
+     writing to it would be blocked; the page needs neither.
+
+     WHAT IS NOT LOADED, AND WHY:
+       shared/hw-live.js  — the write-token / connectivity seam. The capture API
+                            is authenticated by the token in the URL and this
+                            page is served from the same origin as the API, so
+                            idv/capture.jsx resolves an empty base and fetches
+                            relative paths. idv/idv-client.jsx is still loaded
+                            (IdvShared reads HWIdv.fmt), and its get()/post()
+                            correctly answer 'no-live-seam' here — nothing on
+                            this page calls them.
+       shared/app-rail.jsx, shared/app-switcher.js, shared/hw-z.js's chrome
+                          — no chrome to stack. pos/tokens.jsx falls back to its
+                            own z-scale with one console warning when hw-z.js is
+                            absent, so hw-z.js IS loaded rather than take a
+                            warning on a guest's console.
+       idv/app.jsx and every idv/screen-*.jsx
+                          — those are the console. This page has one screen. -->
+<div id="root"></div>
+
+<script src="shared/hw-z.js"></script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<!-- window.ScreenBoundary (CONTAIN) + window.CriticalBoundary (REFUSE).
+     PLAIN JS, after React and BEFORE babel. -->
+<script src="shared/error-boundary.jsx"></script>
+
+<script type="text/babel" src="pos/tokens.jsx"></script>
+<script type="text/babel" src="pos/icons.jsx"></script>
+<script type="text/babel" src="pos/atoms.jsx"></script>
+<script type="text/babel" src="shared/states.jsx"></script>
+<script type="text/babel" src="shared/hd-format.jsx"></script>
+<!-- hd-ui.jsx is here for ONE reason: window.Sheet, which idv/idv-terms.jsx's
+     Modal renders the full Terms into. Without it the Terms link logs a named
+     console error and opens nothing, which on a consent screen is not a state
+     this page is allowed to be in. -->
+<script type="text/babel" src="shared/hd-ui.jsx"></script>
+<!-- The one ID/photo control, reused rather than forked. idv/capture.jsx renders
+     it ONLY where getUserMedia does not exist at all (no camera API, or no
+     camera), and says on screen that is what happened. -->
+<script type="text/babel" src="shared/id-photos.jsx"></script>
+
+<script type="text/babel" src="idv/idv-client.jsx"></script>
+<script src="idv/terms-text.js"></script>
+<script type="text/babel" src="idv/idv-shared.jsx"></script>
+<script type="text/babel" src="idv/idv-terms.jsx"></script>
+<script type="text/babel" src="idv/capture.jsx"></script>
+
+<script type="text/babel">
+// ── the mount ──────────────────────────────────────────────────────────────
+// THE TOKEN COMES FROM THE PATH, because that is the URL the backend mints
+// (`{public_base}/verify/{token}`) and the URL the site iframes. `?token=` is
+// accepted as well so the page can be opened directly against a dev server
+// without going through the /verify route, and so a resubmit link pasted with a
+// query string still works. Path wins when both are present: the path segment
+// is the canonical form and a stale query string should never override it.
+;(function () {
+  function tokenFromLocation() {
+    const path = String(window.location.pathname || '');
+    const m = path.match(/\/verify\/([^/?#]+)/);
+    if (m && m[1]) return decodeURIComponent(m[1]);
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const t = q.get('token');
+      if (t) return t;
+    } catch (e) { /* no URLSearchParams: fall through */ }
+    // Last resort: the final non-empty path segment. Covers a host that rewrites
+    // /verify/<token> to /<token> without telling us.
+    const segs = path.split('/').filter(Boolean);
+    const last = segs[segs.length - 1];
+    if (last && !/\.html?$/i.test(last) && last !== 'verify') return decodeURIComponent(last);
+    return null;
+  }
+
+  const token = tokenFromLocation();
+
+  // ── customization → the page's own chrome ────────────────────────────────
+  // `state.branding` is read a SECOND time here, independently of the
+  // component, for the two things that live outside React: the document title
+  // and the theme-colour meta the phone paints its address bar with. Both are
+  // cosmetic; a failure to fetch changes nothing that matters, so this is
+  // fire-and-forget with no error surface of its own — the component does the
+  // real fetch and owns every honest failure message.
+  //
+  // `accent` is a TOKEN NAME per the contract, never a colour, so it is resolved
+  // through the theme rather than written anywhere.
+  function applyCustomization(token) {
+    if (!token || !window.IdvCapture || !window.IdvCapture.api) return;
+    window.IdvCapture.api.get(token, 'state').then(function (r) {
+      const b = r && r.ok && r.body && r.body.branding;
+      if (!b) return;
+      const brand = b.brand_name || 'Hyperwolf';
+      document.title = 'Verify your ID — ' + brand;
+      const themes = window.THEMES || null;
+      const P = themes ? themes.light : null;
+      const colour = P ? (P[b.accent] || P.accent) : null;
+      if (colour) {
+        let meta = document.querySelector('meta[name="theme-color"]');
+        if (!meta) { meta = document.createElement('meta'); meta.setAttribute('name', 'theme-color'); document.head.appendChild(meta); }
+        meta.setAttribute('content', colour);
+      }
+    });
+  }
+
+  function Page() {
+    const P = window.useP();
+    if (!token) {
+      // No token in the URL at all. This is not a guest's mistake and there is
+      // nothing for them to retry, so it names the shape of a working link.
+      return (
+        <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: P.bg, padding: P.space.x6 }}>
+          <window.ErrorState title="This link is incomplete"
+            body="A verification link looks like /verify/ followed by a long code. Ask for a new one — nothing you did was lost." />
+        </div>);
+    }
+    return (
+      <div style={{ minHeight: '100%', background: P.bg, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 0, width: '100%', maxWidth: 720, margin: '0 auto', display: 'flex' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <window.IdvCapture token={token} mode="hosted" />
+          </div>
+        </div>
+      </div>);
+  }
+
+  const root = document.getElementById('root');
+  if (!window.IdvCapture) {
+    // Say which file did not load, name the global it defines — the estate's
+    // unbuilt-route convention (conventions digest §7.6), applied to a page
+    // that has exactly one thing to render.
+    root.innerHTML = '';
+    const p = document.createElement('div');
+    p.style.cssText = 'padding:28px;font:500 13px/1.6 Inter,system-ui,sans-serif;';
+    p.textContent = 'idv/capture.jsx did not load, so window.IdvCapture is not defined and there is nothing to show. '
+      + 'Nothing was captured and no session was changed.';
+    root.appendChild(p);
+    return;
+  }
+
+  applyCustomization(token);
+
+  // CriticalBoundary, not ScreenBoundary: a capture flow that renders half of
+  // itself would show a guest a camera and then drop their upload. REFUSE is the
+  // right default here for exactly the reason Engage's PII reasoning gives.
+  const Boundary = window.CriticalBoundary || window.ScreenBoundary || null;
+  const tree = (
+    <window.ThemeProvider>
+      {Boundary ? <Boundary name="idv-capture"><Page /></Boundary> : <Page />}
+    </window.ThemeProvider>);
+  ReactDOM.createRoot(root).render(tree);
+})();
+</script>
+</body>
+</html>
