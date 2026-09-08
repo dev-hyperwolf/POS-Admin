@@ -44,7 +44,14 @@ means exactly that and is handled as a branch, not a guess.
    **[documented]**. → Step one of the build is a Python census probe against the live API
    (§7.1). The ledger is designed so unattributed sales are stored, counted in store totals,
    and shown as "no budtender on the record" rather than dropped or guessed.
-2. **Meadow is the clean case.** `GET /api/v1/orders` carries `placedBy` (who rang it) and
+   **Resolved 2026-09-08 (census, 3 store-local days, Corona + Elsinore, read-only GETs):**
+   `sellerId`, `createdById`, `assignedEmployeeId` are 100 % populated on retail sales;
+   `sellerId` resolves 100 % to real names via `/employees` (13 distinct at Corona, 30 at
+   Elsinore) and is many-to-many against `sellerTerminalId`, so it names a person, not a
+   register. `cart.items[]` is on the list response with `brandName`, `categoryName`,
+   `productSku`. → Branch A: Blaze stores get per-sale attribution from the live API; the CSV
+   path remains as backfill. Evidence: `wm-demo/qa/incentives_blaze_field_census.py` docstring.
+2. **Meadow is the clean case** — once the key has scope. 2026-09-08: the West Hollywood client key in `.env` has Customers scope only; `/orders` and `/order-returns` return 403 `INSUFFICIENT_PERMISSIONS`. A client key with **Analytics** enabled is required (Meadow Admin → Settings → API → Add Integration). `GET /api/v1/orders` carries `placedBy` (who rang it) and
    `fulfilledBy`; line items carry `productBrand`, `primaryCategory`, `quantity`, prices in
    cents; voids/refunds live in `GET /api/v1/order-returns` **[documented]**. No roster
    endpoint exists; identities are harvested from orders. No webhooks are documented, so
