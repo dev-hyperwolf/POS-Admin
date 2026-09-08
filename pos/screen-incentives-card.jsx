@@ -111,7 +111,7 @@
       // HONEST DEGRADE — the AOV card's exact pattern and copy shape, renamed for Bounty.
       return (
         <Card padding={0}>
-          <ErrorState compact title="Bounty isn’t connected"
+          <ErrorState compact title="Bounty isn't connected"
             body={`Needs the wmdemo backend — not reachable right now${me.error && me.error !== 'no-live-seam' ? ` (${me.error})` : ''}. Your rank, bounties and balance will appear here once it connects.`}
             onRetry={me.refresh} />
         </Card>);
