@@ -234,7 +234,13 @@
     // use its ok/error state right here to prove the honesty pattern end to
     // end: the backend has no /api/incentives/* routes today, so this 404s,
     // and NotConnected is what a person on either seat actually sees.
-    const me = window.HWInc.usePoll('/api/incentives/me', { intervalMs: 20000 });
+    // /me is per person: the route refuses a call without both ids (400) rather
+    // than guessing whose day to show, so the ids come from the one session
+    // accessor the production port swaps.
+    const sessionIds = window.HWInc.session();
+    const me = window.HWInc.usePoll(
+      '/api/incentives/me?store_id=' + encodeURIComponent(sessionIds.storeId || '') +
+      '&associate_id=' + encodeURIComponent(sessionIds.id || ''), { intervalMs: 20000 });
 
     // Screens get the session, the role verdict, the preview flag and the
     // /me poll as props so no screen re-derives role from a string or opens a
