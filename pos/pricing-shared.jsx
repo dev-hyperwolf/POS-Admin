@@ -65,9 +65,79 @@
   // a stripped form, so this is safe to apply unconditionally today. If a
   // future brand is added that WOULD collide with another under this scheme,
   // it must be caught by re-running that audit — not assumed away.
+  // ── brand aliases — one canonical key per real COMPANY ───────────────────
+  // Casing and spacing are handled above. What is left is the case where the
+  // same real company is written under two genuinely different names — a
+  // former legal name, a "… Cannabis Co." long form, a corporate "… Labs"
+  // suffix — so exact key equality misses listings that are really ours.
+  // Confirmed live against the full 56,938-row dataset, 2026-09-07 (see
+  // scratch/brand-alias-table-design.md for the per-entry evidence).
+  //
+  // This table is EXPLICIT and finite on purpose. A prefix/substring/fuzzy
+  // rule is not safe here and was rejected on measured evidence: the live
+  // data contains a real, distinct 6-row brand `raw` (RAW rolling papers,
+  // HBI International — "Raw Cones 6 Pack", "Raw Rolling Papers", all in
+  // MERCH/Accessory categories) that a prefix rule would merge into the
+  // 186-row `rawgarden` (Raw Garden, a cannabis extract producer). Two
+  // unrelated companies, one wrong average. Every entry below is a named
+  // company identity, verified from product names on both sides.
+  //
+  // Applied to BOTH sides — this file's own listing rows AND a shell's
+  // brand string — because it lives inside normalizeBrand() itself. That is
+  // deliberate: groupKey() (the Pricing screen, listing vs. listing) and
+  // shellIdentityKey() (Market Pricing, shell vs. listing) both call
+  // normalizeBrand() and therefore both get the same resolution with no
+  // call-site change and no second alias mechanism to drift out of sync.
+  //
+  // KEY = a variant spelling. VALUE = the canonical key for that company.
+  // Canonical is the brand's plain marketing name, NOT its longest or most
+  // legal form, for a load-bearing reason: coreWords() below strips the
+  // canonical key's characters out of the product name with a whitespace-
+  // flexible regex. A canonical of 'connectedcannabisco.' would stop
+  // matching the word "Connected" that the listing text actually contains,
+  // silently leaving the brand's own words inside the product-name core.
+  // The short form is the one that appears in real product text.
+  //
+  // INVARIANT: no value may also appear as a key. The lookup is single-pass
+  // and deliberately does NOT follow chains — a chain would make the
+  // canonical depend on evaluation order. Verified: none of the five
+  // canonical keys below appears on the left.
+  const BRAND_ALIASES = {
+    // Kiva Confections — the company; every live listing writes it "Kiva"
+    // ("KIVA - SOLVENTLESS CHOCOLATE …", "LOST FARM … GUMMIES" — Terra Bites
+    // and Lost Farm are both Kiva Confections lines). 152 rows, 21 stores.
+    // NOT merged with `camino` (631 rows): Camino is a Kiva sub-brand, but
+    // this app's own brand database (shared/brands.js) models Camino as a
+    // separate brand and the scraper does too. Merging them would make the
+    // Kiva shell and the Camino shell match the same 783 rows.
+    'kivaconfections':      'kiva',
+    // Lowell Farms Inc. traded as Lowell Herb Co. before the rename; the 3
+    // live rows are its own "35s" 10-pack pre-roll blends (Afternoon
+    // Delight, Mind Safari, Dreamweaver). Only "lowell" key in the data.
+    'lowellherbco.':        'lowellfarms',
+    // Connected Cannabis Co. — 115 rows under the long form (Leafly), 3
+    // under "Connected Cannabis" (Cornerstone), 2 under "CONNECTED"
+    // (Catalyst / Mary Alice). Same signature strains throughout: Biscotti,
+    // Gushers, Gascotti, Gelato 41, Permanent Marker, Chrome, Toad Venom.
+    // NOT merged with `sunsetconnectfulton5'erpreroll` — Sunset Connect is
+    // an unrelated company that merely shares the word "connect".
+    'connectedcannabisco.': 'connected',
+    'connectedcannabis':    'connected',
+    // PAX Labs, Inc. markets as PAX. "PAX®" (Leafly, 18 rows) and "PAX"
+    // (Catalyst/Cornerstone/Artist Tree, 14 rows) are the same catalogue —
+    // Era Go batteries, PAX 4 vaporizers, High Purity pods, Live Rosin pods.
+    'paxlabs':              'pax',
+    'pax®':                 'pax',
+    // Select (Curaleaf) was founded and still lists as "Select Oil"; both
+    // live rows name the product "Select | 2g BRIQ Legacy Series AIO",
+    // BRIQ being Select's own device line.
+    'selectoil':            'select'
+  };
+
   function normalizeBrand(brand) {
     const b = String(brand || '').toLowerCase().trim().replace(/\s+/g, '');
-    return b || null; // null brand never merges — see header comment
+    if (!b) { return null; } // null brand never merges — see header comment
+    return BRAND_ALIASES[b] || b;
   }
 
   // Human-readable form of the same brand — spacing COLLAPSED (multiple
@@ -565,7 +635,7 @@
 
   window.HW_PRICING = {
     PRICING_BASE, ROUTE_LISTINGS, getJSON, qs,
-    normalizeBrand, normalizeBrandSpaced, extractWeight, coreWords, normalizeNameCore, groupKey, competitorKey,
+    BRAND_ALIASES, normalizeBrand, normalizeBrandSpaced, extractWeight, coreWords, normalizeNameCore, groupKey, competitorKey,
     knownBasis, money, effectivePreTax, fullPrice, comparableFullPrice,
     computeAvgFull, computeExtremes, fetchAllListings,
     CATEGORY_FOLD, CATEGORY_MISFILED, EDGE_CATEGORY_FOLD, categoryBucket,
