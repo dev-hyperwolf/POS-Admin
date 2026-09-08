@@ -185,7 +185,11 @@
           )}
         </div>
         <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '300px minmax(0,1fr)' }}>
-          <div style={{ background: P.surface2, borderRight: `1px solid ${P.hairline2}`, overflowY: 'auto' }}>
+          {/* Grid items default to min-height:auto (same rule as flex items), so
+              without an explicit minHeight:0 each column grows to its content's
+              height instead of the stretched row height — the descendant's
+              overflowY:auto never gets a box small enough to need to scroll. */}
+          <div style={{ minHeight: 0, background: P.surface2, borderRight: `1px solid ${P.hairline2}`, overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderBottom: `1px solid ${P.hairline2}` }}>
               <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: P.ink }}>Needs you</span>
               <Icon name="inbox" size={15} stroke={1.8} color={P.inkMute} />
@@ -199,7 +203,7 @@
                 body="Pending approvals, unresolved identities, source errors and settlements due will show up here." />
             )}
           </div>
-          <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '0 16px', background: P.surface, borderBottom: `1px solid ${P.hairline2}` }}>
               <Tabs value={activeTab ? activeTab.value : path} onChange={(v) => navigate('#' + v)} options={TABS} />
             </div>
