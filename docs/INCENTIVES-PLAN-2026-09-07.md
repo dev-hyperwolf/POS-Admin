@@ -20,7 +20,7 @@ means exactly that and is handled as a branch, not a guess.
 |---|---|
 | Backend | Real routes + SQLite in `wm-demo` (it already serves POS-Admin same-origin via `shared/hw-live.js`). |
 | Data | Blaze REST API **and** Meadow REST API for live scoring. CSV upload for both as backfill/manual path, fully functional. |
-| Placement | Own app like Engage (`Hyperwolf <Name>.html` + `incentives/`), one rail item. Budtender strip on the Register. Card on POS Home. |
+| Placement | Own app like Engage (`Hyperwolf Bounty.html` + `incentives/`), one rail item. Card on POS Home. **The Register screen is not touched** (owner, 2026-09-08, on seeing the strip mockup): the budtender view lives in the Bounty app and the Home card only. |
 | AOV goals | Absorbed as one goal type. Existing `/api/aov/*` contract preserved so nothing breaks mid-build. |
 | Out of scope | Mobile app. Payout execution (any money movement). Brand-user logins. |
 | Naming | **Hyperwolf Bounty** (owner pick, 2026-09-07). One incentive is a **bounty**; the leaderboard is the bounty board. Code stays name-independent (`incentives/`, `window.Inc*`, `wmdemo/incentives/`, `inc_contests`); the name lives in copy, the entry HTML `Hyperwolf Bounty.html`, the rail label and the hub card. |
@@ -330,7 +330,7 @@ Every write returns the refreshed read surface (the estate convention).
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/incentives/me?store_id&associate_id` | One call for the Register strip + Home card: rank today (store/all), active contests with my progress, balance, unread snaps, source freshness. |
+| GET | `/api/incentives/me?store_id&associate_id` | One call for the Home card and the app's landing view: rank today (store/all), active contests with my progress, balance, unread snaps, source freshness. |
 | GET | `/api/incentives/standings?scope&store_id&period&metric&filter=` | Leaderboard. `scope` store\|all\|stores (store-vs-store). `period` today\|week\|month\|custom. Returns `ranked`, `not_yet`, `unattributed`, `ledger_version`, `sources[]` freshness. |
 | GET/POST | `/api/incentives/contests` | List (filters: store, status) / create-or-update draft. |
 | GET | `/api/incentives/contests/{id}` | Contest + live standings (cached by ledger_version) + audit. |
@@ -375,7 +375,6 @@ incentives/screen-data.jsx       #/data        connections, upload, runs, reject
 incentives/screen-goals.jsx      #/goals       absorbed AOV goals (store default, overrides, audit)
 incentives/screen-settings.jsx   #/settings
 pos/screen-incentives-card.jsx   window.IncHomeCard — replaces AovDashboardCard on POS Home
-pos/screen-incentives-strip.jsx  window.IncRegisterStrip — compact strip on the Register
 ```
 
 Every file is IIFE-wrapped; only `window.Inc*` and `window.HWInc` leak. `test/global-collisions.test.mjs` is extended to include the new files.
@@ -406,9 +405,7 @@ the badge and token handling only. One seam, one base-URL rule, one write-token 
 
 ### 5.5 POS surfaces
 
-- **Register strip** (`IncRegisterStrip`): 44px row under the register header: `#2 today ·
-  $612 net · 3 contests` with per-contest progress pills; tap opens the app at `#/`. Polls
-  `/api/incentives/me` every 20s with the `ledger_version` short-circuit.
+- **Register**: untouched. No strip, no card, no file change in `pos/screen-register.jsx` (owner ruling 2026-09-08).
 - **Home card** (`IncHomeCard`): replaces `AovDashboardCard`. Same slot, same guard. Shows
   AOV goal meter (absorbed), rank chips, active contests, balance; manager sub-card links to
   `#/goals` and `#/contests` instead of embedding the old manager panel.
@@ -457,8 +454,7 @@ route table. Each with probes. Opus refuter pass after merge.
 ### 7.3 Phase 3 — UI (Sonnet/Haiku, 5 in parallel, disjoint files)
 
 A: `app.jsx` + `inc-client.jsx` + `inc-shared.jsx` + HTML + hub/nav/switcher. B: standings +
-earnings. C: contests + builder. D: learn + author. E: data + goals + settings + POS card +
-strip. Each agent verifies live on a fresh port (the stale-cache rule) and screenshots the
+earnings. C: contests + builder. D: learn + author. E: data + goals + settings + POS Home card. Each agent verifies live on a fresh port (the stale-cache rule) and screenshots the
 screen in light and dark.
 
 ### 7.4 Phase 4 — verification (Opus refuters, 3 lenses, then me)
@@ -478,7 +474,7 @@ wm-demo; push only after live verification on both.
 - Scoring probe: hand-computed standings for a 3-person, 2-brand, 1-refund fixture match the engine, including a tie under both tie rules.
 - AOV parity probe: the six `/api/aov/*` responses are shape-identical before and after `aov_compat.py`.
 - Field census probe output recorded in the plan's §1.1 with the date.
-- Browser: every screen rendered live (backend up) and offline (backend down) in light and dark; the Register strip and Home card verified on the POS page; a real CSV dropped through the UI produces a run report whose numbers match the probe.
+- Browser: every screen rendered live (backend up) and offline (backend down) in light and dark; the Home card verified on the POS page and `pos/screen-register.jsx` byte-identical to `main`; a real CSV dropped through the UI produces a run report whose numbers match the probe.
 - `node test/global-collisions.test.mjs` green with the new files included.
 
 ---
