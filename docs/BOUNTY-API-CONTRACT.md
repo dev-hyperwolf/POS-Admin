@@ -169,3 +169,36 @@ Run               { "id", "kind": "csv|api", "source", "store_id", "filename", "
 - `POST /api/incentives/contests/preview` also returns `"fragments": [ {"text": "...", "field": "threshold|brands|window|reward|tie_rule|...", "answered": true} ]` in reading order; `sentence` is their concatenation.
 - `submit` on a **store-funded** bounty goes draft → active directly (a manager created it; there is nobody else to approve). `submit` on a brand-funded bounty goes draft → pending_approval. `apply` is a manual re-evaluation only.
 - `#/contests/:id/edit` is a real route in `incentives/app.jsx` (renders the builder with the draft loaded).
+
+### `/api/aov/*` and `/api/incentives/*` disagree about refunds — on purpose
+
+**`/api/aov/*` EXCLUDES refunds and voids. `/api/incentives/*` NETS them.** The two are
+reading the same `inc_txns` rows and will report different numbers for the same person over
+the same window. Neither is broken; they are answering different questions, and a manager
+holding the Goals screen next to a bounty board needs to know which is which before treating
+the gap as a bug.
+
+- **`/api/aov/*`** (`aov_compat._agg_sql`) aggregates `WHERE txn_type='sale'` only. Refund and
+  void rows are not subtracted from the money and not removed from the order count — they are
+  simply not read. This is the **legacy `pos_sales` contract kept verbatim for shape parity**:
+  `pos_sales` had no concept of a refund at all, so a shim that quietly started netting them
+  would have moved every historical AOV number and every goal that was ever set against one.
+- **`/api/incentives/*`** (`scoring.py`) subtracts refunds from value, and — where the refund
+  names its original (`ref_txn_id`: Blaze partner API `parentTransactionId`, Meadow `orderId`;
+  never on either vendor's CSV export) — also removes the refunded sale from `txn_count`.
+
+**How far apart they can get.** The Goals figure is the higher of the two whenever anything came
+back in the window, and the gap is not a rounding difference. The whole value of the window's
+refunds is missing from the Goals numerator, spread across the orders the board still counts,
+so a single large return on a quiet day moves a person's board AOV by most of that return while
+their Goals AOV does not move at all. Where the refund is linked, the board also drops the
+original order out of the denominator, and the two effects compound: a budtender whose only
+transaction that day was refunded reads their full sale price as AOV over one order on Goals,
+and zero over zero orders on the board. Over a busy month with a normal return rate the two
+land within a percent or two of each other — which is exactly what makes the occasional large
+divergence look like a defect. It is not one.
+
+**Consequence for the screens:** never present an `/api/aov/*` figure and an
+`/api/incentives/*` `aov_cents` as the same measurement, and never compute one from the other.
+A bounty settled on `aov_cents` is settled on the netted number; the Goals screen's target is
+set against the un-netted one.
