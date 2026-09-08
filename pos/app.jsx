@@ -164,7 +164,17 @@ function App() {
   const P = useP();
   const [route, setRoute] = React.useState(() => {try {return localStorage.getItem('hw-pos-route') || 'home';} catch {return 'home';}});
 
-  React.useEffect(() => {try {localStorage.setItem('hw-pos-route', route);} catch {}}, [route]);
+  // shared/notes.js filters its "This page" tab by route, but this SPA never touches
+  // location.hash (see its own route() comment), so nothing tells it a route just
+  // changed. It falls back to polling every 350ms, but a note panel left open across
+  // a navigation showed the PREVIOUS route's notes for up to that long — reported as
+  // "'This page' comment mapping stopped working". Dispatching this event closes that
+  // window to ~0ms; the poll stays as a fallback for pages notes.js runs on that have
+  // no such event (e.g. a plain localStorage edit from another tab).
+  React.useEffect(() => {
+    try { localStorage.setItem('hw-pos-route', route); } catch {}
+    try { window.dispatchEvent(new CustomEvent('hw-route-change', { detail: { route } })); } catch {}
+  }, [route]);
 
   const go = (r) => setRoute(r);
   // POS / Fulfillment switch mirrors the route: Fulfillment → Orders (pickup queue)

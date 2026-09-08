@@ -34,6 +34,10 @@
     if (item.pos) {
       if (localPosNav) { localPosNav(item.pos); return; }
       try { localStorage.setItem('hw-pos-route', item.pos); } catch (e) {}
+      // A full navigation follows immediately, so this mainly keeps this write site
+      // consistent with pos/app.jsx's in-app route effect, which dispatches the same
+      // event so shared/notes.js's "This page" filter never shows a stale route.
+      try { window.dispatchEvent(new CustomEvent('hw-route-change', { detail: { route: item.pos } })); } catch (e) {}
       location.href = 'Hyperwolf POS.html';
     }
   }

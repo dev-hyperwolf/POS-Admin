@@ -697,6 +697,12 @@
     if (LIVE) { if (pass()) pull(); startPoll(); }
     setInterval(tick, 350);
     addEventListener('resize', render);
+    // Belt-and-suspenders for the route-scoped "This page" filter: tick()'s 350ms
+    // poll already catches a route change via route()/normRoute(), but a page that
+    // opts in to this event (pos/app.jsx, shared/app-nav.js's go()) gets an
+    // immediate re-render instead of waiting up to one poll interval. Never the only
+    // mechanism -- a page with no such event still self-corrects via tick().
+    addEventListener('hw-route-change', function () { if (!typing()) render(); });
     // Keep the draft store current. Delegated, so it survives every repaint.
     root.addEventListener('input', function (e) {
       var t = e.target;
