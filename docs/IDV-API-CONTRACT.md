@@ -244,3 +244,223 @@ Headers `X-Signature-V2` (hex HMAC-SHA256 over canonical JSON: floats shortened 
 
 ## Addenda (append-only, dated)
 - 2026-09-08 (owner rulings, round 2): capture is autonomous — `status` responses carry `guidance: { "step", "fix": "<one sentence>", "attempt", "max" }` on `Awaiting User`; `Declined` carries `next_step: "in_store"|"none"`; POS `update-status` accepts `{ "new_status": "Approved", "override": true, "reason": "<required>" }` from the associate on the session's own store only; media rows carry `retention`, `purpose` ('verification_fraud' for licence-derived media, which no convenience path may read) and `purge_after`; `/api/idv/retention` reports `{ consented, unconsented, purging_next_24h }`.
+- 2026-09-08 (backend core, `wmdemo/idv_*.py`, written while building to this file):
+  - **`/v2` decision carries three names for one node.** The contract says `kyc`; the live site
+    (`hyperwolf-backend/controllers/didit/didit-controllers.js:153-274`, digest §1.3) reads
+    `response.id_verification` (singular) and `response.face_match.target_image`. The facade emits
+    all three over the same underlying node — `kyc`, `id_verification` (identical object) and
+    `face_match` — so the site repoints with an env var and no code change, then migrates to `kyc`
+    at its own pace. `kyc` additionally carries `age`, which the site maps and does not use.
+  - **`idv_sessions` gains `guidance` (JSON) and `next_step` (text).** The round-2 addendum above
+    requires `/capture/{token}/status` to return `guidance` on `Awaiting User` and `next_step` on
+    `Declined`; both are decided by the rules at callback time and read back by a client that has
+    no other way to derive them, so they are stored on the session rather than recomputed.
+  - **`idv_decisions` gains `face_searches`, `list_hits`, `reasons`, `engine_job_id`, `gender`,
+    `doc_quality_score`, `browser`, `os`.** The plan's §3.3 DDL predates the `Decision` shape in
+    this file, which lists `face_searches` and `list_hits`; the four extra scalars are what the
+    Dashboard's demographics and devices panels sum, and computing them by re-parsing every
+    decision's JSON per request is what makes a dashboard disagree with its own table.
+  - **Roles.** `associates.role` is free text in this estate ("Associate", "Floor Manager"). The
+    mapping is: an explicit override from `POST /api/idv/team/{id}/role` wins (and is the only way
+    to create a `viewer`); otherwise role text containing 'manager' or 'admin' is `admin`;
+    otherwise any associate is `analyst`; an `X-HW-Actor` that is not an associate has no role and
+    every write is 403. Overrides live in an `idv_kv` row, not a new table.
+  - **`override` with no reason is 400, not 403.** An override missing its reason is a malformed
+    request; answering 403 sends an associate to find an admin when what they need is one sentence
+    in the box.
+  - **`POST /api/idv/import/didit/{kind}` records a `failed` run, not a 501.** The importer
+    (`wmdemo/idv_import_didit.py`) is a later phase and no Didit credentials exist on this server,
+    so the route creates a real `RunReport` whose `error` says exactly that. A `status:"ok"` over
+    zero rows would read on the Migration screen as "Didit has no sessions".
+  - **Media route job tokens.** `GET /api/idv/media/{id}?token=…` accepts a job-scoped token
+    instead of a console role, minted at submit, scoped to ONE session and expiring in 3600 s. A
+    token for another session's job is 403.
+  - **Env vars this backend introduces**: `IDV_MEDIA_DIR` (default `./idv_media`),
+    `IDV_ENGINE_URL` (default `http://127.0.0.1:8801`), `IDV_ENGINE_SECRET` (no default; an unset
+    secret makes every inbound callback 403, which is the safe direction), `IDV_PUBLIC_BASE` (the
+    origin baked into hosted capture URLs and the engine callback URL), `IDV_FRAME_ANCESTORS`
+    (default `'self' https://www.hyperwolf.com https://hyperwolf.com`).
+  - **Known deployment gap, not fixed here.** `wmdemo/server.py`'s PUBLIC-mode write gate refuses
+    every POST without `x-hw-write-token` except the Weedmaps webhook. On a public deployment that
+    would also refuse the engine callback and the whole capture API, both of which authenticate
+    themselves (HMAC, session token). Widening that exemption is a one-line change to an existing
+    condition and was left for the owner rather than made silently.
+- 2026-09-08 (owner rulings, round 3 — "approve or deny only" and "Verify verifies the recommendation"):
+
+  **A. `In Review` is never an outcome.** Approve or deny only. `idv_rules.evaluate()` cannot
+  return the literal on any channel for any input, and that includes the POS engine-down path,
+  which previously produced it: with the engine unreachable at the register and
+  `manual_fallback_when_engine_down` on, the session **stays `In Progress`** with
+  `message: idv_rules.PAUSED_MESSAGE_ENGINE_DOWN` ("Verification is paused — our checks are
+  offline. An associate can look at the physical ID and finish this here."), `next_step: "none"`,
+  `guidance: null` and `reasons: ["ENGINE_UNAVAILABLE_MANUAL"]`. Nothing has been judged, so no
+  verdict is written. The associate holding the physical ID has exactly two moves, both recorded:
+  `PATCH /v3/session/{id}/update-status/` (or the console equivalent) with
+  `{ "new_status": "Approved", "override": true, "reason": "<required>" }`, or the same with
+  `"Declined"`. Online, the same outage still declines with `next_step: "in_store"`.
+  - `ENGINE_UNAVAILABLE_MANUAL` remains in the review-reason enum as a **warning code**. It no
+    longer maps to a status of its own.
+  - `Decision` and `/capture/{token}/status` gain **`message`** (string or `null`): a sentence for
+    a state that is neither a guided retry nor a decision. Today only the engine-down pause sets
+    it. `guidance` still means "the guest can fix one step"; `message` does not.
+  - `can_transition` **forbids every transition into `In Review`, for every actor** — `engine`,
+    `system`, `viewer`, `analyst` and `admin`, with and without `override` — and says so in the
+    refusal text rather than answering "not a legal transition". The two edges that used to exist
+    (`In Progress` → `In Review` and `Awaiting User` → `In Review`, both `system`) are gone.
+  - The literal survives in the ten-status enum **only because imported Didit rows carry it**.
+    Support/admin may move an imported `In Review` row OUT, to `Approved`, `Declined` or
+    `Resubmitted`; `engine`, `system` and `viewer` may not. Sweepers may still `Abandon`/`Expire`
+    one. The `/v2` and `/v3` facades keep returning `In Review` verbatim for those imported rows;
+    they never produce it for a native session.
+  - `_OVERRIDE_TRANSITIONS` is now the whole list of edges the recorded in-store override widens:
+    `Declined → Approved`, `In Progress → Approved`, `In Progress → Declined`. All three need
+    `analyst` (not `admin`) *with* `override: true` and a reason; `viewer` is refused, because
+    override is not a role, and the system actors cannot use it at all. No other edge changes.
+
+  **B. Medical guests must upload a doctor's recommendation that Verify verifies.**
+
+  `age_rule` is renamed **`REC_21 | MED_18_REC`**. `MED_18_CARD` is accepted forever as an alias
+  for `MED_18_REC` (workflows and sessions pinned under the old name must keep evaluating);
+  anything unrecognised falls back to `REC_21`, the stricter rule. The inline `Workflow.config`
+  and `age_estimations[].rule` fragments above still print the old name — read them as
+  `REC_21|MED_18_REC`. `MED_18_REC` means **age ≥ 18 from the barcode DOB AND a verified
+  recommendation node**; `REC_21` is unchanged.
+
+  New `Workflow.config` key: **`offer_medical_path`** (boolean, default `true`).
+
+  New capture step **`medical_rec`**, between `document_back` and `selfie` — after the card the
+  recommendation is cross-checked against, before the liveness attempt it would otherwise waste.
+  `GET /api/idv/capture/{token}/state` `steps[].id` therefore becomes
+  `document_front|document_back|medical_rec|selfie|challenge|questionnaire`, and the `medical_rec`
+  entry carries **`optional: true`** when it is being offered to an 18–20-year-old rather than
+  required. It is present only when one of three things is true:
+  1. the workflow's `age_rule` is `MED_18_REC`; or
+  2. `expected_details.medical` is `true` (which makes the step required on a `REC_21` workflow
+     too, and drops that guest's age floor to 18); or
+  3. the guest is **18–20** on a `REC_21` workflow whose `offer_medical_path` is `true` — then the
+     page offers "Under 21? Add your doctor's recommendation" **instead of an immediate `UNDER_AGE`
+     decline**. The step is optional here; a guest who cannot produce a valid recommendation ends
+     `Declined UNDER_AGE`, which is where they started.
+
+  New media kind: **`medical_rec`** (`Media.kind` becomes
+  `document_front|document_back|medical_rec|selfie|selfie_frame|liveness_video|portrait_crop|challenge_frame|import_pdf`).
+  Licence-derived purpose limits do not reach it — a recommendation is not a government ID — but it
+  is verification/fraud data and is retained on the same terms.
+
+  New `Person` field: **`medical_rec_expires_at`** (date or `null`) — the computed validity end of
+  the guest's last accepted recommendation, so a returning guest is not asked for the same paper
+  twice inside its validity. `idv_rules.evaluate()` returns it as `medical.expires_at`.
+
+  New `Decision` node array, **field-exact**:
+
+```jsonc
+"medical_recommendations": [{
+  "node_id": "rec-1",
+  "status": Status,                       // "Approved" gates approval; "Not Finished" == absent
+  "patient_name": "Jane Doe",
+  "patient_dob": "1994-03-02",
+  "physician_name": "Alice Nguyen, MD",
+  "physician_license": "A123456",
+  "license_state": "CA",
+  "issue_date": "2026-03-01",
+  "expiration_date": "2027-03-01",        // null when the document prints none
+  "recommendation_id": "REC-88231",
+  "verifier_phone": "+1 555 010 2200",
+  "ocr_confidence": 92.5,
+  "image": "/api/idv/media/<id>",
+  "crosscheck": { "name_vs_document": "match|mismatch|unreadable",
+                  "dob_vs_document": "match|mismatch|unreadable" },
+  "warnings": [{ "risk": "…", "additional_data": null, "log_type": "error|warning",
+                 "short_description": "…", "long_description": "…" }]
+}]
+```
+
+  `idv_rules.evaluate()` returns a **`medical`** block alongside `age` (or `null` when the session
+  has nothing to do with the medical path):
+  `{ "required", "offered", "optional", "verified", "node_id", "status", "expires_at",
+  "expiry_source": "printed"|"issue+12m", "physician_license_kind": "md_ps"|"do_ps"|null }`.
+
+  **Validity rules (California), in the order they are applied** — hard facts about the document
+  first, capture problems last, so a guest is never asked to re-photograph a recommendation that
+  would be refused anyway:
+  1. `license_state` must be `CA` → else decline `MED_REC_OUT_OF_STATE`. Absent (not
+     out-of-state) → retryable `MED_REC_UNREADABLE`.
+  2. `physician_license` must match a California pattern (below) → else decline
+     `MED_REC_INVALID_LICENSE`. Absent → `MED_REC_UNREADABLE`.
+  3. `patient_name` must fuzzy-match the ID: normalised edit distance on the **last name** ≤ 0.2
+     **and** an identical **first-name initial** → else decline `MED_REC_NAME_MISMATCH`.
+     Comparison is on letters only (punctuation, hyphens and spaces normalised away, so
+     "O'Brien"/"OBrien" and "Smith-Jones"/"Smith Jones" match); `patient_name` is split on the LAST
+     whitespace run, so "Maria de la Cruz" gives last name "Cruz". Only the initial of the first
+     name is compared because recommendations print "R.", "Rob" and "Roberto" for one guest. The
+     rules re-derive this from the node's own fields whenever both names are present and fall back
+     to `crosscheck.name_vs_document` only when they are not.
+     *Honest property:* 0.2 tolerates one character in eight and **none in four**, so "Doe"/"Does"
+     is a mismatch. That is the strict direction on the shortest surnames, where a one-letter edit
+     is most likely to be a different person. Loosening it means a new ruling, not a quiet edit.
+  4. `patient_dob` must **equal** the ID DOB when the recommendation prints one → else decline
+     `MED_REC_DOB_MISMATCH`. When it prints none, `crosscheck.dob_vs_document` decides
+     (`mismatch` → decline, `unreadable` → `MED_REC_UNREADABLE`, absent → nothing: a missing DOB is
+     not a mismatch, and the name plus the licence carry the join).
+  5. `issue_date` ≤ today, and valid through `expiration_date` if printed, else **12 months from
+     issue** (California recommendations are conventionally annual; the shorter reading is the safe
+     direction for an age gate) → else decline `MED_REC_EXPIRED`. A printed expiry always wins,
+     even when it is earlier than issue + 12 months. There is **no reason code for a
+     future-dated document**, so an `issue_date` after today is reported as `MED_REC_EXPIRED`
+     ("not valid today") with the real cause in `explain` — flagged rather than invented.
+  6. `ocr_confidence` ≥ `config.thresholds.doc_quality_min` → else retryable
+     `MED_REC_UNREADABLE`. A null confidence is "we cannot tell", not a pass.
+  7. No node at all (or `status: "Not Finished"`) → retryable `MED_REC_MISSING`.
+
+  **Physician licence patterns** (format checks — see the honest limit below):
+  - **MD, Medical Board of California, Physician and Surgeon**: `^[ACG]\d{4,7}$`. The letter
+    records the licensure pathway (G = NBME, A = FLEX/USMLE/LMCC, C = reciprocity after four years
+    in another state). The board's canonical storage is letter + 7 digits, zero-padded after the
+    letter to eight characters, but printed cards and letterheads routinely show the unpadded
+    number (`G12345`, `A123456`), so 4–7 digits are accepted.
+  - **DO, Osteopathic Medical Board of California**: `^20A\d{4,5}$`. Every osteopathic number is
+    prefixed with the literal `20A`; the licence number proper is the trailing four or five digits
+    (e.g. `20A12345`).
+  - Whitespace, dots and hyphens are stripped and the value upper-cased before matching, so
+    `A 123456` and `20A-12345` are the same licences. A field carrying two numbers
+    (`"A123456; DEA BN1234567"`) matches nothing.
+  - Sources, read 2026-09-08: California Cancer Registry / PAQC coding manual, *Physician License
+    Numbers* (`http://docs.ccrcal.org/PAQC_Pubs/V1_2016_Online_Manual/Part_III_Identification/III_3_12_1_License_Numbers.htm`)
+    — a leading letter plus the numeric part, zero-padded after the letter to eight characters,
+    types A/C/G being the Physician-and-Surgeon pathways; Osteopathic Medical Board of California,
+    license verification (`https://ombc.ca.gov/consumer_complaint/license_ver.shtml`) — numbers
+    "always start with 20A", the licence number being the last four or five digits; Medical Board
+    of California, License Types (`https://www.mbc.ca.gov/License-Verification/License-Types.aspx`).
+  - **Honest limit, stated in `explain` on every medical session:** these are FORMAT checks.
+    Nothing here proves the licence was issued or is in good standing. A real existence check means
+    the Medical Board's own verification service, i.e. a third party, which plan §0 rules out from
+    day one. If the owner wants existence checked, that is a §0 exception to raise, not a gap to
+    assume away.
+
+  **New reason codes.** Retryable (re-open the `medical_rec` step, `resubmission_max` tries):
+  `MED_REC_MISSING`, `MED_REC_UNREADABLE`. Decline: `MED_REC_EXPIRED`, `MED_REC_NAME_MISMATCH`,
+  `MED_REC_DOB_MISMATCH`, `MED_REC_INVALID_LICENSE`, `MED_REC_OUT_OF_STATE`. `UNDER_AGE` is
+  additionally recorded whenever an **18–20-year-old** ends up without a valid recommendation —
+  both when a recommendation was produced and refused (the specific `MED_REC_*` code leads,
+  `UNDER_AGE` follows) and when the tries run out (`UNDER_AGE` leads, the `MED_REC_*` code is the
+  detail). Under 18 is always `UNDER_AGE`, recommendation or not: 18 is a floor, not a suggestion.
+  An **over-21** guest on a `MED_18_REC` workflow who never produces one declines under
+  `MED_REC_MISSING` — `UNDER_AGE` would be a lie.
+
+  **Score cap.** `CAP_MED_REC_UNVERIFIED = 45.0`, below `APPROVE_SCORE_LINE`: a medical session
+  cannot be `Approved` without a `medical_recommendations[0].status == "Approved"` node **and**
+  every validity rule above satisfied. Both have to hold — the engine's own verdict on the node
+  does not substitute for the rules, and the rules do not substitute for it. A node the engine
+  refused for a reason these rules cannot re-derive is asked for again, never approved.
+
+  **Per-step attempts.** `session.attempts` gains `medical_rec` alongside `document_front`,
+  `document_back`, `selfie` and `challenge`; without the dedicated counter it falls back to
+  `resubmissions`, like the document steps, so the step always advances.
+
+  **Not built by this change, and not silently assumed:** the `medical_recommendations` node has
+  to be *produced* (engine: an OCR pass over the recommendation, `POST /engine/v1/medical/analyze`
+  by analogy with `/document/analyze`) and *captured* (the `medical_rec` step on the capture page,
+  and `POST /api/idv/capture/{token}/media` accepting `kind=medical_rec`). Both follow this
+  contract; neither exists yet. Note also that `wmdemo/idv_api.py:1631` passes the raw callback
+  `body` to `evaluate()` while this contract nests the nodes under `body.decision` — so
+  `medical_recommendations`, like every other node, is only read if that mismatch is resolved.
