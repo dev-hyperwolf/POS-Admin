@@ -156,3 +156,12 @@ Run               { "id", "kind": "csv|api", "source", "store_id", "filename", "
 
 `GET /api/incentives/settings` → `{ "stores": [ {"id","name","tz","pos": "blaze|meadow|treez|none"} ], "tie_rule_default": "split", "managers": [Person] }`
 `POST /api/incentives/settings` `{ tie_rule_default?, actor }` → the GET shape.
+
+## Addenda (2026-09-08, from the screen builds — backend must honour)
+
+- Screens receive props `{ navigate, query, route, path, session, isManager, previewing, seat: 'console'|'seat', me }` from `incentives/app.jsx`; `me` is the app-wide `/api/incentives/me` poll (`{loading, error, data, refresh}`).
+- `POST /api/incentives/snaps` (create/update) → `{ "snap": Snap }` (the detail shape). `POST .../publish|expire` → the same.
+- Snap body may carry `"quiz_reward": {"unit": "cents|points", "amount": int}`; the detail returns it under the same key; `reward_summary` is derived from it.
+- `video_url` cards carry the URL in `media_url` (no separate field).
+- Snap list items carry `"views": {"count": int, "completed": int}` for managers (budtenders get the same key with their own counts only) so the list needs no N+1.
+- `GET /api/incentives/contests` also accepts `?status=active` etc.; the Learn author reads it for the linked-bounty picker.

@@ -225,7 +225,6 @@
     const navigate = React.useCallback((href) => { location.hash = href; }, []);
     const path = route.replace(/^#/, '').split('?')[0] || '/';
     const query = route.includes('?') ? new URLSearchParams(route.split('?')[1]) : new URLSearchParams();
-    const ctx = { navigate, query, route, path };
 
     // One app-wide poll, not per-route: /api/incentives/me is "the one call
     // for the Home card and the app's landing view" (plan §4) — rank, active
@@ -235,6 +234,14 @@
     // end: the backend has no /api/incentives/* routes today, so this 404s,
     // and NotConnected is what a person on either seat actually sees.
     const me = window.HWInc.usePoll('/api/incentives/me', { intervalMs: 20000 });
+
+    // Screens get the session, the role verdict, the preview flag and the
+    // /me poll as props so no screen re-derives role from a string or opens a
+    // second /me poll. `previewing` lets a screen render its budtender
+    // version for a manager who asked to see it.
+    const session = window.HWInc.session();
+    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
+    const ctx = { navigate, query, route, path, session, isManager, previewing, seat: isManager && !previewing ? 'console' : 'seat', me };
 
     let Screen = null;
     if (path.startsWith('/contests/') && path !== '/contests/new') Screen = window.IncScreenContestDetail;
@@ -247,8 +254,6 @@
         body={`${source[0]} defines ${source[1]} and this page did not get it — check that Hyperwolf Bounty.html loads that file, or that this screen has not been built yet.`} />
     );
 
-    const session = window.HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
     const showConsole = isManager && !previewing;
 
     const previewBand = (isManager && previewing) ? (
@@ -281,6 +286,9 @@
             </BFrame>
           </main>
         </div>
+        {/* hd-ui.jsx installs window.hdToast only once ToastHost mounts; without
+            this, every screen's write outcome is a silent no-op. */}
+        {window.ToastHost ? <window.ToastHost /> : null}
       </div>);
   }
 

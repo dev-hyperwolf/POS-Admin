@@ -33,9 +33,32 @@
     return label ? `${label} · never synced` : 'never synced';
   }
 
+  // The API contract's `Source` (docs/BOUNTY-API-CONTRACT.md, "Common
+  // fragments") is accepted natively: `configured`/`last_ok_at`/`today`/`stale`
+  // are mapped here, once, so no screen carries its own adapter. The older
+  // display shape ({status, synced_at, count_today, last_upload}) still works.
+  const SOURCE_LABEL = { 'blaze-api': 'Blaze API', 'meadow-api': 'Meadow API', 'blaze-csv': 'Blaze CSV',
+    'meadow-csv': 'Meadow CSV', 'hwpos': 'Register' };
+  function fromContract(s) {
+    if (!s || !('configured' in s || 'last_ok_at' in s)) return s;
+    const isCsv = /-csv$/.test(s.source || '');
+    let status = 'off';
+    if (s.last_error) status = 'bad';
+    else if (s.stale) status = 'warn';
+    else if (s.last_ok_at) status = 'ok';
+    const errAt = s.last_error_at ? new Date(s.last_error_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ': ' : '';
+    return {
+      source: SOURCE_LABEL[s.source] || s.source, store: s.store_name || s.store_id, status,
+      synced_at: s.last_ok_at || null,
+      count_today: s.today ? (isCsv ? s.today.lines : s.today.txns) : null,
+      last_error: s.last_error ? errAt + s.last_error : (s.configured === false && !isCsv ? 'not configured — no key' : null),
+    };
+  }
+
   window.IncShared.SourceFreshness = function SourceFreshness({ sources, style }) {
     const P = useP();
     const HD = window.HD;
+    sources = (sources || []).map(fromContract);
     if (!sources || !sources.length) {
       return <div style={{ fontSize: P.type.meta, color: P.inkMute, fontFamily: P.fontMono, ...style }}>never synced</div>;
     }
