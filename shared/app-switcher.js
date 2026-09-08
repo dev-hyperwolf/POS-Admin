@@ -10,6 +10,7 @@
     ['METRC Batch Pipeline.html', 'Batch Pipeline', 'batch'],
     ['Promotions Suite.html', 'Promotions', 'promo'],
     ['Hyperwolf Engage.html', 'Engage', 'eng'],
+    ['Hyperwolf Bounty.html', 'Bounty', 'bty'],
     ['Hyperwolf Delivery.html', 'Delivery', 'del'],
     ['Hyperdrive Logistics.html', 'Logistics', 'log'],
     ['Hyperwolf Driver App.html', 'Driver App', 'drv'],

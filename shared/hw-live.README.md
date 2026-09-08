@@ -162,3 +162,49 @@ HW_LIVE.disable() / HW_LIVE.enable()
 `?hwlive=<origin>` overrides the base **only if that origin is itself loopback** —
 otherwise a crafted link could point a viewer's page at an arbitrary host and have
 it render whatever came back as the operator's own catalogue.
+
+---
+
+## Lite mode — `data-hw-live-lite="1"` (added 2026-09-08, for `Hyperwolf Bounty.html`)
+
+This file was written for the POS entry page, and on boot it unconditionally does
+two POS-specific things: fetches `/api/state` (~1.9 MB — the whole catalog, regions
+and fleet) and the fulfilment board, and installs an accessor on `window.HW` so it
+can rewrite `pos/data.jsx`'s arrays in place.
+
+`incentives/app.jsx` (`Hyperwolf Bounty.html`) needs exactly three things out of
+this file — base-URL resolution, `HW_LIVE.get()`/`.post()`, and the write-token
+badge — and none of the two POS-specific ones: it never loads `pos/data.jsx`, has
+no catalog for `/api/state` to update, and no `window.HW` for the accessor to
+attach to. Booting it the normal way would still pay for the 1.9 MB fetch and the
+board walk on every load, for a payload the page cannot use — measured, not
+assumed, by reading `load()` before writing this mode. Opt in with:
+
+```html
+<script src="shared/hw-live.js" data-hw-live-lite="1"></script>
+```
+
+**What lite mode arms:** base resolution (`base`, the `?hwlive=` override), the
+write token (`localStorage['hw-live-token']`, `?hwtoken=`), `HW_LIVE.get(path)` /
+`HW_LIVE.post(path, body)`, and the badge — same component, same `HW_LIVE.status` /
+`.refresh()` / `.disable()` / `.enable()` surface.
+
+**What it skips:** the `/api/state` fetch, the fulfilment-board fetch, and the
+`Object.defineProperty(window, 'HW', …)` accessor. Boot calls `loadLite()` instead
+of `load()`: it fires the same non-mutating write-probe `probeWrites()` already
+uses (`POST /api/__hw_write_probe` — 403 `read-only` means gated, 404 means open,
+a network failure means unreachable) and uses whether that request landed at all
+as the reachability signal, since there is no catalog payload to check for shape.
+`HW_LIVE.refresh()` and the panel's refresh button route to `loadLite()` too, so
+neither becomes a back door to the fetch this mode exists to avoid.
+
+**Badge copy differs, honestly.** A lite badge never claims `N SKUs · M regions` —
+it has fetched none — so the label reads `Bounty backend` / `Not connected` and the
+sub-line reads `<origin> · reachable` or `no answer at <origin>` instead. The panel
+drops the whole catalog dump and keeps only the **Writes** block (identical to the
+POS badge) plus one sentence naming what the reachability probe found.
+
+Verified not to regress the POS page: `Hyperwolf POS.html` still loads
+`shared/hw-live.js` with no `data-hw-live-lite` attribute, so `LITE` is `false`
+there and every branch above falls through to the original `load()` /
+`Object.defineProperty` / catalog-badge path unchanged.

@@ -109,6 +109,20 @@
   // it were the operator's own catalog.
   var armed = !disabled;
 
+  // ── lite mode — pages with no pos/data.jsx catalog ──────────────────────
+  // This file was written for the POS entry page: on boot it unconditionally
+  // fetches /api/state (~1.9MB, the whole catalog + regions + fleet) and the
+  // fulfilment board, then reaches for window.HW so it can rewrite pos/data.jsx's
+  // arrays in place. Hyperwolf Bounty.html (incentives/) loads this same file
+  // for base-URL resolution, get()/post() and the write-token badge, but never
+  // loads pos/data.jsx and has no catalog for that fetch to update -- paying
+  // for it anyway is measured waste (a payload this page cannot use) and, worse,
+  // an assumption about POS globals this page does not carry. A script tag
+  // opts into the smaller boot with data-hw-live-lite="1"; see
+  // shared/hw-live.README.md for what is armed and what is not.
+  var LITE = !!(document.currentScript && document.currentScript.dataset &&
+    document.currentScript.dataset.hwLiveLite === '1');
+
   // ── writes: the token, and the one POST helper ─────────────────────
   //
   // WHY THIS EXISTS. The deployed demo runs WM_DEMO_PUBLIC=1, and the gate at
@@ -1260,9 +1274,22 @@
   }
 
   function panelHTML(P) {
-    var r = _report;
     var live = _status === 'live';
     var h = writesHTML(P);
+    // LITE carries no catalog (see loadLite()) -- say only what this path
+    // actually knows: reachability and the write-gate state above. Everything
+    // below this point in the function talks about /api/state's catalog
+    // payload, which a lite page never fetches.
+    if (LITE) {
+      h += '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:8px">Data source</div>';
+      h += '<div style="font-size:' + P.type.body + 'px;color:' + P.ink2 + ';line-height:1.5">' +
+        esc(live ? 'The wm-demo backend at ' + base + ' answered a non-mutating probe just now.' :
+            _status === 'off' ? 'The live seam is switched off.' :
+            'No API answered at ' + base + '.') +
+        '</div>';
+      return h;
+    }
+    var r = _report;
     h += '<div style="font-size:' + P.type.micro + 'px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:' + P.inkMute + ';margin-bottom:8px">Data source</div>';
     if (!live) {
       h += '<div style="font-size:' + P.type.body + 'px;color:' + P.ink2 + ';line-height:1.5">' +
@@ -1517,18 +1544,29 @@
 
     var live = _status === 'live';
     var dot = live ? P.good : _status === 'pending' ? P.warn : P.inkFaint;
-    var label = live ? 'Live data' : _status === 'pending' ? 'Checking API…' : 'Mock data';
-    // COUNT AT PAINT TIME, NOT AT FETCH TIME. _report.orders.shown is computed
-    // once per apply() and never recomputed. That was correct while this seam
-    // was the only writer of HW.ORDERS. Now the till and the storefront write
-    // into that array too, so a stored count goes stale the moment a cashier
-    // tenders a sale: the queue shows 258 cards and this pill still says 255.
-    // Reading .length here costs nothing and cannot drift.
-    var _shownNow = (_hw && _hw.ORDERS) ? _hw.ORDERS.length
-                  : (_report.orders ? _report.orders.shown : null);
-    var sub = live ? _report.products + ' SKUs · ' + _report.regions.length + ' regions' +
-        (_shownNow != null ? ' · ' + _shownNow + ' orders' : '') :
-      _status === 'pending' ? base.replace(/^https?:\/\//, '') : 'API unavailable';
+    var label = LITE
+      ? (live ? 'Bounty backend' : _status === 'pending' ? 'Checking API…' : 'Not connected')
+      : (live ? 'Live data' : _status === 'pending' ? 'Checking API…' : 'Mock data');
+    var sub;
+    if (LITE) {
+      // No catalog on this path (see loadLite()) -- report reachability and
+      // the write-gate state only, never SKUs/regions/orders this page never
+      // fetched.
+      sub = live ? base.replace(/^https?:\/\//, '') + ' · reachable'
+          : _status === 'pending' ? base.replace(/^https?:\/\//, '') : 'no answer at ' + base;
+    } else {
+      // COUNT AT PAINT TIME, NOT AT FETCH TIME. _report.orders.shown is computed
+      // once per apply() and never recomputed. That was correct while this seam
+      // was the only writer of HW.ORDERS. Now the till and the storefront write
+      // into that array too, so a stored count goes stale the moment a cashier
+      // tenders a sale: the queue shows 258 cards and this pill still says 255.
+      // Reading .length here costs nothing and cannot drift.
+      var _shownNow = (_hw && _hw.ORDERS) ? _hw.ORDERS.length
+                    : (_report.orders ? _report.orders.shown : null);
+      sub = live ? _report.products + ' SKUs · ' + _report.regions.length + ' regions' +
+          (_shownNow != null ? ' · ' + _shownNow + ' orders' : '') :
+        _status === 'pending' ? base.replace(/^https?:\/\//, '') : 'API unavailable';
+    }
     // A user who never opens the panel still has to know the buttons will not
     // write. This is the whole diagnosis in one word, on the pill.
     if (live && (_writes === 'gated' || _writes === 'rejected')) { sub += ' \u00b7 read-only'; }
@@ -1565,7 +1603,8 @@
         'box-shadow:' + P.shadowLg + ';padding:13px;max-height:min(46vh,380px);overflow:auto;pointer-events:auto">' + panelHTML(P) +
         '<button data-hwl="refresh" style="margin-top:11px;width:100%;min-height:' + P.ctrlH.sm + 'px;border-radius:' + P.r8 + 'px;' +
         'border:1px solid ' + P.hairline2 + ';background:' + P.surface2 + ';color:' + P.ink2 + ';font-family:' + P.fontSans + ';' +
-        'font-size:' + P.type.meta + 'px;font-weight:600;cursor:pointer">Re-fetch /api/state</button></div>';
+        'font-size:' + P.type.meta + 'px;font-weight:600;cursor:pointer">' +
+        (LITE ? 'Re-check connection' : 'Re-fetch /api/state') + '</button></div>';
 
     var html = '';
     html += '<div role="button" tabindex="0" data-hw-i title="' + esc(label + ' — click for detail') + '" ' +
@@ -1721,6 +1760,61 @@
     });
   }
 
+  // ── lite boot ────────────────────────────────────────────────────────────
+  // No /api/state, no board -- just "does this origin answer at all" and the
+  // write-gate state, both riding the same non-mutating probe probeWrites()
+  // already uses (POST /api/__hw_write_probe: 403 'read-only' means gated,
+  // 404 means open, a network failure means unreachable). _report is set to a
+  // sentinel object rather than left null so paintBadge()/panelHTML() have a
+  // stable branch to take (see the `LITE` checks in both) instead of a stray
+  // catalog dereference on a page that has no catalog.
+  //
+  // THE FIRST PAINT NEEDS ITS OWN RETRY, NOT JUST watchTheme(). paintBadge()
+  // bails out silently when window.THEMES is not defined yet (palette()
+  // returns null), and MEASURED on this page, both calls below can land
+  // before it exists: hw-live.js runs before pos/tokens.jsx even starts
+  // downloading, and the write-probe POST to a same-origin server resolves
+  // fast enough to beat it too. On the POS path that race is harmless because
+  // the window.HW setter -- which always fires again well after tokens.jsx has
+  // run -- calls paintBadge() a second, later time. LITE has no such setter
+  // (Object.defineProperty(W,'HW',...) is skipped for LITE, above), so without
+  // a second call the badge stays permanently unpainted with no error to
+  // notice it by.
+  //
+  // watchTheme()'s own observer is NOT that second call: its callback only
+  // repaints `if (_badge)`, i.e. only once a badge already exists -- correct
+  // for repainting on a LATER theme toggle, but it is exactly the guard that
+  // makes it fire-and-do-nothing on this page's very first mutation, because
+  // `_badge` is still null at that point. armLiteBadgeRetry() below installs
+  // its own one-shot observer that repaints unconditionally and disconnects
+  // itself the moment `_badge` exists, which tokens.jsx's ThemeProvider
+  // reliably triggers on mount (it always writes body.style.colorScheme once,
+  // even on the default theme) -- so this needs no polling and no timeout.
+  function armLiteBadgeRetry() {
+    if (_badge || !W.MutationObserver || !document.body) { paintBadge(); return; }
+    var mo = new MutationObserver(function () {
+      paintBadge();
+      if (_badge) { mo.disconnect(); }
+    });
+    mo.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  function loadLite() {
+    _report = { lite: true };
+    watchTheme();          // ongoing repaints, once a badge exists (see above)
+    armLiteBadgeRetry();   // the first paint, which may have to wait for it
+    return post(PROBE_PATH, {}).then(function () {
+      _settled = true;
+      // settleWrite() only runs -- and only then sets _writes off 'unknown' --
+      // when the fetch actually got a parseable response. If it is still
+      // 'unknown' here, the request never landed: that IS the unreachable
+      // signal on this path, in place of /api/state's own catch.
+      _status = (_writes === 'unknown') ? 'unreachable' : 'live';
+      paintBadge();
+      return _status;
+    });
+  }
+
   function settle(json, status) {
     _settled = true;
     _payload = json;
@@ -1741,7 +1835,7 @@
   // pos/data.jsx:322 does `window.HW = {...}` exactly once, and seven entry
   // HTMLs load that file, so this accessor is the single point at which every
   // POS screen's data can be swapped.
-  if (armed) {
+  if (armed && !LITE) {
     try {
       Object.defineProperty(W, 'HW', {
         configurable: true,
@@ -1813,7 +1907,10 @@
     refresh: function () {
       if (!armed) { return Promise.resolve('off'); }
       _settled = false; _status = 'pending'; paintBadge();
-      return load().then(function () { rerenderIfMounted(); return _status; });
+      // LITE never calls load() -- that is the whole point of the mode, and
+      // "refresh" must not become a back door to the 1.9MB fetch it exists to
+      // avoid.
+      return (LITE ? loadLite() : load()).then(function () { rerenderIfMounted(); return _status; });
     },
     // The order queue's own surface. `advance` is the whole stage control: a
     // POS dev wires a real button to it with one line and deletes nothing.
@@ -1834,5 +1931,5 @@
     }
   };
 
-  if (armed) { load(); }
+  if (armed) { LITE ? loadLite() : load(); }
 })();

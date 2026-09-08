@@ -17,6 +17,9 @@
     { id: 'swapupsell', label: 'Swap & Upsell', icon: 'swap', href: 'Swap and Upsell Engine.html' },
     { id: 'merch', label: 'Merch', icon: 'layout-template', pos: 'merch' },
     { id: 'members', label: 'Members', icon: 'users', pos: 'members' },
+    // People-adjacent to Members on purpose: Bounty scores and pays budtenders,
+    // the same people Members tracks identity for. docs/INCENTIVES-PLAN-2026-09-07.md §0/§5.
+    { id: 'bounty', label: 'Bounty', icon: 'trophy', href: 'Hyperwolf Bounty.html' },
     { id: 'terminals', label: 'Terminals', icon: 'card', href: 'POS Terminal Configuration.html' },
     { id: 'delivery', label: 'Delivery', icon: 'pin', href: 'Hyperwolf Delivery.html' },
     { id: 'logistics', label: 'Dispatch', icon: 'truck', href: 'Hyperdrive Logistics.html' },

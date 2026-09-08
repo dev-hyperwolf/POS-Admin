@@ -120,6 +120,10 @@ window.Icon = function Icon({ name, size = 16, stroke = 1.7, color = 'currentCol
     case 'coins':return <svg {...props}><ellipse cx="9" cy="7" rx="6" ry="3" /><path d="M3 7v4c0 1.7 2.7 3 6 3s6-1.3 6-3V7" /><ellipse cx="15" cy="15" rx="6" ry="3" /><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-3" /></svg>;
     case 'ban':return <svg {...props}><circle cx="12" cy="12" r="9" /><path d="M6 18L18 6" /></svg>;
     case 'alert':return <svg {...props}><path d="M12 4l9 16H3z" /><path d="M12 10v4" /><circle cx="12" cy="17" r=".8" fill={color} stroke="none" /></svg>;
+    case 'trophy':return <svg {...props}><path d="M7 4h10v4a5 5 0 01-10 0z" /><path d="M7 5H4v2a3 3 0 003 3M17 5h3v2a3 3 0 01-3 3" /><path d="M12 13v3M9 20h6M10 16.5h4v3.5h-4z" /></svg>;
+    case 'medal':return <svg {...props}><path d="M9 3h6l-1.5 6h-3z" /><circle cx="12" cy="15" r="6" /><path d="M12 12.3l1.1 2.3 2.5.3-1.8 1.7.4 2.5-2.2-1.2-2.2 1.2.4-2.5-1.8-1.7 2.5-.3z" /></svg>;
+    case 'story':return <svg {...props}><rect x="6" y="3" width="12" height="18" rx="2.5" /><path d="M10.5 9.5l5 2.5-5 2.5z" /></svg>;
+    case 'inbox':return <svg {...props}><path d="M3 12h5l1.5 3h5L16 12h5" /><path d="M4.5 12L6 5h12l1.5 7" /><path d="M3 12v6a1 1 0 001 1h16a1 1 0 001-1v-6" /></svg>;
     default:return <svg {...props}><circle cx="12" cy="12" r="9" /></svg>;
   }
 };
