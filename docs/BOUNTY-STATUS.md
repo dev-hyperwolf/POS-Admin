@@ -81,6 +81,33 @@ Lake Elsinore; "Preview as budtender" for the seat) and http://127.0.0.1:8787/Hy
 for the Home card. The sync loop polls Blaze every 5 minutes; set `HW_INC_VENDOR_OFF=1` to stop
 vendor polling, `HW_INC_SYNC_S=0` to idle the loop.
 
-## Open
+## Open (known, not fixed tonight)
 
-- (filled in at the end of the night)
+- **Actor is self-asserted.** Every write takes `actor` in the body, exactly like the other ~60
+  wm-demo routes. The manager gate is a role check, not authentication; `serve.is_manager()` is
+  where real auth attaches (plan §6, escalated).
+- **Blaze refunds already in the ledger** were ingested before `ref_txn_id` was wired; the next
+  sync will list them as conflicts (3 rows) which a manager applies from the Data screen. New
+  refunds link automatically.
+- **Session identity** in the app is the estate's hard-coded demo user (Manisha Saini, Floor
+  Manager, Lake Elsinore) via one function, `HWInc.session()`.
+- **Notifications, brand-user logins, payouts, mobile**: out of scope by plan (§11).
+- The dev server I left running on port 8791 polls Blaze every 5 minutes; kill it with
+  `pkill -f wmdemo.server` if you start your own on 8787.
+
+## Verification summary (final run, scratch databases)
+
+| Suite | Checks |
+|---|---|
+| scoring | 38 |
+| ingest | 34 |
+| identity | 21 |
+| aov_compat | 20 |
+| contests | 35 |
+| routes | 150 |
+| safety | 47 |
+| blaze_sync | 45 (incl. one live read-only pass) |
+| meadow_sync | 86 |
+| **total** | **476 / 476** |
+
+POS-Admin: `node --test test/global-collisions.test.mjs` 15/15 (includes `Hyperwolf Bounty.html`).
