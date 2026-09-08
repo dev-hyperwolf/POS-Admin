@@ -1,0 +1,2264 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify — Concept C: Customer File</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+--canvas2:#EEEBE2;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--highlightSoft:#F1EFE9;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+
+--catFlower:#3F9E72; --catVape:#3F73D6; --catEdibles:#E0477C; --catConcentrate:#C2841D;
+--catPreroll:#D45A3C; --catTincture:#8A5CD6;
+}
+[data-theme="dark"]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+--canvas2:#0A0A07;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+--accentHover:#FFDA33; --accentText:#FFD100;
+--highlightSoft:rgba(245,243,234,.06);
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+--neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes hwspin{to{transform:rotate(360deg)}}
+
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.seg{display:inline-flex;background:var(--railHair);border-radius:var(--r10);padding:3px;gap:2px;margin-left:auto;flex-wrap:wrap;}
+.seg button{appearance:none;border:0;background:transparent;color:var(--railInk);font-family:var(--fontSans);
+font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+.seg button.active{background:var(--railBright);color:var(--rail);box-shadow:var(--shadowSm);}
+.seg button:not(.active):hover{color:var(--railBright);}
+.theme-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;}
+.theme-btn:hover{background:var(--railHover);}
+.tabpanel{display:none;} .tabpanel.active{display:block;}
+.stage{max-width:1240px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1240px;margin:0 auto;padding:16px 22px 0;}
+.intro .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 18px;box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;max-width:980px;}
+.intro p:last-child{margin-bottom:0;}
+.intro code, code.mono{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;color:var(--ink2);}
+.cap{font-size:11.5px;color:var(--inkDim);font-family:var(--fontMono);line-height:1.55;margin-top:9px;}
+.cap b{color:var(--ink2);font-weight:600;}
+.sample-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 3px;border-radius:var(--r999);
+background:var(--railHair);color:var(--railInk);font-family:var(--fontMono);font-size:10px;font-weight:600;white-space:nowrap;}
+
+.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+font-size:11px;font-weight:600;white-space:nowrap;}
+.pill.sm{padding:2px 7px 3px;font-size:10px;}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-accent{background:var(--accentSoft);color:var(--accentText);}
+.pill-ghost{background:transparent;border:1px solid var(--hairline2);color:var(--inkDim);}
+.dot{width:7px;height:7px;border-radius:99px;flex:0 0 auto;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+white-space:nowrap;border:1px solid transparent;transition:background .12s ease;}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-secondary:hover{background:var(--surface3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-accent:hover{background:var(--accentHover);}
+.btn-ghost{background:transparent;color:var(--ink2);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-danger{background:var(--surface);color:var(--bad);border-color:var(--bad);}
+.btn-xs{min-height:26px;padding:0 9px;font-size:11px;}
+.btn-sm{min-height:30px;padding:0 10px;font-size:11.5px;}
+.btn-lg{min-height:44px;padding:0 16px;font-size:13.5px;}
+.btn[disabled]{opacity:.5;cursor:default;}
+.avatar{border-radius:99px;background:var(--surface3);color:var(--ink2);display:inline-flex;align-items:center;
+justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto;border:1px solid var(--hairline2);}
+.bar-track{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;display:block;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);}
+.card.sunken{background:var(--canvas2);border-color:var(--hairline);}
+.card.raised{border:0;box-shadow:var(--shadowMd);}
+.card-head{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--hairline);}
+.card-head .ch-t{flex:1;font-size:13px;font-weight:700;letter-spacing:-.005em;}
+.card-body{padding:14px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.row.tight{gap:6px;}
+.row.mid{align-items:center;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;}
+.stat{background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);
+border-radius:var(--r10);padding:10px 12px;}
+.stat.accent{border-left-color:var(--accent);}
+.stat.good{border-left-color:var(--good);}
+.stat.warn{border-left-color:var(--warnText);}
+.stat.bad{border-left-color:var(--bad);}
+.stat.info{border-left-color:var(--info);}
+.stat .sl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute);}
+.stat .sv{font-size:21px;font-weight:800;font-family:var(--fontMono);font-variant-numeric:tabular-nums;margin-top:3px;}
+.stat .ss{font-size:11px;color:var(--inkDim);margin-top:1px;line-height:1.45;}
+.note{border-radius:var(--r12);padding:12px 14px;border:1px solid;font-size:12px;line-height:1.6;}
+.note.info{background:var(--infoSoft);border-color:var(--info);color:var(--ink2);}
+.note.warn{background:var(--warnSoft);border-color:var(--warnText);color:var(--ink2);}
+.note.bad{background:var(--badSoft);border-color:var(--bad);color:var(--ink2);}
+.note.good{background:var(--goodSoft);border-color:var(--good);color:var(--ink2);}
+.note.plain{background:var(--surface2);border-color:var(--hairline2);color:var(--ink2);}
+.note .nh{display:flex;align-items:center;gap:7px;font-weight:700;font-size:11px;letter-spacing:.03em;
+text-transform:uppercase;margin-bottom:7px;}
+.note ul{margin:0;padding-left:17px;} .note li{margin-bottom:4px;} .note li:last-child{margin-bottom:0;}
+.panel-eb{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--inkMute);
+font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.panel-eb .grow{flex:1;}
+.h2b{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.05;}
+.h3b{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em;}
+
+table.bd{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--hairline2);
+border-radius:var(--r12);overflow:hidden;}
+table.bd thead th{text-align:left;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+color:var(--inkMute);background:var(--surface2);padding:8px 10px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.bd tbody td{padding:8px 10px;border-top:1px solid var(--hairline);font-size:12.5px;vertical-align:middle;}
+table.bd tbody tr:first-child td{border-top:0;}
+table.bd tbody tr.hot{background:var(--warnSoft);}
+table.bd tbody tr.me{background:var(--accentSoft);}
+table.bd td.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:700;text-align:right;white-space:nowrap;}
+table.bd td.num.dim{font-weight:500;color:var(--inkDim);}
+table.bd td.mono{font-family:var(--fontMono);font-size:11.5px;color:var(--ink2);}
+.foot-note{padding:9px 12px;font-size:11.5px;color:var(--inkDim);border-top:1px solid var(--hairline);background:var(--surface2);}
+.foot-note .mono{color:var(--ink2);}
+.nm{display:flex;align-items:center;gap:8px;min-width:0;}
+.nm b{font-size:12.5px;font-weight:700;white-space:nowrap;}
+.nm .ns{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);}
+
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+.kv:last-child{border-bottom:0;}
+.kv .k{color:var(--inkDim);} .kv .v{font-weight:600;text-align:right;}
+.kv .v.mono{font-family:var(--fontMono);font-weight:600;font-variant-numeric:tabular-nums;}
+.kv .v.warn{color:var(--warnText);} .kv .v.bad{color:var(--bad);} .kv .v.good{color:var(--good);}
+.fld{display:block;}
+.field-lbl{font-size:10.5px;font-weight:700;color:var(--inkMute);letter-spacing:.06em;text-transform:uppercase;
+margin-bottom:5px;display:block;font-family:var(--fontMono);}
+.field-input{width:100%;min-height:40px;padding:0 11px;border-radius:var(--r8);border:1px solid var(--fieldBorder);
+background:var(--field);font-family:var(--fontSans);font-size:12.5px;color:var(--ink);}
+.field-input.mono{font-family:var(--fontMono);}
+textarea.field-input{min-height:64px;padding:9px 11px;resize:vertical;}
+.field-hint{font-size:11px;color:var(--inkMute);margin-top:5px;line-height:1.5;}
+.chipset{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:var(--r999);border:1px solid var(--hairline2);
+background:var(--surface);color:var(--ink2);cursor:pointer;white-space:nowrap;}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.chip.accent-on{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.chip.off{opacity:.55;}
+.seg2{display:inline-flex;background:var(--surface3);border-radius:var(--r10);padding:3px;gap:2px;}
+.seg2 span{font-size:11.5px;font-weight:600;color:var(--inkDim);padding:6px 10px;border-radius:7px;white-space:nowrap;}
+.seg2 span.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.switch{width:34px;height:20px;border-radius:99px;background:var(--hairline3);position:relative;flex:0 0 auto;}
+.switch.on{background:var(--good);}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:var(--surface);}
+.switch.on::after{left:auto;right:2px;}
+.skel{background:linear-gradient(90deg,var(--surface3) 25%,var(--surface2) 37%,var(--surface3) 63%);
+background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:6px;height:12px;}
+.state-plate{width:44px;height:44px;border-radius:99px;display:flex;align-items:center;justify-content:center;
+font-size:19px;margin:0 auto 11px;}
+.state{padding:34px 20px;text-align:center;}
+.state h4{margin:0 0 6px;font-size:14px;font-weight:700;}
+.state p{margin:0 auto;font-size:12.5px;color:var(--inkDim);line-height:1.6;max-width:400px;}
+.state .detail{margin-top:12px;font-family:var(--fontMono);font-size:11px;color:var(--inkDim);background:var(--canvas2);
+border-radius:var(--r10);padding:9px 11px;text-align:left;display:inline-block;}
+
+/* ── Concept C: the file cabinet ─────────────────────────────────────────── */
+.console{background:var(--bg);border:1px solid var(--hairline2);border-radius:var(--r12);
+box-shadow:var(--shadowLg);overflow:hidden;position:relative;}
+.console-top{padding:13px 18px 12px;border-bottom:1px solid var(--hairline);background:var(--bg);
+display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;}
+.console-top .eb{font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.console-ctl{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap;}
+.console-body{padding:16px 18px 20px;}
+.searchbar{display:flex;align-items:center;gap:8px;padding:0 12px;min-height:44px;background:var(--field);
+border:1px solid var(--fieldBorder);border-radius:var(--r10);}
+.searchbar .sb-i{color:var(--inkMute);font-size:13px;}
+.searchbar input{flex:1;border:0;outline:0;background:transparent;font-family:var(--fontSans);
+font-size:13px;color:var(--ink);min-width:0;}
+.searchbar .sb-k{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);border:1px solid var(--hairline2);
+border-radius:6px;padding:2px 6px;}
+.drawer-hint{font-family:var(--fontMono);font-size:11px;color:var(--inkMute);line-height:1.55;}
+
+.file-grid{display:grid;grid-template-columns:264px minmax(0,1fr) 272px;gap:0;}
+@media (max-width:1120px){ .file-grid{grid-template-columns:minmax(0,1fr);} }
+.file-col{min-width:0;padding:14px 16px;}
+.file-col.left{border-right:1px solid var(--hairline);background:var(--surface2);}
+.file-col.right{border-left:1px solid var(--hairline);background:var(--surface2);}
+@media (max-width:1120px){ .file-col.left,.file-col.right{border:0;border-bottom:1px solid var(--hairline);} }
+
+.person-head{display:flex;gap:12px;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--hairline);}
+.person-head .ph-n{font-size:18px;font-weight:800;letter-spacing:-.02em;line-height:1.15;}
+.person-head .ph-m{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);margin-top:4px;line-height:1.6;}
+
+/* CSS-drawn face plate — no image files anywhere in this document */
+.face{width:64px;height:64px;border-radius:99px;flex:0 0 auto;position:relative;overflow:hidden;
+background:linear-gradient(160deg,var(--surface3),var(--canvas2));border:1px solid var(--hairline2);}
+.face::before{content:"";position:absolute;left:50%;top:20%;width:44%;height:40%;transform:translateX(-50%);
+border-radius:50% 50% 46% 46%;background:var(--hairline3);}
+.face::after{content:"";position:absolute;left:50%;top:64%;width:74%;height:52%;transform:translateX(-50%);
+border-radius:46% 46% 0 0;background:var(--hairline2);}
+.face.sm{width:38px;height:38px;}
+.face.lg{width:96px;height:96px;}
+.face.ring-good{border:2px solid var(--good);}
+.face.ring-warn{border:2px solid var(--warnText);}
+.face.ring-bad{border:2px solid var(--bad);}
+
+/* CSS-drawn document plate */
+.doc{width:100%;aspect-ratio:1.586;border-radius:var(--r10);border:1px solid var(--hairline2);
+background:linear-gradient(135deg,var(--surface3) 0%,var(--surface2) 55%,var(--surface3) 100%);
+padding:9px 10px;display:flex;gap:9px;position:relative;overflow:hidden;}
+.doc::before{content:"";position:absolute;inset:0;background:
+repeating-linear-gradient(115deg,transparent 0 22px,var(--hairline) 22px 23px);opacity:.5;pointer-events:none;}
+.doc .dportrait{width:30%;border-radius:6px;background:linear-gradient(160deg,var(--hairline2),var(--hairline));
+position:relative;flex:0 0 auto;overflow:hidden;}
+.doc .dportrait::before{content:"";position:absolute;left:50%;top:18%;width:46%;height:38%;transform:translateX(-50%);
+border-radius:50%;background:var(--hairline3);}
+.doc .dportrait::after{content:"";position:absolute;left:50%;top:60%;width:78%;height:52%;transform:translateX(-50%);
+border-radius:44% 44% 0 0;background:var(--hairline3);opacity:.7;}
+.doc .dfields{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;justify-content:center;}
+.doc .dline{height:5px;border-radius:99px;background:var(--hairline3);opacity:.75;}
+.doc .dline.w70{width:70%} .doc .dline.w50{width:50%} .doc .dline.w86{width:86%} .doc .dline.w34{width:34%}
+.doc .dhdr{font-family:var(--fontMono);font-size:8.5px;font-weight:700;letter-spacing:.1em;
+text-transform:uppercase;color:var(--inkMute);}
+.doc .dbar{position:absolute;left:10px;right:10px;bottom:8px;height:16px;border-radius:3px;background:
+repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 3px,var(--ink) 3px 5px,transparent 5px 6px,
+var(--ink) 6px 7px,transparent 7px 10px);opacity:.55;}
+.doc.back{background:linear-gradient(135deg,var(--surface2),var(--surface3));}
+.doc.back .dfields{justify-content:flex-start;padding-top:2px;}
+.doc.sm{max-width:190px;}
+.doc.tiny{max-width:120px;padding:6px 7px;}
+.doc.tiny .dline{height:4px;}
+.doc-cap{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);margin-top:5px;line-height:1.5;}
+.doc-wrap{max-width:230px;}
+.media-strip{display:flex;gap:10px;flex-wrap:wrap;}
+.media-cell{width:150px;}
+.media-cell .mc-lbl{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);margin-top:5px;}
+.selfie{width:100%;aspect-ratio:1;border-radius:var(--r10);border:1px solid var(--hairline2);position:relative;
+overflow:hidden;background:radial-gradient(circle at 50% 38%,var(--surface3),var(--canvas2));}
+.selfie .oval{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56%;height:72%;
+border-radius:50%;border:2px dashed var(--hairline3);}
+.selfie .head{position:absolute;left:50%;top:30%;width:34%;height:34%;transform:translateX(-50%);
+border-radius:50%;background:var(--hairline3);}
+.selfie .body{position:absolute;left:50%;bottom:0;width:62%;height:34%;transform:translateX(-50%);
+border-radius:46% 46% 0 0;background:var(--hairline2);}
+.selfie.flash{background:radial-gradient(circle at 50% 38%,var(--accentSoft),var(--surface3));}
+
+/* Vertical timeline — the spine of the customer file */
+.tl{position:relative;padding-left:26px;}
+.tl::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:var(--hairline2);}
+.tlx{position:relative;margin-bottom:11px;}
+.tlx::before{content:"";position:absolute;left:-22px;top:14px;width:12px;height:12px;border-radius:99px;
+background:var(--surface);border:2px solid var(--hairline3);}
+.tlx.good::before{border-color:var(--good);background:var(--good);}
+.tlx.bad::before{border-color:var(--bad);background:var(--bad);}
+.tlx.warn::before{border-color:var(--warnText);background:var(--warnText);}
+.tlx.info::before{border-color:var(--info);background:var(--info);}
+.tlx.open::before{background:var(--accent);border-color:var(--accentBorder);}
+.tlx-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;}
+.tlx.sel .tlx-card{border-color:var(--accentBorder);box-shadow:0 0 0 3px var(--accentSoft);}
+.tlx-head{display:flex;align-items:center;gap:9px;padding:9px 12px;flex-wrap:wrap;}
+.tlx-head .th-t{font-size:12.5px;font-weight:700;}
+.tlx-head .th-d{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);margin-left:auto;
+font-variant-numeric:tabular-nums;}
+.tlx-body{padding:0 12px 11px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;}
+.tlx-facts{flex:1;min-width:200px;font-size:11.5px;color:var(--ink2);line-height:1.65;}
+.tlx-facts .f-k{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;}
+.tlx-foot{padding:7px 12px;border-top:1px solid var(--hairline);background:var(--surface2);
+font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.tl-year{font-family:var(--fontMono);font-size:10.5px;font-weight:700;letter-spacing:.12em;color:var(--inkMute);
+text-transform:uppercase;margin:2px 0 9px -26px;padding-left:26px;position:relative;}
+.tl-year::before{content:"";position:absolute;left:3px;top:4px;width:14px;height:2px;background:var(--hairline3);}
+
+.mini{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:9px 11px;margin-bottom:9px;}
+.mini .mn-t{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.mini .mn-s{font-size:10.5px;color:var(--inkDim);font-family:var(--fontMono);margin-top:3px;line-height:1.55;}
+.mini.hot{border-color:var(--warnText);background:var(--warnSoft);}
+.mini.bad{border-color:var(--bad);background:var(--badSoft);}
+.expiry{display:flex;align-items:center;gap:8px;font-family:var(--fontMono);font-size:11px;}
+.expiry .ex-v{font-weight:700;font-variant-numeric:tabular-nums;}
+.ringbar{height:5px;border-radius:99px;background:var(--surface3);overflow:hidden;flex:1;min-width:60px;}
+.ringbar i{display:block;height:100%;border-radius:99px;}
+
+.dup{display:flex;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--hairline2);
+border-radius:var(--r10);background:var(--surface);margin-bottom:8px;}
+.dup .dp-n{flex:1;min-width:0;font-size:12px;font-weight:700;}
+.dup .dp-s{font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);margin-top:2px;}
+.dup.strong{border-color:var(--warnText);background:var(--warnSoft);}
+.score{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:800;font-size:15px;}
+.score.good{color:var(--good)} .score.warn{color:var(--warnText)} .score.bad{color:var(--bad)}
+.uncert{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);line-height:1.5;}
+
+/* Triage board — the fulfilment kanban, with reasons where stages would be */
+.kan{display:grid;grid-template-columns:repeat(6,minmax(184px,1fr));gap:10px;overflow-x:auto;padding-bottom:4px;}
+@media (max-width:1180px){ .kan{grid-template-columns:repeat(3,minmax(184px,1fr));} }
+@media (max-width:720px){ .kan{grid-template-columns:minmax(0,1fr);} }
+.kcol{background:var(--surface2);border:1px solid var(--hairline);border-radius:var(--r12);min-width:0;display:flex;flex-direction:column;}
+.kcol-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--hairline);}
+.kcol-head .kh-t{flex:1;font-size:11.5px;font-weight:700;letter-spacing:-.005em;}
+.kcol-body{padding:9px;display:flex;flex-direction:column;gap:9px;min-height:70px;}
+.kcard{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:9px 10px;cursor:grab;}
+.kcard:hover{border-color:var(--hairline3);}
+.kcard .kc-top{display:flex;align-items:center;gap:7px;}
+.kcard b{font-size:12px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kcard .kc-m{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);margin-top:2px;font-variant-numeric:tabular-nums;}
+.kcard .kc-r{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;}
+.kcard .kc-f{font-size:11px;color:var(--ink2);line-height:1.5;margin-top:6px;}
+.kcard .kc-a{display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:7px;border-top:1px solid var(--hairline);}
+.kcol-empty{font-size:11px;color:var(--inkMute);line-height:1.6;padding:9px 4px 2px;border-top:1px dashed var(--hairline2);}
+
+/* Workflow pipeline */
+.pipe{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding-bottom:6px;}
+.pstage{flex:0 0 236px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+display:flex;flex-direction:column;min-width:0;}
+.pstage.decide{border-color:var(--accentBorder);background:var(--surface);}
+.pstage.off{background:var(--canvas2);border-style:dashed;border-color:var(--hairline2);opacity:.72;flex:0 0 220px;}
+.pstage.off .ps-t{color:var(--inkMute);}
+.ps-h{display:flex;align-items:center;gap:7px;padding:9px 11px;border-bottom:1px solid var(--hairline);}
+.ps-n{width:19px;height:19px;border-radius:99px;background:var(--surface3);color:var(--ink2);
+font-family:var(--fontMono);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.pstage.decide .ps-n{background:var(--accent);color:var(--accentInk);}
+.ps-t{flex:1;font-size:12.5px;font-weight:700;letter-spacing:-.005em;}
+.ps-b{padding:8px 11px;flex:1;}
+.ps-b .kv{padding:5px 0;font-size:11.5px;}
+.ps-f{padding:8px 11px;border-top:1px solid var(--hairline);background:var(--surface2);font-size:11px;color:var(--ink2);line-height:1.5;}
+.pstage.off .ps-f{display:none;}
+.parrow{align-self:center;font-family:var(--fontMono);font-size:14px;color:var(--inkFaint);flex:0 0 auto;padding:0 1px;}
+
+/* Phone frames for the capture flow */
+.phones{display:flex;gap:14px;flex-wrap:wrap;}
+.phone{width:246px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r20);
+box-shadow:var(--shadowMd);overflow:hidden;display:flex;flex-direction:column;}
+.ph-top{display:flex;align-items:center;gap:8px;padding:9px 12px 7px;border-bottom:1px solid var(--hairline);}
+.ph-brand{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--inkMute);
+font-family:var(--fontMono);margin-left:auto;}
+.ph-dots{display:flex;gap:3px;flex:1;}
+.ph-dots i{flex:1;height:3px;border-radius:99px;background:var(--hairline2);}
+.ph-dots i.done{background:var(--ink2);}
+.ph-dots i.now{background:var(--accent);}
+.ph-body{padding:13px 14px 15px;flex:1;}
+.ph-body.dark-stage{background:var(--surface2);}
+.ph-h{font-size:15px;font-weight:800;letter-spacing:-.01em;line-height:1.25;margin-bottom:6px;}
+.ph-p{font-size:12px;color:var(--ink2);line-height:1.6;}
+.ph-note{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);margin-top:10px;line-height:1.5;}
+.ph-hint{font-size:11px;font-weight:600;margin-top:9px;text-align:center;}
+.ph-hint.good{color:var(--good);} .ph-hint.warn{color:var(--warnText);}
+.ph-foot{padding:11px 12px;border-top:1px solid var(--hairline);background:var(--surface2);}
+.ph-cap{padding:8px 12px;background:var(--rail);color:var(--railInk);font-family:var(--fontMono);
+font-size:10px;line-height:1.5;}
+.ph-cap code{background:var(--railHair);color:var(--railBright);padding:1px 4px;border-radius:4px;}
+.capframe{position:relative;margin:12px 0;padding:8px;border-radius:var(--r10);background:var(--canvas2);}
+.cf-c{position:absolute;width:14px;height:14px;border:2px solid var(--accent);}
+.cf-c.tl{top:2px;left:2px;border-right:0;border-bottom:0;border-radius:5px 0 0 0;}
+.cf-c.tr{top:2px;right:2px;border-left:0;border-bottom:0;border-radius:0 5px 0 0;}
+.cf-c.bl{bottom:2px;left:2px;border-right:0;border-top:0;border-radius:0 0 0 5px;}
+.cf-c.br{bottom:2px;right:2px;border-left:0;border-top:0;border-radius:0 0 5px 0;}
+
+pre.snip{margin:0;padding:11px 12px;background:var(--canvas2);border:1px solid var(--hairline);
+border-radius:var(--r10);font-family:var(--fontMono);font-size:11px;line-height:1.65;color:var(--ink2);
+overflow-x:auto;white-space:pre;}
+</style>
+<script>
+// Wired from the head on DOMContentLoaded so a viewer that truncates a long
+// file still gets working tabs — the tail of the file is the first thing lost.
+document.addEventListener('DOMContentLoaded', function () {
+document.getElementById('tabseg').addEventListener('click', function (e) {
+var btn = e.target.closest('.tab-btn'); if (!btn) return;
+document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+document.querySelectorAll('.tabpanel').forEach(function (p) { p.classList.remove('active'); });
+btn.classList.add('active');
+document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+window.scrollTo({ top: 0, behavior: 'instant' });
+});
+function toggleTheme() {
+// The attribute goes on <html> as well as <body>: html paints the ground
+// outside the body box, and a dark board on a light page ground is the
+// one visual bug a token-only mockup can still ship.
+var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+var next = dark ? 'light' : 'dark';
+document.documentElement.setAttribute('data-theme', next);
+document.body.setAttribute('data-theme', next);
+document.getElementById('themeBtn').textContent = dark ? 'Switch to dark' : 'Switch to light';
+}
+window.toggleTheme = toggleTheme;
+});
+</script>
+</head>
+<body data-theme="light">
+<div class="doc-head">
+<div>
+<h1>Verify — Concept C: Customer File</h1>
+<div class="sub">DESIGN EXPLORATION · <span class="sample-tag">Exploration — sample data</span> · <b>Hyperwolf Verify</b> — Didit parity, Hyperwolf engine</div>
+</div>
+<div class="seg" id="tabseg">
+<button class="tab-btn active" data-tab="why">1 · Why</button>
+<button class="tab-btn" data-tab="home">2 · Home</button>
+<button class="tab-btn" data-tab="file">3 · Customer file</button>
+<button class="tab-btn" data-tab="session">4 · Session</button>
+<button class="tab-btn" data-tab="triage">5 · Triage</button>
+<button class="tab-btn" data-tab="table">6 · Verifications</button>
+<button class="tab-btn" data-tab="pipeline">7 · Workflow</button>
+<button class="tab-btn" data-tab="capture">8 · Capture</button>
+<button class="tab-btn" data-tab="lists">9 · Lists</button>
+<button class="tab-btn" data-tab="integrate">10 · Integrate</button>
+<button class="tab-btn" data-tab="states">11 · States</button>
+</div>
+<button class="theme-btn" id="themeBtn" onclick="toggleTheme()">Switch to dark</button>
+</div>
+
+<!-- ═══ 1 · WHY ══════════════════════════════════════════════════════════ -->
+<div class="tabpanel active" id="tab-why">
+<div class="intro">
+<div class="card" style="padding:18px 20px;">
+<div class="eyebrow">Concept C · organizing idea</div>
+<h2>The person is the record, not the session. Verify is a compliance file cabinet: you search a customer, you open their file, and every check anyone has ever run on them is on one page in date order.</h2>
+<p>Didit's console — and the other three concepts — put the <i>session</i> first: a long table of verifications, one row per attempt, and a person is whatever you can infer by reading several rows. That is the right shape for a vendor who sells checks. It is the wrong shape for a dispensary, because the questions a dispensary actually gets asked are all about a person: <b>is this the same human who signed up in 2025?</b> <b>When does their licence expire and have we asked them to re-verify?</b> <b>Is this a second file for someone we already know?</b> <b>Who approved them, and on what evidence?</b> Each of those takes three or four clicks in a session-first console. Here they are one page.</p>
+<p>So the file is the primary object. It opens with the person, their current standing and their expiry countdown; the middle column is a <b>vertical timeline</b> of every verification they have ever been through — the website sign-up in 2025, the session imported from Didit, an in-store re-verification, a <code>Kyc Expired</code> sweep, the resubmission after it — each one a card you can open into full session detail. The right column is the evidence that belongs to the <i>person</i> rather than to any one session: documents on file with expiry countdowns, face templates, 1:N matches to other files ("possible duplicate of …"), list membership, and the analyst trail across every session at once.</p>
+<p><b>Review is a triage board, not a queue.</b> Sessions in <code>In Review</code> are cards on a board with a column per reason — Liveness · Face match · Document · Duplicate person · IP/device · Age. An analyst picks a column, works it, and drags a card onto a colleague to assign. Reason-first columns matter because the reasons need different <i>people</i>: a duplicate-person card is a records judgement, a liveness card is a media judgement, and a document card is usually a re-shoot. A single ranked queue mixes all three and every analyst context-switches on every card.</p>
+<p><b>The workflow builder is a pipeline diagram</b>, left to right: Document → Cross-check → Liveness → Face match → Age → IP → Lists → Decision. Each stage is a card carrying its thresholds and, crucially, <i>what happens on fail</i> — retry, review, or decline. The failure route is the part of a verification policy people get wrong, and a form full of number inputs hides it. Stages the Hyperwolf engine cannot run (NFC, AML, database validation, proof of address) sit in the diagram greyed out and labelled <b>"Not available on the Hyperwolf engine"</b>, so an imported Didit workflow round-trips without anyone quietly believing we run a check we do not.</p>
+<p><b>Who it serves best.</b> Compliance, records and anyone who has to answer a question about a human being — an audit, a state inspection, a "did we let this person in twice" question, a re-verification campaign. It is also the only one of the four concepts where the re-verification cadence is legible: expiring documents and <code>Kyc Expired</code> people are a home-page shelf, not a filter you have to remember to apply.</p>
+<p><b>What it trades away.</b> Density for single-session work. An analyst clearing thirty routine liveness cards is slower here than in a table-first concept: the file frame is heavier, and opening a person to read one session is a detour. Concept C answers that with the triage board (tab 5) and a secondary verifications table (tab 6) that keeps the flat Didit-shaped list for people who want it — but the table is deliberately the second-class citizen, and if the module's real daily load turns out to be volume triage rather than records work, that is the argument against this concept.</p>
+<div class="cap"><b>Composites built visibly out of atoms, named where they appear:</b> the file frame is a three-column <code>Card padding=0</code>; the timeline is a stack of <code>Card</code> + <code>Pill</code> with a 2px rail drawn in CSS; expiry countdowns are <code>BarMeter</code>; duplicate rows are <code>Avatar</code> + <code>Pill</code> + <code>BarMeter</code>; the triage board is the fulfilment kanban from <code>pos/screen-orders.jsx</code> with reasons as stages; the pipeline builder is a row of <code>Card</code>s with <code>Pill</code> thresholds; every panel head is <code>SectionHead</code>. Session detail opens as <code>Sheet</code> from the file, or full-page from the table. No new primitive is invented.</div>
+</div>
+</div>
+<div class="stage">
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">What Concept C puts first, and why</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Primary object</span><span class="v">The customer file (a person)</span></div>
+<div class="kv"><span class="k">Session</span><span class="v">A row on that person's timeline</span></div>
+<div class="kv"><span class="k">Review</span><span class="v">Triage board, one column per reason</span></div>
+<div class="kv"><span class="k">Workflow</span><span class="v">Left-to-right pipeline diagram</span></div>
+<div class="kv"><span class="k">Flat table</span><span class="v">Kept, deliberately secondary</span></div>
+<div class="kv"><span class="k">Wins at</span><span class="v good">Re-verification, duplicates, audit</span></div>
+<div class="kv"><span class="k">Costs</span><span class="v warn">Density on single-session work</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-head"><span class="ch-t">The real numbers this is drawn against</span>
+<span class="pill pill-ghost sm mono">Didit console · 2026-09-08</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Sessions at Didit, all time</span><span class="v mono">2.1K</span></div>
+<div class="kv"><span class="k">ID Verification checks this month</span><span class="v mono">154</span></div>
+<div class="kv"><span class="k">Waiting to review right now</span><span class="v mono">0</span></div>
+<div class="kv"><span class="k">Newest session</span><span class="v mono">#14145 · 2026-08-04</span></div>
+<div class="kv"><span class="k">Last 30 days</span><span class="v mono">0 verifications</span></div>
+<div class="kv"><span class="k">List entries to migrate</span><span class="v mono">User 1 · IP 2 · Doc 1 · Countries 35</span></div>
+<div class="cap" style="margin-top:10px;">At ~150 sessions a month the console is <b>not</b> a volume tool. That is the whole case for a file-first design: there is time to look at a person properly, and almost never a queue to grind. Every other number on the following tabs is illustrative and marked as such.</div>
+</div>
+</div>
+</div>
+
+<div style="height:12px"></div>
+<div class="card">
+<div class="card-head"><span class="ch-t">The four questions Concept C is built to answer in one page</span></div>
+<div class="card-body">
+<div class="grid2">
+<div class="note plain"><div class="nh">1 · Same human?</div>The file's timeline shows every check on one person, oldest first, with the document and face evidence beside it. "Is the person in store today the person who signed up in 2025" is a visual comparison, not a query.</div>
+<div class="note plain"><div class="nh">2 · When do we ask again?</div>Documents carry an expiry countdown on the file and on Home. A person whose licence expires inside 60 days is on the Home shelf before anyone gets turned away at a register.</div>
+<div class="note plain"><div class="nh">3 · Do we already know them?</div>1:N face search runs against every stored template. A possible duplicate is a row on the file with a score, a link to the other file, and one <b>Merge</b> action that is audited and reversible in the trail.</div>
+<div class="note plain"><div class="nh">4 · Who decided, on what?</div>The analyst trail spans sessions, so the file answers "who approved this person and what did they see" without opening five sessions in five tabs.</div>
+</div>
+<div class="cap"><b>Honesty rules that show up on every screen here:</b> liveness scores always carry <code>open model · uncertified</code>; imported sessions are labelled <b>Verified by Didit, imported</b> and never count toward Hyperwolf engine accuracy; usage says <b>no per-check fee (own engine)</b> rather than inventing a cost; a panel with no data renders an empty state naming the window, never a zero chart.</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 2 · HOME ═════════════════════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-home">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 1 · Home</div>
+<h2>Home is the front of the cabinet: shelves of people who need something, not a chart of throughput.</h2>
+<p>Every panel is a shelf of <i>files</i> — expiring soon, duplicates suspected, needs review, verified this month — and every row on a shelf opens a customer file. The volume chart is there, but small and last, because at ~150 sessions a month a throughput chart is decoration. Engine health sits in the header, beside the count, because "0 to review" means two very different things depending on whether the engine is running.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div>
+<div class="eb">Hyperwolf Verify</div>
+<h2 class="h2b">Home</h2>
+</div>
+<div class="console-ctl">
+<span class="pill pill-good"><span class="dot" style="background:var(--good)"></span>Engine healthy · hw-engine/0.4.1</span>
+<div class="seg2"><span>7 days</span><span class="on">30 days</span><span>All time</span></div>
+<button class="btn btn-secondary btn-sm">Export</button>
+<button class="btn btn-accent btn-sm">New verification</button>
+</div>
+</div>
+
+<div style="padding:14px 18px 0;">
+<div class="searchbar">
+<span class="sb-i mono">⌕</span>
+<input placeholder="Search a customer — name, email, phone, document number, session #14145, vendor_data" />
+<span class="sb-k">⌘K</span>
+</div>
+<div class="drawer-hint" style="margin-top:7px;">Search is the front door. It matches people first and sessions second — a session hit takes you to that person's file with the session card already open.</div>
+</div>
+
+<div class="console-body">
+<div class="grid4">
+<div class="stat accent"><div class="sl">Verifications this month</div><div class="sv">154</div><div class="ss">ID checks billed at Didit in the current month, the run rate the engine is sized for</div></div>
+<div class="stat"><div class="sl">Files on record</div><div class="sv">2.1K</div><div class="ss">Imported from Didit, newest session #14145 on 2026-08-04</div></div>
+<div class="stat warn"><div class="sl">Needs review</div><div class="sv">0</div><div class="ss">Nothing waiting. Triage board is empty — see tab 5 for a busy day</div></div>
+<div class="stat bad"><div class="sl">Expiring inside 60 days</div><div class="sv">18</div><div class="ss">Documents on file that will lapse, sample</div></div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Expiring soon</span>
+<span class="pill pill-warn sm">18 files</span>
+<button class="btn btn-ghost btn-xs">Start a re-verify campaign</button></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="mini hot">
+<div class="mn-t"><span class="face sm"></span>Delia Marchetti <span class="pill pill-warn sm">Expires in 11 days</span></div>
+<div class="mn-s">CA driver licence · expires 2026-09-19 · last verified 2025-11-02 · 3 sessions</div>
+<div class="expiry" style="margin-top:7px;"><span class="ringbar"><i style="width:9%;background:var(--bad)"></i></span><span class="ex-v">11d</span></div>
+</div>
+<div class="mini">
+<div class="mn-t"><span class="face sm"></span>Roy Okonkwo <span class="pill pill-warn sm">Expires in 27 days</span></div>
+<div class="mn-s">CA driver licence · expires 2026-10-05 · last verified 2025-06-14 · 1 session</div>
+<div class="expiry" style="margin-top:7px;"><span class="ringbar"><i style="width:22%;background:var(--warnText)"></i></span><span class="ex-v">27d</span></div>
+</div>
+<div class="mini">
+<div class="mn-t"><span class="face sm"></span>Priya Venkataraman <span class="pill pill-neutral sm">Expires in 44 days</span></div>
+<div class="mn-s">AZ identification card · expires 2026-10-22 · last verified 2026-02-11 · 2 sessions</div>
+<div class="expiry" style="margin-top:7px;"><span class="ringbar"><i style="width:37%;background:var(--warnText)"></i></span><span class="ex-v">44d</span></div>
+</div>
+<div class="mini">
+<div class="mn-t"><span class="face sm"></span>Bastian Ruiz-Meyer <span class="pill pill-neutral sm">Expires in 58 days</span></div>
+<div class="mn-s">CA driver licence · expires 2026-11-05 · last verified 2025-08-30 · 1 session</div>
+<div class="expiry" style="margin-top:7px;"><span class="ringbar"><i style="width:48%;background:var(--neutral)"></i></span><span class="ex-v">58d</span></div>
+</div>
+</div>
+<div class="foot-note">A document expiry is not a status. The person stays <span class="mono">Approved</span> until the sweeper moves them to <span class="mono">Kyc Expired</span> at <span class="mono">kyc_expires_at</span> — this shelf exists so nobody meets that sweeper at a register.</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Duplicates suspected</span>
+<span class="pill pill-warn sm">4 pairs</span>
+<span class="uncert">1:N face search · open model</span></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="dup strong">
+<span class="face sm ring-warn"></span><span class="face sm ring-warn"></span>
+<div style="flex:1;min-width:0;">
+<div class="dp-n">Delia Marchetti ↔ D. Marchetti-Hale</div>
+<div class="dp-s">cosine 0.94 · same DOB · different email · 2 files</div>
+</div>
+<div style="text-align:right;"><div class="score warn">0.94</div><div class="uncert">match</div></div>
+</div>
+<div class="dup strong">
+<span class="face sm ring-warn"></span><span class="face sm ring-warn"></span>
+<div style="flex:1;min-width:0;">
+<div class="dp-n">Tobias Lindqvist ↔ Toby Lindqvist</div>
+<div class="dp-s">cosine 0.91 · same document number hash · 2 files</div>
+</div>
+<div style="text-align:right;"><div class="score warn">0.91</div><div class="uncert">match</div></div>
+</div>
+<div class="dup">
+<span class="face sm"></span><span class="face sm"></span>
+<div style="flex:1;min-width:0;">
+<div class="dp-n">Ingrid Sollberg ↔ Ingrid Sollberg</div>
+<div class="dp-s">cosine 0.88 · different DOB by 1 day · likely OCR, not a duplicate</div>
+</div>
+<div style="text-align:right;"><div class="score warn">0.88</div><div class="uncert">match</div></div>
+</div>
+<div class="dup">
+<span class="face sm"></span><span class="face sm"></span>
+<div style="flex:1;min-width:0;">
+<div class="dp-n">Marcus Adeyemi ↔ M. Adeyemi</div>
+<div class="dp-s">cosine 0.86 · same phone · imported pair, both from Didit</div>
+</div>
+<div style="text-align:right;"><div class="score warn">0.86</div><div class="uncert">match</div></div>
+</div>
+</div>
+<div class="foot-note">Merging is a judgement about a person, so nothing merges itself. Each pair opens both files side by side; <b>Merge</b> writes <span class="mono">merged_into</span> and an audited trail row, and rewrites nothing.</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Needs review</span><span class="pill pill-good sm">0 waiting</span>
+<button class="btn btn-ghost btn-xs">Open triage board</button></div>
+<div class="card-body">
+<div class="state" style="padding:22px 16px;">
+<div class="state-plate" style="background:var(--goodSoft);color:var(--good)">✓</div>
+<h4>Nothing is waiting for a human</h4>
+<p>No verification is in <span class="mono">In Review</span>. That matches the Didit console today — 0 to review, and no sessions in the last 30 days. When something lands here it shows up as a card on the triage board within a second of the engine's callback.</p>
+</div>
+</div>
+<div class="foot-note">An empty queue and a down engine look identical if you only count. The header badge reads <span class="mono">/api/idv/engine/health</span> separately, so "0 to review" is only reassuring while the badge is green.</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">This month's verifications</span><span class="pill pill-neutral sm mono">154</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Approved</span><span class="v mono good">131</span></div>
+<div class="kv"><span class="k">Declined</span><span class="v mono bad">9</span></div>
+<div class="kv"><span class="k">Expired (abandoned before the document step)</span><span class="v mono">11</span></div>
+<div class="kv"><span class="k">In Review → resolved by an analyst</span><span class="v mono warn">3</span></div>
+<div class="kv"><span class="k">Waiting now</span><span class="v mono">0</span></div>
+<div style="height:10px"></div>
+<div class="panel-eb">Daily volume · 30 days <span class="grow"></span><span class="uncert">sample shape</span></div>
+<div style="display:flex;align-items:flex-end;gap:3px;height:56px;">
+<i style="flex:1;height:34%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:52%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:41%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:66%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:80%;background:var(--accent);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:58%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:29%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:47%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:71%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:38%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:62%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:44%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:24%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+<i style="flex:1;height:55%;background:var(--hairline3);border-radius:3px 3px 0 0"></i>
+</div>
+</div>
+<div class="foot-note">The panel is small on purpose. 154 a month is not a chart problem — the shelves above it are where the work is.</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="card">
+<div class="card-head"><span class="ch-t">Engine health</span>
+<span class="pill pill-good sm"><span class="dot" style="background:var(--good)"></span>Healthy</span>
+<span class="uncert">read from <code class="mono">/api/idv/engine/health</code>, not cached</span></div>
+<div class="card-body">
+<div class="grid4">
+<div class="stat good"><div class="sl">Queue depth</div><div class="sv">0</div><div class="ss">jobs waiting for the engine</div></div>
+<div class="stat good"><div class="sl">Last callback</div><div class="sv">4m</div><div class="ss">age of the newest signed engine callback</div></div>
+<div class="stat info"><div class="sl">Median decision</div><div class="sv">6.2s</div><div class="ss">upload complete → status written</div></div>
+<div class="stat"><div class="sl">Engine build</div><div class="sv" style="font-size:15px">0.4.1</div><div class="ss">CPU-only ONNX, lazy model load</div></div>
+</div>
+<div style="height:12px"></div>
+<table class="bd">
+<thead><tr><th>Stage</th><th>Model</th><th>Licence</th><th style="text-align:right">Loaded</th><th>Honesty note</th></tr></thead>
+<tbody>
+<tr><td>Document OCR + PDF417</td><td class="mono">doc-ocr / barcode</td><td class="mono">commercial-ok</td><td class="num">yes</td><td>Barcode is authoritative where present; OCR is compared to it.</td></tr>
+<tr><td>Passive liveness</td><td class="mono">pad-passive</td><td class="mono">commercial-ok</td><td class="num">yes</td><td><span class="uncert">open model · uncertified — no open PAD model is ISO 30107-3 certified</span></td></tr>
+<tr><td>Active challenge</td><td class="mono">challenge-verifier</td><td class="mono">commercial-ok</td><td class="num">yes</td><td>Server nonce, flash reflection and head-turn are checked together.</td></tr>
+<tr><td>Face match / 1:N search</td><td class="mono">face-embed</td><td class="mono">commercial-ok</td><td class="num">yes</td><td>Cosine over stored templates; score shown, threshold from the workflow.</td></tr>
+<tr><td>Age estimation</td><td class="mono">age-est</td><td class="mono">commercial-ok</td><td class="num">yes</td><td>Advisory only — the document date of birth decides.</td></tr>
+</tbody>
+</table>
+<div class="cap">The health endpoint prints each model's licence so a non-commercial weight cannot drift into the stack silently.</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="note plain"><div class="nh">What Home deliberately does not have</div>
+No leaderboard, no approval-rate gauge, no conversion funnel above the fold. At this volume those numbers move on noise, and a gauge that swings 8 points because two people abandoned is worse than no gauge. Conversion and drop-off live on the Verifications tab where the filter that produced them is visible.</div>
+</div>
+</div>
+
+<!-- ═══ 3 · CUSTOMER FILE ════════════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-file">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 2 · Customer file — the concept's centre</div>
+<h2>One person, one page: standing on the left, every verification they have ever been through down the middle, and the evidence that belongs to the person on the right.</h2>
+<p>The middle column is the argument. It is a vertical timeline in date order, oldest at the top, and it deliberately mixes sources: a website sign-up from 2025, a session imported from Didit, an in-store re-verification on the Hyperwolf engine, the <code>Kyc Expired</code> sweep that followed, and the resubmission after it. Each card carries its status literal, its channel, its workflow and version, and the one or two facts that explain it. Clicking a card opens session detail (tab 4) — as a right-hand <code>Sheet</code> from here, so you never lose the file.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div>
+<div class="eb">Customer file · <span class="mono">idv_people/9c41…a7</span></div>
+<h2 class="h2b">Delia Marchetti</h2>
+</div>
+<div class="console-ctl">
+<span class="pill pill-good">Approved</span>
+<span class="pill pill-warn">Document expires in 11 days</span>
+<button class="btn btn-secondary btn-sm">Ask to re-verify</button>
+<button class="btn btn-secondary btn-sm">Add to list</button>
+<button class="btn btn-accent btn-sm">New verification</button>
+</div>
+</div>
+
+<div class="file-grid">
+
+<!-- ── left: who they are ── -->
+<div class="file-col left">
+<div class="person-head">
+<span class="face lg ring-good"></span>
+<div style="min-width:0;">
+<div class="ph-n">Delia Marchetti</div>
+<div class="ph-m">
+d••••@marchetti.example<br>
++1 (•••) •••-4417<br>
+DOB 1994-03-08 · 32
+</div>
+</div>
+</div>
+
+<div style="padding:12px 0;border-bottom:1px solid var(--hairline);">
+<div class="kv"><span class="k">Standing</span><span class="v good">Approved</span></div>
+<div class="kv"><span class="k">Verifications</span><span class="v mono">5</span></div>
+<div class="kv"><span class="k">First seen</span><span class="v mono">2025-04-17</span></div>
+<div class="kv"><span class="k">Last verified</span><span class="v mono">2026-08-02</span></div>
+<div class="kv"><span class="k">KYC expires</span><span class="v mono warn">2026-09-19</span></div>
+<div class="kv"><span class="k">Assurance</span><span class="v">T2 · document + liveness</span></div>
+</div>
+
+<div style="padding:12px 0;border-bottom:1px solid var(--hairline);">
+<div class="panel-eb">Keys</div>
+<div class="kv"><span class="k">vendor_data</span><span class="v mono">email:9c41…a7</span></div>
+<div class="kv"><span class="k">Blaze member</span><span class="v mono">BM-40881</span></div>
+<div class="kv"><span class="k">hw_identity</span><span class="v mono">id_7f2b…</span></div>
+<div class="cap" style="margin-top:8px;">The Didit-era sessions carry no customer key — the live site never sent <code>vendor_data</code>. Imported sessions were attached to this file by document hash + name + DOB, and the match tier is printed on each imported card.</div>
+</div>
+
+<div style="padding:12px 0;">
+<div class="panel-eb">List membership</div>
+<div class="mini"><div class="mn-t"><span class="pill pill-neutral sm">None</span></div>
+<div class="mn-s">Not on any blocklist or allowlist. Country CA is not in High Risk Countries (35 entries).</div></div>
+<div style="height:10px"></div>
+<div class="panel-eb">Retention</div>
+<div class="kv"><span class="k">Images kept</span><span class="v">Until deleted</span></div>
+<div class="kv"><span class="k">Face templates</span><span class="v mono">3</span></div>
+<button class="btn btn-danger btn-sm" style="width:100%;margin-top:10px;">Request deletion</button>
+<div class="cap" style="margin-top:7px;">Deletion is two steps — request, then an admin executes. Tombstone rows stay so counts and audit stay truthful.</div>
+</div>
+</div>
+
+<!-- ── middle: the timeline ── -->
+<div class="file-col">
+<div class="panel-eb">Verification history <span class="grow"></span>
+<span class="pill pill-ghost sm">5 sessions</span>
+<span class="pill pill-ghost sm">oldest first</span></div>
+
+<div class="tl">
+<div class="tl-year">2025</div>
+
+<div class="tlx info">
+<div class="tlx-card">
+<div class="tlx-head">
+<span class="th-t">Website sign-up</span>
+<span class="pill pill-good sm">Approved</span>
+<span class="pill pill-ghost sm mono">#11204</span>
+<span class="th-d">2025-04-17 · 19:42 PT</span>
+</div>
+<div class="tlx-body">
+<div class="doc-wrap" style="width:120px;flex:0 0 auto;">
+<div class="doc tiny"><div class="dportrait"></div><div class="dfields">
+<div class="dhdr">CA DL</div><div class="dline w86"></div><div class="dline w50"></div><div class="dline w70"></div>
+</div><div class="dbar"></div></div>
+</div>
+<div class="tlx-facts">
+<span class="f-k">workflow</span> Hemp Verification (no selfie) v1 · <span class="f-k">channel</span> Hosted<br>
+<span class="f-k">document</span> CA driver licence · expires 2026-09-19<br>
+<span class="f-k">liveness</span> not run — no selfie in this workflow<br>
+<span class="f-k">decided</span> by Didit
+</div>
+</div>
+<div class="tlx-foot"><span class="pill pill-info sm">Verified by Didit, imported</span> imported 2026-09-08 · identity match tier 2 (document hash + DOB)</div>
+</div>
+</div>
+
+<div class="tlx bad">
+<div class="tlx-card">
+<div class="tlx-head">
+<span class="th-t">Checkout re-check</span>
+<span class="pill pill-bad sm">Declined</span>
+<span class="pill pill-ghost sm mono">#11890</span>
+<span class="th-d">2025-09-03 · 11:08 PT</span>
+</div>
+<div class="tlx-body">
+<div class="tlx-facts">
+<span class="f-k">reason</span> <span class="pill pill-bad sm mono">DOC_EXPIRED</span> — a second, older card was photographed<br>
+<span class="f-k">workflow</span> Hemp Verification (no selfie) v1 · <span class="f-k">channel</span> Hosted<br>
+<span class="f-k">note</span> the customer re-ran the flow with the current card 20 minutes later and passed (#11893)
+</div>
+</div>
+<div class="tlx-foot"><span class="pill pill-info sm">Verified by Didit, imported</span> a decline is terminal; the pass that followed is its own session, not an edit of this one</div>
+</div>
+</div>
+
+<div class="tl-year">2026</div>
+
+<div class="tlx good">
+<div class="tlx-card">
+<div class="tlx-head">
+<span class="th-t">In-store re-verification · Lake Elsinore</span>
+<span class="pill pill-good sm">Approved</span>
+<span class="pill pill-ghost sm mono">#14210</span>
+<span class="th-d">2026-08-02 · 16:27 PT</span>
+</div>
+<div class="tlx-body">
+<div class="doc-wrap" style="width:120px;flex:0 0 auto;">
+<div class="doc tiny"><div class="dportrait"></div><div class="dfields">
+<div class="dhdr">CA DL</div><div class="dline w86"></div><div class="dline w50"></div><div class="dline w70"></div>
+</div><div class="dbar"></div></div>
+</div>
+<div style="width:86px;flex:0 0 auto;">
+<div class="selfie" style="border-radius:var(--r10)"><div class="head"></div><div class="body"></div></div>
+</div>
+<div class="tlx-facts">
+<span class="f-k">workflow</span> Cannabis Verification + Selfie v3 · <span class="f-k">channel</span> POS · Lake Elsinore<br>
+<span class="f-k">liveness</span> 0.91 passive <span class="uncert">(open model · uncertified)</span><br>
+<span class="f-k">face match</span> 0.96 against the document portrait<br>
+<span class="f-k">age rule</span> REC_21 · document DOB 1994-03-08<br>
+<span class="f-k">associate</span> Manisha Saini
+</div>
+</div>
+<div class="tlx-foot"><span class="pill pill-accent sm">Hyperwolf engine 0.4.1</span> decision in 5.8s · face template stored · 1:N search returned one possible duplicate</div>
+</div>
+</div>
+
+<div class="tlx warn">
+<div class="tlx-card">
+<div class="tlx-head">
+<span class="th-t">Sweeper</span>
+<span class="pill pill-warn sm">Kyc Expired</span>
+<span class="pill pill-ghost sm mono">#14210 · follow-on</span>
+<span class="th-d">2026-09-19 · scheduled</span>
+</div>
+<div class="tlx-body">
+<div class="tlx-facts">
+<span class="f-k">why</span> the document on file expires 2026-09-19, and <code class="mono">kyc_expires_at</code> is pinned to it<br>
+<span class="f-k">effect</span> the person moves <span class="mono">Approved → Kyc Expired</span>; the register asks for a fresh check on the next visit<br>
+<span class="f-k">not yet run</span> this card is the countdown, shown before it fires
+</div>
+</div>
+<div class="tlx-foot">a status change nobody decided is still an event — the sweeper writes <span class="mono">idv_session_events</span> and appears here like any other actor</div>
+</div>
+</div>
+
+<div class="tlx open">
+<div class="tlx-card">
+<div class="tlx-head">
+<span class="th-t">Resubmission · asked by an analyst</span>
+<span class="pill pill-info sm">Resubmitted</span>
+<span class="pill pill-ghost sm mono">#14311</span>
+<span class="th-d">2026-09-08 · 09:12 PT</span>
+</div>
+<div class="tlx-body">
+<div class="tlx-facts">
+<span class="f-k">from</span> <span class="mono">In Review</span> · reasons <span class="pill pill-warn sm mono">DOC_NEAR_EXPIRY</span> <span class="pill pill-warn sm mono">LIVENESS_LOW</span><br>
+<span class="f-k">nodes to resubmit</span> <code class="mono">document_back</code>, <code class="mono">selfie</code><br>
+<span class="f-k">asked by</span> Priyanka Rao (analyst) · "Back of card is glared; please re-shoot in better light."<br>
+<span class="f-k">status now</span> link sent, waiting for the customer — <span class="mono">Awaiting User</span> once they start
+</div>
+</div>
+<div class="tlx-foot"><span class="pill pill-accent sm">Open</span> resubmission 1 of 3 · link expires in 46 minutes · <button class="btn btn-ghost btn-xs">Open session</button></div>
+</div>
+</div>
+
+</div>
+
+<div class="note plain" style="margin-top:6px;">
+<div class="nh">Why the timeline mixes sources instead of tabbing them</div>
+Because the compliance question is chronological. "Show me the Didit ones" is a filter; "what has happened to this person, in order" is the default view, and separating imported from native sessions would hide exactly the transition an auditor is asking about. Imported cards are labelled, not segregated.
+</div>
+</div>
+
+<!-- ── right: evidence belonging to the person ── -->
+<div class="file-col right">
+<div class="panel-eb">Documents on file <span class="grow"></span><span class="pill pill-ghost sm">2</span></div>
+
+<div class="mini hot" style="padding:10px;">
+<div class="doc sm" style="max-width:100%"><div class="dportrait"></div><div class="dfields">
+<div class="dhdr">California · Driver licence</div>
+<div class="dline w86"></div><div class="dline w50"></div><div class="dline w70"></div><div class="dline w34"></div>
+</div><div class="dbar"></div></div>
+<div class="doc-cap">CA DL ·••••4417 · issued 2021-09-19</div>
+<div class="expiry" style="margin-top:7px;"><span class="ringbar"><i style="width:9%;background:var(--bad)"></i></span><span class="ex-v" style="color:var(--bad)">11d</span></div>
+<div class="doc-cap">Expires 2026-09-19 · PDF417 read, agrees with OCR on all 6 fields</div>
+</div>
+
+<div class="mini" style="padding:10px;">
+<div class="doc sm" style="max-width:100%"><div class="dportrait"></div><div class="dfields">
+<div class="dhdr">California · Driver licence</div>
+<div class="dline w70"></div><div class="dline w50"></div><div class="dline w86"></div>
+</div><div class="dbar"></div></div>
+<div class="doc-cap">CA DL ·••••1902 · superseded</div>
+<div class="expiry" style="margin-top:7px;"><span class="ringbar"><i style="width:0%;background:var(--neutral)"></i></span><span class="ex-v" style="color:var(--inkMute)">expired</span></div>
+<div class="doc-cap">Expired 2025-08-30 · kept because session #11890 declined against it</div>
+</div>
+
+<div style="height:8px"></div>
+<div class="panel-eb">Face templates <span class="grow"></span><span class="pill pill-ghost sm">3</span></div>
+<div class="row tight" style="margin-bottom:6px;">
+<div style="text-align:center"><span class="face"></span><div class="doc-cap">2025-04-17<br>document portrait</div></div>
+<div style="text-align:center"><span class="face ring-good"></span><div class="doc-cap">2026-08-02<br>selfie</div></div>
+<div style="text-align:center"><span class="face"></span><div class="doc-cap">2026-08-02<br>portrait crop</div></div>
+</div>
+<div class="uncert">Embeddings only. The images they came from are the media rows; deleting the person deletes both unless the deletion request retains the template for blocklist purposes.</div>
+
+<div style="height:12px"></div>
+<div class="panel-eb">Possible duplicates <span class="grow"></span><span class="pill pill-warn sm">1</span></div>
+<div class="dup strong" style="margin-bottom:6px;">
+<span class="face sm ring-warn"></span>
+<div style="flex:1;min-width:0;">
+<div class="dp-n">D. Marchetti-Hale</div>
+<div class="dp-s">2 sessions · same DOB · different email</div>
+</div>
+<div style="text-align:right"><div class="score warn">0.94</div><div class="uncert">cosine</div></div>
+</div>
+<div class="row tight">
+<button class="btn btn-secondary btn-xs">Open both files</button>
+<button class="btn btn-secondary btn-xs">Merge</button>
+<button class="btn btn-ghost btn-xs">Not a duplicate</button>
+</div>
+<div class="uncert" style="margin-top:6px;">"Not a duplicate" is recorded too — it stops the pair reappearing on Home and leaves a reason in the trail.</div>
+
+<div style="height:12px"></div>
+<div class="panel-eb">Analyst trail · all sessions</div>
+<div style="font-size:11.5px;line-height:1.6;">
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)">
+<b>Asked to resubmit</b> · Priyanka Rao<br>
+<span class="uncert">2026-09-08 09:12 · #14311 · nodes document_back, selfie</span></div>
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)">
+<b>Approved</b> · Hyperwolf engine<br>
+<span class="uncert">2026-08-02 16:27 · #14210 · no human in the path</span></div>
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)">
+<b>Viewed document image</b> · Manisha Saini<br>
+<span class="uncert">2026-08-02 16:28 · #14210 · audited per fetch</span></div>
+<div style="padding:7px 0;">
+<b>Imported</b> · system<br>
+<span class="uncert">2026-09-08 02:14 · 3 sessions from Didit, media included</span></div>
+</div>
+<div class="uncert" style="margin-top:8px;">Every document view is an audit row. That is what makes "who has seen this person's licence" answerable, and it is the reason the media route is never cached.</div>
+</div>
+
+</div>
+
+<div class="foot-note">Person <code class="mono">9c41…a7</code> · 5 sessions · 2 documents · 3 templates · <span class="sample-tag">Exploration — sample data</span></div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="note info"><div class="nh">What the file makes cheap</div>
+<ul>
+<li>"Same human?" — the 2025 document portrait and the 2026 selfie sit two inches apart.</li>
+<li>"When do we ask again?" — one countdown, on the document that governs it.</li>
+<li>"Do we know them already?" — the duplicate panel is on the file, not a separate report.</li>
+<li>"Who decided?" — one trail across five sessions instead of five trails.</li>
+</ul></div>
+<div class="note warn"><div class="nh">What the file makes expensive</div>
+<ul>
+<li>Reading one routine session takes a person load first — mitigated by search jumping straight to the card, and by the flat table on tab 6.</li>
+<li>A person with 40 sessions needs the timeline collapsed by year; the design shows 5.</li>
+<li>Three columns need ~1120px. Below that the columns stack, and the timeline is the one that stays.</li>
+</ul></div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 4 · SESSION DETAIL ═══════════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-session">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 3 · Session detail</div>
+<h2>Opened from the file, so it never has to re-explain the person. Media on the left, the decision node by node on the right, and the actions at the bottom where a decision is actually made.</h2>
+<p>Every score carries what produced it and how much to trust it. The cross-check panel is Concept C's addition to Didit's V3 shape: barcode against OCR against the portrait, and the extracted name against whatever the caller said to expect. Field disagreement is the cheapest fraud signal there is and Didit's console does not surface it as its own node.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div>
+<div class="eb">Session <span class="mono">#14311</span> · Delia Marchetti · <a href="#" style="color:var(--accentText)">back to file</a></div>
+<h2 class="h2b">In Review</h2>
+</div>
+<div class="console-ctl">
+<span class="pill pill-warn mono">LIVENESS_LOW</span>
+<span class="pill pill-warn mono">DOC_NEAR_EXPIRY</span>
+<span class="pill pill-accent sm">Hyperwolf engine 0.4.1</span>
+<button class="btn btn-secondary btn-sm">Download PDF</button>
+</div>
+</div>
+
+<div class="console-body">
+<div class="grid2" style="grid-template-columns:minmax(0,340px) minmax(0,1fr);">
+
+<!-- media column -->
+<div>
+<div class="panel-eb">Media <span class="grow"></span><span class="uncert">every view is audited</span></div>
+<div class="media-strip">
+<div class="media-cell">
+<div class="doc"><div class="dportrait"></div><div class="dfields">
+<div class="dhdr">California · DL</div>
+<div class="dline w86"></div><div class="dline w50"></div><div class="dline w70"></div><div class="dline w34"></div>
+</div><div class="dbar"></div></div>
+<div class="mc-lbl">Front · 2.1 MB · quality 0.93</div>
+</div>
+<div class="media-cell">
+<div class="doc back"><div class="dfields" style="width:100%">
+<div class="dhdr">PDF417 · back</div>
+<div class="dline w70"></div><div class="dline w86"></div><div class="dline w50"></div>
+</div><div class="dbar" style="height:26px;bottom:12px"></div></div>
+<div class="mc-lbl">Back · PDF417 read · quality 0.61 <span class="pill pill-warn sm">glare</span></div>
+</div>
+<div class="media-cell">
+<div class="selfie"><div class="oval"></div><div class="head"></div><div class="body"></div></div>
+<div class="mc-lbl">Passive selfie · 2.0s of frames</div>
+</div>
+<div class="media-cell">
+<div class="selfie flash"><div class="oval"></div><div class="head"></div><div class="body"></div></div>
+<div class="mc-lbl">Active challenge · flash frame 2 of 3</div>
+</div>
+</div>
+<div class="uncert" style="margin-top:8px;">Images are served by one route with the stored MIME forced, <code class="mono">nosniff</code>, and <code class="mono">no-store</code>. Nothing uploaded is ever served as HTML.</div>
+
+<div style="height:14px"></div>
+<div class="panel-eb">Session facts</div>
+<div class="card"><div class="card-body" style="padding:10px 12px;">
+<div class="kv"><span class="k">Session</span><span class="v mono">#14311</span></div>
+<div class="kv"><span class="k">Status</span><span class="v warn">In Review</span></div>
+<div class="kv"><span class="k">Workflow</span><span class="v">Cannabis Verification + Selfie v3</span></div>
+<div class="kv"><span class="k">Channel</span><span class="v">Hosted · resubmission link</span></div>
+<div class="kv"><span class="k">Origin</span><span class="v mono">website</span></div>
+<div class="kv"><span class="k">Created</span><span class="v mono">2026-09-08 09:12 PT</span></div>
+<div class="kv"><span class="k">Decided</span><span class="v mono">2026-09-08 09:14 PT</span></div>
+<div class="kv"><span class="k">Engine</span><span class="v mono">hw-engine/0.4.1</span></div>
+<div class="kv"><span class="k">IP</span><span class="v mono">••.••.44.108 · Riverside CA</span></div>
+<div class="kv"><span class="k">Device</span><span class="v mono">iOS 19 · Safari</span></div>
+<div class="kv"><span class="k">Resubmissions</span><span class="v mono">1 of 3</span></div>
+<div class="kv"><span class="k">Liveness attempts</span><span class="v mono">2 of 3</span></div>
+</div></div>
+</div>
+
+<!-- decision column -->
+<div>
+<div class="panel-eb">Decision · node by node <span class="grow"></span><span class="pill pill-ghost sm mono">decision v2</span></div>
+<table class="bd">
+<thead><tr><th>Node</th><th>Result</th><th style="text-align:right">Score</th><th>Threshold</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td><b>Document OCR</b><div class="uncert">id_verification</div></td>
+<td><span class="pill pill-good sm">Pass</span></td><td class="num">0.93</td><td class="mono">≥ 0.70</td>
+<td>Front read clean; all six fields extracted.</td></tr>
+<tr class="hot"><td><b>Document quality (back)</b><div class="uncert">id_verification</div></td>
+<td><span class="pill pill-warn sm">Low</span></td><td class="num">0.61</td><td class="mono">≥ 0.70</td>
+<td>Glare across the barcode. PDF417 still decoded, so this is advisory.</td></tr>
+<tr><td><b>Cross-check</b><div class="uncert">crosschecks — our addition</div></td>
+<td><span class="pill pill-good sm">Agrees</span></td><td class="num">6/6</td><td class="mono">all fields</td>
+<td>Barcode and OCR agree on every field. See the panel below.</td></tr>
+<tr class="hot"><td><b>Passive liveness</b><div class="uncert">open model · uncertified</div></td>
+<td><span class="pill pill-warn sm">Low</span></td><td class="num">0.63</td><td class="mono">≥ 0.75</td>
+<td>Below threshold on attempt 2. Reason <code class="mono">LIVENESS_LOW</code>.</td></tr>
+<tr><td><b>Active challenge</b><div class="uncert">nonce + flash + head turn</div></td>
+<td><span class="pill pill-good sm">Pass</span></td><td class="num">—</td><td class="mono">nonce match</td>
+<td>Server nonce matched, flash reflection present, head turn in order.</td></tr>
+<tr><td><b>Face match</b><div class="uncert">selfie ↔ document portrait</div></td>
+<td><span class="pill pill-good sm">Pass</span></td><td class="num">0.96</td><td class="mono">≥ 0.80</td>
+<td>Comfortably the same face as the licence portrait.</td></tr>
+<tr><td><b>Age</b><div class="uncert">age_estimation, advisory</div></td>
+<td><span class="pill pill-good sm">Pass</span></td><td class="num">32</td><td class="mono">REC_21</td>
+<td>Document DOB decides; the estimate agrees and is never the decider.</td></tr>
+<tr><td><b>IP analysis</b><div class="uncert">ip_analysis</div></td>
+<td><span class="pill pill-good sm">Clean</span></td><td class="num">0.04</td><td class="mono">no tor/hosting</td>
+<td>Residential, in state, no VPN or hosting signal.</td></tr>
+<tr class="hot"><td><b>Document expiry</b><div class="uncert">warnings</div></td>
+<td><span class="pill pill-warn sm">Near</span></td><td class="num">11d</td><td class="mono">&lt; 30d = review</td>
+<td>Reason <code class="mono">DOC_NEAR_EXPIRY</code>. Not a decline.</td></tr>
+<tr><td><b>Lists</b><div class="uncert">warnings</div></td>
+<td><span class="pill pill-good sm">No hit</span></td><td class="num">0</td><td class="mono">11 lists</td>
+<td>No user, document, face, IP, device or country hit.</td></tr>
+<tr><td><b>Duplicate person</b><div class="uncert">1:N over stored templates</div></td>
+<td><span class="pill pill-warn sm">1 near</span></td><td class="num">0.94</td><td class="mono">≥ 0.92 = review</td>
+<td>Matches file <i>D. Marchetti-Hale</i>. Records question, not a fraud verdict.</td></tr>
+</tbody>
+</table>
+<div class="foot-note">Two reasons put this in <span class="mono">In Review</span>: <span class="mono">LIVENESS_LOW</span> and <span class="mono">DOC_NEAR_EXPIRY</span>. Neither is an auto-decline code. Nothing here decides on its own — the workflow's fail routes did (tab 7).</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">Cross-check</span><span class="pill pill-good sm">6 of 6 agree</span></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="kv"><span class="k">First name</span><span class="v mono">barcode = OCR</span></div>
+<div class="kv"><span class="k">Last name</span><span class="v mono">barcode = OCR</span></div>
+<div class="kv"><span class="k">Date of birth</span><span class="v mono">barcode = OCR</span></div>
+<div class="kv"><span class="k">Document number</span><span class="v mono">hash matches file</span></div>
+<div class="kv"><span class="k">Expiry</span><span class="v mono">barcode = OCR</span></div>
+<div class="kv"><span class="k">Issuing state</span><span class="v mono">CA = CA</span></div>
+<div class="kv"><span class="k">expected_details</span><span class="v mono">none sent</span></div>
+<div class="uncert" style="margin-top:8px;">The site does not send <code class="mono">expected_details</code> today, so name-versus-expected cannot be checked. That is stated rather than shown as a pass.</div>
+</div>
+</div>
+<div class="card">
+<div class="card-head"><span class="ch-t">Liveness attempts</span><span class="pill pill-warn sm">2 of 3</span></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="kv"><span class="k">Attempt 1 · passive</span><span class="v mono warn">0.58</span></div>
+<div class="kv"><span class="k">Attempt 2 · passive + active</span><span class="v mono warn">0.63</span></div>
+<div class="kv"><span class="k">Attempt 3</span><span class="v mono">not used</span></div>
+<div style="height:8px"></div>
+<div class="uncert">Every attempt is its own event with its own score, so a person who passes on attempt 3 does not look like a person who passed first time. A third failure moves the session to <span class="mono">In Review</span> with <code class="mono">LIVENESS_FAILED_3X</code> — never a silent decline.</div>
+<div style="height:8px"></div>
+<div class="note bad" style="padding:9px 11px;"><b>Hard signals bypass all of this.</b> <code class="mono">INJECTION_DETECTED</code> and <code class="mono">CHALLENGE_NONCE_MISMATCH</code> decline immediately, and the capture page says so without detail.</div>
+</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="panel-eb">Trail · this session</div>
+<div class="card"><div class="card-body" style="padding:10px 12px;">
+<div style="font-size:11.5px;line-height:1.6;">
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)"><b>Created</b> — resubmission link minted from #14210 <span class="uncert">· 09:12:04 · Priyanka Rao (analyst)</span></div>
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)"><b>In Progress</b> — document front uploaded <span class="uncert">· 09:12:51 · capture page</span></div>
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)"><b>Awaiting User</b> — liveness attempt 1 scored 0.58, retry offered <span class="uncert">· 09:13:22 · engine</span></div>
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)"><b>In Progress</b> — attempt 2 with active challenge <span class="uncert">· 09:13:58 · capture page</span></div>
+<div style="padding:7px 0;border-bottom:1px solid var(--hairline)"><b>In Review</b> — LIVENESS_LOW, DOC_NEAR_EXPIRY <span class="uncert">· 09:14:11 · engine callback, signature ok</span></div>
+<div style="padding:7px 0;"><b>Assigned</b> — to Priyanka Rao from the triage board <span class="uncert">· 09:16:40 · console</span></div>
+</div>
+</div></div>
+</div>
+</div>
+
+<div style="height:16px"></div>
+<div class="card sunken">
+<div class="card-body">
+<div class="row mid">
+<button class="btn btn-accent btn-lg">Approve</button>
+<button class="btn btn-secondary btn-lg">Ask to resubmit</button>
+<button class="btn btn-danger btn-lg">Decline</button>
+<span style="width:14px"></span>
+<button class="btn btn-secondary">Edit data</button>
+<button class="btn btn-secondary">Add to list</button>
+<button class="btn btn-secondary">Merge with another file</button>
+<span style="flex:1"></span>
+<button class="btn btn-ghost">Delete</button>
+</div>
+<div class="cap" style="margin-top:10px;">
+<b>Approve</b> writes the review row, the event and the audit row in one transaction and fires the outbound webhook. <b>Ask to resubmit</b> asks which nodes (<code class="mono">nodes_to_resubmit</code>) and mints a fresh capture link. <b>Edit data</b> corrects extracted fields and stores the field-level diff on the review. <b>Merge</b> is the duplicate action from the file, reachable here because that is where you notice it. <b>Delete</b> opens a deletion request — never an immediate delete. Overriding a <span class="mono">Declined</span> session needs <code class="mono">admin</code>; everything else needs <code class="mono">analyst</code>.
+</div>
+</div>
+</div>
+
+<div style="height:12px"></div>
+<div class="grid2">
+<div class="note info"><div class="nh">Imported sessions look different here</div>
+An imported session shows <span class="pill pill-info sm">Verified by Didit, imported</span>, the node table renders Didit's arrays as they were received, the score column carries no Hyperwolf threshold, and the session is excluded from engine accuracy panels. Nothing is recomputed — recomputing a 2025 decision with a 2026 model would be a new decision wearing an old date.</div>
+<div class="note warn"><div class="nh">Four-eyes, off by default</div>
+A workflow flag can require a second approver on any session an analyst approves out of <span class="mono">In Review</span>. It is off by default because at ~150 sessions a month the second pair of eyes is usually the same person an hour later, which is theatre. Turning it on adds a second signature row to this trail.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 5 · TRIAGE BOARD ═════════════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-triage">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 4 · Review — triage board</div>
+<h2>Review is a board with one column per reason, because the reasons need different people. Cards are sessions; you drag a card onto an analyst to assign it.</h2>
+<p>A single ranked queue makes every analyst context-switch on every card: a duplicate-person card is a records judgement, a liveness card is a media judgement, a document card is usually just a re-shoot request. Sorting by reason lets one person work one kind of decision all the way down, which is both faster and more consistent. The counts here are illustrative — the real console has <b>0 to review</b> today, and the empty board is on tab 11.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div>
+<div class="eb">Review</div>
+<h2 class="h2b">Triage board</h2>
+</div>
+<div class="console-ctl">
+<span class="sample-tag" style="background:var(--warnSoft);color:var(--warnText)">Exploration — sample data · the live queue is 0</span>
+<div class="seg2"><span class="on">By reason</span><span>By age</span><span>Mine</span></div>
+<button class="btn btn-secondary btn-sm">Assign to me</button>
+</div>
+</div>
+
+<div class="console-body" style="padding:14px 14px 18px;">
+<div class="row mid" style="margin-bottom:12px;">
+<span class="pill pill-warn">14 waiting</span>
+<span class="pill pill-ghost">Oldest 41 min</span>
+<span class="pill pill-ghost">3 assigned</span>
+<span style="flex:1"></span>
+<div class="chipset">
+<span class="chip on">All workflows</span>
+<span class="chip">Cannabis + Selfie</span>
+<span class="chip">Biometric Authentication</span>
+<span class="chip">Adaptive Age Estimation</span>
+</div>
+</div>
+
+<div class="kan">
+
+<div class="kcol">
+<div class="kcol-head"><span class="kh-t">Liveness</span><span class="pill pill-warn sm">4</span></div>
+<div class="kcol-body">
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Marguerite Okafor</b><div class="kc-m">#14318 · 41 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">LIVENESS_FAILED_3X</span></div>
+<div class="kc-f">passive 0.44 / 0.51 / 0.49 <span class="uncert">open model · uncertified</span></div>
+<div class="kc-a"><span class="avatar" style="width:22px;height:22px">PR</span><span class="uncert">Priyanka Rao</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Delia Marchetti</b><div class="kc-m">#14311 · 33 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">LIVENESS_LOW</span><span class="pill pill-warn sm mono">DOC_NEAR_EXPIRY</span></div>
+<div class="kc-f">passive 0.63 · face match 0.96 · challenge passed</div>
+<div class="kc-a"><span class="avatar" style="width:22px;height:22px">PR</span><span class="uncert">Priyanka Rao</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Tomasz Wieczorek</b><div class="kc-m">#14322 · 19 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">LIVENESS_LOW</span></div>
+<div class="kc-f">passive 0.71 · active challenge not offered (workflow: PASSIVE)</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Ana-Lucía Bermúdez</b><div class="kc-m">#14327 · 6 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">LIVENESS_LOW</span></div>
+<div class="kc-f">passive 0.69 · attempt 1 of 3, may resolve itself</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+</div>
+</div>
+
+<div class="kcol">
+<div class="kcol-head"><span class="kh-t">Face match</span><span class="pill pill-warn sm">2</span></div>
+<div class="kcol-body">
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Hendrik Vasquez</b><div class="kc-m">#14319 · 38 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">FACE_MATCH_LOW</span></div>
+<div class="kc-f">0.74 against a 2019 licence portrait · threshold 0.80</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Saoirse Mbeki</b><div class="kc-m">#14324 · 14 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">FACE_MATCH_LOW</span></div>
+<div class="kc-f">0.78 · heavy glare on the portrait crop</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+</div>
+</div>
+
+<div class="kcol">
+<div class="kcol-head"><span class="kh-t">Document</span><span class="pill pill-warn sm">3</span></div>
+<div class="kcol-body">
+<div class="kcard">
+<div class="kc-top"><span class="doc tiny" style="width:44px;flex:0 0 auto"><div class="dportrait"></div><div class="dfields"><div class="dline w86"></div><div class="dline w50"></div></div></span><div style="flex:1;min-width:0"><b>Rafferty Nkemelu</b><div class="kc-m">#14316 · 36 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">BARCODE_OCR_MISMATCH</span></div>
+<div class="kc-f">barcode says MARIE, OCR reads MARIA — one field of six</div>
+<div class="kc-a"><span class="avatar" style="width:22px;height:22px">DN</span><span class="uncert">Devon Nakamura</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="doc tiny" style="width:44px;flex:0 0 auto"><div class="dportrait"></div><div class="dfields"><div class="dline w70"></div><div class="dline w50"></div></div></span><div style="flex:1;min-width:0"><b>Yusuf El-Amin</b><div class="kc-m">#14320 · 27 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">DOC_QUALITY_LOW</span></div>
+<div class="kc-f">back quality 0.38 · PDF417 not decoded</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="doc tiny" style="width:44px;flex:0 0 auto"><div class="dportrait"></div><div class="dfields"><div class="dline w86"></div><div class="dline w34"></div></div></span><div style="flex:1;min-width:0"><b>Clementine Duarte</b><div class="kc-m">#14325 · 11 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">DOC_NEAR_EXPIRY</span></div>
+<div class="kc-f">expires in 6 days · everything else clean</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+</div>
+</div>
+
+<div class="kcol">
+<div class="kcol-head"><span class="kh-t">Duplicate person</span><span class="pill pill-warn sm">2</span></div>
+<div class="kcol-body">
+<div class="kcard">
+<div class="kc-top"><span class="face sm ring-warn"></span><span class="face sm ring-warn"></span><div style="flex:1;min-width:0"><b>Tobias Lindqvist</b><div class="kc-m">#14317 · 35 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">DUPLICATE_PERSON</span></div>
+<div class="kc-f">0.91 to <i>Toby Lindqvist</i> · same document hash</div>
+<div class="kc-a"><span class="avatar" style="width:22px;height:22px">DN</span><span class="uncert">Devon Nakamura</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="face sm ring-warn"></span><span class="face sm ring-warn"></span><div style="flex:1;min-width:0"><b>Marcus Adeyemi</b><div class="kc-m">#14323 · 16 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">DUPLICATE_PERSON</span></div>
+<div class="kc-f">0.86 · same phone, different DOB — probably two people</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+</div>
+</div>
+
+<div class="kcol">
+<div class="kcol-head"><span class="kh-t">IP / device</span><span class="pill pill-warn sm">2</span></div>
+<div class="kcol-body">
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Ingrid Sollberg</b><div class="kc-m">#14321 · 24 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">IP_VPN</span></div>
+<div class="kc-f">commercial VPN exit · document and face both clean</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Ezra Halvorsen</b><div class="kc-m">#14326 · 9 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">IP_HOSTING</span><span class="pill pill-neutral sm mono">OUT_OF_STATE</span></div>
+<div class="kc-f">datacentre range, NV licence · workflow says review, not decline</div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+</div>
+</div>
+
+<div class="kcol">
+<div class="kcol-head"><span class="kh-t">Age</span><span class="pill pill-warn sm">1</span></div>
+<div class="kcol-body">
+<div class="kcard">
+<div class="kc-top"><span class="face sm"></span><div style="flex:1;min-width:0"><b>Noor Bakhtiari</b><div class="kc-m">#14328 · 3 min</div></div></div>
+<div class="kc-r"><span class="pill pill-warn sm mono">AGE_ESTIMATE_UNDER_MARGIN</span></div>
+<div class="kc-f">document DOB says 21y 2m · estimate 19 ± 3 <span class="uncert">advisory only</span></div>
+<div class="kc-a"><span class="uncert">unassigned</span></div>
+</div>
+<div class="kcol-empty">
+Under-age by <i>document</i> is never a card. <code class="mono">UNDER_AGE</code> is an auto-decline; only the estimate disagreeing with a valid document lands here.
+</div>
+</div>
+</div>
+
+</div>
+
+<div style="height:14px"></div>
+<div class="row mid">
+<div class="panel-eb" style="margin:0">Assign by dragging onto an analyst</div>
+<div class="row tight" style="margin-left:auto">
+<span class="pill pill-neutral"><span class="avatar" style="width:20px;height:20px">PR</span>Priyanka Rao · 2</span>
+<span class="pill pill-neutral"><span class="avatar" style="width:20px;height:20px">DN</span>Devon Nakamura · 2</span>
+<span class="pill pill-neutral"><span class="avatar" style="width:20px;height:20px">MS</span>Manisha Saini · 0</span>
+<span class="pill pill-ghost">Unassigned · 10</span>
+</div>
+</div>
+</div>
+<div class="foot-note">Every card carries the reason codes it was enqueued with. Working a card writes <span class="mono">idv_reviews</span>, <span class="mono">idv_session_events</span> and <span class="mono">idv_audit</span> in one transaction — the card disappearing from the board is the last thing that happens, not the first.</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="note info"><div class="nh">Columns are reasons, not stages</div>
+Nothing moves left to right. A card leaves the board by being approved, declined or sent back for resubmission — dragging is only for assignment. A session with two reasons appears in the column of its <i>highest-priority</i> reason and shows the other as a second chip, so no card is ever in two columns.</div>
+<div class="note warn"><div class="nh">The honest caveat on this whole tab</div>
+Today there is nothing to triage: 0 waiting at Didit, 0 sessions in the last 30 days. This board is designed for the day the Hyperwolf engine's thresholds are new and unfamiliar and everything lands in review at once — which is exactly the first week after cutover.</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 6 · VERIFICATIONS TABLE ══════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-table">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 5 · Verifications — the secondary surface</div>
+<h2>The flat, Didit-shaped list is kept, deliberately as the second-class citizen: it is for exports, spot lookups and anyone who already knows the session number.</h2>
+<p>Same columns Didit shows — session, user, status, workflow, channel, vendor_data, date — plus the reason codes, because a status literal without its reason is not actionable. Every row opens the customer file with that session's card selected, which is the one place the concept insists on: even the table routes you back to the person.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div>
+<div class="eb">Verifications</div>
+<h2 class="h2b">All sessions</h2>
+</div>
+<div class="console-ctl">
+<span class="pill pill-ghost mono">2.1K all time</span>
+<span class="pill pill-ghost mono">newest #14145 · 2026-08-04</span>
+<button class="btn btn-secondary btn-sm">Export CSV</button>
+<button class="btn btn-accent btn-sm">New verification</button>
+</div>
+</div>
+
+<div style="padding:13px 18px 0;">
+<div class="searchbar">
+<span class="sb-i mono">⌕</span>
+<input placeholder="name · email hash · document hash prefix · vendor_data · #session" />
+<span class="sb-k">⌘K</span>
+</div>
+<div class="row tight" style="margin-top:10px;">
+<span class="chip on">All statuses</span>
+<span class="chip">Approved</span>
+<span class="chip">Declined</span>
+<span class="chip">In Review</span>
+<span class="chip">Awaiting User</span>
+<span class="chip">Kyc Expired</span>
+<span class="chip">Abandoned</span>
+<span class="chip">Expired</span>
+<span class="chip">Resubmitted</span>
+<span class="chip">Not Started</span>
+<span class="chip">In Progress</span>
+</div>
+<div class="row tight" style="margin-top:7px;">
+<span class="chip on">All workflows</span>
+<span class="chip">Cannabis Verification + Selfie</span>
+<span class="chip">Hemp Verification (no selfie)</span>
+<span class="chip">Biometric Authentication</span>
+<span class="chip">Adaptive Age Estimation</span>
+<span style="flex:1"></span>
+<span class="chip">Channel: any</span>
+<span class="chip">Reason: any</span>
+<span class="chip">Last 30 days</span>
+</div>
+</div>
+
+<div class="console-body">
+<table class="bd">
+<thead><tr>
+<th>Session</th><th>Customer</th><th>Status</th><th>Reasons</th><th>Workflow</th><th>Channel</th><th>vendor_data</th><th style="text-align:right">Date</th>
+</tr></thead>
+<tbody>
+<tr class="hot"><td class="mono">#14328</td><td><div class="nm"><span class="face sm"></span><b>Noor Bakhtiari</b></div></td>
+<td><span class="pill pill-warn sm">In Review</span></td><td class="mono">AGE_ESTIMATE_UNDER_MARGIN</td>
+<td>Cannabis + Selfie v3</td><td>Hosted</td><td class="mono">email:4b19…</td><td class="num dim">2026-09-08</td></tr>
+<tr class="hot"><td class="mono">#14311</td><td><div class="nm"><span class="face sm"></span><b>Delia Marchetti</b></div></td>
+<td><span class="pill pill-warn sm">In Review</span></td><td class="mono">LIVENESS_LOW · DOC_NEAR_EXPIRY</td>
+<td>Cannabis + Selfie v3</td><td>Hosted</td><td class="mono">email:9c41…</td><td class="num dim">2026-09-08</td></tr>
+<tr><td class="mono">#14290</td><td><div class="nm"><span class="face sm"></span><b>Bastian Ruiz-Meyer</b></div></td>
+<td><span class="pill pill-good sm">Approved</span></td><td class="mono">—</td>
+<td>Cannabis + Selfie v3</td><td>POS · Corona</td><td class="mono">blaze:BM-51204</td><td class="num dim">2026-09-06</td></tr>
+<tr><td class="mono">#14276</td><td><div class="nm"><span class="face sm"></span><b>Priya Venkataraman</b></div></td>
+<td><span class="pill pill-good sm">Approved</span></td><td class="mono">—</td>
+<td>Cannabis + Selfie v3</td><td>Hosted</td><td class="mono">email:7d02…</td><td class="num dim">2026-09-05</td></tr>
+<tr><td class="mono">#14264</td><td><div class="nm"><span class="face sm"></span><b>Roy Okonkwo</b></div></td>
+<td><span class="pill pill-warn sm">Kyc Expired</span></td><td class="mono">—</td>
+<td>Cannabis + Selfie v3</td><td>Hosted</td><td class="mono">email:2f88…</td><td class="num dim">2026-09-04</td></tr>
+<tr><td class="mono">#14251</td><td><div class="nm"><span class="face sm"></span><b>Hendrik Vasquez</b></div></td>
+<td><span class="pill pill-info sm">Resubmitted</span></td><td class="mono">FACE_MATCH_LOW</td>
+<td>Cannabis + Selfie v3</td><td>Hosted</td><td class="mono">email:a10c…</td><td class="num dim">2026-09-03</td></tr>
+<tr><td class="mono">#14240</td><td><div class="nm"><span class="face sm"></span><b>Clementine Duarte</b></div></td>
+<td><span class="pill pill-neutral sm">Abandoned</span></td><td class="mono">—</td>
+<td>Cannabis + Selfie v3</td><td>Hosted</td><td class="mono">email:5e73…</td><td class="num dim">2026-09-02</td></tr>
+<tr><td class="mono">#14226</td><td><div class="nm"><span class="face sm"></span><b>Yusuf El-Amin</b></div></td>
+<td><span class="pill pill-bad sm">Declined</span></td><td class="mono">DOC_EXPIRED</td>
+<td>Cannabis + Selfie v3</td><td>POS · West Hollywood</td><td class="mono">blaze:BM-33917</td><td class="num dim">2026-09-01</td></tr>
+<tr><td class="mono">#14210</td><td><div class="nm"><span class="face sm"></span><b>Delia Marchetti</b></div></td>
+<td><span class="pill pill-good sm">Approved</span></td><td class="mono">—</td>
+<td>Cannabis + Selfie v3</td><td>POS · Lake Elsinore</td><td class="mono">email:9c41…</td><td class="num dim">2026-08-02</td></tr>
+<tr><td class="mono">#14145</td><td><span class="uncert">N/A — abandoned before the document step</span></td>
+<td><span class="pill pill-neutral sm">Expired</span></td><td class="mono">—</td>
+<td>Hemp (no selfie) v1</td><td>Hosted</td><td class="mono">983f3e0e…</td><td class="num dim">2026-08-04</td></tr>
+<tr><td class="mono">#14139</td><td><div class="nm"><span class="face sm"></span><b>Marcus Adeyemi</b></div></td>
+<td><span class="pill pill-good sm">Approved</span></td><td class="mono">—</td>
+<td>Hemp (no selfie) v1</td><td>Hosted</td><td class="mono">c40b71aa…</td><td class="num dim">2026-08-01</td></tr>
+<tr><td class="mono">#11890</td><td><div class="nm"><span class="face sm"></span><b>Delia Marchetti</b></div></td>
+<td><span class="pill pill-bad sm">Declined</span></td><td class="mono">DOC_EXPIRED</td>
+<td>Hemp (no selfie) v1</td><td>Hosted</td><td class="mono">—</td><td class="num dim">2025-09-03</td></tr>
+</tbody>
+</table>
+<div class="foot-note">Rows below <span class="mono">#14200</span> are <span class="pill pill-info sm">Verified by Didit, imported</span>. The imported ones carry no <code class="mono">vendor_data</code> where the site never sent one — the column shows Didit's 8-hex id, or an em dash where even that is missing, rather than a guess.</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid3">
+<div class="card"><div class="card-body">
+<div class="panel-eb">Why the table is secondary</div>
+<div style="font-size:12px;line-height:1.65;color:var(--ink2)">Every row here is one attempt by one person. The questions the business asks are about people, and answering them from this table means reading several rows and holding them in your head. That is the work the customer file does for you.</div>
+</div></div>
+<div class="card"><div class="card-body">
+<div class="panel-eb">Why it still exists</div>
+<div style="font-size:12px;line-height:1.65;color:var(--ink2)">Exports, reconciliation against Didit's own export, and the case where somebody has a session number and nothing else. Removing it would make the module worse at the one thing an ops person does under time pressure.</div>
+</div></div>
+<div class="card"><div class="card-body">
+<div class="panel-eb">Counts must agree</div>
+<div style="font-size:12px;line-height:1.65;color:var(--ink2)">The dashboard's numbers are the same query as this table's filter. If Home says 154 this month, this table filtered to this month returns 154 rows — that equality is a test, not a hope.</div>
+</div></div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 7 · WORKFLOW PIPELINE BUILDER ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-pipeline">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 6 · Workflows — pipeline builder</div>
+<h2>A workflow is drawn as the pipeline it is: Document → Cross-check → Liveness → Face match → Age → IP → Lists → Decision. Each stage carries its threshold and, on the card, what happens when it fails.</h2>
+<p>Failure routing is the part of a verification policy people get wrong, and a form of number inputs hides it completely. Here every stage says <b>retry</b>, <b>review</b> or <b>decline</b> in words, and the reason code it emits. Stages the Hyperwolf engine cannot run are drawn in the pipeline, greyed, labelled <b>"Not available on the Hyperwolf engine"</b> — they are stored so an imported Didit workflow round-trips, and they are never silently treated as passing.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div>
+<div class="eb">Workflow · <span class="mono">2fdbd4d4…ee1448</span></div>
+<h2 class="h2b">Cannabis Verification + Selfie</h2>
+</div>
+<div class="console-ctl">
+<span class="pill pill-good">Active</span>
+<span class="pill pill-ghost mono">v3 · edited 2026-09-08</span>
+<button class="btn btn-ghost btn-sm">Version history</button>
+<button class="btn btn-secondary btn-sm">Duplicate</button>
+<button class="btn btn-accent btn-sm">Save as v4</button>
+</div>
+</div>
+
+<div class="console-body">
+<div class="row tight" style="margin-bottom:12px;">
+<span class="chip accent-on">Cannabis Verification + Selfie</span>
+<span class="chip">Hemp Verification (no selfie)</span>
+<span class="chip">Biometric Authentication</span>
+<span class="chip">Adaptive Age Estimation</span>
+<span style="flex:1"></span>
+<span class="pill pill-ghost sm">All four are KYC / SIMPLE, imported from Didit</span>
+</div>
+
+<div class="pipe">
+
+<div class="pstage">
+<div class="ps-h"><span class="ps-n">1</span><span class="ps-t">Document</span><span class="pill pill-good sm">On</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">Types</span><span class="v mono">DL · ID · Passport</span></div>
+<div class="kv"><span class="k">Back required</span><span class="v mono">yes · PDF417</span></div>
+<div class="kv"><span class="k">Quality min</span><span class="v mono">0.70</span></div>
+<div class="kv"><span class="k">Countries</span><span class="v mono">US only</span></div>
+</div>
+<div class="ps-f"><b>On fail</b> → retry, up to 3<div class="uncert"><code class="mono">DOC_QUALITY_LOW</code> after the third · <code class="mono">DOC_EXPIRED</code> declines outright</div></div>
+</div>
+<div class="parrow">→</div>
+
+<div class="pstage">
+<div class="ps-h"><span class="ps-n">2</span><span class="ps-t">Cross-check</span><span class="pill pill-good sm">On</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">Barcode ↔ OCR</span><span class="v mono">all fields</span></div>
+<div class="kv"><span class="k">Portrait present</span><span class="v mono">required</span></div>
+<div class="kv"><span class="k">Name ↔ expected</span><span class="v mono">if sent</span></div>
+<div class="kv"><span class="k">Out of state</span><span class="v mono">review</span></div>
+</div>
+<div class="ps-f"><b>On fail</b> → review<div class="uncert"><code class="mono">BARCODE_OCR_MISMATCH</code> · <code class="mono">NAME_MISMATCH_EXPECTED</code> · <code class="mono">OUT_OF_STATE</code></div></div>
+</div>
+<div class="parrow">→</div>
+
+<div class="pstage">
+<div class="ps-h"><span class="ps-n">3</span><span class="ps-t">Liveness</span><span class="pill pill-good sm">On</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">Method</span><span class="v mono">PASSIVE</span></div>
+<div class="kv"><span class="k">Score min</span><span class="v mono">0.75</span></div>
+<div class="kv"><span class="k">Attempts max</span><span class="v mono">3</span></div>
+<div class="row tight" style="margin-top:7px">
+<span class="chip accent-on">PASSIVE</span><span class="chip">ACTIVE_3D</span><span class="chip">FLASHING</span>
+</div>
+<div class="uncert" style="margin-top:6px">Scores from this stage always print <b>open model · uncertified</b>. No open PAD model is ISO 30107-3 certified, and the console says so rather than implying a certification we do not hold.</div>
+</div>
+<div class="ps-f"><b>On fail</b> → retry ×3, then review<div class="uncert"><code class="mono">LIVENESS_LOW</code> → <code class="mono">LIVENESS_FAILED_3X</code> · <code class="mono">CHALLENGE_NONCE_MISMATCH</code> and <code class="mono">INJECTION_DETECTED</code> decline immediately</div></div>
+</div>
+<div class="parrow">→</div>
+
+<div class="pstage">
+<div class="ps-h"><span class="ps-n">4</span><span class="ps-t">Face match</span><span class="pill pill-good sm">On</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">Selfie ↔ portrait</span><span class="v mono">≥ 0.80</span></div>
+<div class="kv"><span class="k">1:N search</span><span class="v mono">on</span></div>
+<div class="kv"><span class="k">Duplicate ≥</span><span class="v mono">0.92</span></div>
+<div class="kv"><span class="k">Duplicate action</span><span class="v mono">review</span></div>
+</div>
+<div class="ps-f"><b>On fail</b> → review<div class="uncert"><code class="mono">FACE_MATCH_LOW</code> · <code class="mono">DUPLICATE_PERSON</code> · a face-blocklist hit is <code class="mono">FACE_BLOCKLIST_HIT</code> and declines</div></div>
+</div>
+<div class="parrow">→</div>
+
+<div class="pstage">
+<div class="ps-h"><span class="ps-n">5</span><span class="ps-t">Age</span><span class="pill pill-good sm">On</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">Rule</span><span class="v mono">REC_21</span></div>
+<div class="kv"><span class="k">Estimate margin</span><span class="v mono">± 3 years</span></div>
+<div class="row tight" style="margin-top:7px">
+<span class="chip accent-on">REC_21</span><span class="chip">MED_18_CARD</span>
+</div>
+<div class="uncert" style="margin-top:6px">The document's date of birth decides. The estimate is advisory and can only <i>raise</i> a review, never approve someone the document does not.</div>
+</div>
+<div class="ps-f"><b>On fail</b> → decline<div class="uncert"><code class="mono">UNDER_AGE</code> · estimate disagreement is <code class="mono">AGE_ESTIMATE_UNDER_MARGIN</code> → review</div></div>
+</div>
+<div class="parrow">→</div>
+
+<div class="pstage">
+<div class="ps-h"><span class="ps-n">6</span><span class="ps-t">IP &amp; device</span><span class="pill pill-good sm">On</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">Tor</span><span class="v mono bad">decline</span></div>
+<div class="kv"><span class="k">Hosting</span><span class="v mono warn">review</span></div>
+<div class="kv"><span class="k">VPN</span><span class="v mono warn">review</span></div>
+<div class="kv"><span class="k">Device signals</span><span class="v mono">collected</span></div>
+</div>
+<div class="ps-f"><b>On fail</b> → per row above<div class="uncert"><code class="mono">IP_TOR</code> declines · <code class="mono">IP_HOSTING</code>, <code class="mono">IP_VPN</code> review</div></div>
+</div>
+<div class="parrow">→</div>
+
+<div class="pstage">
+<div class="ps-h"><span class="ps-n">7</span><span class="ps-t">Lists</span><span class="pill pill-good sm">On</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">Checked</span><span class="v mono">11 lists</span></div>
+<div class="kv"><span class="k">User / Document</span><span class="v mono bad">decline</span></div>
+<div class="kv"><span class="k">IP / Device</span><span class="v mono warn">review</span></div>
+<div class="kv"><span class="k">High Risk Countries</span><span class="v mono warn">review · 35</span></div>
+</div>
+<div class="ps-f"><b>On hit</b> → decline or review<div class="uncert"><code class="mono">USER_BLOCKLIST_HIT</code> · <code class="mono">DOCUMENT_BLOCKLIST_HIT</code> · every hit is a <code class="mono">warnings[]</code> item carrying the list id</div></div>
+</div>
+<div class="parrow">→</div>
+
+<div class="pstage decide">
+<div class="ps-h"><span class="ps-n">8</span><span class="ps-t">Decision</span><span class="pill pill-accent sm">Terminal</span></div>
+<div class="ps-b">
+<div class="kv"><span class="k">All pass</span><span class="v good">Approved</span></div>
+<div class="kv"><span class="k">Any review reason</span><span class="v warn">In Review</span></div>
+<div class="kv"><span class="k">Any decline code</span><span class="v bad">Declined</span></div>
+<div class="kv"><span class="k">Awaiting a retry</span><span class="v">Awaiting User</span></div>
+<div class="kv"><span class="k">Approved for</span><span class="v mono">365 days</span></div>
+<div class="kv"><span class="k">Session TTL</span><span class="v mono">60 minutes</span></div>
+<div class="kv"><span class="k">Resubmissions max</span><span class="v mono">3</span></div>
+<div class="kv"><span class="k">Four eyes</span><span class="v mono">off</span></div>
+</div>
+<div class="ps-f"><b>Then</b> → webhook <code class="mono">status.updated</code><div class="uncert">signed <code class="mono">X-Signature-V2</code>, retried at 1 min and 4 min, then dead and visible on Integrate</div></div>
+</div>
+
+</div>
+
+<div style="height:16px"></div>
+<div class="panel-eb">Stages this engine does not run</div>
+<div class="pipe">
+<div class="pstage off">
+<div class="ps-h"><span class="ps-n">—</span><span class="ps-t">NFC chip read</span><span class="pill pill-neutral sm">Off</span></div>
+<div class="ps-b"><div class="uncert">Not available on the Hyperwolf engine. Stored on the workflow so an imported Didit workflow round-trips unchanged.</div></div>
+</div>
+<div class="pstage off">
+<div class="ps-h"><span class="ps-n">—</span><span class="ps-t">AML screening</span><span class="pill pill-neutral sm">Off</span></div>
+<div class="ps-b"><div class="uncert">Not available on the Hyperwolf engine. Would need a third-party data feed, which is out of scope by decision.</div></div>
+</div>
+<div class="pstage off">
+<div class="ps-h"><span class="ps-n">—</span><span class="ps-t">Database validation</span><span class="pill pill-neutral sm">Off</span></div>
+<div class="ps-b"><div class="uncert">Not available on the Hyperwolf engine. No issuing-authority lookup exists in the request path.</div></div>
+</div>
+<div class="pstage off">
+<div class="ps-h"><span class="ps-n">—</span><span class="ps-t">Proof of address</span><span class="pill pill-neutral sm">Off</span></div>
+<div class="ps-b"><div class="uncert">Not available on the Hyperwolf engine. Selectable only as declared-unsupported.</div></div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="card"><div class="card-head"><span class="ch-t">Versions</span></div><div class="card-body" style="padding:10px 12px;">
+<div class="kv"><span class="k">v3 · current</span><span class="v mono">2026-09-08 · liveness min 0.75</span></div>
+<div class="kv"><span class="k">v2</span><span class="v mono">2026-08-14 · added 1:N duplicate check</span></div>
+<div class="kv"><span class="k">v1</span><span class="v mono">2026-08-01 · imported from Didit</span></div>
+<div class="uncert" style="margin-top:8px;">A session pins the workflow <i>and</i> the version it ran under. Editing a workflow writes a new version row and never rewrites a finished session's rules — the June decision keeps June's thresholds forever.</div>
+</div></div>
+<div class="note warn"><div class="nh">The escalation this screen cannot decide</div>
+Which workflow is production? The Didit console's newest sessions are all <b>Hemp Verification (no selfie)</b>, but the owner's ruling is cannabis + selfie. Day one seeds <b>Cannabis Verification + Selfie</b> as default. That is a decision about policy, not a setting, so the builder shows both and picks neither on its own.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 8 · CAPTURE ══════════════════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-capture">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 7 · Capture — the customer's side</div>
+<h2>Phone-sized, plain language, and it never lies about what is happening. Every failure branch is drawn here too, because the branches are where a verification flow either keeps someone or loses them.</h2>
+<p>The hosted page is iframe-embeddable from the website and completes without <code>postMessage</code>, because the site uses a raw iframe and no SDK. The capture client never sets a status — it uploads media and polls; the engine's signed callback is the only thing that decides. The POS variant at the end is the check-in modal, which for a returning customer re-verifies the face only.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="panel-eb">Happy path</div>
+<div class="phones">
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="now"></i><i></i><i></i><i></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="ph-h">Let's check your ID</div>
+<div class="ph-p">Two photos of your licence and one of your face. It takes about a minute, and your photos stay with Hyperwolf.</div>
+<div class="doc sm" style="margin:14px auto"><div class="dportrait"></div><div class="dfields"><div class="dhdr">Have it ready</div><div class="dline w86"></div><div class="dline w50"></div><div class="dline w70"></div></div><div class="dbar"></div></div>
+<div class="ph-note">You must be 21 or older to buy.</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%">Start</button></div>
+<div class="ph-cap">1 · Intro</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="now"></i><i></i><i></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body dark-stage">
+<div class="ph-h">Front of your licence</div>
+<div class="ph-p">Fill the frame. Flat surface, no flash.</div>
+<div class="capframe"><div class="doc" style="width:100%"><div class="dportrait"></div><div class="dfields"><div class="dhdr">California</div><div class="dline w86"></div><div class="dline w50"></div><div class="dline w70"></div></div><div class="dbar"></div></div><span class="cf-c tl"></span><span class="cf-c tr"></span><span class="cf-c bl"></span><span class="cf-c br"></span></div>
+<div class="ph-hint good">Looks sharp — hold still</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%">Take photo</button></div>
+<div class="ph-cap">2 · Front</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body dark-stage">
+<div class="ph-h">Now the back</div>
+<div class="ph-p">The barcode on the back is what proves the details are real, so this one matters.</div>
+<div class="capframe"><div class="doc back" style="width:100%"><div class="dfields" style="width:100%"><div class="dhdr">PDF417</div><div class="dline w70"></div><div class="dline w86"></div></div><div class="dbar" style="height:26px;bottom:14px"></div></div><span class="cf-c tl"></span><span class="cf-c tr"></span><span class="cf-c bl"></span><span class="cf-c br"></span></div>
+<div class="ph-hint warn">Move out of the glare</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%">Take photo</button></div>
+<div class="ph-cap">3 · Back · PDF417</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body dark-stage">
+<div class="ph-h">Look at the camera</div>
+<div class="ph-p">Face in the oval. No hat, no sunglasses.</div>
+<div class="selfie" style="margin:12px 0"><div class="oval"></div><div class="head"></div><div class="body"></div></div>
+<div class="ph-hint good">Hold for 2 seconds</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%" disabled>Capturing…</button></div>
+<div class="ph-cap">4 · Passive selfie</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body dark-stage">
+<div class="ph-h">Turn your head slowly to the left</div>
+<div class="ph-p">The screen will flash three colours. That is part of the check.</div>
+<div class="selfie flash" style="margin:12px 0"><div class="oval"></div><div class="head" style="left:38%"></div><div class="body"></div></div>
+<div class="row tight" style="justify-content:center;margin-top:8px">
+<span class="pill pill-accent sm">flash 1</span><span class="pill pill-ghost sm">flash 2</span><span class="pill pill-ghost sm">turn left</span>
+</div>
+<div class="ph-note mono">challenge issued by the server · valid 90s</div>
+</div>
+<div class="ph-foot"><button class="btn btn-secondary btn-lg" style="width:100%" disabled>Keep going…</button></div>
+<div class="ph-cap">5 · Active challenge · nonce</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="ph-h">Checking</div>
+<div class="ph-p">This usually takes a few seconds. You can keep this page open.</div>
+<div style="margin:22px auto;width:44px;height:44px;border-radius:99px;border:3px solid var(--hairline2);border-top-color:var(--accent);animation:hwspin 1s linear infinite"></div>
+<div class="ph-note mono">reading document · matching face · checking lists</div>
+</div>
+<div class="ph-foot"><span class="uncert" style="text-align:center;width:100%">Nothing is decided on this phone. The result comes from the server.</span></div>
+<div class="ph-cap">6 · Processing</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="state-plate" style="background:var(--goodSoft);color:var(--good);margin-top:26px">✓</div>
+<div class="ph-h" style="text-align:center">You're verified</div>
+<div class="ph-p" style="text-align:center">Good until 19 September 2026, when your licence expires. We'll ask again then.</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%">Back to Hyperwolf</button></div>
+<div class="ph-cap">7 · Approved</div>
+</div>
+
+</div>
+
+<div style="height:18px"></div>
+<div class="panel-eb">Failure branches — drawn, not implied</div>
+<div class="phones">
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="state-plate" style="background:var(--warnSoft);color:var(--warnText);margin-top:18px">↻</div>
+<div class="ph-h" style="text-align:center">Let's try that once more</div>
+<div class="ph-p" style="text-align:center">The photo of your face wasn't clear enough. Somewhere brighter usually fixes it.</div>
+<div class="ph-note mono" style="text-align:center">Attempt 1 of 3</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%">Try again</button></div>
+<div class="ph-cap">Retry · <code class="mono">Awaiting User</code></div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="state-plate" style="background:var(--warnSoft);color:var(--warnText);margin-top:18px">↻</div>
+<div class="ph-h" style="text-align:center">One more try</div>
+<div class="ph-p" style="text-align:center">Still not clear. Take your glasses off if you're wearing them, and face a window if you can.</div>
+<div class="ph-note mono" style="text-align:center">Attempt 2 of 3</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%">Try again</button></div>
+<div class="ph-cap">Retry · attempt 2</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="state-plate" style="background:var(--infoSoft);color:var(--info);margin-top:18px">◷</div>
+<div class="ph-h" style="text-align:center">An analyst will look at this</div>
+<div class="ph-p" style="text-align:center">We couldn't complete the face check automatically, so a person will review it. You'll hear back by email, usually the same day. Nothing else is needed from you right now.</div>
+</div>
+<div class="ph-foot"><button class="btn btn-secondary btn-lg" style="width:100%">Back to Hyperwolf</button></div>
+<div class="ph-cap">3rd failure · <code class="mono">In Review · LIVENESS_FAILED_3X</code></div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="state-plate" style="background:var(--badSoft);color:var(--bad);margin-top:18px">✕</div>
+<div class="ph-h" style="text-align:center">We can't verify you</div>
+<div class="ph-p" style="text-align:center">This check didn't pass and we can't continue. If you think that's wrong, contact the store.</div>
+</div>
+<div class="ph-foot"><button class="btn btn-secondary btn-lg" style="width:100%">Back to Hyperwolf</button></div>
+<div class="ph-cap">Hard decline · no detail given</div>
+</div>
+
+<div class="phone">
+<div class="ph-top"><span class="ph-dots"><i class="done"></i><i></i><i></i><i></i><i></i></span><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="state-plate" style="background:var(--warnSoft);color:var(--warnText);margin-top:18px">⚠</div>
+<div class="ph-h" style="text-align:center">Verification is paused</div>
+<div class="ph-p" style="text-align:center">Try again in a few minutes. Nothing you've sent has been lost.</div>
+</div>
+<div class="ph-foot"><button class="btn btn-secondary btn-lg" style="width:100%">Try again</button></div>
+<div class="ph-cap">Engine not reachable</div>
+</div>
+
+</div>
+
+<div class="cap" style="margin-top:10px;"><b>Copy rules on the customer's side:</b> a decline never explains which signal failed — that is an instruction manual for the next attempt. A retry always says what to change. A review always says a person is involved and roughly when. Nothing ever passes silently and nothing is dropped: an abandoned session sends a beacon on page hide and the TTL sweeper expires the rest.</div>
+
+<div style="height:18px"></div>
+<div class="panel-eb">POS check-in modal · returning customer</div>
+<div class="card">
+<div class="card-body">
+<div class="row" style="align-items:flex-start;gap:18px;">
+<div class="phone" style="margin:0">
+<div class="ph-top"><span class="ph-brand">Check-in · Lake Elsinore</span></div>
+<div class="ph-body">
+<div class="row mid" style="gap:10px;margin-bottom:10px">
+<span class="face lg ring-good"></span>
+<div><div style="font-size:15px;font-weight:800">Delia Marchetti</div>
+<div class="uncert">Verified 2026-08-02 · CA DL on file</div>
+<span class="pill pill-good sm" style="margin-top:5px">Returning customer</span></div>
+</div>
+<div class="note plain" style="padding:10px 11px"><b>Re-verify face only.</b> We already have her document. This is a biometric re-authentication against the template on file — no new licence photo needed.</div>
+<div class="selfie" style="margin:12px 0"><div class="oval"></div><div class="head"></div><div class="body"></div></div>
+<div class="ph-hint good">Face matched · 0.97</div>
+</div>
+<div class="ph-foot"><button class="btn btn-accent btn-lg" style="width:100%">Check in</button></div>
+<div class="ph-cap">Biometric re-auth · workflow "Biometric Authentication"</div>
+</div>
+<div style="flex:1;min-width:260px">
+<div class="kv"><span class="k">Workflow used</span><span class="v">Biometric Authentication</span></div>
+<div class="kv"><span class="k">Stages run</span><span class="v mono">Liveness → Face match → Lists</span></div>
+<div class="kv"><span class="k">Document stage</span><span class="v mono">skipped — on file, not expired</span></div>
+<div class="kv"><span class="k">If the document has expired</span><span class="v">full flow, front and back again</span></div>
+<div class="kv"><span class="k">If the face does not match</span><span class="v warn">full flow, and the mismatch is a review card</span></div>
+<div class="kv"><span class="k">If the engine is down</span><span class="v bad">check-in does not continue</span></div>
+<div style="height:10px"></div>
+<div class="note warn" style="padding:10px 12px"><div class="nh">Engine down at the register — the open question</div>
+Default in this design is <b>fail closed</b>: no check-in, and the modal says "Verification is paused — an associate can't override this." An "associate checked the physical ID" path recorded as a manual, lower-assurance check exists behind a workflow flag that is off, because whether a human override is acceptable is a policy call, not a design one.</div>
+<div class="uncert" style="margin-top:8px;">The Register screen itself is never modified. Verify reaches the register through the check-in modal's existing document step and its own Home card — a separate seam file, not an edit.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- ═══ 9 · LISTS ════════════════════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-lists">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 8 · Lists</div>
+<h2>Eleven list types, four real entries between them. The feature is not small; the data is — and the screen says so instead of looking busy.</h2>
+<p>Every entry stores a hash and a masked display value, never the raw document number, email or phone. A face entry points at a stored template rather than an image. Adding a person to a blocklist is a judgement about a person, so it is always an explicit, audited action with a reason — nothing is auto-added except device and IP signals flagged <code>INJECTION_DETECTED</code>, and those land on a <i>custom</i> "suspect devices" list for review, not on a blocklist.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div><div class="eb">Lists</div><h2 class="h2b">Block and allow lists</h2></div>
+<div class="console-ctl">
+<span class="pill pill-ghost mono">39 entries across 11 lists</span>
+<button class="btn btn-secondary btn-sm">Add a face</button>
+<button class="btn btn-accent btn-sm">New list</button>
+</div>
+</div>
+<div class="console-body">
+<table class="bd">
+<thead><tr><th>List</th><th>Type</th><th>Entries</th><th>Source</th><th>Last entry</th><th>On a hit</th></tr></thead>
+<tbody>
+<tr><td><b>High Risk Countries</b></td><td class="mono">custom · country</td><td class="num">35</td><td class="mono">system</td><td class="num dim">2026-05-21</td><td><span class="pill pill-warn sm">Review</span></td></tr>
+<tr><td><b>IP Address Blocklist</b></td><td class="mono">blocklist · ip</td><td class="num">2</td><td class="mono">didit-import</td><td class="num dim">2026-05-21</td><td><span class="pill pill-warn sm">Review</span></td></tr>
+<tr><td><b>User Blocklist</b></td><td class="mono">blocklist · user</td><td class="num">1</td><td class="mono">didit-import</td><td class="num dim">2026-05-21</td><td><span class="pill pill-bad sm">Decline</span></td></tr>
+<tr><td><b>Document Blocklist</b></td><td class="mono">blocklist · document</td><td class="num">1</td><td class="mono">didit-import</td><td class="num dim">2026-05-21</td><td><span class="pill pill-bad sm">Decline</span></td></tr>
+<tr><td><b>Face Blocklist</b></td><td class="mono">blocklist · face</td><td class="num dim">0</td><td class="mono">didit-import</td><td class="num dim">—</td><td><span class="pill pill-bad sm">Decline</span></td></tr>
+<tr><td><b>Device Blocklist</b></td><td class="mono">blocklist · device</td><td class="num dim">0</td><td class="mono">didit-import</td><td class="num dim">—</td><td><span class="pill pill-warn sm">Review</span></td></tr>
+<tr><td><b>Email Blocklist</b></td><td class="mono">blocklist · email</td><td class="num dim">0</td><td class="mono">didit-import</td><td class="num dim">—</td><td><span class="pill pill-bad sm">Decline</span></td></tr>
+<tr><td><b>Phone Blocklist</b></td><td class="mono">blocklist · phone</td><td class="num dim">0</td><td class="mono">didit-import</td><td class="num dim">—</td><td><span class="pill pill-bad sm">Decline</span></td></tr>
+<tr><td><b>Bank Blocklist</b></td><td class="mono">blocklist · bank</td><td class="num dim">0</td><td class="mono">didit-import</td><td class="num dim">—</td><td><span class="pill pill-neutral sm">Not used</span></td></tr>
+<tr><td><b>Wallet Blocklist</b></td><td class="mono">blocklist · wallet</td><td class="num dim">0</td><td class="mono">didit-import</td><td class="num dim">—</td><td><span class="pill pill-neutral sm">Not used</span></td></tr>
+<tr><td><b>Business Blocklist</b></td><td class="mono">blocklist · business</td><td class="num dim">0</td><td class="mono">didit-import</td><td class="num dim">—</td><td><span class="pill pill-neutral sm">Not used</span></td></tr>
+</tbody>
+</table>
+<div class="foot-note">No allowlists exist today. Bank, wallet and business lists come across from Didit and stay switched off — Verify has no payments or KYB surface, and a list that nothing checks is worse than no list, so the console labels them rather than hiding them.</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">User Blocklist</span><span class="pill pill-bad sm">1 entry</span></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="row mid" style="gap:9px;padding:8px 0;border-bottom:1px solid var(--hairline)">
+<span class="face sm ring-bad"></span>
+<div style="flex:1;min-width:0"><b style="font-size:12.5px">Person 4a71…c9</b>
+<div class="uncert">added 2026-05-21 by an admin · reason "repeat document forgery, store report"</div></div>
+<button class="btn btn-ghost btn-xs">Open file</button>
+<button class="btn btn-ghost btn-xs">Remove</button>
+</div>
+<div class="uncert" style="margin-top:8px;">Removal is as audited as addition, with its own reason. A removed entry is kept with <code class="mono">removed_at</code> and <code class="mono">removed_by</code>, never deleted — otherwise "why is this person no longer blocked" has no answer.</div>
+</div>
+</div>
+<div class="card">
+<div class="card-head"><span class="ch-t">Add a face to a list</span></div>
+<div class="card-body">
+<div class="row" style="gap:14px;align-items:flex-start">
+<div style="text-align:center"><span class="face lg"></span><div class="uncert" style="margin-top:6px">drop a photo<br>or pick a session</div></div>
+<div style="flex:1;min-width:180px">
+<label class="fld"><span class="field-lbl">List</span>
+<input class="field-input" value="Face Blocklist" readonly></label>
+<div style="height:8px"></div>
+<label class="fld"><span class="field-lbl">Reason · required</span>
+<textarea class="field-input" placeholder="Why this face is being blocked, in a sentence somebody can read in a year."></textarea></label>
+<div class="field-hint">The image is converted to a template and the image itself is not kept on the list. Matching runs inside the decision step and a hit is a <code class="mono">warnings[]</code> item carrying the list id.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 10 · INTEGRATE + USAGE ═══════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-integrate">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 9 · Integrate and Usage</div>
+<h2>Didit-compatible on the wire, so the website changes three environment variables and one CSP host — not its code.</h2>
+<p>The public API mirrors Didit's field names verbatim, and a compatibility pair covers exactly the two calls the site makes today. Usage counts what the engine actually ran; the cost column says <b>no per-check fee (own engine)</b> rather than inventing a number, and it separates cumulative from this month because Didit's own console does not, which is how the volume estimate ended up 60× too high.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="console">
+<div class="console-top">
+<div><div class="eb">Integrate</div><h2 class="h2b">API keys, webhooks and the hosted flow</h2></div>
+<div class="console-ctl"><span class="pill pill-good sm">Engine healthy</span><button class="btn btn-accent btn-sm">Create key</button></div>
+</div>
+<div class="console-body">
+<div class="grid2">
+
+<div class="card">
+<div class="card-head"><span class="ch-t">API keys</span><span class="pill pill-ghost sm">shown once</span></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="kv"><span class="k">hyperwolf-site · sessions:write, sessions:read</span><span class="v mono">hwv_live_8f2c…</span></div>
+<div class="kv"><span class="k">import-tooling · sessions:read</span><span class="v mono">hwv_live_41ab…</span></div>
+<div class="kv"><span class="k">pos-checkin · sessions:write</span><span class="v mono">hwv_live_c907…</span></div>
+<div class="note warn" style="margin-top:10px;padding:10px 11px"><b>The full key is displayed exactly once, at creation.</b> Only a hash is stored. There is no "reveal" — if it is lost, revoke it and make another, and the revocation is in the audit log.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Webhook destinations</span><span class="pill pill-good sm">1 active</span><button class="btn btn-ghost btn-xs">Send test</button></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="kv"><span class="k">URL</span><span class="v mono">https://api.hyperwolf.com/idv/hook</span></div>
+<div class="kv"><span class="k">Events</span><span class="v mono">status.updated · data.updated</span></div>
+<div class="kv"><span class="k">Secret</span><span class="v mono">whsec_••••2f10</span></div>
+<div class="kv"><span class="k">Signature</span><span class="v mono">X-Signature-V2 · 300s window</span></div>
+<div style="height:8px"></div>
+<div class="panel-eb">Delivery log</div>
+<table class="bd">
+<thead><tr><th>Event</th><th>Session</th><th>Attempt</th><th>Result</th><th style="text-align:right">When</th></tr></thead>
+<tbody>
+<tr><td class="mono">status.updated</td><td class="mono">#14311</td><td class="num">1</td><td><span class="pill pill-good sm">200</span></td><td class="num dim">09:14:12</td></tr>
+<tr><td class="mono">status.updated</td><td class="mono">#14290</td><td class="num">1</td><td><span class="pill pill-good sm">200</span></td><td class="num dim">Sep 6</td></tr>
+<tr class="hot"><td class="mono">status.updated</td><td class="mono">#14276</td><td class="num">2</td><td><span class="pill pill-warn sm">retried</span></td><td class="num dim">Sep 5</td></tr>
+<tr><td class="mono">data.updated</td><td class="mono">#14251</td><td class="num">1</td><td><span class="pill pill-good sm">200</span></td><td class="num dim">Sep 3</td></tr>
+</tbody>
+</table>
+<div class="uncert" style="margin-top:7px;">Retries at about 1 minute and 4 minutes, then the delivery is marked dead and stays visible here. A replayed event is accepted and writes nothing — <code class="mono">event_id</code> is unique.</div>
+</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">Create a session</span><span class="pill pill-ghost sm mono">POST /v3/session/</span></div>
+<div class="card-body">
+<pre class="snip">POST /v3/session/
+x-api-key: hwv_live_8f2c…
+content-type: application/json
+
+{
+  "workflow_id": "2fdbd4d4…ee1448",
+  "vendor_data": "email:9c41…a7",
+  "callback": "https://api.hyperwolf.com/idv/hook",
+  "language": "en"
+}
+
+200 OK
+{
+  "session_id":    "b7e1…",
+  "session_token": "st_…",
+  "url":           "https://verify.hyperwolf.com/verify/st_…",
+  "status":        "Not Started",
+  "workflow_id":   "2fdbd4d4…ee1448",
+  "vendor_data":   "email:9c41…a7"
+}</pre>
+<div class="uncert" style="margin-top:8px;">Field names are Didit's, verbatim. <code class="mono">url</code> is the hosted capture page and is iframe-embeddable from the site's origin.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Didit compatibility</span><span class="pill pill-accent sm">two calls</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Site calls today</span><span class="v mono">POST /v2/session</span></div>
+<div class="kv"><span class="k">and</span><span class="v mono">GET /v2/session/{id}/decision</span></div>
+<div class="kv"><span class="k">Site change needed</span><span class="v">3 env vars + 1 CSP host</span></div>
+<div class="kv"><span class="k">Status polling</span><span class="v mono">kept, every 8s</span></div>
+<div style="height:8px"></div>
+<div class="note warn" style="padding:10px 11px"><div class="nh">One thing the facade will not soften</div>
+<span class="mono">In Review</span> is returned as <span class="mono">In Review</span>. Today the site treats that as good enough to complete checkout, which is a policy hole rather than a nuance. The facade returns the literal and the decision about what the site does with it belongs to the owner.</div>
+<div style="height:8px"></div>
+<div class="kv"><span class="k">Hosted URL</span><span class="v mono">verify.hyperwolf.com/verify/{token}</span></div>
+<div class="kv"><span class="k">Frame ancestors</span><span class="v mono">www.hyperwolf.com</span></div>
+<div class="kv"><span class="k">Media route</span><span class="v mono">role-gated · nosniff · no-store</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="height:16px"></div>
+<div class="console">
+<div class="console-top">
+<div><div class="eb">Usage</div><h2 class="h2b">What the engine ran</h2></div>
+<div class="console-ctl"><div class="seg2"><span class="on">This month</span><span>Cumulative</span></div><button class="btn btn-secondary btn-sm">Export</button></div>
+</div>
+<div class="console-body">
+<table class="bd">
+<thead><tr><th>Feature</th><th style="text-align:right">This month</th><th style="text-align:right">Cumulative</th><th>Engine</th><th>Cost</th></tr></thead>
+<tbody>
+<tr><td>ID verification</td><td class="num">154</td><td class="num dim">9,391</td><td class="mono">didit → hw-engine</td><td>no per-check fee (own engine)</td></tr>
+<tr><td>Device &amp; IP</td><td class="num">153</td><td class="num dim">9,345</td><td class="mono">didit → hw-engine</td><td>no per-check fee (own engine)</td></tr>
+<tr><td>Face match</td><td class="num">153</td><td class="num dim">7,877</td><td class="mono">didit → hw-engine</td><td>no per-check fee (own engine)</td></tr>
+<tr><td>Passive liveness</td><td class="num">152</td><td class="num dim">7,798</td><td class="mono">didit → hw-engine</td><td>no per-check fee (own engine)</td></tr>
+<tr><td>Active challenge</td><td class="num dim">0</td><td class="num dim">0</td><td class="mono">hw-engine only</td><td>no per-check fee (own engine)</td></tr>
+<tr><td>1:N face search</td><td class="num dim">0</td><td class="num dim">0</td><td class="mono">hw-engine only</td><td>no per-check fee (own engine)</td></tr>
+<tr><td>Hosted sessions</td><td class="num">154</td><td class="num dim">9,091</td><td class="mono">didit → hw-engine</td><td>no per-check fee (own engine)</td></tr>
+</tbody>
+</table>
+<div class="foot-note">Cumulative columns are the Didit totals as read from its Usage page on 2026-09-08; the monthly column is that page's "this month" figure. They are shown side by side because reading the cumulative number as monthly is what put the original volume estimate out by roughly sixty times.</div>
+<div style="height:12px"></div>
+<div class="grid3">
+<div class="stat accent"><div class="sl">Run rate</div><div class="sv">~150</div><div class="ss">sessions a month — the engine is sized for bursts of tens per hour, not hundreds</div></div>
+<div class="stat"><div class="sl">Per-check fee</div><div class="sv" style="font-size:15px">None</div><div class="ss">own engine; hosting is not metered here and is not invented as a number</div></div>
+<div class="stat info"><div class="sl">Why leave Didit</div><div class="sv" style="font-size:15px">Independence</div><div class="ss">not the bill — at this volume the run rate sits inside the free tier</div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ═══ 11 · STATES ══════════════════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-states">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Screen 10 · States</div>
+<h2>Loading, empty, error and degraded — drawn for real, because a console about identity that fails vaguely is worse than one that fails loudly.</h2>
+<p>Skeletons keep the header the loaded state will have, so nothing moves when data arrives. Empty states name the window in words instead of drawing a zero chart. The not-connected state is a named title and plain body with a retry. And "backend up, engine down" is a distinct state with its own badge and its own customer-facing copy.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">Expiring soon</span><span class="pill pill-neutral sm">loading</span></div>
+<div class="card-body" style="padding:10px 12px;">
+<div class="mini"><div class="row mid" style="gap:8px"><span class="face sm"></span><div style="flex:1"><div class="skel" style="width:56%"></div><div class="skel" style="width:38%;height:9px;margin-top:6px"></div></div></div></div>
+<div class="mini"><div class="row mid" style="gap:8px"><span class="face sm"></span><div style="flex:1"><div class="skel" style="width:44%"></div><div class="skel" style="width:52%;height:9px;margin-top:6px"></div></div></div></div>
+<div class="mini"><div class="row mid" style="gap:8px"><span class="face sm"></span><div style="flex:1"><div class="skel" style="width:62%"></div><div class="skel" style="width:30%;height:9px;margin-top:6px"></div></div></div></div>
+</div>
+<div class="foot-note">The card head is real while the body shimmers. A skeleton that also fakes the header makes the panel jump when it loads, and a compliance screen that jumps gets misread.</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Verifications · last 30 days</span><span class="pill pill-neutral sm">empty</span></div>
+<div class="card-body">
+<div class="state">
+<div class="state-plate" style="background:var(--surface3);color:var(--inkMute)">◫</div>
+<h4>No verifications in the last 30 days</h4>
+<p>Nothing has been checked since 4 August 2026, which is session #14145. Widen the window or clear the workflow filter to see older sessions.</p>
+<div style="margin-top:12px"><button class="btn btn-secondary btn-sm">Show all time</button></div>
+</div>
+</div>
+<div class="foot-note">The window is stated in words and the newest real session is named. A zero on a chart tells you nothing about whether the filter is wrong.</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">Triage board</span><span class="pill pill-good sm">empty · healthy</span></div>
+<div class="card-body">
+<div class="state">
+<div class="state-plate" style="background:var(--goodSoft);color:var(--good)">✓</div>
+<h4>Nothing to triage</h4>
+<p>No verification is in <span class="mono">In Review</span>. The engine is running and the last decision came back 4 minutes ago, so this is a quiet queue rather than a stalled one.</p>
+</div>
+</div>
+<div class="foot-note">The second sentence is the whole point: an empty queue and a dead engine look identical if you only print a count.</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Customer file</span><span class="pill pill-bad sm">error</span></div>
+<div class="card-body">
+<div class="state">
+<div class="state-plate" style="background:var(--badSoft);color:var(--bad)">!</div>
+<h4>Verify isn't connected</h4>
+<p>Needs the wmdemo backend — not reachable right now. Files, verifications, reviews and lists will appear here once it connects.</p>
+<div style="margin-top:12px"><button class="btn btn-secondary btn-sm">Try again</button></div>
+<div class="detail">GET /api/idv/people/9c41…a7 → failed<br>no-live-seam · nothing was changed</div>
+</div>
+</div>
+<div class="foot-note">Named title, plain body, one retry, and the raw detail collapsed rather than absent. No apology, no illustration, no "Something went wrong".</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">Engine down · console</span>
+<span class="pill pill-bad"><span class="dot" style="background:var(--bad)"></span>Engine not reachable</span></div>
+<div class="card-body">
+<div class="note bad"><div class="nh">What the badge changes</div>
+<ul>
+<li>New verifications cannot start — the create button is disabled with the reason on it, not just greyed.</li>
+<li>Sessions already in flight stay where they are; nothing is auto-declined for the engine's failure.</li>
+<li>The review queue is still fully workable, because analyst decisions do not need the engine.</li>
+<li>The register fails closed: check-in does not continue.</li>
+</ul></div>
+<div style="height:10px"></div>
+<div class="row mid">
+<button class="btn btn-accent" disabled>New verification · engine not reachable</button>
+<span class="uncert">backend up · engine down · these are two badges, not one</span>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Engine down · what the customer sees</span></div>
+<div class="card-body">
+<div class="row" style="gap:16px;align-items:flex-start">
+<div class="phone" style="margin:0;width:200px">
+<div class="ph-top"><span class="ph-brand">Hyperwolf</span></div>
+<div class="ph-body">
+<div class="state-plate" style="background:var(--warnSoft);color:var(--warnText);margin-top:14px">⚠</div>
+<div class="ph-h" style="text-align:center">Verification is paused</div>
+<div class="ph-p" style="text-align:center">Try again in a few minutes. Nothing you've sent has been lost.</div>
+</div>
+<div class="ph-foot"><button class="btn btn-secondary" style="width:100%">Try again</button></div>
+</div>
+<div style="flex:1;min-width:200px">
+<div class="uncert" style="line-height:1.7">No error code, no vendor name, no blame. "Paused" is accurate — the session is still <span class="mono">Not Started</span> or <span class="mono">In Progress</span> and will resume. The one thing the copy must not do is imply a decision was made, because on this screen the customer cannot tell the difference between "we couldn't check" and "we said no", and only one of those is true.</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="grid2">
+<div class="card">
+<div class="card-head"><span class="ch-t">Imported label</span><span class="pill pill-info sm">Verified by Didit, imported</span></div>
+<div class="card-body">
+<div class="tl" style="padding-left:26px">
+<div class="tlx info"><div class="tlx-card">
+<div class="tlx-head"><span class="th-t">Website sign-up</span><span class="pill pill-good sm">Approved</span><span class="th-d">2025-04-17</span></div>
+<div class="tlx-foot"><span class="pill pill-info sm">Verified by Didit, imported</span> imported 2026-09-08 · identity match tier 2 · excluded from engine accuracy</div>
+</div></div>
+</div>
+<div class="uncert" style="margin-top:8px;">Imported sessions are labelled on the card, in the table and on the session detail, and never counted in any panel that claims something about the Hyperwolf engine. Nothing is recomputed — recomputing a 2025 decision with a 2026 model would be a new decision wearing an old date.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Retention and deletion request</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Document and selfie images</span><span class="v">Kept until the customer is deleted</span></div>
+<div class="kv"><span class="k">Face templates</span><span class="v">Kept with the person</span></div>
+<div class="kv"><span class="k">Encryption at rest</span><span class="v">The volume's, not the app's</span></div>
+<div class="kv"><span class="k">Every image view</span><span class="v">Audited, per fetch</span></div>
+<div style="height:10px"></div>
+<div class="note plain" style="padding:11px 12px">
+<div class="nh">Deletion is two steps</div>
+<b>1 · Request</b> — an analyst records the target (person or session), the instruction (<span class="mono">operational_session_delete</span> or <span class="mono">privacy_erasure</span>), and whether a face template is retained for blocklist purposes.<br>
+<b>2 · Execute</b> — an admin runs it. Media files, document rows, decision PII and templates go; a tombstone session row stays with <span class="mono">deleted_at</span> so counts and audit stay truthful.
+</div>
+<div class="row tight" style="margin-top:10px">
+<button class="btn btn-danger btn-sm">Request deletion</button>
+<button class="btn btn-secondary btn-sm" disabled>Execute · admin only</button>
+</div>
+<div class="uncert" style="margin-top:8px;">Deleting Didit's copy after import is a separate, irreversible step at Didit that this console never performs on the owner's behalf.</div>
+</div>
+</div>
+</div>
+
+<div style="height:14px"></div>
+<div class="note plain">
+<div class="nh">Concept C in one line</div>
+Organise the console around the person and the compliance story tells itself; organise it around the session and somebody has to reassemble that story by hand, every time, under pressure, in front of an inspector. The cost is density on routine single-session work, and tabs 5 and 6 are the concession to it.
+<div class="cap" style="margin-top:9px;">Exploration only — every customer here is fictional and every figure not drawn from the Didit console on 2026-09-08 is illustrative. <span class="sample-tag" style="background:var(--surface3);color:var(--inkDim)">Exploration — sample data</span></div>
+</div>
+</div>
+</div>
+
+</body>
+</html>

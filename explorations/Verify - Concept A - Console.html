@@ -1,0 +1,2392 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify — Concept A: Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+--canvas2:#EEEBE2;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--highlightSoft:#F1EFE9;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08); --railHover:rgba(255,255,255,.06);
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+
+--catFlower:#3F9E72; --catVape:#3F73D6; --catEdibles:#E0477C; --catConcentrate:#C2841D;
+--catPreroll:#D45A3C; --catTincture:#8A5CD6;
+}
+[data-theme="dark"]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+--canvas2:#0A0A07;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+--accentHover:#FFDA33; --accentText:#FFD100;
+--highlightSoft:rgba(245,243,234,.06);
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+--neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07); --railHover:rgba(255,255,255,.05);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes hwspin{to{transform:rotate(360deg)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+.doc-head .sub b{color:var(--accent);font-weight:600;}
+.doc-head .sampletag{display:inline-flex;align-items:center;gap:5px;font-family:var(--fontMono);font-size:10px;
+font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accentInk);background:var(--accent);
+padding:3px 8px;border-radius:var(--r999);margin-right:7px;vertical-align:2px;}
+.seg{display:inline-flex;background:var(--railHair);border-radius:var(--r10);padding:3px;gap:2px;margin-left:auto;flex-wrap:wrap;}
+.seg button{appearance:none;border:0;background:transparent;color:var(--railInk);font-family:var(--fontSans);
+font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+.seg button.active{background:var(--railBright);color:var(--rail);box-shadow:var(--shadowSm);}
+.seg button:not(.active):hover{color:var(--railBright);}
+.theme-btn{appearance:none;border:1px solid var(--railInk);background:transparent;color:var(--railBright);
+font-family:var(--fontSans);font-size:11.5px;font-weight:600;height:32px;padding:0 11px;border-radius:var(--r8);cursor:pointer;}
+.theme-btn:hover{background:var(--railHover);}
+.tabpanel{display:none;} .tabpanel.active{display:block;animation:fade .16s ease;}
+.stage{max-width:1320px;margin:16px auto 70px;padding:0 22px;}
+.intro{max-width:1320px;margin:0 auto;padding:16px 22px 0;}
+.intro .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 18px;box-shadow:var(--shadowSm);}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;max-width:1040px;}
+.intro p:last-child{margin-bottom:0;}
+.intro code, code.mono{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;color:var(--ink2);}
+.cap{font-size:11.5px;color:var(--inkDim);font-family:var(--fontMono);line-height:1.55;margin-top:9px;}
+.cap b{color:var(--ink2);font-weight:600;}
+
+.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+font-size:11px;font-weight:600;white-space:nowrap;}
+.pill.sm{padding:2px 7px 3px;font-size:10px;}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-accent{background:var(--accentSoft);color:var(--accentText);}
+.pill-ghost{background:transparent;color:var(--inkMute);border:1px solid var(--hairline2);}
+.dot{width:7px;height:7px;border-radius:99px;flex:0 0 auto;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+white-space:nowrap;border:1px solid transparent;transition:background .12s ease;}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-secondary:hover{background:var(--surface3);}
+.btn-primary{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-accent:hover{background:var(--accentHover);}
+.btn-ghost{background:transparent;color:var(--ink2);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-danger{background:var(--surface);color:var(--bad);border-color:var(--bad);}
+.btn-xs{min-height:26px;padding:0 9px;font-size:11px;}
+.btn-sm{min-height:30px;padding:0 10px;font-size:11.5px;}
+.btn[disabled],.btn.off{opacity:.5;cursor:not-allowed;}
+.avatar{border-radius:99px;background:var(--surface3);color:var(--ink2);display:inline-flex;align-items:center;
+justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto;border:1px solid var(--hairline2);}
+.bar-track{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;display:block;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);}
+.card.sunken{background:var(--canvas2);border-color:var(--hairline);}
+.card-head{display:flex;align-items:center;gap:9px;padding:11px 14px;border-bottom:1px solid var(--hairline);}
+.card-head .ch-t{flex:1;font-size:13px;font-weight:700;letter-spacing:-.005em;}
+.card-body{padding:14px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;}
+.row.tight{gap:6px;}
+.row.mid{align-items:center;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;}
+.stat{background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);
+border-radius:var(--r10);padding:10px 12px;}
+.stat.accent{border-left-color:var(--accent);}
+.stat.good{border-left-color:var(--good);}
+.stat.warn{border-left-color:var(--warnText);}
+.stat.bad{border-left-color:var(--bad);}
+.stat.info{border-left-color:var(--info);}
+.stat .sl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute);}
+.stat .sv{font-size:21px;font-weight:800;font-family:var(--fontMono);font-variant-numeric:tabular-nums;margin-top:3px;}
+.stat .ss{font-size:11px;color:var(--inkDim);margin-top:1px;line-height:1.45;}
+.note{border-radius:var(--r12);padding:12px 14px;border:1px solid;font-size:12px;line-height:1.6;}
+.note.info{background:var(--infoSoft);border-color:var(--info);color:var(--ink2);}
+.note.warn{background:var(--warnSoft);border-color:var(--warnText);color:var(--ink2);}
+.note.good{background:var(--goodSoft);border-color:var(--good);color:var(--ink2);}
+.note.bad{background:var(--badSoft);border-color:var(--bad);color:var(--ink2);}
+.note.plain{background:var(--surface2);border-color:var(--hairline2);color:var(--ink2);}
+.note .nh{display:flex;align-items:center;gap:7px;font-weight:700;font-size:11px;letter-spacing:.03em;
+text-transform:uppercase;margin-bottom:7px;}
+.note ul{margin:0;padding-left:17px;} .note li{margin-bottom:4px;} .note li:last-child{margin-bottom:0;}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+.kv:last-child{border-bottom:0;}
+.kv .k{color:var(--inkDim);} .kv .v{font-weight:600;text-align:right;}
+.kv .v.mono{font-family:var(--fontMono);font-weight:600;font-variant-numeric:tabular-nums;}
+.panel-eb{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--inkMute);
+font-family:var(--fontMono);display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.panel-eb .grow{flex:1;}
+.skel{background:linear-gradient(90deg,var(--surface3) 25%,var(--surface2) 37%,var(--surface3) 63%);
+background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:6px;height:12px;display:block;}
+.state-plate{width:44px;height:44px;border-radius:99px;display:flex;align-items:center;justify-content:center;
+margin:0 auto 11px;font-size:19px;background:var(--surface3);}
+.state{padding:34px 20px;text-align:center;}
+.state h4{margin:0 0 6px;font-size:14px;font-weight:700;}
+.state p{margin:0 auto;font-size:12.5px;color:var(--inkDim);line-height:1.6;max-width:400px;}
+.state .detail{margin-top:12px;font-family:var(--fontMono);font-size:11px;color:var(--inkDim);background:var(--canvas2);
+border:1px solid var(--hairline);border-radius:var(--r8);padding:8px 10px;text-align:left;display:inline-block;}
+.spinner{width:18px;height:18px;border-radius:99px;border:2px solid var(--hairline2);border-top-color:var(--ink2);
+animation:hwspin .8s linear infinite;display:inline-block;vertical-align:-4px;}
+
+/* ---- console shell: rail + main ---- */
+.console{display:flex;background:var(--bg);border:1px solid var(--hairline2);border-radius:var(--r12);
+overflow:hidden;box-shadow:var(--shadowLg);min-height:620px;}
+.rail{width:188px;flex:0 0 auto;background:var(--rail);padding:12px 10px 14px;display:flex;flex-direction:column;gap:1px;}
+.rail .brand{display:flex;align-items:center;gap:8px;padding:2px 6px 12px;}
+.rail .mark{width:28px;height:28px;border-radius:9px;background:var(--accent);color:var(--accentInk);
+display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:0 0 auto;}
+.rail .bname{color:var(--railBright);font-size:12.5px;font-weight:700;line-height:1.15;}
+.rail .bsub{color:var(--railInk);font-size:9.5px;font-family:var(--fontMono);letter-spacing:.06em;text-transform:uppercase;}
+.rail .rsec{color:var(--railInk);font-size:9px;font-family:var(--fontMono);letter-spacing:.14em;text-transform:uppercase;
+opacity:.7;padding:12px 8px 5px;}
+.ri{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:var(--r8);color:var(--railInk);
+font-size:12px;font-weight:600;position:relative;cursor:pointer;}
+.ri:hover{background:var(--railHover);color:var(--railBright);}
+.ri.on{background:var(--railActive);color:var(--railBright);font-weight:700;}
+.ri.on::before{content:"";position:absolute;left:-10px;top:6px;bottom:6px;width:3px;border-radius:99px;background:var(--accent);}
+.ri .ric{width:16px;text-align:center;font-size:12px;flex:0 0 auto;opacity:.9;}
+.ri .rct{margin-left:auto;font-family:var(--fontMono);font-size:10px;font-weight:700;color:var(--railInk);
+background:var(--railHair);border-radius:var(--r999);padding:1px 6px;}
+.ri.on .rct{color:var(--accentInk);background:var(--accent);}
+.rail .rfoot{margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--railHair);color:var(--railInk);
+font-family:var(--fontMono);font-size:9.5px;line-height:1.6;}
+.rail .rfoot b{color:var(--railBright);font-weight:600;}
+.main{flex:1;min-width:0;background:var(--bg);padding:15px 18px 24px;}
+.pagehead{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:13px;}
+.pagehead .ph-eb{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkMute);
+font-family:var(--fontMono);margin-bottom:5px;}
+.pagehead h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.05;}
+.pagehead .ph-sub{font-size:11.5px;color:var(--inkDim);margin-top:5px;line-height:1.5;max-width:660px;}
+.pagehead .ph-act{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.hbadge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 9px;
+border-radius:var(--r999);border:1px solid var(--hairline2);background:var(--surface);color:var(--ink2);}
+.hbadge .dot{width:6px;height:6px;}
+.filterbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;background:var(--surface);
+border:1px solid var(--hairline2);border-radius:var(--r10);padding:8px 10px;margin-bottom:11px;}
+.filterbar .fb-lbl{font-family:var(--fontMono);font-size:9.5px;font-weight:700;letter-spacing:.12em;
+text-transform:uppercase;color:var(--inkMute);}
+.sel{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 9px;border-radius:var(--r8);
+border:1px solid var(--hairline2);background:var(--surface2);font-size:11.5px;font-weight:600;color:var(--ink2);cursor:pointer;}
+.sel:hover{background:var(--surface3);}
+.sel .caret{color:var(--inkMute);font-size:9px;}
+.sel.on{border-color:var(--ink);background:var(--ink);color:var(--surface);}
+.sel.on .caret{color:var(--surface);}
+.searchbox{display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;border-radius:var(--r8);
+border:1px solid var(--fieldBorder);background:var(--field);font-size:11.5px;color:var(--inkMute);min-width:196px;}
+.chipset{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:var(--r999);border:1px solid var(--hairline2);
+background:var(--surface);color:var(--ink2);cursor:pointer;}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink);}
+.chip.accent-on{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.chip.sm{font-size:10.5px;padding:4px 8px;}
+
+/* ---- dense table ---- */
+table.tbl{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--hairline2);
+border-radius:var(--r12);overflow:hidden;}
+table.tbl thead th{text-align:left;font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+color:var(--inkMute);background:var(--surface2);padding:8px 10px;border-bottom:1px solid var(--hairline2);
+white-space:nowrap;font-family:var(--fontMono);}
+table.tbl thead th.sortable{cursor:pointer;}
+table.tbl thead th.sortable:hover{color:var(--ink2);}
+table.tbl thead th .sc{color:var(--inkFaint);margin-left:3px;}
+table.tbl thead th.sorted{color:var(--ink);} table.tbl thead th.sorted .sc{color:var(--accentText);}
+table.tbl tbody td{padding:7px 10px;border-top:1px solid var(--hairline);font-size:12px;vertical-align:middle;}
+table.tbl tbody tr:first-child td{border-top:0;}
+table.tbl tbody tr:hover{background:var(--surface2);cursor:pointer;}
+table.tbl tbody tr.sel-row{background:var(--accentSoft);}
+table.tbl tbody tr.sel-row:hover{background:var(--accentSoft);}
+table.tbl td.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+table.tbl td.id{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);white-space:nowrap;}
+table.tbl td.dim{color:var(--inkDim);}
+table.tbl td .who{display:flex;align-items:center;gap:8px;min-width:0;}
+table.tbl td .who b{font-weight:700;font-size:12px;white-space:nowrap;}
+table.tbl td .who .em{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);}
+.tblfoot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;font-size:11.5px;
+color:var(--inkDim);border:1px solid var(--hairline2);border-top:0;border-radius:0 0 var(--r12) var(--r12);
+background:var(--surface2);margin-top:-1px;}
+.tblfoot .grow{flex:1;}
+.tblwrap{overflow-x:auto;}
+.imported{display:inline-flex;align-items:center;gap:4px;font-family:var(--fontMono);font-size:9.5px;
+font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--info);background:var(--infoSoft);
+padding:2px 6px;border-radius:var(--r999);}
+
+/* ---- session detail two-pane ---- */
+.two-pane{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:start;}
+@media (max-width:1180px){.two-pane{grid-template-columns:minmax(0,1fr);}}
+.shot{background:var(--canvas2);border:1px solid var(--hairline2);border-radius:var(--r10);overflow:hidden;position:relative;}
+.shot .frame{height:126px;background-image:repeating-linear-gradient(135deg,var(--hairline) 0 1px,transparent 1px 9px);
+display:flex;align-items:center;justify-content:center;}
+.shot .frame.tall{height:168px;}
+.shot .frame.sq{height:132px;}
+.shot .ftxt{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);text-align:center;line-height:1.6;padding:0 8px;}
+.shot .scap{display:flex;align-items:center;gap:6px;padding:6px 8px;border-top:1px solid var(--hairline);
+background:var(--surface);font-family:var(--fontMono);font-size:10px;color:var(--inkDim);}
+.shot .scap .grow{flex:1;}
+.faces{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;}
+.face{width:74px;flex:0 0 auto;text-align:center;}
+.face .fbox{height:74px;border-radius:var(--r10);background:var(--surface3);border:1px solid var(--hairline2);
+display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--inkMute);}
+.face.hit .fbox{border-color:var(--warnText);background:var(--warnSoft);color:var(--warnText);}
+.face .fsc{font-family:var(--fontMono);font-size:10px;font-weight:700;margin-top:4px;color:var(--ink2);}
+.face .fnm{font-size:9.5px;color:var(--inkMute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.node{background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--hairline2);
+border-radius:var(--r10);margin-bottom:9px;overflow:hidden;}
+.node.pass{border-left-color:var(--good);}
+.node.review{border-left-color:var(--warnText);}
+.node.fail{border-left-color:var(--bad);}
+.node.skip{border-left-color:var(--hairline3);}
+.node-head{display:flex;align-items:center;gap:8px;padding:9px 11px;}
+.node-head .nt{font-size:12.5px;font-weight:700;flex:1;}
+.node-head .nv{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:12px;font-weight:700;}
+.node-body{padding:0 11px 10px;display:flex;flex-direction:column;gap:6px;}
+.node-body .nline{display:flex;gap:10px;justify-content:space-between;font-size:11.5px;color:var(--ink2);}
+.node-body .nline .nk{color:var(--inkDim);}
+.node-body .nline .nvv{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:600;text-align:right;}
+.node-cap{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);line-height:1.55;
+border-top:1px dashed var(--hairline2);padding-top:6px;margin-top:2px;}
+.tl-ev{display:flex;gap:9px;padding:8px 0;border-top:1px dashed var(--hairline2);font-size:11.5px;}
+.tl-ev:first-child{border-top:0;padding-top:0;}
+.tl-dot{width:7px;height:7px;border-radius:99px;background:var(--inkFaint);margin-top:5px;flex:0 0 auto;}
+.tl-dot.good{background:var(--good);} .tl-dot.warn{background:var(--warnText);} .tl-dot.info{background:var(--info);}
+.tl-dot.bad{background:var(--bad);}
+.tl-action{font-weight:700;}
+.tl-meta{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;margin-top:2px;font-variant-numeric:tabular-nums;}
+.tl-reason{color:var(--ink2);margin-top:2px;font-style:italic;}
+.actionbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:11px 12px;background:var(--surface2);
+border:1px solid var(--hairline2);border-radius:var(--r10);margin-bottom:12px;}
+.actionbar .grow{flex:1;}
+
+/* ---- forms / builder ---- */
+.fld{display:block;}
+.field-lbl{font-size:10.5px;font-weight:700;color:var(--inkMute);letter-spacing:.06em;text-transform:uppercase;
+font-family:var(--fontMono);margin-bottom:5px;display:block;}
+.field-input{width:100%;min-height:36px;padding:0 11px;border-radius:var(--r8);border:1px solid var(--fieldBorder);
+background:var(--field);color:var(--ink);font-family:var(--fontSans);font-size:12.5px;display:flex;align-items:center;}
+.field-input.mono{font-family:var(--fontMono);}
+.field-hint{font-size:11px;color:var(--inkMute);margin-top:5px;line-height:1.5;}
+.tog{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border:1px solid var(--hairline2);
+border-radius:var(--r10);background:var(--surface);}
+.tog.offd{background:var(--surface2);border-style:dashed;}
+.tog .tg-t{font-size:12.5px;font-weight:700;}
+.tog .tg-s{font-size:11px;color:var(--inkDim);margin-top:2px;line-height:1.45;}
+.tog .tg-x{flex:1;min-width:0;}
+.tog.offd .tg-t,.tog.offd .tg-s{color:var(--inkMute);}
+.sw{width:34px;height:20px;border-radius:99px;background:var(--hairline3);position:relative;flex:0 0 auto;margin-top:2px;cursor:pointer;}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:var(--surface);
+box-shadow:var(--shadowSm);transition:.14s;}
+.sw.on{background:var(--good);} .sw.on::after{left:16px;}
+.sw.locked{background:var(--hairline2);cursor:not-allowed;}
+.rng{display:flex;align-items:center;gap:10px;}
+.rng input[type=range]{flex:1;accent-color:var(--accent);height:20px;}
+.rng .rv{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:800;min-width:44px;text-align:right;}
+.radio-card{display:flex;gap:9px;padding:10px 11px;border:1px solid var(--hairline2);border-radius:var(--r10);
+background:var(--surface);cursor:pointer;}
+.radio-card.on{border-color:var(--accentBorder);background:var(--accentSoft);}
+.radio-card .rc-t{font-size:12.5px;font-weight:700;}
+.radio-card .rc-s{font-size:11px;color:var(--inkDim);margin-top:2px;line-height:1.45;}
+.radio-card.on .rc-s{color:var(--ink2);}
+.dial{width:15px;height:15px;border-radius:99px;border:2px solid var(--hairline3);flex:0 0 auto;margin-top:2px;}
+.radio-card.on .dial{border-color:var(--accentBorder);background:var(--accent);box-shadow:inset 0 0 0 2px var(--surface);}
+.ckbox{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--hairline3);flex:0 0 auto;margin-top:2px;
+display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--surface);}
+.ckbox.on{background:var(--ink);border-color:var(--ink);}
+.kbd{font-family:var(--fontMono);font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:6px;
+background:var(--surface3);border:1px solid var(--hairline2);border-bottom-width:2px;color:var(--ink2);}
+.codeblock{background:var(--canvas2);border:1px solid var(--hairline2);border-radius:var(--r10);padding:11px 12px;
+font-family:var(--fontMono);font-size:11px;line-height:1.7;color:var(--ink2);overflow-x:auto;white-space:pre;}
+.codeblock .k{color:var(--accentText);font-weight:600;}
+.codeblock .s{color:var(--good);}
+.codeblock .c{color:var(--inkMute);}
+
+/* ---- phone frames (capture) ---- */
+.phones{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 10px;}
+.phone{width:236px;flex:0 0 auto;border:1px solid var(--hairline3);border-radius:var(--r20);background:var(--surface);
+box-shadow:var(--shadowMd);overflow:hidden;display:flex;flex-direction:column;min-height:430px;}
+.phone.bad{border-color:var(--bad);}
+.phone.warnb{border-color:var(--warnText);}
+.ph-bar{background:var(--rail);color:var(--railBright);padding:8px 11px;display:flex;align-items:center;gap:7px;}
+.ph-bar .pm{width:18px;height:18px;border-radius:6px;background:var(--accent);color:var(--accentInk);
+display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;}
+.ph-bar .pt{font-size:10.5px;font-weight:700;}
+.ph-bar .pstep{margin-left:auto;font-family:var(--fontMono);font-size:9px;color:var(--railInk);}
+.ph-body{flex:1;padding:12px 12px 0;display:flex;flex-direction:column;gap:9px;}
+.ph-body h5{margin:0;font-size:13.5px;font-weight:800;letter-spacing:-.01em;line-height:1.25;}
+.ph-body p{margin:0;font-size:11.5px;color:var(--ink2);line-height:1.55;}
+.ph-body .small{font-size:10.5px;color:var(--inkDim);line-height:1.5;}
+.ph-view{border-radius:var(--r10);background:var(--canvas2);border:1px solid var(--hairline2);height:132px;
+position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.ph-view.tall{height:170px;}
+.ph-guide{position:absolute;inset:16px 14px;border:2px dashed var(--accentBorder);border-radius:var(--r10);}
+.ph-guide.oval{inset:12px 44px;border-radius:50%;}
+.ph-guide.good{border-color:var(--good);border-style:solid;}
+.ph-guide.bad{border-color:var(--bad);border-style:solid;}
+.ph-hint{position:absolute;bottom:7px;left:7px;right:7px;font-family:var(--fontMono);font-size:9px;
+background:var(--scrim);color:var(--railBright);padding:4px 6px;border-radius:6px;text-align:center;}
+.ph-foot{padding:10px 12px 12px;display:flex;flex-direction:column;gap:7px;}
+.ph-btn{display:flex;align-items:center;justify-content:center;min-height:36px;border-radius:var(--r8);
+font-size:12px;font-weight:700;}
+.ph-btn.acc{background:var(--accent);color:var(--accentInk);}
+.ph-btn.sec{background:var(--surface);color:var(--ink2);border:1px solid var(--hairline3);}
+.ph-btn.dis{background:var(--surface3);color:var(--inkMute);}
+.ph-cap{font-family:var(--fontMono);font-size:9px;color:var(--inkMute);text-align:center;line-height:1.5;}
+.flashrow{display:flex;gap:5px;justify-content:center;}
+.flashsq{width:26px;height:26px;border-radius:7px;border:1px solid var(--hairline2);}
+.phlabel{font-family:var(--fontMono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+color:var(--inkMute);margin:0 0 6px;}
+.branch{border-left:2px solid var(--hairline2);padding-left:11px;margin-left:5px;}
+</style>
+<script>
+// Wired from the head on DOMContentLoaded so a viewer that truncates a long
+// file still gets working tabs — the tail of the file is the first thing lost.
+document.addEventListener('DOMContentLoaded', function () {
+document.getElementById('tabseg').addEventListener('click', function (e) {
+var btn = e.target.closest('.tab-btn'); if (!btn) return;
+document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+document.querySelectorAll('.tabpanel').forEach(function (p) { p.classList.remove('active'); });
+btn.classList.add('active');
+document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+window.scrollTo({ top: 0, behavior: 'instant' });
+});
+// The left rail is the real IA: clicking a rail item jumps to the tab that
+// shows that screen, so the rail reads as navigation rather than decoration.
+document.body.addEventListener('click', function (e) {
+var ri = e.target.closest('.ri[data-goto]'); if (!ri) return;
+var b = document.querySelector('.tab-btn[data-tab="' + ri.dataset.goto + '"]'); if (!b) return;
+b.click();
+});
+function toggleTheme() {
+// The attribute goes on <html> as well as <body>: html paints the ground
+// outside the body box, and a dark board on a light page ground is the
+// one visual bug a token-only mockup can still ship.
+var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+var next = dark ? 'light' : 'dark';
+document.documentElement.setAttribute('data-theme', next);
+document.body.setAttribute('data-theme', next);
+document.getElementById('themeBtn').textContent = dark ? 'Switch to dark' : 'Switch to light';
+}
+window.toggleTheme = toggleTheme;
+});
+</script>
+</head>
+<body data-theme="light">
+<div class="doc-head">
+<div>
+<h1>Verify — Concept A: Console</h1>
+<div class="sub"><span class="sampletag">Exploration — sample data</span>Didit parity in Hyperwolf tokens · <b>Hyperwolf Verify</b> — own engine, no per-check fee · counts marked <b>real</b> come from your Didit console on 2026-09-08</div>
+</div>
+<div class="seg" id="tabseg">
+<button class="tab-btn active" data-tab="why">1 · Why</button>
+<button class="tab-btn" data-tab="home">2 · Home</button>
+<button class="tab-btn" data-tab="verifications">3 · Verifications</button>
+<button class="tab-btn" data-tab="session">4 · Session</button>
+<button class="tab-btn" data-tab="review">5 · Review</button>
+<button class="tab-btn" data-tab="workflows">6 · Workflows</button>
+<button class="tab-btn" data-tab="capture">7 · Capture</button>
+<button class="tab-btn" data-tab="lists">8 · Lists</button>
+<button class="tab-btn" data-tab="integrate">9 · Integrate</button>
+<button class="tab-btn" data-tab="usage">10 · Usage</button>
+<button class="tab-btn" data-tab="states">11 · States</button>
+</div>
+<button class="theme-btn" id="themeBtn" onclick="toggleTheme()">Switch to dark</button>
+</div>
+
+<!-- ============================ 1 · WHY ============================ -->
+<div class="tabpanel active" id="tab-why">
+<div class="intro">
+<div class="card" style="padding:18px 20px;">
+<div class="eyebrow">Concept A · organizing idea</div>
+<h2>Verify is a console, not a feature. It is the shape your team already knows — a left rail with every screen on it, a dense table you can sort and filter, and a session page with the pictures on the left and the machine’s reasoning on the right.</h2>
+<p>You have run identity checks through Didit for two years. Nobody needs to be taught a new metaphor to keep doing it. Concept A takes that layout — the one Didit, Persona, Veriff and Sumsub all converge on because it is the layout the work actually has — and rebuilds it in Hyperwolf’s own tokens, on Hyperwolf’s own engine, with the parts that were opaque made legible: every decision node says what it measured, what the threshold was, and whether the model behind it is certified.</p>
+<p><b>What it optimises.</b> Completeness and density. Eleven rail items means there is no screen you have to go to Didit for, and no setting that lives only in a config file. A row in the verifications table carries the session number, the person, the document type, the workflow, the status, the reason codes and the timestamp without truncating any of them, so an analyst working a backlog reads it like a ledger. The session page puts front, back, selfie, portrait crop and the similar-faces strip in one column and eight decision cards in the other, so the answer to “why did this go to review” is on screen without a single click.</p>
+<p><b>Who it serves best.</b> The person who does this all day. An analyst clearing a queue, a manager auditing last week’s declines, an engineer wiring the site to the API. It is deliberately unexciting: familiar chrome, keyboard shortcuts, exportable tables. The customer-facing capture flow (tab 7) is the only part that is not a console — that one is a phone, and it is designed like a phone.</p>
+<div class="cap"><b>Composites built visibly out of atoms, named where they appear:</b> the verifications table is <code>DataTable</code> with <code>SortableTH</code> from <code>shared/hd-ui.jsx</code>; a status pill is <code>Pill</code> with the ten Didit literals mapped onto kinds; a decision node is <code>Card</code> + <code>Pill</code> + <code>BarMeter</code>; the filter row is <code>MultiSelectFilter</code> chips; the review queue rows are <code>DataTable</code> with a <code>Sheet</code> for the detail; thresholds are <code>DualRange</code>/native range with <code>Switch</code>; the capture frames are plain <code>Card</code>s at phone width. No new primitive is invented anywhere in this concept.</div>
+</div>
+</div>
+<div class="stage">
+<div class="grid2" style="grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start;">
+
+<div class="card">
+<div class="card-head"><span class="ch-t">What this concept optimises</span><span class="pill pill-neutral sm">ranked</span></div>
+<div class="card-body" style="display:flex;flex-direction:column;gap:11px;">
+<div class="stat accent"><div class="sl">1 · Zero relearning</div><div class="sv" style="font-size:14px;">Same shape as Didit</div><div class="ss">Rail on the left, table in the middle, two-pane session detail. Your analysts open it and work. The only new vocabulary is the reason codes, and those are printed on the row.</div></div>
+<div class="stat info"><div class="sl">2 · Density</div><div class="sv" style="font-size:14px;">11 columns, 34px rows</div><div class="ss">A screen shows about 24 sessions without scrolling. Filters are chips, not a modal. Sorting is a click on the header. Export is a button, not a support ticket.</div></div>
+<div class="stat good"><div class="sl">3 · Completeness</div><div class="sv" style="font-size:14px;">Nothing lives elsewhere</div><div class="ss">Workflows, questionnaires, lists, keys, webhooks, usage, retention, audit — all eleven Didit surfaces have a home here, so nothing forces you back into a vendor console you are trying to leave.</div></div>
+<div class="stat warn"><div class="sl">4 · Legibility of the machine</div><div class="sv" style="font-size:14px;">Every score shows its threshold</div><div class="ss">A node never says just “pass”. It says the measured value, the workflow threshold it was compared against, the model that produced it, and whether that model is certified. Liveness says <b>uncertified</b> everywhere it appears.</div></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="note warn">
+<div class="nh">What you give up</div>
+<ul>
+<li><b>It is a screen for experts.</b> Eleven rail items and a nine-column table is intimidating on day one. A store manager who opens Verify twice a month will not find “why was this customer declined” faster than they would in a two-card summary — Concepts B–D each buy that back at a cost this one refuses to pay.</li>
+<li><b>Review throughput is table-shaped, not queue-shaped.</b> Clearing a backlog means clicking a row, deciding, going back. Tab 5 adds keyboard shortcuts to soften it, but the console never becomes a one-item-at-a-time machine the way a dedicated review surface would.</li>
+<li><b>It inherits Didit’s information architecture, including the parts that are wrong for you.</b> Questionnaires and Customization each get a rail item you may never open, while the thing you actually do every day — the register check-in — is a modal reached from another app entirely.</li>
+<li><b>Mobile is a compromise.</b> The table reflows and the two-pane stacks, but nobody is clearing a review queue on a phone in this concept. The capture flow is phone-first; the console is not.</li>
+</ul>
+</div>
+<div class="card">
+<div class="card-head"><span class="ch-t">Where the numbers on these screens come from</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Sessions in Didit today</span><span class="v mono">2.1K total · 154 this month</span></div>
+<div class="kv"><span class="k">Waiting for review</span><span class="v mono">0</span></div>
+<div class="kv"><span class="k">Newest session</span><span class="v mono">#14145 · 2026-08-04</span></div>
+<div class="kv"><span class="k">Workflows</span><span class="v mono">4 (all KYC)</span></div>
+<div class="kv"><span class="k">List entries to migrate</span><span class="v mono">35 countries · 1 user · 2 IP · 1 doc</span></div>
+<div class="cap">Those five rows are read from your console. <b>Every person, document, score, timestamp and webhook on the other ten tabs is invented</b> — the names are fictional on purpose, so nothing here can be mistaken for a customer record. The tag in the header says so on every screen.</div>
+</div>
+</div>
+<div class="note plain">
+<div class="nh">The one honest asterisk</div>
+<p style="margin:0;">Didit’s engine is certified for presentation-attack detection. Yours will not be on day one. Concept A does not hide that behind a green tick: liveness scores carry an <b>open model · uncertified</b> caption everywhere they render, imported sessions are labelled <b>Verified by Didit, imported</b> and are excluded from accuracy panels, and the Usage screen prints “no per-check fee (own engine)” rather than inventing a price.</p>
+</div>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px;">
+<div class="card-head"><span class="ch-t">The eleven rail items, and what each one is for</span><span class="pill pill-accent sm">full IA</span></div>
+<div class="card-body">
+<div class="grid3">
+<div class="tog"><div class="tg-x"><div class="tg-t">Home</div><div class="tg-s">Needs-review tile first, then volume, conversion, resubmissions, warnings, locations, devices. Engine health badge sits in the header, not a panel.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Verifications</div><div class="tg-s">Every session ever run, sortable and filterable by status, workflow, reason and channel. Export and New session live here.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Review</div><div class="tg-s">Only what is waiting on a person, with priority, assignment and keyboard-first decisions.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">People</div><div class="tg-s">The customer directory. One person, many sessions, one face template set, a KYC expiry date.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Workflows</div><div class="tg-s">What gets checked and how strictly. Features, thresholds, age rule, liveness method, caps, TTL, version history.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Questionnaires</div><div class="tg-s">Extra questions attached to a workflow. Imported from Didit so a migrated workflow round-trips.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Customization</div><div class="tg-s">What the customer sees: brand name, logo, accent token, per-step copy, hosted domain.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Lists</div><div class="tg-s">Eleven list types, blocklists and custom. A hit is a warning with the list id, never a silent decline.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Integrate</div><div class="tg-s">API keys, webhook destinations, the delivery log, code snippets, hosted link, and a Didit-compatible facade.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Usage</div><div class="tg-s">Per-feature counts with an honest cost column. Cumulative and this-month, side by side.</div></div></div>
+<div class="tog"><div class="tg-x"><div class="tg-t">Settings</div><div class="tg-s">Team and roles, audit log, retention and deletion, engine health detail. One line saying there is no login yet.</div></div></div>
+<div class="tog offd"><div class="tg-x"><div class="tg-t">Businesses (KYB)</div><div class="tg-s">Didit has it. You do not do business verification, so it is not built — noted here so the parity gap is deliberate rather than forgotten.</div></div></div>
+</div>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px;">
+<div class="card-head"><span class="ch-t">The ten statuses, exactly as Didit spells them</span><span class="pill pill-neutral sm">case-sensitive</span></div>
+<div class="card-body">
+<div class="row" style="margin-bottom:11px;">
+<span class="pill pill-neutral"><span class="dot" style="background:var(--inkFaint)"></span>Not Started</span>
+<span class="pill pill-info"><span class="dot" style="background:var(--info)"></span>In Progress</span>
+<span class="pill pill-warn"><span class="dot" style="background:var(--warnText)"></span>Awaiting User</span>
+<span class="pill pill-accent"><span class="dot" style="background:var(--accentBorder)"></span>In Review</span>
+<span class="pill pill-good"><span class="dot" style="background:var(--good)"></span>Approved</span>
+<span class="pill pill-bad"><span class="dot" style="background:var(--bad)"></span>Declined</span>
+<span class="pill pill-info"><span class="dot" style="background:var(--info)"></span>Resubmitted</span>
+<span class="pill pill-neutral"><span class="dot" style="background:var(--neutral)"></span>Abandoned</span>
+<span class="pill pill-neutral"><span class="dot" style="background:var(--inkMute)"></span>Expired</span>
+<span class="pill pill-warn"><span class="dot" style="background:var(--warn)"></span>Kyc Expired</span>
+</div>
+<p style="font-size:12px;color:var(--ink2);line-height:1.6;margin:0 0 8px;">The literals are the contract. Your site reads <code>status</code> off the decision object today and branches on the string, so the console shows the string it will receive — including <b>In Review</b>, which the compatibility facade returns unsoftened. If you want the site to wait for <b>Approved</b> instead of completing checkout on <b>In Review</b>, that is a ruling for you, not a default we picked.</p>
+<div class="cap"><b>Reason codes that send a session to review:</b> LIVENESS_LOW · LIVENESS_FAILED_3X · FACE_MATCH_LOW · DOC_QUALITY_LOW · BARCODE_OCR_MISMATCH · NAME_MISMATCH_EXPECTED · DUPLICATE_PERSON · IP_HOSTING · IP_VPN · AGE_ESTIMATE_UNDER_MARGIN · OUT_OF_STATE · DOC_NEAR_EXPIRY · ENGINE_UNAVAILABLE_MANUAL<br><b>Codes that decline on their own:</b> DOC_EXPIRED · UNDER_AGE · FACE_BLOCKLIST_HIT · DOCUMENT_BLOCKLIST_HIT · USER_BLOCKLIST_HIT · IP_TOR · INJECTION_DETECTED · CHALLENGE_NONCE_MISMATCH · LIVENESS_ATTEMPTS_EXHAUSTED_HARD</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- ============================ 2 · HOME ============================ -->
+<div class="tabpanel" id="tab-home">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri on" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">0</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb">Overview</div>
+<h2>Home</h2>
+<div class="ph-sub">Everything below is for the last 30 days unless a panel says otherwise. Panels with nothing in them say so in words rather than drawing a flat line.</div>
+</div>
+<div class="ph-act">
+<div class="sel">Last 30 days <span class="caret">▾</span></div>
+<div class="sel">All workflows <span class="caret">▾</span></div>
+<span class="hbadge"><span class="dot" style="background:var(--good)"></span>Engine healthy · 240 ms p95</span>
+</div>
+</div>
+
+<div class="grid4" style="margin-bottom:12px;">
+<div class="stat warn"><div class="sl">Needs review</div><div class="sv">0</div><div class="ss">Nothing is waiting on a person right now <span class="pill pill-neutral sm">real</span></div></div>
+<div class="stat accent"><div class="sl">Sessions this month</div><div class="sv">154</div><div class="ss">of 2,100 all time <span class="pill pill-neutral sm">real</span></div></div>
+<div class="stat good"><div class="sl">Approved</div><div class="sv">141</div><div class="ss">91.6% of completed sessions</div></div>
+<div class="stat bad"><div class="sl">Declined</div><div class="sv">6</div><div class="ss">4 under age · 2 expired document</div></div>
+</div>
+
+<div class="two-pane" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);">
+<div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Needs review</span><span class="pill pill-good sm">queue clear</span><span class="btn btn-ghost btn-xs">Open review</span></div>
+<div class="state" style="padding:26px 20px;">
+<div class="state-plate">✓</div>
+<h4>Nothing is waiting on you</h4>
+<p>No session has landed in review in the last 30 days. When one does it appears here first, with its reason codes and how long it has been waiting.</p>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Volume</span><span class="pill pill-neutral sm">sessions per day</span><span class="mono" style="font-size:11px;color:var(--inkDim);">154 in 30 days · peak 11 on Sep 5</span></div>
+<div class="card-body">
+<div style="display:flex;align-items:flex-end;gap:3px;height:104px;">
+<div style="flex:1;background:var(--accent);height:36%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:55%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:27%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:64%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:45%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:82%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:73%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:36%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:18%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:55%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:91%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:64%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:45%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:27%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:73%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:100%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:82%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:55%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:36%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:64%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:45%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:27%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:73%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:55%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:91%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:64%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:36%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:82%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:45%;border-radius:4px 4px 0 0;"></div>
+<div style="flex:1;background:var(--accent);height:18%;border-radius:4px 4px 0 0;"></div>
+</div>
+<div class="row mid" style="margin-top:9px;font-family:var(--fontMono);font-size:10px;color:var(--inkMute);">
+<span>Aug 10</span><span style="margin-left:auto;">Sep 08</span>
+</div>
+<div class="cap">Hosted link 118 · POS check-in 27 · API 9. Channel is a filter on the Verifications table, not a second chart.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Conversion</span><span class="pill pill-neutral sm">started → decided</span></div>
+<div class="card-body">
+<div style="display:flex;flex-direction:column;gap:9px;">
+<div><div class="row mid" style="justify-content:space-between;margin-bottom:4px;"><span style="font-size:11.5px;font-weight:600;">Session created</span><span class="mono" style="font-size:11.5px;font-weight:700;">168 · 100%</span></div><div class="bar-track" style="height:9px;"><span class="bar-fill" style="width:100%;background:var(--info)"></span></div></div>
+<div><div class="row mid" style="justify-content:space-between;margin-bottom:4px;"><span style="font-size:11.5px;font-weight:600;">Document front captured</span><span class="mono" style="font-size:11.5px;font-weight:700;">159 · 94.6%</span></div><div class="bar-track" style="height:9px;"><span class="bar-fill" style="width:94.6%;background:var(--info)"></span></div></div>
+<div><div class="row mid" style="justify-content:space-between;margin-bottom:4px;"><span style="font-size:11.5px;font-weight:600;">Back / PDF417 read</span><span class="mono" style="font-size:11.5px;font-weight:700;">156 · 92.9%</span></div><div class="bar-track" style="height:9px;"><span class="bar-fill" style="width:92.9%;background:var(--info)"></span></div></div>
+<div><div class="row mid" style="justify-content:space-between;margin-bottom:4px;"><span style="font-size:11.5px;font-weight:600;">Selfie accepted</span><span class="mono" style="font-size:11.5px;font-weight:700;">151 · 89.9%</span></div><div class="bar-track" style="height:9px;"><span class="bar-fill" style="width:89.9%;background:var(--info)"></span></div></div>
+<div><div class="row mid" style="justify-content:space-between;margin-bottom:4px;"><span style="font-size:11.5px;font-weight:600;">Decision reached</span><span class="mono" style="font-size:11.5px;font-weight:700;">154 · 91.7%</span></div><div class="bar-track" style="height:9px;"><span class="bar-fill" style="width:91.7%;background:var(--good)"></span></div></div>
+</div>
+<div class="cap">14 sessions ended <b>Abandoned</b> and 0 <b>Expired</b>. Drop-off is highest on the back of the card, which is what the PDF417 explanation on the capture screen is for.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Recent activity</span><span class="btn btn-ghost btn-xs">See all</span></div>
+<div class="card-body" style="padding:11px 14px;">
+<div class="tl-ev"><span class="tl-dot good"></span><div><div class="tl-action">#14162 Approved <span class="pill pill-neutral sm">auto</span></div><div class="tl-meta">Marisol Vantree · CA DL · Cannabis Verification + Selfie · 2026-09-08 14:41 PT</div></div></div>
+<div class="tl-ev"><span class="tl-dot info"></span><div><div class="tl-action">#14161 In Progress</div><div class="tl-meta">Dexter Quillon · selfie step · hosted link · 2026-09-08 14:36 PT</div></div></div>
+<div class="tl-ev"><span class="tl-dot warn"></span><div><div class="tl-action">#14158 Awaiting User</div><div class="tl-meta">Rowan Alcaraz-Bly · liveness retry 2 of 3 · 2026-09-08 13:12 PT</div><div class="tl-reason">Reason: LIVENESS_LOW · 0.71 against a 0.80 threshold</div></div></div>
+<div class="tl-ev"><span class="tl-dot bad"></span><div><div class="tl-action">#14156 Declined <span class="pill pill-neutral sm">auto</span></div><div class="tl-meta">Torin Halloway · NV DL expired 2026-04-02 · 2026-09-08 11:58 PT</div><div class="tl-reason">Reason: DOC_EXPIRED — terminal unless an admin overrides it</div></div></div>
+<div class="tl-ev"><span class="tl-dot good"></span><div><div class="tl-action">#14152 Approved <span class="pill pill-accent sm">analyst</span></div><div class="tl-meta">Priya Nandwani · reviewed by Ops in 41 s · 2026-09-08 10:22 PT</div><div class="tl-reason">Was In Review for FACE_MATCH_LOW; analyst noted glasses and hairline change</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div><div class="tl-action">#14149 Abandoned</div><div class="tl-meta">no name captured · closed the tab on the document step · 2026-09-08 09:47 PT</div></div></div>
+</div>
+</div>
+
+</div>
+<div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Resubmissions</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Asked to resubmit</span><span class="v mono">9</span></div>
+<div class="kv"><span class="k">Came back</span><span class="v mono">7 · 78%</span></div>
+<div class="kv"><span class="k">Median time to return</span><span class="v mono">6 min 20 s</span></div>
+<div class="kv"><span class="k">Approved after return</span><span class="v mono">6 of 7</span></div>
+<div class="cap">The cap is 3 resubmissions per session (workflow setting). Nobody hit it this month.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Warnings raised</span><span class="pill pill-warn sm">13</span></div>
+<div class="card-body" style="display:flex;flex-direction:column;gap:7px;">
+<div class="row mid" style="justify-content:space-between;"><span style="font-size:11.5px;">DOC_QUALITY_LOW</span><span class="mono" style="font-size:11.5px;font-weight:700;">4</span></div>
+<div class="bar-track"><span class="bar-fill" style="width:31%;background:var(--warn)"></span></div>
+<div class="row mid" style="justify-content:space-between;"><span style="font-size:11.5px;">LIVENESS_LOW</span><span class="mono" style="font-size:11.5px;font-weight:700;">3</span></div>
+<div class="bar-track"><span class="bar-fill" style="width:23%;background:var(--warn)"></span></div>
+<div class="row mid" style="justify-content:space-between;"><span style="font-size:11.5px;">OUT_OF_STATE</span><span class="mono" style="font-size:11.5px;font-weight:700;">3</span></div>
+<div class="bar-track"><span class="bar-fill" style="width:23%;background:var(--info)"></span></div>
+<div class="row mid" style="justify-content:space-between;"><span style="font-size:11.5px;">IP_VPN</span><span class="mono" style="font-size:11.5px;font-weight:700;">2</span></div>
+<div class="bar-track"><span class="bar-fill" style="width:15%;background:var(--info)"></span></div>
+<div class="row mid" style="justify-content:space-between;"><span style="font-size:11.5px;">DOC_NEAR_EXPIRY</span><span class="mono" style="font-size:11.5px;font-weight:700;">1</span></div>
+<div class="bar-track"><span class="bar-fill" style="width:8%;background:var(--neutral)"></span></div>
+<div class="cap">A warning is not a decision. Each one is a row on the session and a filter on the table.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Where they are</span><span class="pill pill-neutral sm">document · IP</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">California <span class="pill pill-good sm">in state</span></span><span class="v mono">131 · 85%</span></div>
+<div class="kv"><span class="k">Nevada</span><span class="v mono">9</span></div>
+<div class="kv"><span class="k">Arizona</span><span class="v mono">6</span></div>
+<div class="kv"><span class="k">Texas</span><span class="v mono">4</span></div>
+<div class="kv"><span class="k">Other / 7 states</span><span class="v mono">4</span></div>
+<div style="height:9px;"></div>
+<div class="kv"><span class="k">IP in California</span><span class="v mono">146</span></div>
+<div class="kv"><span class="k">IP outside the US</span><span class="v mono">2 <span class="pill pill-warn sm">review</span></span></div>
+<div class="cap">Document state and IP country are different questions. Out-of-state is a workflow rule, not a decline.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Who they are</span></div>
+<div class="card-body">
+<div class="row mid" style="justify-content:space-between;margin-bottom:5px;"><span style="font-size:11.5px;font-weight:600;">21–29</span><span class="mono" style="font-size:11.5px;">62</span></div>
+<div class="bar-track" style="margin-bottom:8px;"><span class="bar-fill" style="width:40%;background:var(--catFlower)"></span></div>
+<div class="row mid" style="justify-content:space-between;margin-bottom:5px;"><span style="font-size:11.5px;font-weight:600;">30–39</span><span class="mono" style="font-size:11.5px;">48</span></div>
+<div class="bar-track" style="margin-bottom:8px;"><span class="bar-fill" style="width:31%;background:var(--catVape)"></span></div>
+<div class="row mid" style="justify-content:space-between;margin-bottom:5px;"><span style="font-size:11.5px;font-weight:600;">40–54</span><span class="mono" style="font-size:11.5px;">31</span></div>
+<div class="bar-track" style="margin-bottom:8px;"><span class="bar-fill" style="width:20%;background:var(--catTincture)"></span></div>
+<div class="row mid" style="justify-content:space-between;margin-bottom:5px;"><span style="font-size:11.5px;font-weight:600;">55+</span><span class="mono" style="font-size:11.5px;">13</span></div>
+<div class="bar-track"><span class="bar-fill" style="width:8%;background:var(--catConcentrate)"></span></div>
+<div class="cap">Age comes from the document, not from the age estimator. The estimator only ever produces a warning band.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Devices</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">iOS Safari</span><span class="v mono">96</span></div>
+<div class="kv"><span class="k">Android Chrome</span><span class="v mono">41</span></div>
+<div class="kv"><span class="k">POS tablet (register)</span><span class="v mono">27</span></div>
+<div class="kv"><span class="k">Desktop</span><span class="v mono">4 <span class="pill pill-warn sm">no rear camera</span></span></div>
+<div class="cap">Desktop sessions can capture a document but not a good one. The capture page offers a hand-off link to a phone.</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ======================= 3 · VERIFICATIONS ======================= -->
+<div class="tabpanel" id="tab-verifications">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri on" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">0</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb">Operate</div>
+<h2>Verifications</h2>
+<div class="ph-sub">Every session, native and imported. Click a row to open it. Sorting and filters are in the URL, so a filtered view is a link you can send to someone.</div>
+</div>
+<div class="ph-act">
+<span class="btn btn-secondary btn-sm">Import from Didit</span>
+<span class="btn btn-secondary btn-sm">Export CSV</span>
+<span class="btn btn-accent btn-sm">New session</span>
+</div>
+</div>
+
+<div class="filterbar">
+<span class="fb-lbl">Filter</span>
+<div class="searchbox">🔍 Name, email, session #, document number</div>
+<div class="sel on">Status · 3 <span class="caret">▾</span></div>
+<div class="sel">Workflow · all <span class="caret">▾</span></div>
+<div class="sel">Reason · any <span class="caret">▾</span></div>
+<div class="sel">Channel · all <span class="caret">▾</span></div>
+<div class="sel">Last 30 days <span class="caret">▾</span></div>
+<span class="btn btn-ghost btn-xs" style="margin-left:auto;">Clear</span>
+</div>
+<div class="row tight" style="margin-bottom:11px;">
+<span class="chip on">In Review ✕</span>
+<span class="chip on">Awaiting User ✕</span>
+<span class="chip on">Declined ✕</span>
+<span class="chip">+ Approved</span>
+<span class="chip">+ In Progress</span>
+<span class="chip">+ Abandoned</span>
+<span class="chip">+ Expired</span>
+<span class="chip">+ Kyc Expired</span>
+<span class="chip">+ Not Started</span>
+<span class="chip">+ Resubmitted</span>
+<span class="pill pill-neutral sm" style="align-self:center;margin-left:6px;">Showing all statuses in this mockup so you can see every pill</span>
+</div>
+
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr>
+<th style="width:26px;"><span class="ckbox"></span></th>
+<th class="sortable sorted" style="width:74px;"># <span class="sc">▼</span></th>
+<th class="sortable">Person <span class="sc">↕</span></th>
+<th class="sortable" style="width:118px;">Document <span class="sc">↕</span></th>
+<th class="sortable" style="width:186px;">Workflow <span class="sc">↕</span></th>
+<th style="width:88px;">Channel</th>
+<th class="sortable" style="width:120px;">Status <span class="sc">↕</span></th>
+<th>Reasons</th>
+<th class="sortable" style="width:126px;">Created <span class="sc">↕</span></th>
+</tr></thead>
+<tbody>
+<tr class="sel-row">
+<td><span class="ckbox on">✓</span></td>
+<td class="id">#14162</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">MV</span><div><b>Marisol Vantree</b><div class="em">m.vantree@…mail.com</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-good"><span class="dot" style="background:var(--good)"></span>Approved</span></td>
+<td class="dim">—</td>
+<td class="num dim">Sep 08 · 14:41</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14161</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">DQ</span><div><b>Dexter Quillon</b><div class="em">dquillon@…mail.com</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-info"><span class="dot" style="background:var(--info)"></span>In Progress</span></td>
+<td class="dim">selfie step</td>
+<td class="num dim">Sep 08 · 14:36</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14160</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">JO</span><div><b>Jessamy Okonta</b><div class="em">jess.okonta@…mail.com</div></div></div></td>
+<td>CA · ID Card</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">POS</td>
+<td><span class="pill pill-accent"><span class="dot" style="background:var(--accentBorder)"></span>In Review</span></td>
+<td><span class="pill pill-warn sm">FACE_MATCH_LOW</span> <span class="pill pill-neutral sm">DOC_QUALITY_LOW</span></td>
+<td class="num dim">Sep 08 · 14:02</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14158</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">RA</span><div><b>Rowan Alcaraz-Bly</b><div class="em">rowan.ab@…mail.com</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-warn"><span class="dot" style="background:var(--warnText)"></span>Awaiting User</span></td>
+<td><span class="pill pill-warn sm">LIVENESS_LOW</span> <span class="mono" style="font-size:10px;color:var(--inkMute);">retry 2 of 3</span></td>
+<td class="num dim">Sep 08 · 13:12</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14157</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">CW</span><div><b>Calder Winterbourne</b><div class="em">c.winterbourne@…mail.com</div></div></div></td>
+<td>NV · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-good"><span class="dot" style="background:var(--good)"></span>Approved</span></td>
+<td><span class="pill pill-info sm">OUT_OF_STATE</span></td>
+<td class="num dim">Sep 08 · 12:35</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14156</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">TH</span><div><b>Torin Halloway</b><div class="em">t.halloway@…mail.com</div></div></div></td>
+<td>NV · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">POS</td>
+<td><span class="pill pill-bad"><span class="dot" style="background:var(--bad)"></span>Declined</span></td>
+<td><span class="pill pill-bad sm">DOC_EXPIRED</span></td>
+<td class="num dim">Sep 08 · 11:58</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14154</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">IF</span><div><b>Ines Fabrey</b><div class="em">ines.fabrey@…mail.com</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-info"><span class="dot" style="background:var(--info)"></span>Resubmitted</span></td>
+<td><span class="pill pill-neutral sm">DOC_QUALITY_LOW</span> <span class="mono" style="font-size:10px;color:var(--inkMute);">asked 11:20, back 11:26</span></td>
+<td class="num dim">Sep 08 · 11:20</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14152</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">PN</span><div><b>Priya Nandwani</b><div class="em">p.nandwani@…mail.com</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-good"><span class="dot" style="background:var(--good)"></span>Approved</span></td>
+<td><span class="pill pill-accent sm">analyst · 41 s</span></td>
+<td class="num dim">Sep 08 · 10:22</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14151</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">HB</span><div><b>Hollis Barlowe</b><div class="em">hbarlowe@…mail.com</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Adaptive Age Estimation</td>
+<td class="dim">API</td>
+<td><span class="pill pill-accent"><span class="dot" style="background:var(--accentBorder)"></span>In Review</span></td>
+<td><span class="pill pill-warn sm">AGE_ESTIMATE_UNDER_MARGIN</span></td>
+<td class="num dim">Sep 08 · 09:55</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14149</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">—</span><div><b style="color:var(--inkMute);">No name captured</b><div class="em">no contact details</div></div></div></td>
+<td class="dim">—</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-neutral"><span class="dot" style="background:var(--neutral)"></span>Abandoned</span></td>
+<td class="dim">closed the tab on the document step</td>
+<td class="num dim">Sep 08 · 09:47</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14148</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">NR</span><div><b>Nyla Redfern</b><div class="em">n.redfern@…mail.com</div></div></div></td>
+<td>AZ · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-bad"><span class="dot" style="background:var(--bad)"></span>Declined</span></td>
+<td><span class="pill pill-bad sm">UNDER_AGE</span> <span class="mono" style="font-size:10px;color:var(--inkMute);">20y 3m · rule REC_21</span></td>
+<td class="num dim">Sep 08 · 08:31</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14147</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">OP</span><div><b>Ozias Pankhurst</b><div class="em">o.pankhurst@…mail.com</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-neutral"><span class="dot" style="background:var(--inkFaint)"></span>Not Started</span></td>
+<td class="dim">link sent, never opened · expires in 38 min</td>
+<td class="num dim">Sep 08 · 08:02</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14146</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">VS</span><div><b>Verity Salgado</b><div class="em">v.salgado@…mail.com</div></div></div></td>
+<td>CA · ID Card</td>
+<td>Cannabis Verification + Selfie</td>
+<td class="dim">POS</td>
+<td><span class="pill pill-neutral"><span class="dot" style="background:var(--inkMute)"></span>Expired</span></td>
+<td class="dim">TTL 60 min reached with no media</td>
+<td class="num dim">Sep 07 · 19:44</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14145</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">GT</span><div><b>Garrick Tolliver</b><div class="em">vendor_data 983f3e0e…</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Hemp Verification (no selfie)</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-good"><span class="dot" style="background:var(--good)"></span>Approved</span> <span class="imported">Didit</span></td>
+<td class="dim">imported 2026-09-08 · never counted in engine accuracy</td>
+<td class="num dim">Aug 04 · 22:00</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14144</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">—</span><div><b style="color:var(--inkMute);">N/A</b><div class="em">vendor_data 4b1c77a2…</div></div></div></td>
+<td class="dim">—</td>
+<td>Hemp Verification (no selfie)</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-neutral"><span class="dot" style="background:var(--inkMute)"></span>Expired</span> <span class="imported">Didit</span></td>
+<td class="dim">abandoned before the document, per Didit</td>
+<td class="num dim">Aug 04 · 21:12</td>
+</tr>
+<tr>
+<td><span class="ckbox"></span></td>
+<td class="id">#14143</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">EM</span><div><b>Emmeline Trask</b><div class="em">vendor_data 7cc90d31…</div></div></div></td>
+<td>CA · Driver Licence</td>
+<td>Hemp Verification (no selfie)</td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-warn"><span class="dot" style="background:var(--warn)"></span>Kyc Expired</span> <span class="imported">Didit</span></td>
+<td class="dim">approved 2025-09-02 · 365-day expiry reached</td>
+<td class="num dim">Aug 04 · 20:38</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tblfoot">
+<span class="mono">16 of 2,100</span>
+<span style="color:var(--inkFaint);">·</span>
+<span>1,946 imported from Didit, 154 run on the Hyperwolf engine</span>
+<span class="grow"></span>
+<span class="btn btn-ghost btn-xs">‹ Prev</span>
+<span class="mono">Page 1 of 132</span>
+<span class="btn btn-secondary btn-xs">Next ›</span>
+</div>
+
+<div class="grid2" style="margin-top:13px;">
+<div class="note plain">
+<div class="nh">What a row is doing</div>
+<p style="margin:0;">The session number is Didit's numbering continued, so <b>#14145</b> is still #14145 after the import and the newest native session starts at #14146. That matters when someone quotes a number from an old email. The <span class="imported">Didit</span> tag is not decoration — imported rows never contribute to the engine accuracy panels, because we did not run the check that produced them.</p>
+</div>
+<div class="note info">
+<div class="nh">Bulk actions, once rows are selected</div>
+<p style="margin:0;">Export selected · Add person to a list · Ask to resubmit · Delete session data. Anything that touches a person is an audited action with a required reason. Deleting is two-step: request, then execute by an admin, and it leaves a tombstone row so the counts on Home stay true.</p>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- ======================= 4 · SESSION DETAIL ======================= -->
+<div class="tabpanel" id="tab-session">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri on" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">0</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb"><span style="color:var(--info);cursor:pointer;">‹ Verifications</span> · session</div>
+<h2>#14160 · Jessamy Okonta</h2>
+<div class="ph-sub">In Review since 14:02 PT · Cannabis Verification + Selfie v4 · POS check-in at Lake Elsinore, register 2 · vendor_data <span class="mono">pos:hw_ident_8841</span></div>
+</div>
+<div class="ph-act">
+<span class="pill pill-accent"><span class="dot" style="background:var(--accentBorder)"></span>In Review</span>
+<span class="pill pill-warn sm">FACE_MATCH_LOW</span>
+<span class="pill pill-neutral sm">DOC_QUALITY_LOW</span>
+</div>
+</div>
+
+<div class="actionbar">
+<span class="btn btn-accent btn-sm">Approve</span>
+<span class="btn btn-danger btn-sm">Decline</span>
+<span class="btn btn-secondary btn-sm">Ask to resubmit ▾</span>
+<span class="btn btn-ghost btn-sm">Edit data</span>
+<span class="btn btn-ghost btn-sm">Add to list</span>
+<span class="btn btn-ghost btn-sm">Download PDF</span>
+<span class="grow"></span>
+<span class="mono" style="font-size:10.5px;color:var(--inkMute);">Approve <span class="kbd">A</span> · Decline <span class="kbd">D</span> · Resubmit <span class="kbd">R</span></span>
+<span class="btn btn-danger btn-sm">Delete</span>
+</div>
+
+<div class="two-pane">
+
+<!-- LEFT: media -->
+<div>
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Document</span><span class="pill pill-warn sm">quality 0.62</span><span class="btn btn-ghost btn-xs">Open full size</span></div>
+<div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+<div class="grid2" style="grid-template-columns:1fr 1fr;gap:10px;">
+<div class="shot">
+<div class="frame"><div class="ftxt">FRONT<br>CA Driver Licence<br>1,536 × 968 · JPEG</div></div>
+<div class="scap"><span class="grow">document_front</span><span class="pill pill-warn sm">glare</span></div>
+</div>
+<div class="shot">
+<div class="frame"><div class="ftxt">BACK<br>PDF417 read OK<br>1,536 × 968 · JPEG</div></div>
+<div class="scap"><span class="grow">document_back</span><span class="pill pill-good sm">barcode</span></div>
+</div>
+</div>
+<div class="grid2" style="grid-template-columns:1fr 1fr;gap:10px;">
+<div class="shot">
+<div class="frame sq"><div class="ftxt">SELFIE<br>3 passive frames<br>+ 4 s challenge clip</div></div>
+<div class="scap"><span class="grow">selfie · liveness</span><span class="pill pill-warn sm">0.78</span></div>
+</div>
+<div class="shot">
+<div class="frame sq"><div class="ftxt">PORTRAIT CROP<br>from the document<br>EXIF stripped</div></div>
+<div class="scap"><span class="grow">portrait_crop</span><span class="pill pill-neutral sm">template kept</span></div>
+</div>
+</div>
+<div class="cap">Media is served by one route that forces the stored MIME type, sets <code>nosniff</code>, and requires a console role. Nothing uploaded is ever served as HTML. Files sit on the encrypted volume; the console never puts an image in a URL you could forward.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Similar faces</span><span class="pill pill-neutral sm">1:N over 1,904 templates</span><span class="mono" style="font-size:10.5px;color:var(--inkMute);">11 ms</span></div>
+<div class="card-body">
+<div class="faces">
+<div class="face hit"><div class="fbox">JO</div><div class="fsc">0.94</div><div class="fnm">#13980 · same person</div></div>
+<div class="face"><div class="fbox">JK</div><div class="fsc">0.71</div><div class="fnm">#12204 · J. Okonta-Reyes</div></div>
+<div class="face"><div class="fbox">AR</div><div class="fsc">0.44</div><div class="fnm">#11876</div></div>
+<div class="face"><div class="fbox">TM</div><div class="fsc">0.41</div><div class="fnm">#10932</div></div>
+<div class="face"><div class="fbox">SD</div><div class="fsc">0.38</div><div class="fnm">#9741</div></div>
+<div class="face"><div class="fbox">KB</div><div class="fsc">0.36</div><div class="fnm">#9120</div></div>
+</div>
+<div class="note warn" style="margin-top:10px;">
+<div class="nh">Possible duplicate person</div>
+<p style="margin:0;">#13980 scores 0.94 against this selfie and is filed under a different email. That is one person with two accounts far more often than it is fraud. Merging is your call and it is audited — nothing is rewritten, the older person record just points at the newer one.</p>
+<div class="row tight" style="margin-top:9px;"><span class="btn btn-secondary btn-xs">Open #13980</span><span class="btn btn-secondary btn-xs">Merge people</span><span class="btn btn-ghost btn-xs">Not a match</span></div>
+</div>
+<div class="cap">Face search runs over stored templates, not stored photos. A template is a vector; deleting a customer deletes both unless you keep the template on purpose for a blocklist.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Extracted data</span><span class="btn btn-ghost btn-xs">Edit data</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Full name</span><span class="v">Jessamy Adaeze Okonta</span></div>
+<div class="kv"><span class="k">Date of birth</span><span class="v mono">1994-03-17 · 32y</span></div>
+<div class="kv"><span class="k">Document number</span><span class="v mono">Y••••••41 <span class="pill pill-neutral sm">hashed</span></span></div>
+<div class="kv"><span class="k">Issued / expires</span><span class="v mono">2023-04-02 / 2029-03-17</span></div>
+<div class="kv"><span class="k">Address</span><span class="v">…, Lake Elsinore, CA 92530</span></div>
+<div class="kv"><span class="k">Issuing state</span><span class="v">California · ID Card</span></div>
+<div class="cap">Editing a field is an analyst action with a diff in the trail. The original OCR and barcode values are never overwritten — the edit sits on top of them.</div>
+</div>
+</div>
+</div>
+
+<!-- RIGHT: decision nodes -->
+<div>
+<div class="panel-eb"><span>Decision</span><span class="grow"></span><span>engine hw-idv 0.4.1 · 2.4 s total</span></div>
+
+<div class="node review">
+<div class="node-head"><span class="pill pill-warn sm">review</span><span class="nt">Document</span><span class="nv">0.62</span></div>
+<div class="node-body">
+<div class="nline"><span class="nk">Front image quality</span><span class="nvv">0.62 · threshold 0.70</span></div>
+<div class="nline"><span class="nk">Glare / blur</span><span class="nvv">glare over the state seal</span></div>
+<div class="nline"><span class="nk">Back barcode (PDF417)</span><span class="nvv">read, 8 of 8 fields</span></div>
+<div class="nline"><span class="nk">Document type allowed</span><span class="nvv">CA ID Card · yes</span></div>
+<div class="nline"><span class="nk">Expiry</span><span class="nvv">2029-03-17 · 30 months out</span></div>
+<div class="node-cap">Model doc-q v3 (open weights) · reason DOC_QUALITY_LOW · a resubmission of the front alone would clear this</div>
+</div>
+</div>
+
+<div class="node review">
+<div class="node-head"><span class="pill pill-warn sm">review</span><span class="nt">Liveness</span><span class="nv">0.78</span></div>
+<div class="node-body">
+<div class="nline"><span class="nk">Method</span><span class="nvv">PASSIVE + challenge</span></div>
+<div class="nline"><span class="nk">Passive score</span><span class="nvv">0.78 · threshold 0.80</span></div>
+<div class="nline"><span class="nk">Challenge</span><span class="nvv">turn left, blink, flash · nonce matched</span></div>
+<div class="nline"><span class="nk">Injection signals</span><span class="nvv">none</span></div>
+<div class="nline"><span class="nk">Attempt</span><span class="nvv">1 of 3</span></div>
+<div class="bar-track" style="margin-top:3px;"><span class="bar-fill" style="width:78%;background:var(--warn)"></span></div>
+<div class="node-cap">open model · uncertified — this score is not a certified presentation-attack result. It is a signal for a person to weigh, not a pass mark.</div>
+</div>
+</div>
+
+<div class="node review">
+<div class="node-head"><span class="pill pill-warn sm">review</span><span class="nt">Face match</span><span class="nv">0.79</span></div>
+<div class="node-body">
+<div class="nline"><span class="nk">Selfie vs document portrait</span><span class="nvv">0.79 · threshold 0.82</span></div>
+<div class="nline"><span class="nk">Model</span><span class="nvv">arcface-r100 · 512-dim</span></div>
+<div class="nline"><span class="nk">Portrait quality</span><span class="nvv">0.66 — low-resolution laminate</span></div>
+<div class="bar-track" style="margin-top:3px;"><span class="bar-fill" style="width:79%;background:var(--warn)"></span></div>
+<div class="node-cap">open model · uncertified · reason FACE_MATCH_LOW — 0.79 against 0.82 on a poor portrait is the most common false review in this data set</div>
+</div>
+</div>
+
+<div class="node pass">
+<div class="node-head"><span class="pill pill-good sm">pass</span><span class="nt">Age</span><span class="nv">32y</span></div>
+<div class="node-body">
+<div class="nline"><span class="nk">Rule</span><span class="nvv">REC_21 · 21+ recreational</span></div>
+<div class="nline"><span class="nk">From the document</span><span class="nvv">1994-03-17 · 32y 5m</span></div>
+<div class="nline"><span class="nk">Estimator (advisory)</span><span class="nvv">28–37 band · consistent</span></div>
+<div class="node-cap">Age is decided from the document date of birth. The estimator can only add a warning, never approve or decline on its own.</div>
+</div>
+</div>
+
+<div class="node pass">
+<div class="node-head"><span class="pill pill-good sm">pass</span><span class="nt">IP &amp; device</span><span class="nv">clean</span></div>
+<div class="node-body">
+<div class="nline"><span class="nk">IP</span><span class="nvv">Lake Elsinore, CA · US</span></div>
+<div class="nline"><span class="nk">Tor / hosting / VPN</span><span class="nvv">no · no · no</span></div>
+<div class="nline"><span class="nk">Device</span><span class="nvv">POS tablet · Chrome 141 · register 2</span></div>
+<div class="nline"><span class="nk">Seen before</span><span class="nvv">this device, 214 sessions</span></div>
+<div class="node-cap">Register devices are expected to repeat. A repeated consumer device with different people on it is what raises a signal, and that lands on a custom list for review, not on a blocklist.</div>
+</div>
+</div>
+
+<div class="node review">
+<div class="node-head"><span class="pill pill-warn sm">review</span><span class="nt">Cross-checks</span><span class="nv">1 of 6</span></div>
+<div class="node-body">
+<div class="nline"><span class="nk">Barcode name vs OCR name</span><span class="nvv">match</span></div>
+<div class="nline"><span class="nk">Barcode DOB vs OCR DOB</span><span class="nvv">match</span></div>
+<div class="nline"><span class="nk">Document number vs barcode</span><span class="nvv">match</span></div>
+<div class="nline"><span class="nk">Expiry vs barcode</span><span class="nvv">match</span></div>
+<div class="nline"><span class="nk">Name vs expected details</span><span class="nvv" style="color:var(--warnText);">“Jessamy Okonta” vs “Jess Okonta”</span></div>
+<div class="nline"><span class="nk">Address vs POS profile</span><span class="nvv">match</span></div>
+<div class="node-cap">reason NAME_MISMATCH_EXPECTED — the register passed a shortened first name. This is a nickname, not a discrepancy, and the workflow can be set to ignore first-name diminutives.</div>
+</div>
+</div>
+
+<div class="node pass">
+<div class="node-head"><span class="pill pill-good sm">pass</span><span class="nt">Lists</span><span class="nv">no hits</span></div>
+<div class="node-body">
+<div class="nline"><span class="nk">User blocklist</span><span class="nvv">no · 1 entry</span></div>
+<div class="nline"><span class="nk">Document blocklist</span><span class="nvv">no · 1 entry</span></div>
+<div class="nline"><span class="nk">IP blocklist</span><span class="nvv">no · 2 entries</span></div>
+<div class="nline"><span class="nk">Face blocklist</span><span class="nvv">no · 0 entries</span></div>
+<div class="nline"><span class="nk">High Risk Countries</span><span class="nvv">no · 35 entries</span></div>
+<div class="node-cap">A list hit is a warning carrying the list id, so you can always see which list said what. Only the four hard blocklists decline on their own.</div>
+</div>
+</div>
+
+<div class="node skip">
+<div class="node-head"><span class="pill pill-neutral sm">not run</span><span class="nt">NFC chip read</span><span class="nv">—</span></div>
+<div class="node-body">
+<div class="node-cap">Not available on the Hyperwolf engine. Kept on the session so an imported Didit workflow round-trips unchanged.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Analyst trail</span><span class="pill pill-neutral sm">3 entries</span></div>
+<div class="card-body" style="padding:11px 14px;">
+<div class="tl-ev"><span class="tl-dot info"></span><div><div class="tl-action">Assigned to Ops</div><div class="tl-meta">2026-09-08 14:03 PT · auto-assign, priority 2</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div><div class="tl-action">Note added by Ops</div><div class="tl-meta">2026-09-08 14:06 PT</div><div class="tl-reason">“Portrait on the laminate is washed out. Selfie looks like the same person to me — checking the duplicate at #13980 before deciding.”</div></div></div>
+<div class="tl-ev"><span class="tl-dot warn"></span><div><div class="tl-action">Engine re-run requested</div><div class="tl-meta">2026-09-08 14:08 PT · face match only · 0.79 → 0.79</div></div></div>
+<div class="cap">Every analyst action writes the review row, the session event and the audit row in one transaction. The Didit-shaped decision object regenerates its <code>reviews[]</code> from this, so an export carries the trail.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Ask to resubmit</span><span class="pill pill-accent sm">choose what they redo</span></div>
+<div class="card-body">
+<p style="font-size:12px;color:var(--ink2);line-height:1.6;margin:0 0 10px;">Tick only the steps that failed. The customer redoes those and nothing else — asking someone to repeat the whole flow for one blurry photo is how you lose them at the counter.</p>
+<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:11px;">
+<div class="tog" style="padding:7px 10px;"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">Document front</div><div class="tg-s">quality 0.62 · glare over the seal</div></div></div>
+<div class="tog" style="padding:7px 10px;"><span class="ckbox"></span><div class="tg-x"><div class="tg-t">Document back</div><div class="tg-s">barcode read cleanly, no need</div></div></div>
+<div class="tog" style="padding:7px 10px;"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">Selfie and liveness</div><div class="tg-s">0.78 passive · a second attempt usually clears it</div></div></div>
+</div>
+<label class="fld" style="margin-bottom:10px;"><span class="field-lbl">Message shown to the customer</span><div class="field-input" style="min-height:52px;align-items:flex-start;padding:9px 11px;font-size:12px;color:var(--ink2);line-height:1.5;">Your ID photo came out a little bright. Take the front again somewhere without a direct light, and one more selfie — it takes about 20 seconds.</div></label>
+<div class="row mid">
+<span class="btn btn-accent btn-sm">Send resubmission link</span>
+<span class="mono" style="font-size:10.5px;color:var(--inkMute);">Status becomes Awaiting User · link valid 60 min · 1 of 3 resubmissions used</span>
+</div>
+<div class="note plain" style="margin-top:11px;">
+<div class="nh">Resubmission link</div>
+<div class="row mid" style="gap:8px;">
+<code class="mono" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;">https://verify.hyperwolf.com/v/8f2c1a44-…-9db7</code>
+<span class="btn btn-secondary btn-xs">Copy</span>
+<span class="btn btn-ghost btn-xs">Send by SMS</span>
+</div>
+<div class="cap" style="margin-top:7px;">Owner-only link — it opens the customer's capture flow. Anyone holding it can complete this session, so send it to the customer, not into a group chat.</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- ======================== 5 · REVIEW QUEUE ======================== -->
+<div class="tabpanel" id="tab-review">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri on" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">4</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb">Operate</div>
+<h2>Review</h2>
+<div class="ph-sub">Only the sessions waiting on a person. Oldest first inside each priority band, because a customer standing at a register is a different problem from one who left an hour ago.</div>
+</div>
+<div class="ph-act">
+<div class="sel">Assigned · anyone <span class="caret">▾</span></div>
+<div class="sel on">Reason · 3 <span class="caret">▾</span></div>
+<span class="btn btn-secondary btn-sm">Claim next</span>
+<span class="btn btn-accent btn-sm">Start review run</span>
+</div>
+</div>
+
+<div class="grid4" style="margin-bottom:12px;">
+<div class="stat bad"><div class="sl">Priority 1 · at a register</div><div class="sv">1</div><div class="ss">Someone is standing there. Target under 2 minutes.</div></div>
+<div class="stat warn"><div class="sl">Priority 2 · online</div><div class="sv">2</div><div class="ss">Customer may still have the tab open.</div></div>
+<div class="stat info"><div class="sl">Priority 3 · gone</div><div class="sv">1</div><div class="ss">Decide, then the outcome reaches them by email.</div></div>
+<div class="stat"><div class="sl">Median decision time</div><div class="sv">54s</div><div class="ss">Last 30 days, 9 reviews</div></div>
+</div>
+
+<div class="row tight" style="margin-bottom:11px;">
+<span class="chip on">FACE_MATCH_LOW ✕</span>
+<span class="chip on">DOC_QUALITY_LOW ✕</span>
+<span class="chip on">AGE_ESTIMATE_UNDER_MARGIN ✕</span>
+<span class="chip">+ LIVENESS_LOW</span>
+<span class="chip">+ LIVENESS_FAILED_3X</span>
+<span class="chip">+ DUPLICATE_PERSON</span>
+<span class="chip">+ NAME_MISMATCH_EXPECTED</span>
+<span class="chip">+ OUT_OF_STATE</span>
+<span class="chip">+ IP_VPN</span>
+<span class="chip">+ ENGINE_UNAVAILABLE_MANUAL</span>
+</div>
+
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr>
+<th style="width:64px;">Pri</th>
+<th class="sortable sorted" style="width:96px;">Waiting <span class="sc">▼</span></th>
+<th style="width:70px;">#</th>
+<th>Person</th>
+<th style="width:112px;">Channel</th>
+<th>Why it is here</th>
+<th style="width:132px;">Assigned</th>
+<th style="width:150px;">Decide</th>
+</tr></thead>
+<tbody>
+<tr class="sel-row">
+<td><span class="pill pill-bad sm">1</span></td>
+<td class="num" style="color:var(--bad);font-weight:700;">1m 48s</td>
+<td class="id">#14160</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">JO</span><div><b>Jessamy Okonta</b><div class="em">CA ID Card</div></div></div></td>
+<td class="dim">POS · Lake Elsinore</td>
+<td><span class="pill pill-warn sm">FACE_MATCH_LOW</span> <span class="pill pill-neutral sm">DOC_QUALITY_LOW</span></td>
+<td><span class="pill pill-accent sm">Ops (you)</span></td>
+<td><span class="btn btn-accent btn-xs">Approve</span> <span class="btn btn-secondary btn-xs">Open</span></td>
+</tr>
+<tr>
+<td><span class="pill pill-warn sm">2</span></td>
+<td class="num">14m</td>
+<td class="id">#14151</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">HB</span><div><b>Hollis Barlowe</b><div class="em">CA Driver Licence</div></div></div></td>
+<td class="dim">API · site</td>
+<td><span class="pill pill-warn sm">AGE_ESTIMATE_UNDER_MARGIN</span></td>
+<td class="dim">unassigned</td>
+<td><span class="btn btn-secondary btn-xs">Claim</span> <span class="btn btn-ghost btn-xs">Open</span></td>
+</tr>
+<tr>
+<td><span class="pill pill-warn sm">2</span></td>
+<td class="num">31m</td>
+<td class="id">#14139</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">MR</span><div><b>Mattias Ruvalcaba</b><div class="em">CA Driver Licence</div></div></div></td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-warn sm">LIVENESS_FAILED_3X</span> <span class="mono" style="font-size:10px;color:var(--inkMute);">0.44 / 0.51 / 0.49</span></td>
+<td><span class="pill pill-neutral sm">Dani R.</span></td>
+<td><span class="btn btn-ghost btn-xs">Open</span></td>
+</tr>
+<tr>
+<td><span class="pill pill-info sm">3</span></td>
+<td class="num">2h 06m</td>
+<td class="id">#14128</td>
+<td><div class="who"><span class="avatar" style="width:24px;height:24px;">SB</span><div><b>Sunniva Brackenridge</b><div class="em">OR Driver Licence</div></div></div></td>
+<td class="dim">Hosted</td>
+<td><span class="pill pill-neutral sm">DUPLICATE_PERSON</span> <span class="pill pill-info sm">OUT_OF_STATE</span></td>
+<td class="dim">unassigned</td>
+<td><span class="btn btn-secondary btn-xs">Claim</span> <span class="btn btn-ghost btn-xs">Open</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="tblfoot">
+<span class="mono">4 waiting</span>
+<span style="color:var(--inkFaint);">·</span>
+<span>Escalations to admin: 0 · Four-eyes required: off for this workflow</span>
+<span class="grow"></span>
+<span class="btn btn-ghost btn-xs">Assign selected to…</span>
+<span class="btn btn-ghost btn-xs">Change priority</span>
+</div>
+
+<div class="grid2" style="margin-top:13px;align-items:start;">
+<div class="card">
+<div class="card-head"><span class="ch-t">Keyboard</span><span class="pill pill-neutral sm">review run</span></div>
+<div class="card-body">
+<p style="font-size:12px;color:var(--ink2);line-height:1.6;margin:0 0 10px;">Start a review run and the console opens the top session, decides, then loads the next one without going back to the list. You never touch the mouse unless you want to look at a photo closely.</p>
+<div class="kv"><span class="k">Approve</span><span class="v"><span class="kbd">A</span></span></div>
+<div class="kv"><span class="k">Decline (asks for a reason)</span><span class="v"><span class="kbd">D</span></span></div>
+<div class="kv"><span class="k">Ask to resubmit</span><span class="v"><span class="kbd">R</span></span></div>
+<div class="kv"><span class="k">Add a note</span><span class="v"><span class="kbd">N</span></span></div>
+<div class="kv"><span class="k">Skip, leave for someone else</span><span class="v"><span class="kbd">S</span></span></div>
+<div class="kv"><span class="k">Zoom document front / back / selfie</span><span class="v"><span class="kbd">1</span> <span class="kbd">2</span> <span class="kbd">3</span></span></div>
+<div class="kv"><span class="k">Next / previous</span><span class="v"><span class="kbd">J</span> <span class="kbd">K</span></span></div>
+<div class="kv"><span class="k">Undo the last decision</span><span class="v"><span class="kbd">⌘Z</span> <span class="mono" style="font-size:10px;color:var(--inkMute);">within 10 s</span></span></div>
+<div class="cap">Decline always asks for a reason code before it commits, so a keystroke can never quietly decline a person.</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="note info">
+<div class="nh">How a session gets here</div>
+<p style="margin:0 0 7px;">The engine puts it here. There is no manual “send to review” from the capture flow, because the customer should never be told to wait by a screen that has not run the checks yet.</p>
+<p style="margin:0;">Priority is set by channel, not by score: <b>1</b> POS check-in, <b>2</b> a live web session, <b>3</b> anything whose customer has already gone. Reviewing a priority-1 session out of order is fine and is not counted against anyone.</p>
+</div>
+<div class="note plain">
+<div class="nh">Right now, in your real console</div>
+<p style="margin:0;">This queue holds <b>0</b> sessions. The four rows above are sample data so you can see a working queue — a screen that only ever renders its empty state is a screen nobody can review. When it is genuinely empty you get the state on tab 11, not a grid of zeros.</p>
+</div>
+<div class="card">
+<div class="card-head"><span class="ch-t">Assignment</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Auto-assign</span><span class="v">Round robin among on-shift analysts <span class="sw on" style="vertical-align:-4px;display:inline-block;"></span></span></div>
+<div class="kv"><span class="k">Unassign after</span><span class="v mono">15 minutes idle</span></div>
+<div class="kv"><span class="k">Analysts on shift</span><span class="v">Ops · Dani R. · Marcus T.</span></div>
+<div class="kv"><span class="k">Who can decide</span><span class="v">analyst and above</span></div>
+<div class="kv"><span class="k">Override a Declined session</span><span class="v">admin only, audited</span></div>
+<div class="cap">Roles come from the associate record. There is no separate login for Verify yet — the Settings screen says so in one line rather than implying a security boundary that does not exist.</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- ====================== 6 · WORKFLOWS BUILDER ====================== -->
+<div class="tabpanel" id="tab-workflows">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">0</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri on" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb">Configure · editing</div>
+<h2>Cannabis Verification + Selfie</h2>
+<div class="ph-sub">Version 4 · used by 154 sessions · a session pins the version it ran under, so editing this never changes a decision that already happened.</div>
+</div>
+<div class="ph-act">
+<span class="hbadge">id <span class="mono">2fdbd4d4…ee1448</span></span>
+<span class="btn btn-ghost btn-sm">Version history</span>
+<span class="btn btn-secondary btn-sm">Duplicate</span>
+<span class="btn btn-accent btn-sm">Save as v5</span>
+</div>
+</div>
+
+<div class="row tight" style="margin-bottom:12px;">
+<span class="chip accent-on">Cannabis Verification + Selfie</span>
+<span class="chip">Hemp Verification (no selfie)</span>
+<span class="chip">Biometric Authentication</span>
+<span class="chip">Adaptive Age Estimation</span>
+<span class="chip">+ New workflow</span>
+<span class="pill pill-neutral sm" style="align-self:center;margin-left:6px;">4 workflows, all KYC — imported from Didit with their ids intact</span>
+</div>
+
+<div class="two-pane" style="grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);">
+<div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">What this workflow checks</span><span class="pill pill-neutral sm">features</span></div>
+<div class="card-body" style="display:flex;flex-direction:column;gap:8px;">
+<div class="tog"><span class="sw on"></span><div class="tg-x"><div class="tg-t">OCR — read the document</div><div class="tg-s">Front and back. PDF417 is required for US driver licences and ID cards.</div></div></div>
+<div class="tog"><span class="sw on"></span><div class="tg-x"><div class="tg-t">Liveness</div><div class="tg-s">Is there a real person in front of the camera right now.</div></div></div>
+<div class="tog"><span class="sw on"></span><div class="tg-x"><div class="tg-t">Face match</div><div class="tg-s">Is that person the one on the document.</div></div></div>
+<div class="tog"><span class="sw on"></span><div class="tg-x"><div class="tg-t">Age estimation</div><div class="tg-s">Advisory only. It can raise a warning; it can never decide.</div></div></div>
+<div class="tog"><span class="sw on"></span><div class="tg-x"><div class="tg-t">IP analysis</div><div class="tg-s">Tor, hosting ranges, VPN, and where the address resolves.</div></div></div>
+<div class="tog"><span class="sw"></span><div class="tg-x"><div class="tg-t">Questionnaire</div><div class="tg-s">Extra questions before the result. Off for this workflow.</div></div></div>
+<div class="tog"><span class="sw"></span><div class="tg-x"><div class="tg-t">Phone verification</div><div class="tg-s">One-time code by SMS. Off — the register already has the number.</div></div></div>
+<div class="tog"><span class="sw"></span><div class="tg-x"><div class="tg-t">Email verification</div><div class="tg-s">Off — the site verifies the email before it creates the session.</div></div></div>
+<div style="height:4px;"></div>
+<div class="phlabel">Declared, not available</div>
+<div class="tog offd"><span class="sw locked"></span><div class="tg-x"><div class="tg-t">NFC chip read</div><div class="tg-s">Not available on the Hyperwolf engine. Stored so an imported Didit workflow round-trips unchanged.</div></div></div>
+<div class="tog offd"><span class="sw locked"></span><div class="tg-x"><div class="tg-t">AML screening</div><div class="tg-s">Not available on the Hyperwolf engine. Sanctions and PEP lists are a data subscription, not a model.</div></div></div>
+<div class="tog offd"><span class="sw locked"></span><div class="tg-x"><div class="tg-t">Database validation</div><div class="tg-s">Not available on the Hyperwolf engine. Nobody is checking a US DMV record behind this.</div></div></div>
+<div class="tog offd"><span class="sw locked"></span><div class="tg-x"><div class="tg-t">Proof of address</div><div class="tg-s">Not available on the Hyperwolf engine.</div></div></div>
+<div class="cap">Four features are switched off at the source rather than hidden, so nobody configures a check that silently never runs. If you buy the data for AML later, the toggle is already here.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">How strict</span><span class="pill pill-warn sm">moving these moves your review load</span></div>
+<div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+<div>
+<span class="field-lbl">Liveness minimum</span>
+<div class="rng"><input type="range" min="50" max="99" value="80" aria-label="Liveness minimum"><span class="rv">0.80</span></div>
+<div class="field-hint">Below this the customer gets another attempt. Three failures send it to review. <b>open model · uncertified</b> — this number is a judgement about your own model, not a certified threshold.</div>
+</div>
+<div>
+<span class="field-lbl">Face match minimum</span>
+<div class="rng"><input type="range" min="50" max="99" value="82" aria-label="Face match minimum"><span class="rv">0.82</span></div>
+<div class="field-hint">At 0.82 you reviewed 9 sessions last month and approved 8 of them. At 0.78 you would have reviewed 3. Two of the five you would have auto-approved scored under 0.80 on a washed-out laminate portrait.</div>
+</div>
+<div>
+<span class="field-lbl">Document quality minimum</span>
+<div class="rng"><input type="range" min="30" max="95" value="70" aria-label="Document quality minimum"><span class="rv">0.70</span></div>
+<div class="field-hint">Below this the customer is asked to retake rather than being declined. Quality is never a decline on its own.</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Liveness method</span></div>
+<div class="card-body" style="display:flex;flex-direction:column;gap:8px;">
+<div class="radio-card on"><span class="dial"></span><div><div class="rc-t">PASSIVE</div><div class="rc-s">Two seconds of frames, no instructions. Fastest, least annoying, weakest against a good replay attack. This is what runs today.</div></div></div>
+<div class="radio-card"><span class="dial"></span><div><div class="rc-t">ACTIVE_3D</div><div class="rc-s">Head-turn prompts with a server nonce. Around 9 seconds. Much harder to replay; noticeably more drop-off at a busy counter.</div></div></div>
+<div class="radio-card"><span class="dial"></span><div><div class="rc-t">FLASHING</div><div class="rc-s">A colour sequence flashed on the screen and matched in the reflection. Strong against printed and screen replays; unusable in bright daylight and a real problem for anyone photosensitive.</div></div></div>
+<div class="note plain" style="margin-top:4px;">
+<div class="nh">What is actually running now</div>
+<p style="margin:0;">PASSIVE for the score, plus a short challenge clip recorded with a server nonce, which is why the session page shows both a passive number and a challenge line. The challenge is checked for nonce match and injection signals even when the method is PASSIVE — that part is not optional.</p>
+</div>
+</div>
+</div>
+
+</div>
+<div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Age rule</span><span class="pill pill-accent sm">the one that matters here</span></div>
+<div class="card-body" style="display:flex;flex-direction:column;gap:8px;">
+<div class="radio-card on"><span class="dial"></span><div><div class="rc-t">REC_21 — recreational, 21 and over</div><div class="rc-s">Decided from the document date of birth. Under 21 is an automatic decline with UNDER_AGE. No estimator input.</div></div></div>
+<div class="radio-card"><span class="dial"></span><div><div class="rc-t">MED_18_CARD — medical, 18 and over with a card</div><div class="rc-s">18 to 20 passes only when something says the customer is a medical patient. The engine can verify an age; it cannot verify a medical card.</div></div></div>
+<div class="note warn" style="margin-top:4px;">
+<div class="nh">Open question for you</div>
+<p style="margin:0;">MED_18_CARD needs a source of truth. Either the register passes a member flag with the session, or the customer photographs the card and an analyst looks at it. Those are different builds, and it is your call which one is real. Until you pick, this rule stays unselectable in production.</p>
+</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Retries, caps and expiry</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Liveness attempts before review</span><span class="v mono">3</span></div>
+<div class="kv"><span class="k">Resubmissions allowed per session</span><span class="v mono">3</span></div>
+<div class="kv"><span class="k">Session expires if untouched</span><span class="v mono">60 minutes</span></div>
+<div class="kv"><span class="k">Resubmission link valid for</span><span class="v mono">60 minutes</span></div>
+<div class="kv"><span class="k">Approval good for</span><span class="v mono">365 days → Kyc Expired</span></div>
+<div class="kv"><span class="k">Out-of-state document</span><span class="v">warn, do not review</span></div>
+<div class="kv"><span class="k">Duplicate person</span><span class="v">review</span></div>
+<div class="kv"><span class="k">IP is Tor / hosting / VPN</span><span class="v">decline / review / review</span></div>
+<div class="kv"><span class="k">Second approver (four eyes)</span><span class="v">off</span></div>
+<div class="cap">Every one of these is stored on the version, so a session from June is still judged by June's rules when you open it in December.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Documents accepted</span></div>
+<div class="card-body">
+<div class="chipset">
+<span class="chip on">US driver licence</span><span class="chip on">US state ID card</span><span class="chip on">US passport</span>
+<span class="chip on">US passport card</span><span class="chip">Military ID</span><span class="chip">Tribal ID</span>
+<span class="chip">Foreign passport</span><span class="chip">Permanent resident card</span>
+</div>
+<div class="field-hint" style="margin-top:9px;">Turning on a document type you cannot read well is worse than refusing it: the customer gets three failed attempts and then a review, instead of a clear “we cannot accept this here” on the first screen. Military and tribal IDs have no PDF417 in a standard layout, which is why they are off.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Version history</span><span class="pill pill-neutral sm">4 versions</span></div>
+<div class="card-body" style="padding:11px 14px;">
+<div class="tl-ev"><span class="tl-dot info"></span><div><div class="tl-action">v4 · current</div><div class="tl-meta">2026-09-08 09:10 PT · Ops · face match 0.80 → 0.82</div><div class="tl-reason">“Two near-misses last week were the same person twice. Tightening.”</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div><div class="tl-action">v3</div><div class="tl-meta">2026-09-02 16:44 PT · Ops · added IP analysis, VPN → review</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div><div class="tl-action">v2</div><div class="tl-meta">2026-08-28 11:02 PT · Ops · liveness attempts 2 → 3</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div><div class="tl-action">v1 · imported from Didit</div><div class="tl-meta">2026-08-26 08:30 PT · migration · features and thresholds copied verbatim</div></div></div>
+<div class="cap">Rolling back creates v5 with v2's settings. Nothing is ever edited in place, so no session's rules can change under it.</div>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========================== 7 · CAPTURE ========================== -->
+<div class="tabpanel" id="tab-capture">
+<div class="intro">
+<div class="card" style="padding:16px 18px;">
+<div class="eyebrow">Customer-facing · not a console screen</div>
+<h2>The capture flow is the only part of Verify a customer ever sees. It is a phone, it is under a minute, and it never leaves someone staring at a screen that will not tell them what happened.</h2>
+<p>Two channels, one flow: a hosted link (<code>verify.hyperwolf.com/v/&lt;token&gt;</code>) that the site or an SMS opens, and the same steps mounted inside the register's check-in modal at the counter. The customer sees the same guides, the same copy and the same result either way; the difference is who is standing next to them.</p>
+<div class="cap"><b>Rules the flow obeys:</b> the server decides, never the browser · nothing passes silently and nothing is dropped · every failure says what happens next · a hard signal declines without explaining the detection, because explaining it is a tutorial for the next attempt.</div>
+</div>
+</div>
+<div class="stage">
+
+<div class="card" style="margin-bottom:14px;">
+<div class="card-head"><span class="ch-t">The path when everything works</span><span class="pill pill-good sm">7 screens · about 45 seconds</span></div>
+<div class="card-body">
+<div class="phones">
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Hyperwolf</span><span class="pstep">1 of 5</span></div>
+<div class="ph-body">
+<h5>Let's check your ID</h5>
+<p>You need to be 21 or over to order. This takes about a minute and you will need your driver licence or state ID.</p>
+<div class="ph-view"><div class="ftxt" style="font-family:var(--fontMono);font-size:10px;color:var(--inkMute);text-align:center;line-height:1.7;">ID card + selfie<br>illustration</div></div>
+<p class="small">We keep your photos to prove the check happened. You can ask us to delete them at any time.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn acc">Start</div>
+<div class="ph-cap">Camera permission is asked on the next screen, not now</div>
+</div>
+</div>
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Front of your ID</span><span class="pstep">2 of 5</span></div>
+<div class="ph-body">
+<h5>Front of your ID</h5>
+<p>Fill the frame. Flat surface, no direct light on the card.</p>
+<div class="ph-view tall"><div class="ph-guide"></div><div class="ph-hint">Hold steady — reading…</div></div>
+<p class="small">Rear camera · glare and blur are checked here, but the decision is made on our side.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn acc">Capture</div>
+<div class="ph-cap">Auto-captures when the card is sharp and square</div>
+</div>
+</div>
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Back of your ID</span><span class="pstep">3 of 5</span></div>
+<div class="ph-body">
+<h5>Now the back</h5>
+<p>The barcode on the back is what proves the front was not altered. We need it for every US licence and state ID.</p>
+<div class="ph-view tall"><div class="ph-guide good"></div><div class="ph-hint">Barcode read ✓</div></div>
+<p class="small">If the barcode will not read after three tries we accept the front and send it for a person to look at.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn acc">Looks good</div>
+<div class="ph-cap">PDF417 · 8 of 8 fields</div>
+</div>
+</div>
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Selfie</span><span class="pstep">4 of 5</span></div>
+<div class="ph-body">
+<h5>Now a selfie</h5>
+<p>Face the camera, no hat or sunglasses. Hold still for two seconds.</p>
+<div class="ph-view tall"><div class="ph-guide oval"></div><div class="ph-hint">Hold still · 2, 1…</div></div>
+<p class="small">This is matched against the photo on your ID.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn acc">Capture</div>
+<div class="ph-cap">Front camera · passive check, no instructions to follow</div>
+</div>
+</div>
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Quick check</span><span class="pstep">4 of 5</span></div>
+<div class="ph-body">
+<h5>Turn your head slowly to the left</h5>
+<p>Then follow the colours on the screen. It takes four seconds.</p>
+<div class="ph-view tall"><div class="ph-guide oval good"></div><div class="ph-hint">turn_left → blink → flash</div></div>
+<div class="flashrow">
+<span class="flashsq" style="background:var(--accent)"></span>
+<span class="flashsq" style="background:var(--info)"></span>
+<span class="flashsq" style="background:var(--good)"></span>
+<span class="flashsq" style="background:var(--surface3)"></span>
+</div>
+<p class="small">The colour order comes from our server and is different every time, so a recording of someone else cannot pass this.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn dis">Recording…</div>
+<div class="ph-cap">nonce 4f19c2 · valid 90 s</div>
+</div>
+</div>
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Checking</span><span class="pstep">5 of 5</span></div>
+<div class="ph-body">
+<h5>Checking your ID</h5>
+<p>This usually takes a few seconds. You can keep this screen open.</p>
+<div class="ph-view"><div style="text-align:center;"><span class="spinner"></span><div class="ph-cap" style="margin-top:9px;">Reading the document…</div></div></div>
+<p class="small">Do not close the page — if you do we will save what we have and text you a link to finish.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn dis">Please wait</div>
+<div class="ph-cap">Status polled from the server, never guessed by this page</div>
+</div>
+</div>
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Done</span><span class="pstep">✓</span></div>
+<div class="ph-body">
+<h5>You're verified</h5>
+<p>Thanks — you are all set for 12 months. You can close this and go back to your order.</p>
+<div class="ph-view"><div style="text-align:center;"><div class="state-plate" style="background:var(--goodSoft);color:var(--good);margin-bottom:0;">✓</div></div></div>
+<p class="small">Verified 8 Sep 2026 · good until 8 Sep 2027.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn acc">Back to my order</div>
+<div class="ph-cap">The site is told by webhook, not by this button</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:14px;">
+<div class="card-head"><span class="ch-t">When it does not work</span><span class="pill pill-warn sm">the branches that decide whether people give up</span></div>
+<div class="card-body">
+<div class="phones">
+
+<div class="phone warnb">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Try again</span><span class="pstep">retry 1 of 3</span></div>
+<div class="ph-body">
+<h5>Let's try that selfie again</h5>
+<p>The light was behind you, so the camera mostly saw a shadow. Face a window or a lamp and hold still.</p>
+<div class="ph-view tall"><div class="ph-guide oval bad"></div><div class="ph-hint">Attempt 1 of 3</div></div>
+<p class="small">Nothing is wrong with your ID. This is the camera, not you.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn acc">Try again</div>
+<div class="ph-cap">Status Awaiting User · each attempt is recorded with its score</div>
+</div>
+</div>
+
+<div class="phone warnb">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Almost there</span><span class="pstep">3 of 3 used</span></div>
+<div class="ph-body">
+<h5>We'll have someone look at this</h5>
+<p>The camera could not get a clear read after three tries. A person on our team will check it — usually within a few minutes.</p>
+<div class="ph-view"><div style="text-align:center;"><div class="state-plate" style="background:var(--warnSoft);color:var(--warnText);margin-bottom:0;">◔</div></div></div>
+<p class="small">You do not need to stay on this page. We will text you when it is done.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn sec">Close</div>
+<div class="ph-cap">Status In Review · reason LIVENESS_FAILED_3X</div>
+</div>
+</div>
+
+<div class="phone bad">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Not verified</span><span class="pstep">✕</span></div>
+<div class="ph-body">
+<h5>We can't verify this ID</h5>
+<p>This licence expired on 2 April 2026. Bring a current one and we will check it in a few seconds.</p>
+<div class="ph-view"><div style="text-align:center;"><div class="state-plate" style="background:var(--badSoft);color:var(--bad);margin-bottom:0;">✕</div></div></div>
+<p class="small">If you think this is wrong, ask staff and they can send it to us to look at.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn sec">Start over with another ID</div>
+<div class="ph-cap">Status Declined · reason DOC_EXPIRED · terminal unless an admin overrides</div>
+</div>
+</div>
+
+<div class="phone bad">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Not verified</span><span class="pstep">✕</span></div>
+<div class="ph-body">
+<h5>We can't verify this</h5>
+<p>We are not able to complete this check. Please come to the counter with your ID.</p>
+<div class="ph-view"><div style="text-align:center;"><div class="state-plate" style="background:var(--badSoft);color:var(--bad);margin-bottom:0;">✕</div></div></div>
+<p class="small">No other detail is given on purpose.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn sec">Close</div>
+<div class="ph-cap">Hard signal · INJECTION_DETECTED or CHALLENGE_NONCE_MISMATCH · never says which</div>
+</div>
+</div>
+
+<div class="phone">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Paused</span><span class="pstep">—</span></div>
+<div class="ph-body">
+<h5>Verification is paused</h5>
+<p>Our checking service is not responding right now. Try again in a few minutes — nothing you have done is lost.</p>
+<div class="ph-view"><div style="text-align:center;"><div class="state-plate" style="background:var(--neutralSoft);color:var(--inkDim);margin-bottom:0;">⏸</div></div></div>
+<p class="small">If you are at a store, staff can check your ID at the counter.</p>
+</div>
+<div class="ph-foot">
+<div class="ph-btn sec">Try again</div>
+<div class="ph-cap">Engine unreachable · the page never guesses a result</div>
+</div>
+</div>
+
+</div>
+<div class="grid2" style="margin-top:6px;">
+<div class="note plain">
+<div class="nh">Why the retry copy blames the room</div>
+<p style="margin:0;">“Hold still, you moved” is a sentence a person reads as an accusation, and the second failure after an accusation is where they close the tab. Naming the light, the glare or the angle is both truer — those are what the scores actually reflect — and easier to act on.</p>
+</div>
+<div class="note warn">
+<div class="nh">What the customer is never told</div>
+<p style="margin:0;">Which model scored them, what the threshold was, or which signal fired on a hard decline. All of that is on the session page for your analysts. On the phone it would only teach the next attempt what to avoid.</p>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">At the register</span><span class="pill pill-accent sm">POS check-in modal variant</span></div>
+<div class="card-body">
+<div class="grid2" style="grid-template-columns:minmax(0,300px) minmax(0,1fr);align-items:start;">
+<div class="card sunken" style="padding:12px;">
+<div class="phlabel">Check-in · document step</div>
+<div class="card" style="overflow:hidden;">
+<div class="card-head" style="padding:9px 11px;"><span class="ch-t" style="font-size:12px;">Check in · Jessamy Okonta</span><span class="pill pill-accent sm">step 2 of 3</span></div>
+<div class="card-body" style="padding:11px;display:flex;flex-direction:column;gap:9px;">
+<div class="ph-view" style="height:104px;"><div class="ph-guide"></div><div class="ph-hint">Rear camera · hold the ID flat</div></div>
+<div class="row mid" style="gap:7px;">
+<span class="pill pill-info"><span class="dot" style="background:var(--info)"></span>In Progress</span>
+<span class="mono" style="font-size:10px;color:var(--inkMute);">#14160 · started 14:01</span>
+</div>
+<div class="kv" style="padding:5px 0;"><span class="k">Front</span><span class="v mono">captured</span></div>
+<div class="kv" style="padding:5px 0;"><span class="k">Back</span><span class="v mono">barcode ✓</span></div>
+<div class="kv" style="padding:5px 0;"><span class="k">Selfie</span><span class="v mono">waiting</span></div>
+<div class="row tight"><span class="btn btn-accent btn-sm" style="flex:1;">Take selfie</span><span class="btn btn-ghost btn-sm">Cancel</span></div>
+</div>
+</div>
+<div class="cap" style="margin-top:9px;">The associate sees the live status and the engine's decision. Check-in continues only on <b>Approved</b>.</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:11px;">
+<div class="note info">
+<div class="nh">Same flow, different room</div>
+<p style="margin:0;">The register mounts the same capture steps, so there is one flow to maintain and one set of copy to get right. What changes is the surroundings: no intro screen (the associate already explained it), the tablet's rear camera for the document and its front camera for the selfie, and the result shown to the associate rather than only to the customer.</p>
+</div>
+<div class="note warn">
+<div class="nh">When the engine is down at the counter</div>
+<p style="margin:0 0 7px;">Default is fail closed: no check-in, and the associate is told to verify the ID by hand and try again later. Nobody is quietly let through.</p>
+<p style="margin:0;">There is a second path — the associate records that they checked the physical ID, the session is filed as manual and the customer is re-verified on their next visit. It is behind a workflow flag that is <b>off</b> until you say otherwise, because it is a decision about risk at your counter, not a default anyone else should pick for you.</p>
+</div>
+<div class="note plain">
+<div class="nh">This screen is a seam, not an edit</div>
+<p style="margin:0;">The Register screen is not modified. Verify mounts into the check-in modal's existing document step through the hooks that are already there, so the strip your staff look at all day does not change shape because identity shipped.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- =========================== 8 · LISTS =========================== -->
+<div class="tabpanel" id="tab-lists">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">0</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri on" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb">Configure</div>
+<h2>Lists</h2>
+<div class="ph-sub">Eleven list types, matching Didit one for one so the import lands without a mapping table. A hit is a warning carrying the list id — only the four hard blocklists decline on their own.</div>
+</div>
+<div class="ph-act">
+<span class="btn btn-secondary btn-sm">Import from Didit</span>
+<span class="btn btn-secondary btn-sm">Export</span>
+<span class="btn btn-accent btn-sm">Add entry</span>
+</div>
+</div>
+
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr>
+<th class="sortable">List <span class="sc">↕</span></th>
+<th style="width:104px;">Kind</th>
+<th style="width:112px;">Entry type</th>
+<th class="sortable" style="width:82px;">Entries <span class="sc">↕</span></th>
+<th style="width:104px;">Source</th>
+<th style="width:120px;">Last entry</th>
+<th>On a hit</th>
+</tr></thead>
+<tbody>
+<tr><td><b>High Risk Countries</b></td><td><span class="pill pill-neutral sm">custom</span></td><td class="dim">Country</td><td class="num" style="font-weight:700;">35</td><td class="dim">system</td><td class="num dim">2026-05-21</td><td class="dim">warn · IP country only, never the document</td></tr>
+<tr><td><b>IP Address Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">IP / CIDR</td><td class="num" style="font-weight:700;">2</td><td class="dim">user</td><td class="num dim">2026-05-21</td><td class="dim">decline · IP_BLOCKLIST_HIT</td></tr>
+<tr><td><b>User Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Person</td><td class="num" style="font-weight:700;">1</td><td class="dim">user</td><td class="num dim">2026-05-21</td><td class="dim">decline · USER_BLOCKLIST_HIT</td></tr>
+<tr><td><b>Document Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Document no.</td><td class="num" style="font-weight:700;">1</td><td class="dim">user</td><td class="num dim">2026-05-21</td><td class="dim">decline · DOCUMENT_BLOCKLIST_HIT</td></tr>
+<tr><td><b>Face Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Face template</td><td class="num dim">0</td><td class="dim">user</td><td class="dim">—</td><td class="dim">decline · FACE_BLOCKLIST_HIT</td></tr>
+<tr><td><b>Device Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Device id</td><td class="num dim">0</td><td class="dim">user</td><td class="dim">—</td><td class="dim">review</td></tr>
+<tr><td><b>Email Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Email (hashed)</td><td class="num dim">0</td><td class="dim">user</td><td class="dim">—</td><td class="dim">review</td></tr>
+<tr><td><b>Phone Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Phone (hashed)</td><td class="num dim">0</td><td class="dim">user</td><td class="dim">—</td><td class="dim">review</td></tr>
+<tr><td><b>Bank Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Account</td><td class="num dim">0</td><td class="dim">user</td><td class="dim">—</td><td class="dim">not used here</td></tr>
+<tr><td><b>Wallet Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Wallet address</td><td class="num dim">0</td><td class="dim">user</td><td class="dim">—</td><td class="dim">not used here</td></tr>
+<tr><td><b>Business Blocklist</b></td><td><span class="pill pill-bad sm">blocklist</span></td><td class="dim">Business</td><td class="num dim">0</td><td class="dim">user</td><td class="dim">—</td><td class="dim">not used here · KYB is not built</td></tr>
+</tbody>
+</table>
+</div>
+<div class="tblfoot">
+<span class="mono">11 lists · 39 entries</span>
+<span style="color:var(--inkFaint);">·</span>
+<span>All four non-empty lists came across from Didit on import <span class="pill pill-neutral sm">real counts</span></span>
+<span class="grow"></span>
+<span class="btn btn-ghost btn-xs">Biometric templates</span>
+</div>
+
+<div class="two-pane" style="margin-top:13px;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);">
+<div class="card">
+<div class="card-head"><span class="ch-t">High Risk Countries</span><span class="pill pill-neutral sm">35 entries · system</span><span class="btn btn-ghost btn-xs">Add country</span></div>
+<div class="card-body">
+<div class="chipset" style="margin-bottom:11px;">
+<span class="chip sm">Afghanistan</span><span class="chip sm">Belarus</span><span class="chip sm">Burundi</span><span class="chip sm">Central African Rep.</span>
+<span class="chip sm">Cuba</span><span class="chip sm">Congo (DR)</span><span class="chip sm">Eritrea</span><span class="chip sm">Guinea-Bissau</span>
+<span class="chip sm">Haiti</span><span class="chip sm">Iran</span><span class="chip sm">Iraq</span><span class="chip sm">Korea (DPR)</span>
+<span class="chip sm">Lebanon</span><span class="chip sm">Libya</span><span class="chip sm">Mali</span><span class="chip sm">Myanmar</span>
+<span class="chip sm">Nicaragua</span><span class="chip sm">Russia</span><span class="chip sm">Somalia</span><span class="chip sm">South Sudan</span>
+<span class="chip sm">Sudan</span><span class="chip sm">Syria</span><span class="chip sm">Venezuela</span><span class="chip sm">Yemen</span>
+<span class="chip sm">Zimbabwe</span><span class="chip sm">+ 10 more</span>
+</div>
+<div class="note plain">
+<div class="nh">What this list actually does for you</div>
+<p style="margin:0;">It matches the IP country, not the document. A California customer on holiday is not on this list; a session whose traffic comes out of one of these countries is worth a look. For a delivery business inside one state, this list is close to inert — it came across with the import and it is kept because deleting a system list is not reversible.</p>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="card">
+<div class="card-head"><span class="ch-t">Add to the Face Blocklist</span><span class="pill pill-warn sm">judgement about a person</span></div>
+<div class="card-body">
+<div class="shot" style="margin-bottom:10px;">
+<div class="frame"><div class="ftxt">Drop a photo here, or add<br>from a session's selfie</div></div>
+<div class="scap"><span class="grow">JPEG or PNG · face must be clear</span><span class="pill pill-neutral sm">≤ 8 MB</span></div>
+</div>
+<label class="fld" style="margin-bottom:9px;"><span class="field-lbl">Why</span><div class="field-input" style="color:var(--inkMute);">Required — this is written into the audit trail</div></label>
+<div class="row tight" style="margin-bottom:9px;"><span class="btn btn-danger btn-sm">Add to blocklist</span><span class="btn btn-ghost btn-sm">Cancel</span></div>
+<div class="cap">The photo becomes a template and the image is discarded. A match on a future session declines it with FACE_BLOCKLIST_HIT and names this list. Adding a person here is your call, never the engine's — nothing is auto-added to a blocklist.</div>
+</div>
+</div>
+<div class="note info">
+<div class="nh">Suspect devices — a custom list, not a blocklist</div>
+<p style="margin:0;">Devices that trigger INJECTION_DETECTED land on a custom list for review rather than being blocked outright. A shared tablet at a store is the most likely thing on it, and blocking a register would be a bad afternoon.</p>
+</div>
+<div class="note plain">
+<div class="nh">Hashing</div>
+<p style="margin:0;">Document numbers, emails and phone numbers are stored as a hash with a masked display value, so a stolen copy of the lists is not a list of your customers. IP entries hold CIDR text and countries hold codes, because both need to be matched by range.</p>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========================= 9 · INTEGRATE ========================= -->
+<div class="tabpanel" id="tab-integrate">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">0</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri on" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb">Connect</div>
+<h2>Integrate</h2>
+<div class="ph-sub">Everything another system needs to start a verification and hear the result. The paths and field names match Didit's, so the site changes two environment variables and one content-security-policy host.</div>
+</div>
+<div class="ph-act">
+<span class="hbadge"><span class="dot" style="background:var(--good)"></span>API reachable</span>
+<span class="btn btn-secondary btn-sm">API reference</span>
+<span class="btn btn-accent btn-sm">New API key</span>
+</div>
+</div>
+
+<div class="two-pane" style="grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);">
+<div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">API keys</span><span class="pill pill-neutral sm">3</span></div>
+<div class="card-body" style="padding:0;">
+<table class="tbl" style="border:0;border-radius:0;">
+<thead><tr><th>Name</th><th style="width:140px;">Key</th><th style="width:150px;">Scopes</th><th style="width:110px;">Last used</th><th style="width:70px;"></th></tr></thead>
+<tbody>
+<tr><td><b>hyperwolf-backend</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">the live site</div></td><td class="mono">hwv_live_7f2a…</td><td class="dim">sessions:write<br>sessions:read</td><td class="num dim">2 min ago</td><td><span class="btn btn-ghost btn-xs">Revoke</span></td></tr>
+<tr><td><b>pos-register</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">check-in seam</div></td><td class="mono">hwv_live_c418…</td><td class="dim">sessions:write<br>sessions:read</td><td class="num dim">14 min ago</td><td><span class="btn btn-ghost btn-xs">Revoke</span></td></tr>
+<tr><td><b>migration-readonly</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">import tooling</div></td><td class="mono">hwv_live_9b03…</td><td class="dim">sessions:read<br>lists:read</td><td class="num dim">Sep 06</td><td><span class="btn btn-ghost btn-xs">Revoke</span></td></tr>
+</tbody>
+</table>
+</div>
+<div class="card-body" style="border-top:1px solid var(--hairline);">
+<div class="note warn">
+<div class="nh">Shown once</div>
+<p style="margin:0;">The full key appears one time, at creation. We store a hash, so we genuinely cannot show it to you again — if it is lost, revoke it and make another. Revoking takes effect on the next request, not at the end of a session.</p>
+</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Start a session</span><span class="pill pill-neutral sm">POST /v3/session/</span></div>
+<div class="card-body">
+<div class="codeblock"><span class="c"># the site creates the session, then redirects the customer to url</span>
+curl -X POST https://verify.hyperwolf.com<span class="k">/v3/session/</span> \
+  -H <span class="s">"x-api-key: hwv_live_7f2a…"</span> \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d '{
+    <span class="k">"workflow_id"</span>: <span class="s">"2fdbd4d4-…-ee1448"</span>,
+    <span class="k">"vendor_data"</span>: <span class="s">"email:9f4c…"</span>,
+    <span class="k">"callback"</span>: <span class="s">"https://hyperwolf.com/verify/return"</span>,
+    <span class="k">"expected_details"</span>: { <span class="k">"first_name"</span>: <span class="s">"Jess"</span>, <span class="k">"last_name"</span>: <span class="s">"Okonta"</span> },
+    <span class="k">"language"</span>: <span class="s">"en"</span>
+  }'
+
+<span class="c"># 201</span>
+{ <span class="k">"session_id"</span>: <span class="s">"8f2c1a44-…-9db7"</span>,
+  <span class="k">"session_token"</span>: <span class="s">"eyJhbGciOi…"</span>,
+  <span class="k">"url"</span>: <span class="s">"https://verify.hyperwolf.com/v/8f2c1a44-…-9db7"</span>,
+  <span class="k">"status"</span>: <span class="s">"Not Started"</span>,
+  <span class="k">"workflow_id"</span>: <span class="s">"2fdbd4d4-…-ee1448"</span>,
+  <span class="k">"vendor_data"</span>: <span class="s">"email:9f4c…"</span> }</div>
+<div class="cap">Field names are Didit's, verbatim. <code>GET /v3/session/{id}/decision/</code> returns the decision object with the same shape, plus <code>reviews[]</code> rebuilt from the analyst trail.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Try the engine</span><span class="pill pill-accent sm">no session created</span></div>
+<div class="card-body">
+<p style="font-size:12px;color:var(--ink2);line-height:1.6;margin:0 0 10px;">Upload a document and a selfie and see exactly what the engine returns — the same nodes and scores an analyst sees, with nothing written to the database and no person record created. This is how you check a threshold change before you save it.</p>
+<div class="grid2" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+<div class="shot"><div class="frame"><div class="ftxt">Drop a document<br>front / back</div></div><div class="scap"><span class="grow">image · ≤ 8 MB</span></div></div>
+<div class="shot"><div class="frame"><div class="ftxt">Drop a selfie<br>or a short clip</div></div><div class="scap"><span class="grow">image or webm · ≤ 25 MB</span></div></div>
+</div>
+<div class="row mid"><span class="btn btn-accent btn-sm">Run the checks</span><span class="mono" style="font-size:10.5px;color:var(--inkMute);">Runs against workflow v4 · typical 2.4 s · counted in Usage as a real check</span></div>
+</div>
+</div>
+
+</div>
+<div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Webhook destinations</span><span class="pill pill-good sm">2 active</span><span class="btn btn-ghost btn-xs">Add</span></div>
+<div class="card-body">
+<div class="tog" style="margin-bottom:8px;"><span class="sw on"></span><div class="tg-x"><div class="tg-t mono" style="font-size:12px;">https://hyperwolf.com/api/idv/webhook</div><div class="tg-s">status.updated · decision.completed · session.expired · secret <span class="mono">whsec_…4e91</span></div></div></div>
+<div class="tog" style="margin-bottom:8px;"><span class="sw on"></span><div class="tg-x"><div class="tg-t mono" style="font-size:12px;">https://ops.hyperwolf.com/hooks/verify</div><div class="tg-s">review.enqueued · decision.completed · secret <span class="mono">whsec_…b207</span></div></div></div>
+<div class="tog offd"><span class="sw"></span><div class="tg-x"><div class="tg-t mono" style="font-size:12px;">https://staging.hyperwolf.com/api/idv/webhook</div><div class="tg-s">paused since 2026-09-03 · 41 dead deliveries not retried</div></div></div>
+<div class="cap">Signed like Didit's: <code>X-Signature-V2</code> over a canonicalised body plus <code>X-Timestamp</code>. One verifier handles both imported and native events.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Delivery log</span><span class="pill pill-warn sm">1 retrying</span><span class="btn btn-ghost btn-xs">Retry all failed</span></div>
+<div class="card-body" style="padding:0;">
+<table class="tbl" style="border:0;border-radius:0;">
+<thead><tr><th style="width:74px;">Session</th><th>Event</th><th style="width:66px;">Try</th><th style="width:84px;">Result</th><th style="width:96px;">When</th></tr></thead>
+<tbody>
+<tr><td class="id">#14162</td><td class="dim">decision.completed</td><td class="num">1</td><td><span class="pill pill-good sm">200</span></td><td class="num dim">14:41:07</td></tr>
+<tr><td class="id">#14161</td><td class="dim">status.updated</td><td class="num">1</td><td><span class="pill pill-good sm">200</span></td><td class="num dim">14:36:52</td></tr>
+<tr><td class="id">#14160</td><td class="dim">review.enqueued</td><td class="num">2</td><td><span class="pill pill-warn sm">502</span></td><td class="num dim">14:03:11</td></tr>
+<tr><td class="id">#14158</td><td class="dim">status.updated</td><td class="num">1</td><td><span class="pill pill-good sm">200</span></td><td class="num dim">13:12:44</td></tr>
+<tr><td class="id">#14156</td><td class="dim">decision.completed</td><td class="num">1</td><td><span class="pill pill-good sm">200</span></td><td class="num dim">11:58:20</td></tr>
+<tr><td class="id">#14149</td><td class="dim">session.abandoned</td><td class="num">3</td><td><span class="pill pill-bad sm">dead</span></td><td class="num dim">09:48:02</td></tr>
+</tbody>
+</table>
+</div>
+<div class="card-body" style="border-top:1px solid var(--hairline);">
+<div class="cap">Retry schedule is 1 minute, then 4 minutes, then dead. A dead delivery is kept with its payload so you can replay it after you fix the receiver — nothing is silently discarded, and the count of dead deliveries is on the destination row above.</div>
+</div>
+</div>
+
+<div class="card" style="margin-bottom:12px;">
+<div class="card-head"><span class="ch-t">Hosted link</span></div>
+<div class="card-body">
+<div class="kv"><span class="k">Capture domain</span><span class="v mono">verify.hyperwolf.com</span></div>
+<div class="kv"><span class="k">Link shape</span><span class="v mono">/v/&lt;session token&gt;</span></div>
+<div class="kv"><span class="k">Valid for</span><span class="v mono">60 minutes</span></div>
+<div class="kv"><span class="k">Embeddable in</span><span class="v mono">hyperwolf.com · pos.hyperwolf.com</span></div>
+<div class="cap">A capture link is owner-only in the sense that matters: anyone holding it can finish that session. Send it to the customer, not into a group chat.</div>
+</div>
+</div>
+
+<div class="note info">
+<div class="nh">Didit-compatible facade</div>
+<p style="margin:0 0 7px;">Two extra paths exist purely so the site does not need a rewrite on day one: <code>POST /v2/session</code> and <code>GET /v2/session/{id}/decision</code> — the only two calls the backend makes today, answered with the same field names.</p>
+<p style="margin:0;">The facade does not soften anything. If a session is <b>In Review</b>, that is the string the site receives, exactly as Didit sends it now. Whether checkout should complete on <b>In Review</b> or wait for <b>Approved</b> is your ruling, and it is a change in the site, not in this facade.</p>
+</div>
+
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- =========================== 10 · USAGE =========================== -->
+<div class="tabpanel" id="tab-usage">
+<div class="stage">
+<div class="console">
+
+<div class="rail">
+<div class="brand"><div class="mark">V</div><div><div class="bname">Verify</div><div class="bsub">Hyperwolf</div></div></div>
+<div class="rsec">Operate</div>
+<div class="ri" data-goto="home"><span class="ric">◆</span>Home</div>
+<div class="ri" data-goto="verifications"><span class="ric">▤</span>Verifications<span class="rct">2.1K</span></div>
+<div class="ri" data-goto="review"><span class="ric">⚑</span>Review<span class="rct">0</span></div>
+<div class="ri"><span class="ric">☺</span>People</div>
+<div class="rsec">Configure</div>
+<div class="ri" data-goto="workflows"><span class="ric">⚙</span>Workflows<span class="rct">4</span></div>
+<div class="ri"><span class="ric">✎</span>Questionnaires</div>
+<div class="ri"><span class="ric">✽</span>Customization</div>
+<div class="ri" data-goto="lists"><span class="ric">☰</span>Lists<span class="rct">11</span></div>
+<div class="rsec">Connect</div>
+<div class="ri" data-goto="integrate"><span class="ric">⇄</span>Integrate</div>
+<div class="ri on" data-goto="usage"><span class="ric">◷</span>Usage</div>
+<div class="ri"><span class="ric">⚒</span>Settings</div>
+<div class="rfoot">Engine <b>hw-idv 0.4.1</b><br>Region <b>us-west-2</b><br>You are <b>Ops</b> · admin</div>
+</div>
+
+<div class="main">
+<div class="pagehead">
+<div>
+<div class="ph-eb">Connect</div>
+<h2>Usage</h2>
+<div class="ph-sub">What ran, how often, and what it cost. The cumulative column is your Didit history; the month column is the run rate. There is no invented price anywhere on this screen.</div>
+</div>
+<div class="ph-act">
+<div class="sel">September 2026 <span class="caret">▾</span></div>
+<div class="sel">All workflows <span class="caret">▾</span></div>
+<span class="btn btn-secondary btn-sm">Export</span>
+</div>
+</div>
+
+<div class="grid4" style="margin-bottom:12px;">
+<div class="stat accent"><div class="sl">Checks this month</div><div class="sv">154</div><div class="ss">ID verifications <span class="pill pill-neutral sm">real</span></div></div>
+<div class="stat"><div class="sl">Cumulative, all time</div><div class="sv">9,391</div><div class="ss">since the Didit account opened <span class="pill pill-neutral sm">real</span></div></div>
+<div class="stat good"><div class="sl">Cost on the Hyperwolf engine</div><div class="sv">$0.00</div><div class="ss">no per-check fee · hosting is not metered here</div></div>
+<div class="stat info"><div class="sl">Paid to Didit, lifetime</div><div class="sv">$2,657.89</div><div class="ss">of which $2,223.60 was white-label sessions <span class="pill pill-neutral sm">real</span></div></div>
+</div>
+
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr>
+<th>Feature</th>
+<th class="sortable" style="width:118px;">This month <span class="sc">↕</span></th>
+<th class="sortable sorted" style="width:118px;">Cumulative <span class="sc">▼</span></th>
+<th style="width:132px;">Free allowance</th>
+<th style="width:150px;">Didit price</th>
+<th>Cost on your engine</th>
+</tr></thead>
+<tbody>
+<tr><td><b>ID Verification</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">document read + decision</div></td><td class="num" style="font-weight:700;">154</td><td class="num" style="font-weight:700;">9,391</td><td class="dim mono">154 / 500 this month</td><td class="dim mono">free to 500, then metered</td><td><span class="pill pill-good sm">no per-check fee (own engine)</span></td></tr>
+<tr><td><b>Device &amp; IP</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">Tor, hosting, VPN, geolocation</div></td><td class="num" style="font-weight:700;">153</td><td class="num" style="font-weight:700;">9,345</td><td class="dim mono">within allowance</td><td class="dim mono">bundled</td><td><span class="pill pill-good sm">no per-check fee (own engine)</span></td></tr>
+<tr><td><b>Face Match</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">selfie against the document portrait</div></td><td class="num" style="font-weight:700;">153</td><td class="num" style="font-weight:700;">7,877</td><td class="dim mono">within allowance</td><td class="dim mono">bundled</td><td><span class="pill pill-good sm">no per-check fee (own engine)</span></td></tr>
+<tr><td><b>Passive Liveness</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">open model · uncertified on your engine</div></td><td class="num" style="font-weight:700;">152</td><td class="num" style="font-weight:700;">7,798</td><td class="dim mono">within allowance</td><td class="dim mono">bundled</td><td><span class="pill pill-good sm">no per-check fee (own engine)</span></td></tr>
+<tr><td><b>White Label Sessions</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">your branding on the capture page</div></td><td class="num dim">0</td><td class="num" style="font-weight:700;">9,091</td><td class="dim mono">none — never free</td><td class="dim mono">$0.20 each · $2,223.60 lifetime</td><td><span class="pill pill-good sm">no fee — it is your page</span></td></tr>
+<tr><td><b>Face Search (1:N)</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">duplicate person, face blocklist</div></td><td class="num" style="font-weight:700;">153</td><td class="num dim">n/a on Didit</td><td class="dim mono">—</td><td class="dim mono">not purchased</td><td><span class="pill pill-good sm">no per-check fee (own engine)</span></td></tr>
+<tr><td><b>Age Estimation</b><div class="em mono" style="font-size:10px;color:var(--inkMute);">advisory band only</div></td><td class="num" style="font-weight:700;">154</td><td class="num dim">n/a on Didit</td><td class="dim mono">—</td><td class="dim mono">separate workflow there</td><td><span class="pill pill-good sm">no per-check fee (own engine)</span></td></tr>
+<tr><td><b>idVerificationLookup</b> <span class="pill pill-neutral sm">Didit line item</span><div class="em mono" style="font-size:10px;color:var(--inkMute);">appears on your invoice, unexplained in their console</div></td><td class="num dim">0</td><td class="num dim">—</td><td class="dim mono">—</td><td class="dim mono">$0.45</td><td class="dim">not run here</td></tr>
+<tr><td><b>idVerificationWallet</b> <span class="pill pill-neutral sm">Didit line item</span><div class="em mono" style="font-size:10px;color:var(--inkMute);">appears on your invoice, unexplained in their console</div></td><td class="num dim">0</td><td class="num dim">—</td><td class="dim mono">—</td><td class="dim mono">$0.35</td><td class="dim">not run here</td></tr>
+</tbody>
+</table>
+</div>
+<div class="tblfoot">
+<span class="mono">9 features</span>
+<span style="color:var(--inkFaint);">·</span>
+<span>Cumulative and price columns are read from your Didit console on 2026-09-08 <span class="pill pill-neutral sm">real</span></span>
+<span class="grow"></span>
+<span class="mono">Run rate ~150 / month · inside the 500 free tier</span>
+</div>
+
+<div class="grid2" style="margin-top:13px;align-items:start;">
+<div class="note plain">
+<div class="nh">The honest version of "what does this save"</div>
+<p style="margin:0 0 7px;">At today's ~150 sessions a month you are inside Didit's free tier for the checks themselves. The bill is white-label sessions at $0.20 — $2,223.60 of the $2,657.89 you have paid in total. Running your own engine removes that line and the per-check exposure if volume grows, and it costs you a server instead.</p>
+<p style="margin:0;">This screen will not tell you the server costs $X a month, because nothing here meters it. Inventing a number to make a saving look bigger is the kind of thing that gets discovered later and makes every other number on the page suspect.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<div class="card">
+<div class="card-head"><span class="ch-t">Cumulative against this month</span></div>
+<div class="card-body">
+<div class="row mid" style="justify-content:space-between;margin-bottom:5px;"><span style="font-size:11.5px;font-weight:600;">ID Verification</span><span class="mono" style="font-size:11px;">154 of 9,391</span></div>
+<div class="bar-track" style="margin-bottom:9px;"><span class="bar-fill" style="width:100%;background:var(--surface3)"></span></div>
+<div class="row mid" style="justify-content:space-between;margin-bottom:5px;"><span style="font-size:11.5px;font-weight:600;">Face Match</span><span class="mono" style="font-size:11px;">153 of 7,877</span></div>
+<div class="bar-track" style="margin-bottom:9px;"><span class="bar-fill" style="width:84%;background:var(--surface3)"></span></div>
+<div class="row mid" style="justify-content:space-between;margin-bottom:5px;"><span style="font-size:11.5px;font-weight:600;">Passive Liveness</span><span class="mono" style="font-size:11px;">152 of 7,798</span></div>
+<div class="bar-track"><span class="bar-fill" style="width:83%;background:var(--surface3)"></span></div>
+<div class="cap">Face match and liveness sit about 1,500 below document reads, which is the trace of the no-selfie hemp workflow. Those sessions will import with no liveness node at all, and the session page shows that as “not run”, never as a pass.</div>
+</div>
+</div>
+<div class="note warn">
+<div class="nh">One correction worth keeping in view</div>
+<p style="margin:0;">The figures in Didit's console are cumulative, not monthly. An earlier brief read them as a monthly rate and was out by roughly sixty times. Every count on this screen says which one it is in the column header for that reason.</p>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- =========================== 11 · STATES =========================== -->
+<div class="tabpanel" id="tab-states">
+<div class="intro">
+<div class="card" style="padding:16px 18px;">
+<div class="eyebrow">Every list, every panel, every time</div>
+<h2>Nothing on this console ever renders nothing. A panel is either loading, empty with a sentence explaining why, in error with a way out, or showing real data — and it never falls back to a fixture number to look busy.</h2>
+<p>The skeleton keeps the header it will have when loaded, so the page does not jump when data arrives. The empty state says what would be here and when. The error state names what is not reachable, promises nothing was changed, and offers to try again.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="grid2" style="align-items:start;margin-bottom:14px;">
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Verifications</span><span class="pill pill-neutral sm">loading</span><span class="btn btn-ghost btn-xs">Export CSV</span></div>
+<div class="card-body" style="padding:0;">
+<table class="tbl" style="border:0;border-radius:0;">
+<thead><tr><th style="width:70px;">#</th><th>Person</th><th style="width:118px;">Document</th><th style="width:110px;">Status</th><th style="width:110px;">Created</th></tr></thead>
+<tbody>
+<tr><td><span class="skel" style="width:44px;"></span></td><td><div class="who"><span class="skel" style="width:24px;height:24px;border-radius:99px;"></span><span class="skel" style="width:118px;"></span></div></td><td><span class="skel" style="width:82px;"></span></td><td><span class="skel" style="width:66px;height:16px;border-radius:99px;"></span></td><td><span class="skel" style="width:74px;"></span></td></tr>
+<tr><td><span class="skel" style="width:44px;"></span></td><td><div class="who"><span class="skel" style="width:24px;height:24px;border-radius:99px;"></span><span class="skel" style="width:96px;"></span></div></td><td><span class="skel" style="width:82px;"></span></td><td><span class="skel" style="width:66px;height:16px;border-radius:99px;"></span></td><td><span class="skel" style="width:74px;"></span></td></tr>
+<tr><td><span class="skel" style="width:44px;"></span></td><td><div class="who"><span class="skel" style="width:24px;height:24px;border-radius:99px;"></span><span class="skel" style="width:132px;"></span></div></td><td><span class="skel" style="width:82px;"></span></td><td><span class="skel" style="width:66px;height:16px;border-radius:99px;"></span></td><td><span class="skel" style="width:74px;"></span></td></tr>
+<tr><td><span class="skel" style="width:44px;"></span></td><td><div class="who"><span class="skel" style="width:24px;height:24px;border-radius:99px;"></span><span class="skel" style="width:104px;"></span></div></td><td><span class="skel" style="width:82px;"></span></td><td><span class="skel" style="width:66px;height:16px;border-radius:99px;"></span></td><td><span class="skel" style="width:74px;"></span></td></tr>
+</tbody>
+</table>
+</div>
+<div class="card-body" style="border-top:1px solid var(--hairline);"><div class="cap">The header, the buttons and the column labels are already correct while the rows load. Only the cells shimmer, so nothing moves when the data lands.</div></div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Review</span><span class="pill pill-good sm">queue clear</span></div>
+<div class="state">
+<div class="state-plate">✓</div>
+<h4>Nothing is waiting on you</h4>
+<p>No session has needed a person in the last 30 days. When one does, it appears here with its reason codes and how long it has been waiting.</p>
+<div style="margin-top:13px;"><span class="btn btn-secondary btn-sm">See all verifications</span></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Volume</span><span class="pill pill-neutral sm">last 7 days</span></div>
+<div class="state">
+<div class="state-plate">◔</div>
+<h4>No sessions in the last 7 days</h4>
+<p>There is nothing to chart yet. Widen the range to 30 days, or start a session from the Verifications screen to see this fill in.</p>
+<div style="margin-top:13px;"><span class="btn btn-ghost btn-sm">Switch to 30 days</span></div>
+</div>
+<div class="card-body" style="border-top:1px solid var(--hairline);"><div class="cap">A window with nothing in it says so in words. It never draws a flat line at zero, because a flat line reads as “the system is broken” and a sentence does not.</div></div>
+</div>
+
+<div class="card">
+<div class="card-head"><span class="ch-t">Standings</span><span class="pill pill-bad sm">error</span></div>
+<div class="state">
+<div class="state-plate" style="background:var(--badSoft);color:var(--bad);">!</div>
+<h4>Verify isn't connected</h4>
+<p>Needs the wmdemo backend — not reachable right now. Sessions, reviews and lists will appear here once it connects.</p>
+<div style="margin-top:13px;"><span class="btn btn-secondary btn-sm">Try again</span></div>
+<div class="detail">GET /api/idv/sessions?limit=50 → ECONNREFUSED 127.0.0.1:8787<br>Nothing was changed. No session was created or decided.</div>
+</div>
+</div>
+
+</div>
+
+<div class="grid2" style="align-items:start;margin-bottom:14px;">
+<div class="card">
+<div class="card-head"><span class="ch-t">Backend up, engine down</span><span class="pill pill-warn sm">a distinct state</span></div>
+<div class="card-body">
+<div class="row mid" style="gap:9px;margin-bottom:11px;">
+<span class="hbadge"><span class="dot" style="background:var(--bad)"></span>Engine not reachable</span>
+<span class="hbadge"><span class="dot" style="background:var(--good)"></span>Console connected</span>
+</div>
+<p style="font-size:12px;color:var(--ink2);line-height:1.6;margin:0 0 10px;">The console reads and writes fine — you can look at history, edit a workflow, work the queue. What it cannot do is decide a new session, so anything that would need the engine says so before you start it, rather than after you have asked a customer to take a selfie.</p>
+<div class="kv"><span class="k">New session</span><span class="v" style="color:var(--bad);">blocked while the engine is down</span></div>
+<div class="kv"><span class="k">Sessions in flight</span><span class="v">held at In Progress, retried automatically</span></div>
+<div class="kv"><span class="k">Register check-in</span><span class="v">fails closed unless the manual path is enabled</span></div>
+<div class="kv"><span class="k">Analyst decisions</span><span class="v" style="color:var(--good);">still work — they are people, not models</span></div>
+<div class="cap">Health is a separate probe from the write probe, so “the console is up but the engine is not” is a state the badge can actually express instead of one grey dot for everything.</div>
+</div>
+</div>
+<div class="card">
+<div class="card-head"><span class="ch-t">What the customer sees while the engine is down</span></div>
+<div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;">
+<div class="phone" style="width:212px;min-height:0;">
+<div class="ph-bar"><span class="pm">H</span><span class="pt">Paused</span><span class="pstep">—</span></div>
+<div class="ph-body" style="padding-bottom:10px;">
+<h5>Verification is paused</h5>
+<p>Our checking service is not responding right now. Try again in a few minutes — nothing you have done is lost.</p>
+<p class="small">If you are at a store, staff can check your ID at the counter.</p>
+</div>
+<div class="ph-foot"><div class="ph-btn sec">Try again</div></div>
+</div>
+<div style="flex:1;min-width:190px;">
+<div class="note plain" style="margin-bottom:10px;">
+<div class="nh">What it does not say</div>
+<p style="margin:0;">Not “something went wrong”, not an error code, and never a spinner that runs forever. A person who is told to come back in a few minutes comes back; a person watching a spinner leaves.</p>
+</div>
+<div class="note warn">
+<div class="nh">And at the register</div>
+<p style="margin:0;">The associate sees the same paused state plus one line telling them what they are allowed to do about it — which depends on whether you turned the manual path on.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="grid2" style="align-items:start;">
+<div class="card">
+<div class="card-head"><span class="ch-t">Imported sessions</span><span class="imported">Didit</span></div>
+<div class="card-body">
+<div class="note info" style="margin-bottom:11px;">
+<div class="nh">Verified by Didit, imported 2026-09-08</div>
+<p style="margin:0;">This session was decided by Didit's engine before the migration. The photos, the status and the trail came across; the scores are theirs, produced by models we do not have. It is excluded from every accuracy panel on Home, because counting someone else's work as ours would make the first month of engine numbers meaningless.</p>
+</div>
+<div class="kv"><span class="k">Sessions imported</span><span class="v mono">1,946</span></div>
+<div class="kv"><span class="k">Decided by the Hyperwolf engine</span><span class="v mono">154</span></div>
+<div class="kv"><span class="k">Import runs</span><span class="v mono">4 · all reconciled</span></div>
+<div class="kv"><span class="k">Rows read = inserted + unchanged + conflicts + rejected</span><span class="v" style="color:var(--good);">holds</span></div>
+<div class="cap">If that equation ever fails, the run is marked partial and says so on this screen rather than reporting a clean import that quietly lost rows.</div>
+</div>
+</div>
+<div class="card">
+<div class="card-head"><span class="ch-t">Screen that has not been built yet</span><span class="pill pill-neutral sm">route error</span></div>
+<div class="state">
+<div class="state-plate" style="background:var(--warnSoft);color:var(--warnText);">◇</div>
+<h4>Questionnaires didn't load</h4>
+<p>This screen's file is not on the page. Nothing is broken and nothing was changed — the route simply has nothing behind it yet.</p>
+<div class="detail">expected file: idv/screen-questionnaires.jsx<br>expected global: window.IdvQuestionnairesScreen<br>loaded by: Hyperwolf Verify.html</div>
+</div>
+<div class="card-body" style="border-top:1px solid var(--hairline);"><div class="cap">Naming the file and the global is deliberate: it turns a blank screen into a one-line fix for whoever opens it, instead of a bug report that says “Something went wrong”.</div></div>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px;">
+<div class="card-head"><span class="ch-t">The rules this concept holds itself to</span><span class="pill pill-accent sm">checked before it ships</span></div>
+<div class="card-body">
+<div class="grid3">
+<div class="tog"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">Tokens only</div><div class="tg-s">Every colour on all eleven tabs is a CSS variable copied from the design system. There is no hex outside the token block at the top of this file.</div></div></div>
+<div class="tog"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">Atoms only</div><div class="tg-s">Every composite here maps onto an existing primitive by name. Nothing new was invented to make a screenshot look better.</div></div></div>
+<div class="tog"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">Three states per list</div><div class="tg-s">Loading, empty and error for every table and panel — the four cards at the top of this tab are those states for the real screens.</div></div></div>
+<div class="tog"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">Exact status literals</div><div class="tg-s">All ten spellings are Didit's, because your site branches on the string and a prettier label would be a bug in someone else's code.</div></div></div>
+<div class="tog"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">Uncertified means uncertified</div><div class="tg-s">Every liveness number carries the caption, including in the workflow builder where you set the threshold.</div></div></div>
+<div class="tog"><span class="ckbox on">✓</span><div class="tg-x"><div class="tg-t">No invented prices</div><div class="tg-s">Usage says “no per-check fee (own engine)” and leaves hosting out, because nothing here meters it.</div></div></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+</body>
+</html>
