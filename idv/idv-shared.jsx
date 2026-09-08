@@ -121,18 +121,35 @@
   // down (no HWIdv seam / request failed outright), engine down (backend
   // answered but `ok:false`), or ok with the engine's real version.
   window.IdvShared.EngineBadge = function EngineBadge({ ms = 20000, size = 'sm' }) {
-    const poll = window.HWIdv ? window.HWIdv.usePoll('/api/idv/engine/health', ms) : { loading: false, error: 'no-live-seam', data: null };
+    // usePoll is a HOOK — it calls useState/useRef/useEffect/useCallback
+    // internally — so it must be called unconditionally, in the same order,
+    // on every render. The previous `window.HWIdv ? usePoll(...) : {...}`
+    // ternary skipped that call entirely on any render where HWIdv read as
+    // falsy and started calling it on a later render, which is exactly what
+    // produces React's "Rendered fewer hooks than expected than during the
+    // previous render" error. Script load order (Hyperwolf Verify.html loads
+    // idv-client.jsx, which sets window.HWIdv, before idv-shared.jsx or any
+    // screen) guarantees HWIdv already exists by the time this ever mounts —
+    // every other window.HWIdv.usePoll call site in this codebase (e.g.
+    // screen-integrate.jsx's EnginePanel) already calls it unguarded.
+    const poll = window.HWIdv.usePoll('/api/idv/engine/health', ms);
+
+    // Three states (plan §5.4 / docs/IDV-API-CONTRACT.md), told apart by the
+    // 503 EngineHealth BODY now surviving a non-2xx response (idv-client.jsx
+    // usePoll keeps `r.body` on `!r.ok` instead of discarding it):
+    //   1. backend unreachable — network failure or no live seam at all:
+    //      poll.error is set and no usable body ever arrived.
+    //   2. backend ok, engine ok:false — the body itself says so (503).
+    //   3. ok — the body says ok:true, show its version.
     let tone = 'neutral', icon = 'clock', label = 'Checking engine…';
-    if (poll.error) {
-      tone = 'neutral'; icon = 'plug'; label = 'Backend not connected';
-    } else if (poll.loading && !poll.data) {
-      tone = 'neutral'; icon = 'clock'; label = 'Checking engine…';
-    } else if (poll.data && poll.data.ok === false) {
+    if (poll.data && poll.data.ok === false) {
       tone = 'warn'; icon = 'zap'; label = 'Engine not reachable';
     } else if (poll.data && poll.data.ok) {
       tone = 'good'; icon = 'check-circle';
-      label = 'Verify engine' + (poll.data.version ? ` · v${poll.data.version}` : '');
-    } else {
+      label = 'Engine ok' + (poll.data.version ? ` · v${poll.data.version}` : '');
+    } else if (poll.error) {
+      tone = 'neutral'; icon = 'plug'; label = 'Backend not connected';
+    } else if (!poll.loading) {
       tone = 'neutral'; icon = 'plug'; label = 'Backend not connected';
     }
     return <Pill kind={tone} dot icon={icon} size={size} title={label}>{label}</Pill>;
@@ -143,7 +160,8 @@
   // and never silently blends into engine-accuracy panels.
   window.IdvShared.ImportedTag = function ImportedTag({ date, size = 'sm' }) {
     const fmtDate = window.HWIdv ? window.HWIdv.fmt.date : (d) => d;
-    return <Pill kind="neutral" size={size} icon="download">{`Verified by Didit, imported ${fmtDate(date)}`}</Pill>;
+    const label = date ? `Verified by Didit, imported ${fmtDate(date)}` : 'Verified by Didit, imported';
+    return <Pill kind="neutral" size={size} icon="download">{label}</Pill>;
   };
 
   // ── Skeleton wrappers ───────────────────────────────────────────────────

@@ -48,6 +48,19 @@
   };
   const SESSION_DETAIL_SOURCE = ['idv/screen-session.jsx', 'window.IdvSessionScreen'];
   const SESSION_DETAIL_RE = /^\/sessions\/[^/]+$/;
+  // Parametric detail/sub-routes — same shape as SESSION_DETAIL_RE, one per
+  // screen that already parses its own `:id`/`:tab` out of `props.path`
+  // (each file's own header comment flagged this exact gap and said fixing
+  // it was app.jsx's job, out of that file's scope): screen-people.jsx
+  // (`/customers/:id`), screen-workflows.jsx (`/workflows/:id`, its own
+  // WORKFLOW_ID_RE), screen-lists.jsx (`/lists/:id`), screen-settings.jsx
+  // (`/settings/:tab`, which also self-normalizes to `?tab=` on hashchange —
+  // this route is a defensive belt-and-braces match, not this file's only
+  // guard against that path shape).
+  const CUSTOMER_DETAIL_RE = /^\/customers\/[^/]+$/;
+  const WORKFLOW_DETAIL_RE = /^\/workflows\/[^/]+$/;
+  const LIST_DETAIL_RE = /^\/lists\/[^/]+$/;
+  const SETTINGS_TAB_RE = /^\/settings\/[^/]+$/;
 
   // Resolved at RENDER time (a function, not a constant) — see file header.
   const ROUTES = () => ([
@@ -60,20 +73,45 @@
     ['/usage', window.IdvUsageScreen],
     ['/settings', window.IdvSettingsScreen],
   ]);
+  // '#/verifications' is an alias of '/sessions' (this task's brief) —
+  // screen-home.jsx's own search box already navigates straight to the real
+  // '#/sessions?q=...' route (see that file's header comment for why), so
+  // this alias exists only for anyone who types or bookmarks '#/verifications'
+  // directly; it must resolve exactly like '/sessions' does, list or detail.
+  function normalizePath(path) {
+    if (path === '/verifications') return '/sessions';
+    if (path.indexOf('/verifications/') === 0) return '/sessions' + path.slice('/verifications'.length);
+    return path;
+  }
   function screenFor(path) {
+    path = normalizePath(path);
     if (SESSION_DETAIL_RE.test(path)) return window.IdvSessionScreen;
+    if (CUSTOMER_DETAIL_RE.test(path)) return window.IdvPeopleScreen;
+    if (WORKFLOW_DETAIL_RE.test(path)) return window.IdvWorkflowsScreen;
+    if (LIST_DETAIL_RE.test(path)) return window.IdvListsScreen;
+    if (SETTINGS_TAB_RE.test(path)) return window.IdvSettingsScreen;
     return (ROUTES().find(([p]) => p === path) || [])[1];
   }
   function sourceFor(path) {
+    path = normalizePath(path);
     if (SESSION_DETAIL_RE.test(path)) return SESSION_DETAIL_SOURCE;
+    if (CUSTOMER_DETAIL_RE.test(path)) return SCREEN_SOURCE['/customers'];
+    if (WORKFLOW_DETAIL_RE.test(path)) return SCREEN_SOURCE['/workflows'];
+    if (LIST_DETAIL_RE.test(path)) return SCREEN_SOURCE['/lists'];
+    if (SETTINGS_TAB_RE.test(path)) return SCREEN_SOURCE['/settings'];
     return SCREEN_SOURCE[path] || ['idv/screen' + path.replace(/\//g, '-') + '.jsx', 'that screen'];
   }
   const ROUTE_LABEL = { '/': 'Home', '/customers': 'Customers', '/sessions': 'Verifications',
     '/workflows': 'Workflows', '/lists': 'Lists', '/integrate': 'Integrate', '/usage': 'Usage', '/settings': 'Settings' };
   // Never "Something went wrong": an unlisted path is named from itself.
   function idvLabel(path) {
+    path = normalizePath(path);
     if (ROUTE_LABEL[path]) return ROUTE_LABEL[path];
     if (SESSION_DETAIL_RE.test(path)) return 'Verification · ' + path.replace('/sessions/', '');
+    if (CUSTOMER_DETAIL_RE.test(path)) return 'Customer · ' + path.replace('/customers/', '');
+    if (WORKFLOW_DETAIL_RE.test(path)) return 'Workflow · ' + path.replace('/workflows/', '');
+    if (LIST_DETAIL_RE.test(path)) return 'List · ' + path.replace('/lists/', '');
+    if (SETTINGS_TAB_RE.test(path)) return 'Settings · ' + path.replace('/settings/', '');
     return path.replace(/^\//, '').replace(/\//g, ' · ') || 'Verify';
   }
 
@@ -157,7 +195,11 @@
     }, []);
 
     const navigate = React.useCallback((href) => { location.hash = href; }, []);
-    const path = route.replace(/^#/, '').split('?')[0] || '/';
+    // Normalized once, here: everything downstream (screenFor/sourceFor/
+    // idvLabel, ctx.path, the nav highlight, the session-detail check) sees
+    // the resolved '/sessions/...' shape even when the operator navigated to
+    // the '#/verifications' alias, exactly as if they had used the real path.
+    const path = normalizePath(route.replace(/^#/, '').split('?')[0] || '/');
 
     const Screen = screenFor(path);
     const source = sourceFor(path);

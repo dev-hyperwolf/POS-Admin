@@ -71,6 +71,8 @@
     workflows: 'admin', questionnaires: 'admin', customization: 'admin',
     lists_manage: 'admin', keys: 'admin', webhooks: 'admin', team: 'admin',
     deletion: 'admin', override_declined: 'admin',
+    create_session: 'analyst', import: 'admin', view_media: 'viewer', download_pdf: 'viewer',
+    request_deletion: 'analyst', execute_deletion: 'admin',
   };
   function can(action) {
     var need = ACTION_MIN_ROLE[action];
@@ -120,7 +122,18 @@
       })
       .catch(networkError);
   }
-  function post(path, body) {
+  function post(path, body) { return writeVerb('POST', path, body); }
+  // patch()/put()/del() — same header/write-token/never-reject behaviour as
+  // post(), just a different HTTP method. Added so screens stop re-deriving
+  // this fetch wrapper locally (screen-session.jsx's verb(), screen-
+  // workflows.jsx's idvPatch(), screen-integrate.jsx's idvDelete(),
+  // screen-settings.jsx's writeJson() were all byte-for-byte copies of this
+  // same logic under a different name — each file's own header comment
+  // flagged it as a gap to close here).
+  function patch(path, body) { return writeVerb('PATCH', path, body); }
+  function put(path, body) { return writeVerb('PUT', path, body); }
+  function del(path, body) { return writeVerb('DELETE', path, body); }
+  function writeVerb(method, path, body) {
     var L = live();
     if (!L || typeof L.post !== 'function') {
       return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-live-seam', hint: null, gated: false });
@@ -130,7 +143,7 @@
     var headers = actorHeaders({ 'Content-Type': 'application/json' });
     var token = sameOrigin ? writeToken() : null;
     if (token) headers['x-hw-write-token'] = token; // header name from shared/hw-live.js L148
-    return fetch(url, { method: 'POST', credentials: 'omit', cache: 'no-store', headers: headers, body: JSON.stringify(body || {}) })
+    return fetch(url, { method: method, credentials: 'omit', cache: 'no-store', headers: headers, body: JSON.stringify(body || {}) })
       .then(function (res) {
         return res.json().then(function (j) { return finishPost(res, j, token); }, function () { return finishPost(res, null, token); });
       })
@@ -163,7 +176,12 @@
       return get(path).then(function (r) {
         if (!aliveRef.current) return;
         if (!r.ok) {
-          setS(function (prev) { return { loading: false, error: r.error || ('HTTP ' + r.code), data: prev.data }; });
+          // Keep the parsed body even on a non-2xx response (e.g. a 503
+          // EngineHealth shape with ok:false) — a caller that wants to tell
+          // "backend unreachable" (r.body == null) apart from "backend
+          // reachable but the engine isn't" (r.body present, ok:false)
+          // needs that body in `data`, not just the error string.
+          setS(function (prev) { return { loading: false, error: r.error || ('HTTP ' + r.code), data: r.body != null ? r.body : prev.data }; });
           return;
         }
         var v = r.body && r.body.idv_version;
@@ -227,5 +245,5 @@
     },
   };
 
-  window.HWIdv = { session: session, get: get, post: post, usePoll: usePoll, fmt: fmt, role: role, can: can };
+  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can };
 })();

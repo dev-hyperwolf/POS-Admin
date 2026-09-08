@@ -44,38 +44,6 @@
      pos/data.jsx and has no catalog for any of those to update. -->
 <script src="shared/hw-live.js" data-hw-live-lite="1"></script>
 
-<!-- Best-effort existence check for the idv/screen-*.jsx files listed in
-     docs/IDV-PLAN-2026-09-08.md §5.1 — other agents build those, not this
-     task, so most of them do not exist yet. This is NOT what keeps the page
-     from breaking (that is app.jsx's ROUTES()/SCREEN_SOURCE + ErrorState —
-     a screen tag that 404s simply never defines its window.Idv*Screen global,
-     exactly like every other app in this estate). It exists only so a
-     screen file can be checked directly from the console
-     (`window.__idvMissing`) without opening the network tab. Plain fetch,
-     not the script tag's own `onerror` — a <script type="text/babel"> is
-     never fetched by the BROWSER's native script loader at all (unrecognised
-     "type" aborts "prepare the script element" before any network request),
-     so that attribute is inert; @babel/standalone does its own fetch after
-     DOMContentLoaded. The literal onerror="" attribute is left on each babel
-     tag below anyway, harmlessly, in case a future browser or Babel version
-     changes that. -->
-<script>
-  window.__idvMissing = window.__idvMissing || {};
-  (function () {
-    var files = [
-      'idv/screen-home.jsx', 'idv/screen-people.jsx', 'idv/screen-sessions.jsx',
-      'idv/screen-session.jsx', 'idv/screen-review.jsx', 'idv/screen-workflows.jsx',
-      'idv/screen-questionnaires.jsx', 'idv/screen-customization.jsx', 'idv/screen-lists.jsx',
-      'idv/screen-integrate.jsx', 'idv/screen-usage.jsx', 'idv/screen-settings.jsx',
-    ];
-    files.forEach(function (f) {
-      fetch(f, { method: 'HEAD', cache: 'no-store' }).then(function (res) {
-        if (!res.ok) window.__idvMissing[f] = true;
-      }).catch(function () { window.__idvMissing[f] = true; });
-    });
-  })();
-</script>
-
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -96,24 +64,24 @@
 <script type="text/babel" src="idv/idv-shared.jsx"></script>
 <script type="text/babel" src="idv/idv-terms.jsx"></script>
 
-<!-- idv/screen-*.jsx — docs/IDV-PLAN-2026-09-08.md §5.1. Not built by this
-     task (other agents own them); each registers a window.Idv*Screen global
-     that idv/app.jsx resolves at render, so a missing one shows a named
-     ErrorState instead of a blank route or a broken page. onerror="" is
-     inert for type="text/babel" (see the note above) and is left in place
-     only as a harmless, spec-tolerant no-op. -->
-<script type="text/babel" src="idv/screen-home.jsx" onerror="window.__idvMissing['idv/screen-home.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-people.jsx" onerror="window.__idvMissing['idv/screen-people.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-sessions.jsx" onerror="window.__idvMissing['idv/screen-sessions.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-session.jsx" onerror="window.__idvMissing['idv/screen-session.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-review.jsx" onerror="window.__idvMissing['idv/screen-review.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-workflows.jsx" onerror="window.__idvMissing['idv/screen-workflows.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-questionnaires.jsx" onerror="window.__idvMissing['idv/screen-questionnaires.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-customization.jsx" onerror="window.__idvMissing['idv/screen-customization.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-lists.jsx" onerror="window.__idvMissing['idv/screen-lists.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-integrate.jsx" onerror="window.__idvMissing['idv/screen-integrate.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-usage.jsx" onerror="window.__idvMissing['idv/screen-usage.jsx']=true"></script>
-<script type="text/babel" src="idv/screen-settings.jsx" onerror="window.__idvMissing['idv/screen-settings.jsx']=true"></script>
+<!-- idv/screen-*.jsx — docs/IDV-PLAN-2026-09-08.md §5.1. Each registers a
+     window.Idv*Screen global that idv/app.jsx resolves at render time, so a
+     missing one (404, or simply not yet built) shows a named ErrorState
+     instead of a blank route or a broken page — detected purely from the
+     missing global, not from a HEAD-probe burst (removed: it was tripping
+     Babel's own loader). screen-review.jsx, screen-questionnaires.jsx and
+     screen-customization.jsx are gone — merged into Settings and
+     Verifications (idv/app.jsx's SCREEN_SOURCE/ROUTES no longer reference
+     them either). -->
+<script type="text/babel" src="idv/screen-home.jsx"></script>
+<script type="text/babel" src="idv/screen-people.jsx"></script>
+<script type="text/babel" src="idv/screen-sessions.jsx"></script>
+<script type="text/babel" src="idv/screen-session.jsx"></script>
+<script type="text/babel" src="idv/screen-workflows.jsx"></script>
+<script type="text/babel" src="idv/screen-lists.jsx"></script>
+<script type="text/babel" src="idv/screen-integrate.jsx"></script>
+<script type="text/babel" src="idv/screen-usage.jsx"></script>
+<script type="text/babel" src="idv/screen-settings.jsx"></script>
 
 <script type="text/babel" src="idv/app.jsx"></script>
 
