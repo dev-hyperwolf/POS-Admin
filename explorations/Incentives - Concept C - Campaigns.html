@@ -1,0 +1,2396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bounty — Concept C: Campaigns</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ── tokens — copied from pos/tokens.jsx via explorations/AOV Goals & Leaderboard.html ── */
+  :root{
+    --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+    --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+    --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+    --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+    --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+    --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+    --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r20:20px; --r999:999px;
+    --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+    --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+    --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+    --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+    --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+    --scrim:rgba(20,18,12,.42);
+    /* rail (the near-black nav column) */
+    --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+    --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+    /* P.hue — decorative wayfinding only, never status */
+    --hueBlue:#1F5FA8; --hueViolet:#6D4AC8; --hueTeal:#0E7C6B; --hueGreen:#2C7A34; --huePink:#B4306A;
+  }
+  [data-theme=dark]{
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentText:#FFD100;
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16); --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+    --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+    --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+    --scrim:rgba(0,0,0,.62);
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --hueBlue:#8FC2FF; --hueViolet:#B79CFF; --hueTeal:#67D6C4; --hueGreen:#8FD68B; --huePink:#F7A8C4;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg2);}
+  body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* ── doc chrome ─────────────────────────────────────────────────── */
+  .doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+    padding:12px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+  .doc-head h1{font-size:14.5px;font-weight:700;margin:0;letter-spacing:-.01em;}
+  .doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;}
+  .doc-head .sub b{color:var(--accent);font-weight:600;}
+  .seg{display:inline-flex;background:var(--railHover);border-radius:var(--r10);padding:3px;gap:2px;margin-left:auto;flex-wrap:wrap;}
+  .seg button{appearance:none;border:0;background:transparent;color:var(--railInk);font-family:var(--fontSans);
+    font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+  .seg button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+  .seg button:not(.active):hover{color:var(--railBright);background:var(--railHover);}
+  .theme-btn{appearance:none;border:1px solid var(--railHair);background:transparent;color:var(--railBright);
+    width:34px;height:34px;border-radius:var(--r8);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  .theme-btn:hover{background:var(--railHover);}
+
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block;}
+  .stage{max-width:1240px;margin:18px auto 72px;padding:0 22px;}
+
+  /* ── intro card ─────────────────────────────────────────────────── */
+  .intro{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+    padding:16px 18px;box-shadow:var(--shadowSm);margin-bottom:16px;}
+  .eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+  .intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.35;}
+  .intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;max-width:980px;}
+  .intro p:last-child{margin-bottom:0;}
+  .intro code,code.m{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+  .caption{font-size:11px;color:var(--inkMute);font-family:var(--fontMono);line-height:1.55;margin-top:9px;}
+  .caption b{color:var(--inkDim);font-weight:600;}
+
+  /* ── module shell (Engage skeleton: HW rail · module sidebar · topbar · main) ── */
+  .app{display:grid;grid-template-columns:74px 216px minmax(0,1fr);background:var(--bg);
+    border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;box-shadow:var(--shadowLg);margin-bottom:14px;}
+  .app.norail{grid-template-columns:minmax(0,1fr);}
+  .rail{background:var(--rail);padding:10px 0;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .rail .logo{width:34px;height:34px;border-radius:var(--r10);background:var(--accent);color:var(--accentInk);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;margin-bottom:8px;}
+  .rail .ri{width:62px;height:42px;border-radius:var(--r10);color:var(--railInk);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:2px;font-size:10px;position:relative;}
+  .rail .ri span{font-size:10px;letter-spacing:.01em;white-space:nowrap;}
+  .rail .ri.on{background:var(--railActive);color:var(--railBright);font-weight:700;}
+  .rail .ri.on::before{content:'';position:absolute;left:-8px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--accent);}
+  .rail hr{width:38px;border:0;border-top:1px solid var(--railHair);margin:6px 0;}
+
+  .side{border-right:1px solid var(--hairline2);background:var(--bg);display:flex;flex-direction:column;}
+  .side .sh{height:56px;display:flex;align-items:center;gap:9px;padding:0 14px;border-bottom:1px solid var(--hairline);}
+  .side .sq{width:22px;height:22px;border-radius:6px;background:var(--accent);}
+  .side .sh b{font-size:13.5px;font-weight:700;letter-spacing:-.01em;}
+  .side .grp{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--inkMute);
+    font-family:var(--fontMono);padding:14px 14px 5px;}
+  .side .it{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:12.5px;color:var(--ink2);
+    border-left:2px solid transparent;}
+  .side .it.on{background:var(--surface);box-shadow:var(--shadowSm);border-left-color:var(--accent);font-weight:600;color:var(--ink);}
+  .side .it .cnt{margin-left:auto;font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);}
+  .side .it.soon{color:var(--inkMute);}
+  .side .it .soontag{margin-left:auto;font-size:10px;font-family:var(--fontMono);color:var(--inkMute);
+    border:1px solid var(--hairline2);border-radius:var(--r999);padding:1px 6px;}
+  .side .foot{margin-top:auto;border-top:1px solid var(--hairline);padding:10px 14px;font-size:10px;
+    font-family:var(--fontMono);color:var(--inkMute);}
+
+  .topbar{height:56px;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--hairline);background:var(--bg);}
+  .topbar .tenant{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;
+    border:1px solid var(--hairline2);border-radius:var(--r8);padding:5px 9px;background:var(--surface);}
+  .topbar .tenant .in{width:20px;height:20px;border-radius:5px;background:var(--surface3);color:var(--ink2);
+    display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+  .topbar .crumbs{font-size:11.5px;color:var(--inkMute);font-family:var(--fontMono);}
+  .topbar .crumbs b{color:var(--ink2);font-weight:600;}
+  .topbar .fakesearch{margin-left:auto;display:inline-flex;align-items:center;gap:8px;min-width:210px;height:32px;
+    padding:0 10px;border:1px solid var(--hairline2);border-radius:var(--r8);background:var(--surface);
+    font-size:11.5px;color:var(--inkMute);}
+  .topbar .fakesearch kbd{margin-left:auto;font-family:var(--fontMono);font-size:10px;border:1px solid var(--hairline2);
+    border-radius:5px;padding:1px 5px;color:var(--inkMute);}
+  .topbar .rt{display:flex;align-items:center;gap:6px;}
+  .ibtn{width:32px;height:32px;border-radius:var(--r8);border:0;background:transparent;color:var(--ink2);
+    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
+  .ibtn:hover{background:var(--surface3);}
+  .av{border-radius:var(--r999);background:var(--surface3);color:var(--ink2);display:inline-flex;
+    align-items:center;justify-content:center;font-weight:700;flex:0 0 auto;}
+
+  .main{padding:22px;display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .main.tight{padding:18px;gap:14px;}
+  .phead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+  .phead h2{margin:0;font-size:30px;font-weight:700;text-transform:uppercase;letter-spacing:-.02em;line-height:1.05;}
+  .phead p{margin:6px 0 0;max-width:680px;font-size:13.5px;color:var(--inkMute);line-height:1.5;}
+  .phead .acts{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ── atoms ──────────────────────────────────────────────────────── */
+  .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);}
+  .card.sunken{background:var(--bg2);}
+  .card.p16{padding:16px;} .card.p20{padding:20px;} .card.p12{padding:12px;}
+  .chead{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--hairline);}
+  .chead .plate{width:28px;height:28px;border-radius:8px;background:var(--surface3);color:var(--ink2);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .chead h3{margin:0;font-size:13.5px;font-weight:700;flex:1;min-width:0;}
+  .cbody{padding:15px 16px;}
+  .grid{display:grid;gap:12px;}
+  .g-auto{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));}
+  .g-kpi{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));}
+  .g-2{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start;}
+  .g-split{grid-template-columns:minmax(0,1fr) 340px;align-items:start;}
+  @media (max-width:1080px){.g-2,.g-split{grid-template-columns:minmax(0,1fr);}}
+
+  .mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+    font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .pill.sm{padding:2px 7px 3px;font-size:10px;}
+  .pill .dot{width:6px;height:6px;border-radius:99px;background:currentColor;}
+  .p-good{background:var(--goodSoft);color:var(--good);}
+  .p-warn{background:var(--warnSoft);color:var(--warnText);}
+  .p-bad{background:var(--badSoft);color:var(--bad);}
+  .p-info{background:var(--infoSoft);color:var(--info);}
+  .p-neutral{background:var(--neutralSoft);color:var(--ink2);}
+  .p-accent{background:var(--accentSoft);color:var(--accentText);}
+  .p-dark{background:var(--ink);color:var(--bg);}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+    font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+    white-space:nowrap;border:1px solid transparent;background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+  .btn:hover{background:var(--surface3);}
+  .btn.accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+  .btn.accent:hover{background:var(--accentHover);}
+  .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .btn.ghost{background:transparent;border-color:transparent;color:var(--ink2);}
+  .btn.danger{color:var(--bad);border-color:var(--bad);background:var(--surface);}
+  .btn.sm{min-height:30px;padding:0 10px;font-size:11.5px;}
+  .btn.xs{min-height:26px;padding:0 9px;font-size:11px;}
+  .btn.full{width:100%;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+
+  .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+  .ic.s11{width:11px;height:11px;stroke-width:2;} .ic.s13{width:13px;height:13px;stroke-width:2;}
+  .ic.s14{width:14px;height:14px;stroke-width:2;} .ic.s20{width:20px;height:20px;}
+  .ic.s22{width:22px;height:22px;stroke-width:1.9;} .ic.s26{width:26px;height:26px;stroke-width:1.8;}
+
+  /* StatTile — hd-ui.jsx: 3px coloured top strip, hue wash, 28px icon chip, 30px mono value, optional bar */
+  .st{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;position:relative;}
+  .st .strip{height:3px;background:var(--hueBlue);}
+  .st .in{padding:13px 15px 14px;}
+  .st .row{display:flex;align-items:center;gap:9px;}
+  .st .chip{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .st .lbl{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute);}
+  .st .val{font-size:30px;font-weight:700;font-family:var(--fontMono);font-variant-numeric:tabular-nums;
+    line-height:1.05;margin-top:7px;letter-spacing:-.02em;}
+  .st .sub{font-size:11.5px;color:var(--inkDim);margin-top:4px;line-height:1.4;}
+  .st .bar{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden;margin-top:10px;}
+  .st .bar>i{display:block;height:100%;border-radius:99px;background:var(--hueBlue);}
+  .st.blue .strip,.st.blue .bar>i{background:var(--hueBlue);} .st.blue .chip{background:var(--infoSoft);color:var(--hueBlue);}
+  .st.teal .strip,.st.teal .bar>i{background:var(--hueTeal);} .st.teal .chip{background:var(--surface3);color:var(--hueTeal);}
+  .st.violet .strip,.st.violet .bar>i{background:var(--hueViolet);} .st.violet .chip{background:var(--surface3);color:var(--hueViolet);}
+  .st.green .strip,.st.green .bar>i{background:var(--hueGreen);} .st.green .chip{background:var(--surface3);color:var(--hueGreen);}
+  .st.pink .strip,.st.pink .bar>i{background:var(--huePink);} .st.pink .chip{background:var(--surface3);color:var(--huePink);}
+
+  /* BarMeter */
+  .meter{height:8px;border-radius:99px;background:var(--surface3);overflow:hidden;}
+  .meter>i{display:block;height:100%;border-radius:99px;background:var(--info);}
+  .meter.h6{height:6px;} .meter.h5{height:5px;}
+  .meter>i.good{background:var(--good);} .meter>i.accent{background:var(--accent);}
+  .meter>i.warn{background:var(--warn);} .meter>i.violet{background:var(--hueViolet);}
+
+  /* DataTable convention */
+  table.dt{width:100%;border-collapse:collapse;background:var(--surface);}
+  .dtwrap{border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;}
+  .dtwrap .scroll{overflow-x:auto;}
+  table.dt thead th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--inkDim);background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+  table.dt tbody td{padding:11px 14px;border-top:1px solid var(--hairline);vertical-align:middle;font-size:12.5px;}
+  table.dt tbody tr:first-child td{border-top:0;}
+  table.dt tbody tr.me td{background:var(--accentSoft);}
+  table.dt tbody tr.dense td{padding:8px 14px;}
+  table.dt tfoot td{padding:10px 14px;border-top:1px solid var(--hairline2);background:var(--surface2);
+    font-size:11.5px;color:var(--inkDim);}
+  .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:600;}
+  .rk{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:700;color:var(--inkDim);width:26px;display:inline-block;}
+  .rk1{background:var(--accentSoft);color:var(--accentText);border-radius:var(--r999);padding:2px 8px;width:auto;}
+
+  /* freshness line */
+  .fresh{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--fontMono);font-size:11px;color:var(--inkMute);
+    line-height:1.5;}
+  .fresh i{font-style:normal;display:inline-flex;align-items:center;gap:6px;}
+  .fresh .d{width:6px;height:6px;border-radius:99px;background:var(--good);flex:0 0 auto;}
+  .fresh .d.warn{background:var(--warn);} .fresh .d.bad{background:var(--bad);} .fresh .d.off{background:var(--inkFaint);}
+
+  /* snaps story circles */
+  .snaps{display:flex;gap:14px;overflow-x:auto;padding:2px 2px 4px;}
+  .snap{flex:0 0 auto;width:92px;text-align:center;}
+  .snap .ring{width:64px;height:64px;border-radius:99px;margin:0 auto;padding:2px;
+    border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;}
+  .snap .ring.seen{border-color:var(--hairline3);}
+  .snap .ring .fill{width:100%;height:100%;border-radius:99px;background:var(--surface3);color:var(--ink2);
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;letter-spacing:-.02em;}
+  .snap .nm{font-size:11.5px;font-weight:600;margin-top:6px;line-height:1.25;}
+  .snap .mt{font-size:10px;font-family:var(--fontMono);color:var(--inkMute);margin-top:2px;}
+
+  /* bounty card */
+  .cc{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+    display:flex;flex-direction:column;overflow:hidden;}
+  .cc .top{padding:14px 16px 12px;}
+  .cc .badges{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+  .cc h3{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em;}
+  .cc .rule{margin:6px 0 0;font-size:12.5px;color:var(--inkDim);line-height:1.5;}
+  .cc .bounty{border-top:1px solid var(--hairline);background:var(--surface2);padding:11px 16px;
+    display:flex;flex-direction:column;gap:7px;}
+  .cc .prow{display:flex;align-items:center;gap:9px;font-size:12.5px;}
+  .cc .prow .pl{width:20px;font-family:var(--fontMono);font-weight:700;color:var(--inkMute);font-size:11.5px;}
+  .cc .prow .pn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .cc .prow .pv{font-family:var(--fontMono);font-variant-numeric:tabular-nums;color:var(--ink2);}
+  .cc .prow.first .pl{color:var(--accentText);}
+  .cc .mine{border-top:1px solid var(--hairline);padding:11px 16px;display:flex;flex-direction:column;gap:7px;}
+  .cc .mine .line{display:flex;align-items:baseline;gap:8px;font-size:12.5px;}
+  .cc .mine .line b{font-size:13.5px;}
+  .cc .foot{margin-top:auto;border-top:1px solid var(--hairline);padding:10px 16px;display:flex;
+    align-items:center;gap:10px;font-family:var(--fontMono);font-size:11px;color:var(--inkMute);flex-wrap:wrap;}
+  .cc .foot a{color:var(--info);text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;}
+
+  /* status board */
+  .board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;}
+  @media (max-width:1080px){.board{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  .col{background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r12);padding:10px;min-height:150px;}
+  .col .ch{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
+  .col .ch .t{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkDim);}
+  .col .ch .n{margin-left:auto;font-family:var(--fontMono);font-size:11px;color:var(--inkMute);}
+  .chip{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:9px 10px;margin-bottom:7px;}
+  .chip .nm{font-size:12.5px;font-weight:600;line-height:1.3;}
+  .chip .mt{font-size:10px;font-family:var(--fontMono);color:var(--inkMute);margin-top:4px;line-height:1.4;}
+  .chip.sel{border-color:var(--hairline3);box-shadow:var(--shadowSm);}
+
+  /* stepper */
+  .steps{display:flex;gap:2px;justify-content:space-between;position:relative;margin-bottom:4px;}
+  .step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;padding-top:2px;}
+  .step:not(:first-child)::before{content:'';position:absolute;top:16px;right:50%;width:100%;height:2px;background:var(--hairline2);}
+  .step .dot{position:relative;z-index:1;width:32px;height:32px;border-radius:99px;background:var(--surface3);
+    color:var(--inkMute);display:flex;align-items:center;justify-content:center;font-family:var(--fontMono);
+    font-weight:700;font-size:12px;border:1px solid var(--hairline2);}
+  .step.done .dot{background:var(--goodSoft);color:var(--good);border-color:transparent;}
+  .step.now .dot{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .step .lb{font-size:11px;font-weight:600;color:var(--inkMute);text-align:center;line-height:1.3;}
+  .step.now .lb{color:var(--ink);}
+
+  /* fields */
+  .flabel{font-size:11px;font-weight:700;color:var(--inkDim);letter-spacing:.03em;text-transform:uppercase;
+    margin-bottom:5px;display:block;}
+  .finput{width:100%;min-height:40px;padding:0 12px;border-radius:var(--r8);border:1px solid var(--hairline3);
+    background:var(--surface);font-family:var(--fontMono);font-size:13px;color:var(--ink);display:flex;align-items:center;}
+  .finput.sans{font-family:var(--fontSans);font-size:12.5px;}
+  .finput .ph{color:var(--inkMute);}
+  .fhint{font-size:11px;color:var(--inkMute);margin-top:4px;line-height:1.5;}
+  .choice{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid var(--hairline2);
+    border-radius:var(--r10);background:var(--surface);}
+  .choice.on{border-color:var(--ink);box-shadow:var(--shadowSm);}
+  .choice .rd{width:16px;height:16px;border-radius:99px;border:1px solid var(--hairline3);flex:0 0 auto;margin-top:1px;}
+  .choice.on .rd{border:5px solid var(--ink);}
+  .choice .t{font-size:12.5px;font-weight:600;}
+  .choice .s{font-size:11.5px;color:var(--inkMute);margin-top:2px;line-height:1.45;}
+  .segctl{display:inline-flex;background:var(--surface3);border-radius:var(--r10);padding:3px;gap:2px;flex-wrap:wrap;}
+  .segctl button{appearance:none;border:0;background:transparent;color:var(--inkDim);font-family:var(--fontSans);
+    font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer;min-height:30px;}
+  .segctl button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+  .tokrow{display:flex;gap:6px;flex-wrap:wrap;}
+  .tok{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:4px 9px;
+    border-radius:var(--r999);background:var(--surface3);color:var(--ink2);border:1px solid var(--hairline2);}
+
+  /* summary sentence */
+  .summary{background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r12);padding:14px 16px;}
+  .summary .s{font-size:14px;line-height:1.6;color:var(--ink);}
+  .summary .s em{font-style:normal;font-weight:700;background:var(--accentSoft);color:var(--accentText);
+    border-radius:5px;padding:0 4px;}
+
+  /* ledger / wallet cards */
+  .wal{display:flex;align-items:center;gap:12px;padding:13px 16px;border-top:1px solid var(--hairline);}
+  .wal:first-child{border-top:0;}
+  .wal .pl{width:34px;height:34px;border-radius:var(--r10);background:var(--surface3);color:var(--ink2);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .wal .bd{flex:1;min-width:0;}
+  .wal .t{font-size:13px;font-weight:700;}
+  .wal .m{font-size:11px;font-family:var(--fontMono);color:var(--inkMute);margin-top:3px;line-height:1.45;}
+  .wal .amt{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:700;white-space:nowrap;}
+
+  /* story player */
+  .player{width:300px;border:1px solid var(--hairline2);border-radius:var(--r16);overflow:hidden;background:var(--surface);
+    box-shadow:var(--shadowMd);}
+  .player .dots{display:flex;gap:4px;padding:10px 12px 0;}
+  .player .dots i{flex:1;height:3px;border-radius:99px;background:var(--hairline2);display:block;}
+  .player .dots i.on{background:var(--accent);} .player .dots i.past{background:var(--inkFaint);}
+  .player .media{margin:10px 12px 0;height:150px;border-radius:var(--r10);background:var(--surface3);
+    display:flex;align-items:center;justify-content:center;color:var(--inkMute);font-size:11px;font-family:var(--fontMono);
+    border:1px solid var(--hairline);text-align:center;padding:10px;line-height:1.5;}
+  .player .txt{padding:12px 14px 4px;}
+  .player .txt h4{margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;}
+  .player .txt p{margin:5px 0 0;font-size:12.5px;color:var(--ink2);line-height:1.55;}
+  .player .zones{display:flex;gap:8px;padding:12px 14px 14px;}
+  .player .quiz{padding:12px 14px 14px;display:flex;flex-direction:column;gap:7px;}
+  .qopt{display:flex;align-items:center;gap:9px;padding:10px 11px;border:1px solid var(--hairline2);
+    border-radius:var(--r10);font-size:12.5px;background:var(--surface);}
+  .qopt.right{border-color:var(--good);background:var(--goodSoft);color:var(--good);font-weight:600;}
+  .qopt.wrong{border-color:var(--hairline2);color:var(--inkMute);}
+
+  /* states */
+  .sk{background:linear-gradient(90deg,var(--surface3) 0%,var(--surface2) 50%,var(--surface3) 100%);
+    background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:6px;height:12px;}
+  .empty,.errst{display:flex;flex-direction:column;align-items:center;text-align:center;padding:34px 20px;gap:9px;}
+  .empty .plate,.errst .plate{width:46px;height:46px;border-radius:99px;background:var(--surface3);color:var(--ink2);
+    display:flex;align-items:center;justify-content:center;}
+  .errst .plate{background:var(--badSoft);color:var(--bad);}
+  .empty h4,.errst h4{margin:0;font-size:14px;font-weight:700;}
+  .empty p,.errst p{margin:0;font-size:12.5px;color:var(--inkDim);line-height:1.55;max-width:380px;}
+  .detail{font-family:var(--fontMono);font-size:11px;background:var(--bg2);border:1px solid var(--hairline);
+    border-radius:var(--r8);padding:9px 11px;color:var(--inkDim);text-align:left;max-width:420px;line-height:1.55;}
+
+  /* misc rows */
+  .kv{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+  .kv:last-child{border-bottom:0;}
+  .kv .k{color:var(--inkDim);} .kv .v{font-weight:600;text-align:right;}
+  .kv .v.mono{font-weight:500;}
+  .tl{display:flex;flex-direction:column;}
+  .tlv{display:flex;gap:10px;padding:9px 0;border-top:1px dashed var(--hairline2);font-size:11.5px;}
+  .tlv:first-child{border-top:0;padding-top:0;}
+  .tlv .dot{width:7px;height:7px;border-radius:99px;background:var(--inkFaint);margin-top:5px;flex:0 0 auto;}
+  .tlv .dot.good{background:var(--good);} .tlv .dot.warn{background:var(--warnText);} .tlv .dot.info{background:var(--info);}
+  .tlv .b{flex:1;min-width:0;} .tlv .a{font-weight:700;}
+  .tlv .m{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;margin-top:2px;}
+  .note{border-radius:var(--r12);padding:13px 15px;border:1px solid;font-size:12px;line-height:1.6;}
+  .note.info{background:var(--infoSoft);border-color:var(--info);color:var(--ink2);}
+  .note.warn{background:var(--warnSoft);border-color:var(--warnText);color:var(--ink2);}
+  .note .h{display:flex;align-items:center;gap:7px;font-weight:700;font-size:11px;letter-spacing:.04em;
+    text-transform:uppercase;margin-bottom:7px;}
+  .stack{display:flex;flex-direction:column;gap:12px;}
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .spacer{flex:1;}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-bounty" viewBox="0 0 24 24"><path d="M3 21h18"/><rect x="9.5" y="6" width="5" height="15"/><rect x="3.5" y="12" width="6" height="9"/><rect x="14.5" y="10" width="6" height="11"/></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5v2a3 3 0 0 0 3 3"/><path d="M16 5h3v2a3 3 0 0 1-3 3"/><path d="M12 13v4"/><path d="M9 20h6"/><path d="M10 17h4v3h-4z"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M3 20h18"/></symbol>
+<symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-6"/><ellipse cx="15" cy="12" rx="6" ry="3"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="17" cy="14" r="1.2"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7l1.5-3h3L15 7"/><circle cx="12" cy="13.5" r="3.2"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6L17 7M7 17l-1.4 1.4"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6 8 6"/><path d="M6 10v10h12V10"/></symbol>
+<symbol id="i-register" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M7 9V5h10v4"/><path d="M8 13h8"/></symbol>
+<symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></symbol>
+<symbol id="i-package" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 6.2A3.2 3.2 0 0 1 16 14"/><path d="M17.5 15.2c2.1.6 3.5 2.1 3.5 4.8"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.5l3.5 2"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-1.9 6.2"/><path d="M20 5v6h-6"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 16v3h16v-3"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="11" rx="1.5"/><path d="M3 13h18M12 9v11"/><path d="M12 9C10 9 8 8 8 6.5S10 4 12 9zM12 9c2 0 4-1 4-2.5S14 4 12 9z"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 4l1.8 4.7L18.5 10l-4.7 1.8L12 16.5l-1.8-4.7L5.5 10l4.7-1.3z"/><path d="M18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+<symbol id="i-lightning" viewBox="0 0 24 24"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.7 3.7 5.7 3.7 9S14.5 18.3 12 21c-2.5-2.7-3.7-5.7-3.7-9S9.5 5.7 12 3z"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5l11 6.5-11 6.5z"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></symbol>
+<symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.3"/><path d="M3.5 20c0-3.3 2.9-5 6.5-5 1.3 0 2.5.2 3.5.7"/><path d="M18 14v6M15 17h6"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6 7v6l-4 2v-8z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.7"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24"><rect x="2" y="7" width="12" height="9" rx="1"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></symbol>
+<symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 14-14 0 9-4 14-11 14z"/><path d="M9 15c1.5-3 3.5-5 6-6.5"/></symbol>
+<symbol id="i-scroll" viewBox="0 0 24 24"><path d="M5 5h11v14H7a2 2 0 0 1-2-2z"/><path d="M16 5h3v3h-3"/><path d="M8 9h6M8 13h6"/></symbol>
+</defs></svg>
+
+<div class="doc-head">
+  <div>
+    <h1>Bounty — Concept C: Campaigns</h1>
+    <div class="sub">DESIGN MOCKUP — every number is illustrative, nothing is read from the API · <b>Hyperwolf Bounty</b> — name picked by the owner 2026-09-07; one incentive is a bounty</div>
+  </div>
+  <div class="seg" id="tabseg">
+    <button class="tab-btn active" data-tab="why">1 · Why this</button>
+    <button class="tab-btn" data-tab="active">2 · Active now</button>
+    <button class="tab-btn" data-tab="board">3 · Bounty board</button>
+    <button class="tab-btn" data-tab="builder">4 · Builder</button>
+    <button class="tab-btn" data-tab="standings">5 · Standings</button>
+    <button class="tab-btn" data-tab="earnings">6 · Earnings</button>
+    <button class="tab-btn" data-tab="learn">7 · Learn</button>
+    <button class="tab-btn" data-tab="goals">8 · Goals</button>
+    <button class="tab-btn" data-tab="data">9 · Data</button>
+    <button class="tab-btn" data-tab="pos">10 · POS surfaces</button>
+    <button class="tab-btn" data-tab="states">11 · States</button>
+  </div>
+  <button class="theme-btn" id="themebtn" title="Switch to dark" aria-label="Switch theme">
+    <svg class="ic s14"><use href="#i-moon"/></svg>
+  </button>
+</div>
+
+<!-- ══════════════════════════ 1 · WHY THIS CONCEPT ══════════════════════════ -->
+<div class="tabpanel active" id="tab-why">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Concept C · the organizing idea</div>
+    <h2>Bounties are the product. Standings are a property of a bounty — not the front door.</h2>
+    <p>Every other way of arranging this module makes the leaderboard the home screen and treats bounties as configuration hanging off it. This one inverts that: the landing screen is <b>Active now</b>, a card per running campaign, and a rank only ever appears <i>inside</i> the campaign that produced it. A budtender does not want to know they are second in the abstract — they want to know they are second in the STIIIZY pod push, that first place is eleven units ahead, that it ends Sunday at close, and that the brand is paying for it. That is one card, and there are four of them.</p>
+    <p>It borrows its shape wholesale from <code>engage/screen-campaigns.jsx</code> — a module sidebar with grouped nav, a StatTile KPI row, and a responsive grid of campaign cards each carrying its own status pill, channel chip and per-card metric strip. The bounty detail borrows <code>engage/screen-loyalty.jsx</code>’s program-detail spine (crumb, big title, mono id line, KPI strip, then stacked cards). The Data screen is <code>engage/screen-ops.jsx</code>’s Integrations table, one row per store × source. The builder is the Engage flow-builder pattern: a stepper, one decision per step, and a summary sentence that rewrites itself as you go.</p>
+    <p><b>Who it serves best.</b> The manager running promotions and the brand rep funding them. The status board — draft → pending approval → active → ended → settled — and the approval inbox are first-class here rather than buried in a settings screen, because with brand-funded campaigns the approval <i>is</i> the operational moment. The budtender is served second but not badly: they open the app to four cards, each of which tells them their own position without a second click.</p>
+    <p><b>What it trades away.</b> The all-store leaderboard is one click deeper than any other concept would put it — you reach it from Standings, and Standings is the fifth item in the sidebar. If your primary user is a budtender comparing themselves against the whole chain every hour, this is the wrong shape. It also spends its landing screen’s vertical budget on the Snaps highlight row, which pushes the fourth and fifth bounty cards below the fold on a 900px laptop.</p>
+    <p><b>Why Snaps sits on the landing screen anyway.</b> §3.7 lets a snap link to a bounty. That link is the whole argument for putting education in this module at all rather than in Engage: <i>learn it, then sell it</i>. A story circle whose ring is accent-coloured is unread and its caption names the bounty it feeds. Reading it takes ninety seconds and it is the only thing on the screen that changes what a budtender knows rather than what they know about themselves.</p>
+    <p><b>Honesty, in this shape.</b> There is no fixture data in this module, so the labelling is about connection and freshness, exactly as §5.3 requires. Every bounty card footer carries the freshness of the source scoring it; a card whose store has no configured source wears a <span class="pill sm p-warn">no data source</span> badge instead of a rank, because a rank computed from nothing is worse than no rank. Unattributed sales get a row in every standings view, never a silent exclusion, and a projected earning never wears the same treatment as a settled one.</p>
+    <div class="caption"><b>Composites used here, and what they are made of:</b> the bounty card = <code class="m">Card</code> + <code class="m">Pill</code> + <code class="m">BarMeter</code> + <code class="m">Avatar</code>; the Snaps circle = <code class="m">Avatar</code> in a 2px ring + a caption; the status board column = <code class="m">Card elevation="sunken"</code> holding <code class="m">Card</code> chips; the summary sentence = plain text with <code class="m">accentSoft/accentText</code> spans. Nothing here needs a new atom.</div>
+  </div>
+
+  <div class="grid g-auto">
+    <div class="card p16">
+      <div class="eyebrow">Screen order in the sidebar</div>
+      <div class="stack" style="gap:7px;margin-top:8px">
+        <div class="row" style="gap:8px"><span class="pill sm p-dark mono">1</span><span style="font-size:12.5px">Active now — the landing screen</span></div>
+        <div class="row" style="gap:8px"><span class="pill sm p-dark mono">2</span><span style="font-size:12.5px">Bounty board + approvals</span></div>
+        <div class="row" style="gap:8px"><span class="pill sm p-dark mono">3</span><span style="font-size:12.5px">Standings (store · all stores)</span></div>
+        <div class="row" style="gap:8px"><span class="pill sm p-dark mono">4</span><span style="font-size:12.5px">Earnings</span></div>
+        <div class="row" style="gap:8px"><span class="pill sm p-dark mono">5</span><span style="font-size:12.5px">Snaps · learn</span></div>
+        <div class="row" style="gap:8px"><span class="pill sm p-dark mono">6</span><span style="font-size:12.5px">Goals (absorbed AOV)</span></div>
+        <div class="row" style="gap:8px"><span class="pill sm p-dark mono">7</span><span style="font-size:12.5px">Data · connections</span></div>
+      </div>
+      <div class="caption">Sidebar groups: <b>Compete</b> · <b>Earn</b> · <b>Learn</b> · <b>Operate</b> — the Engage <code class="m">NAV_GROUPS</code> convention.</div>
+    </div>
+    <div class="card p16">
+      <div class="eyebrow">What the data forces onto every screen</div>
+      <div class="stack" style="gap:8px;margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--ink2)">
+        <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-info">freshness</span><span>Per source, per store — never one global “last updated”.</span></div>
+        <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-warn">unattributed</span><span>Blaze retail sales carry no seller on the record. Counted in store totals, excluded from ranks, shown as a row.</span></div>
+        <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-neutral">projected</span><span>A standing is projected until the bounty settles. Different pill, different colour, different verb.</span></div>
+        <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-neutral">tied</span><span>Competition ranking (1, 1, 3). A tie shows the rule that will break it.</span></div>
+        <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-neutral">not yet</span><span>Zero-metric participants are listed separately with rank <code class="m">—</code>, never rank-last at 0.</span></div>
+      </div>
+    </div>
+    <div class="card p16">
+      <div class="eyebrow">Where it differs from the siblings</div>
+      <p style="font-size:12.5px;line-height:1.6;color:var(--ink2);margin:8px 0 0">
+        A leaderboard-first concept answers “where do I stand?”. This one answers “what am I playing today, and how is it going?”. The practical consequence is that a bounty with no participants and no sales still has a card — it is a real object with a status — whereas in a standings-first shape it is invisible until someone scores. That matters most in the first hour of a new spiff, which is exactly when a manager is checking whether it is working.
+      </p>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 2 · ACTIVE NOW ══════════════════════════ -->
+<div class="tabpanel" id="tab-active">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">The landing screen · route <code>#/</code></div>
+    <h2>One card per running campaign. Your position lives inside the card that produced it.</h2>
+    <p>The grid is <code>engage/screen-campaigns.jsx</code>’s <code>repeat(auto-fit, minmax(320px, 1fr))</code> card grid with a different payload: instead of sent/delivery/CTR/revenue, each card carries a top three, your own row with a <code>BarMeter</code>, the funding source, and the time left. The Snaps row across the top is the “learn it, then sell it” pairing — an accent ring means unread, and the caption names the bounty the story feeds.</p>
+  </div>
+
+  <div class="app">
+    <div class="rail">
+      <div class="logo">W</div>
+      <div class="ri"><svg class="ic s20"><use href="#i-home"/></svg><span>Home</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-register"/></svg><span>Reg</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-board"/></svg><span>Orders</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-package"/></svg><span>Catalog</span></div>
+      <div class="ri on"><svg class="ic s20"><use href="#i-bounty"/></svg><span>Bounty</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-users"/></svg><span>Members</span></div>
+      <hr>
+      <div class="ri"><svg class="ic s20"><use href="#i-settings"/></svg><span>Settings</span></div>
+    </div>
+    <div class="side">
+      <div class="sh"><span class="sq"></span><b>Bounty</b><span class="pill sm p-neutral" style="margin-left:auto">Beta</span></div>
+      <div class="grp">Compete</div>
+      <div class="it on"><svg class="ic s14" style="color:var(--hueBlue)"><use href="#i-lightning"/></svg>Active now<span class="cnt">4</span></div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueViolet)"><use href="#i-trophy"/></svg>Bounty board<span class="cnt">11</span></div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueTeal)"><use href="#i-bounty"/></svg>Standings</div>
+      <div class="grp">Earn</div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueGreen)"><use href="#i-coins"/></svg>Earnings</div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueTeal)"><use href="#i-target"/></svg>Goals</div>
+      <div class="grp">Learn</div>
+      <div class="it"><svg class="ic s14" style="color:var(--huePink)"><use href="#i-camera"/></svg>Snaps<span class="cnt">2</span></div>
+      <div class="grp">Operate</div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueBlue)"><use href="#i-database"/></svg>Data<span class="cnt">1</span></div>
+      <div class="it"><svg class="ic s14" style="color:var(--inkMute)"><use href="#i-settings"/></svg>Settings</div>
+      <div class="it soon"><svg class="ic s14" style="color:var(--inkMute)"><use href="#i-scroll"/></svg>Payout export<span class="soontag">soon</span></div>
+      <div class="foot">g then a · active now</div>
+    </div>
+    <div style="display:flex;flex-direction:column;min-width:0">
+      <div class="topbar">
+        <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+        <span class="crumbs"><b>Bounty</b> · Active now</span>
+        <span class="fakesearch"><svg class="ic s13"><use href="#i-search"/></svg>Search campaigns<kbd>⌘K</kbd></span>
+        <span class="rt">
+          <button class="ibtn" aria-label="Notifications"><svg class="ic s14"><use href="#i-bell"/></svg></button>
+          <button class="ibtn" aria-label="Toggle theme"><svg class="ic s14"><use href="#i-moon"/></svg></button>
+          <span class="av" style="width:28px;height:28px;font-size:11px">MS</span>
+        </span>
+      </div>
+      <div class="main">
+
+        <div class="phead">
+          <div>
+            <h2>Active now</h2>
+            <p>Everything running at Lake Elsinore right now, and where you sit in each one. A campaign appears here from the moment its window opens, whether or not anyone has scored in it yet.</p>
+          </div>
+          <div class="acts">
+            <button class="btn sm"><svg class="ic s13"><use href="#i-filter"/></svg>Lake Elsinore</button>
+            <button class="btn sm accent"><svg class="ic s13"><use href="#i-plus"/></svg>New campaign</button>
+          </div>
+        </div>
+
+        <div class="card p12">
+          <div class="row" style="margin:2px 4px 10px">
+            <span class="eyebrow" style="margin:0">Learn it, then sell it</span>
+            <span class="spacer"></span>
+            <span class="mono" style="font-size:11px;color:var(--inkMute)">2 unread · a snap linked to a campaign scores nothing on its own</span>
+          </div>
+          <div class="snaps">
+            <div class="snap">
+              <div class="ring"><span class="fill">ST</span></div>
+              <div class="nm">Blue Dream pod</div>
+              <div class="mt">STIIIZY · 4 cards</div>
+              <div class="mt" style="color:var(--accentText)">feeds pod push</div>
+            </div>
+            <div class="snap">
+              <div class="ring"><span class="fill">WY</span></div>
+              <div class="nm">Wyld ratios</div>
+              <div class="mt">Wyld · 5 cards · quiz</div>
+              <div class="mt" style="color:var(--accentText)">feeds launch spiff</div>
+            </div>
+            <div class="snap">
+              <div class="ring seen"><span class="fill">RA</span></div>
+              <div class="nm">Live resin 101</div>
+              <div class="mt">Raw Garden · 6 cards</div>
+              <div class="mt">read 2d ago</div>
+            </div>
+            <div class="snap">
+              <div class="ring seen"><span class="fill">HW</span></div>
+              <div class="nm">Upsell the pre-roll</div>
+              <div class="mt">Hyperwolf · 3 cards</div>
+              <div class="mt">read 5d ago</div>
+            </div>
+            <div class="snap">
+              <div class="ring seen"><span class="fill">JE</span></div>
+              <div class="nm">Terpene basics</div>
+              <div class="mt">Jeeter · 7 cards · quiz</div>
+              <div class="mt">passed · +50 pts</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid g-kpi">
+          <div class="st teal"><div class="strip"></div><div class="in">
+            <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-bounty"/></svg></span><span class="lbl">My place today</span></div>
+            <div class="val">2<span style="font-size:15px;color:var(--inkMute)"> of 7</span></div>
+            <div class="sub">Lake Elsinore · net · today</div>
+          </div></div>
+          <div class="st green"><div class="strip"></div><div class="in">
+            <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-coins"/></svg></span><span class="lbl">Projected</span></div>
+            <div class="val">$46</div>
+            <div class="sub">$120 settled to date · tracked here, paid elsewhere</div>
+          </div></div>
+          <div class="st violet"><div class="strip"></div><div class="in">
+            <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-trophy"/></svg></span><span class="lbl">Campaigns</span></div>
+            <div class="val">4</div>
+            <div class="sub">1 waiting on your approval · 1 draft</div>
+          </div></div>
+          <div class="st blue"><div class="strip"></div><div class="in">
+            <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-database"/></svg></span><span class="lbl">Sales attributed</span></div>
+            <div class="val">94%</div>
+            <div class="bar"><i style="width:94%"></i></div>
+            <div class="sub">6 sales today carry no budtender on the record</div>
+          </div></div>
+        </div>
+
+        <div class="fresh">
+          <i><span class="d"></span>Blaze API · Lake Elsinore · synced 2m ago · 143 sales today</i>
+          <i><span class="d"></span>Blaze CSV · Lake Elsinore · last upload 2026-09-05 (All Sales, 1,204 lines)</i>
+          <i><span class="d warn"></span>Meadow API · West Hollywood · last error 14:02: 401 (client key)</i>
+          <i><span class="d off"></span>Long Beach · no source configured</i>
+        </div>
+
+        <div class="grid g-auto">
+
+          <div class="cc">
+            <div class="top">
+              <div class="badges">
+                <span class="pill sm p-good"><span class="dot"></span>active</span>
+                <span class="pill sm p-accent">STIIIZY funded</span>
+                <span class="pill sm p-neutral">ranked · units</span>
+              </div>
+              <h3>STIIIZY pod push</h3>
+              <p class="rule">Every STIIIZY pod sold counts one. Top three take $50 · $30 · $20; a tie splits the place evenly.</p>
+            </div>
+            <div class="bounty">
+              <div class="prow first"><span class="pl">1</span><span class="pn">Devon Ruiz</span><span class="pv">41 units</span></div>
+              <div class="prow"><span class="pl">2</span><span class="pn">Manisha Saini <span class="pill sm p-neutral">you</span></span><span class="pv">33 units</span></div>
+              <div class="prow"><span class="pl">3</span><span class="pn">Priya Nandi</span><span class="pv">29 units</span></div>
+            </div>
+            <div class="mine">
+              <div class="line"><b>8 units behind first</b><span class="spacer"></span><span class="mono" style="color:var(--inkDim)">33 / 41</span></div>
+              <div class="meter"><i style="width:80%"></i></div>
+              <div class="row" style="gap:6px"><span class="pill sm p-neutral">projected $30</span><span class="mono" style="font-size:11px;color:var(--inkMute)">settles when the window closes</span></div>
+            </div>
+            <div class="foot">
+              <svg class="ic s11"><use href="#i-clock"/></svg>2d 04h left · ends Sun at close
+              <span class="spacer"></span>
+              <a href="#"><svg class="ic s11"><use href="#i-camera"/></svg>Blue Dream pod</a>
+            </div>
+          </div>
+
+          <div class="cc">
+            <div class="top">
+              <div class="badges">
+                <span class="pill sm p-good"><span class="dot"></span>active</span>
+                <span class="pill sm p-neutral">store funded</span>
+                <span class="pill sm p-info">hourly · round 3 of 8</span>
+              </div>
+              <h3>Saturday power hour</h3>
+              <p class="rule">Net sales inside each hour, reset on the hour. First takes $15, second $10, every round of the shift.</p>
+            </div>
+            <div class="bounty">
+              <div class="prow first"><span class="pl">1</span><span class="pn">Tasha Bell</span><span class="pv">$412</span></div>
+              <div class="prow"><span class="pl">2</span><span class="pn">Manisha Saini <span class="pill sm p-neutral">you</span></span><span class="pv">$388</span></div>
+              <div class="prow"><span class="pl">3</span><span class="pn">Marcus Ihejirika</span><span class="pv">$301</span></div>
+            </div>
+            <div class="mine">
+              <div class="line"><b>$24 behind this round</b><span class="spacer"></span><span class="mono" style="color:var(--inkDim)">$388 / $412</span></div>
+              <div class="meter"><i class="warn" style="width:94%"></i></div>
+              <div class="row" style="gap:6px"><span class="pill sm p-good">won round 1</span><span class="pill sm p-neutral">projected $10</span></div>
+            </div>
+            <div class="foot">
+              <svg class="ic s11"><use href="#i-clock"/></svg>round ends in 00:41 · 5 rounds after this
+              <span class="spacer"></span>
+              <span>blaze api · 2m ago</span>
+            </div>
+          </div>
+
+          <div class="cc">
+            <div class="top">
+              <div class="badges">
+                <span class="pill sm p-good"><span class="dot"></span>active</span>
+                <span class="pill sm p-neutral">store funded</span>
+                <span class="pill sm p-neutral">team goal</span>
+              </div>
+              <h3>Concentrate team goal</h3>
+              <p class="rule">The whole floor against one number: 120 concentrate units this week. Hit it and $300 splits equally across everyone who sold at least one.</p>
+            </div>
+            <div class="mine" style="border-top:1px solid var(--hairline)">
+              <div class="line"><b>82 of 120 units</b><span class="spacer"></span><span class="mono" style="color:var(--inkDim)">68%</span></div>
+              <div class="meter"><i class="violet" style="width:68%"></i></div>
+              <div class="row" style="gap:6px"><span class="pill sm p-neutral">7 contributing</span><span class="mono" style="font-size:11px;color:var(--inkMute)">your share so far · 14 units</span></div>
+            </div>
+            <div class="bounty">
+              <div class="prow"><span class="pl">·</span><span class="pn">Ana Delgado</span><span class="pv">19 units</span></div>
+              <div class="prow"><span class="pl">·</span><span class="pn">Devon Ruiz</span><span class="pv">17 units</span></div>
+              <div class="prow"><span class="pl">·</span><span class="pn">Manisha Saini <span class="pill sm p-neutral">you</span></span><span class="pv">14 units</span></div>
+            </div>
+            <div class="foot">
+              <svg class="ic s11"><use href="#i-clock"/></svg>4d 09h left · ends Sunday 23:59
+              <span class="spacer"></span>
+              <span>projected $43 each</span>
+            </div>
+          </div>
+
+          <div class="cc">
+            <div class="top">
+              <div class="badges">
+                <span class="pill sm p-good"><span class="dot"></span>active</span>
+                <span class="pill sm p-neutral">store vs store</span>
+                <span class="pill sm p-warn">1 store has no source</span>
+              </div>
+              <h3>September net · store race</h3>
+              <p class="rule">Net sales per store for the month. The winning store’s floor splits $500. Long Beach is entered but cannot be scored — it runs Treez and has no ingestion path.</p>
+            </div>
+            <div class="mine" style="border-top:1px solid var(--hairline);gap:9px">
+              <div>
+                <div class="line" style="margin-bottom:5px"><span style="font-size:12px">Corona</span><span class="spacer"></span><span class="mono" style="font-size:11.5px">$182.4k</span></div>
+                <div class="meter h5"><i class="good" style="width:100%"></i></div>
+              </div>
+              <div>
+                <div class="line" style="margin-bottom:5px"><span style="font-size:12px">West Hollywood</span><span class="spacer"></span><span class="mono" style="font-size:11.5px">$171.0k</span></div>
+                <div class="meter h5"><i class="good" style="width:94%"></i></div>
+              </div>
+              <div>
+                <div class="line" style="margin-bottom:5px"><span style="font-size:12px;font-weight:700">Lake Elsinore <span class="pill sm p-neutral">you</span></span><span class="spacer"></span><span class="mono" style="font-size:11.5px">$158.7k</span></div>
+                <div class="meter h5"><i class="accent" style="width:87%"></i></div>
+              </div>
+              <div>
+                <div class="line" style="margin-bottom:5px"><span style="font-size:12px;color:var(--inkMute)">Long Beach</span><span class="spacer"></span><span class="mono" style="font-size:11.5px;color:var(--inkMute)">not scored</span></div>
+                <div class="meter h5"></div>
+              </div>
+            </div>
+            <div class="foot">
+              <svg class="ic s11"><use href="#i-clock"/></svg>23d left · settles 30 Sep
+              <span class="spacer"></span>
+              <a href="#">Full store race<svg class="ic s11"><use href="#i-arrow-right"/></svg></a>
+            </div>
+          </div>
+
+          <div class="cc">
+            <div class="top">
+              <div class="badges">
+                <span class="pill sm p-warn"><span class="dot"></span>pending approval</span>
+                <span class="pill sm p-accent">Wyld funded</span>
+                <span class="pill sm p-neutral">spiff · per unit</span>
+              </div>
+              <h3>Wyld gummies launch spiff</h3>
+              <p class="rule">$2 for every Wyld gummy pack sold, capped at $60 a person. Wyld is funding $1,200 across three stores; nothing scores until you approve it.</p>
+            </div>
+            <div class="mine" style="border-top:1px solid var(--hairline)">
+              <div class="kv"><span class="k">Submitted by</span><span class="v">Rachel Cho · Wyld rep</span></div>
+              <div class="kv"><span class="k">Window</span><span class="v mono">15 Sep 09:00 → 21 Sep close</span></div>
+              <div class="kv"><span class="k">Budget · cap</span><span class="v mono">$1,200 · $60 per person</span></div>
+              <div class="row" style="gap:8px;margin-top:4px">
+                <button class="btn sm accent"><svg class="ic s13"><use href="#i-check"/></svg>Approve for Lake Elsinore</button>
+                <button class="btn sm">Open</button>
+                <button class="btn sm ghost" style="color:var(--bad)">Decline</button>
+              </div>
+            </div>
+            <div class="foot">
+              <svg class="ic s11"><use href="#i-clock"/></svg>submitted 2h ago · starts in 7d
+              <span class="spacer"></span>
+              <a href="#"><svg class="ic s11"><use href="#i-camera"/></svg>Wyld ratios</a>
+            </div>
+          </div>
+
+          <div class="cc">
+            <div class="top">
+              <div class="badges">
+                <span class="pill sm p-neutral">draft</span>
+                <span class="pill sm p-warn">no data source</span>
+              </div>
+              <h3>Long Beach opener</h3>
+              <p class="rule">Saved but not submitted. Long Beach runs Treez, which has no ingestion path in this build, so this campaign can be written and cannot be scored. It will stay in draft until a source exists.</p>
+            </div>
+            <div class="mine" style="border-top:1px solid var(--hairline)">
+              <div class="row" style="gap:8px">
+                <button class="btn sm"><svg class="ic s13"><use href="#i-pencil"/></svg>Continue editing</button>
+                <button class="btn sm ghost">Discard</button>
+              </div>
+              <div class="mono" style="font-size:11px;color:var(--inkMute);line-height:1.5">Submitting is blocked, not hidden — the reason is on the button.</div>
+            </div>
+            <div class="foot">
+              <svg class="ic s11"><use href="#i-pencil"/></svg>edited 4d ago by Manisha Saini
+            </div>
+          </div>
+
+        </div>
+
+        <div class="caption">Every card is <code class="m">Card</code> + <code class="m">Pill</code> + <code class="m">BarMeter</code>; the bounty rows are plain flex rows with mono values. No new atom. The <b>funding chip</b> uses <code class="m">Pill kind="accent"</code> (Hyperdrive <code class="m">tone="brand"</code>), which is the estate’s existing brand vocabulary and the one legitimate use of gold text via <code class="m">--accentText</code>.</div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 3 · BOUNTY BOARD ══════════════════════════ -->
+<div class="tabpanel" id="tab-board">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Route <code>#/contests</code> · the status board and the approval inbox</div>
+    <h2>A campaign is an object with a lifecycle, so the list is a board, not a table.</h2>
+    <p>Draft → pending approval → active → ended → settled, left to right, with cancelled behind a filter. <code>active</code> and <code>ended</code> are derived from the clock and never stored, so a campaign moves between those two columns without anyone writing anything — the board says so under the column heading rather than pretending they are equal transitions. Brand-funded campaigns must pass through <b>pending approval</b>; that column is the manager’s inbox and it carries the only irreversible-feeling action in the module.</p>
+  </div>
+
+  <div class="app">
+    <div class="rail">
+      <div class="logo">W</div>
+      <div class="ri"><svg class="ic s20"><use href="#i-home"/></svg><span>Home</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-register"/></svg><span>Reg</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-board"/></svg><span>Orders</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-package"/></svg><span>Catalog</span></div>
+      <div class="ri on"><svg class="ic s20"><use href="#i-bounty"/></svg><span>Bounty</span></div>
+      <div class="ri"><svg class="ic s20"><use href="#i-users"/></svg><span>Members</span></div>
+      <hr>
+      <div class="ri"><svg class="ic s20"><use href="#i-settings"/></svg><span>Settings</span></div>
+    </div>
+    <div class="side">
+      <div class="sh"><span class="sq"></span><b>Bounty</b><span class="pill sm p-neutral" style="margin-left:auto">Beta</span></div>
+      <div class="grp">Compete</div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueBlue)"><use href="#i-lightning"/></svg>Active now<span class="cnt">4</span></div>
+      <div class="it on"><svg class="ic s14" style="color:var(--hueViolet)"><use href="#i-trophy"/></svg>Bounty board<span class="cnt">11</span></div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueTeal)"><use href="#i-bounty"/></svg>Standings</div>
+      <div class="grp">Earn</div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueGreen)"><use href="#i-coins"/></svg>Earnings</div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueTeal)"><use href="#i-target"/></svg>Goals</div>
+      <div class="grp">Learn</div>
+      <div class="it"><svg class="ic s14" style="color:var(--huePink)"><use href="#i-camera"/></svg>Snaps<span class="cnt">2</span></div>
+      <div class="grp">Operate</div>
+      <div class="it"><svg class="ic s14" style="color:var(--hueBlue)"><use href="#i-database"/></svg>Data<span class="cnt">1</span></div>
+      <div class="it"><svg class="ic s14" style="color:var(--inkMute)"><use href="#i-settings"/></svg>Settings</div>
+      <div class="foot">g then c · bounty board</div>
+    </div>
+    <div style="display:flex;flex-direction:column;min-width:0">
+      <div class="topbar">
+        <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+        <span class="crumbs"><b>Bounty</b> · Bounties</span>
+        <span class="fakesearch"><svg class="ic s13"><use href="#i-search"/></svg>Search campaigns<kbd>⌘K</kbd></span>
+        <span class="rt">
+          <button class="ibtn" aria-label="Notifications"><svg class="ic s14"><use href="#i-bell"/></svg></button>
+          <button class="ibtn" aria-label="Toggle theme"><svg class="ic s14"><use href="#i-moon"/></svg></button>
+          <span class="av" style="width:28px;height:28px;font-size:11px">MS</span>
+        </span>
+      </div>
+      <div class="main">
+
+        <div class="phead">
+          <div>
+            <h2>Bounties</h2>
+            <p>Every campaign this store can see, in the state it is actually in. Brand-funded campaigns arrive in pending approval and score nothing until a manager here approves them.</p>
+          </div>
+          <div class="acts">
+            <div class="segctl">
+              <button class="on">All stores</button><button>Lake Elsinore</button><button>Mine</button>
+            </div>
+            <button class="btn sm">Show cancelled <span class="mono" style="color:var(--inkMute)">2</span></button>
+            <button class="btn sm accent"><svg class="ic s13"><use href="#i-plus"/></svg>New campaign</button>
+          </div>
+        </div>
+
+        <div class="board">
+          <div class="col">
+            <div class="ch"><span class="t">Draft</span><span class="n">2</span></div>
+            <div class="chip"><div class="nm">Long Beach opener</div><div class="mt">store · ranked<br>no data source</div></div>
+            <div class="chip"><div class="nm">Halloween pre-roll blitz</div><div class="mt">store · spiff<br>edited 1d ago</div></div>
+          </div>
+          <div class="col">
+            <div class="ch"><span class="t">Pending</span><span class="n">1</span></div>
+            <div class="chip sel"><div class="nm">Wyld gummies launch spiff</div><div class="mt">brand · Wyld · $1,200<br>submitted 2h ago</div>
+              <div class="row" style="gap:6px;margin-top:8px"><span class="pill sm p-warn">needs you</span></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="ch"><span class="t">Active</span><span class="n">4</span></div>
+            <div class="chip sel" style="border-color:var(--accentBorder)"><div class="nm">STIIIZY pod push</div><div class="mt">brand · STIIIZY<br>2d 04h left · 7 in</div></div>
+            <div class="chip"><div class="nm">Saturday power hour</div><div class="mt">store · hourly<br>round 3 of 8</div></div>
+            <div class="chip"><div class="nm">Concentrate team goal</div><div class="mt">store · team<br>82 of 120</div></div>
+            <div class="chip"><div class="nm">September net · store race</div><div class="mt">store vs store<br>23d left</div></div>
+          </div>
+          <div class="col">
+            <div class="ch"><span class="t">Ended</span><span class="n">2</span></div>
+            <div class="chip"><div class="nm">Labor Day double points</div><div class="mt">store · spiff<br>awaiting settle</div>
+              <div class="row" style="gap:6px;margin-top:8px"><span class="pill sm p-info">settle</span></div>
+            </div>
+            <div class="chip"><div class="nm">Raw Garden live resin</div><div class="mt">brand · Raw Garden<br>1 tie to break</div>
+              <div class="row" style="gap:6px;margin-top:8px"><span class="pill sm p-warn">tied at 3</span></div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="ch"><span class="t">Settled</span><span class="n">2</span></div>
+            <div class="chip"><div class="nm">August AOV push</div><div class="mt">store · aov goal<br>$240 across 6</div></div>
+            <div class="chip"><div class="nm">Jeeter back-to-school</div><div class="mt">brand · Jeeter<br>$600 across 11</div></div>
+          </div>
+        </div>
+        <div class="caption"><b>Active</b> and <b>ended</b> are read from the clock against the campaign window, not from a stored transition — a campaign crosses between them with nobody writing anything. <b>Settled</b> is a real write and is the only one that puts rows in the points ledger.</div>
+
+        <div class="grid g-split">
+          <div class="card" style="overflow:hidden">
+            <div class="chead">
+              <span class="plate"><svg class="ic s14"><use href="#i-trophy"/></svg></span>
+              <h3>STIIIZY pod push</h3>
+              <span class="pill sm p-good"><span class="dot"></span>active</span>
+              <span class="pill sm p-accent">STIIIZY funded</span>
+              <button class="btn xs"><svg class="ic s11"><use href="#i-pencil"/></svg>Edit</button>
+            </div>
+            <div class="cbody" style="display:flex;flex-direction:column;gap:14px">
+              <div class="mono" style="font-size:11px;color:var(--inkMute)">inc-c-0412 · ranked · units · Lake Elsinore + Corona · tz America/Los_Angeles</div>
+
+              <div class="summary">
+                <div class="s">Sell <em>any STIIIZY pod</em> between <em>Mon 9:00 am</em> and <em>Sun at close</em>; top three earn <em>$50 / $30 / $20</em>; <em>ties split the place</em>.</div>
+              </div>
+
+              <div>
+                <div class="row" style="margin-bottom:8px">
+                  <span class="eyebrow" style="margin:0">Live standings</span>
+                  <span class="spacer"></span>
+                  <span class="pill sm p-neutral">projected</span>
+                  <span class="mono" style="font-size:11px;color:var(--inkMute)">ledger v4,812 · recomputed 2m ago</span>
+                </div>
+                <div class="dtwrap"><div class="scroll">
+                <table class="dt">
+                  <thead><tr><th style="width:64px">Rank</th><th>Budtender</th><th>Store</th><th style="text-align:right">Units</th><th style="width:120px">Share</th><th style="text-align:right">Projected</th></tr></thead>
+                  <tbody>
+                    <tr><td><span class="rk rk1">1</span></td><td><div class="row" style="gap:8px"><span class="av" style="width:24px;height:24px;font-size:10px">DR</span><span style="font-weight:700">Devon Ruiz</span></div></td><td style="color:var(--inkDim)">Lake Elsinore</td><td style="text-align:right" class="num">41</td><td><div class="meter h5"><i class="accent" style="width:100%"></i></div></td><td style="text-align:right" class="num">$50</td></tr>
+                    <tr class="me"><td><span class="rk">2</span></td><td><div class="row" style="gap:8px"><span class="av" style="width:24px;height:24px;font-size:10px">MS</span><span style="font-weight:700">Manisha Saini</span><span class="pill sm p-neutral">you</span></div></td><td style="color:var(--inkDim)">Lake Elsinore</td><td style="text-align:right" class="num">33</td><td><div class="meter h5"><i style="width:80%"></i></div></td><td style="text-align:right" class="num">$30</td></tr>
+                    <tr><td><span class="rk">3</span></td><td><div class="row" style="gap:8px"><span class="av" style="width:24px;height:24px;font-size:10px">PN</span><span style="font-weight:700">Priya Nandi</span></div></td><td style="color:var(--inkDim)">Corona</td><td style="text-align:right" class="num">29</td><td><div class="meter h5"><i style="width:71%"></i></div></td><td style="text-align:right" class="num">$20</td></tr>
+                    <tr><td><span class="rk">3</span></td><td><div class="row" style="gap:8px"><span class="av" style="width:24px;height:24px;font-size:10px">TB</span><span style="font-weight:700">Tasha Bell</span><span class="pill sm p-warn">tied</span></div></td><td style="color:var(--inkDim)">Lake Elsinore</td><td style="text-align:right" class="num">29</td><td><div class="meter h5"><i style="width:71%"></i></div></td><td style="text-align:right" class="num">$20</td></tr>
+                    <tr><td><span class="rk">5</span></td><td><div class="row" style="gap:8px"><span class="av" style="width:24px;height:24px;font-size:10px">MI</span><span style="font-weight:700">Marcus Ihejirika</span></div></td><td style="color:var(--inkDim)">Corona</td><td style="text-align:right" class="num">18</td><td><div class="meter h5"><i style="width:44%"></i></div></td><td style="text-align:right;color:var(--inkMute)" class="num">—</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td colspan="6">
+                      <div class="row" style="gap:8px">
+                        <svg class="ic s13" style="color:var(--warnText)"><use href="#i-alert"/></svg>
+                        <span><b>Unattributed</b> · 6 sales · 9 pod units · $412 net carry no budtender on the record and are not in any rank above.</span>
+                        <span class="spacer"></span>
+                        <a href="#" style="color:var(--info);font-weight:600;font-size:11.5px;text-decoration:none">Open the identities queue →</a>
+                      </div>
+                    </td></tr>
+                    <tr><td colspan="6"><b>Not yet:</b> Ana Delgado, Kwame Boateng — no matching sale in this window. Listed with rank <span class="mono">—</span>, never ranked last at zero.</td></tr>
+                  </tfoot>
+                </table>
+                </div></div>
+                <div class="caption">Rank 3 appears twice: competition ranking (1, 1, 3) with the next rank skipped to 5. The tie rule on this campaign is <b>split</b>, so both third places project $20 and the ledger will write $20 to each on settle. Under <b>earliest</b> the row that crossed 29 first would take the whole place — the campaign says which, and the standings show the marker either way.</div>
+              </div>
+
+              <div>
+                <div class="eyebrow">Audit</div>
+                <div class="tl" style="margin-top:6px">
+                  <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">Standings recomputed</span> — ledger version 4,812<div class="m">2026-09-07 14:41:08 · sync (blaze-api · lake-elsinore)</div></span></div>
+                  <div class="tlv"><span class="dot info"></span><span class="b"><span class="a">Identity bound</span> — “M. Saini” at Blaze → Manisha Saini; 4 earlier sales moved into rank<div class="m">2026-09-06 09:12:44 · set by Manisha Saini</div></span></div>
+                  <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">Approved</span> — brand-funded, budget $900, cap $50 a person<div class="m">2026-09-02 08:30:11 · approved by Manisha Saini</div></span></div>
+                  <div class="tlv"><span class="dot"></span><span class="b"><span class="a">Submitted for approval</span> — created by Rachel Cho (STIIIZY rep) on the brand’s behalf<div class="m">2026-09-01 16:04:52 · created by Manisha Saini</div></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack">
+            <div class="card" style="overflow:hidden">
+              <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-shield"/></svg></span><h3>Approval inbox</h3><span class="pill sm p-warn">1</span></div>
+              <div class="cbody" style="display:flex;flex-direction:column;gap:11px">
+                <div>
+                  <div style="font-size:13.5px;font-weight:700">Wyld gummies launch spiff</div>
+                  <div class="mono" style="font-size:11px;color:var(--inkMute);margin-top:3px">brand-funded · per unit · 15–21 Sep</div>
+                </div>
+                <div>
+                  <div class="kv"><span class="k">Funding</span><span class="v mono">$1,200</span></div>
+                  <div class="kv"><span class="k">Cap per person</span><span class="v mono">$60</span></div>
+                  <div class="kv"><span class="k">Rate</span><span class="v mono">$2 / unit</span></div>
+                  <div class="kv"><span class="k">Stores</span><span class="v">Elsinore · Corona · WeHo</span></div>
+                  <div class="kv"><span class="k">Tie rule</span><span class="v">n/a — threshold, not places</span></div>
+                </div>
+                <div class="note info">
+                  <div class="h"><svg class="ic s13"><use href="#i-alert"/></svg>Approving is per store</div>
+                  You approve this for <b>Lake Elsinore</b> only. Corona and West Hollywood each need their own manager. Until every store approves, the campaign scores only where it was approved.
+                </div>
+                <div class="row" style="gap:8px">
+                  <button class="btn sm accent full"><svg class="ic s13"><use href="#i-check"/></svg>Approve</button>
+                  <button class="btn sm danger">Decline</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="overflow:hidden">
+              <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-coins"/></svg></span><h3>Ready to settle</h3><span class="pill sm p-info">2</span></div>
+              <div class="cbody" style="display:flex;flex-direction:column;gap:12px">
+                <div>
+                  <div style="font-size:13px;font-weight:700">Labor Day double points</div>
+                  <div class="mono" style="font-size:11px;color:var(--inkMute);margin-top:3px">ended 2026-09-02 · 6 winners · $240</div>
+                  <button class="btn xs" style="margin-top:8px">Settle</button>
+                </div>
+                <div style="border-top:1px solid var(--hairline);padding-top:12px">
+                  <div style="font-size:13px;font-weight:700">Raw Garden live resin</div>
+                  <div class="mono" style="font-size:11px;color:var(--inkMute);margin-top:3px">ended 2026-09-05 · tie at place 3</div>
+                  <div style="font-size:11.5px;color:var(--ink2);margin-top:6px;line-height:1.5">Two budtenders finished on 22 units. The campaign’s rule is <b>split</b>, so settling writes $10 to each rather than $20 to one.</div>
+                  <button class="btn xs" style="margin-top:8px">Review the tie, then settle</button>
+                </div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);line-height:1.55;border-top:1px solid var(--hairline);padding-top:10px">
+                  Settling writes to the points ledger once per bounty · round · person. Running it twice changes nothing. No money moves anywhere in this module.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 4 · BUILDER ══════════════════════════ -->
+<div class="tabpanel" id="tab-builder">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Route <code>#/contests/new</code> · the guided flow</div>
+    <h2>Six steps, one decision each, and a sentence that rewrites itself as you answer.</h2>
+    <p>The shape is Engage’s flow builder: a stepper across the top, one panel at a time, and a persistent right rail. What the right rail holds is the argument for this concept — a plain-English <b>summary sentence</b> assembled from the answers so far, with each answered fragment highlighted. A manager who cannot read the sentence has not built the campaign they think they built, and that is a cheaper failure to catch here than in the audit trail after settlement. The five kinds in §3.4 (<code>spiff</code>, <code>bounty</code>, <code>team_goal</code>, <code>store_vs_store</code>, <code>aov_goal</code>) are the first step, and choosing one changes which later steps appear at all.</p>
+  </div>
+
+  <div class="app norail">
+    <div class="topbar">
+      <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+      <span class="crumbs"><b>Bounty</b> · Bounties · New campaign</span>
+      <span class="spacer"></span>
+      <span class="rt">
+        <span class="mono" style="font-size:11px;color:var(--inkMute)">draft saved 12s ago</span>
+        <button class="ibtn" aria-label="Close"><svg class="ic s14"><use href="#i-x"/></svg></button>
+      </span>
+    </div>
+    <div class="main">
+
+      <div class="steps">
+        <div class="step done"><span class="dot"><svg class="ic s14"><use href="#i-check"/></svg></span><span class="lb">Type</span></div>
+        <div class="step done"><span class="dot"><svg class="ic s14"><use href="#i-check"/></svg></span><span class="lb">What counts</span></div>
+        <div class="step done"><span class="dot"><svg class="ic s14"><use href="#i-check"/></svg></span><span class="lb">Who</span></div>
+        <div class="step done"><span class="dot"><svg class="ic s14"><use href="#i-check"/></svg></span><span class="lb">When</span></div>
+        <div class="step now"><span class="dot">5</span><span class="lb">Reward</span></div>
+        <div class="step"><span class="dot">6</span><span class="lb">Review</span></div>
+      </div>
+
+      <div class="grid g-split">
+        <div class="card" style="overflow:hidden">
+          <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-gift"/></svg></span><h3>Step 5 · Reward</h3><span class="mono" style="font-size:11px;color:var(--inkMute)">ranked bounty</span></div>
+          <div class="cbody" style="display:flex;flex-direction:column;gap:16px">
+
+            <div>
+              <span class="flabel">Reward structure</span>
+              <div class="stack" style="gap:8px">
+                <div class="choice on"><span class="rd"></span><div><div class="t">Places</div><div class="s">A fixed amount for first, second, third — the shape of a ranked bounty. Add or remove places below.</div></div></div>
+                <div class="choice"><span class="rd"></span><div><div class="t">Threshold</div><div class="s">Everyone who reaches a number earns the same amount. This is what a spiff usually is.</div></div></div>
+                <div class="choice"><span class="rd"></span><div><div class="t">Per unit</div><div class="s">An amount for every unit sold, with an optional cap per person.</div></div></div>
+              </div>
+            </div>
+
+            <div>
+              <span class="flabel">Places</span>
+              <div class="dtwrap"><div class="scroll">
+              <table class="dt">
+                <thead><tr><th style="width:80px">Place</th><th>Amount</th><th>Unit</th><th style="width:44px"></th></tr></thead>
+                <tbody>
+                  <tr class="dense"><td class="num">1st</td><td><span class="finput" style="min-height:32px;width:130px">$50.00</span></td><td style="color:var(--inkDim)">cents · tracked</td><td><button class="ibtn" aria-label="Remove place"><svg class="ic s13"><use href="#i-x"/></svg></button></td></tr>
+                  <tr class="dense"><td class="num">2nd</td><td><span class="finput" style="min-height:32px;width:130px">$30.00</span></td><td style="color:var(--inkDim)">cents · tracked</td><td><button class="ibtn" aria-label="Remove place"><svg class="ic s13"><use href="#i-x"/></svg></button></td></tr>
+                  <tr class="dense"><td class="num">3rd</td><td><span class="finput" style="min-height:32px;width:130px">$20.00</span></td><td style="color:var(--inkDim)">cents · tracked</td><td><button class="ibtn" aria-label="Remove place"><svg class="ic s13"><use href="#i-x"/></svg></button></td></tr>
+                </tbody>
+              </table>
+              </div></div>
+              <div class="row" style="gap:8px;margin-top:9px">
+                <button class="btn xs"><svg class="ic s11"><use href="#i-plus"/></svg>Add a place</button>
+                <span class="fhint" style="margin:0">Total if nobody ties · <span class="mono">$100.00</span></span>
+              </div>
+            </div>
+
+            <div>
+              <span class="flabel">Unit</span>
+              <div class="segctl"><button class="on">Dollars · tracked</button><button>Points</button><button>Recognition only</button></div>
+              <div class="fhint">Dollars are recorded in the points ledger and appear in Earnings as an amount owed. <b>Nothing in this module moves money.</b> A payout is a bookkeeping marker a manager writes after paying by their own means.</div>
+            </div>
+
+            <div>
+              <span class="flabel">If two people tie</span>
+              <div class="stack" style="gap:8px">
+                <div class="choice on"><span class="rd"></span><div><div class="t">Split the place evenly</div><div class="s">Two people tied for first take $25 each and second place is skipped. Ranks stay 1, 1, 3.</div></div></div>
+                <div class="choice"><span class="rd"></span><div><div class="t">Whoever got there first</div><div class="s">The place goes to whoever crossed the value earliest, read from the timestamp of the crossing sale.</div></div></div>
+              </div>
+            </div>
+
+            <div>
+              <span class="flabel">Funding</span>
+              <div class="row" style="gap:10px;align-items:flex-start">
+                <div style="flex:1;min-width:180px">
+                  <div class="segctl" style="margin-bottom:8px"><button>This store</button><button class="on">A brand</button></div>
+                  <span class="finput sans">STIIIZY</span>
+                  <div class="fhint">Normalized through the brand database, so “Stiiizy” and “STIIIZY” are one brand in the filter.</div>
+                </div>
+                <div style="flex:1;min-width:150px">
+                  <span class="flabel">Budget</span>
+                  <span class="finput">$900.00</span>
+                  <div class="fhint">Brand-funded campaigns go to a manager for approval before they score anything.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row" style="border-top:1px solid var(--hairline);padding-top:14px">
+              <button class="btn">Back</button>
+              <span class="spacer"></span>
+              <button class="btn ghost">Save draft</button>
+              <button class="btn accent">Continue to review<svg class="ic s13"><use href="#i-arrow-right"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="summary">
+            <div class="eyebrow" style="margin-bottom:8px">This campaign, in a sentence</div>
+            <div class="s">Sell <em>10 units</em> of <em>any STIIIZY pod</em> between <em>Mon 9:00 am</em> and <em>Sun at close</em>; top three earn <em>$50 / $30 / $20</em>; <em>ties split</em>.</div>
+            <div class="caption" style="margin-top:10px">The sentence rewrites on every answer. Before step 5 it read “…top three earn <b>a reward you have not set</b>”, in <code class="m">inkMute</code> rather than accent, so an unanswered fragment is visibly unanswered.</div>
+          </div>
+
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-check-circle"/></svg></span><h3>Decided so far</h3></div>
+            <div class="cbody">
+              <div class="kv"><span class="k">Type</span><span class="v">Ranked bounty</span></div>
+              <div class="kv"><span class="k">Metric</span><span class="v">Units sold</span></div>
+              <div class="kv"><span class="k">Filter</span><span class="v">Brand · STIIIZY</span></div>
+              <div class="kv"><span class="k">Category</span><span class="v">Vape · any</span></div>
+              <div class="kv"><span class="k">Minimum line</span><span class="v mono">$1.00</span></div>
+              <div class="kv"><span class="k">Stores</span><span class="v">Elsinore · Corona</span></div>
+              <div class="kv"><span class="k">Participants</span><span class="v">Everyone on the floor</span></div>
+              <div class="kv"><span class="k">Window</span><span class="v mono">08 Sep 09:00 → 14 Sep close</span></div>
+              <div class="kv"><span class="k">Repeats</span><span class="v">Weekly</span></div>
+              <div class="kv"><span class="k">Time zone</span><span class="v mono">America/Los_Angeles</span></div>
+            </div>
+          </div>
+
+          <div class="note warn">
+            <div class="h"><svg class="ic s13"><use href="#i-alert"/></svg>Corona has no line-level data yet</div>
+            A unit bounty needs line items. Corona’s Blaze connection returns transactions without a basket, so units there come from the All Sales CSV upload — last uploaded 5 days ago. Until a fresher file lands, Corona’s rows in this campaign will lag. You can continue; the campaign card will carry the source’s freshness.
+          </div>
+
+          <div class="card p16">
+            <div class="eyebrow">Steps this type skips</div>
+            <div class="tokrow" style="margin-top:8px">
+              <span class="tok" style="opacity:.6">Teams</span>
+              <span class="tok" style="opacity:.6">Team split rule</span>
+              <span class="tok" style="opacity:.6">Store default goal</span>
+            </div>
+            <div class="caption">A ranked bounty has no teams, so the team split step never renders. Choosing <b>Team goal</b> at step 1 brings them back and removes Places.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="overflow:hidden;margin-top:4px">
+        <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-lightning"/></svg></span><h3>Step 1 · Type</h3><span class="mono" style="font-size:11px;color:var(--inkMute)">shown here so the start of the flow is visible</span></div>
+        <div class="cbody">
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+            <div class="choice"><span class="rd"></span><div><div class="t">Spiff</div><div class="s">Short window, a number to hit, the same reward for everyone who hits it.</div></div></div>
+            <div class="choice on"><span class="rd"></span><div><div class="t">Ranked bounty</div><div class="s">Places, first to third. Can reset hourly for a power-hour shift.</div></div></div>
+            <div class="choice"><span class="rd"></span><div><div class="t">Team goal</div><div class="s">One cumulative number for the whole floor, split when it lands.</div></div></div>
+            <div class="choice"><span class="rd"></span><div><div class="t">Store vs store</div><div class="s">Places over stores. The winning store’s floor splits the prize.</div></div></div>
+            <div class="choice"><span class="rd"></span><div><div class="t">AOV goal</div><div class="s">The absorbed average-order-value goal — a store default with per-person overrides.</div></div></div>
+          </div>
+          <div class="caption">Five kinds, matching <code class="m">inc_contests.kind</code> exactly. The card copy is the definition a manager needs, not the schema value.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 5 · STANDINGS ══════════════════════════ -->
+<div class="tabpanel" id="tab-standings">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Route <code>#/standings</code> · the deliberate trade-off</div>
+    <h2>One screen: the leaderboard and the store race, with the all-store view one click away.</h2>
+    <p>This is where the concept pays for its landing screen. Standings is the third sidebar item rather than the front door, and the <b>All stores</b> scope is a segment inside it — two clicks from opening the app rather than zero. In exchange, a budtender who only wants their own position never has to come here at all: it is already on every campaign card. What lives here is the question a card cannot answer — <i>across everything, not one campaign, where does this floor stand</i> — with period and metric controls, and the store race underneath.</p>
+  </div>
+
+  <div class="app norail">
+    <div class="topbar">
+      <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+      <span class="crumbs"><b>Bounty</b> · Standings</span>
+      <span class="fakesearch"><svg class="ic s13"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></span>
+      <span class="rt">
+        <button class="ibtn" aria-label="Notifications"><svg class="ic s14"><use href="#i-bell"/></svg></button>
+        <button class="ibtn" aria-label="Toggle theme"><svg class="ic s14"><use href="#i-moon"/></svg></button>
+        <span class="av" style="width:28px;height:28px;font-size:11px">MS</span>
+      </span>
+    </div>
+    <div class="main">
+
+      <div class="phead">
+        <div>
+          <h2>Standings</h2>
+          <p>All attributed sales in the period, independent of any campaign. Campaign standings are scored by the campaign’s own filter and live on its card — these are the raw totals underneath them.</p>
+        </div>
+        <div class="acts">
+          <button class="btn sm"><svg class="ic s13"><use href="#i-refresh"/></svg>Refresh</button>
+        </div>
+      </div>
+
+      <div class="card p12">
+        <div class="row" style="gap:14px">
+          <div>
+            <span class="flabel" style="margin-bottom:4px">Scope</span>
+            <div class="segctl"><button class="on">This store</button><button>All stores</button><button>Store vs store</button></div>
+          </div>
+          <div>
+            <span class="flabel" style="margin-bottom:4px">Period</span>
+            <div class="segctl"><button class="on">Today</button><button>Week</button><button>Month</button><button>Custom</button></div>
+          </div>
+          <div>
+            <span class="flabel" style="margin-bottom:4px">Metric</span>
+            <div class="segctl"><button class="on">Net</button><button>Units</button><button>Orders</button><button>AOV</button></div>
+          </div>
+          <span class="spacer"></span>
+          <div>
+            <span class="flabel" style="margin-bottom:4px">Filter</span>
+            <button class="btn sm"><svg class="ic s13"><use href="#i-filter"/></svg>No brand or category filter</button>
+          </div>
+        </div>
+        <div class="fresh" style="margin-top:12px;border-top:1px solid var(--hairline);padding-top:11px">
+          <i><span class="d"></span>Blaze API · Lake Elsinore · synced 2m ago · 143 sales today</i>
+          <i><span class="d"></span>Blaze CSV · Lake Elsinore · last upload 2026-09-05 (All Sales, 1,204 lines)</i>
+          <i><span class="d warn"></span>Meadow API · West Hollywood · last error 14:02: 401 (client key)</i>
+          <i><span class="d off"></span>Long Beach · never synced · runs Treez</i>
+        </div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="stack">
+          <div class="dtwrap">
+            <div class="chead" style="border-bottom:1px solid var(--hairline2);background:var(--surface)">
+              <span class="plate"><svg class="ic s14"><use href="#i-bounty"/></svg></span>
+              <h3>Lake Elsinore · today · net</h3>
+              <span class="pill sm p-neutral">7 on the floor</span>
+              <span class="mono" style="font-size:11px;color:var(--inkMute)">ledger v4,812</span>
+            </div>
+            <div class="scroll">
+            <table class="dt">
+              <thead><tr><th style="width:64px">Rank</th><th>Budtender</th><th style="text-align:right">Net</th><th style="text-align:right">Orders</th><th style="text-align:right">AOV</th><th style="width:130px">Share of floor</th></tr></thead>
+              <tbody>
+                <tr><td><span class="rk rk1">1</span></td><td><div class="row" style="gap:9px"><span class="av" style="width:26px;height:26px;font-size:10px">DR</span><div><div style="font-weight:700">Devon Ruiz</div><div class="mono" style="font-size:10.5px;color:var(--inkMute)">blaze:elsinore:e-2211</div></div></div></td><td style="text-align:right" class="num">$1,842</td><td style="text-align:right" class="num">21</td><td style="text-align:right" class="num">$87.71</td><td><div class="meter h5"><i class="accent" style="width:100%"></i></div></td></tr>
+                <tr class="me"><td><span class="rk">2</span></td><td><div class="row" style="gap:9px"><span class="av" style="width:26px;height:26px;font-size:10px">MS</span><div><div style="font-weight:700">Manisha Saini <span class="pill sm p-neutral">you</span></div><div class="mono" style="font-size:10.5px;color:var(--inkMute)">blaze:elsinore:e-1804</div></div></div></td><td style="text-align:right" class="num">$1,611</td><td style="text-align:right" class="num">19</td><td style="text-align:right" class="num">$84.79</td><td><div class="meter h5"><i style="width:87%"></i></div></td></tr>
+                <tr><td><span class="rk">3</span></td><td><div class="row" style="gap:9px"><span class="av" style="width:26px;height:26px;font-size:10px">TB</span><div><div style="font-weight:700">Tasha Bell</div><div class="mono" style="font-size:10.5px;color:var(--inkMute)">blaze:elsinore:e-2044</div></div></div></td><td style="text-align:right" class="num">$1,402</td><td style="text-align:right" class="num">18</td><td style="text-align:right" class="num">$77.89</td><td><div class="meter h5"><i style="width:76%"></i></div></td></tr>
+                <tr><td><span class="rk">3</span></td><td><div class="row" style="gap:9px"><span class="av" style="width:26px;height:26px;font-size:10px">AD</span><div><div style="font-weight:700">Ana Delgado <span class="pill sm p-warn">tied</span></div><div class="mono" style="font-size:10.5px;color:var(--inkMute)">blaze:elsinore:e-2310</div></div></div></td><td style="text-align:right" class="num">$1,402</td><td style="text-align:right" class="num">16</td><td style="text-align:right" class="num">$87.63</td><td><div class="meter h5"><i style="width:76%"></i></div></td></tr>
+                <tr><td><span class="rk">5</span></td><td><div class="row" style="gap:9px"><span class="av" style="width:26px;height:26px;font-size:10px">MI</span><div><div style="font-weight:700">Marcus Ihejirika</div><div class="mono" style="font-size:10.5px;color:var(--inkMute)">blaze:elsinore:e-1990</div></div></div></td><td style="text-align:right" class="num">$988</td><td style="text-align:right" class="num">14</td><td style="text-align:right" class="num">$70.57</td><td><div class="meter h5"><i style="width:54%"></i></div></td></tr>
+                <tr><td><span class="rk">6</span></td><td><div class="row" style="gap:9px"><span class="av" style="width:26px;height:26px;font-size:10px">KB</span><div><div style="font-weight:700">Kwame Boateng</div><div class="mono" style="font-size:10.5px;color:var(--inkMute)">blaze:elsinore:e-2402</div></div></div></td><td style="text-align:right" class="num">$641</td><td style="text-align:right" class="num">9</td><td style="text-align:right" class="num">$71.22</td><td><div class="meter h5"><i style="width:35%"></i></div></td></tr>
+              </tbody>
+              <tfoot>
+                <tr><td colspan="6">
+                  <div class="row" style="gap:8px">
+                    <svg class="ic s13" style="color:var(--warnText)"><use href="#i-alert"/></svg>
+                    <span><b>Unattributed</b> · 6 sales · $412 net · counted in the store total, in nobody’s rank.</span>
+                    <span class="spacer"></span>
+                    <a href="#" style="color:var(--info);font-weight:600;font-size:11.5px;text-decoration:none">3 identities waiting to be matched →</a>
+                  </div>
+                </td></tr>
+                <tr><td colspan="6"><b>No sales yet today:</b> Priya Nandi (on shift since 11:00). Listed here rather than ranked last at $0.</td></tr>
+                <tr><td colspan="6">Ranks 3 and 3 are a real tie — competition ranking skips to 5. A tie only pays differently inside a campaign, where the campaign’s own tie rule applies.</td></tr>
+              </tfoot>
+            </table>
+            </div>
+          </div>
+          <div class="caption">Hand-rolled to <code class="m">DataTable</code>’s convention: bordered <code class="m">r12</code> container, <code class="m">surface2</code> head, hairline under it, hairline between rows, <code class="m">accentSoft</code> on your own row and an <code class="m">accentSoft/accentText</code> chip on rank 1.</div>
+        </div>
+
+        <div class="stack">
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-globe"/></svg></span><h3>Store race · today</h3></div>
+            <div class="cbody" style="display:flex;flex-direction:column;gap:13px">
+              <div>
+                <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:600">Corona</span><span class="spacer"></span><span class="num" style="font-size:12px">$8,410</span></div>
+                <div class="meter h6"><i class="good" style="width:100%"></i></div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);margin-top:4px">blaze api · 2m ago · 96 sales</div>
+              </div>
+              <div>
+                <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:700">Lake Elsinore <span class="pill sm p-neutral">you</span></span><span class="spacer"></span><span class="num" style="font-size:12px">$7,896</span></div>
+                <div class="meter h6"><i class="accent" style="width:94%"></i></div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);margin-top:4px">blaze api · 2m ago · 143 sales</div>
+              </div>
+              <div>
+                <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:600">West Hollywood</span><span class="spacer"></span><span class="num" style="font-size:12px;color:var(--warnText)">$5,120</span></div>
+                <div class="meter h6"><i class="warn" style="width:61%"></i></div>
+                <div class="mono" style="font-size:10.5px;color:var(--warnText);margin-top:4px">meadow api · last error 14:02: 401 · figure is 3h stale</div>
+              </div>
+              <div>
+                <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:600">Riverside</span><span class="spacer"></span><span class="num" style="font-size:12px">$4,308</span></div>
+                <div class="meter h6"><i class="good" style="width:51%"></i></div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);margin-top:4px">blaze api · 6m ago · 61 sales</div>
+              </div>
+              <div>
+                <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:600;color:var(--inkMute)">Long Beach</span><span class="spacer"></span><span class="num" style="font-size:12px;color:var(--inkMute)">not scored</span></div>
+                <div class="meter h6"></div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);margin-top:4px">runs Treez · no ingestion path in this build</div>
+              </div>
+              <div class="mono" style="font-size:10.5px;color:var(--inkMute);line-height:1.55;border-top:1px solid var(--hairline);padding-top:11px">
+                A store with a stale or failing source keeps its bar and says why. Dropping it from the race would make an outage look like a bad day.
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-chart"/></svg></span><h3>Your day</h3></div>
+            <div class="cbody">
+              <div class="kv"><span class="k">Net</span><span class="v mono">$1,611</span></div>
+              <div class="kv"><span class="k">Orders</span><span class="v mono">19</span></div>
+              <div class="kv"><span class="k">AOV</span><span class="v mono">$84.79</span></div>
+              <div class="kv"><span class="k">Refunds netted out</span><span class="v mono">−$62</span></div>
+              <div class="kv"><span class="k">Rank · this store</span><span class="v mono">2 of 7</span></div>
+              <div class="kv"><span class="k">Rank · all stores</span><span class="v mono">6 of 31</span></div>
+              <div class="caption">Refunds are stored as their own rows and netted by transaction linkage. Gross, refunds and net are three different numbers and this card never conflates them.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 6 · EARNINGS ══════════════════════════ -->
+<div class="tabpanel" id="tab-earnings">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Route <code>#/earnings</code> · budtender and manager</div>
+    <h2>A wallet-shaped list: balance at the top, then one row per thing you earned and how firm it is.</h2>
+    <p>Two states matter and the design has to keep them visibly apart: <b>projected</b> (the campaign has not settled, the number can still move) and <b>settled</b> (a real row in the points ledger, written once per bounty · round · person). A third marker, <b>recorded paid</b>, is bookkeeping only — a manager noting that they paid it by their own means, with who and when. No money moves in this module and no screen here implies otherwise.</p>
+  </div>
+
+  <div class="app norail">
+    <div class="topbar">
+      <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+      <span class="crumbs"><b>Bounty</b> · Earnings</span>
+      <span class="spacer"></span>
+      <span class="rt">
+        <span class="segctl"><button class="on">My earnings</button><button>Store ledger</button></span>
+        <span class="av" style="width:28px;height:28px;font-size:11px">MS</span>
+      </span>
+    </div>
+    <div class="main">
+
+      <div class="phead">
+        <div>
+          <h2>Earnings</h2>
+          <p>What the campaigns say you have earned. Tracked here, paid outside — this module has no payment behaviour and never will.</p>
+        </div>
+      </div>
+
+      <div class="grid g-kpi">
+        <div class="st green"><div class="strip"></div><div class="in">
+          <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-wallet"/></svg></span><span class="lbl">Settled balance</span></div>
+          <div class="val">$120</div>
+          <div class="sub">6 settled awards · oldest 2026-08-04</div>
+        </div></div>
+        <div class="st blue"><div class="strip"></div><div class="in">
+          <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-clock"/></svg></span><span class="lbl">Projected</span></div>
+          <div class="val">$46</div>
+          <div class="sub">3 campaigns still running · can still move</div>
+        </div></div>
+        <div class="st violet"><div class="strip"></div><div class="in">
+          <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-check-circle"/></svg></span><span class="lbl">Recorded paid</span></div>
+          <div class="val">$85</div>
+          <div class="sub">last marked 2026-09-01 by Manisha Saini</div>
+        </div></div>
+        <div class="st pink"><div class="strip"></div><div class="in">
+          <div class="row"><span class="chip"><svg class="ic s14"><use href="#i-sparkle"/></svg></span><span class="lbl">Quiz points</span></div>
+          <div class="val">150</div>
+          <div class="sub">3 snaps passed · points, not dollars</div>
+        </div></div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="card" style="overflow:hidden">
+          <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-scroll"/></svg></span><h3>Ledger</h3><span class="mono" style="font-size:11px;color:var(--inkMute)">newest first · append only</span></div>
+          <div>
+            <div class="wal">
+              <span class="pl" style="background:var(--infoSoft);color:var(--info)"><svg class="ic s14"><use href="#i-clock"/></svg></span>
+              <span class="bd">
+                <span class="t">STIIIZY pod push · 2nd place</span>
+                <span class="m">projected · settles when the window closes Sun at close · 33 units, 8 behind first</span>
+              </span>
+              <span class="amt" style="color:var(--info)">$30</span>
+            </div>
+            <div class="wal">
+              <span class="pl" style="background:var(--infoSoft);color:var(--info)"><svg class="ic s14"><use href="#i-clock"/></svg></span>
+              <span class="bd">
+                <span class="t">Saturday power hour · round 3</span>
+                <span class="m">projected · round ends in 00:41 · 5 rounds after this</span>
+              </span>
+              <span class="amt" style="color:var(--info)">$10</span>
+            </div>
+            <div class="wal">
+              <span class="pl" style="background:var(--infoSoft);color:var(--info)"><svg class="ic s14"><use href="#i-clock"/></svg></span>
+              <span class="bd">
+                <span class="t">Concentrate team goal · your share</span>
+                <span class="m">projected · 82 of 120 units · $300 split equally across 7 contributors</span>
+              </span>
+              <span class="amt" style="color:var(--info)">$43</span>
+            </div>
+            <div class="wal">
+              <span class="pl" style="background:var(--goodSoft);color:var(--good)"><svg class="ic s14"><use href="#i-check-circle"/></svg></span>
+              <span class="bd">
+                <span class="t">Saturday power hour · round 1</span>
+                <span class="m">settled 2026-09-07 10:00:04 · first place · $412 net in the hour</span>
+              </span>
+              <span class="amt">$15</span>
+            </div>
+            <div class="wal">
+              <span class="pl" style="background:var(--goodSoft);color:var(--good)"><svg class="ic s14"><use href="#i-check-circle"/></svg></span>
+              <span class="bd">
+                <span class="t">Jeeter back-to-school · 3rd place</span>
+                <span class="m">settled 2026-09-03 08:12:41 · tie split with Tasha Bell · $40 became $20 each</span>
+              </span>
+              <span class="amt">$20</span>
+            </div>
+            <div class="wal">
+              <span class="pl" style="background:var(--surface3);color:var(--hueViolet)"><svg class="ic s14"><use href="#i-wallet"/></svg></span>
+              <span class="bd">
+                <span class="t">Recorded paid — August awards</span>
+                <span class="m">2026-09-01 17:22 · marked by Manisha Saini · cash · “paid with September 1 tips”</span>
+              </span>
+              <span class="amt" style="color:var(--inkMute)">−$85</span>
+            </div>
+            <div class="wal">
+              <span class="pl" style="background:var(--surface3);color:var(--huePink)"><svg class="ic s14"><use href="#i-sparkle"/></svg></span>
+              <span class="bd">
+                <span class="t">Terpene basics · quiz passed</span>
+                <span class="m">2026-08-29 12:04 · 5 of 5 · points, not dollars</span>
+              </span>
+              <span class="amt" style="color:var(--inkMute)">+50 pts</span>
+            </div>
+            <div class="wal">
+              <span class="pl" style="background:var(--warnSoft);color:var(--warnText)"><svg class="ic s14"><use href="#i-pencil"/></svg></span>
+              <span class="bd">
+                <span class="t">Adjustment — Labor Day spiff</span>
+                <span class="m">2026-08-26 09:40 · by Manisha Saini · “refunded sale removed from the count after settle”</span>
+              </span>
+              <span class="amt" style="color:var(--warnText)">−$10</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card sunken" style="overflow:hidden">
+            <div class="chead" style="border-bottom-color:var(--hairline)"><span class="plate"><svg class="ic s14"><use href="#i-shield"/></svg></span><h3>Manager · store ledger</h3><span class="pill sm p-neutral">Floor Manager only</span></div>
+            <div class="cbody" style="display:flex;flex-direction:column;gap:12px">
+              <div class="card p12">
+                <div class="kv"><span class="k">Settled, not yet marked paid</span><span class="v mono">$412</span></div>
+                <div class="kv"><span class="k">People owed</span><span class="v mono">9</span></div>
+                <div class="kv"><span class="k">Brand-funded portion</span><span class="v mono">$260</span></div>
+                <div class="kv"><span class="k">Store-funded portion</span><span class="v mono">$152</span></div>
+                <button class="btn sm full" style="margin-top:11px"><svg class="ic s13"><use href="#i-check"/></svg>Record a payment</button>
+              </div>
+              <div class="card p12">
+                <div class="eyebrow">Recently marked paid</div>
+                <div class="tl" style="margin-top:8px">
+                  <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">$85 · Manisha Saini</span><div class="m">2026-09-01 17:22 · cash · “paid with September 1 tips”</div></span></div>
+                  <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">$60 · Devon Ruiz</span><div class="m">2026-09-01 17:22 · cash · “paid with September 1 tips”</div></span></div>
+                  <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">$45 · Tasha Bell</span><div class="m">2026-09-01 17:24 · payroll · “added to next cycle”</div></span></div>
+                </div>
+              </div>
+              <div class="note info">
+                <div class="h"><svg class="ic s13"><use href="#i-alert"/></svg>This marker is bookkeeping and nothing else</div>
+                Recording a payment writes one ledger row saying who marked it, when, and why. It moves no money, contacts no payroll system, and can be reversed with an adjustment row. If the owner would rather not have even the marker, it is one <code class="m">kind</code> to drop from the schema.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="caption">The wallet rows are <code class="m">Card padding={0}</code> with hairline-separated rows — the “Needs attention” pattern from <code class="m">pos/screen-home.jsx</code>, re-pointed at money. Projected rows carry <code class="m">--info</code>, settled rows <code class="m">--good</code>, adjustments <code class="m">--warnText</code>; the amount column is the only place the colour is spent.</div>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 7 · LEARN ══════════════════════════ -->
+<div class="tabpanel" id="tab-learn">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Routes <code>#/learn</code> and <code>#/learn/new</code> · Snaps</div>
+    <h2>A story player, because a snap is read standing up between customers.</h2>
+    <p>Cards advance on a tap, a row of progress dots says how many are left, and the whole thing fits a phone-width column so the same component works on the register screen and on a manager’s desktop. A plain snap scores nothing — it is content. A snap with a quiz pays out on a pass, which is the SparkPlug “Courses” mechanic, and the payout is points rather than dollars so it never mixes with campaign money in the ledger. The link to a bounty is what makes the pairing on the landing screen work: <i>learn it, then sell it</i>.</p>
+  </div>
+
+  <div class="app norail">
+    <div class="topbar">
+      <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+      <span class="crumbs"><b>Bounty</b> · Snaps · Blue Dream pod</span>
+      <span class="spacer"></span>
+      <span class="rt">
+        <button class="btn sm"><svg class="ic s13"><use href="#i-eye"/></svg>Preview</button>
+        <button class="btn sm accent"><svg class="ic s13"><use href="#i-plus"/></svg>New snap</button>
+      </span>
+    </div>
+    <div class="main">
+
+      <div class="grid" style="grid-template-columns:320px minmax(0,1fr);align-items:start">
+
+        <div class="stack">
+          <div class="eyebrow">The player · card 2 of 4</div>
+          <div class="player">
+            <div class="dots"><i class="past"></i><i class="on"></i><i></i><i></i></div>
+            <div class="media">image card · 1080×1920<br>served from <span style="color:var(--ink2)">/api/incentives/media/med-4471</span></div>
+            <div class="txt">
+              <h4>Why the pod, not the cart</h4>
+              <p>The pod is a sealed ceramic core — no wick, no burnt hit at the end of the tank. When a customer says their last cart tasted scorched, this is the sentence that lands.</p>
+            </div>
+            <div class="zones">
+              <button class="btn sm" style="flex:1"><svg class="ic s13" style="transform:rotate(180deg)"><use href="#i-arrow-right"/></svg>Back</button>
+              <button class="btn sm primary" style="flex:2">Next<svg class="ic s13"><use href="#i-arrow-right"/></svg></button>
+            </div>
+          </div>
+          <div class="caption">Tapping the right two-thirds advances, the left third goes back — the story convention, with real buttons underneath so it is reachable from a keyboard.</div>
+
+          <div class="eyebrow" style="margin-top:6px">The quiz card · card 4 of 4</div>
+          <div class="player">
+            <div class="dots"><i class="past"></i><i class="past"></i><i class="past"></i><i class="on"></i></div>
+            <div class="txt" style="padding-top:14px">
+              <h4>One question</h4>
+              <p>A customer’s last cart tasted burnt at the end. What do you say?</p>
+            </div>
+            <div class="quiz">
+              <div class="qopt wrong">Recommend a bigger cart</div>
+              <div class="qopt right"><svg class="ic s13"><use href="#i-check"/></svg>The pod’s ceramic core has no wick to scorch</div>
+              <div class="qopt wrong">Tell them to vape it slower</div>
+            </div>
+            <div style="padding:0 14px 14px">
+              <div class="note info" style="padding:11px 12px">
+                <div class="h"><svg class="ic s13"><use href="#i-sparkle"/></svg>Passed · +50 points</div>
+                Recorded once. Re-reading the snap does not pay again, and the points are points — they never become a dollar figure in Earnings.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-camera"/></svg></span><h3>Blue Dream pod</h3><span class="pill sm p-good"><span class="dot"></span>published</span><span class="pill sm p-accent">STIIIZY</span></div>
+            <div class="cbody" style="display:flex;flex-direction:column;gap:16px">
+
+              <div>
+                <span class="flabel">Cards</span>
+                <div class="dtwrap"><div class="scroll">
+                <table class="dt">
+                  <thead><tr><th style="width:46px">#</th><th>Type</th><th>Content</th><th style="width:110px">Media</th><th style="width:80px"></th></tr></thead>
+                  <tbody>
+                    <tr class="dense"><td class="num">1</td><td><span class="pill sm p-neutral">image</span></td><td>Pod on a counter, brand mark bottom-left</td><td class="mono" style="font-size:11px">med-4470 · 412 KB</td><td><button class="ibtn" aria-label="Edit card"><svg class="ic s13"><use href="#i-pencil"/></svg></button></td></tr>
+                    <tr class="dense"><td class="num">2</td><td><span class="pill sm p-neutral">image + text</span></td><td>Why the pod, not the cart</td><td class="mono" style="font-size:11px">med-4471 · 388 KB</td><td><button class="ibtn" aria-label="Edit card"><svg class="ic s13"><use href="#i-pencil"/></svg></button></td></tr>
+                    <tr class="dense"><td class="num">3</td><td><span class="pill sm p-neutral">text</span></td><td>Three strains on the shelf right now, and who each is for</td><td class="mono" style="font-size:11px;color:var(--inkMute)">—</td><td><button class="ibtn" aria-label="Edit card"><svg class="ic s13"><use href="#i-pencil"/></svg></button></td></tr>
+                    <tr class="dense"><td class="num">4</td><td><span class="pill sm p-info">quiz</span></td><td>One question · 3 choices · pass at 1 of 1</td><td class="mono" style="font-size:11px;color:var(--inkMute)">—</td><td><button class="ibtn" aria-label="Edit card"><svg class="ic s13"><use href="#i-pencil"/></svg></button></td></tr>
+                  </tbody>
+                </table>
+                </div></div>
+                <div class="row" style="gap:8px;margin-top:9px">
+                  <button class="btn xs"><svg class="ic s11"><use href="#i-plus"/></svg>Add card</button>
+                  <button class="btn xs"><svg class="ic s11"><use href="#i-upload"/></svg>Upload media</button>
+                  <span class="fhint" style="margin:0">Media is base64 in, bytes out, capped at 1.5 MB a file. No multipart, no file server.</span>
+                </div>
+              </div>
+
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                <div>
+                  <span class="flabel">Reward on a passed quiz</span>
+                  <div class="row" style="gap:8px">
+                    <span class="finput" style="width:90px">50</span>
+                    <div class="segctl"><button class="on">points</button><button>dollars</button><button>none</button></div>
+                  </div>
+                  <div class="fhint">Paid once per person. A retake does not pay again.</div>
+                </div>
+                <div>
+                  <span class="flabel">Linked campaign</span>
+                  <span class="finput sans">STIIIZY pod push</span>
+                  <div class="fhint">The link is what puts this snap’s circle above that campaign’s card on Active now.</div>
+                </div>
+                <div>
+                  <span class="flabel">Stores</span>
+                  <div class="tokrow" style="padding-top:6px">
+                    <span class="tok">Lake Elsinore<svg class="ic s11"><use href="#i-x"/></svg></span>
+                    <span class="tok">Corona<svg class="ic s11"><use href="#i-x"/></svg></span>
+                    <span class="tok" style="opacity:.7">+ add</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="flabel">Schedule</span>
+                  <div class="row" style="gap:8px">
+                    <span class="finput" style="flex:1">08 Sep 06:00</span>
+                    <span class="finput" style="flex:1">15 Sep 23:59</span>
+                  </div>
+                  <div class="fhint">Publish and expire, in the store’s own time zone.</div>
+                </div>
+              </div>
+
+              <div>
+                <span class="flabel">Who has read it</span>
+                <div class="dtwrap"><div class="scroll">
+                <table class="dt">
+                  <thead><tr><th>Budtender</th><th>Opened</th><th>Finished</th><th>Quiz</th></tr></thead>
+                  <tbody>
+                    <tr class="dense"><td>Devon Ruiz</td><td class="mono" style="font-size:11.5px">08 Sep 09:14</td><td class="mono" style="font-size:11.5px">08 Sep 09:16</td><td><span class="pill sm p-good">passed · 1 of 1</span></td></tr>
+                    <tr class="dense"><td>Tasha Bell</td><td class="mono" style="font-size:11.5px">08 Sep 10:02</td><td class="mono" style="font-size:11.5px">08 Sep 10:03</td><td><span class="pill sm p-good">passed · 1 of 1</span></td></tr>
+                    <tr class="dense"><td>Marcus Ihejirika</td><td class="mono" style="font-size:11.5px">08 Sep 11:40</td><td class="mono" style="font-size:11.5px;color:var(--inkMute)">—</td><td><span class="pill sm p-neutral">stopped at card 2</span></td></tr>
+                    <tr class="dense"><td>Manisha Saini</td><td class="mono" style="font-size:11.5px;color:var(--inkMute)">—</td><td class="mono" style="font-size:11.5px;color:var(--inkMute)">—</td><td><span class="pill sm p-neutral">not opened</span></td></tr>
+                  </tbody>
+                  <tfoot><tr><td colspan="4">4 of 7 on the floor have opened it. Read counts are per person and stored once — this is a view record, not an analytics event stream.</td></tr></tfoot>
+                </table>
+                </div></div>
+              </div>
+
+              <div class="row" style="border-top:1px solid var(--hairline);padding-top:14px">
+                <button class="btn ghost">Unpublish</button>
+                <span class="spacer"></span>
+                <button class="btn">Save draft</button>
+                <button class="btn accent">Publish changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 8 · GOALS ══════════════════════════ -->
+<div class="tabpanel" id="tab-goals">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Route <code>#/goals</code> · the absorbed AOV goal</div>
+    <h2>The AOV goal becomes one campaign kind, and keeps its own screen because it is the one that never ends.</h2>
+    <p>Every other campaign has a window and a settlement. An AOV goal is a standing number: a store default that everyone inherits, per-person overrides where a manager has set one, and an append-only audit of every change. That is the existing <code>pos/screen-aov.jsx</code> manager card, moved out of the POS Home slot and given room. The API contract underneath is unchanged — <code>/api/aov/*</code> is served from the new ledger with byte-compatible shapes — so nothing breaks while the rest of this module is built.</p>
+  </div>
+
+  <div class="app norail">
+    <div class="topbar">
+      <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+      <span class="crumbs"><b>Bounty</b> · Goals · Lake Elsinore</span>
+      <span class="spacer"></span>
+      <span class="rt">
+        <span class="pill sm p-neutral">Floor Manager only</span>
+        <span class="av" style="width:28px;height:28px;font-size:11px">MS</span>
+      </span>
+    </div>
+    <div class="main">
+
+      <div class="phead">
+        <div>
+          <h2>Goals</h2>
+          <p>Average order value, per store and per person. A goal is not a bounty — nobody wins it, it has no end, and it pays nothing. It drives the meter on the register and the Home card.</p>
+        </div>
+        <div class="acts"><button class="btn sm"><svg class="ic s13"><use href="#i-filter"/></svg>Lake Elsinore</button></div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="stack">
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-target"/></svg></span><h3>Store default</h3><button class="btn xs" style="margin-left:auto"><svg class="ic s11"><use href="#i-pencil"/></svg>Edit</button></div>
+            <div class="cbody">
+              <div class="kv"><span class="k">Current goal</span><span class="v mono">$90.00</span></div>
+              <div class="kv"><span class="k">Set by</span><span class="v">Manisha Saini</span></div>
+              <div class="kv"><span class="k">Last changed</span><span class="v mono">2026-08-19 09:41</span></div>
+              <p style="font-size:12.5px;color:var(--ink2);line-height:1.6;margin:12px 0 0">Every associate at this store inherits this goal unless they have their own override below.</p>
+            </div>
+          </div>
+
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-users"/></svg></span><h3>Associate roster</h3><span class="mono" style="font-size:11px;color:var(--inkMute)">7 associates · 2 overridden</span></div>
+            <div>
+              <div class="wal">
+                <span class="av" style="width:26px;height:26px;font-size:10px">DR</span>
+                <span class="bd"><span class="t">Devon Ruiz</span><span class="m">today $87.71 · 21 orders</span></span>
+                <span class="pill sm p-warn">override</span>
+                <span class="amt" style="font-size:13px">$105</span>
+                <button class="btn xs">Edit</button>
+                <button class="btn xs ghost" style="color:var(--bad)">Clear</button>
+              </div>
+              <div class="wal">
+                <span class="av" style="width:26px;height:26px;font-size:10px">MS</span>
+                <span class="bd"><span class="t">Manisha Saini <span class="pill sm p-neutral">you</span></span><span class="m">today $84.79 · 19 orders</span></span>
+                <span class="pill sm p-neutral">inherits $90</span>
+                <span class="amt" style="font-size:13px">$90</span>
+                <button class="btn xs">Set override</button>
+              </div>
+              <div class="wal">
+                <span class="av" style="width:26px;height:26px;font-size:10px">TB</span>
+                <span class="bd"><span class="t">Tasha Bell</span><span class="m">today $77.89 · 18 orders</span></span>
+                <span class="pill sm p-warn">override</span>
+                <span class="amt" style="font-size:13px">$78</span>
+                <button class="btn xs">Edit</button>
+                <button class="btn xs ghost" style="color:var(--bad)">Clear</button>
+              </div>
+              <div class="wal">
+                <span class="av" style="width:26px;height:26px;font-size:10px">AD</span>
+                <span class="bd"><span class="t">Ana Delgado</span><span class="m">today $87.63 · 16 orders</span></span>
+                <span class="pill sm p-neutral">inherits $90</span>
+                <span class="amt" style="font-size:13px">$90</span>
+                <button class="btn xs">Set override</button>
+              </div>
+              <div class="wal">
+                <span class="av" style="width:26px;height:26px;font-size:10px">PN</span>
+                <span class="bd"><span class="t">Priya Nandi</span><span class="m">no sales yet today · on shift since 11:00</span></span>
+                <span class="pill sm p-neutral">inherits $90</span>
+                <span class="amt" style="font-size:13px">$90</span>
+                <button class="btn xs">Set override</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-clock"/></svg></span><h3>Audit trail</h3></div>
+            <div class="cbody">
+              <div class="tl">
+                <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">Override set — Devon Ruiz ($90 → $105)</span><div class="tl-reason" style="font-style:italic;color:var(--ink2);margin-top:2px">“carrying the concentrate case, higher basket expected”</div><div class="m">2026-09-02 08:14 · set by Manisha Saini</div></span></div>
+                <div class="tlv"><span class="dot warn"></span><span class="b"><span class="a">Override cleared — Kwame Boateng</span><div style="font-style:italic;color:var(--ink2);margin-top:2px">“back on the store default after training”</div><div class="m">2026-08-28 16:05 · set by Manisha Saini</div></span></div>
+                <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">Goal changed — store default ($85 → $90)</span><div style="font-style:italic;color:var(--ink2);margin-top:2px">“August basket came in higher than the old target”</div><div class="m">2026-08-19 09:41 · set by Manisha Saini</div></span></div>
+                <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">Override set — Tasha Bell ($85 → $78)</span><div style="font-style:italic;color:var(--ink2);margin-top:2px">“first month on the floor”</div><div class="m">2026-08-11 10:22 · set by Manisha Saini</div></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-alert"/></svg></span><h3>What changed on absorption</h3></div>
+            <div class="cbody">
+              <div class="stack" style="gap:9px;font-size:12.5px;color:var(--ink2);line-height:1.55">
+                <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-good">fixed</span><span>“Today” is now the store’s local day, computed once at ingest. The old stats screen rolled over at midnight UTC, which is 5 pm here.</span></div>
+                <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-good">fixed</span><span>Changing a goal refreshes the leaderboard as well as the meter — the old leaderboard hook never re-fetched after a goal change.</span></div>
+                <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-good">fixed</span><span>A failed save shows an inline error in the module’s own vocabulary instead of a browser <code class="m">alert()</code>.</span></div>
+                <div class="row" style="gap:8px;align-items:flex-start"><span class="pill sm p-neutral">kept</span><span>The <code class="m">/api/aov/*</code> shapes, byte for byte, so the POS keeps working through the whole build.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 9 · DATA ══════════════════════════ -->
+<div class="tabpanel" id="tab-data">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Route <code>#/data</code> · connections, uploads, run reports, identities</div>
+    <h2>The Integrations table from <code>engage/screen-ops.jsx</code>, one row per store × source.</h2>
+    <p>Every number on every other screen is downstream of this one, so it says everything: what is configured, when it last succeeded, what the last error was, and how many rows came in today. Underneath it, the upload path — the browser posts the file in chunks, the server parses it once, and the run report is the receipt. The invariant <code>rows read = inserted + unchanged + conflicts + rejected</code> is printed on the receipt because it is the thing that catches a silently half-ingested file.</p>
+  </div>
+
+  <div class="app norail">
+    <div class="topbar">
+      <span class="tenant"><span class="in">HW</span>Hyperwolf<span class="pill sm p-neutral">Dev</span></span>
+      <span class="crumbs"><b>Bounty</b> · Data</span>
+      <span class="spacer"></span>
+      <span class="rt">
+        <button class="btn sm"><svg class="ic s13"><use href="#i-refresh"/></svg>Sync now</button>
+        <button class="btn sm accent"><svg class="ic s13"><use href="#i-upload"/></svg>Upload a file</button>
+      </span>
+    </div>
+    <div class="main">
+
+      <div class="phead">
+        <div>
+          <h2>Data</h2>
+          <p>Where the sales come from, store by store. A campaign can only score what has arrived here — a store with no source is entered and unscored, and says so everywhere it appears.</p>
+        </div>
+      </div>
+
+      <div class="dtwrap">
+        <div class="scroll">
+        <table class="dt">
+          <thead><tr><th>Store · source</th><th>Status</th><th>Grain</th><th style="text-align:right">Rows · today</th><th>Last success</th><th>Last error</th><th style="width:150px"></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="row" style="gap:10px"><span class="av" style="width:30px;height:30px;border-radius:8px;font-size:10px">BL</span><div><div style="font-weight:600">Lake Elsinore</div><div class="mono" style="font-size:10px;color:var(--inkMute)">api.blaze.me · blaze-api</div></div></div></td>
+              <td><span class="pill sm p-good"><span class="dot"></span>live</span></td>
+              <td style="color:var(--inkDim)">transaction + line</td>
+              <td style="text-align:right" class="num">143</td>
+              <td class="mono" style="font-size:11.5px">2m ago</td>
+              <td class="mono" style="font-size:11px;color:var(--inkMute)">—</td>
+              <td style="text-align:right"><button class="btn xs">Sync now</button></td>
+            </tr>
+            <tr>
+              <td><div class="row" style="gap:10px"><span class="av" style="width:30px;height:30px;border-radius:8px;font-size:10px">BL</span><div><div style="font-weight:600">Corona</div><div class="mono" style="font-size:10px;color:var(--inkMute)">api.blaze.me · blaze-api</div></div></div></td>
+              <td><span class="pill sm p-warn"><span class="dot"></span>partial</span></td>
+              <td style="color:var(--inkDim)">transaction only</td>
+              <td style="text-align:right" class="num">96</td>
+              <td class="mono" style="font-size:11.5px">2m ago</td>
+              <td class="mono" style="font-size:11px;color:var(--warnText)">list responses carry no basket — units come from CSV</td>
+              <td style="text-align:right"><button class="btn xs">Sync now</button></td>
+            </tr>
+            <tr>
+              <td><div class="row" style="gap:10px"><span class="av" style="width:30px;height:30px;border-radius:8px;font-size:10px">ME</span><div><div style="font-weight:600">West Hollywood</div><div class="mono" style="font-size:10px;color:var(--inkMute)">api.getmeadow.com · meadow-api</div></div></div></td>
+              <td><span class="pill sm p-bad"><span class="dot"></span>failing</span></td>
+              <td style="color:var(--inkDim)">transaction + line</td>
+              <td style="text-align:right" class="num">0</td>
+              <td class="mono" style="font-size:11.5px">3h ago</td>
+              <td class="mono" style="font-size:11px;color:var(--bad)">14:02 · HTTP 401 (client key)</td>
+              <td style="text-align:right"><button class="btn xs">Retry</button></td>
+            </tr>
+            <tr>
+              <td><div class="row" style="gap:10px"><span class="av" style="width:30px;height:30px;border-radius:8px;font-size:10px">BL</span><div><div style="font-weight:600">Riverside</div><div class="mono" style="font-size:10px;color:var(--inkMute)">api.blaze.me · blaze-api</div></div></div></td>
+              <td><span class="pill sm p-good"><span class="dot"></span>live</span></td>
+              <td style="color:var(--inkDim)">transaction + line</td>
+              <td style="text-align:right" class="num">61</td>
+              <td class="mono" style="font-size:11.5px">6m ago</td>
+              <td class="mono" style="font-size:11px;color:var(--inkMute)">—</td>
+              <td style="text-align:right"><button class="btn xs">Sync now</button></td>
+            </tr>
+            <tr>
+              <td><div class="row" style="gap:10px"><span class="av" style="width:30px;height:30px;border-radius:8px;font-size:10px">CS</span><div><div style="font-weight:600">Lake Elsinore</div><div class="mono" style="font-size:10px;color:var(--inkMute)">upload · blaze-csv</div></div></div></td>
+              <td><span class="pill sm p-neutral">manual</span></td>
+              <td style="color:var(--inkDim)">line</td>
+              <td style="text-align:right" class="num">0</td>
+              <td class="mono" style="font-size:11.5px">2026-09-05 (All Sales, 1,204 lines)</td>
+              <td class="mono" style="font-size:11px;color:var(--inkMute)">—</td>
+              <td style="text-align:right"><button class="btn xs">Upload</button></td>
+            </tr>
+            <tr>
+              <td><div class="row" style="gap:10px"><span class="av" style="width:30px;height:30px;border-radius:8px;font-size:10px;color:var(--inkMute)">TZ</span><div><div style="font-weight:600;color:var(--inkMute)">Long Beach</div><div class="mono" style="font-size:10px;color:var(--inkMute)">Treez · no client in this build</div></div></div></td>
+              <td><span class="pill sm p-neutral">not configured</span></td>
+              <td style="color:var(--inkMute)">—</td>
+              <td class="num" style="text-align:right;color:var(--inkMute)">—</td>
+              <td class="mono" style="font-size:11.5px;color:var(--inkMute)">never synced</td>
+              <td class="mono" style="font-size:11px;color:var(--inkMute)">—</td>
+              <td style="text-align:right"><button class="btn xs" disabled>No client</button></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="stack">
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-upload"/></svg></span><h3>Run report · run 318</h3><span class="pill sm p-warn">partial</span></div>
+            <div class="cbody" style="display:flex;flex-direction:column;gap:14px">
+              <div class="mono" style="font-size:11px;color:var(--inkMute);line-height:1.6">
+                blaze-all-sales.csv · 2.4 MB · uploaded 14:38 by Manisha Saini<br>
+                format detected · <span style="color:var(--good)">Blaze All Sales (line grain)</span> — all 10 required headers present<br>
+                store chosen at upload · Lake Elsinore · file’s Region Name column agrees
+              </div>
+              <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px">
+                <div class="card p12" style="background:var(--surface2)"><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute)">Rows read</div><div class="num" style="font-size:21px;margin-top:3px">1,204</div></div>
+                <div class="card p12" style="background:var(--surface2)"><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute)">Inserted</div><div class="num" style="font-size:21px;margin-top:3px;color:var(--good)">1,046</div></div>
+                <div class="card p12" style="background:var(--surface2)"><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute)">Unchanged</div><div class="num" style="font-size:21px;margin-top:3px">148</div></div>
+                <div class="card p12" style="background:var(--surface2)"><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute)">Conflicts</div><div class="num" style="font-size:21px;margin-top:3px;color:var(--warnText)">5</div></div>
+                <div class="card p12" style="background:var(--surface2)"><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute)">Rejected</div><div class="num" style="font-size:21px;margin-top:3px;color:var(--bad)">5</div></div>
+              </div>
+              <div class="row" style="gap:8px;font-family:var(--fontMono);font-size:11px;color:var(--good)">
+                <svg class="ic s13"><use href="#i-check-circle"/></svg>1,204 = 1,046 + 148 + 5 + 5 · the row accounting balances
+              </div>
+
+              <div>
+                <span class="flabel">Rejected rows · 5</span>
+                <div class="dtwrap"><div class="scroll">
+                <table class="dt">
+                  <thead><tr><th style="width:60px">Row</th><th>Reason</th><th>Raw</th></tr></thead>
+                  <tbody>
+                    <tr class="dense"><td class="num">211</td><td style="color:var(--bad)">unparseable amount</td><td class="mono" style="font-size:11px">Final Subtotal = “$—”</td></tr>
+                    <tr class="dense"><td class="num">388</td><td style="color:var(--bad)">unparseable amount</td><td class="mono" style="font-size:11px">Final Subtotal = “N/A”</td></tr>
+                    <tr class="dense"><td class="num">612</td><td style="color:var(--bad)">no transaction number</td><td class="mono" style="font-size:11px">Trans Num = “”</td></tr>
+                    <tr class="dense"><td class="num">905</td><td style="color:var(--bad)">date outside the window</td><td class="mono" style="font-size:11px">2025-12-31 14:02</td></tr>
+                    <tr class="dense"><td class="num">1,190</td><td style="color:var(--bad)">quantity is not a number</td><td class="mono" style="font-size:11px">Quantity Sold = “each”</td></tr>
+                  </tbody>
+                  <tfoot><tr><td colspan="3">An unparseable amount is rejected and named. It never becomes <span class="mono">0</span> — a zero would score, and a rejection cannot.</td></tr></tfoot>
+                </table>
+                </div></div>
+              </div>
+
+              <div>
+                <span class="flabel">Conflicts · 5</span>
+                <div class="dtwrap"><div class="scroll">
+                <table class="dt">
+                  <thead><tr><th>Transaction</th><th>Field</th><th>Stored</th><th>Incoming</th><th style="width:120px"></th></tr></thead>
+                  <tbody>
+                    <tr class="dense"><td class="mono" style="font-size:11.5px">blaze:elsinore:T-88412</td><td>total_cents</td><td class="num">8,412</td><td class="num" style="color:var(--warnText)">8,012</td><td style="text-align:right"><button class="btn xs">Apply incoming</button></td></tr>
+                    <tr class="dense"><td class="mono" style="font-size:11.5px">blaze:elsinore:T-88450</td><td>employee</td><td>M. Saini</td><td style="color:var(--warnText)">Manisha S.</td><td style="text-align:right"><button class="btn xs">Apply incoming</button></td></tr>
+                    <tr class="dense"><td class="mono" style="font-size:11.5px">blaze:elsinore:T-88511</td><td>status</td><td>Completed</td><td style="color:var(--warnText)">Refunded</td><td style="text-align:right"><button class="btn xs">Apply incoming</button></td></tr>
+                  </tbody>
+                  <tfoot><tr><td colspan="5">
+                    <div class="row"><span>The stored row is kept until someone chooses. Two more conflicts are not shown.</span><span class="spacer"></span><button class="btn xs">Apply all 5</button></div>
+                  </td></tr></tfoot>
+                </table>
+                </div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-user-plus"/></svg></span><h3>Unresolved identities</h3><span class="pill sm p-warn">3</span></div>
+            <div class="cbody" style="display:flex;flex-direction:column;gap:14px">
+              <p style="font-size:12.5px;color:var(--ink2);line-height:1.55;margin:0">
+                A name the POS spelled its own way, with no id or email to bind on. Nothing auto-binds on a name — these sit here, their sales are ingested with no budtender, and they show up in the unattributed row until someone here decides.
+              </p>
+
+              <div class="card p12">
+                <div class="row"><span style="font-size:13px;font-weight:700">“M. Saini”</span><span class="spacer"></span><span class="mono" style="font-size:10.5px;color:var(--inkMute)">seen 41× · since 08 Sep</span></div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);margin-top:4px">blaze · lake-elsinore · no external id, no email</div>
+                <div class="stack" style="gap:6px;margin-top:10px">
+                  <div class="row" style="gap:8px"><span class="av" style="width:22px;height:22px;font-size:10px">MS</span><span style="font-size:12.5px;flex:1">Manisha Saini</span><span class="pill sm p-good">0.94</span><button class="btn xs">Bind</button></div>
+                  <div class="row" style="gap:8px"><span class="av" style="width:22px;height:22px;font-size:10px">MI</span><span style="font-size:12.5px;flex:1">Marcus Ihejirika</span><span class="pill sm p-neutral">0.41</span><button class="btn xs">Bind</button></div>
+                </div>
+                <div class="row" style="gap:8px;margin-top:10px"><button class="btn xs"><svg class="ic s11"><use href="#i-user-plus"/></svg>Create a new associate</button><button class="btn xs ghost">Leave unresolved</button></div>
+              </div>
+
+              <div class="card p12">
+                <div class="row"><span style="font-size:13px;font-weight:700">“Front Register”</span><span class="spacer"></span><span class="mono" style="font-size:10.5px;color:var(--inkMute)">seen 128× · since 12 Aug</span></div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);margin-top:4px">blaze · lake-elsinore · no external id, no email</div>
+                <div class="note warn" style="margin-top:10px;padding:11px 12px">
+                  <div class="h"><svg class="ic s13"><use href="#i-alert"/></svg>This looks like a terminal, not a person</div>
+                  No suggestion is offered above 0.85. Binding a shared register to one budtender would hand them 128 sales somebody else rang. Leaving it unresolved keeps those sales in the store total and out of everyone’s rank, which is the honest answer.
+                </div>
+                <div class="row" style="gap:8px;margin-top:10px"><button class="btn xs ghost">Leave unresolved</button><button class="btn xs">Mark as a shared terminal</button></div>
+              </div>
+
+              <div class="card p12">
+                <div class="row"><span style="font-size:13px;font-weight:700">“k.boateng@…”</span><span class="spacer"></span><span class="mono" style="font-size:10.5px;color:var(--inkMute)">seen 3× · since 06 Sep</span></div>
+                <div class="mono" style="font-size:10.5px;color:var(--inkMute);margin-top:4px">meadow · west-hollywood · email present, no match at this store</div>
+                <div style="font-size:12px;color:var(--ink2);line-height:1.5;margin-top:8px">Email auto-bind only matches inside the same store. Kwame Boateng exists at Lake Elsinore — binding across stores is a decision, not a match.</div>
+                <div class="row" style="gap:8px;margin-top:10px"><button class="btn xs">Bind to Kwame Boateng (Elsinore)</button><button class="btn xs ghost">Create</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="overflow:hidden">
+            <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-clock"/></svg></span><h3>Recent runs</h3></div>
+            <div class="cbody">
+              <div class="tl">
+                <div class="tlv"><span class="dot warn"></span><span class="b"><span class="a">run 318 · csv · blaze-all-sales</span><div class="m">14:38 · partial · 1,204 read · 5 rejected · 5 conflicts</div></span></div>
+                <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">run 317 · api · blaze · lake-elsinore</span><div class="m">14:36 · ok · 12 read · 12 inserted</div></span></div>
+                <div class="tlv"><span class="dot bad" style="background:var(--bad)"></span><span class="b"><span class="a">run 316 · api · meadow · west-hollywood</span><div class="m">14:02 · failed · HTTP 401 (client key) · cursor not advanced</div></span></div>
+                <div class="tlv"><span class="dot good"></span><span class="b"><span class="a">run 315 · api · blaze · corona</span><div class="m">14:00 · ok · 9 read · 9 inserted · 9 without a basket</div></span></div>
+              </div>
+              <div class="caption">A failed run leaves the cursor where it was, so the next pass re-reads the same window rather than skipping it. That is why a 401 costs nothing but time.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 10 · POS SURFACES ══════════════════════════ -->
+<div class="tabpanel" id="tab-pos">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow"><code>pos/screen-incentives-card.jsx</code> and <code>pos/screen-incentives-strip.jsx</code></div>
+    <h2>The two places a budtender meets this module without opening it.</h2>
+    <p>The Home card takes the AOV card’s exact slot in <code>pos/screen-home.jsx</code> — same position, same guard, same <code>ErrorState</code> if the file did not load — and absorbs the AOV meter rather than sitting beside it. What it adds is the campaign list, because on this concept a campaign is the unit a budtender thinks in. The Register strip is 44px of the one thing worth interrupting a sale for: your place, your net, and how close the nearest campaign is. Both surfaces use POS atoms only — <code>hd-ui.jsx</code> is not loaded on the POS page, so no <code>StatTile</code>, no <code>Sheet</code>, no <code>hdToast</code> here.</p>
+  </div>
+
+  <div class="eyebrow" style="margin-bottom:8px">POS Home · the card in the AOV slot</div>
+  <div class="app norail" style="margin-bottom:22px">
+    <div class="main" style="padding:26px 30px 30px">
+
+      <div class="row" style="align-items:flex-end;margin-bottom:20px">
+        <div style="flex:1;min-width:0">
+          <div class="mono" style="font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--inkMute)">Monday, September 7</div>
+          <h2 style="margin:6px 0 0;font-size:30px;font-weight:800;letter-spacing:-.02em">Good afternoon, Manisha</h2>
+        </div>
+        <span class="pill p-good"><span class="dot"></span>On shift · Register 101</span>
+      </div>
+
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:20px">
+        <div class="card" style="padding:16px 18px;display:flex;align-items:center;gap:13px;background:var(--accent);border-color:var(--accent)">
+          <span style="width:42px;height:42px;border-radius:11px;background:rgba(0,0,0,.12);color:var(--accentInk);display:flex;align-items:center;justify-content:center"><svg class="ic s22"><use href="#i-register"/></svg></span>
+          <span><span style="display:block;font-size:15px;font-weight:700;color:var(--accentInk)">New sale</span><span style="display:block;font-size:11.5px;color:rgba(0,0,0,.6);margin-top:1px">Open the register</span></span>
+        </div>
+        <div class="card" style="padding:16px 18px;display:flex;align-items:center;gap:13px">
+          <span style="width:42px;height:42px;border-radius:11px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center"><svg class="ic s22"><use href="#i-user-plus"/></svg></span>
+          <span><span style="display:block;font-size:15px;font-weight:700">Check in customer</span><span style="display:block;font-size:11.5px;color:var(--inkDim);margin-top:1px">3 waiting</span></span>
+        </div>
+        <div class="card" style="padding:16px 18px;display:flex;align-items:center;gap:13px">
+          <span style="width:42px;height:42px;border-radius:11px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center"><svg class="ic s22"><use href="#i-board"/></svg></span>
+          <span><span style="display:block;font-size:15px;font-weight:700">Order queue</span><span style="display:block;font-size:11.5px;color:var(--inkDim);margin-top:1px">11 open · 2 incoming</span></span>
+        </div>
+        <div class="card" style="padding:16px 18px;display:flex;align-items:center;gap:13px">
+          <span style="width:42px;height:42px;border-radius:11px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center"><svg class="ic s22"><use href="#i-package"/></svg></span>
+          <span><span style="display:block;font-size:15px;font-weight:700">Catalog</span><span style="display:block;font-size:11.5px;color:var(--inkDim);margin-top:1px">7 stock alerts</span></span>
+        </div>
+      </div>
+
+      <!-- ── the Bounty card, in the slot AovDashboardCard occupies today ── -->
+      <div class="card" style="overflow:hidden;margin-bottom:16px">
+        <div class="chead">
+          <span class="plate"><svg class="ic s14"><use href="#i-bounty"/></svg></span>
+          <h3>Bounty · today</h3>
+          <span class="pill sm p-neutral">Lake Elsinore</span>
+          <span class="mono" style="font-size:11px;color:var(--inkMute);margin-left:auto">blaze · synced 2m ago</span>
+        </div>
+        <div style="padding:15px 16px 14px">
+          <div class="row" style="align-items:baseline;margin-bottom:9px">
+            <span style="font-size:15.5px;font-weight:700">Add $5 to hit today’s AOV goal</span>
+            <span class="spacer"></span>
+            <span class="num" style="font-size:13px;color:var(--inkDim)">$84.79 / $90.00</span>
+          </div>
+          <div class="meter"><i style="width:94%"></i></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;padding:14px 16px;border-top:1px solid var(--hairline);background:var(--surface2)">
+          <div class="card p12" style="display:flex;align-items:center;gap:11px">
+            <svg class="ic s20" style="color:var(--ink2)"><use href="#i-home"/></svg>
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute)">Rank · this store</div><div class="num" style="font-size:19px;margin-top:2px">2 <span style="font-size:11px;font-weight:600;color:var(--inkMute)">of 7</span></div></div>
+          </div>
+          <div class="card p12" style="display:flex;align-items:center;gap:11px">
+            <svg class="ic s20" style="color:var(--ink2)"><use href="#i-globe"/></svg>
+            <div><div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute)">Rank · all stores</div><div class="num" style="font-size:19px;margin-top:2px">6 <span style="font-size:11px;font-weight:600;color:var(--inkMute)">of 31</span></div></div>
+          </div>
+        </div>
+
+        <div style="padding:13px 16px;border-top:1px solid var(--hairline)">
+          <div class="row" style="margin-bottom:10px">
+            <span class="eyebrow" style="margin:0">Campaigns you’re in</span>
+            <span class="spacer"></span>
+            <span class="pill sm p-neutral">projected $46</span>
+          </div>
+          <div class="stack" style="gap:11px">
+            <div>
+              <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:600">STIIIZY pod push</span><span class="pill sm p-accent">brand</span><span class="spacer"></span><span class="num" style="font-size:11.5px;color:var(--inkDim)">#2 · 8 units behind</span></div>
+              <div class="meter h5"><i style="width:80%"></i></div>
+            </div>
+            <div>
+              <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:600">Saturday power hour</span><span class="pill sm p-info">round 3</span><span class="spacer"></span><span class="num" style="font-size:11.5px;color:var(--inkDim)">#2 · $24 behind · 00:41</span></div>
+              <div class="meter h5"><i class="warn" style="width:94%"></i></div>
+            </div>
+            <div>
+              <div class="row" style="margin-bottom:5px"><span style="font-size:12.5px;font-weight:600">Concentrate team goal</span><span class="spacer"></span><span class="num" style="font-size:11.5px;color:var(--inkDim)">82 / 120 · your 14</span></div>
+              <div class="meter h5"><i class="violet" style="width:68%"></i></div>
+            </div>
+          </div>
+          <div class="row" style="gap:8px;margin-top:13px">
+            <button class="btn sm" style="flex:1"><svg class="ic s13"><use href="#i-bounty"/></svg>Open Bounty</button>
+            <button class="btn sm" style="flex:1"><svg class="ic s13"><use href="#i-camera"/></svg>2 snaps to read</button>
+          </div>
+        </div>
+
+        <div style="padding:11px 16px;border-top:1px solid var(--hairline);background:var(--surface2)">
+          <div class="row" style="gap:8px">
+            <svg class="ic s13" style="color:var(--warnText)"><use href="#i-alert"/></svg>
+            <span style="font-size:11.5px;color:var(--ink2)">6 sales today carry no budtender on the record.</span>
+            <span class="spacer"></span>
+            <a href="#" style="font-size:11.5px;font-weight:600;color:var(--info);text-decoration:none">Match them →</a>
+          </div>
+        </div>
+
+        <div class="card sunken" style="border-radius:0;border:0;border-top:1px solid var(--hairline);padding:13px 16px">
+          <div class="eyebrow" style="margin-bottom:8px">Manager tools</div>
+          <div class="row" style="gap:8px">
+            <button class="btn xs"><svg class="ic s11"><use href="#i-target"/></svg>AOV goals</button>
+            <button class="btn xs"><svg class="ic s11"><use href="#i-shield"/></svg>1 approval waiting</button>
+            <button class="btn xs"><svg class="ic s11"><use href="#i-coins"/></svg>$412 to settle</button>
+          </div>
+          <div class="caption" style="margin-top:8px">Links out to the module rather than embedding the old manager panel — the sunken fill is the estate’s “this is a different audience” treatment.</div>
+        </div>
+      </div>
+
+      <div class="grid g-2">
+        <div class="card" style="overflow:hidden">
+          <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-board"/></svg></span><h3>Order queue</h3></div>
+          <div style="padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <div class="card p12" style="background:var(--surface2);border-top:3px solid var(--warn)"><div class="num" style="font-size:30px;line-height:1">2</div><div style="font-size:11.5px;font-weight:600;color:var(--ink2);margin-top:6px">Incoming</div></div>
+            <div class="card p12" style="background:var(--surface2);border-top:3px solid var(--info)"><div class="num" style="font-size:30px;line-height:1">4</div><div style="font-size:11.5px;font-weight:600;color:var(--ink2);margin-top:6px">To pack</div></div>
+            <div class="card p12" style="background:var(--surface2);border-top:3px solid var(--info)"><div class="num" style="font-size:30px;line-height:1">2</div><div style="font-size:11.5px;font-weight:600;color:var(--ink2);margin-top:6px">Packing</div></div>
+            <div class="card p12" style="background:var(--surface2);border-top:3px solid var(--good)"><div class="num" style="font-size:30px;line-height:1">3</div><div style="font-size:11.5px;font-weight:600;color:var(--ink2);margin-top:6px">Ready</div></div>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden">
+          <div class="chead"><span class="plate"><svg class="ic s14"><use href="#i-chart"/></svg></span><h3>Today</h3></div>
+          <div style="padding:15px;display:grid;grid-template-columns:1fr 1fr;gap:11px">
+            <div class="card p12" style="background:var(--surface2);border-left:3px solid var(--accent)"><div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute)">My sales</div><div class="num" style="font-size:21px;margin-top:3px">$1.6k</div><div style="font-size:11.5px;color:var(--inkDim)">19 orders</div></div>
+            <div class="card p12" style="background:var(--surface2);border-left:3px solid var(--hairline2)"><div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute)">My AOV</div><div class="num" style="font-size:21px;margin-top:3px">$85</div><div style="font-size:11.5px;color:var(--inkDim)">+4% vs avg</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="caption">The card replaces <code class="m">window.AovDashboardCard</code> in the same guarded slot: <code class="m">window.IncHomeCard ? &lt;window.IncHomeCard /&gt; : &lt;ErrorState title="Bounty did not load" body="pos/screen-incentives-card.jsx defines window.IncHomeCard and this page did not get it — check that Hyperwolf POS.html still loads that file." /&gt;</code></div>
+
+    </div>
+  </div>
+
+  <div class="eyebrow" style="margin-bottom:8px">The register · the 44px strip</div>
+  <div class="app norail">
+    <div style="display:flex;flex-direction:column;min-height:520px">
+
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--hairline2);background:var(--surface)">
+        <span class="av" style="width:34px;height:34px;font-size:12px">JR</span>
+        <div style="min-width:0">
+          <div style="font-size:13.5px;font-weight:700">Jordan Reyes <span class="pill sm p-neutral">member</span></div>
+          <div class="mono" style="font-size:11px;color:var(--inkMute);margin-top:2px">ticket t1 · 2 items · verified at check-in</div>
+        </div>
+        <span class="spacer"></span>
+        <button class="btn sm"><svg class="ic s13"><use href="#i-user-plus"/></svg>Check in</button>
+        <button class="btn sm ghost"><svg class="ic s13"><use href="#i-x"/></svg>Close ticket</button>
+      </div>
+
+      <div style="display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--hairline);overflow-x:auto">
+        <div class="card p12" style="flex:0 0 auto;width:188px;padding:8px 10px">
+          <div class="row" style="gap:9px"><span class="av" style="width:30px;height:30px;font-size:11px">MT</span><div style="min-width:0"><div style="font-size:12.5px;font-weight:700">Mia Tran</div><div class="mono" style="font-size:10px;color:var(--warn);margin-top:2px">4m waiting</div></div></div>
+        </div>
+        <div class="card p12" style="flex:0 0 auto;width:188px;padding:8px 10px">
+          <div class="row" style="gap:9px"><span class="av" style="width:30px;height:30px;font-size:11px">SC</span><div style="min-width:0"><div style="font-size:12.5px;font-weight:700">Sam Cole</div><div class="mono" style="font-size:10px;color:var(--inkMute);margin-top:2px">11m · You</div></div></div>
+        </div>
+        <div class="card p12" style="flex:0 0 auto;width:188px;padding:8px 10px">
+          <div class="row" style="gap:9px"><span class="av" style="width:30px;height:30px;font-size:11px">LO</span><div style="min-width:0"><div style="font-size:12.5px;font-weight:700">Lena Ortiz</div><div class="mono" style="font-size:10px;color:var(--warn);margin-top:2px">2m waiting</div></div></div>
+        </div>
+      </div>
+
+      <!-- ── IncRegisterStrip · 44px ── -->
+      <div style="min-height:44px;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid var(--hairline2);background:var(--surface2);overflow-x:auto">
+        <svg class="ic s14" style="color:var(--ink2)"><use href="#i-bounty"/></svg>
+        <span class="num" style="font-size:13px;white-space:nowrap"><b>#2</b> today</span>
+        <span style="color:var(--inkFaint)">·</span>
+        <span class="num" style="font-size:13px;white-space:nowrap">$1,611 net</span>
+        <span style="color:var(--inkFaint)">·</span>
+        <span class="row" style="gap:6px;flex-wrap:nowrap">
+          <span class="pill sm p-accent" style="white-space:nowrap">STIIIZY · 8 to go</span>
+          <span class="pill sm p-warn" style="white-space:nowrap">power hour · $24 · 00:41</span>
+          <span class="pill sm p-neutral" style="white-space:nowrap">team · 82 / 120</span>
+        </span>
+        <span class="spacer"></span>
+        <span class="mono" style="font-size:10.5px;color:var(--inkMute);white-space:nowrap">synced 2m ago</span>
+        <button class="btn xs">Open<svg class="ic s11"><use href="#i-arrow-right"/></svg></button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;flex:1;min-height:0">
+        <div style="padding:14px 18px;border-right:1px solid var(--hairline2);display:flex;flex-direction:column;gap:11px">
+          <div class="row" style="gap:8px">
+            <span class="finput sans" style="flex:1;min-height:34px"><span class="ph">Search the catalog…</span></span>
+            <div class="segctl"><button class="on">All</button><button>Flower</button><button>Vape</button><button>Edibles</button></div>
+          </div>
+          <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px">
+            <div class="card p12" style="display:flex;align-items:center;gap:11px;border-color:var(--accentBorder)">
+              <span style="width:40px;height:40px;border-radius:9px;background:var(--surface3);display:flex;align-items:center;justify-content:center;color:var(--inkMute)"><svg class="ic s20"><use href="#i-leaf"/></svg></span>
+              <div style="flex:1;min-width:0"><div class="mono" style="font-size:10px;color:var(--inkMute)">STIIIZY</div><div style="font-size:12.5px;font-weight:600">Blue Dream pod · 1g</div><div class="mono" style="font-size:10px;color:var(--accentText);margin-top:2px">counts toward the pod push</div></div>
+              <div class="num" style="font-size:15px">$40</div>
+            </div>
+            <div class="card p12" style="display:flex;align-items:center;gap:11px">
+              <span style="width:40px;height:40px;border-radius:9px;background:var(--surface3);display:flex;align-items:center;justify-content:center;color:var(--inkMute)"><svg class="ic s20"><use href="#i-leaf"/></svg></span>
+              <div style="flex:1;min-width:0"><div class="mono" style="font-size:10px;color:var(--inkMute)">Raw Garden</div><div style="font-size:12.5px;font-weight:600">Live resin · 0.5g</div></div>
+              <div class="num" style="font-size:15px">$32</div>
+            </div>
+            <div class="card p12" style="display:flex;align-items:center;gap:11px">
+              <span style="width:40px;height:40px;border-radius:9px;background:var(--surface3);display:flex;align-items:center;justify-content:center;color:var(--inkMute)"><svg class="ic s20"><use href="#i-leaf"/></svg></span>
+              <div style="flex:1;min-width:0"><div class="mono" style="font-size:10px;color:var(--inkMute)">Jeeter</div><div style="font-size:12.5px;font-weight:600">Baby jeeter · 5pk</div></div>
+              <div class="num" style="font-size:15px">$28</div>
+            </div>
+            <div class="card p12" style="display:flex;align-items:center;gap:11px">
+              <span style="width:40px;height:40px;border-radius:9px;background:var(--surface3);display:flex;align-items:center;justify-content:center;color:var(--inkMute)"><svg class="ic s20"><use href="#i-leaf"/></svg></span>
+              <div style="flex:1;min-width:0"><div class="mono" style="font-size:10px;color:var(--inkMute)">Wyld</div><div style="font-size:12.5px;font-weight:600">Raspberry gummies</div></div>
+              <div class="num" style="font-size:15px">$22</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:11px;background:var(--surface)">
+          <div class="eyebrow" style="margin:0">Cart · 2 items</div>
+          <div class="card p12" style="background:var(--surface2)">
+            <div class="row"><span style="font-size:12.5px;font-weight:600;flex:1">Blue Dream pod · 1g</span><span class="num" style="font-size:12.5px">$40.00</span></div>
+            <div class="row" style="margin-top:8px"><span style="font-size:12.5px;font-weight:600;flex:1">Baby jeeter · 5pk</span><span class="num" style="font-size:12.5px">$28.00</span></div>
+          </div>
+          <div>
+            <div class="kv"><span class="k">Subtotal</span><span class="v mono">$68.00</span></div>
+            <div class="kv"><span class="k">Taxes</span><span class="v mono">$5.59</span></div>
+            <div class="kv"><span class="k">Total</span><span class="v mono" style="font-size:15px">$73.59</span></div>
+          </div>
+          <div class="card p12" style="background:var(--surface2);border-left:3px solid var(--accent)">
+            <div style="font-size:11.5px;color:var(--ink2);line-height:1.5">This ticket is <b>$11 below</b> your $90 AOV goal, and the pod on it counts one toward the STIIIZY push.</div>
+          </div>
+          <span class="spacer"></span>
+          <button class="btn accent full" style="min-height:44px">Take payment · $73.59</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">The strip polls <code class="m">/api/incentives/me</code> every 20 seconds and short-circuits on an unchanged ledger version, so a quiet floor costs one indexed read. If the seam is not reachable the strip renders nothing at all rather than a stale number — 44px of wrong is worse than 0px of missing on a screen where money changes hands.</div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════ 11 · STATES ══════════════════════════ -->
+<div class="tabpanel" id="tab-states">
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">Standings, in the four states that are not “it worked”</div>
+    <h2>Loading sits inside the header the loaded state will show, so nothing moves when the data lands.</h2>
+    <p>Four states, one screen. The loading state repeats the real header and swaps only the body. The offline state is the AOV pattern verbatim — named surface, named dependency, a retry. The empty state is a real sentence about a real situation, not a shrug. The source-in-error state is the interesting one: the screen still works, the numbers are still real, and one store’s row says why it is three hours behind instead of quietly averaging a hole.</p>
+  </div>
+
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(420px,1fr))">
+
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Loading</div>
+      <div class="app norail">
+        <div class="main tight">
+          <div class="phead"><div><h2 style="font-size:24px">Standings</h2><p style="font-size:12.5px">All attributed sales in the period, independent of any campaign.</p></div></div>
+          <div class="card p12">
+            <div class="row" style="gap:14px">
+              <div><span class="flabel" style="margin-bottom:4px">Scope</span><div class="segctl"><button class="on">This store</button><button>All stores</button></div></div>
+              <div><span class="flabel" style="margin-bottom:4px">Period</span><div class="segctl"><button class="on">Today</button><button>Week</button><button>Month</button></div></div>
+            </div>
+            <div style="margin-top:12px;border-top:1px solid var(--hairline);padding-top:11px"><div class="sk" style="width:62%;height:11px"></div></div>
+          </div>
+          <div class="dtwrap">
+            <div class="chead" style="border-bottom:1px solid var(--hairline2);background:var(--surface)">
+              <span class="plate"><svg class="ic s14"><use href="#i-bounty"/></svg></span>
+              <h3>Lake Elsinore · today · net</h3>
+            </div>
+            <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+              <div class="row" style="gap:12px"><span class="av" style="width:26px;height:26px"></span><div style="flex:1"><div class="sk" style="width:40%"></div><div class="sk" style="width:24%;height:9px;margin-top:6px"></div></div><div class="sk" style="width:70px"></div></div>
+              <div class="row" style="gap:12px"><span class="av" style="width:26px;height:26px"></span><div style="flex:1"><div class="sk" style="width:52%"></div><div class="sk" style="width:20%;height:9px;margin-top:6px"></div></div><div class="sk" style="width:70px"></div></div>
+              <div class="row" style="gap:12px"><span class="av" style="width:26px;height:26px"></span><div style="flex:1"><div class="sk" style="width:34%"></div><div class="sk" style="width:28%;height:9px;margin-top:6px"></div></div><div class="sk" style="width:70px"></div></div>
+            </div>
+          </div>
+          <div class="caption">The header, the scope control and the table chrome are the real ones. Only the rows and the freshness line are skeletons, so nothing reflows when the answer arrives.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Offline · the backend is not reachable</div>
+      <div class="app norail">
+        <div class="main tight">
+          <div class="phead"><div><h2 style="font-size:24px">Standings</h2><p style="font-size:12.5px">All attributed sales in the period, independent of any campaign.</p></div></div>
+          <div class="card">
+            <div class="errst">
+              <span class="plate"><svg class="ic s22"><use href="#i-shield"/></svg></span>
+              <h4>Bounty isn’t connected</h4>
+              <p>Needs the wmdemo backend — not reachable right now (request failed: NetworkError). Real standings, earnings and campaign progress will appear here once it connects.</p>
+              <div class="row" style="gap:8px">
+                <button class="btn sm"><svg class="ic s13"><use href="#i-refresh"/></svg>Try again</button>
+                <button class="btn sm ghost">Details</button>
+              </div>
+              <div class="detail">GET /api/incentives/standings?scope=store&amp;store_id=elsinore&amp;period=day<br>request failed: NetworkError · base https://localhost:8000<br>nothing was changed</div>
+            </div>
+          </div>
+          <div class="caption">No fallback numbers, ever. The old AOV card’s header says why: printing <span class="mono">$81.05 / rank 2 of 6</span> from a fixture as if it were real is worse than saying nothing.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Empty · connected, no sales yet</div>
+      <div class="app norail">
+        <div class="main tight">
+          <div class="phead"><div><h2 style="font-size:24px">Standings</h2><p style="font-size:12.5px">All attributed sales in the period, independent of any campaign.</p></div></div>
+          <div class="card p12">
+            <div class="row" style="gap:14px">
+              <div><span class="flabel" style="margin-bottom:4px">Scope</span><div class="segctl"><button class="on">This store</button><button>All stores</button></div></div>
+              <div><span class="flabel" style="margin-bottom:4px">Period</span><div class="segctl"><button class="on">Today</button><button>Week</button><button>Month</button></div></div>
+            </div>
+            <div class="fresh" style="margin-top:12px;border-top:1px solid var(--hairline);padding-top:11px">
+              <i><span class="d"></span>Blaze API · Lake Elsinore · synced 1m ago · 0 sales today</i>
+            </div>
+          </div>
+          <div class="card">
+            <div class="empty">
+              <span class="plate"><svg class="ic s22"><use href="#i-bounty"/></svg></span>
+              <h4>No sales yet today</h4>
+              <p>The store opened 22 minutes ago and nothing has rung up. Everyone on the floor is listed below with no rank rather than ranked last at zero.</p>
+            </div>
+            <div style="border-top:1px solid var(--hairline);padding:13px 16px">
+              <div class="eyebrow" style="margin-bottom:8px">On the floor · 7</div>
+              <div class="tokrow">
+                <span class="tok">Devon Ruiz</span><span class="tok">Manisha Saini</span><span class="tok">Tasha Bell</span>
+                <span class="tok">Ana Delgado</span><span class="tok">Marcus Ihejirika</span><span class="tok">Kwame Boateng</span><span class="tok">Priya Nandi</span>
+              </div>
+            </div>
+          </div>
+          <div class="caption">Empty is a fact about the day, not an error. The freshness line still says the source is healthy — that is what separates “nothing happened” from “nothing arrived”.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">One source in error · everything else still works</div>
+      <div class="app norail">
+        <div class="main tight">
+          <div class="phead"><div><h2 style="font-size:24px">Standings</h2><p style="font-size:12.5px">All attributed sales in the period, independent of any campaign.</p></div>
+            <div class="acts"><div class="segctl"><button>This store</button><button class="on">All stores</button></div></div>
+          </div>
+          <div class="card p12">
+            <div class="fresh">
+              <i><span class="d"></span>Blaze API · Lake Elsinore · synced 2m ago · 143 sales today</i>
+              <i><span class="d"></span>Blaze API · Corona · synced 2m ago · 96 sales today</i>
+              <i><span class="d bad"></span>Meadow API · West Hollywood · last error 14:02: 401 (client key) · last good read 11:04</i>
+            </div>
+          </div>
+          <div class="note warn">
+            <div class="h"><svg class="ic s13"><use href="#i-alert"/></svg>West Hollywood is 3 hours behind</div>
+            The Meadow client key was refused at 14:02 and every pass since has failed the same way. West Hollywood’s rows below are real up to 11:04 and stale after it — they are shown, marked, and not silently excluded. Fix the key in Settings and the next pass re-reads from the cursor, so nothing is lost.
+            <div class="row" style="gap:8px;margin-top:10px"><button class="btn xs">Open the connection</button><button class="btn xs ghost">Hide stale stores</button></div>
+          </div>
+          <div class="dtwrap"><div class="scroll">
+          <table class="dt">
+            <thead><tr><th style="width:56px">Rank</th><th>Budtender</th><th>Store</th><th style="text-align:right">Net</th><th>Source</th></tr></thead>
+            <tbody>
+              <tr><td><span class="rk rk1">1</span></td><td style="font-weight:700">Devon Ruiz</td><td style="color:var(--inkDim)">Lake Elsinore</td><td style="text-align:right" class="num">$1,842</td><td class="mono" style="font-size:11px;color:var(--good)">live · 2m</td></tr>
+              <tr class="me"><td><span class="rk">2</span></td><td style="font-weight:700">Manisha Saini <span class="pill sm p-neutral">you</span></td><td style="color:var(--inkDim)">Lake Elsinore</td><td style="text-align:right" class="num">$1,611</td><td class="mono" style="font-size:11px;color:var(--good)">live · 2m</td></tr>
+              <tr><td><span class="rk">3</span></td><td style="font-weight:700">Priya Nandi</td><td style="color:var(--inkDim)">Corona</td><td style="text-align:right" class="num">$1,504</td><td class="mono" style="font-size:11px;color:var(--good)">live · 2m</td></tr>
+              <tr><td><span class="rk">4</span></td><td style="font-weight:700">Sofia Marin</td><td style="color:var(--inkDim)">West Hollywood</td><td class="num" style="text-align:right;color:var(--warnText)">$1,180</td><td class="mono" style="font-size:11px;color:var(--warnText)">stale · 3h</td></tr>
+              <tr><td><span class="rk">5</span></td><td style="font-weight:700">Tasha Bell</td><td style="color:var(--inkDim)">Lake Elsinore</td><td style="text-align:right" class="num">$1,402</td><td class="mono" style="font-size:11px;color:var(--good)">live · 2m</td></tr>
+            </tbody>
+            <tfoot><tr><td colspan="5">A stale row keeps its place and wears the reason. Removing it would silently change who is first.</td></tr></tfoot>
+          </table>
+          </div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="intro" style="margin-top:16px">
+    <div class="eyebrow">The rule these four share</div>
+    <p style="margin:0">Each state answers the same three questions in the same order: <b>what is on screen</b>, <b>why it is that and not the real thing</b>, and <b>what you can do next</b>. A state that answers only the first is the failure this estate keeps re-fixing — the fixture leaderboard that looked live, the green tick printed for every member, the half-empty table that only got noticed because the job also happened to time out.</p>
+  </div>
+
+</div>
+</div>
+
+<script>
+  document.getElementById('tabseg').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tab-btn'); if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tabpanel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  });
+
+  (function () {
+    var root = document.documentElement, btn = document.getElementById('themebtn');
+    var KEY = 'hw-pos-theme';
+    function paint(mode) {
+      if (mode === 'dark') root.setAttribute('data-theme', 'dark'); else root.removeAttribute('data-theme');
+      btn.title = mode === 'dark' ? 'Switch to light' : 'Switch to dark';
+      btn.innerHTML = '<svg class="ic s14"><use href="#i-' + (mode === 'dark' ? 'sun' : 'moon') + '"/></svg>';
+    }
+    var saved = null;
+    try { saved = localStorage.getItem(KEY); } catch (err) { saved = null; }
+    var mode = saved === 'dark' ? 'dark' : 'light';
+    paint(mode);
+    btn.addEventListener('click', function () {
+      mode = mode === 'dark' ? 'light' : 'dark';
+      paint(mode);
+      try { localStorage.setItem(KEY, mode); } catch (err) { /* private window — the toggle still works for this page */ }
+    });
+  })();
+</script>
+
+</body>
+</html>

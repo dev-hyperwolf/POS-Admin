@@ -1,0 +1,2356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bounty — Concept B · Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Token block copied verbatim from explorations/AOV Goals & Leaderboard.html,
+     which mirrors pos/tokens.jsx. Dark values added below from the same file. */
+  :root{
+    --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+    --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+    --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+    --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+    --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+    --bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+    --r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r20:20px; --r999:999px;
+    --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+    --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+    --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+    --fontSans:"Inter", -apple-system, system-ui, sans-serif;
+    --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+    --scrim:rgba(20,18,12,.42);
+    --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+    --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+    --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18); --highlightSoft:#F1EFE9;
+    --catVape:#3F73D6; --catEdibles:#E0477C; --catFlower:#3F9E72; --catConc:#C2841D;
+  }
+  [data-theme="dark"]{
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentText:#FFD100;
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16); --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+    --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+    --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+    --scrim:rgba(0,0,0,.62);
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22); --highlightSoft:rgba(245,243,234,.06);
+    --catVape:#3F73D6; --catEdibles:#E0477C; --catFlower:#3F9E72; --catConc:#C2841D;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg2);}
+  body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  .mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+
+  /* ── doc chrome ───────────────────────────────────────────────────── */
+  .doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+    padding:13px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+  .doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;}
+  .doc-head .sub{font-size:11px;color:rgba(255,255,255,.58);font-family:var(--fontMono);
+    font-variant-numeric:tabular-nums;margin-top:3px;line-height:1.6;}
+  .doc-head .sub b{color:var(--accent);font-weight:700;}
+  .doc-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .theme-btn{appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);
+    color:rgba(255,255,255,.85);font-family:var(--fontSans);font-size:11.5px;font-weight:600;
+    min-height:34px;padding:0 12px;border-radius:var(--r8);cursor:pointer;white-space:nowrap;}
+  .theme-btn:hover{background:rgba(255,255,255,.14);}
+  .seg{display:inline-flex;background:rgba(255,255,255,.08);border-radius:var(--r10);padding:3px;gap:2px;flex-wrap:wrap;}
+  .seg button{appearance:none;border:0;background:transparent;color:rgba(255,255,255,.65);font-family:var(--fontSans);
+    font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+  .seg button.active{background:var(--railBright);color:var(--rail);box-shadow:var(--shadowSm);}
+  .seg button:not(.active):hover{color:rgba(255,255,255,.92);}
+
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block;}
+
+  .diagnosis{max-width:1320px;margin:0 auto;padding:18px 22px 0;}
+  .diagnosis .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+    padding:16px 18px;box-shadow:var(--shadowSm);}
+  .eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+  .diagnosis h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;line-height:1.4;}
+  .diagnosis p{font-size:12.5px;color:var(--ink2);line-height:1.65;margin:0 0 9px;max-width:980px;}
+  .diagnosis p:last-child{margin-bottom:0;}
+  .diagnosis code, code.m{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+  .status-row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 2px;}
+  .stage{max-width:1320px;margin:16px auto 70px;padding:0 22px;}
+  .caption{font-size:11.5px;color:var(--inkDim);line-height:1.6;margin:9px 2px 0;max-width:960px;}
+  .caption b{color:var(--ink2);}
+
+  /* ── the app frame (rail · module sidebar · topbar) ────────────────── */
+  .app{border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;background:var(--bg);
+    box-shadow:var(--shadowLg);display:flex;min-height:560px;}
+  .rail{width:74px;flex:0 0 auto;background:var(--rail);padding:10px 0;display:flex;flex-direction:column;
+    align-items:center;gap:3px;}
+  .rail-logo{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--accentInk);
+    display:flex;align-items:center;justify-content:center;font-family:var(--fontMono);font-weight:800;font-size:13px;margin-bottom:8px;}
+  .rail-item{position:relative;width:58px;padding:7px 0 6px;border-radius:10px;display:flex;flex-direction:column;
+    align-items:center;gap:4px;color:var(--railInk);font-size:10px;font-weight:600;}
+  .rail-item .sq{width:20px;height:20px;border-radius:6px;border:1.6px solid currentColor;opacity:.85;}
+  .rail-item.on{background:var(--railActive);color:var(--railBright);font-weight:700;}
+  .rail-item.on::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--accent);}
+  .rail-sep{width:38px;height:1px;background:var(--railHair);margin:6px 0;}
+
+  .sidebar{width:212px;flex:0 0 auto;border-right:1px solid var(--hairline2);background:var(--bg);
+    display:flex;flex-direction:column;}
+  .sb-head{height:56px;display:flex;align-items:center;gap:9px;padding:0 14px;border-bottom:1px solid var(--hairline);}
+  .sb-mark{width:22px;height:22px;border-radius:7px;background:var(--accent);}
+  .sb-name{font-size:13.5px;font-weight:700;letter-spacing:-.01em;}
+  .sb-beta{font-size:10px;font-weight:700;font-family:var(--fontMono);color:var(--inkMute);
+    border:1px solid var(--hairline2);border-radius:var(--r999);padding:1px 6px;}
+  .sb-group{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--inkMute);
+    font-family:var(--fontMono);padding:14px 14px 5px;}
+  .sb-item{display:flex;align-items:center;gap:9px;margin:1px 8px;padding:7px 9px;border-radius:var(--r8);
+    font-size:12.5px;font-weight:600;color:var(--ink2);}
+  .sb-item .dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;background:var(--inkFaint);}
+  .sb-item .n{margin-left:auto;font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);font-variant-numeric:tabular-nums;}
+  .sb-item.on{background:var(--surface);box-shadow:var(--shadowSm);border-left:2px solid var(--accent);color:var(--ink);font-weight:700;}
+  .sb-item.soon{color:var(--inkMute);}
+  .sb-foot{margin-top:auto;padding:11px 14px;border-top:1px solid var(--hairline);font-size:10.5px;
+    color:var(--inkMute);font-family:var(--fontMono);}
+
+  .colmain{flex:1;min-width:0;display:flex;flex-direction:column;}
+  .topbar{height:56px;flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:0 18px;
+    border-bottom:1px solid var(--hairline);background:var(--bg);}
+  .tenant{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;}
+  .tenant .ch{width:22px;height:22px;border-radius:6px;background:var(--surface3);color:var(--ink2);
+    display:flex;align-items:center;justify-content:center;font-family:var(--fontMono);font-size:10px;font-weight:700;}
+  .tb-div{width:1px;height:18px;background:var(--hairline2);}
+  .crumbs{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--inkDim);}
+  .crumbs .cur{color:var(--ink);font-weight:600;}
+  .tb-search{margin-left:auto;display:flex;align-items:center;gap:8px;min-height:32px;padding:0 10px;
+    border:1px solid var(--hairline2);border-radius:var(--r8);background:var(--surface);color:var(--inkMute);
+    font-size:11.5px;width:210px;}
+  .kbd{margin-left:auto;font-family:var(--fontMono);font-size:10px;border:1px solid var(--hairline2);
+    border-radius:5px;padding:1px 4px;color:var(--inkMute);}
+  .tb-ic{width:30px;height:30px;border-radius:var(--r8);border:1px solid var(--hairline2);background:var(--surface);
+    display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink2);}
+  .avatar{width:28px;height:28px;border-radius:var(--r999);background:var(--surface3);color:var(--ink2);
+    display:inline-flex;align-items:center;justify-content:center;font-family:var(--fontMono);font-size:10.5px;font-weight:700;flex:0 0 auto;}
+  .avatar.sm{width:22px;height:22px;font-size:10px;}
+  .main{flex:1;min-width:0;padding:20px 22px 26px;background:var(--bg);}
+
+  /* ── page header ──────────────────────────────────────────────────── */
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+  .page-head .eb{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--inkDim);font-family:var(--fontMono);margin-bottom:7px;}
+  .page-head h2{margin:0;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1;}
+  .page-head .psub{font-size:12.5px;color:var(--inkDim);margin-top:6px;line-height:1.5;max-width:680px;}
+  .head-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ── atoms ────────────────────────────────────────────────────────── */
+  .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px;}
+  .card.p0{padding:0;}
+  .card.sunken{background:var(--bg2);border-color:var(--hairline);}
+  .card-head{display:flex;align-items:center;gap:10px;padding:12px 15px;border-bottom:1px solid var(--hairline);}
+  .card-head .ct{flex:1;font-size:13.5px;font-weight:700;min-width:0;}
+  .card-body{padding:15px;}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+    font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .pill.sm{padding:2px 7px 3px;font-size:10px;}
+  .pill-good{background:var(--goodSoft);color:var(--good);}
+  .pill-warn{background:var(--warnSoft);color:var(--warnText);}
+  .pill-bad{background:var(--badSoft);color:var(--bad);}
+  .pill-info{background:var(--infoSoft);color:var(--info);}
+  .pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+  .pill-accent{background:var(--accentSoft);color:var(--accentText);}
+  .pill .dot{width:6px;height:6px;border-radius:99px;background:currentColor;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+    font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+    white-space:nowrap;border:1px solid transparent;background:var(--surface);color:var(--ink);}
+  .btn-secondary{border-color:var(--hairline3);}
+  .btn-secondary:hover{background:var(--surface3);}
+  .btn-primary{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+  .btn-accent:hover{background:var(--accentHover);}
+  .btn-ghost{background:transparent;color:var(--ink2);}
+  .btn-ghost:hover{background:var(--surface3);}
+  .btn-danger{color:var(--bad);border-color:var(--bad);}
+  .btn-xs{min-height:28px;padding:0 9px;font-size:11px;}
+  .btn-sm{min-height:30px;padding:0 10px;font-size:11.5px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .segrow{display:inline-flex;background:var(--surface3);border-radius:var(--r10);padding:3px;gap:2px;}
+  .segrow button{appearance:none;border:0;background:transparent;color:var(--inkDim);font-family:var(--fontSans);
+    font-size:11.5px;font-weight:600;padding:6px 11px;border-radius:7px;cursor:pointer;white-space:nowrap;}
+  .segrow button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+  .fieldbox{display:flex;align-items:center;gap:7px;min-height:34px;padding:0 11px;border:1px solid var(--fieldBorder);
+    border-radius:var(--r8);background:var(--field);color:var(--inkMute);font-size:12px;}
+  .bar-track{height:7px;border-radius:99px;background:var(--surface3);overflow:hidden;}
+  .bar-fill{height:100%;border-radius:99px;}
+  .mini-bar{width:100%;max-width:104px;height:5px;border-radius:99px;background:var(--surface3);overflow:hidden;display:inline-block;vertical-align:middle;}
+  .mini-bar > span{display:block;height:100%;border-radius:99px;}
+
+  /* ── the two-column ledger layout (POS admin shape) ───────────────── */
+  .ledger-2col{display:grid;grid-template-columns:minmax(0,1fr) 392px;gap:16px;align-items:start;}
+  @media (max-width:1180px){ .ledger-2col{grid-template-columns:minmax(0,1fr);} }
+
+  /* ── table, matched to DataTable's convention ─────────────────────── */
+  .dtwrap{border:1px solid var(--hairline2);border-radius:var(--r14);overflow:hidden;background:var(--surface);}
+  table.dt{width:100%;border-collapse:collapse;}
+  table.dt thead th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--inkDim);background:var(--surface2);padding:9px 13px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+  table.dt thead th.r{text-align:right;}
+  table.dt thead th .ar{color:var(--ink);margin-left:4px;font-family:var(--fontMono);}
+  table.dt thead th .ar.off{color:var(--inkFaint);}
+  table.dt tbody td{padding:10px 13px;border-top:1px solid var(--hairline);vertical-align:middle;font-size:12.5px;}
+  table.dt tbody td.r{text-align:right;font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+  table.dt tbody tr:first-child td{border-top:0;}
+  table.dt tbody tr.sel td{background:var(--surface2);}
+  table.dt tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent);}
+  table.dt tbody tr.me td{background:var(--accentSoft);}
+  table.dt tbody tr.resid td{background:var(--warnSoft);}
+  table.dt tfoot td{padding:9px 13px;border-top:1px solid var(--hairline2);background:var(--surface2);
+    font-size:11.5px;color:var(--inkDim);}
+  .rank-n{font-family:var(--fontMono);font-weight:700;color:var(--inkDim);font-variant-numeric:tabular-nums;}
+  .rank-n.one{color:var(--accentText);}
+  .who{display:flex;align-items:center;gap:9px;min-width:0;}
+  .who .nm{font-size:12.5px;font-weight:700;white-space:nowrap;}
+  .who .sb{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);}
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;
+    font-size:12px;color:var(--inkDim);flex-wrap:wrap;}
+  .pager .pgs{display:flex;gap:5px;align-items:center;}
+  .pager .pg{min-width:28px;min-height:28px;padding:0 7px;border-radius:var(--r8);border:1px solid transparent;
+    background:transparent;color:var(--ink2);font-family:var(--fontMono);font-size:11.5px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;}
+  .pager .pg.on{background:var(--surface3);color:var(--ink);}
+
+  /* ── freshness lines ──────────────────────────────────────────────── */
+  .fresh{display:flex;align-items:center;gap:8px;padding:7px 13px;font-size:11px;font-family:var(--fontMono);
+    font-variant-numeric:tabular-nums;color:var(--inkDim);border-top:1px solid var(--hairline);flex-wrap:wrap;}
+  .fresh:first-child{border-top:0;}
+  .fresh .fdot{width:7px;height:7px;border-radius:99px;flex:0 0 auto;}
+  .fresh .fsrc{color:var(--ink2);font-weight:600;}
+  .fresh.err{color:var(--bad);}
+  .fresh.err .fsrc{color:var(--bad);}
+
+  /* ── the computation-trail panel ──────────────────────────────────── */
+  .panel{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+    overflow:hidden;position:sticky;top:78px;}
+  .panel-head{padding:14px 16px 13px;border-bottom:1px solid var(--hairline);display:flex;align-items:flex-start;gap:10px;}
+  .panel-head .p-eb{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--inkMute);font-family:var(--fontMono);}
+  .panel-head .p-title{font-size:16px;font-weight:700;letter-spacing:-.01em;margin-top:5px;}
+  .panel-head .p-sub{font-size:11px;color:var(--inkDim);font-family:var(--fontMono);
+    font-variant-numeric:tabular-nums;margin-top:4px;}
+  .panel-body{padding:0 16px 16px;}
+  .p-sec{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--inkMute);
+    font-family:var(--fontMono);margin:16px 0 7px;}
+  .prov{font-size:11px;line-height:1.75;color:var(--ink2);font-family:var(--fontMono);
+    font-variant-numeric:tabular-nums;background:var(--bg2);border-radius:var(--r10);padding:9px 11px;}
+  .trail{border:1px solid var(--hairline);border-radius:var(--r10);overflow:hidden;}
+  .trail-row{display:flex;align-items:baseline;gap:10px;padding:8px 11px;border-top:1px solid var(--hairline);font-size:12px;}
+  .trail-row:first-child{border-top:0;}
+  .trail-row .t-l{flex:1;min-width:0;color:var(--ink2);}
+  .trail-row .t-l .t-note{display:block;font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);margin-top:2px;}
+  .trail-row .t-v{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;}
+  .trail-row .t-v.neg{color:var(--bad);}
+  .trail-row .t-v.dim{color:var(--inkMute);}
+  .trail-row.sum{background:var(--surface2);border-top:1px solid var(--hairline2);font-weight:700;}
+  .trail-row.sum .t-l{color:var(--ink);font-weight:700;}
+  .trail-row.sum .t-v{font-weight:800;}
+  .trail-row.resid{background:var(--warnSoft);}
+  .trail-row.resid .t-l{color:var(--warnText);}
+  .trail-row.resid .t-v{color:var(--warnText);}
+  .p-foot{margin-top:14px;padding-top:11px;border-top:1px solid var(--hairline);font-size:10.5px;
+    color:var(--inkMute);font-family:var(--fontMono);font-variant-numeric:tabular-nums;line-height:1.7;}
+  .p-note{font-size:11.5px;color:var(--ink2);line-height:1.6;margin:0;}
+
+  /* ── disclosure ───────────────────────────────────────────────────── */
+  details.disc{border:1px solid var(--hairline);border-radius:var(--r10);background:var(--surface2);margin-top:9px;}
+  details.disc > summary{cursor:pointer;list-style:none;padding:7px 11px;font-size:11px;font-weight:600;
+    font-family:var(--fontMono);color:var(--inkDim);display:flex;align-items:center;gap:6px;}
+  details.disc > summary::-webkit-details-marker{display:none;}
+  details.disc > summary::before{content:"+";font-weight:700;color:var(--inkMute);}
+  details.disc[open] > summary::before{content:"−";}
+  details.disc[open] > summary{border-bottom:1px solid var(--hairline);color:var(--ink2);}
+  details.disc .disc-body{padding:11px;}
+  details.disc .disc-body p{margin:0 0 7px;font-size:11.5px;line-height:1.6;color:var(--ink2);}
+  details.disc .disc-body p:last-child{margin-bottom:0;}
+
+  /* ── key/value ────────────────────────────────────────────────────── */
+  .kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+  .kv:last-child{border-bottom:0;}
+  .kv .k{color:var(--inkDim);}
+  .kv .v{font-weight:600;text-align:right;}
+  .kv .v.mono{font-family:var(--fontMono);font-weight:500;font-variant-numeric:tabular-nums;}
+
+  /* ── audit timeline ───────────────────────────────────────────────── */
+  .timeline{display:flex;flex-direction:column;}
+  .tl-ev{display:flex;gap:10px;padding:9px 0;font-size:11.5px;border-top:1px dashed var(--hairline2);}
+  .tl-ev:first-child{border-top:0;padding-top:0;}
+  .tl-dot{width:7px;height:7px;border-radius:99px;background:var(--inkFaint);margin-top:5px;flex:0 0 auto;}
+  .tl-dot.good{background:var(--good);} .tl-dot.warn{background:var(--warnText);} .tl-dot.info{background:var(--info);}
+  .tl-body{flex:1;min-width:0;}
+  .tl-action{font-weight:700;color:var(--ink);}
+  .tl-meta{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;margin-top:2px;font-variant-numeric:tabular-nums;}
+  .tl-reason{color:var(--ink2);margin-top:2px;font-style:italic;}
+
+  /* ── builder form ─────────────────────────────────────────────────── */
+  .form{display:flex;flex-direction:column;}
+  .form-row{padding:15px 0;border-top:1px solid var(--hairline);}
+  .form-row:first-child{border-top:0;padding-top:0;}
+  .form-lbl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--inkDim);
+    font-family:var(--fontMono);margin-bottom:3px;}
+  .form-help{font-size:11.5px;color:var(--inkDim);line-height:1.55;margin:0 0 9px;max-width:620px;}
+  .input{width:100%;min-height:38px;padding:0 12px;border-radius:var(--r8);border:1px solid var(--fieldBorder);
+    background:var(--field);font-family:var(--fontSans);font-size:12.5px;color:var(--ink);}
+  .input.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+  textarea.input{min-height:62px;padding:9px 12px;resize:vertical;}
+  .chiprow{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:var(--r999);
+    border:1px solid var(--hairline2);background:var(--surface);color:var(--ink2);font-size:12px;font-weight:600;}
+  .chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg);}
+  .chip .x{color:var(--inkMute);font-family:var(--fontMono);}
+  .chip.on .x{color:rgba(255,255,255,.55);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;}
+  @media (max-width:760px){ .grid2,.grid3{grid-template-columns:1fr;} }
+
+  /* ── states ───────────────────────────────────────────────────────── */
+  .skel{background:linear-gradient(90deg,var(--surface3) 25%,var(--surface2) 37%,var(--surface3) 63%);
+    background-size:400% 100%;border-radius:6px;height:12px;}
+  .skel.h20{height:20px;} .skel.h30{height:30px;}
+  .state-plate{width:44px;height:44px;border-radius:var(--r999);display:flex;align-items:center;justify-content:center;
+    font-size:17px;font-weight:700;margin:0 auto 11px;}
+  .state-plate.bad{background:var(--badSoft);color:var(--bad);}
+  .state-plate.neutral{background:var(--surface3);color:var(--inkDim);}
+  .state{padding:34px 20px;text-align:center;}
+  .state h4{margin:0 0 6px;font-size:14px;font-weight:700;}
+  .state p{margin:0 auto;font-size:12px;color:var(--inkDim);line-height:1.6;max-width:380px;}
+  .state .acts{margin-top:13px;display:flex;gap:8px;justify-content:center;}
+  .state .detail{margin-top:11px;font-family:var(--fontMono);font-size:10.5px;color:var(--inkMute);
+    background:var(--bg2);border-radius:var(--r10);padding:8px 11px;display:inline-block;text-align:left;}
+  .state-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:1000px){ .state-grid{grid-template-columns:1fr;} }
+  .state-label{font-size:11px;font-weight:700;font-family:var(--fontMono);letter-spacing:.1em;text-transform:uppercase;
+    color:var(--inkMute);margin-bottom:8px;}
+
+  /* ── POS sketches ─────────────────────────────────────────────────── */
+  .pos-frame{border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;background:var(--bg);box-shadow:var(--shadowLg);}
+  .pos-main{padding:20px 22px 24px;}
+  .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:11px;}
+  .quick .q{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);
+    border:1px solid var(--hairline2);border-radius:var(--r14);box-shadow:var(--shadowSm);}
+  .quick .q.acc{background:var(--accent);border-color:var(--accent);}
+  .quick .q .plate{width:40px;height:40px;border-radius:11px;background:var(--surface3);flex:0 0 auto;}
+  .quick .q.acc .plate{background:rgba(0,0,0,.12);}
+  .quick .q .ql{font-size:14px;font-weight:700;}
+  .quick .q.acc .ql,.quick .q.acc .qs{color:var(--accentInk);}
+  .quick .q .qs{font-size:11px;color:var(--inkDim);margin-top:1px;}
+  .pos-2col{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start;}
+  @media (max-width:1000px){ .pos-2col{grid-template-columns:1fr;} }
+  .strip{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 22px;background:var(--surface2);
+    border-top:1px solid var(--hairline2);border-bottom:1px solid var(--hairline2);flex-wrap:wrap;}
+  .strip .sv{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:700;}
+  .strip .sl{font-size:11px;color:var(--inkDim);}
+  .prog{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:var(--r999);
+    background:var(--surface);border:1px solid var(--hairline2);font-size:11px;font-weight:600;}
+
+  /* ── snaps / player ───────────────────────────────────────────────── */
+  .snap-scrim{background:var(--scrim);border-radius:var(--r12);padding:26px 20px;display:flex;justify-content:center;}
+  .snap-card{width:min(300px,100%);background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r20);
+    box-shadow:var(--shadowLg);overflow:hidden;}
+  .snap-dots{display:flex;gap:4px;padding:11px 13px 0;}
+  .snap-dots span{flex:1;height:3px;border-radius:99px;background:var(--hairline2);}
+  .snap-dots span.on{background:var(--accent);}
+  .snap-media{margin:11px 13px 0;height:118px;border-radius:var(--r12);background:var(--surface3);
+    display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--inkMute);font-family:var(--fontMono);}
+  .snap-body{padding:12px 14px 15px;}
+  .quiz-opt{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--hairline2);
+    border-radius:var(--r10);font-size:12px;margin-top:7px;}
+  .quiz-opt.pick{border-color:var(--ink);background:var(--surface3);font-weight:600;}
+  .quiz-opt .box{width:16px;height:16px;border-radius:5px;border:1.6px solid var(--hairline3);flex:0 0 auto;}
+  .quiz-opt.pick .box{border-color:var(--ink);background:var(--ink);}
+
+  .flagline{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:var(--warnText);
+    background:var(--warnSoft);padding:4px 9px;border-radius:var(--r999);font-family:var(--fontMono);}
+  .noteband{border-radius:var(--r12);padding:12px 14px;border:1px solid;font-size:12px;line-height:1.6;}
+  .noteband.warn{background:var(--warnSoft);border-color:var(--warnText);color:var(--ink2);}
+  .noteband.info{background:var(--infoSoft);border-color:var(--info);color:var(--ink2);}
+  .noteband.bad{background:var(--badSoft);border-color:var(--bad);color:var(--ink2);}
+  .noteband .nh{display:flex;align-items:center;gap:7px;font-weight:700;font-size:11px;letter-spacing:.03em;
+    text-transform:uppercase;margin-bottom:7px;}
+  .noteband ul{margin:0;padding-left:17px;} .noteband li{margin-bottom:5px;} .noteband li:last-child{margin-bottom:0;}
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+  <div>
+    <h1>Bounty — Concept B · Ledger</h1>
+    <div class="sub"><b>DESIGN MOCKUP — every number is illustrative, nothing is read from the API</b><br>
+      whole-module concept · budtender incentives (SparkPlug parity) · Hyperwolf Bounty — name picked by the owner 2026-09-07; one incentive is a bounty</div>
+  </div>
+  <div class="doc-right">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">Switch to dark</button>
+    <div class="seg" id="tabseg">
+      <button class="tab-btn active" data-tab="why">1 · Why this concept</button>
+      <button class="tab-btn" data-tab="standings">2 · Standings</button>
+      <button class="tab-btn" data-tab="data">3 · Data</button>
+      <button class="tab-btn" data-tab="contests">4 · Bounties</button>
+      <button class="tab-btn" data-tab="builder">5 · Builder</button>
+      <button class="tab-btn" data-tab="earnings">6 · Earnings</button>
+      <button class="tab-btn" data-tab="goals">7 · Goals</button>
+      <button class="tab-btn" data-tab="learn">8 · Learn</button>
+      <button class="tab-btn" data-tab="pos">9 · POS surfaces</button>
+      <button class="tab-btn" data-tab="states">10 · States</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 1 — WHY THIS CONCEPT ═════════════════════════ -->
+<div class="tabpanel active" id="tab-why">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Concept B · Ledger</div>
+      <h2>Every number is auditable. Standings, bounties, earnings and ingestion are four views over one ledger, and every figure on screen can show its own arithmetic.</h2>
+      <p>The organizing idea is that a leaderboard is a <b>claim</b>, and a claim a budtender is paid on has to be checkable by the person who is paying. So this concept never shows a rank without also being able to show the window it was measured over, the sources that fed it, the sales it counted, the refunds it netted out, and the money it could not attribute to anybody. Selecting any row opens a computation trail on the right: gross, refunds, net, and the residual — the same shape a bank statement uses, because that is the shape people already know how to argue with.</p>
+      <p>It serves best the operator who has been burned by a dashboard — a floor manager or an owner who has had a number contradicted at the counter and now wants the receipt before they hand out $150. It also serves the person doing the boring work: ingestion is a first-class screen here, not a settings page, because in this estate the thing most likely to be wrong is not the ranking maths, it is that Blaze never carried an employee on the sale (<code>assignedEmployee</code> measured at 0 % populated) and nobody noticed for a week.</p>
+      <p>What it trades away is celebration. There is no confetti, no streak, no trophy shelf, and the budtender-facing surfaces are deliberately quieter than a SparkPlug-style app would make them — a projected payout is labelled as projected and sits next to what has actually settled. That is a real cost: this concept will motivate less on its own and rely more on the bounty itself doing the motivating. It also spends screen width on proof, so it wants ≥1280px and degrades to a single column below 1180px.</p>
+      <p>The shape is borrowed, not invented. The two-column layout — a <code>DataTable</code>-first left column with sort, filter and pagination, and a detail panel on the right — is <code>pos/screen-catalog.jsx</code>’s exact shape, down to <code>PAGE_SIZE&nbsp;=&nbsp;25</code> and its <code>pageWindow()</code> ellipsis pager. The computation trail is the <b>audit trail</b> from the AOV manager card in <code>pos/screen-aov.jsx</code>, promoted from a footnote to the point of the screen. The source-freshness line is <code>screen-catalog.jsx</code>’s own freshness convention (<code>product data live · confirmed 2m ago</code>), applied per store × source. The shell is the Engage skeleton: <code>HWRail</code>, a 212px module sidebar, a 56px topbar with the theme toggle.</p>
+      <p>Everything below is drawn with existing atoms. Where a composite is needed it is built visibly out of them and captioned as such — the trail panel is a <code>Card padding=0</code> with a card head and hairline-separated rows; the standings table is <code>DataTable</code> with a residual row; the freshness stack is three text lines with a status dot. No new colour, no new type size, no new control height.</p>
+      <div class="status-row">
+        <span class="pill pill-neutral">Layout · catalog two-column, table + detail panel</span>
+        <span class="pill pill-neutral">Signature · “how this was computed” on every figure</span>
+        <span class="pill pill-neutral">Strongest screen · Data</span>
+        <span class="pill pill-warn">Trades away · celebration, budtender delight</span>
+        <span class="pill pill-info">Borrowed from · screen-catalog.jsx · screen-aov.jsx audit trail</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="grid2" style="gap:16px;">
+      <div class="card">
+        <div class="eyebrow">The four claims this concept refuses to make silently</div>
+        <div class="kv"><span class="k">A rank with no window</span><span class="v">Every board states its window in store-local time</span></div>
+        <div class="kv"><span class="k">A total that quietly drops sales</span><span class="v">Unattributed money is a row, not a rounding</span></div>
+        <div class="kv"><span class="k">A payout that looks owed</span><span class="v">Projected and settled are separate columns</span></div>
+        <div class="kv"><span class="k">A source that stopped feeding</span><span class="v">Freshness per store × source, with the last error</span></div>
+      </div>
+      <div class="noteband info">
+        <div class="nh">What “auditable” costs, honestly</div>
+        <ul>
+          <li>Every screen is denser than its counterpart in a celebration-first concept. A budtender glancing between customers sees more words.</li>
+          <li>The detail panel eats 392px. Below 1180px it drops under the table, so the trail is a scroll away on a laptop.</li>
+          <li>Disclosures are collapsed by default. If a reviewer never opens one, this concept reads as a plainer version of the others — the proof only pays off when it is opened.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 2 — STANDINGS ═════════════════════════ -->
+<div class="tabpanel" id="tab-standings">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Screen · #/ · incentives/screen-standings.jsx</div>
+      <h2>The board is a table you can sort, filter and page — and the panel beside it shows how the selected row’s number was reached.</h2>
+      <p>Left column is <code>DataTable</code> in <code>screen-catalog.jsx</code>’s shape: a <code>surface2</code> head with sortable columns, hairline-separated rows, a selection bar on the chosen row, and the same “Showing 1–8 of 10” pager underneath. Two rows are not people: the <b>unattributed</b> row (money the POS recorded with no budtender on it) and the <b>not-yet</b> footer (people with zero, listed rather than ranked last at $0). Both are selectable and both have their own trail.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app">
+      <div class="rail">
+        <div class="rail-logo">W</div>
+        <div class="rail-item"><span class="sq"></span>Home</div>
+        <div class="rail-item"><span class="sq"></span>Register</div>
+        <div class="rail-item"><span class="sq"></span>Orders</div>
+        <div class="rail-item"><span class="sq"></span>Catalog</div>
+        <div class="rail-item on"><span class="sq"></span>Bounty</div>
+        <div class="rail-item"><span class="sq"></span>Engage</div>
+        <div class="rail-sep"></div>
+        <div class="rail-item"><span class="sq"></span>Settings</div>
+      </div>
+      <div class="sidebar">
+        <div class="sb-head"><span class="sb-mark"></span><span class="sb-name">Bounty</span><span class="sb-beta">Beta</span></div>
+        <div class="sb-group">Compete</div>
+        <div class="sb-item on"><span class="dot" style="background:var(--info)"></span>Standings</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catVape)"></span>Bounties<span class="n">4</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--good)"></span>Earnings</div>
+        <div class="sb-group">Enable</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catEdibles)"></span>Learn<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--catConc)"></span>Goals</div>
+        <div class="sb-group">Operate</div>
+        <div class="sb-item"><span class="dot" style="background:var(--warn)"></span>Data<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot"></span>Settings</div>
+        <div class="sb-foot">g s · standings<br>g d · data</div>
+      </div>
+      <div class="colmain">
+        <div class="topbar">
+          <span class="tenant"><span class="ch">HW</span>Hyperwolf</span>
+          <span class="tb-div"></span>
+          <span class="crumbs">Bounty<span style="color:var(--inkFaint)">/</span><span class="cur">Standings</span></span>
+          <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+          <span class="tb-ic">4</span>
+          <span class="tb-ic">☾</span>
+          <span class="avatar">MS</span>
+        </div>
+        <div class="main">
+
+          <div class="page-head">
+            <div>
+              <div class="eb">Standings · Lake Elsinore</div>
+              <h2>Net sales, today</h2>
+              <div class="psub">Ranked on net — gross minus refunds linked back to a sale in the same window. Ties share a place and the next place is skipped.</div>
+            </div>
+            <div class="head-actions">
+              <span class="segrow"><button class="on">This store</button><button>All stores</button><button>Store vs store</button></span>
+              <span class="segrow"><button class="on">Today</button><button>Week</button><button>Month</button></span>
+              <button class="btn btn-secondary btn-sm">Net sales ▾</button>
+              <button class="btn btn-secondary btn-sm">Export</button>
+            </div>
+          </div>
+
+          <div class="card p0" style="margin-bottom:14px;">
+            <div class="fresh"><span class="fdot" style="background:var(--good)"></span><span class="fsrc">Blaze API · Lake Elsinore</span>· synced 2m ago (14:39) · 194 sales today · cursor 2026-09-07T21:39Z</div>
+            <div class="fresh"><span class="fdot" style="background:var(--inkFaint)"></span><span class="fsrc">Blaze CSV · Lake Elsinore</span>· last upload 2026-09-05 · All Sales · 1,204 lines · 0 rows inside today’s window</div>
+          </div>
+
+          <div class="ledger-2col">
+            <div>
+              <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px;">
+                <span class="fieldbox" style="flex:1 1 220px;max-width:320px;">Search people, identity keys…</span>
+                <span class="chip">Brand · any <span class="x">▾</span></span>
+                <span class="chip">Category · any <span class="x">▾</span></span>
+                <span class="chip on">Sales only <span class="x">✕</span></span>
+                <span style="flex:1"></span>
+                <span class="mono" style="font-size:11px;color:var(--inkMute);">13 on roster · 10 with sales</span>
+              </div>
+
+              <div class="dtwrap">
+                <table class="dt">
+                  <thead><tr>
+                    <th style="width:46px;">#</th>
+                    <th>Budtender <span class="ar off">⇅</span></th>
+                    <th class="r">Net <span class="ar">▼</span></th>
+                    <th class="r">Sales <span class="ar off">⇅</span></th>
+                    <th class="r">AOV <span class="ar off">⇅</span></th>
+                    <th style="width:120px;">Share of store</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr class="sel">
+                      <td><span class="rank-n one">1</span></td>
+                      <td><span class="who"><span class="avatar sm">JA</span><span><span class="nm">Jordan Ames</span><br><span class="sb">blaze:elsinore:emp_4471</span></span></span></td>
+                      <td class="r">$2,418.60</td><td class="r">34</td><td class="r">$71.14</td>
+                      <td><span class="mini-bar"><span style="width:100%;background:var(--accent);"></span></span></td>
+                    </tr>
+                    <tr class="me">
+                      <td><span class="rank-n">2</span></td>
+                      <td><span class="who"><span class="avatar sm">MS</span><span><span class="nm">Manisha Saini <span class="pill sm pill-neutral">you</span></span><br><span class="sb">blaze:elsinore:emp_4102</span></span></span></td>
+                      <td class="r">$2,106.05</td><td class="r">26</td><td class="r">$80.99</td>
+                      <td><span class="mini-bar"><span style="width:87%;background:var(--info);"></span></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="rank-n">3</span></td>
+                      <td><span class="who"><span class="avatar sm">PC</span><span><span class="nm">Priya Chandra <span class="pill sm pill-warn">tied</span></span><br><span class="sb">blaze:elsinore:emp_4388</span></span></span></td>
+                      <td class="r">$1,984.20</td><td class="r">27</td><td class="r">$73.49</td>
+                      <td><span class="mini-bar"><span style="width:82%;background:var(--info);"></span></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="rank-n">3</span></td>
+                      <td><span class="who"><span class="avatar sm">MW</span><span><span class="nm">Marcus Webb <span class="pill sm pill-warn">tied</span></span><br><span class="sb">blaze:elsinore:emp_4290</span></span></span></td>
+                      <td class="r">$1,984.20</td><td class="r">25</td><td class="r">$79.37</td>
+                      <td><span class="mini-bar"><span style="width:82%;background:var(--info);"></span></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="rank-n">5</span></td>
+                      <td><span class="who"><span class="avatar sm">AB</span><span><span class="nm">Aaliyah Brooks</span><br><span class="sb">blaze:elsinore:emp_4501</span></span></span></td>
+                      <td class="r">$1,240.75</td><td class="r">19</td><td class="r">$65.30</td>
+                      <td><span class="mini-bar"><span style="width:51%;background:var(--info);"></span></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="rank-n">6</span></td>
+                      <td><span class="who"><span class="avatar sm">DP</span><span><span class="nm">Devon Park</span><br><span class="sb">blaze:elsinore:emp_4622</span></span></span></td>
+                      <td class="r">$1,102.40</td><td class="r">16</td><td class="r">$68.90</td>
+                      <td><span class="mini-bar"><span style="width:46%;background:var(--info);"></span></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="rank-n">7</span></td>
+                      <td><span class="who"><span class="avatar sm">LO</span><span><span class="nm">Lena Ortiz</span><br><span class="sb">blaze:elsinore:emp_4477</span></span></span></td>
+                      <td class="r">$986.15</td><td class="r">14</td><td class="r">$70.44</td>
+                      <td><span class="mini-bar"><span style="width:41%;background:var(--info);"></span></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="rank-n">8</span></td>
+                      <td><span class="who"><span class="avatar sm">CV</span><span><span class="nm">Chris Vega</span><br><span class="sb">blaze:elsinore:emp_4703</span></span></span></td>
+                      <td class="r">$742.90</td><td class="r">11</td><td class="r">$67.54</td>
+                      <td><span class="mini-bar"><span style="width:31%;background:var(--info);"></span></span></td>
+                    </tr>
+                    <tr class="resid">
+                      <td><span class="rank-n" style="color:var(--warnText)">—</span></td>
+                      <td><span class="who"><span class="avatar sm" style="background:var(--warnSoft);color:var(--warnText)">?</span><span><span class="nm" style="color:var(--warnText)">No budtender on the record</span><br><span class="sb" style="color:var(--warnText)">3 unresolved identities · not ranked</span></span></span></td>
+                      <td class="r" style="color:var(--warnText)">$612.40</td><td class="r" style="color:var(--warnText)">9</td><td class="r" style="color:var(--warnText)">$68.04</td>
+                      <td><button class="btn btn-secondary btn-xs">Resolve in Data</button></td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td colspan="6">
+                      3 people have no sales yet today — <b style="color:var(--ink2)">Sam Delgado · Nia Foster · Eli Grant</b>. They are listed, not ranked at $0.
+                    </td></tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <div class="pager">
+                <span class="mono">Showing 1–8 of 10 ranked · 1 unattributed row · 3 not yet</span>
+                <span class="pgs">
+                  <button class="pg" disabled>Prev</button>
+                  <button class="pg on">1</button><button class="pg">2</button>
+                  <button class="pg">Next</button>
+                </span>
+              </div>
+
+              <div class="card" style="margin-top:14px;">
+                <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+                  <span style="font-size:13.5px;font-weight:700;">Store total, today</span>
+                  <span class="mono" style="margin-left:auto;font-size:21px;font-weight:800;">$14,007.80</span>
+                </div>
+                <div style="font-size:11.5px;color:var(--inkDim);">194 sales · Lake Elsinore · 2026-09-07 00:00 → 14:41 America/Los_Angeles</div>
+                <details class="disc">
+                  <summary>How this was computed</summary>
+                  <div class="disc-body">
+                    <div class="trail">
+                      <div class="trail-row"><span class="t-l">Gross sales<span class="t-note">203 sale rows · Blaze API · txn_type = sale</span></span><span class="t-v">$14,486.55</span></div>
+                      <div class="trail-row"><span class="t-l">Refunds netted<span class="t-note">9 refund rows, each linked to a sale inside this window</span></span><span class="t-v neg">−$478.75</span></div>
+                      <div class="trail-row sum"><span class="t-l">Net counted</span><span class="t-v">$14,007.80</span></div>
+                      <div class="trail-row"><span class="t-l">Attributed to a budtender<span class="t-note">185 sales across 10 people</span></span><span class="t-v">$13,395.40</span></div>
+                      <div class="trail-row resid"><span class="t-l">No budtender on the record<span class="t-note">9 sales · 3 unresolved identities</span></span><span class="t-v">$612.40</span></div>
+                    </div>
+                    <p style="margin-top:9px;">The two lines under “Net counted” add back to it exactly. Nothing is dropped to make the board look tidy — if attribution breaks, the residual grows and you can see it grow.</p>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-head">
+                <div style="flex:1;min-width:0;">
+                  <div class="p-eb">Computation trail</div>
+                  <div class="p-title">Jordan Ames</div>
+                  <div class="p-sub">rank 1 of 10 · net sales · today</div>
+                </div>
+                <span class="pill pill-neutral sm">selected</span>
+              </div>
+              <div class="panel-body">
+                <div class="p-sec">Window</div>
+                <div class="prov">2026-09-07 00:00 → 14:41<br>America/Los_Angeles · store-local day<br>local_day computed once at ingest</div>
+
+                <div class="p-sec">Sources counted</div>
+                <div class="card p0" style="border-color:var(--hairline);">
+                  <div class="fresh"><span class="fdot" style="background:var(--good)"></span><span class="fsrc">Blaze API</span>· 34 sales · 2 refunds</div>
+                  <div class="fresh"><span class="fdot" style="background:var(--inkFaint)"></span><span class="fsrc">Blaze CSV</span>· 0 rows in window</div>
+                </div>
+
+                <div class="p-sec">The arithmetic</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">Gross sales<span class="t-note">34 sale rows</span></span><span class="t-v">$2,511.40</span></div>
+                  <div class="trail-row"><span class="t-l">Refunds netted<span class="t-note">TR-88407 −$54.20 · TR-88512 −$38.60</span></span><span class="t-v neg">−$92.80</span></div>
+                  <div class="trail-row sum"><span class="t-l">Net counted</span><span class="t-v">$2,418.60</span></div>
+                  <div class="trail-row"><span class="t-l">Divided by sales<span class="t-note">34 distinct sale transactions</span></span><span class="t-v dim">÷ 34</span></div>
+                  <div class="trail-row sum"><span class="t-l">AOV</span><span class="t-v">$71.14</span></div>
+                </div>
+
+                <div class="p-sec">Identity</div>
+                <div class="prov">blaze:elsinore:emp_4471<br>bound by id · Blaze /employees sync<br>first seen 2026-06-02 · 1,946 sales</div>
+
+                <div class="p-sec">What this figure cannot see</div>
+                <p class="p-note">Nine sales at this store today carry no budtender. If any of them were Jordan’s, this number is low — binding an identity in Data rewrites the ledger and this board recomputes.</p>
+
+                <div class="p-sec">Bounties this feeds</div>
+                <div class="kv"><span class="k">Top net sales — week 36</span><span class="v mono">rank 1</span></div>
+                <div class="kv"><span class="k">Store vs store — September</span><span class="v mono">counts</span></div>
+                <div class="kv"><span class="k">Stiiizy pods — 10 units</span><span class="v mono">8 of 10</span></div>
+
+                <div class="p-foot">ledger version 41,208 · standings computed 14:41:07 · served from cache<br>cache key (contest_id, round_key, ledger_version)</div>
+              </div>
+            </aside>
+          </div>
+
+          <p class="caption"><b>Composite, built from atoms:</b> the trail panel is a <code>Card padding=0</code> + the local <code>CardHead</code> pattern + hairline-separated rows, the same construction as the AOV manager card’s audit trail. The residual row is a <code>DataTable</code> row given <code>warnSoft</code>; no new component.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 3 — DATA ═════════════════════════ -->
+<div class="tabpanel" id="tab-data">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Screen · #/data · incentives/screen-data.jsx</div>
+      <h2>The strongest screen in this concept. A run report reads like a bank statement, a conflict is a diff, and an unresolved identity shows its evidence before it asks you to bind it.</h2>
+      <p>Ingestion is where this module will actually be wrong, so it gets the most room. Connections are one row per store × source with freshness and the last error verbatim. Every upload produces a run whose counts must satisfy <code>rows_read == inserted + unchanged + conflicts + rejected</code> — the invariant is printed, not implied. Rejects name the row number and the reason. Conflicts show stored against incoming, field by field, and default to keeping what is stored.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app">
+      <div class="rail">
+        <div class="rail-logo">W</div>
+        <div class="rail-item"><span class="sq"></span>Home</div>
+        <div class="rail-item"><span class="sq"></span>Register</div>
+        <div class="rail-item"><span class="sq"></span>Orders</div>
+        <div class="rail-item"><span class="sq"></span>Catalog</div>
+        <div class="rail-item on"><span class="sq"></span>Bounty</div>
+        <div class="rail-item"><span class="sq"></span>Engage</div>
+        <div class="rail-sep"></div>
+        <div class="rail-item"><span class="sq"></span>Settings</div>
+      </div>
+      <div class="sidebar">
+        <div class="sb-head"><span class="sb-mark"></span><span class="sb-name">Bounty</span><span class="sb-beta">Beta</span></div>
+        <div class="sb-group">Compete</div>
+        <div class="sb-item"><span class="dot" style="background:var(--info)"></span>Standings</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catVape)"></span>Bounties<span class="n">4</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--good)"></span>Earnings</div>
+        <div class="sb-group">Enable</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catEdibles)"></span>Learn<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--catConc)"></span>Goals</div>
+        <div class="sb-group">Operate</div>
+        <div class="sb-item on"><span class="dot" style="background:var(--warn)"></span>Data<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot"></span>Settings</div>
+        <div class="sb-foot">g s · standings<br>g d · data</div>
+      </div>
+      <div class="colmain">
+        <div class="topbar">
+          <span class="tenant"><span class="ch">HW</span>Hyperwolf</span>
+          <span class="tb-div"></span>
+          <span class="crumbs">Bounty<span style="color:var(--inkFaint)">/</span><span class="cur">Data</span></span>
+          <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+          <span class="tb-ic">4</span><span class="tb-ic">☾</span><span class="avatar">MS</span>
+        </div>
+        <div class="main">
+
+          <div class="page-head">
+            <div>
+              <div class="eb">Data · where the numbers come from</div>
+              <h2>Connections, runs and identities</h2>
+              <div class="psub">Six store × source pairs. One is in error, one has never been configured, and three identities are waiting on a person to say who they are.</div>
+            </div>
+            <div class="head-actions">
+              <button class="btn btn-secondary btn-sm">Sync now</button>
+              <button class="btn btn-accent btn-sm">Upload a file</button>
+            </div>
+          </div>
+
+          <div class="eyebrow" style="margin-bottom:7px;">Connections</div>
+          <div class="dtwrap" style="margin-bottom:18px;">
+            <table class="dt">
+              <thead><tr>
+                <th>Store</th><th>Source</th><th>State</th><th>Last ok <span class="ar">▼</span></th>
+                <th class="r">Sales today</th><th>Last error</th><th style="width:96px;"></th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td>Lake Elsinore</td><td class="mono">blaze-api</td>
+                  <td><span class="pill pill-good sm"><span class="dot"></span>synced</span></td>
+                  <td class="r">2m ago · 14:39</td><td class="r">194</td><td class="mono" style="color:var(--inkMute)">—</td>
+                  <td><button class="btn btn-ghost btn-xs">Runs</button></td>
+                </tr>
+                <tr>
+                  <td>Lake Elsinore</td><td class="mono">blaze-csv</td>
+                  <td><span class="pill pill-neutral sm">manual</span></td>
+                  <td class="r">2026-09-05 08:41</td><td class="r">0</td><td class="mono" style="color:var(--inkMute)">—</td>
+                  <td><button class="btn btn-ghost btn-xs">Runs</button></td>
+                </tr>
+                <tr>
+                  <td>Corona</td><td class="mono">blaze-api</td>
+                  <td><span class="pill pill-good sm"><span class="dot"></span>synced</span></td>
+                  <td class="r">4m ago · 14:37</td><td class="r">121</td><td class="mono" style="color:var(--inkMute)">—</td>
+                  <td><button class="btn btn-ghost btn-xs">Runs</button></td>
+                </tr>
+                <tr>
+                  <td>West Hollywood</td><td class="mono">meadow-api</td>
+                  <td><span class="pill pill-bad sm"><span class="dot"></span>error</span></td>
+                  <td class="r">2026-09-07 09:12</td><td class="r">88</td>
+                  <td class="mono" style="color:var(--bad)">14:02 · 401 (client key)</td>
+                  <td><button class="btn btn-ghost btn-xs">Runs</button></td>
+                </tr>
+                <tr>
+                  <td>Riverside</td><td class="mono">blaze-csv</td>
+                  <td><span class="pill pill-warn sm"><span class="dot"></span>stale</span></td>
+                  <td class="r">2026-09-05 07:55</td><td class="r">0</td><td class="mono" style="color:var(--inkMute)">—</td>
+                  <td><button class="btn btn-ghost btn-xs">Runs</button></td>
+                </tr>
+                <tr>
+                  <td>Long Beach</td><td class="mono" style="color:var(--inkMute)">not configured</td>
+                  <td><span class="pill pill-neutral sm">no source</span></td>
+                  <td class="r" style="color:var(--inkMute)">never</td><td class="r" style="color:var(--inkMute)">—</td>
+                  <td style="font-size:11.5px;color:var(--inkDim)">Long Beach runs Treez. There’s no ingestion path for it yet.</td>
+                  <td><button class="btn btn-ghost btn-xs" disabled>Runs</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="ledger-2col">
+            <div>
+              <div class="eyebrow" style="margin-bottom:7px;">Upload · format detection</div>
+              <div class="card" style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                  <div style="flex:1;min-width:220px;">
+                    <div style="font-size:13.5px;font-weight:700;">All Sales 2026-09-01 to 09-04.csv</div>
+                    <div class="mono" style="font-size:11px;color:var(--inkDim);margin-top:3px;">1.8 MB · 1,205 lines · uploaded in 1 chunk</div>
+                  </div>
+                  <span class="pill pill-good"><span class="dot"></span>Recognised · Blaze All Sales</span>
+                </div>
+                <details class="disc" open>
+                  <summary>How the format was decided</summary>
+                  <div class="disc-body">
+                    <p>Header fingerprint after normalisation (lower-case, collapsed spaces), order-independent. All ten required headers were present:</p>
+                    <p class="mono" style="font-size:11px;color:var(--ink2);line-height:1.8;">trans num · date · trans type · trans status · product name · product category · brand name · quantity sold · final subtotal · employee</p>
+                    <p>Grain is <b>line</b>, so this file writes both <code>inc_txns</code> and <code>inc_lines</code>. Store was chosen by you (Lake Elsinore) and the file’s own <code>Region Name</code> column agreed — had it disagreed, the upload would have been refused rather than corrected.</p>
+                  </div>
+                </details>
+                <div style="display:flex;gap:8px;margin-top:11px;">
+                  <button class="btn btn-secondary btn-sm">Choose a different store</button>
+                  <button class="btn btn-accent btn-sm">Parse and report</button>
+                </div>
+              </div>
+
+              <div class="eyebrow" style="margin-bottom:7px;">Run report</div>
+              <div class="card p0">
+                <div class="card-head">
+                  <span class="ct">Run #4,182 · Blaze All Sales · Lake Elsinore</span>
+                  <span class="pill pill-warn sm">partial</span>
+                </div>
+                <div class="card-body">
+                  <div class="prov" style="margin-bottom:12px;">started 2026-09-05 08:41:02 · finished 08:41:39 · 37s<br>kind csv · actor M. Saini · window 2026-09-01 → 2026-09-04</div>
+                  <div class="trail">
+                    <div class="trail-row"><span class="t-l">Rows read</span><span class="t-v">1,204</span></div>
+                    <div class="trail-row"><span class="t-l">Inserted<span class="t-note">new txn_key</span></span><span class="t-v">1,138</span></div>
+                    <div class="trail-row"><span class="t-l">Unchanged<span class="t-note">same key, same content hash — a safe re-upload</span></span><span class="t-v">51</span></div>
+                    <div class="trail-row"><span class="t-l">Conflicts<span class="t-note">same key, different hash · stored value kept</span></span><span class="t-v" style="color:var(--warnText)">7</span></div>
+                    <div class="trail-row"><span class="t-l">Rejected<span class="t-note">never became a zero — the row was refused</span></span><span class="t-v neg">8</span></div>
+                    <div class="trail-row sum"><span class="t-l">1,138 + 51 + 7 + 8</span><span class="t-v">1,204</span></div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:7px;margin-top:10px;font-size:11.5px;color:var(--good);">
+                    <span style="width:7px;height:7px;border-radius:99px;background:var(--good);"></span>
+                    The invariant holds — every row read is accounted for in exactly one column.
+                  </div>
+                  <div class="kv" style="margin-top:12px;"><span class="k">Unresolved identities created</span><span class="v mono">3</span></div>
+                  <div class="kv"><span class="k">Brands not in the brand DB</span><span class="v mono">2</span></div>
+                  <div class="kv"><span class="k">Lines written</span><span class="v mono">3,914</span></div>
+                  <details class="disc">
+                    <summary>What “brands not in the brand DB” means here</summary>
+                    <div class="disc-body">
+                      <p><b>Punch Edibles</b> and <b>Local Cannabis Co</b> have no alias in <code>shared/brands.js</code>, so they were kept verbatim rather than folded into a neighbour. A bounty filtered on either name will match them; a bounty filtered on a brand that <i>should</i> be their alias will not.</p>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-head">
+                <div style="flex:1;min-width:0;">
+                  <div class="p-eb">Run detail</div>
+                  <div class="p-title">Rejects &amp; conflicts</div>
+                  <div class="p-sub">run #4,182 · 8 rejected · 7 conflicts</div>
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="p-sec">Rejected rows</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">row 412 · amount unparseable<span class="t-note">final subtotal = “$—”</span></span><span class="t-v dim">1</span></div>
+                  <div class="trail-row"><span class="t-l">row 508 · date outside the file window<span class="t-note">2026-08-29, file covers 09-01 → 09-04</span></span><span class="t-v dim">1</span></div>
+                  <div class="trail-row"><span class="t-l">rows 690, 691 · not a sale, refund or void<span class="t-note">trans type “TRANSFER”</span></span><span class="t-v dim">2</span></div>
+                  <div class="trail-row"><span class="t-l">rows 902–904 · missing product name<span class="t-note">line grain needs one</span></span><span class="t-v dim">3</span></div>
+                  <div class="trail-row"><span class="t-l">row 1,190 · duplicate line key within the file<span class="t-note">line_key already written by row 1,142</span></span><span class="t-v dim">1</span></div>
+                  <div class="trail-row sum"><span class="t-l">Rejected</span><span class="t-v">8</span></div>
+                </div>
+                <p class="p-note" style="margin-top:9px;">A rejected row is never silently turned into <code>$0</code>. Fix the file and re-upload — the 1,196 good rows will come back as <b>unchanged</b>.</p>
+
+                <div class="p-sec">Conflict · 1 of 7</div>
+                <div class="prov">txn_key blaze:elsinore:TR-88214<br>seen 2026-09-03 · also arrived via blaze-api</div>
+                <div class="trail" style="margin-top:9px;">
+                  <div class="trail-row"><span class="t-l">field<span class="t-note">total_cents</span></span><span class="t-v dim">total</span></div>
+                  <div class="trail-row"><span class="t-l">stored<span class="t-note">written by the API run at 09-03 21:40</span></span><span class="t-v">$42.50</span></div>
+                  <div class="trail-row"><span class="t-l">incoming<span class="t-note">this CSV</span></span><span class="t-v" style="color:var(--warnText)">$41.80</span></div>
+                  <div class="trail-row sum"><span class="t-l">Resolution</span><span class="t-v">kept stored</span></div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                  <button class="btn btn-secondary btn-sm">Apply incoming</button>
+                  <button class="btn btn-secondary btn-sm">Apply all 7</button>
+                  <button class="btn btn-ghost btn-sm">Keep stored</button>
+                </div>
+                <p class="p-note" style="margin-top:9px;">Applying rewrites the row and bumps <code>ledger_version</code>, so every standing that counted it recomputes on the next read.</p>
+                <div class="p-foot">ledger version at run 41,102 · now 41,208</div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="eyebrow" style="margin:22px 0 7px;">Unresolved identities · 3 waiting</div>
+          <div class="noteband warn" style="margin-bottom:12px;">
+            <div class="nh">Nothing binds on a name by itself</div>
+            A suggestion is a normalised-name similarity score, nothing more. Sales for an unresolved identity are already in the ledger and already counted in store totals — they sit in the unattributed row until a person decides. Binding is retroactive: the ledger version bumps and every board recomputes.
+          </div>
+
+          <div class="grid3" style="gap:12px;">
+            <div class="card p0">
+              <div class="card-head"><span class="ct">D. Ruiz</span><span class="pill pill-warn sm">41 sales</span></div>
+              <div class="card-body">
+                <div class="prov" style="margin-bottom:10px;">meadow:west-la:placed_by_772<br>raw_name “D. Ruiz” · no email on the record<br>first seen 2026-08-30 · last seen today 13:58</div>
+                <div class="kv"><span class="k">Net attached</span><span class="v mono">$3,204.10</span></div>
+                <div class="kv"><span class="k">Store</span><span class="v">West Hollywood</span></div>
+                <div class="kv"><span class="k">Source</span><span class="v mono">meadow-api</span></div>
+                <div style="font-size:11px;font-weight:700;font-family:var(--fontMono);letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);margin:13px 0 7px;">Suggestions</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">Devon Ruiz<span class="t-note">same store · 6 shifts overlap</span></span><span class="t-v">0.94</span></div>
+                  <div class="trail-row"><span class="t-l">Dana Ruiz<span class="t-note">Corona · no shift overlap</span></span><span class="t-v dim">0.88</span></div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;">
+                  <button class="btn btn-accent btn-sm">Bind to Devon Ruiz</button>
+                  <button class="btn btn-secondary btn-sm">Create</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card p0">
+              <div class="card-head"><span class="ct">J. Ames (temp)</span><span class="pill pill-warn sm">6 sales</span></div>
+              <div class="card-body">
+                <div class="prov" style="margin-bottom:10px;">blaze:elsinore:emp_5120<br>raw_name “J. Ames (temp)” · email j.ames@…<br>first seen 2026-09-05 · last seen 2026-09-05</div>
+                <div class="kv"><span class="k">Net attached</span><span class="v mono">$418.90</span></div>
+                <div class="kv"><span class="k">Store</span><span class="v">Lake Elsinore</span></div>
+                <div class="kv"><span class="k">Source</span><span class="v mono">blaze-csv</span></div>
+                <div style="font-size:11px;font-weight:700;font-family:var(--fontMono);letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);margin:13px 0 7px;">Suggestions</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">Jordan Ames<span class="t-note">same store · already bound as emp_4471</span></span><span class="t-v">0.91</span></div>
+                </div>
+                <p class="p-note" style="margin-top:9px;">Binding this to Jordan gives one person two identities at one store. That is allowed and it is why the identity key, not the name, is the ledger’s key.</p>
+                <div style="display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;">
+                  <button class="btn btn-accent btn-sm">Bind to Jordan Ames</button>
+                  <button class="btn btn-secondary btn-sm">Create</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card p0">
+              <div class="card-head"><span class="ct">Front Counter</span><span class="pill pill-bad sm">22 sales</span></div>
+              <div class="card-body">
+                <div class="prov" style="margin-bottom:10px;">blaze:corona:front-counter<br>raw_name “Front Counter” · no external id<br>first seen 2026-07-11 · last seen today 14:20</div>
+                <div class="kv"><span class="k">Net attached</span><span class="v mono">$1,806.55</span></div>
+                <div class="kv"><span class="k">Store</span><span class="v">Corona</span></div>
+                <div class="kv"><span class="k">Source</span><span class="v mono">blaze-api</span></div>
+                <div style="font-size:11px;font-weight:700;font-family:var(--fontMono);letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);margin:13px 0 7px;">Suggestions</div>
+                <div class="state" style="padding:16px 8px;">
+                  <div class="state-plate neutral" style="width:34px;height:34px;font-size:14px;">?</div>
+                  <h4 style="font-size:12.5px;">Nothing matched above 0.85</h4>
+                  <p style="font-size:11.5px;">This looks like a shared terminal login, not a person. Leaving it unresolved keeps its $1,806.55 in Corona’s store total and out of everyone’s rank — which is the honest answer if nobody knows who rang them.</p>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+                  <button class="btn btn-secondary btn-sm">Create an associate</button>
+                  <button class="btn btn-ghost btn-sm">Leave unattributed</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="caption"><b>Why this screen is the biggest one:</b> the plan’s own §1.1 says Blaze attribution is unproven — four candidate employee fields measured at 0 % populated across 10,000 transactions. A module that ranks people on a feed that may carry no people has to make that visible in the place a manager already goes, not in a log file.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 4 — BOUNTIES ═════════════════════════ -->
+<div class="tabpanel" id="tab-contests">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Screen · #/contests · incentives/screen-contests.jsx</div>
+      <h2>One table across every status, and a detail that pairs live standings with the append-only record of every transition and edit.</h2>
+      <p>Status is a filter, not six separate screens: <code>draft</code>, <code>pending approval</code>, <code>active</code>, <code>ended</code>, <code>settled</code>, <code>cancelled</code>. <code>active</code> and <code>ended</code> are derived from the clock rather than stored, so a bounty whose window closed an hour ago reads <b>ended</b> without anybody having pressed anything. Brand-funded bounties must pass through approval; the approval action lives on the detail, next to the funding trail it commits the store to.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app">
+      <div class="rail">
+        <div class="rail-logo">W</div>
+        <div class="rail-item"><span class="sq"></span>Home</div>
+        <div class="rail-item"><span class="sq"></span>Register</div>
+        <div class="rail-item"><span class="sq"></span>Orders</div>
+        <div class="rail-item"><span class="sq"></span>Catalog</div>
+        <div class="rail-item on"><span class="sq"></span>Bounty</div>
+        <div class="rail-item"><span class="sq"></span>Engage</div>
+        <div class="rail-sep"></div>
+        <div class="rail-item"><span class="sq"></span>Settings</div>
+      </div>
+      <div class="sidebar">
+        <div class="sb-head"><span class="sb-mark"></span><span class="sb-name">Bounty</span><span class="sb-beta">Beta</span></div>
+        <div class="sb-group">Compete</div>
+        <div class="sb-item"><span class="dot" style="background:var(--info)"></span>Standings</div>
+        <div class="sb-item on"><span class="dot" style="background:var(--catVape)"></span>Bounties<span class="n">4</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--good)"></span>Earnings</div>
+        <div class="sb-group">Enable</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catEdibles)"></span>Learn<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--catConc)"></span>Goals</div>
+        <div class="sb-group">Operate</div>
+        <div class="sb-item"><span class="dot" style="background:var(--warn)"></span>Data<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot"></span>Settings</div>
+        <div class="sb-foot">g s · standings<br>g d · data</div>
+      </div>
+      <div class="colmain">
+        <div class="topbar">
+          <span class="tenant"><span class="ch">HW</span>Hyperwolf</span>
+          <span class="tb-div"></span>
+          <span class="crumbs">Bounty<span style="color:var(--inkFaint)">/</span><span class="cur">Bounties</span></span>
+          <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+          <span class="tb-ic">4</span><span class="tb-ic">☾</span><span class="avatar">MS</span>
+        </div>
+        <div class="main">
+
+          <div class="page-head">
+            <div>
+              <div class="eb">Bounties · all stores</div>
+              <h2>Nine bounties, four running</h2>
+              <div class="psub">One is waiting on your approval because a brand is funding it. One ended six days ago and has not been settled.</div>
+            </div>
+            <div class="head-actions">
+              <button class="btn btn-secondary btn-sm">Store · all ▾</button>
+              <button class="btn btn-accent btn-sm">New bounty</button>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px;">
+            <span class="chip on">All <span class="x">9</span></span>
+            <span class="chip">Draft <span class="x">1</span></span>
+            <span class="chip">Pending approval <span class="x">1</span></span>
+            <span class="chip">Active <span class="x">4</span></span>
+            <span class="chip">Ended <span class="x">1</span></span>
+            <span class="chip">Settled <span class="x">1</span></span>
+            <span class="chip">Cancelled <span class="x">1</span></span>
+          </div>
+
+          <div class="ledger-2col">
+            <div>
+              <div class="dtwrap">
+                <table class="dt">
+                  <thead><tr>
+                    <th>Bounty</th><th>Kind</th><th>Window <span class="ar">▼</span></th>
+                    <th>Funding</th><th>Status</th><th class="r">At stake</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr class="sel">
+                      <td><b>Top net sales — week 36</b><br><span class="sb mono">Lake Elsinore · 13 people</span></td>
+                      <td class="mono">bounty</td>
+                      <td class="mono" style="font-size:11.5px;">Sep 1 → Sep 7<br><span style="color:var(--inkMute)">ends in 9h 19m</span></td>
+                      <td><span class="pill pill-neutral sm">store</span></td>
+                      <td><span class="pill pill-good sm"><span class="dot"></span>active</span></td>
+                      <td class="r">$265.00</td>
+                    </tr>
+                    <tr>
+                      <td><b>Stiiizy pods — 10 units</b><br><span class="sb mono">all stores · brand Stiiizy</span></td>
+                      <td class="mono">spiff</td>
+                      <td class="mono" style="font-size:11.5px;">Sep 7 · today<br><span style="color:var(--inkMute)">daily</span></td>
+                      <td><span class="pill pill-accent sm">brand</span></td>
+                      <td><span class="pill pill-good sm"><span class="dot"></span>active</span></td>
+                      <td class="r">$500.00</td>
+                    </tr>
+                    <tr>
+                      <td><b>Power hour — edibles</b><br><span class="sb mono">Corona · 16:00–17:00</span></td>
+                      <td class="mono">bounty · hourly</td>
+                      <td class="mono" style="font-size:11.5px;">daily<br><span style="color:var(--inkMute)">6 rounds run</span></td>
+                      <td><span class="pill pill-neutral sm">store</span></td>
+                      <td><span class="pill pill-good sm"><span class="dot"></span>active</span></td>
+                      <td class="r">$20.00<span style="color:var(--inkMute)">/round</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>Store vs store — September net</b><br><span class="sb mono">4 stores · Long Beach excluded</span></td>
+                      <td class="mono">store_vs_store</td>
+                      <td class="mono" style="font-size:11.5px;">Sep 1 → Sep 30</td>
+                      <td><span class="pill pill-neutral sm">store</span></td>
+                      <td><span class="pill pill-good sm"><span class="dot"></span>active</span></td>
+                      <td class="r">$1,200.00</td>
+                    </tr>
+                    <tr>
+                      <td><b>Wyld gummies — 8 units</b><br><span class="sb mono">West Hollywood · brand Wyld</span></td>
+                      <td class="mono">spiff</td>
+                      <td class="mono" style="font-size:11.5px;">Sep 8 → Sep 14</td>
+                      <td><span class="pill pill-accent sm">brand</span></td>
+                      <td><span class="pill pill-warn sm"><span class="dot"></span>pending approval</span></td>
+                      <td class="r">$400.00</td>
+                    </tr>
+                    <tr>
+                      <td><b>Raw Garden concentrates</b><br><span class="sb mono">Corona · brand Raw Garden</span></td>
+                      <td class="mono">spiff</td>
+                      <td class="mono" style="font-size:11.5px;">Aug 25 → Aug 31</td>
+                      <td><span class="pill pill-accent sm">brand</span></td>
+                      <td><span class="pill pill-warn sm">ended · not settled</span></td>
+                      <td class="r">$275.00</td>
+                    </tr>
+                    <tr>
+                      <td><b>Team goal — $60k week</b><br><span class="sb mono">Lake Elsinore · 2 teams</span></td>
+                      <td class="mono">team_goal</td>
+                      <td class="mono" style="font-size:11.5px;">not scheduled</td>
+                      <td><span class="pill pill-neutral sm">store</span></td>
+                      <td><span class="pill pill-neutral sm">draft</span></td>
+                      <td class="r" style="color:var(--inkMute)">—</td>
+                    </tr>
+                    <tr>
+                      <td><b>August ranked</b><br><span class="sb mono">all stores · 11 paid</span></td>
+                      <td class="mono">bounty</td>
+                      <td class="mono" style="font-size:11.5px;">Aug 1 → Aug 31</td>
+                      <td><span class="pill pill-neutral sm">store</span></td>
+                      <td><span class="pill pill-info sm">settled</span></td>
+                      <td class="r">$1,150.00</td>
+                    </tr>
+                    <tr>
+                      <td style="opacity:.62"><b>Preroll bundle push</b><br><span class="sb mono">Riverside</span></td>
+                      <td class="mono" style="opacity:.62">spiff</td>
+                      <td class="mono" style="font-size:11.5px;opacity:.62">Sep 1 → Sep 7</td>
+                      <td style="opacity:.62"><span class="pill pill-neutral sm">store</span></td>
+                      <td><span class="pill pill-neutral sm">cancelled</span></td>
+                      <td class="r" style="color:var(--inkMute)">—</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="pager">
+                <span class="mono">Showing 1–9 of 9</span>
+                <span class="pgs"><button class="pg" disabled>Prev</button><button class="pg on">1</button><button class="pg" disabled>Next</button></span>
+              </div>
+
+              <div class="noteband warn" style="margin-top:14px;">
+                <div class="nh">One row needs a person, not a policy</div>
+                <b>Wyld gummies — 8 units</b> is funded by a brand, so it cannot start until a manager at West Hollywood approves it. Approving records who approved it and when, in the bounty’s own event log. Nothing about it is reversible once it starts paying out projections, which is why it is a decision and not a default.
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-head">
+                <div style="flex:1;min-width:0;">
+                  <div class="p-eb">Bounty</div>
+                  <div class="p-title">Top net sales — week 36</div>
+                  <div class="p-sub">active · store-funded · Lake Elsinore</div>
+                </div>
+                <span class="pill pill-good sm"><span class="dot"></span>active</span>
+              </div>
+              <div class="panel-body">
+                <div class="p-sec">What it counts</div>
+                <div class="prov">metric net_cents · every brand · every category<br>window 2026-09-01 00:00 → 2026-09-07 23:59<br>tz America/Los_Angeles · recurrence none<br>participants all 13 at Lake Elsinore</div>
+
+                <div class="p-sec">Reward</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">1st place</span><span class="t-v">$150.00</span></div>
+                  <div class="trail-row"><span class="t-l">2nd place</span><span class="t-v">$75.00</span></div>
+                  <div class="trail-row"><span class="t-l">3rd place<span class="t-note">raised from $25 on Sep 3</span></span><span class="t-v">$40.00</span></div>
+                  <div class="trail-row sum"><span class="t-l">At stake</span><span class="t-v">$265.00</span></div>
+                  <div class="trail-row"><span class="t-l">Tie rule<span class="t-note">a tied place is split equally</span></span><span class="t-v dim">split</span></div>
+                  <div class="trail-row"><span class="t-l">Unit<span class="t-note">tracked, never paid from here</span></span><span class="t-v dim">cents</span></div>
+                </div>
+
+                <div class="p-sec">Standings, live</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l"><b>1 · Jordan Ames</b><span class="t-note">projected $150.00</span></span><span class="t-v">$14,208.35</span></div>
+                  <div class="trail-row"><span class="t-l"><b>2 · Manisha Saini</b><span class="t-note">projected $75.00</span></span><span class="t-v">$12,940.10</span></div>
+                  <div class="trail-row"><span class="t-l"><b>3 · Priya Chandra</b><span class="t-note">projected $40.00</span></span><span class="t-v">$11,882.55</span></div>
+                  <div class="trail-row"><span class="t-l">4 · Marcus Webb</span><span class="t-v dim">$10,204.80</span></div>
+                  <div class="trail-row"><span class="t-l">5 · Aaliyah Brooks</span><span class="t-v dim">$8,116.20</span></div>
+                  <div class="trail-row resid"><span class="t-l">No budtender on the record<span class="t-note">71 sales in this window</span></span><span class="t-v">$4,982.15</span></div>
+                </div>
+                <p class="p-note" style="margin-top:9px;">3 people have no qualifying sale in this window and are listed under “not yet”, not ranked at $0.</p>
+
+                <div class="p-sec">Record</div>
+                <div class="timeline">
+                  <div class="tl-ev"><span class="tl-dot info"></span><div class="tl-body">
+                    <div><span class="tl-action">Re-evaluated</span> — ledger 40,871 → 41,102</div>
+                    <div class="tl-meta">2026-09-06 09:02 · apply · M. Saini</div></div></div>
+                  <div class="tl-ev"><span class="tl-dot warn"></span><div class="tl-body">
+                    <div><span class="tl-action">Reward edited</span> — 3rd place $25 → $40</div>
+                    <div class="tl-reason">“Third place wasn’t worth chasing.”</div>
+                    <div class="tl-meta">2026-09-03 11:40 · M. Saini</div></div></div>
+                  <div class="tl-ev"><span class="tl-dot good"></span><div class="tl-body">
+                    <div><span class="tl-action">Activated</span> — window opened</div>
+                    <div class="tl-meta">2026-09-01 08:14 · M. Saini</div></div></div>
+                  <div class="tl-ev"><span class="tl-dot"></span><div class="tl-body">
+                    <div><span class="tl-action">Created</span> — draft</div>
+                    <div class="tl-meta">2026-09-01 08:12 · M. Saini</div></div></div>
+                </div>
+
+                <div style="display:flex;gap:8px;margin-top:13px;flex-wrap:wrap;">
+                  <button class="btn btn-secondary btn-sm">Re-evaluate</button>
+                  <button class="btn btn-secondary btn-sm">Edit</button>
+                  <button class="btn btn-danger btn-sm">Cancel</button>
+                </div>
+                <p class="p-note" style="margin-top:9px;"><b>Settle</b> appears once the window closes. It writes the points ledger once per person per round and cannot be undone by pressing it again.</p>
+
+                <div class="p-foot">bounty c-1042 · ledger version 41,208 · standings cached at 14:41:07</div>
+              </div>
+            </aside>
+          </div>
+
+          <p class="caption"><b>Composite, built from atoms:</b> the bounty detail is <code>Card padding=0</code> + <code>CardHead</code> + the same hairline row list as the trail panel, with the audit timeline lifted unchanged from <code>AovManagerCard</code>. The status column is <code>Pill</code> with <code>kind</code> only — never <code>P.hue</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 5 — BOUNTY BUILDER ═════════════════════════ -->
+<div class="tabpanel" id="tab-builder">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Screen · #/contests/new · incentives/screen-contest-builder.jsx</div>
+      <h2>A plain vertical form — no wizard, no steps — with a preview that says what this bounty would have counted over the last seven days.</h2>
+      <p>A stepped wizard hides the interaction between the fields, and in this module the fields interact constantly: a brand filter changes who could qualify, a threshold changes what it would cost, an hourly recurrence changes what “winning” even means. So every field is on one page, and the panel on the right re-runs the same scoring functions the server uses against the <b>last 7 days of the real ledger</b> and shows the result. It is labelled a preview because it is history, not a forecast — the window it describes has already happened.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app">
+      <div class="rail">
+        <div class="rail-logo">W</div>
+        <div class="rail-item"><span class="sq"></span>Home</div>
+        <div class="rail-item"><span class="sq"></span>Register</div>
+        <div class="rail-item"><span class="sq"></span>Orders</div>
+        <div class="rail-item"><span class="sq"></span>Catalog</div>
+        <div class="rail-item on"><span class="sq"></span>Bounty</div>
+        <div class="rail-item"><span class="sq"></span>Engage</div>
+        <div class="rail-sep"></div>
+        <div class="rail-item"><span class="sq"></span>Settings</div>
+      </div>
+      <div class="sidebar">
+        <div class="sb-head"><span class="sb-mark"></span><span class="sb-name">Bounty</span><span class="sb-beta">Beta</span></div>
+        <div class="sb-group">Compete</div>
+        <div class="sb-item"><span class="dot" style="background:var(--info)"></span>Standings</div>
+        <div class="sb-item on"><span class="dot" style="background:var(--catVape)"></span>Bounties<span class="n">4</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--good)"></span>Earnings</div>
+        <div class="sb-group">Enable</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catEdibles)"></span>Learn<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--catConc)"></span>Goals</div>
+        <div class="sb-group">Operate</div>
+        <div class="sb-item"><span class="dot" style="background:var(--warn)"></span>Data<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot"></span>Settings</div>
+        <div class="sb-foot">g s · standings<br>g d · data</div>
+      </div>
+      <div class="colmain">
+        <div class="topbar">
+          <span class="tenant"><span class="ch">HW</span>Hyperwolf</span>
+          <span class="tb-div"></span>
+          <span class="crumbs">Bounty<span style="color:var(--inkFaint)">/</span>Bounties<span style="color:var(--inkFaint)">/</span><span class="cur">New</span></span>
+          <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+          <span class="tb-ic">4</span><span class="tb-ic">☾</span><span class="avatar">MS</span>
+        </div>
+        <div class="main">
+
+          <div class="page-head">
+            <div>
+              <div class="eb">Bounties · new</div>
+              <h2>Build a bounty</h2>
+              <div class="psub">Nothing is saved until you press Save draft. A draft counts nothing and pays nothing.</div>
+            </div>
+            <div class="head-actions">
+              <button class="btn btn-ghost btn-sm">Discard</button>
+              <button class="btn btn-secondary btn-sm">Save draft</button>
+              <button class="btn btn-accent btn-sm">Save and submit</button>
+            </div>
+          </div>
+
+          <div class="ledger-2col">
+            <div class="card">
+              <div class="form">
+
+                <div class="form-row">
+                  <div class="form-lbl">Kind</div>
+                  <p class="form-help">What shape the bounty is. This is the only field that changes which other fields appear.</p>
+                  <div class="chiprow">
+                    <span class="chip on">Spiff</span>
+                    <span class="chip">Ranked bounty</span>
+                    <span class="chip">Team goal</span>
+                    <span class="chip">Store vs store</span>
+                    <span class="chip">AOV goal</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Name</div>
+                  <input class="input" value="Stiiizy pods — 40 units" readonly>
+                  <p class="form-help" style="margin:7px 0 0;">This is what a budtender sees on the Register strip, so it should say the product and the number.</p>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Metric</div>
+                  <p class="form-help">What gets counted. Units sums quantity on matching lines; net nets refunds off the same lines.</p>
+                  <div class="chiprow">
+                    <span class="chip on">Units</span>
+                    <span class="chip">Net sales</span>
+                    <span class="chip">Gross sales</span>
+                    <span class="chip">Sale count</span>
+                    <span class="chip">AOV</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Filter</div>
+                  <p class="form-help">A line has to match every filter you set. Brands normalise through the brand DB, so “STIIIZY” and “Stiiizy” are one brand.</p>
+                  <div class="grid2">
+                    <div>
+                      <div class="form-lbl" style="font-size:10px;">Brands</div>
+                      <div class="chiprow"><span class="chip on">Stiiizy <span class="x">✕</span></span><span class="chip">+ add</span></div>
+                    </div>
+                    <div>
+                      <div class="form-lbl" style="font-size:10px;">Categories</div>
+                      <div class="chiprow"><span class="chip on">Vape <span class="x">✕</span></span><span class="chip">+ add</span></div>
+                    </div>
+                  </div>
+                  <div class="grid2" style="margin-top:11px;">
+                    <div>
+                      <div class="form-lbl" style="font-size:10px;">Products</div>
+                      <div class="fieldbox">any product in those brands</div>
+                    </div>
+                    <div>
+                      <div class="form-lbl" style="font-size:10px;">Minimum line value</div>
+                      <input class="input mono" value="$15.00" readonly>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Window and recurrence</div>
+                  <p class="form-help">Windows are store-local. An hourly bounty evaluates each hour as its own round with its own places.</p>
+                  <div class="grid3">
+                    <div><div class="form-lbl" style="font-size:10px;">Starts</div><input class="input mono" value="2026-09-08 09:00" readonly></div>
+                    <div><div class="form-lbl" style="font-size:10px;">Ends</div><input class="input mono" value="2026-09-14 21:00" readonly></div>
+                    <div><div class="form-lbl" style="font-size:10px;">Time zone</div><input class="input mono" value="America/Los_Angeles" readonly></div>
+                  </div>
+                  <div class="chiprow" style="margin-top:11px;">
+                    <span class="chip on">No repeat</span><span class="chip">Hourly</span><span class="chip">Daily</span><span class="chip">Weekly</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Stores and participants</div>
+                  <div class="grid2">
+                    <div>
+                      <div class="form-lbl" style="font-size:10px;">Stores</div>
+                      <div class="chiprow">
+                        <span class="chip on">Lake Elsinore <span class="x">✕</span></span>
+                        <span class="chip">Corona</span><span class="chip">West Hollywood</span><span class="chip">Riverside</span>
+                        <span class="chip" style="opacity:.5">Long Beach · no source</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="form-lbl" style="font-size:10px;">Who competes</div>
+                      <div class="chiprow"><span class="chip on">Everyone at those stores</span><span class="chip">Pick people</span><span class="chip">Teams</span></div>
+                      <p class="form-help" style="margin:8px 0 0;">13 people at Lake Elsinore today.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Reward</div>
+                  <div class="chiprow" style="margin-bottom:11px;">
+                    <span class="chip on">Threshold</span><span class="chip">Per unit</span><span class="chip">Places</span>
+                  </div>
+                  <div class="grid3">
+                    <div><div class="form-lbl" style="font-size:10px;">Reach</div><input class="input mono" value="40 units" readonly></div>
+                    <div><div class="form-lbl" style="font-size:10px;">Earn</div><input class="input mono" value="$25.00" readonly></div>
+                    <div><div class="form-lbl" style="font-size:10px;">Unit</div><input class="input mono" value="cents (tracked)" readonly></div>
+                  </div>
+                  <p class="form-help" style="margin:9px 0 0;">Cents are tracked in the points ledger. This module never moves money — a payout is recorded by a manager after it happens, in Earnings.</p>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Funding</div>
+                  <div class="chiprow" style="margin-bottom:11px;"><span class="chip">Store</span><span class="chip on">Brand</span></div>
+                  <div class="grid3">
+                    <div><div class="form-lbl" style="font-size:10px;">Brand</div><input class="input" value="Stiiizy" readonly></div>
+                    <div><div class="form-lbl" style="font-size:10px;">Budget</div><input class="input mono" value="$500.00" readonly></div>
+                    <div><div class="form-lbl" style="font-size:10px;">Cap per person</div><input class="input mono" value="$50.00" readonly></div>
+                  </div>
+                  <div class="noteband info" style="margin-top:11px;">
+                    <div class="nh">Brand-funded, so it needs an approval</div>
+                    Saving this puts it in <b>pending approval</b>. A manager at Lake Elsinore approves it and their name and the timestamp go on the bounty’s record. Brands have no login here — you are entering this on the brand’s behalf.
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-lbl">Tie rule</div>
+                  <div class="chiprow"><span class="chip on">Split equally</span><span class="chip">Whoever got there first</span></div>
+                  <p class="form-help" style="margin:8px 0 0;">A threshold spiff rarely ties, but the rule is stored anyway so a settled bounty can never be argued about after the fact.</p>
+                </div>
+
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-head">
+                <div style="flex:1;min-width:0;">
+                  <div class="p-eb">Preview</div>
+                  <div class="p-title">What this would have counted</div>
+                  <div class="p-sub">last 7 days · 2026-08-31 → 2026-09-06</div>
+                </div>
+                <span class="pill pill-warn sm">preview</span>
+              </div>
+              <div class="panel-body">
+                <div class="noteband warn" style="margin-top:14px;">
+                  <div class="nh">This is history, not a forecast</div>
+                  The same scoring functions, run against the seven days already in the ledger for Lake Elsinore. Nobody was paid for any of it. Next week’s sales will differ.
+                </div>
+
+                <div class="p-sec">Matching volume</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">Lines matched<span class="t-note">brand Stiiizy · category Vape · line ≥ $15.00</span></span><span class="t-v">412</span></div>
+                  <div class="trail-row"><span class="t-l">Across sales</span><span class="t-v">289</span></div>
+                  <div class="trail-row"><span class="t-l">Units<span class="t-note">the metric this bounty scores</span></span><span class="t-v">1,190</span></div>
+                </div>
+
+                <div class="p-sec">Money behind those lines</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">Gross</span><span class="t-v">$19,004.20</span></div>
+                  <div class="trail-row"><span class="t-l">Refunds netted<span class="t-note">46 units returned</span></span><span class="t-v neg">−$571.60</span></div>
+                  <div class="trail-row sum"><span class="t-l">Net</span><span class="t-v">$18,432.60</span></div>
+                </div>
+
+                <div class="p-sec">Who would have qualified</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">Had at least one matching sale</span><span class="t-v">9 of 13</span></div>
+                  <div class="trail-row"><span class="t-l">Would have hit 40 units<span class="t-note">Jordan Ames 71 · Priya Chandra 54 · Manisha Saini 46</span></span><span class="t-v">3</span></div>
+                  <div class="trail-row sum"><span class="t-l">Cost at $25 each</span><span class="t-v">$75.00</span></div>
+                  <div class="trail-row"><span class="t-l">Against a $500.00 budget<span class="t-note">cap $50.00 per person is not reached</span></span><span class="t-v dim">15%</span></div>
+                </div>
+
+                <div class="p-sec">What it would have missed</div>
+                <div class="trail">
+                  <div class="trail-row resid"><span class="t-l">Sales with no budtender<span class="t-note">14 sales · would count toward nobody</span></span><span class="t-v">$1,204.85</span></div>
+                  <div class="trail-row"><span class="t-l">Lines under $15.00<span class="t-note">excluded by your minimum</span></span><span class="t-v dim">118</span></div>
+                  <div class="trail-row"><span class="t-l">Stiiizy lines outside Vape<span class="t-note">excluded by your category filter</span></span><span class="t-v dim">63</span></div>
+                </div>
+
+                <p class="p-note" style="margin-top:12px;">If 40 units looks too easy or too hard, change it above — this panel recomputes on the same seven days, so the two numbers are comparable.</p>
+                <div class="p-foot">preview computed 14:41:31 · ledger version 41,208 · not saved</div>
+              </div>
+            </aside>
+          </div>
+
+          <p class="caption"><b>Composite, built from atoms:</b> the form is <code>Card</code> + hairline-separated rows of <code>Field</code>, <code>Seg</code>-style chip groups and plain labels; the preview is the same trail rows used everywhere else in this concept. No wizard chrome and no step counter exist as atoms in this estate, which is part of why the form is flat.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 6 — EARNINGS ═════════════════════════ -->
+<div class="tabpanel" id="tab-earnings">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Screen · #/earnings · incentives/screen-earnings.jsx</div>
+      <h2>Projected and settled are two columns that reconcile at the bottom. Nothing here moves money.</h2>
+      <p>A projection is what you would earn if every open bounty settled on today’s standings; it changes with every sale, including someone else’s. A settlement is a written row in <code>inc_points</code>, once per person per round, and it does not change. Showing them as one number is how a budtender ends up believing they are owed something they are not, so they are never added together — the only line that combines them says so explicitly.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app">
+      <div class="rail">
+        <div class="rail-logo">W</div>
+        <div class="rail-item"><span class="sq"></span>Home</div>
+        <div class="rail-item"><span class="sq"></span>Register</div>
+        <div class="rail-item"><span class="sq"></span>Orders</div>
+        <div class="rail-item"><span class="sq"></span>Catalog</div>
+        <div class="rail-item on"><span class="sq"></span>Bounty</div>
+        <div class="rail-item"><span class="sq"></span>Engage</div>
+        <div class="rail-sep"></div>
+        <div class="rail-item"><span class="sq"></span>Settings</div>
+      </div>
+      <div class="sidebar">
+        <div class="sb-head"><span class="sb-mark"></span><span class="sb-name">Bounty</span><span class="sb-beta">Beta</span></div>
+        <div class="sb-group">Compete</div>
+        <div class="sb-item"><span class="dot" style="background:var(--info)"></span>Standings</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catVape)"></span>Bounties<span class="n">4</span></div>
+        <div class="sb-item on"><span class="dot" style="background:var(--good)"></span>Earnings</div>
+        <div class="sb-group">Enable</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catEdibles)"></span>Learn<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--catConc)"></span>Goals</div>
+        <div class="sb-group">Operate</div>
+        <div class="sb-item"><span class="dot" style="background:var(--warn)"></span>Data<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot"></span>Settings</div>
+        <div class="sb-foot">g s · standings<br>g d · data</div>
+      </div>
+      <div class="colmain">
+        <div class="topbar">
+          <span class="tenant"><span class="ch">HW</span>Hyperwolf</span>
+          <span class="tb-div"></span>
+          <span class="crumbs">Bounty<span style="color:var(--inkFaint)">/</span><span class="cur">Earnings</span></span>
+          <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+          <span class="tb-ic">4</span><span class="tb-ic">☾</span><span class="avatar">MS</span>
+        </div>
+        <div class="main">
+
+          <div class="page-head">
+            <div>
+              <div class="eb">Earnings · Manisha Saini</div>
+              <h2>$35.00 settled and not yet recorded paid</h2>
+              <div class="psub">Plus $115.00 projected across three open bounties. Projected money is not owed to you — it changes until each bounty settles.</div>
+            </div>
+            <div class="head-actions">
+              <span class="segrow"><button class="on">My earnings</button><button>Store ledger</button></span>
+              <button class="btn btn-secondary btn-sm">All time ▾</button>
+            </div>
+          </div>
+
+          <div class="grid2" style="gap:16px;align-items:start;">
+            <div class="card p0">
+              <div class="card-head">
+                <span class="ct">Projected</span>
+                <span class="pill pill-warn sm">changes with every sale</span>
+              </div>
+              <div class="card-body">
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l"><b>Top net sales — week 36</b><span class="t-note">rank 2 of 10 · ends in 9h 19m</span></span><span class="t-v">$75.00</span></div>
+                  <div class="trail-row"><span class="t-l"><b>Power hour — edibles</b><span class="t-note">2 of 6 rounds won · $20.00 a round</span></span><span class="t-v">$40.00</span></div>
+                  <div class="trail-row"><span class="t-l"><b>Stiiizy pods — 10 units</b><span class="t-note">7 of 10 units · threshold not reached</span></span><span class="t-v dim">$0.00</span></div>
+                  <div class="trail-row sum"><span class="t-l">Projected</span><span class="t-v">$115.00</span></div>
+                </div>
+                <p class="p-note" style="margin-top:11px;">Two of these depend on where other people finish. If Priya passes you before 23:59 tonight, the $75.00 becomes $40.00 without anything on this screen having gone wrong.</p>
+                <details class="disc">
+                  <summary>How a projection is computed</summary>
+                  <div class="disc-body">
+                    <p>Each open bounty is evaluated on the current ledger as though its window had just closed, then the reward structure is applied to that standing. Ties split. The result is cached against <code>ledger_version</code>, so it only recomputes when the ledger actually changes.</p>
+                    <p>It is never written to <code>inc_points</code>. Only settlement writes.</p>
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            <div class="card p0">
+              <div class="card-head">
+                <span class="ct">Settled</span>
+                <span class="pill pill-good sm"><span class="dot"></span>written and fixed</span>
+              </div>
+              <div class="card-body">
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l"><b>August ranked</b><span class="t-note">rank 3 · settled 2026-09-01 by M. Saini</span></span><span class="t-v">$60.00</span></div>
+                  <div class="trail-row"><span class="t-l"><b>Raw Garden spiff</b><span class="t-note">threshold met · settled 2026-09-01</span></span><span class="t-v">$25.00</span></div>
+                  <div class="trail-row"><span class="t-l"><b>Wyld — terpene basics</b><span class="t-note">quiz passed 4 of 4 · settled 2026-08-28</span></span><span class="t-v">$10.00</span></div>
+                  <div class="trail-row sum"><span class="t-l">Settled</span><span class="t-v">$95.00</span></div>
+                  <div class="trail-row"><span class="t-l">Recorded paid<span class="t-note">2026-09-02 · cash · M. Saini · “August payout with the Sept 1 cheque”</span></span><span class="t-v neg">−$60.00</span></div>
+                  <div class="trail-row sum"><span class="t-l">Settled and not recorded paid</span><span class="t-v">$35.00</span></div>
+                </div>
+                <p class="p-note" style="margin-top:11px;">“Recorded paid” is bookkeeping. Somebody handed over money somewhere else and wrote it down here — this module has no payment behaviour of any kind.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:14px;">
+            <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+              <span style="font-size:13.5px;font-weight:700;">The reconciliation</span>
+              <span class="mono" style="margin-left:auto;font-size:12px;color:var(--inkDim);">settled $95.00 − recorded paid $60.00 = $35.00 outstanding</span>
+            </div>
+            <p style="margin:8px 0 0;font-size:12px;color:var(--ink2);line-height:1.6;">Projected <b>$115.00</b> is deliberately not in that sum. Adding it would produce $150.00, which is a number nobody has agreed to and nobody owes.</p>
+          </div>
+
+          <div style="margin-top:22px;">
+            <div class="eyebrow" style="margin-bottom:8px;">Manager tools</div>
+            <div class="card p0 sunken">
+              <div class="card-head" style="border-color:var(--hairline);">
+                <span class="ct">Store ledger · Lake Elsinore</span>
+                <span class="pill pill-neutral sm">Floor Manager only</span>
+              </div>
+              <div style="padding:14px;">
+                <div class="dtwrap" style="background:var(--surface);">
+                  <table class="dt">
+                    <thead><tr>
+                      <th>Person</th><th class="r">Projected</th><th class="r">Settled <span class="ar">▼</span></th>
+                      <th class="r">Recorded paid</th><th class="r">Outstanding</th><th style="width:120px;"></th>
+                    </tr></thead>
+                    <tbody>
+                      <tr><td>Jordan Ames</td><td class="r" style="color:var(--inkDim)">$190.00</td><td class="r">$145.00</td><td class="r">$145.00</td><td class="r">$0.00</td><td><button class="btn btn-ghost btn-xs" disabled>Record paid</button></td></tr>
+                      <tr class="me"><td>Manisha Saini <span class="pill sm pill-neutral">you</span></td><td class="r" style="color:var(--inkDim)">$115.00</td><td class="r">$95.00</td><td class="r">$60.00</td><td class="r"><b>$35.00</b></td><td><button class="btn btn-secondary btn-xs">Record paid</button></td></tr>
+                      <tr><td>Priya Chandra</td><td class="r" style="color:var(--inkDim)">$85.00</td><td class="r">$110.00</td><td class="r">$60.00</td><td class="r"><b>$50.00</b></td><td><button class="btn btn-secondary btn-xs">Record paid</button></td></tr>
+                      <tr><td>Marcus Webb</td><td class="r" style="color:var(--inkDim)">$40.00</td><td class="r">$85.00</td><td class="r">$85.00</td><td class="r">$0.00</td><td><button class="btn btn-ghost btn-xs" disabled>Record paid</button></td></tr>
+                      <tr><td>Aaliyah Brooks</td><td class="r" style="color:var(--inkDim)">$25.00</td><td class="r">$35.00</td><td class="r">$0.00</td><td class="r"><b>$35.00</b></td><td><button class="btn btn-secondary btn-xs">Record paid</button></td></tr>
+                      <tr><td>Sam Delgado</td><td class="r" style="color:var(--inkDim)">$0.00</td><td class="r">$20.00</td><td class="r">$0.00</td><td class="r"><b>$20.00</b></td><td><button class="btn btn-secondary btn-xs">Record paid</button></td></tr>
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td><b style="color:var(--ink)">6 people</b></td>
+                        <td class="r mono" style="color:var(--inkDim)">$455.00</td>
+                        <td class="r mono"><b style="color:var(--ink)">$490.00</b></td>
+                        <td class="r mono"><b style="color:var(--ink)">$350.00</b></td>
+                        <td class="r mono"><b style="color:var(--ink)">$140.00</b></td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <div style="display:flex;align-items:center;gap:7px;margin-top:11px;font-size:11.5px;color:var(--good);">
+                  <span style="width:7px;height:7px;border-radius:99px;background:var(--good);"></span>
+                  $490.00 settled − $350.00 recorded paid = $140.00 outstanding across the store.
+                </div>
+
+                <div class="grid2" style="margin-top:14px;">
+                  <div class="card">
+                    <div class="eyebrow">Record paid · what it writes</div>
+                    <div class="kv"><span class="k">Row kind</span><span class="v mono">recorded_paid</span></div>
+                    <div class="kv"><span class="k">Amount</span><span class="v mono">$35.00</span></div>
+                    <div class="kv"><span class="k">Method</span><span class="v">Cash · your note</span></div>
+                    <div class="kv"><span class="k">Actor and time</span><span class="v mono">M. Saini · now</span></div>
+                    <p class="p-note" style="margin-top:10px;">It is one append-only row against the person. It does not move money, does not notify anyone, and can be corrected only by writing an adjustment beside it — never by editing it.</p>
+                  </div>
+                  <div class="noteband info">
+                    <div class="nh">Open question for the owner</div>
+                    <ul>
+                      <li>§11.3 of the plan asks whether the <code>recorded_paid</code> marker should exist at all. It is one <code>kind</code> to drop.</li>
+                      <li>If it is dropped, this column and its button disappear and the store ledger ends at <b>Settled</b>. Nothing else on this screen changes.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="caption"><b>Composite, built from atoms:</b> the manager panel is <code>Card elevation="sunken"</code> with sub-cards forced back to <code>P.surface</code> — the exact treatment <code>AovManagerCard</code> uses so a different audience’s panel reads as different before you read its heading.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 7 — GOALS ═════════════════════════ -->
+<div class="tabpanel" id="tab-goals">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Screen · #/goals · incentives/screen-goals.jsx</div>
+      <h2>The AOV goal, absorbed as one bounty kind and left recognisable: store default, per-person overrides, and the audit trail that made this pattern worth keeping.</h2>
+      <p>This is the one screen that already exists in production shape (<code>pos/screen-aov.jsx</code>’s manager card) and it is deliberately barely redrawn — the same store-default-plus-override rule, the same required reason, the same “a clear is itself a decision worth an audit line”. What is new is the disclosure: an AOV figure is a division, and this concept shows the numerator, the denominator and the window rather than a number with a meter under it. The <code>/api/aov/*</code> contract is unchanged; it is served from the new ledger.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app">
+      <div class="rail">
+        <div class="rail-logo">W</div>
+        <div class="rail-item"><span class="sq"></span>Home</div>
+        <div class="rail-item"><span class="sq"></span>Register</div>
+        <div class="rail-item"><span class="sq"></span>Orders</div>
+        <div class="rail-item"><span class="sq"></span>Catalog</div>
+        <div class="rail-item on"><span class="sq"></span>Bounty</div>
+        <div class="rail-item"><span class="sq"></span>Engage</div>
+        <div class="rail-sep"></div>
+        <div class="rail-item"><span class="sq"></span>Settings</div>
+      </div>
+      <div class="sidebar">
+        <div class="sb-head"><span class="sb-mark"></span><span class="sb-name">Bounty</span><span class="sb-beta">Beta</span></div>
+        <div class="sb-group">Compete</div>
+        <div class="sb-item"><span class="dot" style="background:var(--info)"></span>Standings</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catVape)"></span>Bounties<span class="n">4</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--good)"></span>Earnings</div>
+        <div class="sb-group">Enable</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catEdibles)"></span>Learn<span class="n">3</span></div>
+        <div class="sb-item on"><span class="dot" style="background:var(--catConc)"></span>Goals</div>
+        <div class="sb-group">Operate</div>
+        <div class="sb-item"><span class="dot" style="background:var(--warn)"></span>Data<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot"></span>Settings</div>
+        <div class="sb-foot">g s · standings<br>g d · data</div>
+      </div>
+      <div class="colmain">
+        <div class="topbar">
+          <span class="tenant"><span class="ch">HW</span>Hyperwolf</span>
+          <span class="tb-div"></span>
+          <span class="crumbs">Bounty<span style="color:var(--inkFaint)">/</span><span class="cur">Goals</span></span>
+          <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+          <span class="tb-ic">4</span><span class="tb-ic">☾</span><span class="avatar">MS</span>
+        </div>
+        <div class="main">
+
+          <div class="page-head">
+            <div>
+              <div class="eb">Goals · AOV · Lake Elsinore</div>
+              <h2>Store default $90.00, one override</h2>
+              <div class="psub">Every person at this store inherits the default unless they have their own override below.</div>
+            </div>
+            <div class="head-actions">
+              <button class="btn btn-secondary btn-sm">Store · Lake Elsinore ▾</button>
+              <button class="btn btn-accent btn-sm">Edit store default</button>
+            </div>
+          </div>
+
+          <div class="ledger-2col">
+            <div>
+              <div class="grid2" style="margin-bottom:14px;">
+                <div class="card">
+                  <div class="eyebrow">Store default</div>
+                  <div class="kv"><span class="k">Current goal</span><span class="v mono">$90.00</span></div>
+                  <div class="kv"><span class="k">Set by</span><span class="v">M. Saini</span></div>
+                  <div class="kv"><span class="k">Last changed</span><span class="v mono">2026-08-28</span></div>
+                  <div class="mono" style="margin-top:10px;font-size:10.5px;color:var(--inkFaint);">aov_goals · scope=store · store_id=elsinore</div>
+                </div>
+                <div class="card">
+                  <div class="eyebrow">Store AOV today</div>
+                  <div class="mono" style="font-size:21px;font-weight:800;">$72.20</div>
+                  <div style="font-size:11.5px;color:var(--inkDim);margin-top:2px;">across 194 sales · goal met by 4 of 10</div>
+                  <details class="disc">
+                    <summary>How this was computed</summary>
+                    <div class="disc-body">
+                      <div class="trail">
+                        <div class="trail-row"><span class="t-l">Net counted<span class="t-note">gross $14,486.55 − refunds $478.75</span></span><span class="t-v">$14,007.80</span></div>
+                        <div class="trail-row"><span class="t-l">Divided by sales<span class="t-note">194, including the 9 with no budtender</span></span><span class="t-v dim">÷ 194</span></div>
+                        <div class="trail-row sum"><span class="t-l">Store AOV</span><span class="t-v">$72.20</span></div>
+                      </div>
+                      <p style="margin-top:9px;">Store AOV counts unattributed sales because they were real sales at this store. A <i>person’s</i> AOV cannot, which is why the two never sum to each other.</p>
+                    </div>
+                  </details>
+                </div>
+              </div>
+
+              <div class="dtwrap">
+                <table class="dt">
+                  <thead><tr>
+                    <th>Person</th><th>Source of goal</th><th class="r">Goal</th>
+                    <th class="r">AOV today</th><th style="width:110px;">Against goal</th><th style="width:132px;"></th>
+                  </tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="who"><span class="avatar sm">JA</span><span class="nm">Jordan Ames</span></span></td>
+                      <td><span class="pill pill-neutral sm">inherits $90</span></td>
+                      <td class="r">$90.00</td><td class="r">$71.14</td>
+                      <td><span class="mini-bar"><span style="width:79%;background:var(--warn);"></span></span></td>
+                      <td><button class="btn btn-ghost btn-xs">Set override</button></td>
+                    </tr>
+                    <tr class="me">
+                      <td><span class="who"><span class="avatar sm">MS</span><span class="nm">Manisha Saini <span class="pill sm pill-neutral">you</span></span></span></td>
+                      <td><span class="pill pill-warn sm">override · reason on file</span></td>
+                      <td class="r">$95.00</td><td class="r">$80.99</td>
+                      <td><span class="mini-bar"><span style="width:85%;background:var(--info);"></span></span></td>
+                      <td><button class="btn btn-ghost btn-xs">Edit</button><button class="btn btn-ghost btn-xs" style="color:var(--bad)">Clear</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="who"><span class="avatar sm">PC</span><span class="nm">Priya Chandra</span></span></td>
+                      <td><span class="pill pill-neutral sm">inherits $90</span></td>
+                      <td class="r">$90.00</td><td class="r">$73.49</td>
+                      <td><span class="mini-bar"><span style="width:82%;background:var(--warn);"></span></span></td>
+                      <td><button class="btn btn-ghost btn-xs">Set override</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="who"><span class="avatar sm">MW</span><span class="nm">Marcus Webb</span></span></td>
+                      <td><span class="pill pill-neutral sm">inherits $90</span></td>
+                      <td class="r">$90.00</td><td class="r">$79.37</td>
+                      <td><span class="mini-bar"><span style="width:88%;background:var(--info);"></span></span></td>
+                      <td><button class="btn btn-ghost btn-xs">Set override</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="who"><span class="avatar sm">AB</span><span class="nm">Aaliyah Brooks</span></span></td>
+                      <td><span class="pill pill-neutral sm">inherits $90</span></td>
+                      <td class="r">$90.00</td><td class="r">$65.30</td>
+                      <td><span class="mini-bar"><span style="width:73%;background:var(--warn);"></span></span></td>
+                      <td><button class="btn btn-ghost btn-xs">Set override</button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="who"><span class="avatar sm">SD</span><span class="nm">Sam Delgado</span></span></td>
+                      <td><span class="pill pill-neutral sm">inherits $90</span></td>
+                      <td class="r">$90.00</td><td class="r" style="color:var(--inkMute)">—</td>
+                      <td style="font-size:11.5px;color:var(--inkMute);">no sales yet today</td>
+                      <td><button class="btn btn-ghost btn-xs">Set override</button></td>
+                    </tr>
+                  </tbody>
+                  <tfoot><tr><td colspan="6">13 people · 1 override · 12 inheriting the default</td></tr></tfoot>
+                </table>
+              </div>
+              <div class="pager">
+                <span class="mono">Showing 1–6 of 13</span>
+                <span class="pgs"><button class="pg" disabled>Prev</button><button class="pg on">1</button><button class="pg">2</button><button class="pg">3</button><button class="pg">Next</button></span>
+              </div>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-head">
+                <div style="flex:1;min-width:0;">
+                  <div class="p-eb">Goal as a bounty kind</div>
+                  <div class="p-title">aov_goal</div>
+                  <div class="p-sub">one row per store · one per override</div>
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="p-sec">How it is stored</div>
+                <div class="prov">kind aov_goal · metric aov_cents<br>reward {type:'aov', goal_cents:9000}<br>a NULL associate_id row is the store default<br>/api/aov/* answers byte-identically</div>
+
+                <div class="p-sec">Audit trail</div>
+                <div class="timeline">
+                  <div class="tl-ev"><span class="tl-dot warn"></span><div class="tl-body">
+                    <div><span class="tl-action">Override set</span> — Manisha Saini: $90 → $95</div>
+                    <div class="tl-reason">“Managers carry a stretch goal, not the floor default.”</div>
+                    <div class="tl-meta">2026-08-29 09:14 · set by M. Saini</div></div></div>
+                  <div class="tl-ev"><span class="tl-dot good"></span><div class="tl-body">
+                    <div><span class="tl-action">Store default changed</span> — $85 → $90</div>
+                    <div class="tl-reason">“Q3 target bump, matches regional guidance.”</div>
+                    <div class="tl-meta">2026-08-28 16:02 · set by M. Saini</div></div></div>
+                  <div class="tl-ev"><span class="tl-dot warn"></span><div class="tl-body">
+                    <div><span class="tl-action">Override cleared</span> — Marcus Webb: $80 → inherits</div>
+                    <div class="tl-reason">“Trial period over.”</div>
+                    <div class="tl-meta">2026-08-12 10:41 · set by M. Saini</div></div></div>
+                  <div class="tl-ev"><span class="tl-dot"></span><div class="tl-body">
+                    <div><span class="tl-action">Store default set</span> — (none) → $85</div>
+                    <div class="tl-reason">“Initial goal at store opening.”</div>
+                    <div class="tl-meta">2026-07-02 10:30 · set by M. Saini</div></div></div>
+                </div>
+
+                <div class="p-sec">What changed under it</div>
+                <p class="p-note">The goal is the same; the AOV it is measured against is not. It now comes from <code>inc_txns</code> with a store-local day computed at ingest, which retires the midnight-UTC “today” defect in the current stats — a sale at 16:30 Pacific used to land on tomorrow.</p>
+
+                <div class="p-foot">aov_compat.py · contract preserved · parity probe in the battery</div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 8 — LEARN ═════════════════════════ -->
+<div class="tabpanel" id="tab-learn">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">Screen · #/learn · incentives/screen-learn.jsx · screen-learn-author.jsx</div>
+      <h2>Deliberately the simplest screen in the concept: a list of snaps and who has finished them. The player is the overlay everyone in this estate already uses.</h2>
+      <p>Learning content is the one part of this module where “auditable” buys almost nothing — a snap is either read or it is not. So it gets a plain list with a completion count, and the story player is <code>overlayScrim()</code> + <code>overlayCard</code>, the same modal shell as the AOV edit dialog and the payment modal, rather than a bespoke full-screen story surface. The one place proof reappears is the quiz: a passed quiz writes a real <code>inc_points</code> row, so it shows the score, the time and the settlement like any other earning.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="app">
+      <div class="rail">
+        <div class="rail-logo">W</div>
+        <div class="rail-item"><span class="sq"></span>Home</div>
+        <div class="rail-item"><span class="sq"></span>Register</div>
+        <div class="rail-item"><span class="sq"></span>Orders</div>
+        <div class="rail-item"><span class="sq"></span>Catalog</div>
+        <div class="rail-item on"><span class="sq"></span>Bounty</div>
+        <div class="rail-item"><span class="sq"></span>Engage</div>
+        <div class="rail-sep"></div>
+        <div class="rail-item"><span class="sq"></span>Settings</div>
+      </div>
+      <div class="sidebar">
+        <div class="sb-head"><span class="sb-mark"></span><span class="sb-name">Bounty</span><span class="sb-beta">Beta</span></div>
+        <div class="sb-group">Compete</div>
+        <div class="sb-item"><span class="dot" style="background:var(--info)"></span>Standings</div>
+        <div class="sb-item"><span class="dot" style="background:var(--catVape)"></span>Bounties<span class="n">4</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--good)"></span>Earnings</div>
+        <div class="sb-group">Enable</div>
+        <div class="sb-item on"><span class="dot" style="background:var(--catEdibles)"></span>Learn<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot" style="background:var(--catConc)"></span>Goals</div>
+        <div class="sb-group">Operate</div>
+        <div class="sb-item"><span class="dot" style="background:var(--warn)"></span>Data<span class="n">3</span></div>
+        <div class="sb-item"><span class="dot"></span>Settings</div>
+        <div class="sb-foot">g s · standings<br>g d · data</div>
+      </div>
+      <div class="colmain">
+        <div class="topbar">
+          <span class="tenant"><span class="ch">HW</span>Hyperwolf</span>
+          <span class="tb-div"></span>
+          <span class="crumbs">Bounty<span style="color:var(--inkFaint)">/</span><span class="cur">Learn</span></span>
+          <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+          <span class="tb-ic">4</span><span class="tb-ic">☾</span><span class="avatar">MS</span>
+        </div>
+        <div class="main">
+
+          <div class="page-head">
+            <div>
+              <div class="eb">Learn · snaps</div>
+              <h2>Four snaps, one you haven’t opened</h2>
+              <div class="psub">A snap is a short set of cards. Some carry a quiz; passing one earns a real, settled amount.</div>
+            </div>
+            <div class="head-actions">
+              <span class="segrow"><button class="on">All</button><button>Unread</button><button>Mine to finish</button></span>
+              <button class="btn btn-accent btn-sm">New snap</button>
+            </div>
+          </div>
+
+          <div class="ledger-2col">
+            <div>
+              <div class="dtwrap">
+                <table class="dt">
+                  <thead><tr>
+                    <th>Snap</th><th>Brand</th><th class="r">Cards</th><th>Quiz</th>
+                    <th>Published <span class="ar">▼</span></th><th style="width:150px;">Store completion</th><th style="width:96px;"></th>
+                  </tr></thead>
+                  <tbody>
+                    <tr class="sel">
+                      <td><b>Stiiizy pod line-up</b><br><span class="sb mono">linked to “Stiiizy pods — 10 units”</span></td>
+                      <td>Stiiizy</td><td class="r">6</td>
+                      <td><span class="pill pill-accent sm">4 q · $5.00</span></td>
+                      <td class="mono" style="font-size:11.5px;">2026-09-02</td>
+                      <td><span class="mini-bar"><span style="width:67%;background:var(--info);"></span></span> <span class="mono" style="font-size:10.5px;color:var(--inkDim);">4/6</span></td>
+                      <td><button class="btn btn-accent btn-xs">Start</button></td>
+                    </tr>
+                    <tr>
+                      <td><b>Wyld — terpene basics</b><br><span class="sb mono">you passed 4 of 4 on 2026-08-28</span></td>
+                      <td>Wyld</td><td class="r">5</td>
+                      <td><span class="pill pill-good sm">3 q · $5.00</span></td>
+                      <td class="mono" style="font-size:11.5px;">2026-08-28</td>
+                      <td><span class="mini-bar"><span style="width:100%;background:var(--good);"></span></span> <span class="mono" style="font-size:10.5px;color:var(--inkDim);">6/6</span></td>
+                      <td><button class="btn btn-ghost btn-xs">Review</button></td>
+                    </tr>
+                    <tr>
+                      <td><b>Raw Garden live resin</b><br><span class="sb mono">no quiz · content only</span></td>
+                      <td>Raw Garden</td><td class="r">8</td>
+                      <td><span class="pill pill-neutral sm">none</span></td>
+                      <td class="mono" style="font-size:11.5px;">2026-08-20</td>
+                      <td><span class="mini-bar"><span style="width:50%;background:var(--info);"></span></span> <span class="mono" style="font-size:10.5px;color:var(--inkDim);">3/6</span></td>
+                      <td><button class="btn btn-secondary btn-xs">Open</button></td>
+                    </tr>
+                    <tr>
+                      <td style="opacity:.7"><b>How the ledger counts a sale</b><br><span class="sb mono">Hyperwolf · not published</span></td>
+                      <td style="opacity:.7">Hyperwolf</td><td class="r" style="opacity:.7">4</td>
+                      <td><span class="pill pill-neutral sm">none</span></td>
+                      <td class="mono" style="font-size:11.5px;color:var(--inkMute);">draft</td>
+                      <td style="font-size:11.5px;color:var(--inkMute);">not published</td>
+                      <td><button class="btn btn-ghost btn-xs">Edit</button></td>
+                    </tr>
+                  </tbody>
+                  <tfoot><tr><td colspan="7">Completion counts the 6 people who were on shift while the snap was published — not all 13 on the roster.</td></tr></tfoot>
+                </table>
+              </div>
+
+              <div class="eyebrow" style="margin:20px 0 8px;">The player · the same overlay every modal in this estate uses</div>
+              <div class="grid3" style="gap:12px;">
+                <div class="snap-scrim">
+                  <div class="snap-card">
+                    <div class="snap-dots"><span class="on"></span><span class="on"></span><span></span><span></span><span></span><span></span></div>
+                    <div class="snap-media">image card · 2 of 6</div>
+                    <div class="snap-body">
+                      <div style="font-size:14px;font-weight:700;">Pods are 1g, not 0.5g</div>
+                      <p style="margin:6px 0 0;font-size:12px;color:var(--ink2);line-height:1.6;">Every Stiiizy pod on this menu is a full gram. If a customer is comparing on price, that is the number that matters.</p>
+                      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+                        <span class="mono" style="font-size:10.5px;color:var(--inkMute);">tap to advance</span>
+                        <button class="btn btn-secondary btn-xs" style="margin-left:auto;">Next</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="snap-scrim">
+                  <div class="snap-card">
+                    <div class="snap-dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+                    <div class="snap-body">
+                      <div class="eyebrow" style="margin-bottom:8px;">Question 4 of 4</div>
+                      <div style="font-size:14px;font-weight:700;">A customer wants the strongest option under $40. Which do you reach for?</div>
+                      <div class="quiz-opt"><span class="box"></span>A half-gram cartridge</div>
+                      <div class="quiz-opt pick"><span class="box"></span>A 1g pod on the $35 tier</div>
+                      <div class="quiz-opt"><span class="box"></span>Two prerolls</div>
+                      <button class="btn btn-accent btn-sm" style="width:100%;margin-top:11px;">Submit</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="snap-scrim">
+                  <div class="snap-card">
+                    <div class="snap-dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+                    <div class="snap-body">
+                      <div style="display:flex;align-items:center;gap:9px;">
+                        <span style="width:30px;height:30px;border-radius:99px;background:var(--goodSoft);color:var(--good);display:flex;align-items:center;justify-content:center;font-weight:700;">✓</span>
+                        <div style="font-size:14px;font-weight:700;">You passed · 4 of 4</div>
+                      </div>
+                      <div class="trail" style="margin-top:11px;">
+                        <div class="trail-row"><span class="t-l">Earned<span class="t-note">written to your ledger now</span></span><span class="t-v">$5.00</span></div>
+                        <div class="trail-row"><span class="t-l">Kind<span class="t-note">settled, not projected</span></span><span class="t-v dim">earned</span></div>
+                      </div>
+                      <p style="margin:9px 0 0;font-size:11.5px;color:var(--inkDim);line-height:1.6;">It shows up in Earnings under Settled. A retake cannot earn it twice.</p>
+                      <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:11px;">Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p class="caption">Progress dots, tap-to-advance, quiz, reward on pass. The card is <code>overlayCard</code> at <code>min(300px, 96vw)</code> inside <code>overlayScrim(P)</code> — the helper, never a hand-typed scrim, because 17 of 36 hand-typed copies in this estate lost <code>overflowY</code> and stranded their button offscreen.</p>
+            </div>
+
+            <aside class="panel">
+              <div class="panel-head">
+                <div style="flex:1;min-width:0;">
+                  <div class="p-eb">Authoring</div>
+                  <div class="p-title">Stiiizy pod line-up</div>
+                  <div class="p-sub">6 cards · published 2026-09-02</div>
+                </div>
+                <span class="pill pill-good sm"><span class="dot"></span>live</span>
+              </div>
+              <div class="panel-body">
+                <div class="p-sec">Cards</div>
+                <div class="trail">
+                  <div class="trail-row"><span class="t-l">1 · image<span class="t-note">media m-4471 · 218 KB · jpeg</span></span><span class="t-v dim">↕</span></div>
+                  <div class="trail-row"><span class="t-l">2 · image + text<span class="t-note">“Pods are 1g, not 0.5g”</span></span><span class="t-v dim">↕</span></div>
+                  <div class="trail-row"><span class="t-l">3 · text<span class="t-note">“The three tiers and what they mean”</span></span><span class="t-v dim">↕</span></div>
+                  <div class="trail-row"><span class="t-l">4 · video url<span class="t-note">2m 10s</span></span><span class="t-v dim">↕</span></div>
+                  <div class="trail-row"><span class="t-l">5 · quiz<span class="t-note">4 questions · pass mark 3</span></span><span class="t-v dim">↕</span></div>
+                  <div class="trail-row"><span class="t-l">6 · reward<span class="t-note">shown only on a pass</span></span><span class="t-v dim">↕</span></div>
+                </div>
+                <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;">Add a card</button>
+
+                <div class="p-sec">Quiz reward</div>
+                <div class="kv"><span class="k">Amount</span><span class="v mono">$5.00</span></div>
+                <div class="kv"><span class="k">Unit</span><span class="v mono">cents (tracked)</span></div>
+                <div class="kv"><span class="k">Paid once per person</span><span class="v mono">yes</span></div>
+
+                <div class="p-sec">Linked bounty</div>
+                <div class="prov">Stiiizy pods — 10 units<br>active · today · brand-funded</div>
+                <p class="p-note" style="margin-top:9px;">Linking puts “learn it” next to “sell it” on the Register strip. It does not change how either one scores.</p>
+
+                <div class="p-sec">Schedule and reach</div>
+                <div class="kv"><span class="k">Publish</span><span class="v mono">2026-09-02 08:00</span></div>
+                <div class="kv"><span class="k">Expires</span><span class="v mono">2026-09-30 23:59</span></div>
+                <div class="kv"><span class="k">Stores</span><span class="v">All 5</span></div>
+                <div class="kv"><span class="k">Media limit</span><span class="v mono">1.5 MB per file</span></div>
+
+                <div class="p-foot">snap s-118 · 4 of 6 completed · 2 opened and not finished</div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 9 — POS SURFACES ═════════════════════════ -->
+<div class="tabpanel" id="tab-pos">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">pos/screen-incentives-card.jsx · pos/screen-incentives-strip.jsx</div>
+      <h2>Two surfaces inside the POS, drawn in the screens they actually live in. Both use POS atoms only — <code>hd-ui.jsx</code> is not loaded on that page.</h2>
+      <p>The Home card takes the AOV card’s exact slot in <code>screen-home.jsx</code>, guarded the same way (<code>window.IncHomeCard ? … : &lt;ErrorState …&gt;</code>), so a dropped script tag names the missing file instead of white-screening the dashboard. The Register strip is a 44px row under the intake header — the one place in this concept where the proof is compressed to a single freshness word, because the person reading it has a customer in front of them.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="eyebrow" style="margin-bottom:8px;">POS · Home — the card in the AOV slot</div>
+    <div class="pos-frame" style="margin-bottom:26px;">
+      <div style="display:flex;">
+        <div class="rail" style="min-height:640px;">
+          <div class="rail-logo">W</div>
+          <div class="rail-item on"><span class="sq"></span>Home</div>
+          <div class="rail-item"><span class="sq"></span>Register</div>
+          <div class="rail-item"><span class="sq"></span>Orders</div>
+          <div class="rail-item"><span class="sq"></span>Catalog</div>
+          <div class="rail-item"><span class="sq"></span>Bounty</div>
+          <div class="rail-sep"></div>
+          <div class="rail-item"><span class="sq"></span>Settings</div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="topbar" style="padding:0 22px;">
+            <span class="tenant"><span class="ch">LE</span>Hyperwolf Lake Elsinore</span>
+            <span class="tb-div"></span>
+            <span class="crumbs"><span class="cur">Home</span></span>
+            <span class="tb-search">Search<span class="kbd">⌘K</span></span>
+            <span class="tb-ic">☾</span><span class="avatar">MS</span>
+          </div>
+          <div class="pos-main">
+            <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+              <div style="flex:1;min-width:0;">
+                <div class="mono" style="font-size:11.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--inkMute);">Monday, September 7</div>
+                <h1 style="margin:6px 0 0;font-size:30px;font-weight:800;letter-spacing:-.02em;">Good afternoon, Manisha</h1>
+              </div>
+              <span class="pill pill-good"><span class="dot"></span>On shift · Register 101</span>
+            </div>
+
+            <div class="quick" style="margin-bottom:18px;">
+              <div class="q acc"><span class="plate"></span><span><span class="ql">New sale</span><span class="qs">Open the register</span></span></div>
+              <div class="q"><span class="plate"></span><span><span class="ql">Check in customer</span><span class="qs">3 waiting</span></span></div>
+              <div class="q"><span class="plate"></span><span><span class="ql">Order queue</span><span class="qs">11 open · 2 incoming</span></span></div>
+              <div class="q"><span class="plate"></span><span><span class="ql">Catalog</span><span class="qs">7 stock alerts</span></span></div>
+            </div>
+
+            <!-- THE CARD — replaces AovDashboardCard, same slot, same guard -->
+            <div class="card p0" style="margin-bottom:16px;">
+              <div class="card-head">
+                <span style="width:28px;height:28px;border-radius:8px;background:var(--surface3);flex:0 0 auto;"></span>
+                <span class="ct">Bounty · today</span>
+                <span class="pill pill-neutral sm">Lake Elsinore</span>
+              </div>
+              <div style="padding:14px 16px 12px;">
+                <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:9px;flex-wrap:wrap;">
+                  <span style="font-size:15.5px;font-weight:700;">Add $9.01 to hit today’s AOV goal</span>
+                  <span class="mono" style="margin-left:auto;font-size:13px;color:var(--inkDim);">$80.99 / $95.00</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--info);"></div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:11px;padding:13px 16px;border-top:1px solid var(--hairline);background:var(--surface2);">
+                <div style="background:var(--surface);border:1px solid var(--hairline);border-left:3px solid var(--accent);border-radius:var(--r10);padding:10px 12px;">
+                  <div style="font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Net today</div>
+                  <div class="mono" style="font-size:19px;font-weight:800;margin-top:3px;">$2,106.05</div>
+                  <div style="font-size:11px;color:var(--inkDim);margin-top:1px;">26 sales</div>
+                </div>
+                <div style="background:var(--surface);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);border-radius:var(--r10);padding:10px 12px;">
+                  <div style="font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Rank · this store</div>
+                  <div class="mono" style="font-size:19px;font-weight:800;margin-top:3px;">2<span style="font-size:11px;font-weight:600;color:var(--inkMute);">/10</span></div>
+                  <div style="font-size:11px;color:var(--inkDim);margin-top:1px;">net sales, today</div>
+                </div>
+                <div style="background:var(--surface);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);border-radius:var(--r10);padding:10px 12px;">
+                  <div style="font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Balance</div>
+                  <div class="mono" style="font-size:19px;font-weight:800;margin-top:3px;">$35.00</div>
+                  <div style="font-size:11px;color:var(--inkDim);margin-top:1px;">settled · $115 projected</div>
+                </div>
+              </div>
+              <div style="padding:12px 16px;border-top:1px solid var(--hairline);display:flex;flex-direction:column;gap:9px;">
+                <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+                  <span class="pill pill-accent sm">Stiiizy pods · 7 of 10</span>
+                  <span class="mini-bar" style="max-width:70px;"><span style="width:70%;background:var(--accent);"></span></span>
+                  <span class="pill pill-neutral sm">Week 36 · rank 2</span>
+                  <span class="pill pill-neutral sm">Power hour · 16:00</span>
+                  <button class="btn btn-secondary btn-xs" style="margin-left:auto;">Open Bounty</button>
+                </div>
+              </div>
+              <div class="fresh"><span class="fdot" style="background:var(--good)"></span><span class="fsrc">Blaze API · Lake Elsinore</span>· synced 2m ago · 9 sales today have no budtender on them</div>
+            </div>
+
+            <div class="pos-2col">
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="card p0">
+                  <div class="card-head"><span style="width:28px;height:28px;border-radius:8px;background:var(--surface3);"></span><span class="ct">Order queue</span></div>
+                  <div style="padding:15px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-top:3px solid var(--warn);border-radius:var(--r10);padding:11px 12px;"><div class="mono" style="font-size:28px;font-weight:800;line-height:1;">2</div><div style="font-size:11.5px;font-weight:600;margin-top:6px;">Incoming</div></div>
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-top:3px solid var(--info);border-radius:var(--r10);padding:11px 12px;"><div class="mono" style="font-size:28px;font-weight:800;line-height:1;">4</div><div style="font-size:11.5px;font-weight:600;margin-top:6px;">To pack</div></div>
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-top:3px solid var(--info);border-radius:var(--r10);padding:11px 12px;"><div class="mono" style="font-size:28px;font-weight:800;line-height:1;">3</div><div style="font-size:11.5px;font-weight:600;margin-top:6px;">Packing</div></div>
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-top:3px solid var(--good);border-radius:var(--r10);padding:11px 12px;"><div class="mono" style="font-size:28px;font-weight:800;line-height:1;">2</div><div style="font-size:11.5px;font-weight:600;margin-top:6px;">Ready</div></div>
+                  </div>
+                </div>
+                <div class="card p0">
+                  <div class="card-head"><span style="width:28px;height:28px;border-radius:8px;background:var(--surface3);"></span><span class="ct">Needs attention</span><span class="pill pill-warn sm"><span class="dot"></span>3</span></div>
+                  <div style="padding:6px 0;">
+                    <div style="display:flex;align-items:center;gap:11px;padding:11px 16px;font-size:12.5px;font-weight:600;">2 Weedmaps orders need identity verification</div>
+                    <div style="display:flex;align-items:center;gap:11px;padding:11px 16px;border-top:1px solid var(--hairline);font-size:12.5px;font-weight:600;">3 SKUs are out of stock</div>
+                    <div style="display:flex;align-items:center;gap:11px;padding:11px 16px;border-top:1px solid var(--hairline);font-size:12.5px;font-weight:600;color:var(--warnText);">9 sales today have no budtender on them</div>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div class="card p0">
+                  <div class="card-head"><span style="width:28px;height:28px;border-radius:8px;background:var(--surface3);"></span><span class="ct">Today</span></div>
+                  <div style="padding:15px;display:grid;grid-template-columns:1fr 1fr;gap:11px;">
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--accent);border-radius:var(--r10);padding:11px 13px;"><div style="font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">My sales</div><div class="mono" style="font-size:21px;font-weight:800;margin-top:3px;">$2.1k</div></div>
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);border-radius:var(--r10);padding:11px 13px;"><div style="font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">My AOV</div><div class="mono" style="font-size:21px;font-weight:800;margin-top:3px;">$81</div></div>
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);border-radius:var(--r10);padding:11px 13px;"><div style="font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Store sales</div><div class="mono" style="font-size:21px;font-weight:800;margin-top:3px;">$14k</div></div>
+                    <div style="background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);border-radius:var(--r10);padding:11px 13px;"><div style="font-size:10px;color:var(--inkMute);font-weight:600;letter-spacing:.08em;text-transform:uppercase;">Check-in line</div><div class="mono" style="font-size:21px;font-weight:800;margin-top:3px;">3</div></div>
+                  </div>
+                </div>
+                <div class="card p0">
+                  <div class="card-head"><span style="width:28px;height:28px;border-radius:8px;background:var(--surface3);"></span><span class="ct">Register</span></div>
+                  <div style="padding:15px;display:flex;flex-direction:column;gap:11px;">
+                    <div style="display:flex;align-items:center;gap:9px;"><span style="width:8px;height:8px;border-radius:99px;background:var(--good);"></span><span style="font-size:13.5px;font-weight:700;">Drawer open</span><span class="mono" style="margin-left:auto;font-size:11.5px;color:var(--inkDim);">since 9:02 AM</span></div>
+                    <button class="btn btn-secondary" style="width:100%;">Go to register</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="eyebrow" style="margin-bottom:8px;">POS · Register — the 44px strip under the intake header</div>
+    <div class="pos-frame">
+      <div style="display:flex;">
+        <div class="rail" style="min-height:420px;">
+          <div class="rail-logo">W</div>
+          <div class="rail-item"><span class="sq"></span>Home</div>
+          <div class="rail-item on"><span class="sq"></span>Register</div>
+          <div class="rail-item"><span class="sq"></span>Orders</div>
+          <div class="rail-item"><span class="sq"></span>Catalog</div>
+          <div class="rail-item"><span class="sq"></span>Bounty</div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="border-bottom:1px solid var(--hairline2);background:var(--surface);padding:10px 22px;display:flex;align-items:center;gap:11px;">
+            <div style="flex:0 0 auto;">
+              <div class="mono" style="font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);margin-bottom:5px;">Waiting 3</div>
+              <div style="width:96px;padding:14px 8px;border:1.5px dashed var(--hairline3);border-radius:var(--r12);text-align:center;font-size:11.5px;font-weight:700;color:var(--ink2);">
+                <span style="display:block;width:28px;height:28px;border-radius:99px;background:var(--accent);margin:0 auto 6px;"></span>New check-in
+              </div>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;gap:8px;overflow:hidden;">
+              <div style="flex:0 0 auto;width:188px;border:1px solid var(--ink);border-radius:var(--r12);overflow:hidden;background:var(--surface);">
+                <div style="padding:7px 10px 6px;display:flex;align-items:center;gap:9px;"><span class="avatar">MT</span><span><span style="display:block;font-size:12.5px;font-weight:700;">Mia Tran</span><span class="mono" style="font-size:10px;color:var(--inkMute);">4m · You</span></span></div>
+                <div style="min-height:38px;background:var(--surface3);color:var(--inkMute);border-top:1px solid var(--hairline);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;">Unclaim</div>
+              </div>
+              <div style="flex:0 0 auto;width:188px;border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;background:var(--surface);">
+                <div style="padding:7px 10px 6px;display:flex;align-items:center;gap:9px;"><span class="avatar">SC</span><span><span style="display:block;font-size:12.5px;font-weight:700;">Sam Cole</span><span class="mono" style="font-size:10px;color:var(--warn);">11m</span></span></div>
+                <div style="min-height:38px;background:var(--ink);color:var(--bg);border-top:1px solid var(--hairline);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;">Claim</div>
+              </div>
+              <div style="flex:0 0 auto;width:188px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);opacity:.55;"></div>
+            </div>
+          </div>
+
+          <!-- THE STRIP -->
+          <div class="strip">
+            <span class="sv">#2</span><span class="sl">today · net sales</span>
+            <span class="tb-div"></span>
+            <span class="sv">$2,106.05</span><span class="sl">26 sales</span>
+            <span class="tb-div"></span>
+            <span class="prog">Stiiizy pods <span class="mono">7/10</span> <span class="mini-bar" style="max-width:44px;"><span style="width:70%;background:var(--accent);"></span></span></span>
+            <span class="prog">Week 36 <span class="mono">rank 2</span></span>
+            <span class="prog">Power hour <span class="mono">16:00</span></span>
+            <span style="flex:1"></span>
+            <span class="mono" style="font-size:10.5px;color:var(--inkDim);">synced 2m ago</span>
+            <button class="btn btn-ghost btn-xs">Open</button>
+          </div>
+
+          <div style="display:flex;min-height:230px;">
+            <div style="flex:1 1 0;min-width:0;border-right:1px solid var(--hairline2);padding:13px 22px;">
+              <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;">
+                <span class="chip on">All <span class="x">184</span></span><span class="chip">Flower <span class="x">52</span></span><span class="chip">Vape <span class="x">41</span></span><span class="chip">Edibles <span class="x">33</span></span><span class="chip">Prerolls <span class="x">28</span></span>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">
+                <div style="height:96px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);"></div>
+                <div style="height:96px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);"></div>
+                <div style="height:96px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);"></div>
+                <div style="height:96px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);"></div>
+              </div>
+            </div>
+            <div style="flex:0 0 300px;padding:13px 18px;">
+              <div style="font-size:13.5px;font-weight:700;margin-bottom:10px;">Ticket · Mia Tran</div>
+              <div class="kv"><span class="k">2 items</span><span class="v mono">$78.00</span></div>
+              <div class="kv"><span class="k">Tax</span><span class="v mono">$6.41</span></div>
+              <div class="kv"><span class="k">Total</span><span class="v mono">$84.41</span></div>
+              <button class="btn btn-accent" style="width:100%;margin-top:12px;">Take payment</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="caption"><b>What the strip deliberately does not say:</b> no projected dollar figure. A budtender mid-sale seeing “$115.00” next to a rank will read it as owed. The strip carries rank, net, bounty progress and one freshness word; every number behind it is one tap away in the app.</p>
+  </div>
+</div>
+
+<!-- ═════════════════════════ TAB 10 — STATES ═════════════════════════ -->
+<div class="tabpanel" id="tab-states">
+  <div class="diagnosis">
+    <div class="card">
+      <div class="eyebrow">The same screen · Standings · four conditions</div>
+      <h2>Loading repeats the header the loaded state will show. Offline says what is missing and what would fix it. Empty is not an error. A source in error still shows the board, and says what the board is missing.</h2>
+      <p>The fourth one is the case this concept exists for. A partial feed is worse than no feed, because a leaderboard built on 3 of 4 sources looks exactly like a leaderboard built on 4. So the board still renders — refusing to show it would hide the sales that <i>did</i> arrive — but the header carries the failure, the affected store is struck through in the freshness stack, and the ranking is labelled as covering four stores out of five.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="state-grid">
+
+      <div>
+        <div class="state-label">1 · Loading</div>
+        <div class="card p0">
+          <div style="padding:16px 16px 12px;">
+            <div class="mono" style="font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);margin-bottom:7px;">Standings · Lake Elsinore</div>
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+              <h3 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;">Net sales, today</h3>
+              <span class="segrow" style="margin-left:auto;"><button class="on">Today</button><button>Week</button><button>Month</button></span>
+            </div>
+          </div>
+          <div class="fresh"><span class="fdot" style="background:var(--inkFaint)"></span>checking sources…</div>
+          <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:11px;"><span class="skel" style="width:28px;height:28px;border-radius:99px;"></span><span class="skel" style="flex:1;"></span><span class="skel" style="width:74px;"></span></div>
+            <div style="display:flex;align-items:center;gap:11px;"><span class="skel" style="width:28px;height:28px;border-radius:99px;"></span><span class="skel" style="flex:1;"></span><span class="skel" style="width:74px;"></span></div>
+            <div style="display:flex;align-items:center;gap:11px;"><span class="skel" style="width:28px;height:28px;border-radius:99px;"></span><span class="skel" style="flex:1;width:62%;"></span><span class="skel" style="width:74px;"></span></div>
+          </div>
+        </div>
+        <p class="caption">The eyebrow, the title and the period control are the <b>real</b> ones, already painted. Only the rows are skeleton, so nothing moves when the data lands — the pattern <code>AovDashboardCard</code>’s loading branch established.</p>
+      </div>
+
+      <div>
+        <div class="state-label">2 · Offline</div>
+        <div class="card p0">
+          <div style="padding:16px 16px 12px;">
+            <div class="mono" style="font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);margin-bottom:7px;">Standings · Lake Elsinore</div>
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+              <h3 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;">Net sales, today</h3>
+            </div>
+          </div>
+          <div class="state">
+            <div class="state-plate bad">!</div>
+            <h4>Bounty isn’t connected</h4>
+            <p>Needs the wmdemo backend — not reachable right now. Real standings, bounties and balances will appear here once it connects.</p>
+            <div class="acts"><button class="btn btn-secondary btn-sm">Try again</button><button class="btn btn-ghost btn-sm">Details</button></div>
+            <div class="detail">GET /api/incentives/standings<br>request failed: NetworkError · code 0<br>base http://localhost:8000</div>
+          </div>
+        </div>
+        <p class="caption">Never the last good numbers. A stale $2,418.60 rendered as if it were live is worse than an empty screen — the rule <code>screen-aov.jsx</code>’s header states in full.</p>
+      </div>
+
+      <div>
+        <div class="state-label">3 · Empty · connected, no sales yet</div>
+        <div class="card p0">
+          <div style="padding:16px 16px 12px;">
+            <div class="mono" style="font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);margin-bottom:7px;">Standings · Lake Elsinore</div>
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+              <h3 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;">Net sales, today</h3>
+              <span class="segrow" style="margin-left:auto;"><button class="on">Today</button><button>Week</button><button>Month</button></span>
+            </div>
+          </div>
+          <div class="fresh"><span class="fdot" style="background:var(--good)"></span><span class="fsrc">Blaze API · Lake Elsinore</span>· synced 1m ago · 0 sales today · cursor 2026-09-08T15:02Z</div>
+          <div class="state">
+            <div class="state-plate neutral">◦</div>
+            <h4>No sales yet today</h4>
+            <p>The store opened 4 minutes ago and Blaze has answered — there is just nothing to rank yet. The board fills in as sales land.</p>
+            <div class="acts"><button class="btn btn-ghost btn-sm">See yesterday</button></div>
+          </div>
+          <div style="padding:0 16px 15px;">
+            <div class="trail">
+              <div class="trail-row"><span class="t-l">13 people on the roster<span class="t-note">all listed under “not yet”, none ranked at $0</span></span><span class="t-v dim">13</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">Empty and broken must not look alike. The freshness line is green and states a real cursor, so the zero is evidence rather than absence.</p>
+      </div>
+
+      <div>
+        <div class="state-label">4 · A source in error</div>
+        <div class="card p0">
+          <div style="padding:16px 16px 12px;">
+            <div class="mono" style="font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--inkDim);margin-bottom:7px;">Standings · all stores</div>
+            <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
+              <h3 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em;">Net sales, today</h3>
+              <span class="pill pill-bad" style="margin-left:auto;"><span class="dot"></span>4 of 5 stores counted</span>
+            </div>
+          </div>
+          <div class="fresh"><span class="fdot" style="background:var(--good)"></span><span class="fsrc">Blaze API · Lake Elsinore · Corona</span>· synced 2m ago</div>
+          <div class="fresh err"><span class="fdot" style="background:var(--bad)"></span><span class="fsrc">Meadow API · West Hollywood</span>· last ok 09:12 · 14:02 · 401 (client key)</div>
+          <div class="fresh"><span class="fdot" style="background:var(--warn)"></span><span class="fsrc">Blaze CSV · Riverside</span>· last upload 2026-09-05 · stale</div>
+          <div style="padding:13px 16px;">
+            <div class="noteband bad" style="margin-bottom:12px;">
+              <div class="nh">This ranking is incomplete and is shown anyway</div>
+              West Hollywood stopped feeding at 14:02 with a 401. Its 88 sales before that are counted; anything after is missing. Devon Ruiz and seven colleagues are ranked on a partial day — do not settle a bounty against this board until the key is fixed.
+            </div>
+            <div class="trail">
+              <div class="trail-row"><span class="t-l">1 · Devon Ruiz<span class="t-note">West Hollywood · partial</span></span><span class="t-v">$3,204.10</span></div>
+              <div class="trail-row"><span class="t-l">2 · Jordan Ames<span class="t-note">Lake Elsinore · complete</span></span><span class="t-v">$2,418.60</span></div>
+              <div class="trail-row"><span class="t-l">3 · Manisha Saini<span class="t-note">Lake Elsinore · complete</span></span><span class="t-v">$2,106.05</span></div>
+              <div class="trail-row resid"><span class="t-l">Not counted at all<span class="t-note">Long Beach · Treez · no ingestion path</span></span><span class="t-v">—</span></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:11px;"><button class="btn btn-secondary btn-sm">Fix the connection</button><button class="btn btn-ghost btn-sm">Sync now</button></div>
+          </div>
+        </div>
+        <p class="caption">A partial board is the failure this concept was built for: it looks identical to a healthy one unless the screen says otherwise, out loud, above the numbers.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('tabseg').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tab-btn'); if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tabpanel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  });
+
+  function toggleTheme() {
+    var root = document.documentElement;
+    var dark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    document.getElementById('themeBtn').textContent = dark ? 'Switch to dark' : 'Switch to light';
+    document.body.style.colorScheme = dark ? 'light' : 'dark';
+  }
+</script>
+
+</body>
+</html>
