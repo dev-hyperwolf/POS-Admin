@@ -193,8 +193,22 @@
     const P = useP();
     const S = window.IncShared;
     const storeId = session.storeId;
-    const path = '/api/incentives/contests' + (storeId ? '?store_id=' + encodeURIComponent(storeId) : '');
+    const [cls, setCls] = React.useState('all');
+    // The AUDIENCE filter is server-side, not a filter over the rows already
+    // in hand: a bounty matches when the class is ONE of its audiences, and
+    // "one of" is the backend's own rule (serve._get) — reimplementing it here
+    // is how two answers to "which bounties can a driver win" come to differ.
+    const q = new URLSearchParams();
+    if (storeId) q.set('store_id', storeId);
+    if (cls !== 'all') q.set('class', cls);
+    const path = '/api/incentives/contests' + (q.toString() ? '?' + q.toString() : '');
     const list = window.HWInc.usePoll(path, { intervalMs: 20000 });
+
+    // Everyone FIRST here, unlike the standings board. A bounty list is a
+    // manager's inventory of what is running; opening it already filtered
+    // would hide bounties they wrote themselves.
+    const CLASS_TABS = [{ value: 'all', label: 'Every audience' }]
+      .concat((S.CLASS_ORDER || []).map((id) => ({ value: id, label: S.classLabel(id) })));
 
     const [tab, setTab] = React.useState('all');
     const [confirming, setConfirming] = React.useState(null); // {id, action}
@@ -264,6 +278,14 @@
           </div>
         </div>) },
       { key: 'kind', label: 'Kind', render: (c) => <Pill kind="neutral" size="sm">{KIND_LABEL[c.kind] || c.kind}</Pill> },
+      // WHO CAN WIN IT. Reading a bounty list without this, a manager cannot
+      // tell the floor spiff from the driver spiff — they are the same row
+      // apart from one field, and only one of them pays the fleet.
+      { key: 'audience', label: 'Audience', render: (c) => (
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {(c.audience && c.audience.length ? c.audience : ['budtender']).map((a) => (
+            <S.ClassPill key={a} cls={a} />))}
+        </div>) },
       { key: 'window', label: 'Window', render: (c) => (
         <div>
           <div style={{ fontFamily: P.fontMono, fontVariantNumeric: 'tabular-nums', fontSize: P.type.body, color: P.ink2 }}>
@@ -297,6 +319,8 @@
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {header}
+
+        <Seg value={cls} onChange={setCls} size="sm" options={CLASS_TABS} />
 
         {pending.length > 0 && (
           <Card padding={0}>

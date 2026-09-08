@@ -196,7 +196,12 @@
       name: '', description: '', kind: 'spiff', metric: 'units',
       filter: { brands: [], categories: [], products: [], min_line_cents: 0 },
       store_ids: storeId ? [storeId] : [],
-      participants: { scope: 'all', associate_ids: [], teams: [] },
+      // `classes` IS SENT EXPLICITLY, never left to the backend's default.
+      // The default happens to be the same ['budtender'] — that is what keeps
+      // every bounty written before audiences existed meaning the floor — but
+      // a builder whose summary sentence names an audience it did not send is
+      // one release away from describing a bounty it did not create.
+      participants: { scope: 'all', classes: ['budtender'], associate_ids: [], teams: [] },
       window_start: '', window_end: '', tz: '', recurrence: 'none',
       reward: { type: 'threshold', unit: 'cents' },
       funding: { funded_by: 'store', brand: null, budget_cents: null, cap_per_person_cents: null },
@@ -232,6 +237,9 @@
     }
     if (d.reward.type === 'aov' && d.reward.goal_cents == null) {
       out.push({ at: 'reward', msg: 'An AOV goal needs the average order value to aim at.' });
+    }
+    if (!(d.participants.classes || []).length) {
+      out.push({ at: 'who', msg: 'Pick at least one audience. A bounty open to nobody can never be won — the backend refuses it too.' });
     }
     if (d.participants.scope === 'list' && d.participants.associate_ids.length === 0) {
       out.push({ at: 'who', msg: 'Nobody is in it. Pick at least one person, or switch back to everyone.' });
@@ -599,6 +607,37 @@
                     </Chip>))}
                 </div>)}
               <Hint>No store selected means every store. A store with no data source is created into the bounty but will never score.</Hint>
+            </div>
+            <div>
+              <FLabel>Audience</FLabel>
+              {/* WHICH KIND OF PERSON THIS BOUNTY IS FOR. Drivers are not
+                  sales people: a floor spiff that pays the delivery fleet
+                  comes out of the floor's prize pool, and a driver bounty
+                  that ranks budtenders is scored against a job they do not
+                  do. The chips are a multi-select because "drivers and
+                  managers" is a real bounty — a depot lead runs one every
+                  month — and a single-select would make it two. */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(S.CLASS_ORDER || []).map((id) => {
+                  const known = (settings && settings.classes) || [];
+                  const hit = known.find((c) => c.id === id);
+                  const on = (draft.participants.classes || []).indexOf(id) > -1;
+                  return (
+                    <Chip key={id} on={on} muted={hit ? hit.count === 0 : false}
+                      // TOGGLED OFF `d`, NOT OFF `draft`. `setParticipants`
+                      // takes an already-computed patch, so two chip clicks
+                      // that land in one React batch both read the same stale
+                      // draft and the second silently discards the first —
+                      // "add drivers, drop budtenders" ends as an empty
+                      // audience. Reading the previous state inside the
+                      // updater is the only form that composes.
+                      onClick={() => setDraft((d) => ({ ...d, participants: { ...d.participants, classes: toggleIn(d.participants.classes || [], id) } }))}>
+                      {(hit && hit.label) || S.classLabel(id)}
+                      {hit ? ` · ${hit.count}` : ''}
+                    </Chip>);
+                })}
+              </div>
+              <Hint>Only these people are ranked, and only they can be paid. A class with nobody in it is dimmed — classify people on the Data screen.</Hint>
             </div>
             <div>
               <FLabel>Participants</FLabel>

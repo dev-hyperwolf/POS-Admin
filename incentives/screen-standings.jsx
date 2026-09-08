@@ -24,6 +24,31 @@
   const HWInc = window.HWInc;
   const IncShared = window.IncShared;
 
+  // ── class vocabulary — the board's audience segment ──────────────────────
+  // WHY THIS SEGMENT EXISTS. Lake Elsinore is a delivery depot: its sellers
+  // are the fourteen drivers, and the eight floor staff ring almost nothing.
+  // On one shared board a budtender reads "15th of 21" for doing a job the
+  // fourteen people above them do not do. The classes come from the backend
+  // (`GET /settings` → `classes`), and the labels are IncShared's, so a class
+  // added server-side does not need a change here.
+  //
+  // "Everyone" is LAST and is not the default. Every board this estate had
+  // before this feature was the floor's; opening on Everyone would go on
+  // mixing the two exactly as before, and quietly.
+  const CLASS_SEG_ORDER = ['budtender', 'driver', 'manager', 'loss_prevention', 'support'];
+
+  function classOptions(settings) {
+    const known = settings && settings.classes ? settings.classes : null;
+    const label = (id) => {
+      const hit = known ? known.find((c) => c.id === id) : null;
+      return hit ? hit.label : IncShared.classLabel(id);
+    };
+    const plural = { budtender: 'Budtenders', driver: 'Drivers', manager: 'Managers',
+      loss_prevention: 'Loss prevention', support: 'Support' };
+    return CLASS_SEG_ORDER.map((id) => ({ value: id, label: plural[id] || label(id) }))
+      .concat([{ value: 'all', label: 'Everyone' }]);
+  }
+
   // ── metric vocabulary — exactly the Standing.value_kind enum, no more ────
   const METRIC_LABEL = { net_cents: 'Net', units: 'Units', gross_cents: 'Gross', txn_count: 'Orders', aov_cents: 'AOV' };
   const METRIC_OPTIONS = [
@@ -92,8 +117,8 @@
           {row('Gross sales', `${HWInc.fmt.number(trail.txns)} sale rows`, HWInc.fmt.cents(trail.gross_cents))}
           {row('Refunds netted', `${HWInc.fmt.number(trail.refunds)} refund rows`, '−' + HWInc.fmt.cents(trail.refund_cents), { neg: true })}
           {row('Net counted', null, HWInc.fmt.cents(trail.net_cents), { sum: true })}
-          {row('Attributed to a budtender', null, HWInc.fmt.cents(trail.attributed_cents))}
-          {row('No budtender on the record', null, HWInc.fmt.cents(trail.unattributed_cents), { warn: true })}
+          {row('Attributed to a person', null, HWInc.fmt.cents(trail.attributed_cents))}
+          {row('Nobody on the record', null, HWInc.fmt.cents(trail.unattributed_cents), { warn: true })}
           <div style={{ marginTop: 8, fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>
             {trail.window && `${HWInc.fmt.date(trail.window.from)} → ${HWInc.fmt.date(trail.window.to)} · `}
             sources: {(trail.sources || []).join(', ') || 'none'}
@@ -106,13 +131,21 @@
   // BUDTENDER SEAT — "My day"
   // ══════════════════════════════════════════════════════════════════════
 
-  function RankHero({ today }) {
+  // THE SEAT NEVER ASKS WHICH BOARD YOU ARE ON. `/me` ranks a person inside
+  // their own class and says which class that is, so the hero states it in
+  // words rather than offering a segment: a driver has no use for the
+  // budtenders' board, and a control that let them look at it would only
+  // invite the comparison this feature exists to stop making.
+  function RankHero({ today, person }) {
     const P = useP();
     const rs = (today && today.rank_store) || {};
     const ra = (today && today.rank_all) || {};
+    const cls = person && person.classification;
+    const among = cls ? ` among ${IncShared.classPlural(cls)}` : '';
     return (
       <Card padding={0}>
-        <CardHead icon="trophy" title="My rank · this store · today" />
+        <CardHead icon="trophy" title="My rank · this store · today"
+          right={<IncShared.ClassPill cls={cls} />} />
         <div style={{ padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -123,6 +156,9 @@
             </div>
             {rs.tied && <Pill kind="warn" icon="alert">Tied</Pill>}
           </div>
+          {cls && <div style={{ marginTop: 6, fontSize: 12, color: P.inkDim, lineHeight: 1.5 }}>
+            Your rank{among} at this store. You are not ranked against people doing a different job.
+          </div>}
           <div style={{ marginTop: 16, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Net today</div>
@@ -253,7 +289,7 @@
     const d = me.data;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <RankHero today={d.today} />
+        <RankHero today={d.today} person={d.person} />
         {d.aov_goal && <AovGoalCard today={d.today} aovGoal={d.aov_goal} />}
         {d.today && d.today.neighbors && d.today.neighbors.length > 0 && <NeighborsCard neighbors={d.today.neighbors} sessionId={session.id} />}
         <BountiesCard bounties={d.bounties} />
@@ -266,26 +302,38 @@
   // MANAGER CONSOLE — the full bounty board
   // ══════════════════════════════════════════════════════════════════════
 
-  function standingsPath({ scope, period, metric, from, to, storeId }) {
+  function standingsPath({ scope, period, metric, from, to, storeId, cls }) {
     const p = new URLSearchParams();
     p.set('scope', scope); p.set('store_id', storeId || ''); p.set('period', period); p.set('metric', metric);
+    // Always sent, never left to the default. The backend's own default is
+    // `budtender`, and a screen that relies on a default it does not state is
+    // one release away from showing a different board than its caption claims.
+    p.set('class', cls);
     if (period === 'custom') { if (from) p.set('from', from); if (to) p.set('to', to); }
     return '/api/incentives/standings?' + p.toString();
   }
 
-  function PersonBoard({ data, metric, sessionId, navigate }) {
+  function PersonBoard({ data, metric, cls, sessionId, navigate }) {
     const P = useP();
     const ranked = data.ranked || [];
     const top = ranked.length ? ranked[0].value : 0;
+    const mixed = (cls || 'all') === 'all';
     const columns = [
       { key: 'rank', label: 'Rank', width: 80, render: (r) => <RankCell standing={r} /> },
-      { key: 'person', label: 'Budtender', render: (r) => (
+      // The heading is the class on the board. It said "Budtender" over every
+      // board until classes existed, which is exactly the assumption the
+      // owner asked us to stop making — a drivers' board headed "Budtender"
+      // is the same mistake in one word.
+      { key: 'person', label: mixed ? 'Person' : IncShared.classLabel(cls), render: (r) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
           <Avatar name={r.name} size={26} />
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13, color: P.ink }}>
               {r.associate_id === sessionId ? 'You' : r.name}
               {r.associate_id === sessionId && <Pill kind="neutral" size="sm">you</Pill>}
+              {/* Only on the mixed board: beside eleven rows that are all
+                  drivers, a "Driver" pill on each is noise. */}
+              {mixed && <IncShared.ClassPill cls={r.classification} />}
             </div>
             {data.scope !== 'store' && r.store_name && <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{r.store_name}</div>}
           </div>
@@ -295,13 +343,20 @@
     ];
     return (
       <>
-        <DataTable columns={columns} rows={ranked} rowKey={(r) => r.associate_id} dense />
+        {ranked.length === 0 ? (
+          <EmptyState compact icon="trophy"
+            title={mixed ? 'Nobody has sold anything yet' : `No ${IncShared.classPlural(cls)} have sold anything yet`}
+            body={mixed
+              ? 'Sales appear here as they come in from the POS.'
+              : `Everyone on the roster in this class is listed below. Try another class — at a delivery depot the sales are the drivers'.`} />
+        ) : (
+          <DataTable columns={columns} rows={ranked} rowKey={(r) => r.associate_id} dense />)}
         {data.unattributed && data.unattributed.txns > 0 && (
           <div onClick={() => navigate('#/data')} role="button" tabIndex={0}
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: P.warnSoft, border: `1px solid ${P.warn}`, borderRadius: P.r10, cursor: 'pointer' }}>
             <Icon name="alert" size={15} color={P.warnText} />
             <span style={{ flex: 1, fontSize: 12.5, color: P.warnText }}>
-              <b>No budtender on the record</b> — {HWInc.fmt.number(data.unattributed.txns)} sales · {HWInc.fmt.cents(data.unattributed.cents)} · counted in the total, not in anyone's rank
+              <b>Nobody on the record</b> — {HWInc.fmt.number(data.unattributed.txns)} sales · {HWInc.fmt.cents(data.unattributed.cents)} · counted in the total, not in anyone's rank
             </span>
             <span style={{ fontSize: 11.5, fontWeight: 700, color: P.info, display: 'inline-flex', alignItems: 'center', gap: 3, flex: '0 0 auto' }}>
               Resolve identities<Icon name="chevron-right" size={12} stroke={2} />
@@ -310,6 +365,7 @@
         {data.not_yet && data.not_yet.length > 0 && (
           <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, padding: '0 2px', lineHeight: 1.6 }}>
             {data.not_yet.map((p) => p.name).join(' · ')} {data.not_yet.length === 1 ? 'has' : 'have'} no sales yet in this window — listed, not ranked at zero.
+            {!mixed && ` Only ${IncShared.classPlural(cls)} are on this board.`}
           </div>)}
       </>);
   }
@@ -331,13 +387,13 @@
     return <DataTable columns={columns} rows={stores || []} rowKey={(r) => r.store_id} dense />;
   }
 
-  function BoardBody({ data, scope, metric, sessionId, navigate }) {
+  function BoardBody({ data, scope, metric, cls, sessionId, navigate }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <IncShared.SourceFreshness sources={data.sources} />
         {scope === 'stores'
           ? <StoreVsStoreTable stores={data.stores} metric={metric} />
-          : <PersonBoard data={data} metric={metric} sessionId={sessionId} navigate={navigate} />}
+          : <PersonBoard data={data} metric={metric} cls={cls} sessionId={sessionId} navigate={navigate} />}
         <ComputationTrail trail={data.trail} />
       </div>);
   }
@@ -347,12 +403,37 @@
     const [scope, setScope] = React.useState('store');
     const [period, setPeriod] = React.useState('today');
     const [metric, setMetric] = React.useState('net_cents');
+    const [cls, setCls] = React.useState('budtender');
+    const [settings, setSettings] = React.useState(null);
     const todayISO = new Date().toISOString().slice(0, 10);
     const [from, setFrom] = React.useState(todayISO);
     const [to, setTo] = React.useState(todayISO);
 
-    const path = standingsPath({ scope, period, metric, from, to, storeId: session.storeId });
+    // Settings only supplies the LABELS and the headcounts. The segment
+    // renders from a fixed order before it lands, so the board is never
+    // waiting on a second request to show a control.
+    React.useEffect(() => {
+      let alive = true;
+      HWInc.get('/api/incentives/settings').then((r) => { if (alive && r.ok) setSettings(r.body); });
+      return () => { alive = false; };
+    }, []);
+
+    const path = standingsPath({ scope, period, metric, from, to, storeId: session.storeId, cls });
     const st = HWInc.usePoll(path, { intervalMs: 20000 });
+
+    // The caption names the board that is actually on screen, from the answer
+    // rather than from this component's own state — if the two ever disagree,
+    // the one that is true is the one the rows came with.
+    const shown = (st.data && st.data.class) || cls;
+    // Counted off THIS BOARD (ranked + not_yet), not from /settings. The
+    // settings count is estate-wide, and printing "32 budtenders" beside a
+    // single store's board is a number a manager cannot reconcile with the
+    // rows underneath it.
+    const onBoard = st.data
+      ? ((st.data.ranked || []).length + (st.data.not_yet || []).length) : null;
+    const boardCaption = shown === 'all'
+      ? 'Everyone here, whatever they do — floor, fleet, managers and back office in one ranking.'
+      : `Ranked among ${IncShared.classPlural(shown)}${onBoard != null ? ` · ${onBoard} on this board` : ''}. Drivers, managers and the rest are ranked on their own boards, not against this one.`;
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -365,6 +446,12 @@
           </div>
           <PBtn size="sm" variant="secondary" icon="refresh" onClick={st.refresh}>Refresh</PBtn>
         </div>
+
+        {scope !== 'stores' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <Seg value={cls} onChange={setCls} size="sm" options={classOptions(settings)} />
+            <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.5, maxWidth: 640 }}>{boardCaption}</div>
+          </div>)}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <Seg value={scope} onChange={setScope} size="sm" options={[
@@ -383,7 +470,7 @@
 
         {st.error && <IncShared.NotConnected onRetry={st.refresh} />}
         {!st.error && (st.loading || !st.data) && <SkeletonRows rows={5} />}
-        {!st.error && st.data && <BoardBody data={st.data} scope={scope} metric={metric} sessionId={session.id} navigate={navigate} />}
+        {!st.error && st.data && <BoardBody data={st.data} scope={scope} metric={metric} cls={shown} sessionId={session.id} navigate={navigate} />}
       </div>);
   }
 

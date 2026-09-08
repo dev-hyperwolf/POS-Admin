@@ -74,13 +74,17 @@
   // A button that arms a confirm row instead of firing on first click — the estate's
   // never-use-confirm() rule (CLAUDE.md via the shared brief) for a per-row destructive-ish
   // write (binding attaches real sales to a real person; it should not be one click).
-  function InlineConfirm({ label, confirmLabel, prompt, busy, variant = 'accent', size = 'xs', onConfirm }) {
+  // `extra` renders BETWEEN the prompt and the buttons — the only slot where a
+  // choice that changes what "Confirm" does can sit and still be read before
+  // the click. Create-a-person uses it for the new person's classification.
+  function InlineConfirm({ label, confirmLabel, prompt, busy, variant = 'accent', size = 'xs', onConfirm, extra }) {
     const P = useP();
     const [armed, setArmed] = React.useState(false);
     if (!armed) return <PBtn size={size} variant={variant} onClick={() => setArmed(true)}>{label}</PBtn>;
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r8 }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: P.surface2, border: `1px solid ${P.hairline2}`, borderRadius: P.r8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 11, color: P.inkDim }}>{prompt}</span>
+        {extra}
         <PBtn size="xs" variant="ghost" onClick={() => setArmed(false)} disabled={busy}>Cancel</PBtn>
         <PBtn size="xs" variant={variant} busy={busy} onClick={() => onConfirm(() => setArmed(false))}>{confirmLabel}</PBtn>
       </span>);
@@ -357,11 +361,16 @@
   }
 
   // ── Identities ──────────────────────────────────────────────────────────
-  function IdentityCard({ identity, roster, actorId, onDone }) {
+  function IdentityCard({ identity, roster, classes, actorId, onDone }) {
     const P = useP();
     const [picking, setPicking] = React.useState(false);
     const [pickId, setPickId] = React.useState('');
     const [busyKind, setBusyKind] = React.useState(null);
+    // The class the NEW person is created into. Defaulting to budtender is the
+    // backend's rule too, and a queue at a delivery depot is mostly drivers —
+    // asking here is what stops a manager minting fourteen people onto the
+    // budtenders' board and moving them one at a time afterwards.
+    const [newClass, setNewClass] = React.useState('budtender');
 
     const resolve = (associateId, done) => {
       setBusyKind('bind');
@@ -379,9 +388,13 @@
     };
     const create = (done) => {
       setBusyKind('create');
-      HWInc.post('/api/incentives/identities/create', { identity_key: identity.identity_key, actor: actorId }).then((r) => {
+      HWInc.post('/api/incentives/identities/create', { identity_key: identity.identity_key, actor: actorId, classification: newClass }).then((r) => {
         setBusyKind(null);
-        if (r.ok) { window.hdToast && window.hdToast({ title: 'Person created', description: `“${identity.raw_name}” is now its own associate.`, tone: 'ok' }); onDone(); }
+        if (r.ok) {
+          const label = ((classes || []).find((c) => c.id === newClass) || {}).label || newClass;
+          window.hdToast && window.hdToast({ title: 'Person created', description: `“${identity.raw_name}” is now its own associate, classified as ${label.toLowerCase()}.`, tone: 'ok' });
+          onDone();
+        }
         else window.hdToast && window.hdToast({ title: 'Could not create', description: r.error || 'Try again.', tone: 'blocked' });
         done && done();
       });
@@ -420,12 +433,17 @@
               <PBtn size="xs" variant="accent" disabled={!pickId} busy={busyKind === 'bind'} onClick={() => resolve(pickId, () => setPicking(false))}>Bind</PBtn>
               <PBtn size="xs" variant="ghost" onClick={() => setPicking(false)}>Cancel</PBtn>
             </span>)}
-          <InlineConfirm label="Create a new person" confirmLabel="Create" prompt={`Create “${identity.raw_name}” as a new associate?`} busy={busyKind === 'create'} variant="secondary" onConfirm={create} />
+          <InlineConfirm label="Create a new person" confirmLabel="Create" prompt={`Create “${identity.raw_name}” as a`} busy={busyKind === 'create'} variant="secondary" onConfirm={create}
+            extra={(classes || []).length ? (
+              <select value={newClass} onChange={(e) => setNewClass(e.target.value)}
+                style={{ height: 26, borderRadius: P.r8, border: `1px solid ${P.hairline3}`, background: P.surface, color: P.ink, fontSize: 11.5, fontFamily: P.fontSans, padding: '0 6px' }}>
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+              </select>) : null} />
         </div>
       </Card>);
   }
 
-  function IdentitiesCard({ identities, roster, actorId, onChanged }) {
+  function IdentitiesCard({ identities, roster, classes, actorId, onChanged }) {
     const list = identities.data ? identities.data.identities || [] : null;
     return (
       <Card padding={0}>
@@ -436,15 +454,62 @@
           {!identities.loading && list && list.length === 0 &&
             <EmptyState compact icon="check-circle" title="Nothing unresolved" body="Every POS name at this store is bound to a person." />}
           {!identities.loading && list && list.map((idn) => (
-            <IdentityCard key={idn.identity_key} identity={idn} roster={roster.data ? roster.data.roster || [] : []} actorId={actorId} onDone={onChanged} />
+            <IdentityCard key={idn.identity_key} identity={idn} roster={roster.data ? roster.data.roster || [] : []} classes={classes} actorId={actorId} onDone={onChanged} />
           ))}
         </div>
       </Card>);
   }
 
   // ── Roster ──────────────────────────────────────────────────────────────
-  function RosterCard({ roster }) {
+  // A NATIVE <select>, MATCHING THE ONE ABOVE. The identity queue's "Pick
+  // someone" control is a styled native select for the same reason: this is a
+  // one-of-six choice made in a table cell, and the atom set has no listbox.
+  // Its styling is copied from that control deliberately — a second dropdown
+  // shape three cards down the same screen reads as a different kind of thing.
+  function ClassSelect({ value, onChange, options, disabled, busy }) {
     const P = useP();
+    return (
+      <select value={value || ''} disabled={disabled || busy}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ height: 28, borderRadius: P.r8, border: `1px solid ${P.hairline3}`,
+          background: busy ? P.surface2 : P.surface, color: P.ink, fontSize: 12,
+          fontFamily: P.fontSans, padding: '0 6px', maxWidth: 160,
+          opacity: busy ? 0.6 : 1, cursor: disabled ? 'default' : 'pointer' }}>
+        {options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+      </select>);
+  }
+
+  function RosterCard({ roster, classes, actorId, canClassify, onChanged }) {
+    const P = useP();
+    const [busyId, setBusyId] = React.useState(null);
+    const options = (classes && classes.length ? classes : [])
+      .map((c) => ({ id: c.id, label: c.label }));
+
+    // The class is written the moment it is picked — no Save button. It is one
+    // field, it is reversible, and every change is already an append-only row
+    // in inc_classification_events with the manager's name on it, so a
+    // confirmation step would guard nothing that is not already recorded.
+    const classify = (r, next) => {
+      if (next === r.classification) return;
+      setBusyId(r.associate_id);
+      HWInc.post('/api/incentives/roster/classify',
+        { associate_id: r.associate_id, classification: next, actor: actorId,
+          reason: 'set from the roster table' }).then((res) => {
+        setBusyId(null);
+        if (res.ok) {
+          const label = (options.find((o) => o.id === next) || {}).label || next;
+          window.hdToast && window.hdToast({
+            title: `${r.name} is a ${label.toLowerCase()}`,
+            description: 'Bounties open to that class now include them, and the board they appear on has changed.',
+            tone: 'ok' });
+          onChanged && onChanged();
+        } else {
+          window.hdToast && window.hdToast({ title: 'Could not change the classification',
+            description: (res.body && res.body.error) || res.error || 'Try again.', tone: 'blocked' });
+        }
+      });
+    };
+
     return (
       <Card padding={0}>
         <SubHead icon="user-check" title="Roster" count={roster.data && roster.data.roster ? roster.data.roster.length : null} />
@@ -455,6 +520,17 @@
             columns={[
               { key: 'name', label: 'Person', render: (r) => <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Avatar name={r.name} size={24} /><b>{r.name}</b></div> },
               { key: 'store', label: 'Store', render: (r) => r.store_name },
+              // WHAT KIND OF PERSON THIS IS — which bounties they are eligible
+              // for and which board they appear on. Blaze cannot tell us: its
+              // employee payload has roleLevel {ADMIN, MANAGER, OTHER} and a
+              // `driver` flag, so a budtender, the loss-prevention officer and
+              // a support account arrive identical. This cell is where the
+              // difference is actually made, which is why it is a control and
+              // not a label.
+              { key: 'classification', label: 'Classification', width: 180, render: (r) => (canClassify && options.length
+                ? <ClassSelect value={r.classification || 'budtender'} options={options}
+                    busy={busyId === r.associate_id} onChange={(v) => classify(r, v)} />
+                : <window.IncShared.ClassPill cls={r.classification} />) },
               { key: 'active', label: 'Active', render: (r) => <Pill kind={r.active ? 'good' : 'neutral'} size="sm">{r.active ? 'active' : 'inactive'}</Pill> },
               {
                 key: 'ids', label: 'Bound identities', render: (r) => (r.identities || []).length ? (
@@ -499,7 +575,9 @@
     if (settings.error || !settings.data) return <window.IncShared.NotConnected onRetry={settings.refresh} />;
 
     const stores = settings.data.stores || [];
-    const refreshAll = () => { status.refresh(); runs.refresh(); identities.refresh(); };
+    // `roster` is in here now: creating a person from the identity queue adds
+    // a roster row, and classifying one changes a cell in the table below.
+    const refreshAll = () => { status.refresh(); runs.refresh(); identities.refresh(); roster.refresh(); };
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -517,8 +595,9 @@
         <ConnectionsCard status={status} stores={stores} actorId={session.id} onSynced={refreshAll} onJumpToUpload={(id) => setUploadJump(id)} />
         <UploadCard stores={stores} defaultStoreId={session.storeId || (stores[0] && stores[0].id)} actorId={session.id} onRunProduced={refreshAll} jumpKey={uploadJump} />
         <RunsCard runs={runs} actorId={session.id} onChanged={refreshAll} />
-        <IdentitiesCard identities={identities} roster={roster} actorId={session.id} onChanged={refreshAll} />
-        <RosterCard roster={roster} />
+        <IdentitiesCard identities={identities} roster={roster} classes={settings.data.classes || []} actorId={session.id} onChanged={refreshAll} />
+        <RosterCard roster={roster} classes={settings.data.classes || []} actorId={session.id}
+          canClassify={isManager} onChanged={() => { roster.refresh(); }} />
       </div>);
   };
 })();

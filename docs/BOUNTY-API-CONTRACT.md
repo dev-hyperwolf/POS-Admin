@@ -170,6 +170,64 @@ Run               { "id", "kind": "csv|api", "source", "store_id", "filename", "
 - `submit` on a **store-funded** bounty goes draft → active directly (a manager created it; there is nobody else to approve). `submit` on a brand-funded bounty goes draft → pending_approval. `apply` is a manual re-evaluation only.
 - `#/contests/:id/edit` is a real route in `incentives/app.jsx` (renders the builder with the draft loaded).
 
+### Person classification and bounty audiences (2026-09-08)
+
+**Why it exists.** Drivers are not sales people. At Lake Elsinore the sellers *are* the
+fourteen delivery drivers and the floor staff ring almost nothing, so one shared board tells a
+budtender they are 15th of 21 for doing a job the fourteen above them do not do — and one
+shared `scope: "all"` bounty pays the fleet out of the floor's prize pool. Managers, support
+and loss prevention have the same problem in reverse: they were unincentivizable because there
+was nothing to name them.
+
+**Blaze cannot answer it.** `/employees` carries `role.roleLevel` ∈ {ADMIN, MANAGER, OTHER} and
+a boolean `driver`, and nothing else — a budtender, a loss-prevention officer and a support
+account are all `OTHER`. The class is therefore **seeded** from those two hints and **curated**
+in Bounty; a re-seed never overwrites a non-NULL classification.
+
+```jsonc
+Classification    "budtender" | "driver" | "manager" | "loss_prevention" | "support" | "other"
+```
+
+- **`Person.classification`** — added to `Person`, and therefore to every `Standing`, every
+  `not_yet` row, `/me.person`, `/roster` rows and `/settings.managers`. Never null: a row with
+  no stored class reads as `"budtender"`, which is what keeps every pre-existing bounty and
+  board meaning the floor.
+- **`GET /standings` gains `&class=`** — one of the six, or `all`. **Defaults to `budtender`.**
+  It narrows `ranked` and `not_yet` only: `unattributed`, `trail` and `sources` are unmoved (a
+  sale with nobody on it has no class, and the trail is the whole store's arithmetic). `rank`,
+  `tied` and `progress` are **recomputed within the class** through the same ranker, so the
+  board agrees with `/me`. The response echoes `"class": "budtender"`.
+- **`GET /me`** — `person.classification`, and `today.rank_store` / `today.rank_all` are ranks
+  **within the person's own class**, with `of` counting that same population. The `neighbors`
+  strip is the same class. The seat offers no class control: a person is shown the board they
+  are on.
+- **`participants.classes: ["budtender"]`** on every contest — the audience. Absent means
+  `["budtender"]`; an empty list or an unknown class is a **400**. Stored de-duplicated in
+  `budtender, driver, manager, loss_prevention, support, other` order, so two payloads naming
+  the same audience produce the same row. With `scope: "all"` this now resolves to *every
+  active associate at the bounty's stores whose classification is in `classes`* — not "whoever
+  shows up in the data", which is what it meant before.
+- **`ContestSummary.audience: ["driver"]`** — the same list, so the bounty list can show one
+  chip per row without fetching each contest body.
+- **`GET /contests` gains `?class=`** — one of the six, or `all`. **Defaults to `all`** (unlike
+  the board: a bounty list is a manager's inventory of what is running). A bounty matches when
+  the class is *one of* its audiences, so `?class=manager` keeps a drivers-and-managers bounty.
+- **`sentence`** names the audience: `"… Open to budtenders on shift; ties split the prize."` ·
+  `"Open to drivers"` · `"Open to drivers and managers"` · `"Open to everyone on shift"` (all
+  six).
+- **`POST /api/incentives/roster/classify`** `{associate_id, classification, actor, reason?}` →
+  `{ "person": Person, "changed": bool, "ledger_version": int }`. **Manager-only** (403 for an
+  associate). Unknown person → 404; unknown class → 400. Idempotent: re-setting the same class
+  returns `changed: false`, writes no event and bumps no version. A real change **bumps
+  `ledger_version`** — an audience change moves a bounty's ranking while inserting no ledger
+  row — and appends to `inc_classification_events` (who moved whom, from → to, why).
+- **`POST /api/incentives/identities/create`** accepts an optional `classification`, so the
+  unresolved queue can mint a person straight into a class. An unknown class is a 400 and
+  nothing is created.
+- **`GET /settings` gains `classes`** — `[{ "id": "budtender", "label": "Budtender", "count": 34 }]`,
+  all six always present including the empty ones, live headcount across every store. The
+  labels are served so no screen keeps a second spelling.
+
 ### `/api/aov/*` and `/api/incentives/*` disagree about refunds — on purpose
 
 **`/api/aov/*` EXCLUDES refunds and voids. `/api/incentives/*` NETS them.** The two are

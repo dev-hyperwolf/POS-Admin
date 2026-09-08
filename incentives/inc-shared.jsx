@@ -143,6 +143,42 @@
     return <Pill kind={STATUS_KIND[status] || 'neutral'} size={size} dot>{STATUS_LABEL[status] || status || 'Unknown'}</Pill>;
   };
 
+  // ── ClassPill ───────────────────────────────────────────────────────────
+  // WHAT KIND OF PERSON THIS IS — the `classification` the backend puts on
+  // every Person (budtender · driver · manager · loss prevention · support ·
+  // other). Drivers are not sales people, and until this pill existed a
+  // screen showing a name had no way to say so.
+  //
+  // NEUTRAL, ALWAYS. A class is not a state: nobody is a "good" driver or a
+  // "bad" budtender, and colouring them would invent a hierarchy across the
+  // organisation that the data does not carry. StatusPill above owns the
+  // coloured vocabulary because a bounty's status really does have one.
+  //
+  // The spellings mirror `roster.CLASS_LABELS` on the backend, and
+  // GET /settings serves the same six with live counts — a screen that has
+  // settings in hand should prefer those, so a class added server-side shows
+  // up without a frontend release. This map is the fallback for the screens
+  // that render a class beside a name before settings have landed.
+  const CLASS_ORDER = ['budtender', 'driver', 'manager', 'loss_prevention', 'support', 'other'];
+  const CLASS_LABEL = {
+    budtender: 'Budtender', driver: 'Driver', manager: 'Manager',
+    loss_prevention: 'Loss prevention', support: 'Support', other: 'Other',
+  };
+  // The plural, for prose ("your rank among drivers"). Three of the six do not
+  // pluralise with a trailing "s", which is why this is a map and not a `+ 's'`.
+  const CLASS_PLURAL = {
+    budtender: 'budtenders', driver: 'drivers', manager: 'managers',
+    loss_prevention: 'loss prevention', support: 'support staff', other: 'everyone else',
+  };
+  window.IncShared.CLASS_ORDER = CLASS_ORDER;
+  window.IncShared.CLASS_LABEL = CLASS_LABEL;
+  window.IncShared.classLabel = (cls) => CLASS_LABEL[cls] || cls || 'Unclassified';
+  window.IncShared.classPlural = (cls) => CLASS_PLURAL[cls] || CLASS_LABEL[cls] || cls;
+  window.IncShared.ClassPill = function ClassPill({ cls, size = 'sm' }) {
+    if (!cls) return null;
+    return <Pill kind="neutral" size={size}>{CLASS_LABEL[cls] || cls}</Pill>;
+  };
+
   // ── NotConnected ────────────────────────────────────────────────────────
   // The estate's ErrorState with Bounty's own wording (the AOV pattern: never
   // fall back to a fixture number when the backend is unreachable -- say so,
