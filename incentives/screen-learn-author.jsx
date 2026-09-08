@@ -101,10 +101,8 @@
   function MB(bytes) { return (bytes / (1024 * 1024)).toFixed(1); }
   const IMAGE_CAP_BYTES = 1.5 * 1024 * 1024;
 
-  window.IncScreenLearnAuthor = function IncScreenLearnAuthor({ navigate }) {
+  window.IncScreenLearnAuthor = function IncScreenLearnAuthor({ navigate, session, isManager }) {
     const P = useP();
-    const session = window.HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
 
     const settingsQ = useOneShot('/api/incentives/settings', isManager);
     const contestsQ = useOneShot(`/api/incentives/contests?status=active&store_id=${encodeURIComponent(session.storeId || '')}`, isManager);

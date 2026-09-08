@@ -24,10 +24,18 @@
 // (plan §3.6). An action that sounds like a payout and is not is the single
 // most expensive thing this screen could get wrong.
 //
-// ⚠️ SEAT DETECTION AND TOASTS: same two shell gaps as screen-contests.jsx —
-// app.jsx passes only {navigate, query, route, path} and mounts no ToastHost.
-// See that file's header for the reasoning; the mechanism is repeated here
-// rather than shared because inc-shared.jsx is not this brief's file.
+// SEAT AND TOASTS. incentives/app.jsx passes every routed screen `{navigate,
+// query, route, path, session, isManager, previewing, seat: 'console'|'seat',
+// me}` and mounts exactly one <ToastHost/> for the whole shell — this file
+// reads `props.seat`/`props.isManager` directly and calls `window.hdToast`
+// straight, no local mount.
+//
+// `#/contests/:id/edit` IS THE BUILDER, NOT THIS FILE. app.jsx resolves that
+// regex to window.IncScreenContestBuilder before it ever falls through to the
+// generic `/contests/*` → this screen mapping, so this file only ever
+// receives a bare `/contests/:id`. Its one editing responsibility is sending
+// the operator there: the draft's "Edit the draft" action navigates to
+// `#/contests/{id}/edit`.
 ;(function () {
   const useP = window.useP;
 
@@ -35,8 +43,6 @@
     store_vs_store: 'Store vs store', aov_goal: 'AOV goal' };
   const METRIC_LABEL = { net_cents: 'Net $', gross_cents: 'Gross $', units: 'Units',
     txn_count: 'Orders', aov_cents: 'AOV' };
-  const SOURCE_LABEL = { 'blaze-api': 'Blaze API', 'meadow-api': 'Meadow API',
-    'blaze-csv': 'Blaze CSV', 'meadow-csv': 'Meadow CSV', hwpos: 'Hyperwolf POS' };
   const RECURRENCE_LABEL = { none: 'Doesn’t repeat', hourly: 'Hourly', daily: 'Daily', weekly: 'Weekly' };
   const TIE_LABEL = { split: 'Split the place', earliest: 'Whoever got there first' };
   const REWARD_TYPE_LABEL = { threshold: 'Threshold', per_unit: 'Per unit', places: 'Places',
@@ -52,47 +58,21 @@
   const stamp = (iso) => (iso ? new Date(iso).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '—');
   const dayTime = (iso) => (iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
 
-  // Same adapter, same reason, as screen-contests.jsx: the contract's Source is
-  // not the shape IncShared.SourceFreshness reads, and nothing is invented to
-  // bridge them.
-  function freshnessRows(sources) {
-    if (!Array.isArray(sources)) return [];
-    return sources.map((s) => {
-      const at = s.last_error_at ? new Date(s.last_error_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : null;
-      return {
-        source: SOURCE_LABEL[s.source] || s.source,
-        store: s.store_name || s.store_id,
-        status: s.last_error ? 'bad' : s.configured === false ? 'off' : s.stale ? 'warn' : s.last_ok_at ? 'ok' : 'off',
-        synced_at: s.last_ok_at || null,
-        count_today: s.today && s.today.txns != null ? s.today.txns : null,
-        last_error: s.last_error ? (at ? at + ': ' + s.last_error : s.last_error) : null,
-      };
-    });
+  // Contract addenda (2026-09-08): the detail response now carries its own
+  // `sources: [Source]` for the bounty's stores, not only `trail.sources`
+  // (a bare list of source names). Preference order per the brief: the
+  // detail's own `sources`, then `trail.sources` (mapped to the minimal
+  // `{source}` shape IncShared.SourceFreshness already degrades gracefully
+  // for), then the shell's app-wide `props.me` sources as a last resort.
+  function resolveSources(data, me) {
+    if (Array.isArray(data.sources) && data.sources.length) return data.sources;
+    if (data.trail && Array.isArray(data.trail.sources) && data.trail.sources.length) {
+      return data.trail.sources.map((s) => ({ source: s }));
+    }
+    return (me && me.data && me.data.sources) || [];
   }
 
   const toast = (t) => { if (window.hdToast) window.hdToast(t); };
-
-  const SEAT_MAX_WIDTH = 460;
-  function useSeatFrame(isManager) {
-    const ref = React.useRef(null);
-    const [narrow, setNarrow] = React.useState(false);
-    React.useLayoutEffect(() => {
-      const el = ref.current;
-      if (!el) return undefined;
-      const measure = () => { const w = el.clientWidth; if (w > 0) setNarrow(w <= SEAT_MAX_WIDTH); };
-      measure();
-      if (typeof ResizeObserver === 'undefined') return undefined;
-      const ro = new ResizeObserver(measure);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, []);
-    return { ref, seat: !isManager || narrow };
-  }
-  function useIsManager(propValue) {
-    if (propValue != null) return propValue;
-    const role = window.HWInc.session().role;
-    return role === 'Floor Manager' || role === 'Admin';
-  }
 
   function CardHead({ icon, title, right, tone }) {
     const P = useP();
@@ -311,13 +291,10 @@
   }
 
   // ── the screen ──────────────────────────────────────────────────────────
-  function Detail({ navigate, id, seat }) {
+  function Detail({ navigate, id, seat, session, me }) {
     const P = useP();
     const S = window.IncShared;
-    const session = window.HWInc.session();
     const detail = window.HWInc.usePoll('/api/incentives/contests/' + encodeURIComponent(id), { intervalMs: 20000 });
-    // /me carries sources[]; the detail route does not (see the report note).
-    const me = window.HWInc.usePoll('/api/incentives/me', { intervalMs: 30000 });
 
     const [roundKey, setRoundKey] = React.useState(null);
     const [confirming, setConfirming] = React.useState(null);
@@ -390,7 +367,7 @@
         ) : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <PBtn size="sm" variant="accent" icon="send" onClick={() => { setReason(''); setConfirming('submit'); }}>Submit for approval</PBtn>
-            <PBtn size="sm" variant="secondary" icon="pencil" onClick={() => navigate('#/contests/new?id=' + encodeURIComponent(id))}>Edit the draft</PBtn>
+            <PBtn size="sm" variant="secondary" icon="pencil" onClick={() => navigate('#/contests/' + encodeURIComponent(id) + '/edit')}>Edit the draft</PBtn>
           </div>);
       } else if (status === 'pending_approval') {
         actions = open === 'approve' ? (
@@ -527,7 +504,7 @@
             <EmptyState compact icon="clock" title="This bounty has no rounds yet"
               body="A round appears once the window opens. Nothing is scored before then." />)}
           <TrailDisclosure trail={data.trail} />
-          <S.SourceFreshness sources={freshnessRows(me.data && me.data.sources)} />
+          <S.SourceFreshness sources={resolveSources(data, me)} />
         </div>
       </Card>);
 
@@ -574,34 +551,23 @@
   }
 
   // ── route entry ─────────────────────────────────────────────────────────
-  // app.jsx sends EVERY '/contests/*' path here except '/contests/new', so
-  // '#/contests/:id/edit' — a route the plan lists — lands on this file rather
-  // than the builder. Rather than change the shell (not this brief's file), the
-  // edit path is forwarded to the builder's own '?id=' form, which app.jsx does
-  // route. See the report: the shell is the better long-term fix.
+  // app.jsx routes '#/contests/:id/edit' to the builder directly (see the
+  // file header) and everything else under '/contests/*' (but not
+  // '/contests/new') here, so `props.path` this file ever sees is a bare
+  // '/contests/:id'.
   window.IncScreenContestDetail = function IncScreenContestDetail(props) {
-    const P = useP();
-    const isManager = useIsManager(props.isManager);
-    const frame = useSeatFrame(isManager);
-    const parts = (props.path || '').split('/').filter(Boolean); // ['contests', id, 'edit'?]
+    const seat = props.seat === 'seat';
+    const parts = (props.path || '').split('/').filter(Boolean); // ['contests', id]
     const id = parts[1] || '';
-    const isEdit = parts[2] === 'edit';
-
-    React.useEffect(() => {
-      if (isEdit && id) props.navigate('#/contests/new?id=' + encodeURIComponent(id));
-    }, [isEdit, id]);
 
     return (
-      <div ref={frame.ref} style={{ width: '100%' }}>
-        {window.ToastHost && <window.ToastHost />}
+      <div style={{ width: '100%' }}>
         {!id ? (
           <EmptyState icon="alert" title="That bounty link is incomplete"
             body="The address carries no bounty id. Open one from the Bounties list and the link will carry its id."
             action={<PBtn size="sm" variant="secondary" icon="arrow-left" onClick={() => props.navigate('#/contests')}>Back to Bounties</PBtn>} />
-        ) : isEdit ? (
-          <div style={{ fontSize: P.type.body, color: P.inkDim, padding: 20 }}>Opening the builder for this draft…</div>
         ) : (
-          <Detail navigate={props.navigate} id={id} seat={frame.seat} />)}
+          <Detail navigate={props.navigate} id={id} seat={seat} session={props.session} me={props.me} />)}
       </div>);
   };
 })();

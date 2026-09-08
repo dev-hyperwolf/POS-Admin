@@ -13,43 +13,14 @@
 // re-derives it, so the arithmetic in the API and the arithmetic on screen
 // cannot drift apart.
 //
-// SEAT vs CONSOLE. Same gap as screen-standings.jsx: incentives/app.jsx does
-// not forward `isManager`/`previewing` to a routed screen (verified by
-// reading app.jsx — it passes only {navigate, query, route, path}), and there
-// is no prop signalling a manager's "preview as budtender" toggle. This file
-// re-derives `session` via HWInc.session() and — because SeatFrame renders
-// the seat for real at its actual 420px width whether the viewer is a real
-// budtender or a previewing manager — uses the same measured-width technique
-// as screen-standings.jsx (`isManager AND wide`) to choose the console shape,
-// rather than trusting role alone and rendering the console inside a 420px
-// column during a preview.
+// SEAT vs CONSOLE. incentives/app.jsx passes every screen `{navigate, query,
+// route, path, session, isManager, previewing, seat: 'console'|'seat', me}` —
+// `seat` already accounts for a manager previewing the budtender seat, so
+// this file reads it straight off props instead of measuring its own width.
 ;(function () {
   const useP = window.useP;
   const HWInc = window.HWInc;
   const IncShared = window.IncShared;
-
-  // ── responsive seat/console switch — identical technique to
-  // screen-standings.jsx; duplicated rather than promoted to inc-shared.jsx
-  // per this file's brief ("keep composites local unless told to add"). ────
-  function useNarrow(threshold) {
-    const t = threshold || 480;
-    const ref = React.useRef(null);
-    const [narrow, setNarrow] = React.useState(() => (typeof window !== 'undefined' ? window.innerWidth < t + 300 : true));
-    React.useLayoutEffect(() => {
-      const el = ref.current;
-      if (!el) return undefined;
-      const measure = () => setNarrow(el.getBoundingClientRect().width < t);
-      measure();
-      if (typeof ResizeObserver === 'undefined') {
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-      }
-      const ro = new ResizeObserver(measure);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, [t]);
-    return [ref, narrow];
-  }
 
   function CardHead({ icon, title, right }) {
     const P = useP();
@@ -101,9 +72,8 @@
   // docs/BOUNTY-API-CONTRACT.md, so unlike the Concept D mockup's Cash /
   // Payroll / Gift card / Other segmented control, this form does not invent
   // one; "how" is folded into the free-text reason instead (see placeholder).
-  function RecordPaidModal({ person, onClose, onDone }) {
+  function RecordPaidModal({ person, session, onClose, onDone }) {
     const P = useP();
-    const session = HWInc.session();
     const [amount, setAmount] = React.useState(((person.outstanding_cents || 0) / 100).toFixed(2));
     const [reason, setReason] = React.useState('');
     const [busy, setBusy] = React.useState(false);
@@ -346,18 +316,15 @@
             : <LedgerTable rows={filtered} showPerson nameFor={nameFor} />}
         </div>
 
-        {recordFor && <RecordPaidModal person={recordFor} onClose={() => setRecordFor(null)} onDone={() => q.refresh()} />}
+        {recordFor && <RecordPaidModal person={recordFor} session={session} onClose={() => setRecordFor(null)} onDone={() => q.refresh()} />}
       </div>);
   }
 
   // ── entry point ───────────────────────────────────────────────────────
-  window.IncScreenEarnings = function IncScreenEarnings() {
-    const session = HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
-    const [ref, narrow] = useNarrow();
-    const showConsole = isManager && !narrow;
+  window.IncScreenEarnings = function IncScreenEarnings({ session, isManager, seat }) {
+    const showConsole = isManager && seat !== 'seat';
     return (
-      <div ref={ref} style={{ width: '100%' }}>
+      <div style={{ width: '100%' }}>
         {showConsole ? <StoreLedgerView session={session} /> : <MyLedgerView session={session} />}
       </div>);
   };

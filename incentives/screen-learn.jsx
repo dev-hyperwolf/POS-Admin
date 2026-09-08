@@ -10,26 +10,16 @@
 // its "Preview as a budtender" button — the brief's one permitted extra
 // global. Nothing else here leaks; the file is IIFE-wrapped.
 //
-// ROLE, NOT A PROP. incentives/app.jsx resolves a screen from ROUTES() and
-// renders it as `<Screen {...ctx} />` with `ctx = { navigate, query, route,
-// path }` only — isManager, session, previewing and the /me poll are NOT
-// forwarded to the routed screen (read app.jsx's App() top to bottom: ctx is
-// built once, before isManager is even computed). So this file derives
-// `isManager` itself from `HWInc.session().role`, the same formula app.jsx
-// uses for its own chrome — not a violation of "never re-derive role from a
-// string", just the only signal actually available. One real consequence:
-// app.jsx's "Preview as budtender" toggle is local React state that never
-// reaches here, so a manager who is previewing still renders as a manager
-// in this file (console list + overlay player) inside the SeatFrame's
-// narrow, pointer-events:none column. That is a shell wiring gap in
-// incentives/app.jsx, which this task does not touch — see the report.
+// ROLE, FROM PROPS. incentives/app.jsx passes every routed screen `{navigate,
+// query, route, path, session, isManager, previewing, seat: 'console'|'seat',
+// me}`; `isManager` and `seat` are read straight off props here, so a manager
+// previewing the budtender seat renders the seat's list/player, not the
+// console's.
 //
-// TOASTS MAY NO-OP. window.hdToast is only registered once <ToastHost/> has
-// mounted (shared/hd-ui.jsx), and incentives/app.jsx never renders one. This
-// file calls `window.hdToast?.(...)` defensively everywhere, same as
-// engage/screen-loyalty.jsx already does — until app.jsx grows a ToastHost,
-// the quiz-result toast is a silent no-op and the on-screen result card is
-// the only place the outcome actually shows.
+// TOASTS. window.hdToast is registered once by the shell's single
+// <ToastHost/>. This file calls `window.hdToast?.(...)` defensively
+// everywhere, same as engage/screen-loyalty.jsx already does, in case a page
+// somehow loses hd-ui.jsx.
 ;(function () {
   const useP = window.useP;
 
@@ -107,7 +97,10 @@
   }
 
   // ── one row in the list — viewed/completed/quiz pills, linked bounty chip ─
-  function SnapListRow({ snap, navigate, onOpen }) {
+  // `snap.views` (addenda 2026-09-08: {count, completed}) needs no per-row
+  // fetch — the list route already carries it — so a manager sees it right
+  // here instead of only inside the player's backRow.
+  function SnapListRow({ snap, navigate, onOpen, isManager }) {
     const P = useP();
     const unread = !snap.viewed;
     return (
@@ -133,6 +126,10 @@
             {snap.reward_summary && <span>· {snap.reward_summary}</span>}
           </div>
         </div>
+        {isManager && snap.views && (
+          <span style={{ fontSize: 10.5, fontFamily: P.fontMono, color: P.inkDim, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            {window.HWInc.fmt.number(snap.views.count)} views · {window.HWInc.fmt.number(snap.views.completed)} completed
+          </span>)}
         {snap.linked_contest_id && (
           <span onClick={(e) => { e.stopPropagation(); navigate(`#/contests/${snap.linked_contest_id}`); }} style={{ cursor: 'pointer' }}>
             <Pill kind="neutral" size="sm" icon="target">Linked bounty</Pill>
@@ -410,10 +407,9 @@
   };
 
   // ── THE ROUTED SCREEN — list of snaps, story rail up top ─────────────────
-  window.IncScreenLearn = function IncScreenLearn({ navigate }) {
+  window.IncScreenLearn = function IncScreenLearn({ navigate, session, isManager, seat }) {
     const P = useP();
-    const session = window.HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
+    const showConsole = isManager && seat !== 'seat';
     const snapsQ = useSnaps(session.storeId, session.id);
     const [openId, setOpenId] = React.useState(null);
     const snaps = (snapsQ.data && snapsQ.data.snaps) || [];
@@ -423,13 +419,13 @@
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="story" size={18} stroke={1.8} color={P.inkDim} />
-            <h1 style={{ margin: 0, fontSize: isManager ? 21 : 18, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Learn</h1>
+            <h1 style={{ margin: 0, fontSize: showConsole ? 21 : 18, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Learn</h1>
           </div>
           <p style={{ margin: '4px 0 0', fontSize: P.type.body, color: P.inkMute, maxWidth: 480, lineHeight: 1.5 }}>
             Short stories from the brands you sell. Pass a quiz and it settles straight to your ledger.
           </p>
         </div>
-        {isManager && <PBtn variant="accent" size="sm" icon="plus" onClick={() => navigate('#/learn/new')}>New snap</PBtn>}
+        {showConsole && <PBtn variant="accent" size="sm" icon="plus" onClick={() => navigate('#/learn/new')}>New snap</PBtn>}
       </div>);
 
     let body;
@@ -445,7 +441,7 @@
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <StoryRail snaps={snaps} onOpen={setOpenId} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {snaps.map((s) => <SnapListRow key={s.id} snap={s} navigate={navigate} onOpen={setOpenId} />)}
+            {snaps.map((s) => <SnapListRow key={s.id} snap={s} navigate={navigate} onOpen={setOpenId} isManager={showConsole} />)}
           </div>
         </div>);
     }
@@ -456,7 +452,7 @@
         {body}
       </div>);
 
-    if (!isManager) {
+    if (!showConsole) {
       return openId
         ? <window.IncSnapPlayer snapId={openId} onClose={() => setOpenId(null)} mode="seat" isManager={false}
             associateId={session.id} onSnapChanged={snapsQ.refresh} navigate={navigate} />

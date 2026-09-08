@@ -16,11 +16,11 @@
 // use), never a native dialog. (3) The roster is `window.DataTable`, not a hand-rolled row list.
 //
 // THE SEAT NEVER SEES THE CONSOLE. A budtender's goal is one progress row — value, meter, and
-// which of override/store-default/fallback set it — read from the SAME field
-// `/api/incentives/me` already carries for the Home card (`aov_goal`, `today.aov_cents`), never
-// a second goals fetch of its own. No manager controls exist in that branch; `isManager` is
-// derived from window.HWInc.session().role, the one production seam, never guessed from a
-// string on this screen.
+// which of override/store-default/fallback set it — read from the SAME field the shell's
+// app-wide `props.me` (its `/api/incentives/me` poll) already carries for the Home card
+// (`aov_goal`, `today.aov_cents`), never a second goals fetch of its own. No manager controls
+// exist in that branch; the choice is `props.isManager && props.seat !== 'seat'`, so a manager
+// previewing the budtender seat gets the seat card, not the console crammed into 420px.
 ;(function () {
   const useP = window.useP;
   const HWInc = window.HWInc;
@@ -218,18 +218,8 @@
   }
 
   // ── budtender seat ──────────────────────────────────────────────────────
-  function toFreshness(s) {
-    return {
-      source: s.source, store: s.store_name,
-      status: s.last_error ? 'bad' : s.stale ? 'warn' : s.last_ok_at ? 'ok' : 'off',
-      synced_at: s.last_ok_at, last_error: s.last_error,
-      count_today: s.today ? s.today.txns : undefined,
-    };
-  }
-  function SeatGoalsCard() {
+  function SeatGoalsCard({ me }) {
     const P = useP();
-    const me = HWInc.usePoll('/api/incentives/me', { intervalMs: 20000 });
-
     return (
       <Card padding={0}>
         <div style={{ padding: '13px 16px', borderBottom: `1px solid ${P.hairline}`, display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -250,16 +240,14 @@
                   pct={pct} color={g && g.met ? P.good : P.info} sub={sub} style={{ borderTop: 'none' }} />);
             })()}
             {me.data.sources && me.data.sources.length > 0 &&
-              <div style={{ padding: '0 13px 13px' }}><window.IncShared.SourceFreshness sources={me.data.sources.map(toFreshness)} /></div>}
+              <div style={{ padding: '0 13px 13px' }}><window.IncShared.SourceFreshness sources={me.data.sources} /></div>}
           </>)}
       </Card>);
   }
 
-  window.IncScreenGoals = function IncScreenGoals() {
-    const session = HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
-    return isManager
+  window.IncScreenGoals = function IncScreenGoals({ session, isManager, seat, me }) {
+    return (isManager && seat !== 'seat')
       ? <ManagerGoalsCard storeId={session.storeId} actorId={session.id} actorName={session.name} />
-      : <SeatGoalsCard />;
+      : <SeatGoalsCard me={me} />;
   };
 })();

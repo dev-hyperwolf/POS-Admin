@@ -10,25 +10,15 @@
 // they stand relative to two people and what to do about it; a manager is
 // shown the whole table plus what the table cannot see (the unattributed row,
 // the not-yet list, the trail). incentives/app.jsx decides which SHELL frame
-// (SeatFrame vs ConsoleFrame) wraps this screen from HWInc.session().role —
-// but it does NOT forward that decision, or the /me poll it already runs for
-// the shell chrome, down to the routed screen: `ctx = { navigate, query,
-// route, path }` is the entire prop set a screen receives (verified by
-// reading app.jsx directly, not assumed from the brief). Two consequences:
-//   1. This file re-derives `session`/`isManager` itself via HWInc.session(),
-//      the same one function app.jsx itself uses.
-//   2. There is no prop carrying "the manager is currently previewing the
-//      budtender seat" — SeatFrame renders the seat for real at its actual
-//      420px width whether the viewer is a real budtender or a previewing
-//      manager (see app.jsx's own comment on SeatFrame). So instead of
-//      trusting `isManager` alone to choose console-vs-seat layout (which
-//      would render the wide console INSIDE the narrow 420px seat column
-//      during a manager's preview), this screen measures its own rendered
-//      width with a ResizeObserver and treats "isManager AND wide" as the
-//      console condition — the same width the shell itself uses to decide
-//      which frame to show, read back from the DOM instead of a missing prop.
-//      A budtender's session is never wide (SeatFrame hard-caps at 420px),
-//      so `isManager` still gates who can ever see the console shape.
+// (SeatFrame vs ConsoleFrame) wraps this screen, and forwards that verdict
+// straight to every routed screen as props: `{ navigate, query, route, path,
+// session, isManager, previewing, seat: 'console'|'seat', me }` — `me` is the
+// shell's own app-wide /api/incentives/me poll (`{loading, error, data,
+// refresh}`), so this screen neither re-derives role from HWInc.session() nor
+// opens a second /me poll of its own. `seat === 'seat'` already accounts for
+// a manager previewing the budtender seat (app.jsx sets it, not this file),
+// so the console-vs-seat choice below is a straight prop read, not a
+// measured width.
 ;(function () {
   const useP = window.useP;
   const HWInc = window.HWInc;
@@ -47,55 +37,6 @@
     if (metric === 'units') return HWInc.fmt.number(value) + ' units';
     if (metric === 'txn_count') return HWInc.fmt.number(value) + ' orders';
     return HWInc.fmt.cents(value);
-  }
-
-  // ── Source (contract shape) -> IncShared.SourceFreshness's prop shape ────
-  // The two shapes differ: the contract's `Source` fragment carries
-  // {source, store_id, store_name, configured, last_ok_at, last_error,
-  // last_error_at, today:{txns,lines}, stale}; inc-shared.jsx's
-  // SourceFreshness expects {source, store, status, synced_at, count_today,
-  // last_error, last_upload, format, lines}. This adapter is the seam
-  // between them — every field it reads is a documented contract field, and
-  // it invents no new one; it only renames/derives for the display composite.
-  function toFreshnessSources(sources) {
-    return (sources || []).map((s) => {
-      const isCsv = /-csv$/.test(s.source || '');
-      let status = 'off';
-      if (s.last_error) status = 'bad';
-      else if (s.stale) status = 'warn';
-      else if (s.configured && s.last_ok_at) status = 'ok';
-      const errText = s.last_error
-        ? (s.last_error_at ? new Date(s.last_error_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ': ' : '') + s.last_error
-        : null;
-      return {
-        source: s.source, store: s.store_name, status,
-        synced_at: !isCsv ? s.last_ok_at : null,
-        count_today: s.today ? s.today.txns : null,
-        last_error: errText,
-        last_upload: isCsv ? s.last_ok_at : null,
-      };
-    });
-  }
-
-  // ── responsive seat/console switch — see file header ─────────────────────
-  function useNarrow(threshold) {
-    const t = threshold || 480;
-    const ref = React.useRef(null);
-    const [narrow, setNarrow] = React.useState(() => (typeof window !== 'undefined' ? window.innerWidth < t + 300 : true));
-    React.useLayoutEffect(() => {
-      const el = ref.current;
-      if (!el) return undefined;
-      const measure = () => setNarrow(el.getBoundingClientRect().width < t);
-      measure();
-      if (typeof ResizeObserver === 'undefined') {
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-      }
-      const ro = new ResizeObserver(measure);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, [t]);
-    return [ref, narrow];
   }
 
   // ── small local composites (kept local per brief — inc-shared.jsx is not
@@ -294,9 +235,8 @@
       </Card>);
   }
 
-  function MyDay({ session, navigate }) {
+  function MyDay({ session, navigate, me }) {
     const P = useP();
-    const me = HWInc.usePoll(`/api/incentives/me?store_id=${encodeURIComponent(session.storeId || '')}&associate_id=${encodeURIComponent(session.id || '')}`, { intervalMs: 20000 });
 
     if (me.error) return <IncShared.NotConnected onRetry={me.refresh} />;
     if (me.loading || !me.data) {
@@ -318,7 +258,7 @@
         {d.today && d.today.neighbors && d.today.neighbors.length > 0 && <NeighborsCard neighbors={d.today.neighbors} sessionId={session.id} />}
         <BountiesCard bounties={d.bounties} />
         {d.earnings && <BalanceLineCard earnings={d.earnings} navigate={navigate} />}
-        <IncShared.SourceFreshness sources={toFreshnessSources(d.sources)} />
+        <IncShared.SourceFreshness sources={d.sources} />
       </div>);
   }
 
@@ -394,7 +334,7 @@
   function BoardBody({ data, scope, metric, sessionId, navigate }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <IncShared.SourceFreshness sources={toFreshnessSources(data.sources)} />
+        <IncShared.SourceFreshness sources={data.sources} />
         {scope === 'stores'
           ? <StoreVsStoreTable stores={data.stores} metric={metric} />
           : <PersonBoard data={data} metric={metric} sessionId={sessionId} navigate={navigate} />}
@@ -448,14 +388,11 @@
   }
 
   // ── entry point ───────────────────────────────────────────────────────
-  window.IncScreenStandings = function IncScreenStandings({ navigate }) {
-    const session = HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
-    const [ref, narrow] = useNarrow();
-    const showConsole = isManager && !narrow;
+  window.IncScreenStandings = function IncScreenStandings({ navigate, session, isManager, seat, me }) {
+    const showConsole = isManager && seat !== 'seat';
     return (
-      <div ref={ref} style={{ width: '100%' }}>
-        {showConsole ? <BountyBoard session={session} navigate={navigate} /> : <MyDay session={session} navigate={navigate} />}
+      <div style={{ width: '100%' }}>
+        {showConsole ? <BountyBoard session={session} navigate={navigate} /> : <MyDay session={session} navigate={navigate} me={me} />}
       </div>);
   };
 })();

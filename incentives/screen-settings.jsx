@@ -8,9 +8,8 @@
 // this same GET), a Seg for the one editable setting, and a plain roster list for managers —
 // nothing invented beyond what the contract sends.
 //
-// MANAGER ONLY. Same role derivation as every other screen in this build:
-// window.HWInc.session().role, never a prop (app.jsx passes only {navigate, query, route,
-// path} — see incentives/screen-data.jsx's header for why that is verified, not assumed).
+// MANAGER ONLY. `props.isManager` and `props.session`, exactly as incentives/app.jsx computes
+// and forwards them to every routed screen.
 ;(function () {
   const useP = window.useP;
   const HWInc = window.HWInc;
@@ -20,10 +19,8 @@
     earliest: 'A prize tied across several people goes to whoever reached the value first.',
   };
 
-  window.IncScreenSettings = function IncScreenSettings() {
+  window.IncScreenSettings = function IncScreenSettings({ session, isManager }) {
     const P = useP();
-    const session = HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
 
     const [state, setState] = React.useState({ loading: true, error: null, data: null });
     const load = React.useCallback(() => {

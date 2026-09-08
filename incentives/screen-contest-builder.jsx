@@ -32,10 +32,11 @@
 // labelled as history everywhere it appears, because a dry run a manager reads
 // as a promise is how a brand ends up owed money nobody agreed to.
 //
-// ⚠️ ROUTING: app.jsx sends '/contests/new' here and EVERY other '/contests/*'
-// to the detail screen — so '#/contests/:id/edit' does not reach this file. The
-// draft-edit path is '#/contests/new?id=<id>' instead, using `query`, which the
-// shell does pass. screen-contest-detail.jsx forwards the '/edit' URL here.
+// ROUTING. app.jsx sends both '/contests/new' AND '#/contests/:id/edit' to
+// this file (the '/:id/edit' regex is checked before the generic
+// '/contests/*' → detail mapping). The draft id therefore comes from
+// `props.path` on an edit route; the older '?id=' query form (`props.query`)
+// still works as a fallback so a bookmarked or hand-typed link keeps working.
 ;(function () {
   const useP = window.useP;
 
@@ -84,28 +85,6 @@
     tincture: 'Tincture', preroll: 'Preroll', wellness: 'Wellness' };
 
   const toast = (t) => { if (window.hdToast) window.hdToast(t); };
-
-  const SEAT_MAX_WIDTH = 460;
-  function useSeatFrame(isManager) {
-    const ref = React.useRef(null);
-    const [narrow, setNarrow] = React.useState(false);
-    React.useLayoutEffect(() => {
-      const el = ref.current;
-      if (!el) return undefined;
-      const measure = () => { const w = el.clientWidth; if (w > 0) setNarrow(w <= SEAT_MAX_WIDTH); };
-      measure();
-      if (typeof ResizeObserver === 'undefined') return undefined;
-      const ro = new ResizeObserver(measure);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, []);
-    return { ref, seat: !isManager || narrow };
-  }
-  function useIsManager(propValue) {
-    if (propValue != null) return propValue;
-    const role = window.HWInc.session().role;
-    return role === 'Floor Manager' || role === 'Admin';
-  }
 
   // ── date + money plumbing ───────────────────────────────────────────────
   // The contract's window_start/window_end are ISO-8601 UTC; <input
@@ -287,6 +266,27 @@
   }
   const escapeRx = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+  // Contract addenda (2026-09-08): POST /contests/preview now returns
+  // `fragments: [{text, field, answered}]` in reading order, whose
+  // concatenation is `sentence` — a real seam instead of the string-match
+  // heuristic below. Answered fragments get the same accent treatment the
+  // heuristic gave a matched value; an unanswered fragment is muted so the
+  // manager sees exactly which piece of the sentence is still a placeholder.
+  function FragmentSentence({ fragments }) {
+    const P = useP();
+    return (
+      <span style={{ color: P.ink2 }}>
+        {fragments.map((f, i) => (
+          <span key={i} style={f.answered
+            ? { background: P.accentSoft, color: P.accentText, borderRadius: P.r8, padding: '1px 5px', fontWeight: 600 }
+            : { color: P.inkMute }}>{f.text}</span>))}
+      </span>);
+  }
+
+  // Fallback only: used when the backend has not yet started returning
+  // `fragments` for this preview response. Locates the values THIS FORM set
+  // inside the flat `sentence` string by substring match — see the file
+  // header's "WHY THE HIGHLIGHT IS A STRING MATCH" note.
   function SentenceText({ sentence, fragments }) {
     const P = useP();
     if (!sentence) return null;
@@ -332,11 +332,13 @@
   }
 
   // ── the screen ──────────────────────────────────────────────────────────
-  function Builder({ navigate, query }) {
+  function Builder({ navigate, query, path, session }) {
     const P = useP();
     const S = window.IncShared;
-    const session = window.HWInc.session();
-    const editId = query && query.get ? query.get('id') : null;
+    // `#/contests/:id/edit` is the real route (app.jsx); the older '?id='
+    // query form is kept as a fallback for a bookmarked or hand-typed link.
+    const pathMatch = /^\/contests\/([^/]+)\/edit$/.exec(path || '');
+    const editId = (pathMatch && pathMatch[1]) || (query && query.get ? query.get('id') : null);
 
     const [draft, setDraft] = React.useState(() => emptyDraft(session.storeId));
     const [loadingDraft, setLoadingDraft] = React.useState(!!editId);
@@ -344,7 +346,7 @@
     const [reloadTick, setReloadTick] = React.useState(0);
     const [settings, setSettings] = React.useState(null);
     const [roster, setRoster] = React.useState(null);
-    const [preview, setPreview] = React.useState({ loading: false, error: null, sentence: null, would: null });
+    const [preview, setPreview] = React.useState({ loading: false, error: null, sentence: null, fragments: null, would: null });
     const [saving, setSaving] = React.useState(null); // 'draft' | 'submit'
     const [brandQuery, setBrandQuery] = React.useState('');
     const [productText, setProductText] = React.useState('');
@@ -414,10 +416,11 @@
         window.HWInc.post('/api/incentives/contests/preview', draft).then((r) => {
           if (mine !== serial.current) return;
           if (!r.ok) {
-            setPreview({ loading: false, error: (r.body && r.body.error) || r.error || ('HTTP ' + r.code), sentence: null, would: null });
+            setPreview({ loading: false, error: (r.body && r.body.error) || r.error || ('HTTP ' + r.code), sentence: null, fragments: null, would: null });
             return;
           }
-          setPreview({ loading: false, error: null, sentence: r.body.sentence || null, would: r.body.would_have_counted || null });
+          setPreview({ loading: false, error: null, sentence: r.body.sentence || null,
+            fragments: Array.isArray(r.body.fragments) ? r.body.fragments : null, would: r.body.would_have_counted || null });
         });
       }, 400);
       return () => clearTimeout(t);
@@ -446,7 +449,8 @@
         const s = await window.HWInc.post('/api/incentives/contests/' + encodeURIComponent(id) + '/submit', { actor: session.id });
         if (!s.ok) {
           setSaving(null);
-          toast({ title: 'Saved as a draft, but not submitted', description: (s.body && s.body.error) || s.error || ('HTTP ' + s.code), tone: 'warn' });
+          toast({ title: isBrandFunded ? 'Saved as a draft, but not submitted' : 'Saved as a draft, but not started',
+            description: (s.body && s.body.error) || s.error || ('HTTP ' + s.code), tone: 'warn' });
           if (id) navigate('#/contests/' + id);
           return;
         }
@@ -812,6 +816,10 @@
           <div style={{ padding: 15, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {preview.error ? (
               <S.NotConnected compact />
+            ) : preview.fragments && preview.fragments.length ? (
+              <p style={{ margin: 0, fontSize: P.type.title, lineHeight: 1.6 }}>
+                <FragmentSentence fragments={preview.fragments} />
+              </p>
             ) : preview.sentence ? (
               <p style={{ margin: 0, fontSize: P.type.title, lineHeight: 1.6 }}>
                 <SentenceText sentence={preview.sentence} fragments={answeredFragments(draft)} />
@@ -868,15 +876,20 @@
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <PBtn size="lg" variant="accent" full={false} busy={saving === 'draft'} disabled={saving === 'submit'}
               style={{ flex: 1 }} onClick={() => save('draft')}>Save as a draft</PBtn>
-            {isBrandFunded && (
+            {isBrandFunded ? (
               <PBtn size="lg" variant="secondary" busy={saving === 'submit'} disabled={saving === 'draft'}
-                onClick={() => save('submit')}>Submit for approval</PBtn>)}
+                onClick={() => save('submit')}>Submit for approval</PBtn>
+            ) : (
+              <PBtn size="lg" variant="secondary" busy={saving === 'submit'} disabled={saving === 'draft'}
+                onClick={() => save('submit')}>Start</PBtn>)}
           </div>
           {showProblems && problems.length > 0 && (
             <div style={{ marginTop: 10 }}>
               {problems.map((p, i) => <Problem key={i}>{p.msg}</Problem>)}
             </div>)}
-          <Hint>Saving creates it as a draft. Nothing scores until it is active — and a brand-funded bounty is never active until a manager approves it.</Hint>
+          <Hint>{isBrandFunded
+            ? 'Saving creates it as a draft. A brand-funded bounty is never active until a manager approves it.'
+            : 'Saving creates it as a draft. Start moves a store-funded bounty straight to active — there is nobody else to approve it.'}</Hint>
         </Card>
       </div>);
 
@@ -907,16 +920,14 @@
 
   // ── route entry ─────────────────────────────────────────────────────────
   window.IncScreenContestBuilder = function IncScreenContestBuilder(props) {
-    const isManager = useIsManager(props.isManager);
-    const frame = useSeatFrame(isManager);
+    const seat = !props.isManager || props.seat === 'seat';
     return (
-      <div ref={frame.ref} style={{ width: '100%' }}>
-        {window.ToastHost && <window.ToastHost />}
-        {frame.seat ? (
+      <div style={{ width: '100%' }}>
+        {seat ? (
           <EmptyState icon="lock" title="Building a bounty is a manager’s job"
             body="You can see every bounty that includes you, and where you stand in it, on the bounty board. Ask a floor manager to start a new one." />
         ) : (
-          <Builder navigate={props.navigate} query={props.query} />)}
+          <Builder navigate={props.navigate} query={props.query} path={props.path} session={props.session} />)}
       </div>);
   };
 })();

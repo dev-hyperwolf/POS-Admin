@@ -4,12 +4,10 @@
 // report read as a bank statement, the reject/conflict detail shape). Contract:
 // docs/BOUNTY-API-CONTRACT.md §Data, §Identities, §Settings. Plan: §5.3 (honesty labelling).
 //
-// MANAGER ONLY, AND THE SEAT SAYS SO. app.jsx does not pass isManager/session as props (it
-// passes only {navigate, query, route, path} — verified by reading app.jsx, not assumed from
-// the shared brief) so this file derives role the same way app.jsx itself does: from
-// window.HWInc.session().role. A real budtender session never reaches ConsoleFrame, so the
-// only place this branch matters is a manager previewing the seat — in that case the shell's
-// own pointer-events lock, not this file, disables interaction; the copy below is what a
+// MANAGER ONLY, AND THE SEAT SAYS SO. `props.isManager`/`props.session` come straight from
+// incentives/app.jsx. A real budtender session never reaches ConsoleFrame, so the only place
+// this branch matters is a manager previewing the seat — in that case the shell's own
+// pointer-events lock, not this file, disables interaction; the copy below is what a
 // non-manager session (the production case once auth exists) will actually see.
 //
 // NOTHING HERE IS FABRICATED. Every table, every card, every counter reads straight off the
@@ -470,10 +468,8 @@
   }
 
   // ── screen ──────────────────────────────────────────────────────────────
-  window.IncScreenData = function IncScreenData() {
+  window.IncScreenData = function IncScreenData({ session, isManager }) {
     const P = useP();
-    const session = HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
 
     const status = HWInc.usePoll('/api/incentives/ingest/status', { intervalMs: 20000, enabled: isManager });
     const settings = useGet('/api/incentives/settings', isManager);

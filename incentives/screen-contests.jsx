@@ -16,20 +16,14 @@
 // status, plus the approval inbox strip — the one thing on this route that is
 // waiting on a person.
 //
-// ⚠️ WHICH SEAT, AND WHY IT IS MEASURED. incentives/app.jsx passes screens
-// exactly `{navigate, query, route, path}` — no `isManager`, no `previewing`,
-// no `me`. So role is read once through HWInc.session() (the module's single
-// identity seam, plan §6) and `props.isManager` still wins if the shell ever
-// starts passing it. Preview mode is a harder problem: when a manager toggles
-// "Preview as budtender", app.jsx mounts SeatFrame but tells the screen
-// nothing, so a role check alone would render a seven-column console table
-// inside a 420px column. The frame's own width is the only honest signal the
-// shell exposes, so the seat renders whenever the box this screen is given is
-// seat-width — which also does the right thing on a narrow console window.
+// WHICH SEAT. incentives/app.jsx passes every screen `{navigate, query, route,
+// path, session, isManager, previewing, seat: 'console'|'seat', me}` — `seat`
+// already accounts for a manager previewing the budtender seat, so this file
+// reads it straight off props instead of measuring its own width.
 //
-// TOASTS. window.hdToast exists only while a <ToastHost> is mounted, and
-// app.jsx mounts none. Each of these screens mounts its own; every write
-// outcome that stays on this screen (approve, decline) reports through it.
+// TOASTS. window.hdToast exists only while a <ToastHost> is mounted; app.jsx
+// mounts exactly one for the whole shell. Every write outcome that stays on
+// this screen (approve, decline) reports through window.hdToast directly.
 ;(function () {
   const useP = window.useP;
 
@@ -37,8 +31,6 @@
     store_vs_store: 'Store vs store', aov_goal: 'AOV goal' };
   const METRIC_LABEL = { net_cents: 'Net $', gross_cents: 'Gross $', units: 'Units',
     txn_count: 'Orders', aov_cents: 'AOV' };
-  const SOURCE_LABEL = { 'blaze-api': 'Blaze API', 'meadow-api': 'Meadow API',
-    'blaze-csv': 'Blaze CSV', 'meadow-csv': 'Meadow CSV', hwpos: 'Hyperwolf POS' };
 
   // The status tabs, in lifecycle order (plan §3.4). "All" is first because
   // Concept D's own filter opens on it.
@@ -84,53 +76,7 @@
     return 'ends in ' + m + 'm';
   }
 
-  // ⚠️ CONTRACT SHAPE MISMATCH, ADAPTED IN ONE PLACE. The contract's `Source`
-  // ({source, store_name, configured, last_ok_at, last_error, last_error_at,
-  // today:{txns,lines}, stale}) is not the shape IncShared.SourceFreshness
-  // reads ({source, store, status, synced_at, count_today, last_error}). This
-  // maps one onto the other and invents nothing: a field the contract does not
-  // supply (last_upload, format, lines) is left undefined so the composite
-  // falls through to the line it can actually justify.
-  function freshnessRows(sources) {
-    if (!Array.isArray(sources)) return [];
-    return sources.map((s) => {
-      const at = s.last_error_at ? new Date(s.last_error_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : null;
-      return {
-        source: SOURCE_LABEL[s.source] || s.source,
-        store: s.store_name || s.store_id,
-        status: s.last_error ? 'bad' : s.configured === false ? 'off' : s.stale ? 'warn' : s.last_ok_at ? 'ok' : 'off',
-        synced_at: s.last_ok_at || null,
-        count_today: s.today && s.today.txns != null ? s.today.txns : null,
-        last_error: s.last_error ? (at ? at + ': ' + s.last_error : s.last_error) : null,
-      };
-    });
-  }
-
   const toast = (t) => { if (window.hdToast) window.hdToast(t); };
-
-  // ── seat detection (see the header note) ────────────────────────────────
-  const SEAT_MAX_WIDTH = 460;
-  function useSeatFrame(isManager) {
-    const ref = React.useRef(null);
-    const [narrow, setNarrow] = React.useState(false);
-    React.useLayoutEffect(() => {
-      const el = ref.current;
-      if (!el) return undefined;
-      const measure = () => { const w = el.clientWidth; if (w > 0) setNarrow(w <= SEAT_MAX_WIDTH); };
-      measure();
-      if (typeof ResizeObserver === 'undefined') return undefined;
-      const ro = new ResizeObserver(measure);
-      ro.observe(el);
-      return () => ro.disconnect();
-    }, []);
-    return { ref, seat: !isManager || narrow };
-  }
-
-  function useIsManager(propValue) {
-    if (propValue != null) return propValue;
-    const role = window.HWInc.session().role;
-    return role === 'Floor Manager' || role === 'Admin';
-  }
 
   // ── local composites (kept in this file: inc-shared.jsx is shared and this
   // brief does not own it) ────────────────────────────────────────────────
@@ -180,9 +126,8 @@
   // From /me only. A bounty reaches this screen when it is already running for
   // this person, so there is no status filter and no action — just what it
   // wants, where they are, and when it ends.
-  function SeatBounties({ navigate }) {
+  function SeatBounties({ navigate, me }) {
     const P = useP();
-    const me = window.HWInc.usePoll('/api/incentives/me', { intervalMs: 20000 });
     const fmt = window.HWInc.fmt;
     const S = window.IncShared;
 
@@ -239,21 +184,17 @@
             </div>
           </Card>)}
 
-        <S.SourceFreshness sources={freshnessRows(data.sources)} />
+        <S.SourceFreshness sources={data.sources} />
       </div>);
   }
 
   // ── the manager console ─────────────────────────────────────────────────
-  function ConsoleBounties({ navigate }) {
+  function ConsoleBounties({ navigate, session, me }) {
     const P = useP();
     const S = window.IncShared;
-    const session = window.HWInc.session();
     const storeId = session.storeId;
     const path = '/api/incentives/contests' + (storeId ? '?store_id=' + encodeURIComponent(storeId) : '');
     const list = window.HWInc.usePoll(path, { intervalMs: 20000 });
-    // /me is polled here for one field the contests route does not carry:
-    // sources[]. Every standings-like view owes the reader a freshness line.
-    const me = window.HWInc.usePoll('/api/incentives/me', { intervalMs: 30000 });
 
     const [tab, setTab] = React.useState('all');
     const [confirming, setConfirming] = React.useState(null); // {id, action}
@@ -413,18 +354,17 @@
         ) : (
           <DataTable columns={columns} rows={rows} rowKey={(c) => c.id} onRowClick={(c) => navigate('#/contests/' + c.id)} />)}
 
-        <S.SourceFreshness sources={freshnessRows(me.data && me.data.sources)} />
+        <S.SourceFreshness sources={me.data && me.data.sources} />
       </div>);
   }
 
   // ── route entry ─────────────────────────────────────────────────────────
   window.IncScreenContests = function IncScreenContests(props) {
-    const isManager = useIsManager(props.isManager);
-    const frame = useSeatFrame(isManager);
+    const seat = !props.isManager || props.seat === 'seat';
     return (
-      <div ref={frame.ref} style={{ width: '100%' }}>
-        {window.ToastHost && <window.ToastHost />}
-        {frame.seat ? <SeatBounties navigate={props.navigate} /> : <ConsoleBounties navigate={props.navigate} />}
+      <div style={{ width: '100%' }}>
+        {seat ? <SeatBounties navigate={props.navigate} me={props.me} />
+          : <ConsoleBounties navigate={props.navigate} session={props.session} me={props.me} />}
       </div>);
   };
 })();
