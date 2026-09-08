@@ -62,6 +62,18 @@
 <script type="text/babel" src="shared/hd-ui.jsx"></script>
 <script type="text/babel" src="incentives/inc-client.jsx"></script>
 <script type="text/babel" src="incentives/inc-shared.jsx"></script>
+<!-- Screens register window.IncScreen* globals; app.jsx resolves them at render,
+     so a missing file renders a named ErrorState rather than a blank route. -->
+<script type="text/babel" src="incentives/screen-standings.jsx"></script>
+<script type="text/babel" src="incentives/screen-contests.jsx"></script>
+<script type="text/babel" src="incentives/screen-contest-detail.jsx"></script>
+<script type="text/babel" src="incentives/screen-contest-builder.jsx"></script>
+<script type="text/babel" src="incentives/screen-earnings.jsx"></script>
+<script type="text/babel" src="incentives/screen-learn.jsx"></script>
+<script type="text/babel" src="incentives/screen-learn-author.jsx"></script>
+<script type="text/babel" src="incentives/screen-data.jsx"></script>
+<script type="text/babel" src="incentives/screen-goals.jsx"></script>
+<script type="text/babel" src="incentives/screen-settings.jsx"></script>
 <script type="text/babel" src="incentives/app.jsx"></script>
 
 <script src="shared/app-switcher.js"></script>
