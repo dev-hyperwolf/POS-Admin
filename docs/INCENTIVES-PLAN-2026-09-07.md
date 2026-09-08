@@ -1,6 +1,11 @@
 # Budtender incentives module — architecture & feature plan
 
-Status: **DRAFT FOR APPROVAL** · 2026-09-07 · owner: JT · author: Claude (planning phase)
+Status: **APPROVED 2026-09-08** (owner: "lets move forward with your plan") · author: Claude
+
+**Design direction: Concept D · Two Seats** (`explorations/Incentives - Concept D - Two Seats.html`),
+with two elements folded in: **Concept C's self-rewriting builder sentence** (C tab 4, right rail)
+and **Concept B's computation trail** (B tab 2 detail panel + "How this was computed" disclosure;
+B tab 6 reconciliation strip). The Register screen is not touched.
 
 SparkPlug feature parity, built into the POS-Admin estate with a real backend in wm-demo.
 Production-grade from day one: every number on screen comes from the API; no fixture rows,
