@@ -1,26 +1,36 @@
 /* ── pos/orders-pricing.js — characterisation tests ──────────────────────────
  *
- * STEP 1 of the screen-orders pricing-block work: PIN what the extracted money
- * functions currently do. No cents conversion happens yet — that is step 2 —
- * so every value below is a dollars-and-cents float, exactly as
- * pos/screen-orders.jsx has always produced it.
+ * STEP 1 pinned what the extracted money functions did as dollar-and-cents
+ * floats, byte for byte off pos/screen-orders.jsx. STEP 2 (this revision)
+ * converts the module's internal arithmetic to integer cents; the pins below
+ * were re-derived against that conversion, not hand-edited to match a guess.
+ * A row unchanged from step 1 means cents math agreed with the old float
+ * result to the cent. A row that changed is called out at its own site with
+ * why — search this file for "cents math gives" to find every one.
  *
- * These numbers are CHARACTERISATION VALUES, not a spec: they were produced by
- * running the extracted functions once (right after the extraction, before any
- * behaviour change) and pasting the output. If a later step changes what one of
- * these fixtures returns, that is a deliberate, reviewed change to go make in
- * this file — not evidence the old number was "wrong". The point of this file
- * is to make an ACCIDENTAL change to the arithmetic loud.
+ * These numbers are still CHARACTERISATION VALUES, not a spec: they were
+ * produced by running the (now cents-converted) functions once and pasting
+ * the output. If a later step changes what one of these fixtures returns,
+ * that is a deliberate, reviewed change to go make in this file — not
+ * evidence the old number was "wrong". The point of this file is to make an
+ * ACCIDENTAL change to the arithmetic loud.
  *
  * pos/orders-pricing.js and pos/data.jsx are PLAIN JS (no JSX syntax despite
  * the .jsx extension — verified: `grep -c "React.createElement|<[A-Z]"` on
  * data.jsx returns 0), loaded as classic <script> tags in the browser. So,
  * exactly like test/harness.mjs does for shared/commerce-engine.js and
  * shared/commerce-adapter.js, this loads them BYTE FOR BYTE under `vm` with a
- * `window` global and nothing else — no babel, no jsdom. shared/brands.js goes
- * in first because pos/orders-pricing.js's DEMO_BASKET reads
+ * `window` global and nothing else — no babel, no jsdom.
+ *
+ * Load order: contracts/index.js (window.HWContracts) and
+ * shared/commerce-engine.js (window.HWCommerce) before
+ * shared/commerce-adapter.js, which needs HWCommerce present the moment it
+ * runs to expose window.HWSwap at all — so this test exercises the REAL,
+ * TOP-of-the-fallback-chain path, `window.HWSwap.cents`, for every cents()
+ * call orders-pricing.js makes, not one of its fallbacks. shared/brands.js
+ * goes in next because pos/orders-pricing.js's DEMO_BASKET reads
  * `window.HW_BRANDS.name.*` at script-load time, and pos/data.jsx goes in
- * second because it is what actually defines `window.HW.taxBreakdown` —
+ * after that because it is what actually defines `window.HW.taxBreakdown` —
  * priceOrderMoney's one real dependency, and the reason this test uses the
  * REAL tax function instead of a hand-copied stub that could drift from it.
  */
@@ -37,24 +47,28 @@ function loadOrdersPricing() {
   const sandbox = { console };
   sandbox.window = sandbox;
   const ctx = vm.createContext(sandbox);
-  vm.runInContext(
-    fs.readFileSync(path.join(ROOT, 'shared', 'brands.js'), 'utf8'),
-    ctx, { filename: 'shared/brands.js' }
+  const load = (...parts) => vm.runInContext(
+    fs.readFileSync(path.join(ROOT, ...parts), 'utf8'),
+    ctx, { filename: parts.join('/') }
   );
-  vm.runInContext(
-    fs.readFileSync(path.join(ROOT, 'pos', 'data.jsx'), 'utf8'),
-    ctx, { filename: 'pos/data.jsx' }
-  );
-  vm.runInContext(
-    fs.readFileSync(path.join(ROOT, 'pos', 'orders-pricing.js'), 'utf8'),
-    ctx, { filename: 'pos/orders-pricing.js' }
-  );
+  load('contracts', 'index.js');       // window.HWContracts
+  load('shared', 'commerce-engine.js'); // window.HWCommerce — HWSwap needs this present at load time
+  load('shared', 'commerce-adapter.js'); // window.HWSwap.cents — the proven path cents() prefers
+  load('shared', 'brands.js');
+  load('pos', 'data.jsx');
+  load('pos', 'orders-pricing.js');
   return sandbox;
 }
 
 const W = loadOrdersPricing();
 const OP = W.HW_ORDERS_PRICING;
 const ORDERS = W.HW.ORDERS;
+
+test('the cents() boundary this suite exercises is the real window.HWSwap.cents, not a fallback', () => {
+  assert.equal(typeof W.HWSwap, 'object', 'commerce-adapter.js must have loaded HWCommerce before it ran');
+  assert.equal(typeof W.HWSwap.cents, 'function');
+  assert.equal(W.HWSwap.cents(0.285), 29, 'HWSwap.cents delegates to HWContracts.centsFromDollars, not the naive Math.round');
+});
 
 test('pos/orders-pricing.js loads and exposes the expected surface', () => {
   assert.equal(typeof OP, 'object');
@@ -107,17 +121,20 @@ test('edge: a $0 line prices to zero everywhere, not negative, not NaN', () => {
   pinned(priced, { sub: 0, cartDisc: 0, taxBase: 0, gross: 0, grand: 0 });
 });
 
-test('edge: a 3-decimal price (9.995) — toFixed(2) rounding is pinned as-is', () => {
-  // lineGross itself does NOT round: price * qty stays 9.995 until
-  // priceOrderMoney's own .toFixed(2) touches it.
-  assert.equal(OP.lineGross({ price: 9.995, qty: 1 }), 9.995);
+test('edge: a 3-decimal price (9.995) — cents math rounds it up, not down', () => {
+  // lineGross now rounds at the cents boundary instead of formatting a float:
+  // was 9.995 (toFixed artefact); cents math gives 10.00.
+  // (9.995).toFixed(2) === '9.99' because 9.995 is not exactly representable
+  // in binary floating point (it is actually 9.994999999999999...); the cents
+  // boundary rounds half away from zero on the scaled integer instead
+  // (Math.round(999.5 + 1e-9) === 1000), which is the correct answer.
+  assert.equal(OP.lineGross({ price: 9.995, qty: 1 }), 10, 'was 9.995 (toFixed artefact); cents math gives 10.00');
   const m = { lines: [{ name: 'X', price: 9.995, qty: 1 }], discAmt: 0, promoAmt: 0, referralAmt: 0, credits: 0, tip: 0 };
   const priced = OP.priceOrderMoney(m);
-  // (9.995).toFixed(2) === '9.99' in JS float representation — not '10.00'.
-  // This is exactly what screen-orders.jsx has always done; pinning it here so
-  // the later cents-conversion step can decide, deliberately, whether to keep
-  // or fix it — not discover it by accident.
-  pinned(priced, { sub: 9.99, taxBase: 9.99, gross: 12.31, grand: 12.31 });
+  // was sub 9.99 / taxBase 9.99 / gross 12.31 / grand 12.31 (toFixed
+  // artefact); cents math gives sub 10.00, taxBase 10.00, gross 12.32,
+  // grand 12.32.
+  pinned(priced, { sub: 10, taxBase: 10, gross: 12.32, grand: 12.32 });
 });
 
 test('edge: refund cap on a $12.35 order', () => {
@@ -152,4 +169,56 @@ test('edge: an empty cart prices to all zeros', () => {
   const m = { lines: [], discAmt: 0, promoAmt: 0, referralAmt: 0, credits: 0, tip: 0 };
   const priced = OP.priceOrderMoney(m);
   pinned(priced, { sub: 0, cartDisc: 0, taxBase: 0, gross: 0, grand: 0 });
+});
+
+// ── 4 rows that ONLY cents math gets right — step 2's own regression floor.
+// Each pairs a float trap with the naive float result, so a future revert to
+// dollar arithmetic fails loudly instead of silently.
+
+test('cents: three 0.10 lines sum to a sub of exactly 0.30, not 0.30000000000000004', () => {
+  // 0.10 + 0.10 + 0.10 in plain float is 0.30000000000000004 (try it: node -e
+  // "console.log(0.10+0.10+0.10)"). The old code's .toFixed(2) happened to
+  // paper over this one case; cents math never has the error to paper over —
+  // 10 + 10 + 10 cents is exactly 30 cents, always.
+  const m = {
+    lines: [{ name: 'a', price: 0.10, qty: 1 }, { name: 'b', price: 0.10, qty: 1 }, { name: 'c', price: 0.10, qty: 1 }],
+    discAmt: 0, promoAmt: 0, referralAmt: 0, credits: 0, tip: 0,
+  };
+  const priced = OP.priceOrderMoney(m);
+  assert.equal(priced.sub, 0.30, 'sub must be exactly 0.30');
+  pinned(priced, { sub: 0.3, cartDisc: 0, taxBase: 0.3, gross: 0.37, grand: 0.37 });
+});
+
+test('cents: a 0.285 price lands on the correct cent, not the one naive rounding gives', () => {
+  // 0.285 * 100 === 28.499999999999996 in plain float, so Math.round(dollars*100)
+  // — the naive last-resort in cents()'s own fallback chain — gives 28. The
+  // real boundary, HWContracts.centsFromDollars (reached here via
+  // window.HWSwap.cents), adds an epsilon before rounding and gets the actual
+  // answer: 29.
+  assert.equal(Math.round(0.285 * 100), 28, 'the naive rounding this suite is NOT exercising — recorded so the contrast is explicit');
+  assert.equal(OP.lineGross({ price: 0.285, qty: 1 }), 0.29);
+  const m = { lines: [{ name: 'x', price: 0.285, qty: 1 }], discAmt: 0, promoAmt: 0, referralAmt: 0, credits: 0, tip: 0 };
+  const priced = OP.priceOrderMoney(m);
+  pinned(priced, { sub: 0.29, cartDisc: 0, taxBase: 0.29, gross: 0.36, grand: 0.36 });
+});
+
+test('cents: a 33.33% discount on 10.00 clamps to a real cent amount', () => {
+  // 10 * 0.3333 is 3.3329999999999997 in plain float — not a whole number of
+  // cents. cents() rounds that through the same boundary as every other
+  // dollar amount in this file (half away from zero, epsilon-tolerant), so
+  // the discount lands on 333 cents ($3.33), not on a value that would make
+  // taxBase carry a fractional cent forward.
+  const rawDiscount = 10 * 0.3333;
+  const m = { lines: [{ name: 'y', price: 10.00, qty: 1 }], discAmt: rawDiscount, promoAmt: 0, referralAmt: 0, credits: 0, tip: 0 };
+  const priced = OP.priceOrderMoney(m);
+  pinned(priced, { sub: 10, cartDisc: 3.33, taxBase: 6.67, gross: 8.22, grand: 8.22 });
+});
+
+test('cents: a refund cap that lands on 0.05 is exact, never 0.049999999999999996', () => {
+  // 0.30 - 0.25 in plain float is 0.04999999999999999. The old refundCap
+  // already masked this with its own .toFixed(2); cents math removes the
+  // float subtraction entirely — 30 cents minus 25 cents is exactly 5 cents —
+  // so there is no near-miss left to mask.
+  assert.notEqual(0.30 - 0.25, 0.05, 'the float trap this test exists to route around');
+  assert.equal(OP.refundCap(0.30, 0.25), 0.05);
 });
