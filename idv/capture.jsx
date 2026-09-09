@@ -166,13 +166,64 @@
   function capUrl(token, action, base) {
     return resolveBase(base) + '/api/idv/capture/' + encodeURIComponent(token || '') + '/' + action;
   }
+  // ── ROUND 5: A RESULT CARRIES TWO STRINGS, AND ONLY ONE IS FOR THE GUEST ──
+  // The owner's phone put `request failed: Load failed` on screen — the literal
+  // text of a TypeError from `fetch` when Cloudflare reset the tunnel. That is
+  // a sentence written for a developer, shown to somebody holding a driving
+  // licence, and it is the single most alarming thing this flow has ever said.
+  //
+  // So every result now has:
+  //   `error`   ONE OF THREE PLAIN SENTENCES (or a code-specific one). Safe to
+  //             render anywhere, always. Nothing else is ever rendered.
+  //   `detail`  the technical text — 'Load failed', 'HTTP 502', the server's
+  //             own `body.error`. It goes to `console.warn` and rides up on the
+  //             next upload as `client_metrics.last_error`, which is where an
+  //             analyst can actually use it. It is never rendered.
+  //
+  // THE THREE SENTENCES ARE A LADDER, not three ways of saying the same thing:
+  // the first is what a guest sees while a retry is in flight, the second while
+  // a later one is, and the third only once the retries are spent and there is
+  // genuinely something for them to do.
+  const NET_COPY = {
+    retrying: 'Connection hiccup — retrying…',
+    still: 'Still trying…',
+    dead: 'We couldn’t reach Hyperwolf — check your connection and tap Retry',
+  };
+  // The one place an HTTP code becomes a guest sentence. `plainFail` and
+  // `uploadFail` refine it per surface; everything else renders this.
+  function safeSentence(code) {
+    if (code === 410) return 'This verification link has expired. Ask for a new one.';
+    if (code === 403) return 'This verification link is no longer valid. Ask for a new one.';
+    if (code === 413) return 'That photo was too large. We will take another.';
+    if (code === 415) return 'That file is not a photo we can read. We will take another.';
+    if (code === 409) return 'That step is already finished.';
+    if (code === 0) return NET_COPY.dead;
+    return 'That did not go through. We will try again.';
+  }
+  // THE TECHNICAL TEXT, KEPT WHERE IT IS USEFUL AND OFF THE SCREEN. One slot,
+  // last-writer-wins: an analyst reading a session wants the failure that was
+  // live when the next thing uploaded, not a transcript.
+  let lastError = null;
+  let droppedExtras = 0;
+  function noteError(detail) {
+    if (!detail) return;
+    lastError = String(detail).slice(0, 200);
+    try { console.warn('[idv-capture] ' + lastError); } catch (e) { /* no console */ }
+  }
+  // Cleared by the next SUCCESSFUL evidence upload, after that upload has
+  // already carried both numbers up. See `clientMetrics` and `clearTelemetry`.
+  function clearTelemetry() { lastError = null; droppedExtras = 0; }
+
   function settle(res, j) {
-    return { ok: res.ok, code: res.status, body: j,
-      error: (j && j.error) || (res.ok ? null : ('HTTP ' + res.status)) };
+    const detail = (j && j.error) || (res.ok ? null : ('HTTP ' + res.status));
+    if (!res.ok) noteError(detail);
+    return { ok: res.ok, code: res.status, body: j, detail: detail,
+      error: res.ok ? null : safeSentence(res.status) };
   }
   function networkError(e) {
-    return { ok: false, code: 0, body: null,
-      error: 'request failed: ' + (e && e.message ? e.message : 'unknown') };
+    const detail = 'request failed: ' + (e && e.message ? e.message : 'unknown');
+    noteError(detail);
+    return { ok: false, code: 0, body: null, detail: detail, error: NET_COPY.dead };
   }
   function readJson(res) {
     return res.json().then(function (j) { return settle(res, j); },
@@ -218,6 +269,84 @@
     } catch (e) { return false; }
   }
 
+  // ── ROUND 5: RETRY, BACKOFF, AND WHAT IS WORTH RETRYING ──────────────────
+  // MEASURED ON THE OWNER'S PHONE, SESSION #5. A 4 K record frame went up a
+  // Cloudflare quick tunnel and came back "Connection reset by peer"; the page
+  // had exactly one attempt at it and spent that attempt's failure on the
+  // guest's screen. A tunnel reset is not a decision — it is a packet — and the
+  // correct answer to a packet is to send it again.
+  //
+  // WHAT IS RETRIED: a transport failure (`code === 0`), a 408, a 429, and any
+  // 5xx. Those are the ones where the same request, sent again, can succeed.
+  // WHAT IS NOT: 4xx other than those two. A 413 is not going to become smaller
+  // and a 410 is not going to become valid; retrying them wastes the guest's
+  // battery and delays the sentence that would have helped them.
+  //
+  // THE BACKOFF IS SHORT ON PURPOSE. Somebody is holding a phone up. 0.4 s,
+  // 1.2 s, 3 s spends under five seconds across three attempts, which is inside
+  // the patience of a person who has just been told we are retrying — and the
+  // sentence they are reading while it happens says exactly that.
+  const RETRY_BACKOFF_MS = [400, 1200, 3000];
+  const RETRY_ATTEMPTS = 3;
+  const EXTRA_ATTEMPTS = 2;          // a best-effort upload: one try, one retry
+  function retryable(r) {
+    if (!r) return true;
+    if (r.ok) return false;
+    return r.code === 0 || r.code === 408 || r.code === 429 || r.code >= 500;
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  /**
+   * Run `make()` — which must resolve to a settled result, never reject — up to
+   * `attempts` times. `onAttempt(n)` is called with the 1-based number of the
+   * attempt ABOUT TO BE MADE whenever that number is above 1, which is what
+   * drives the "Connection hiccup" → "Still trying" ladder on screen. Resolves
+   * with the last result; the caller decides what a spent retry budget means.
+   */
+  function withRetry(make, opts) {
+    const o = opts || {};
+    const attempts = o.attempts == null ? RETRY_ATTEMPTS : o.attempts;
+    const backoff = o.backoff || RETRY_BACKOFF_MS;
+    function go(n, last) {
+      if (n > attempts) return Promise.resolve(last);
+      if (n > 1 && typeof o.onAttempt === 'function') { try { o.onAttempt(n); } catch (e) {} }
+      return Promise.resolve(make(n)).then(function (r) {
+        if (!retryable(r) || n >= attempts) return r;
+        return sleep(backoff[Math.min(n - 1, backoff.length - 1)]).then(function () { return go(n + 1, r); });
+      }, function (e) {
+        const r = networkError(e);
+        if (n >= attempts) return r;
+        return sleep(backoff[Math.min(n - 1, backoff.length - 1)]).then(function () { return go(n + 1, r); });
+      });
+    }
+    return go(1, null);
+  }
+
+  // ── ONLY THE EVIDENCE IS AWAITED ─────────────────────────────────────────
+  // BRIEF §1, AND IT IS THE WHOLE SHAPE OF THE BACK-OF-CARD FAILURE. The band
+  // crop decoded on-device in 10 ms and uploaded in 161 kB; the FULL-FRAME
+  // record shot behind it — a 4 K frame, for provenance, that nobody looks at
+  // during the flow — was what the tunnel reset, and the step sat on it.
+  //
+  // A best-effort upload therefore: never blocks, never renders, gets one
+  // retry, and when it is finally lost increments a counter that rides up on
+  // the NEXT successful upload as `dropped_extras`. That way a reviewer opening
+  // a session with four tilt frames instead of five can see that we know, which
+  // is the difference between a gap and a mystery.
+  function uploadEvidence(token, kind, blob, opts) {
+    const o = opts || {};
+    return withRetry(function () { return capUpload(token, kind, blob, o); },
+      { attempts: RETRY_ATTEMPTS, onAttempt: o.onAttempt })
+      .then(function (r) { if (r && r.ok) clearTelemetry(); return r; });
+  }
+  function uploadExtra(token, kind, blob, opts) {
+    return withRetry(function () { return capUpload(token, kind, blob, opts || {}); },
+      { attempts: EXTRA_ATTEMPTS })
+      .then(function (r) {
+        if (!r || !r.ok) droppedExtras += 1;
+        return r;
+      }, function () { droppedExtras += 1; return null; });
+  }
+
   // ── frame capture ────────────────────────────────────────────────────────
   // ── UPLOAD SIZE IS PER KIND NOW, AND EACH NUMBER HAS A REASON ────────────
   // Round 3 used ONE cap for everything and it is the first half of the
@@ -253,7 +382,78 @@
   // nothing else, so re-encoding through toBlob() cannot carry the source
   // frame's orientation tag, GPS tag or maker notes — there is no metadata to
   // strip because none ever existed.
+  // ── ROUND 5: THE 24 KB SELFIE, AND WHY `videoWidth` WAS NOT ENOUGH ───────
+  // MEASURED, session #5 on the owner's iPhone and session #4 before it: the
+  // uploaded `selfie` was 24 165 bytes, 900 × 1600, and EVERY PIXEL WAS ZERO —
+  // luma min 0, max 0, one histogram bucket. The two files are byte-identical
+  // across two different sessions, which is the tell: a genuinely dark PHOTO
+  // carries sensor noise and never repeats to the byte. A blank CANVAS does.
+  //
+  // So nothing was photographed. `drawScaled` asked the <video> for
+  // `videoWidth`/`videoHeight`, got 900 × 1600 — the element keeps its
+  // dimensions — and then `drawImage` painted nothing, because the element had
+  // no CURRENT FRAME to give. It had had one three seconds earlier (the three
+  // `selfie_frame` rows from the same burst measure mean luma 135, 125 and are
+  // perfectly good pictures) and it had one again afterwards. The gap is the
+  // eighteen seconds the old code spent uploading those three frames one after
+  // another over the tunnel before finally grabbing the selfie.
+  //
+  // `readyState` is the property that would have said so — HAVE_METADATA (1)
+  // has dimensions, HAVE_CURRENT_DATA (2) has a pixel — and nothing read it.
+  // Now everything does, and a frame that comes back blank anyway is caught by
+  // arithmetic rather than trusted.
+  const READY_CURRENT_DATA = 2;
+  function videoReady(v) {
+    if (!v) return false;
+    if (!(v.videoWidth || 0) || !(v.videoHeight || 0)) return false;
+    // `readyState` is absent on nothing real, but a stub or a very old WebView
+    // could omit it, and refusing to capture because a property is missing
+    // would be a worse bug than the one being fixed.
+    if (v.readyState != null && v.readyState < READY_CURRENT_DATA) return false;
+    return true;
+  }
+  // A BLACK FRAME IS NEVER UPLOADED. Two numbers over a 64-pixel copy — the
+  // mean, and the spread. The mean catches a lens cap and a camera that has not
+  // opened; the spread catches a canvas that was never drawn into, which is
+  // what actually happened, and which a mean alone would also catch but only
+  // because zero is dark. A real selfie in a dim room lands around 40–60 mean
+  // with a spread in the twenties; the brief's floor is 20/255 and a spread of
+  // 1.5 is far below any photograph of anything.
+  const FRAME_MIN_LUMA = 20;
+  const FRAME_MIN_SPREAD = 1.5;
+  const BLANK_EDGE = 64;
+  function frameStats(canvas) {
+    if (!canvas || !canvas.width || !canvas.height) return null;
+    const k = Math.min(1, BLANK_EDGE / Math.max(canvas.width, canvas.height));
+    const w = Math.max(4, Math.round(canvas.width * k)), h = Math.max(4, Math.round(canvas.height * k));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    let ctx = null;
+    try { ctx = c.getContext('2d', { willReadFrequently: true }); }
+    catch (e) { ctx = c.getContext('2d'); }
+    if (!ctx) return null;
+    try { ctx.drawImage(canvas, 0, 0, w, h); } catch (e) { return null; }
+    let px;
+    try { px = ctx.getImageData(0, 0, w, h).data; } catch (e) { return null; }
+    let sum = 0, sq = 0;
+    const n = w * h;
+    for (let i = 0, p = 0; i < n; i++, p += 4) {
+      const luma = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
+      sum += luma; sq += luma * luma;
+    }
+    const mean = sum / n;
+    return { mean: mean, spread: Math.sqrt(Math.max(0, (sq / n) - mean * mean)) };
+  }
+  // PURE, so "would this frame have been rejected" is answerable from Node with
+  // two numbers. Exported on `IdvCapture.grab`.
+  function statsAreBlank(s) {
+    if (!s) return false;            // could not measure: not a licence to refuse
+    return s.mean < FRAME_MIN_LUMA || s.spread < FRAME_MIN_SPREAD;
+  }
+  function frameIsBlank(canvas) { return statsAreBlank(frameStats(canvas)); }
+
   function drawScaled(video, maxEdge) {
+    if (!videoReady(video)) return null;
     const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
     if (!vw || !vh) return null;
     const long = Math.max(vw, vh);
@@ -280,6 +480,70 @@
         for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
         resolve(new Blob([arr], { type: 'image/jpeg' }));
       } catch (e) { resolve(null); }
+    });
+  }
+
+  // ── DRAW, CHECK, AND IF IT IS BLANK, DRAW AGAIN ──────────────────────────
+  // `getVideo` is a function rather than an element because the caller holds a
+  // ref and this may wait across a re-render. Resolves with a canvas that is
+  // BOTH ready and not blank, or null — and null is a real answer that the
+  // callers turn into "the camera gave us no picture", never into an upload.
+  const BLANK_RETRIES = 6, BLANK_GAP_MS = 120;
+  function drawChecked(getVideo, maxEdge, tries) {
+    const n = tries == null ? BLANK_RETRIES : tries;
+    function attempt(i) {
+      const v = typeof getVideo === 'function' ? getVideo() : getVideo;
+      const c = v ? drawScaled(v, maxEdge) : null;
+      if (c && !frameIsBlank(c)) return Promise.resolve(c);
+      if (i >= n) {
+        noteError(c ? 'frame blank after ' + n + ' retries' : 'video not ready after ' + n + ' retries');
+        return Promise.resolve(null);
+      }
+      return sleep(BLANK_GAP_MS).then(function () { return attempt(i + 1); });
+    }
+    return attempt(0);
+  }
+
+  // ── WAIT FOR THE CAMERA TO BE TRULY READY ────────────────────────────────
+  // BRIEF §3, and it is three conditions and not one: `videoWidth > 0` (the
+  // element has metadata), a first frame whose mean luma clears 20/255 (the
+  // sensor has actually opened — an iPhone front camera spends its first
+  // several hundred milliseconds handing out black), and 400 ms of frames that
+  // keep clearing it (one lucky frame is not a camera that is up).
+  //
+  // It resolves FALSE on timeout rather than throwing, and a false does not
+  // stop the step — it stops the CAPTURE. The screen goes on saying "Starting
+  // the camera…" and the guest is never sent a black photograph.
+  const CAM_READY_HOLD_MS = 400;
+  const CAM_READY_POLL_MS = 80;
+  const CAM_READY_TIMEOUT_MS = 8000;
+  function waitForCamera(getVideo, opts) {
+    const o = opts || {};
+    const hold = o.hold == null ? CAM_READY_HOLD_MS : o.hold;
+    const timeout = o.timeout == null ? CAM_READY_TIMEOUT_MS : o.timeout;
+    const t0 = Date.now();
+    let goodSince = 0;
+    return new Promise(function (resolve) {
+      function tick() {
+        if (o.cancelled && o.cancelled()) { resolve(false); return; }
+        const v = typeof getVideo === 'function' ? getVideo() : getVideo;
+        const c = videoReady(v) ? drawScaled(v, BLANK_EDGE) : null;
+        const s = c ? frameStats(c) : null;
+        const good = !!(s && !statsAreBlank(s));
+        if (good) {
+          if (!goodSince) goodSince = Date.now();
+          if (Date.now() - goodSince >= hold) { resolve(true); return; }
+        } else {
+          goodSince = 0;
+        }
+        if (Date.now() - t0 >= timeout) {
+          noteError('camera never produced a lit frame in ' + timeout + 'ms');
+          resolve(false);
+          return;
+        }
+        setTimeout(tick, CAM_READY_POLL_MS);
+      }
+      tick();
     });
   }
 
@@ -1096,6 +1360,16 @@
       // recent frame anyway rather than leaving the guest in front of a camera
       // that would never fire. Distinct from `manual`: nobody pressed anything.
       forced: !!s.forced,
+      // ── ROUND 5: THE TWO FIELDS THAT REPLACE A SENTENCE ON THE SCREEN ────
+      // `last_error` is the technical text the guest is no longer shown —
+      // 'request failed: Load failed', 'HTTP 502', whatever the transport
+      // actually said. `dropped_extras` is how many best-effort uploads (the
+      // back's record frame, the front's tilt burst, the passive selfie frames)
+      // were lost since the last successful evidence upload. Both are cleared
+      // by the upload that carries them, so each row reports the window that
+      // ended with it rather than a running total.
+      last_error: lastError,
+      dropped_extras: droppedExtras || null,
     }, extra || {});
   }
 
@@ -1617,23 +1891,52 @@
   // escape hatch appears sooner. A capture flow that cannot take a selfie
   // because a model did not download is worse than one that takes a slightly
   // worse selfie.
+  //
+  // ── ROUND 5: THREE ATTEMPTS AT THE TAG, AND THE MODULE RETRIES INSIDE ────
+  // Two layers, because there are two ways this fails and they need different
+  // answers:
+  //   · THE TAG ITSELF does not load — hw-face.js or vision_bundle.js is cut
+  //     off. Answered here, up to FACE_SCRIPT_ATTEMPTS times, 2 s and 5 s
+  //     apart. A module specifier that has already failed is remembered by the
+  //     module map, so a retry has to change the URL: `?a=2` does that, on our
+  //     own origin, and the server serves the same file.
+  //   · THE 9.4 MB WASM does not arrive. Answered INSIDE vendor/mediapipe/
+  //     hw-face.js, which fetches it itself with retries and keeps it in the
+  //     Cache API — see that file's round-5 header. This layer cannot help
+  //     there, because by then the tag has loaded fine.
+  // Neither layer is allowed to report 'failed' early: the selfie step reads
+  // `faceState()` and will draw its fallback the moment it says so.
+  const FACE_SCRIPT_ATTEMPTS = 3;
+  const FACE_SCRIPT_BACKOFF_MS = [2000, 5000];
   let faceLoadStarted = false;
   function startFaceLoad() {
     if (faceLoadStarted) return;
     faceLoadStarted = true;
     if (window.HWFaceMP) return;
-    try {
-      const s = document.createElement('script');
-      s.type = 'module';
-      s.src = new URL('vendor/mediapipe/hw-face.js', document.baseURI).href;
-      s.onerror = function () {
-        window.HWFaceMP = { status: 'failed', landmarker: null, error: 'vendor/mediapipe/hw-face.js did not load' };
-        try { window.dispatchEvent(new Event('hw-face-mp')); } catch (e) {}
-      };
-      document.head.appendChild(s);
-    } catch (e) {
-      window.HWFaceMP = { status: 'failed', landmarker: null, error: String(e && e.message) };
+    function inject(n) {
+      try {
+        const s = document.createElement('script');
+        s.type = 'module';
+        const url = new URL('vendor/mediapipe/hw-face.js', document.baseURI).href;
+        s.src = n > 1 ? url + '?a=' + n : url;
+        s.onerror = function () {
+          if (n < FACE_SCRIPT_ATTEMPTS) {
+            noteError('hw-face.js tag attempt ' + n + ' did not load');
+            setTimeout(function () { inject(n + 1); },
+              FACE_SCRIPT_BACKOFF_MS[Math.min(n - 1, FACE_SCRIPT_BACKOFF_MS.length - 1)]);
+            return;
+          }
+          noteError('vendor/mediapipe/hw-face.js did not load after ' + n + ' attempts');
+          window.HWFaceMP = { status: 'failed', landmarker: null, error: 'vendor/mediapipe/hw-face.js did not load' };
+          try { window.dispatchEvent(new Event('hw-face-mp')); } catch (e) {}
+        };
+        document.head.appendChild(s);
+      } catch (e) {
+        noteError('hw-face.js injection threw: ' + (e && e.message));
+        window.HWFaceMP = { status: 'failed', landmarker: null, error: String(e && e.message) };
+      }
     }
+    inject(1);
   }
   function faceState() {
     const M = window.HWFaceMP;
@@ -2607,10 +2910,17 @@
     // ── load state ─────────────────────────────────────────────────────────
     const loadState = React.useCallback(function () {
       setLoading(true);
-      return capGet(token, 'state', base).then(function (r) {
+      // ROUND 5: the first request of the session gets the retry ladder too. A
+      // link opened on a flaky connection used to land on "This link is not
+      // valid", which is a frightening and wrong thing to tell somebody whose
+      // link is perfectly good.
+      return withRetry(function () { return capGet(token, 'state', base); }).then(function (r) {
         if (!aliveRef.current) return null;
         setLoading(false);
-        if (!r.ok) { setLoadErr(r.error || 'that verification link is not valid'); return null; }
+        if (!r.ok) {
+          setLoadErr(r.code === 0 ? NET_COPY.dead : (r.error || 'That link did not open.'));
+          return null;
+        }
         setLoadErr(null);
         setState(r.body);
         return r.body;
@@ -2775,7 +3085,12 @@
       const t0 = Date.now();
       function tick() {
         clearTimeout(timer);
-        capGet(token, 'status', base).then(function (r) {
+        // BRIEF §4: THE POLL GETS THE SAME TREATMENT AS THE SUBMIT. It always
+        // had a crude one — a failed poll simply scheduled the next — but that
+        // is 1.5 s to 4 s of nothing happening per dropped request, and on the
+        // owner's tunnel several went in a row. Three quick attempts inside one
+        // tick answer a reset without the guest watching a still bar.
+        withRetry(function () { return capGet(token, 'status', base); }).then(function (r) {
           if (stopped || !aliveRef.current) return;
           setRetrying(false);
           // ELAPSED IS RE-READ HERE, NOT ONLY ON THE 1 Hz BEAT. Measured in a
@@ -2848,7 +3163,7 @@
       const s = status;
       if (s && s !== 'In Progress' && s !== 'Not Started') return;
       resumeSubmitRef.current = true;
-      capPost(token, 'submit', {}, base).then(function () {
+      withRetry(function () { return capPost(token, 'submit', {}, base); }).then(function () {
         if (pollNowRef.current) pollNowRef.current();
       });
     }, [phase, procElapsed, status, token, base]);
@@ -2883,9 +3198,12 @@
       const body = { accepted: true,
         terms_version: t.version || (window.IDV_TERMS && window.IDV_TERMS.version) || null,
         terms_url: t.url || null };
-      capPost(token, 'consent', Object.assign({ kind: 'terms' }, body), base).then(function (r) {
-        if (!r.ok) { setBusy(false); setNotice(plainFail(r, 'We could not record that. Try again.')); return; }
-        capPost(token, 'consent', Object.assign({ kind: 'biometric_retention' }, body), base)
+      withRetry(function () { return capPost(token, 'consent', Object.assign({ kind: 'terms' }, body), base); },
+        { onAttempt: function (n) { setNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } })
+        .then(function (r) {
+        if (!r.ok) { setBusy(false); setNotice(plainFail(r, NET_COPY.dead)); return; }
+        setNotice(null);
+        withRetry(function () { return capPost(token, 'consent', Object.assign({ kind: 'biometric_retention' }, body), base); })
           .then(function () {
             setBusy(false);
             setDone(function (d) { return Object.assign({}, d, { consent: true }); });
@@ -2918,7 +3236,14 @@
       submittedRef.current = true;
       setNotice(null);
       setPhase('processing');
-      capPost(token, 'submit', {}, base).then(function (r) {
+      // BRIEF §4. A submit that met one reset tunnel used to become an outcome
+      // screen saying the check had not gone in — with every photograph
+      // already safely on the server. Three attempts first, and the guest reads
+      // the retry ladder on the processing screen while they happen.
+      withRetry(function () { return capPost(token, 'submit', {}, base); },
+        { onAttempt: function (n) { setNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } })
+        .then(function (r) {
+        setNotice(null);
         if (!r.ok) {
           // A refused submit is not a decision. Stay honest: say it did not go
           // in and keep the guest where they are.
@@ -3035,10 +3360,20 @@
       }).then(function (res) {
         return res.json().then(function (j) { return { ok: res.ok, code: res.status, body: j }; },
           function () { return { ok: res.ok, code: res.status, body: null }; });
-      }).catch(function (e) { return { ok: false, code: 0, body: { error: e && e.message } }; })
+      }).catch(function (e) {
+        noteError('override: ' + (e && e.message));
+        return { ok: false, code: 0, body: null };
+      })
         .then(function (r) {
           setBusy(false);
-          if (!r.ok) { setNotice((r.body && r.body.error) || 'The override was refused.'); return; }
+          // ASSOCIATE-FACING, AND STILL NOT A RAW ERROR. The server's own
+          // `body.error` on this route is a written refusal ("actor store does
+          // not match the session"), which an associate needs; a transport
+          // failure is not, and used to arrive here as 'Load failed'.
+          if (!r.ok) {
+            setNotice(r.code === 0 ? NET_COPY.dead : ((r.body && r.body.error) || 'The override was refused.'));
+            return;
+          }
           setOverrideOpen(false);
           setPoll({ status: 'Approved', reasons: [], message: null, overridden: true });
           setPhase('outcome');
@@ -3980,15 +4315,17 @@
       onSnap: function (metrics) { snap(metrics); },
     });
 
+    // ROUND 5: every grab goes through the blank guard. A tilt frame that came
+    // back black used to be uploaded as evidence of ink under tilt.
     function grabFrame(maxEdge, q, withMetrics) {
-      const v = cam.videoRef.current;
-      if (!v) return Promise.resolve(null);
-      const canvas = drawScaled(v, maxEdge || MAX_EDGE);
-      if (!canvas) return Promise.resolve(null);
-      const m = withMetrics ? canvasMetrics(canvas) : null;
-      return canvasToJpeg(canvas, q || JPEG_Q).then(function (blob) {
-        return blob ? { blob: blob, metrics: m } : null;
-      });
+      return drawChecked(function () { return cam.videoRef.current; }, maxEdge || MAX_EDGE)
+        .then(function (canvas) {
+          if (!canvas) return null;
+          const m = withMetrics ? canvasMetrics(canvas) : null;
+          return canvasToJpeg(canvas, q || JPEG_Q).then(function (blob) {
+            return blob ? { blob: blob, metrics: m } : null;
+          });
+        });
     }
     // THE UPLOAD CAP FOR THE PRIMARY FRAME OF THIS STEP. The front's 2400 is
     // §4 of the brief; the back never comes through here at all (see snapBack).
@@ -4051,7 +4388,16 @@
       }
       setShutter(true);
       torchOff();
-      const record = drawScaled(v, MAX_EDGE_FRONT);
+      // ── ROUND 5, BRIEF §1: THE RECORD SHOT IS 1600 px AND q 0.8 NOW ───────
+      // MEASURED, session #5: the band crop decoded in 10 ms and uploaded in
+      // 161 kB, and then a 4 K record frame at 2400 px / q 0.85 went up behind
+      // it and Cloudflare reset the connection. The guest read "Sending…" for
+      // five seconds and then `request failed: Load failed`, for a picture
+      // whose only job is to let a reviewer see the card the crop came out of.
+      // At 1600 px and q 0.8 it is roughly a third of the bytes, it is never
+      // awaited, it gets one retry, and if it is lost the next successful
+      // upload carries `dropped_extras`. Nobody is ever shown it failing.
+      const record = drawScaled(v, MAX_EDGE);
       setTimeout(function () { setShutter(false); setSnapped(true); }, 200);
       setSending(true);
       // `doc_box` AND ITS FRIENDS ARE NULLED HERE, for the reason the face step
@@ -4076,21 +4422,33 @@
           setSnapped(false); reopen();
           return;
         }
-        capUpload(token, 'document_back', blob, { metrics: m, base: base,
-          filename: 'document_back_barcode.jpg' }).then(function (r) {
+        // THE EVIDENCE, AND IT IS THE ONLY THING AWAITED. Three attempts with
+        // backoff; the guest reads the retry ladder rather than a TypeError.
+        uploadEvidence(token, 'document_back', blob, { metrics: m, base: base,
+          filename: 'document_back_barcode.jpg',
+          onAttempt: function (n) { onNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); },
+        }).then(function (r) {
           setSending(false);
           if (!r.ok) { onNotice(uploadFail(r)); setSnapped(false); reopen(); return; }
-          if (record) {
-            canvasToJpeg(record, JPEG_Q).then(function (full) {
-              if (!full) return;
-              capUpload(token, 'challenge_frame', full,
+          onNotice(null);
+          // FIRE AND FORGET. A fetch is not cancelled by a React unmount, so
+          // this finishes on its own while the selfie step is already opening,
+          // and nothing it does can reach the screen.
+          if (record && !frameIsBlank(record)) {
+            canvasToJpeg(record, 0.8).then(function (full) {
+              if (!full) { droppedExtras += 1; return; }
+              uploadExtra(token, 'challenge_frame', full,
                 { metrics: clientMetrics(metrics, 'zxing',
                   { steady_ms: null, card_fill: null, doc_box: null, doc_fill: null,
                     doc_outside: null, band_w: null, band_w_px: hit.band_w_px,
                     px_per_module_est: hit.px_per_module_est }),
-                base: base, filename: 'document_back_frame.jpg' })
-                .then(function () {}, function () {});
-            });
+                base: base, filename: 'document_back_frame.jpg' });
+            }, function () { droppedExtras += 1; });
+          } else if (record) {
+            // Drawn, and blank. Counted rather than sent: a black provenance
+            // frame is worse than none, because it looks like evidence.
+            droppedExtras += 1;
+            noteError('document_back record frame was blank');
           }
           zoomReset();
           setTimeout(function () { onUploaded(step); }, 380);
@@ -4111,12 +4469,14 @@
         torchOff();
         setSending(true);
         const m = clientMetrics(metrics, 'heuristic');
-        const up = capUpload(token, step, f.blob, { metrics: m, base: base });
+        const up = uploadEvidence(token, step, f.blob, { metrics: m, base: base,
+          onAttempt: function (n) { onNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } });
 
         if (step !== 'document_front') {
           up.then(function (r) {
             setSending(false);
             if (!r.ok) { onNotice(uploadFail(r)); setSnapped(false); reopen(); return; }
+            onNotice(null);
             setTimeout(function () { onUploaded(step); }, 380);
           });
           return;
@@ -4138,31 +4498,30 @@
             setTilt(false);
             setSending(false);
             if (!r.ok) { onNotice(uploadFail(r)); setSnapped(false); reopen(); return; }
-            // The extras are advisory, and sharpest-first so that if the chain
-            // is cut short by a walk-off the frames that landed are the ones
-            // worth having. A failure to upload one of them must NOT lose the
-            // step that already landed, so each is swallowed.
+            onNotice(null);
+            // ── ROUND 5, BRIEF §1: THE STEP NO LONGER WAITS ON THE EXTRAS ───
+            // Round 4 chained four tilt uploads and only THEN advanced. On the
+            // owner's tunnel each of those was several seconds; on session #5
+            // three passive selfie frames took eighteen. Four frames of
+            // ink-under-tilt evidence are worth having and worth NOTHING of the
+            // guest's time — the front photograph, which is the evidence, has
+            // already landed. So the chain runs on unawaited and the step
+            // advances now. Each frame gets one retry; a loss is counted into
+            // `dropped_extras` and reaches the server on the next upload.
             const ordered = orderByQuality(frames);
             let ch = Promise.resolve();
             ordered.forEach(function (fr, n) {
               ch = ch.then(function () {
-                return capUpload(token, 'challenge_frame', fr.blob,
+                return uploadExtra(token, 'challenge_frame', fr.blob,
                   { metrics: clientMetrics(fr.metrics, 'heuristic', { steady_ms: null, card_fill: null }),
-                    base: base, filename: 'document_front_tilt_' + (n + 1) + '.jpg' })
-                  .then(function () {}, function () {});
+                    base: base, filename: 'document_front_tilt_' + (n + 1) + '.jpg' });
               });
             });
-            ch.then(function () { onUploaded(step); });
+            onUploaded(step);
           });
       });
     }
 
-    function uploadFail(r) {
-      if (r && r.code === 413) return 'That photo was too large. We will take another.';
-      if (r && r.code === 415) return 'That file is not a photo we can read. We will take another.';
-      if (r && r.code === 410) return 'This link has expired. Ask for a new one.';
-      return (r && r.error) || 'That did not go through. We will take another.';
-    }
 
     // ── the offer (18–20 on a REC_21 workflow, offer_medical_path on) ──────
     // A CHOICE, NOT A DECLINE. "I don't have one" continues the flow exactly as
@@ -4293,6 +4652,27 @@
       + ' · the server still decides', null, { flush: true });
   }
 
+  // ── WHAT A FAILED UPLOAD SAYS, AND IT IS MODULE SCOPE FOR A REASON ──────
+  // ROUND 5 MOVED THIS OUT OF `DocStep`. The selfie step needs the same
+  // sentences — a 413 on a selfie is still a photo that was too large — and
+  // the first draft of round 5 called it from `FaceStep`, where it was not in
+  // scope: a ReferenceError on the one path a guest reaches only when their
+  // connection is already failing, i.e. the path least likely to be exercised
+  // and worst to break. Found by reading, before a phone found it.
+  //
+  // THE LAST LINE USED TO BE `r.error`, AND `r.error` USED TO BE 'request
+  // failed: Load failed'. It is now one of the three plain sentences by
+  // construction (see NET_COPY and `settle`), so this can only ever return
+  // guest-safe copy — but the code branches stay, because "too large" and "we
+  // cannot reach Hyperwolf" ask the guest to do different things.
+  function uploadFail(r) {
+    if (r && r.code === 413) return 'That photo was too large. We will take another.';
+    if (r && r.code === 415) return 'That file is not a photo we can read. We will take another.';
+    if (r && r.code === 410) return 'This link has expired. Ask for a new one.';
+    if (r && r.code === 0) return NET_COPY.dead;
+    return (r && r.error) || 'That did not go through. We will take another.';
+  }
+
   // ── the picker fallback ─────────────────────────────────────────────────
   function PickerFallback({ step, token, base, shell, copy, onUploaded, onNotice, notice, detail, photos, setPhotos }) {
     const P = useP();
@@ -4312,11 +4692,16 @@
         // camera roll never passed a gate — there was no live frame to gate —
         // so every measurement is null and `manual` is true. An all-null row is
         // the honest record of a photo whose provenance we do not know.
-        return capUpload(token, step, blob, { base: base, filename: ready.name || (step + '.jpg'),
-          metrics: clientMetrics({ manual: true }, 'heuristic') });
+        return uploadEvidence(token, step, blob, { base: base, filename: ready.name || (step + '.jpg'),
+          metrics: clientMetrics({ manual: true }, 'heuristic'),
+          onAttempt: function (n) { onNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } });
       }).then(function (r) {
         setBusy(false);
-        if (!r || !r.ok) { onNotice((r && r.error) || 'That photo did not go through. Try another.'); return; }
+        if (!r || !r.ok) {
+          onNotice(r && r.code === 0 ? NET_COPY.dead : ((r && r.error) || 'That photo did not go through. Try another.'));
+          return;
+        }
+        onNotice(null);
         setPhotos([]);
         onUploaded(step);
       }).catch(function () { setBusy(false); onNotice('That photo could not be read. Try another.'); });
@@ -4402,6 +4787,10 @@
     const [stepIdx, setStepIdx] = React.useState(0);
     const [stepTotal, setStepTotal] = React.useState(0);
     const [mp, setMp] = React.useState(faceState());
+    // ROUND 5, BRIEF §4: the ONE button this screen grows. It holds the exact
+    // upload that failed — a selfie blob or a recorded clip — and pressing it
+    // re-sends THOSE BYTES. It is never a re-capture and never a re-record.
+    const [retryUpload, setRetryUpload] = React.useState(null);
     const stopRef = React.useRef(false);
     const lastFaceRef = React.useRef(null);      // last MediaPipe result, for the challenge
     const centreRef = React.useRef(null);
@@ -4414,19 +4803,42 @@
 
     // Watch the vendored model in. It was started back on the consent screen,
     // so on any normal connection it is already 'ready' by the time this mounts.
+    //
+    // ── ROUND 5: THE GIVE-UP LATCHES, AND THE POLL NEVER STOPS ─────────────
+    // ROUND 4's WATCHER OSCILLATED, AND THAT IS A REAL BUG FOUND BY READING.
+    // At FACE_WAIT_MS it set `mp` to 'failed'; 250 ms later the interval called
+    // `setMp(faceState())`, which for a model still downloading answers
+    // 'loading', so the state flipped straight back — and the step spent the
+    // rest of its life alternating between the fallback copy and "Getting
+    // ready…" every quarter second. Round 5:
+    //   · once we have given up, `gaveUpRef` latches and 'loading' can never
+    //     un-fail the step. Only 'ready' can, which is the seamless upgrade the
+    //     brief asks for: a model that lands mid-step is picked up on the next
+    //     poll and `usingMp` turns true underneath a running loop.
+    //   · the poll runs for the WHOLE mount rather than being cancelled at
+    //     give-up, because "the helper arrives late" is exactly the case it has
+    //     to catch and round 4 stopped listening a second before it could.
+    const gaveUpRef = React.useRef(false);
     React.useEffect(function () {
       startFaceLoad();
-      if (faceState() === 'ready' || faceState() === 'failed') { setMp(faceState()); return undefined; }
+      if (faceState() === 'ready') { setMp('ready'); return undefined; }
       let dead = false;
-      function onReady() { if (!dead) setMp(faceState()); }
-      window.addEventListener('hw-face-mp', onReady);
-      // A poll as well as the event: the event fires once, and a component that
-      // mounts in the same tick the module settles can miss it.
-      const id = setInterval(onReady, 250);
+      function look() {
+        if (dead) return;
+        const s = faceState();
+        if (s === 'ready') { gaveUpRef.current = false; setMp('ready'); return; }
+        if (s === 'failed') { gaveUpRef.current = true; setMp('failed'); return; }
+        if (!gaveUpRef.current) setMp(s);
+      }
+      window.addEventListener('hw-face-mp', look);
+      const id = setInterval(look, 250);
       const giveUp = setTimeout(function () {
-        if (!dead && faceState() !== 'ready') setMp('failed');
+        if (dead || faceState() === 'ready') return;
+        gaveUpRef.current = true;
+        setMp('failed');
       }, FACE_WAIT_MS);
-      return function () { dead = true; window.removeEventListener('hw-face-mp', onReady); clearInterval(id); clearTimeout(giveUp); };
+      look();
+      return function () { dead = true; window.removeEventListener('hw-face-mp', look); clearInterval(id); clearTimeout(giveUp); };
     }, []);
 
     const usingMp = mp === 'ready' && !!faceLandmarker();
@@ -4502,19 +4914,39 @@
         Object.assign({ card_fill: null, doc_fill: null, doc_outside: null, doc_box: null, band_w: null }, extra || {}));
     }
 
+    // ROUND 5: never returns a blank frame. See `drawChecked`.
     function grabOne(maxEdge, q) {
-      const v = cam.videoRef.current;
-      if (!v) return Promise.resolve(null);
-      const canvas = drawScaled(v, maxEdge || MAX_EDGE);
-      if (!canvas) return Promise.resolve(null);
-      return canvasToJpeg(canvas, q || JPEG_Q);
+      return drawChecked(function () { return cam.videoRef.current; }, maxEdge || MAX_EDGE)
+        .then(function (canvas) { return canvas ? canvasToJpeg(canvas, q || JPEG_Q) : null; });
     }
+
+    // ── ROUND 5, BRIEF §3: THE CAMERA HAS TO BE UP BEFORE ANYTHING FIRES ───
+    // `cam.status === 'live'` means getUserMedia RESOLVED. It does not mean the
+    // sensor has produced a lit frame, and on an iPhone front camera those are
+    // several hundred milliseconds apart — long enough for the auto-capture's
+    // disagreement escape to force a snap of nothing, which is exactly what
+    // session #5's `forced: true, exposure: 0` rows record.
+    //
+    // So the loop does not go live until `waitForCamera` has seen 400 ms of
+    // frames whose mean luma clears 20/255. Until then the screen says
+    // "Starting the camera…" — the sentence it already had for this — and no
+    // shutter of any kind, automatic or tapped, can fire.
+    const [camReady, setCamReady] = React.useState(false);
+    React.useEffect(function () {
+      if (cam.status !== 'live') { setCamReady(false); return undefined; }
+      let dead = false;
+      waitForCamera(function () { return cam.videoRef.current; },
+        { cancelled: function () { return dead; } })
+        .then(function (ok) { if (!dead) setCamReady(!!ok); });
+      return function () { dead = true; };
+      // eslint-disable-next-line
+    }, [cam.status, cam.stream]);
 
     const [gen, setGen] = React.useState(0);
     function reopen() { setSnapped(false); setGen(function (g) { return g + 1; }); }
 
     const auto = useAutoCapture({
-      live: cam.status === 'live' && mode === 'selfie',
+      live: cam.status === 'live' && camReady && mode === 'selfie',
       measure: measure, gate: gate, gen: gen,
       // Degraded on the selfie means "we asked for the model and did not get
       // it", which is exactly when the owner's 6 s escape hatch should appear.
@@ -4529,38 +4961,82 @@
     // shutter and one checkmark; the three `selfie_frame` rows that go up
     // underneath it are never mentioned, because they are evidence for the
     // engine and not an event in the guest's afternoon.
+    //
+    // ── ROUND 5: THE ORDER IS REVERSED, AND THAT IS THE WHOLE 24 KB BUG ────
+    // ROUND 4 CAPTURED THREE PASSIVE FRAMES, UPLOADED THEM ONE AFTER ANOTHER,
+    // AND ONLY THEN GRABBED THE SELFIE. On the owner's tunnel each of those
+    // uploads took about six seconds, so the `selfie` — the single most
+    // important frame in the session, the one the face match is made against —
+    // was taken EIGHTEEN SECONDS after the shutter the guest saw, from a
+    // <video> that by then had no current frame to give. The three passive
+    // frames are fine pictures; the selfie is 1 440 000 pixels of pure zero.
+    //
+    // Round 5 grabs the SELFIE FIRST, out of the same moment the gates just
+    // approved, checks it is not blank, and uploads it as the only awaited
+    // thing on this screen. The three passive frames are captured behind it and
+    // uploaded best-effort — they are corroboration, they are not the evidence,
+    // and no guest should ever wait on them again.
+    const pendingSelfieRef = React.useRef(null);   // { blob, metrics } for a retry that re-sends
     function snapSelfie(metrics) {
       setShutter(true);
       const m = payload(metrics, { steady_ms: metrics && metrics.steady_ms });
       setTimeout(function () { setShutter(false); setSnapped(true); }, 200);
 
-      grabBurst(function () { return grabOne(); }, PASSIVE_N, PASSIVE_GAP_MS).then(function (frames) {
-        let ch = Promise.resolve();
-        frames.forEach(function (b) {
-          ch = ch.then(function () {
-            return capUpload(token, 'selfie_frame', b, { metrics: m, base: base }).then(function () {}, function () {});
-          });
-        });
-        return ch.then(function () { return grabOne(); });
-      }).then(function (b) {
+      grabOne().then(function (b) {
         if (!b) {
+          // BLANK OR NOT READY, AND IT IS NEVER SENT. `drawChecked` has already
+          // spent six retries over ~700 ms on this; if it is still black the
+          // honest move is to reopen the step, not to upload a photograph of
+          // nothing and let the engine decline a guest for it.
           onNotice('The camera gave us no picture. Move a little and we will try again.');
           reopen();
           return null;
         }
-        return capUpload(token, 'selfie', b, { metrics: m, base: base }).then(function (r) {
+        pendingSelfieRef.current = { blob: b, metrics: m };
+        return sendSelfie();
+      });
+
+      // The passive frames, entirely off the critical path. They start after
+      // the selfie blob is in hand so they cannot delay it, and every one of
+      // them is blank-guarded by `grabOne` too.
+      grabBurst(function () { return grabOne(); }, PASSIVE_N, PASSIVE_GAP_MS).then(function (frames) {
+        let ch = Promise.resolve();
+        frames.forEach(function (b) {
+          ch = ch.then(function () {
+            return uploadExtra(token, 'selfie_frame', b, { metrics: payload(metrics, { steady_ms: null }), base: base });
+          });
+        });
+        // Deliberately not returned to anything: nothing waits on this.
+        return ch;
+      }, function () {});
+    }
+
+    // THE RETRY RE-SENDS, IT NEVER RE-CAPTURES. Brief §4. Asking somebody to
+    // pose again because our upload met a reset router is asking them to pay
+    // for our network, and the frame we already have is the one the gates
+    // approved — a second one might not be.
+    function sendSelfie() {
+      const held = pendingSelfieRef.current;
+      if (!held) return Promise.resolve(null);
+      setRetryUpload(null);
+      return uploadEvidence(token, 'selfie', held.blob, { metrics: held.metrics, base: base,
+        onAttempt: function (n) { onNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } })
+        .then(function (r) {
           if (!r.ok) {
-            onNotice((r && r.error) || 'That did not go through. We will take another.');
-            reopen();
+            // Three attempts are spent. ONE calm sentence and a Retry that
+            // re-attempts THIS upload — not the step, not the photograph.
+            onNotice(r.code === 0 ? NET_COPY.dead : uploadFail(r));
+            setRetryUpload(function () { return sendSelfie; });
             return null;
           }
+          onNotice(null);
+          pendingSelfieRef.current = null;
           // STRAIGHT INTO THE CHALLENGE. No screen, no button, no second camera
           // acquisition — the same stream is already running.
           if (withChallenge) { setTimeout(function () { setSnapped(false); startChallenge(); }, 480); }
           else { setTimeout(function () { celebrate(['selfie']); }, 420); }
           return null;
         });
-      });
     }
 
     // THE COMPLETION BEAT. One checkmark and one word, held for DONE_BEAT_MS,
@@ -4674,13 +5150,20 @@
       setMode('challenge');
       onNotice(null);
       setPrompt({ text: 'Getting the check ready', kind: null, dir: null });
-      capPost(token, 'challenge', {}, base).then(function (r) {
+      // BRIEF §4. The script and the nonce come from the server, so a reset
+      // here used to end the liveness step before it began — and this runs
+      // immediately after the selfie upload, i.e. at the exact moment the
+      // connection has just proved it is unreliable.
+      withRetry(function () { return capPost(token, 'challenge', {}, base); },
+        { onAttempt: function (n) { onNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } })
+        .then(function (r) {
         if (!r.ok || !r.body) {
           setPrompt(null);
-          onNotice((r && r.error) || 'We could not start that check. Tap to try it again.');
+          onNotice(r && r.code === 0 ? NET_COPY.dead : 'We could not start that check. Tap to try it again.');
           challengeStartedRef.current = false;
           return;
         }
+        onNotice(null);
         const ch = r.body;
         const stream = cam.stream;
         const MR = window.MediaRecorder;
@@ -4736,7 +5219,10 @@
           let c2 = Promise.resolve();
           frames.forEach(function (b, i) {
             c2 = c2.then(function () {
-              return capUpload(token, 'challenge_frame', b,
+              // THESE ARE EVIDENCE, NOT EXTRAS — on a browser with no
+              // MediaRecorder they are the ONLY record of the challenge — so
+              // they get the full retry budget even though a loss is swallowed.
+              return uploadEvidence(token, 'challenge_frame', b,
                 { challengeId: ch.challenge_id, base: base, filename: 'challenge_' + (i + 1) + '.jpg',
                   metrics: payload(null) })
                 .then(function () {}, function () {});
@@ -4747,6 +5233,15 @@
       });
     }
 
+    // ── ROUND 5, BRIEF §4: A CLIP IS RE-SENT, NEVER RE-PERFORMED ───────────
+    // Round 4 answered a failed `liveness_video` upload by dropping the guest
+    // back to 'challenge' and asking them to run the whole check again — turn
+    // your head, blink, watch the colours — because a router dropped a packet.
+    // Worse, `_count_attempt` on the server treats a re-run as another liveness
+    // attempt, and there are only three. So the clip is held and the button
+    // re-uploads THE SAME BYTES; only an empty recording, where there is
+    // genuinely nothing to send, re-runs the check.
+    const pendingClipRef = React.useRef(null);
     function sendRecording(blob, challengeId, filename) {
       if (!blob || !blob.size) {
         setMode('challenge');
@@ -4754,16 +5249,27 @@
         onNotice('The recording came back empty. Tap to run that check again.');
         return;
       }
-      capUpload(token, 'liveness_video', blob,
-        { challengeId: challengeId, base: base, filename: filename, metrics: payload(null) })
+      pendingClipRef.current = { blob: blob, challengeId: challengeId, filename: filename };
+      sendClip();
+    }
+    function sendClip() {
+      const held = pendingClipRef.current;
+      if (!held) return Promise.resolve(null);
+      setRetryUpload(null);
+      setMode('sending');
+      return uploadEvidence(token, 'liveness_video', held.blob,
+        { challengeId: held.challengeId, base: base, filename: held.filename, metrics: payload(null),
+          onAttempt: function (n) { onNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } })
         .then(function (r) {
           if (!r.ok) {
-            setMode('challenge');
-            challengeStartedRef.current = false;
-            onNotice((r && r.error) || 'That recording did not go through. Tap to try again.');
-            return;
+            onNotice(r.code === 0 ? NET_COPY.dead : 'That recording did not go through. Tap Retry.');
+            setRetryUpload(function () { return sendClip; });
+            return null;
           }
+          onNotice(null);
+          pendingClipRef.current = null;
           celebrate(startWith === 'challenge' ? ['challenge'] : ['selfie', 'challenge']);
+          return null;
         });
     }
 
@@ -4771,10 +5277,13 @@
     // starts the moment the camera is live. No button, same as the selfie path.
     React.useEffect(function () {
       if (startWith !== 'challenge') return;
-      if (cam.status !== 'live') return;
+      // ROUND 5: `camReady`, not just `live`. A challenge that starts recording
+      // before the sensor is up puts the guest's black first second into the
+      // clip the engine has to judge.
+      if (cam.status !== 'live' || !camReady) return;
       startChallenge();
       // eslint-disable-next-line
-    }, [startWith, cam.status]);
+    }, [startWith, cam.status, camReady]);
 
     // ── render ───────────────────────────────────────────────────────────
     if (cam.status === 'denied' || cam.status === 'unavailable' || cam.status === 'failed') {
@@ -4804,10 +5313,10 @@
       <React.Fragment>
         {/* FULL-BLEED. The viewfinder is the screen: no card, no border, and the
             only lit region on the phone is inside the oval. */}
-        <div ref={boxRef} onClick={live && !snapped && !inChallenge && !finished ? auto.fire : undefined}
+        <div ref={boxRef} onClick={live && camReady && !snapped && !inChallenge && !finished ? auto.fire : undefined}
           style={{ position: 'relative', width: '100%', aspectRatio: '3 / 4',
             background: P.canvas2, borderRadius: P.r20, overflow: 'hidden',
-            cursor: live && !snapped && !inChallenge ? 'pointer' : 'default' }}>
+            cursor: live && camReady && !snapped && !inChallenge ? 'pointer' : 'default' }}>
           <video ref={cam.videoRef} playsInline muted autoPlay
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
               // The preview is mirrored so the guest sees themselves the way a
@@ -4830,14 +5339,26 @@
         {!finished && !inChallenge && fix && !snapped ? <Say>{fix}</Say> : null}
         {!finished && !inChallenge && !fix && !snapped ? <Say mute>{copy.selfie || STEP_COPY.selfie.say}</Say> : null}
         {!finished && inChallenge && !prompt && mode !== 'sending' ? <Say mute>{STEP_COPY.challenge.say}</Say> : null}
-        {/* HONEST ABOUT THE DEGRADED PATH, WITHOUT A DIAGNOSIS. The guest is
-            told the framing help is missing, not why, and never a model name. */}
-        {!finished && !inChallenge && !usingMp && mp === 'failed' && live
-          ? <Say mute>The on-screen framing help did not load, so line your face up with the oval yourself.</Say> : null}
-        {!finished && !inChallenge && !usingMp && mp !== 'failed' && live ? <Say mute>Getting ready…</Say> : null}
+        {/* ── ROUND 5, BRIEF §3: ONE CALM LINE, AND NO MENTION OF LOADING ──
+            Round 4 said "The on-screen framing help did not load, so line your
+            face up with the oval yourself" — a sentence that tells a guest
+            something of ours is broken, at the moment we are asking them to
+            look into a camera. It also strobed, because the watcher above
+            oscillated. Both halves are gone: the guest gets the instruction and
+            nothing else, whether the helper is present, late or never coming,
+            and the step behaves identically in all three cases. */}
+        {!finished && !inChallenge && !usingMp && live && !snapped
+          ? <Say mute>Line your face up with the oval</Say> : null}
         {notice ? <Say>{notice}</Say> : null}
-        {!live ? <Say mute>Starting the camera…</Say> : null}
-        {!finished && !inChallenge && auto.manual && live && !snapped ? (
+        {/* `live` is getUserMedia having resolved; `camReady` is the sensor
+            having produced 400 ms of lit frames. Until both, nothing fires. */}
+        {!live || !camReady ? <Say mute>Starting the camera…</Say> : null}
+        {/* THE ONE RETRY, AND IT RE-SENDS RATHER THAN RE-ASKS. */}
+        {retryUpload ? (
+          <window.PBtn size="lg" variant="accent" icon="refresh"
+            onClick={function () { const f = retryUpload; if (typeof f === 'function') f(); }}>Retry</window.PBtn>
+        ) : null}
+        {!finished && !inChallenge && auto.manual && live && camReady && !snapped ? (
           <window.PBtn size="xl" variant="secondary" icon="camera" onClick={auto.fire}>Take photo</window.PBtn>
         ) : null}
         {/* The only button the challenge ever shows, and only after it has
@@ -4862,8 +5383,30 @@
   // place hardest: between them they are the whole of the framing defect the
   // owner hit, and both can now be exercised with a synthetic buffer and a pair
   // of numbers rather than with a licence on a desk.
-  window.IdvCapture.api = { url: capUrl, get: capGet, post: capPost, upload: capUpload, beacon: capBeacon };
-  window.IdvCapture.grab = { drawScaled: drawScaled, toJpeg: canvasToJpeg, MAX_EDGE: MAX_EDGE, JPEG_Q: JPEG_Q };
+  window.IdvCapture.api = { url: capUrl, get: capGet, post: capPost, upload: capUpload, beacon: capBeacon,
+    // ── ROUND 5's STATICS ────────────────────────────────────────────────
+    // `withRetry` and `retryable` are here so "does a 502 get three attempts
+    // and a 413 exactly one" is answerable from Node against a stub that
+    // counts calls, rather than by reading the code and believing it.
+    // `NET_COPY` is here so a test can assert that the only strings this file
+    // renders on a failure are these three — which is the whole of brief §2 and
+    // is otherwise a promise nobody can check.
+    withRetry: withRetry, retryable: retryable, NET_COPY: NET_COPY,
+    safeSentence: safeSentence,
+    uploadEvidence: uploadEvidence, uploadExtra: uploadExtra,
+    telemetry: function () { return { last_error: lastError, dropped_extras: droppedExtras }; },
+    resetTelemetry: clearTelemetry,
+    RETRY_ATTEMPTS: RETRY_ATTEMPTS, EXTRA_ATTEMPTS: EXTRA_ATTEMPTS };
+  window.IdvCapture.grab = { drawScaled: drawScaled, toJpeg: canvasToJpeg, MAX_EDGE: MAX_EDGE, JPEG_Q: JPEG_Q,
+    // ── THE BLACK-FRAME GUARD, EXPORTED PURE ─────────────────────────────
+    // `statsAreBlank` takes two numbers and answers the question that would
+    // have stopped a 1 440 000-pixel field of zeros reaching the engine as
+    // somebody's face. `frameStats` and `drawChecked` need a canvas; the
+    // decision itself does not, and it is the decision that has to be right.
+    videoReady: videoReady, frameStats: frameStats, statsAreBlank: statsAreBlank,
+    frameIsBlank: frameIsBlank, drawChecked: drawChecked, waitForCamera: waitForCamera,
+    FRAME_MIN_LUMA: FRAME_MIN_LUMA, FRAME_MIN_SPREAD: FRAME_MIN_SPREAD,
+    CAM_READY_HOLD_MS: CAM_READY_HOLD_MS, CAM_READY_TIMEOUT_MS: CAM_READY_TIMEOUT_MS };
   window.IdvCapture.metrics = {
     analyser: makeAnalyser, analysePixels: analysePixels, canvasMetrics: canvasMetrics,
     docGate: docGate, faceGate: faceGate, barcodeHint: barcodeHint, sharpnessFloor: sharpnessFloor,
