@@ -72,6 +72,54 @@
 //  processing screen that tells the truth about elapsed time and, past 45 s,
 //  says so and offers a re-poll that is not a restart.
 //
+// ── ROUND 4, 2026-09-09 — THE BACK FAILED ON PIXEL SIZE, AND ONLY THAT ────
+// Session #4 on the owner's iPhone, measured off the upload itself:
+//
+//     uploaded back frame        900 × 1600, portrait
+//     the card                   about half the frame width
+//     the PDF417 band            417 × 43 px  →  1.85 px/module (226 modules)
+//     sharpness                  1 065   (floor 420 — sharp)
+//     exposure                   0.60    (fine)
+//
+// Sharp, well lit, correctly framed by round 3's rules, and undecodable. The
+// decoder's floor measured through round 3's path was ≈ 2.05 px/module; his
+// barcode was 1.85. Nothing about light or focus could have saved it. TWO
+// CAUSES, both of them size:
+//
+//   (a) THE 1600 px LONG-EDGE DOWNSCALE. `MAX_EDGE` was applied to every
+//       upload, so the picture the server got had already lost a third of its
+//       linear resolution before anyone tried to read it. (The live decode
+//       loop never used that path — it cropped from the raw video — but the
+//       SERVER's copy did, and the server is the one that has to decode a
+//       barcode this page failed to.)
+//   (b) A CARD-SHAPED GUIDE THE CARD ONLY HALF FILLED. An ID-1 guide asks the
+//       guest to fit a whole card; a whole card at arm's length is small, and
+//       the barcode is 78 % of something small. The barcode is the only thing
+//       on the back that matters, so the guide is now the BARCODE's shape.
+//
+// WHAT ROUND 4 CHANGES, in the order they multiply:
+//   1. The camera is asked for 3840 × 2160 (falling back 1920 × 1080, then
+//      bare), and every back-of-card decode crops the BAND — not the guide,
+//      not the frame — out of the raw video at 1:1, upscaling ×2 only when the
+//      band is under 600 px. The decoder never sees a resampled pixel again.
+//   2. The back's guide is a 4:1 landscape band with the words "Fit the
+//      barcode inside the box", a live indicator drawn on the band the
+//      analyser actually found, and one target: 70 % of the guide's width.
+//      Where the track reports a `zoom` capability the page ZOOMS to reach it
+//      instead of asking the guest to move.
+//   3. The DECODE IS THE ONLY GATE on the back. No heuristic shutter, no
+//      "Take photo" button, no quality refusal. The uploaded `document_back`
+//      is the exact crop the worker decoded, at native pixels, q 0.92.
+//   4. The front's upload cap goes to 2400 px so the engine has a portrait
+//      worth cropping.
+//
+// THE ARITHMETIC THAT MATTERS. 226 modules is the width of a compact AAMVA
+// PDF417 (13 data columns), and it is what the owner's own frame says:
+// 417 px ÷ 1.85 px/module = 225. Round 3's synthetic symbol was 205 modules
+// wide, which is why its table reads slightly differently; the estimate this
+// file reports is `band_w_px / 226` and it is named `px_per_module_est`
+// because it is an estimate of a symbol whose column count we never decoded.
+//
 // WHAT RUNS ON THE DEVICE, AND NOTHING LEAVES IT:
 //   · the frame analyser below (sharpness / glare / exposure / document box /
 //     motion) — plain canvas arithmetic, no library, pure and unit-testable;
@@ -171,8 +219,35 @@
   }
 
   // ── frame capture ────────────────────────────────────────────────────────
-  const MAX_EDGE = 1600;   // long edge, per the task brief and the Media rows
+  // ── UPLOAD SIZE IS PER KIND NOW, AND EACH NUMBER HAS A REASON ────────────
+  // Round 3 used ONE cap for everything and it is the first half of the
+  // owner's failure: a 1600 px long edge on a 900 × 1600 portrait upload left
+  // his barcode 417 px wide, under the decoder's floor, before the server had
+  // even opened the file.
+  //
+  //   MAX_EDGE        1600  selfies, selfie frames, the picker fallback and a
+  //                         doctor's recommendation. Unchanged — none of these
+  //                         is read at module scale.
+  //   MAX_EDGE_FRONT  2400  §4 of the brief. The engine crops the portrait out
+  //                         of this frame with a face detector; at 1600 the
+  //                         portrait on a card filling half the guide is under
+  //                         200 px and there is nothing to match against.
+  //   NO_CAP                the back-of-card BAND crop, which is uploaded at
+  //                         native pixels — see snapBack(). The band is a thin
+  //                         strip (about 9.7 : 1), so native costs far less
+  //                         than a capped whole frame did: a 2030 × 210 crop is
+  //                         0.43 Mpx against 1600 × 900's 1.44 Mpx.
+  //
+  // The server's own ceiling is 8 MB an image (wmdemo/idv_media.py
+  // MAX_IMAGE_BYTES). A native band strip at q 0.92 lands around 200–600 kB
+  // and the 2400 px front around 0.6–1.2 MB, so neither goes near it.
+  const MAX_EDGE = 1600;
+  const MAX_EDGE_FRONT = 2400;
+  const NO_CAP = Infinity;
   const JPEG_Q = 0.85;
+  // The back crop is the only thing on this screen that is read at module
+  // scale, and JPEG's chroma subsampling is exactly what smears a 2 px module.
+  const JPEG_Q_BACK = 0.92;
 
   // EXIF-FREE BY CONSTRUCTION, not by stripping. A canvas holds pixels and
   // nothing else, so re-encoding through toBlob() cannot carry the source
@@ -220,7 +295,19 @@
   // to line the card up with a box that had nothing to do with them.
   //
   // `shape`: 'card' = ID-1 (85.6 × 53.98 mm, ratio 1.586); 'page' = a doctor's
-  // recommendation, taller than wide; 'oval' = the face oval.
+  // recommendation, taller than wide; 'oval' = the face oval; 'band' = the
+  // ROUND 4 barcode guide, a 4 : 1 landscape rectangle.
+  //
+  // WHY 'band' EXISTS AND WHY IT IS 4 : 1. The back of a licence is one
+  // barcode and a lot of legal small print nobody reads. Round 3 drew an ID-1
+  // card guide there, so the guest was asked to fit the whole card — and a
+  // whole card at a comfortable distance puts its barcode at about a third of
+  // the frame width, which is where the owner's 417 px came from. A guide
+  // shaped like the thing that has to be read asks for the thing that has to
+  // be read. 4 : 1 rather than the symbol's own ~9.7 : 1 because a box drawn
+  // exactly the size of the barcode is a box no hand can fill: the extra
+  // height is the tolerance, and the band indicator inside it is what reports
+  // the real number.
   //
   // GUIDE_PAD IS 0.045, NOT ROUND 2's 0.09. The pad is the gutter between the
   // preview's edge and the guide, and every pixel of it is resolution the card
@@ -229,6 +316,7 @@
   // of the frame width inside the guide instead of ~71 %, and the guide is what
   // the guest fills.
   const GUIDE_PAD = 0.045;
+  const BAND_ASPECT = 4;          // the barcode guide, width : height
   function guideBox(shape, w, h) {
     if (shape === 'oval') {
       const rx = Math.min(w * 0.34, h * 0.30), ry = rx * 1.32;
@@ -237,8 +325,11 @@
     }
     const pad = Math.min(w, h) * GUIDE_PAD;
     let bw = w - pad * 2;
-    let bh = shape === 'page' ? bw * 1.294 : bw / 1.586;
-    if (bh > h - pad * 2) { bh = h - pad * 2; bw = shape === 'page' ? bh / 1.294 : bh * 1.586; }
+    let bh = shape === 'page' ? bw * 1.294 : shape === 'band' ? bw / BAND_ASPECT : bw / 1.586;
+    if (bh > h - pad * 2) {
+      bh = h - pad * 2;
+      bw = shape === 'page' ? bh / 1.294 : shape === 'band' ? bh * BAND_ASPECT : bh * 1.586;
+    }
     return { oval: false, x: (w - bw) / 2, y: (h - bh) / 2, w: bw, h: bh,
       cx: w / 2, cy: h / 2, rx: bw / 2, ry: bh / 2 };
   }
@@ -520,6 +611,188 @@
     return { read: read, reset: function () { prev = null; } };
   }
 
+  // ── the barcode band ─────────────────────────────────────────────────────
+  // WHERE IS THE BARCODE, HOW WIDE IS IT, AND HOW DARK IS IT. Three questions,
+  // one projection profile, and none of them is a gate — the decode is the
+  // gate. These numbers only ever produce ADVICE and drive the zoom.
+  //
+  // WHY THIS IS NOT `docBoxFrom`. That function looks for a DOCUMENT: a
+  // rectangle of print whose edges are where the gradient rises and falls, in
+  // both axes, with a "we cannot tell" answer for a busy background. A PDF417
+  // is not a document, it is a texture — hundreds of alternating bars per row —
+  // and it announces itself in a way nothing else on a licence does: a ROW that
+  // crosses a vertical edge every few pixels for its whole length.
+  //
+  // ROWS FIRST, AND THAT ORDERING IS A MEASUREMENT. The obvious way round —
+  // count vertical-bar crossings down each COLUMN and take the outermost
+  // columns above a threshold — was written first and measured wrong on the
+  // very first synthetic frame: a card's own left and right EDGES are vertical
+  // too, and a column sitting on one crosses at every row of the card, which is
+  // several times the count of a column inside a barcode a fraction of the
+  // card's height. The card edges won the peak, the threshold followed them,
+  // and the "band" came back 750 px wide on a 562 px barcode — WIDER THAN THE
+  // CARD. The advice would then have been about the card's size, which is
+  // precisely round 3's defect in a new place.
+  //
+  // A ROW profile does not have that failure: a row through a card edge scores
+  // 2, a row through printed text scores about a dozen, and a row through a
+  // PDF417 scores a hundred. So the rows are found first, the columns are
+  // counted only inside them, and the answer is the LONGEST CONTIGUOUS RUN of
+  // columns rather than the outermost ones — because a card edge that survives
+  // into the barcode's own rows is a run of two pixels with a quiet zone
+  // between it and the symbol, and "outermost" would swallow the gap.
+  //
+  // AND IT IS MEASURED ON ITS OWN CANVAS, NOT THE 208 px ONE. At 208 px across
+  // a 4 K frame a 6 px/module barcode is 0.3 px/module — every bar aliases into
+  // its neighbour and the profile is noise. BAND_EDGE is 512, which puts the
+  // same barcode at about 1.5 px/module: far too coarse to DECODE, which is
+  // not what it is for, and easily textured enough to find. 512 × 128 is 65 000
+  // pixels, about 2.5× the main analyser and still well inside a tick.
+  const BAND_EDGE = 512;
+  const BAND_PROFILE_FRAC = 0.35;   // of a profile's own peak, to count as band
+  // A barcode ROW crosses a vertical edge across this much of the strip's width
+  // at least. Set from the sweep: at a band filling 25 % of the guide the rows
+  // score 12–20 % of the strip width, and printed text on the same card scores
+  // about 2 %. 0.04 keeps a band that is still much too small to decode
+  // findable — so the guest is told "Move closer" rather than the blanker
+  // "Fit the barcode inside the box" — while staying well clear of print.
+  const BAND_MIN_ROW_FRAC = 0.04;
+  // A LONE BARCODE INSIDE A 4 : 1 GUIDE IS SHORT. At the 70 % target the band
+  // is 0.70 × guideW wide and, at the symbol's ~9.7 : 1, 0.072 × guideW tall —
+  // 29 % of the guide's own height. A "band" taller than 85 % of the guide is
+  // therefore not a band; it is the whole card, or a tablecloth. Reported as
+  // unknown, which produces "Fit the barcode inside the box" and no false
+  // "Move closer" on a card that is already close.
+  const BAND_MAX_H_FRAC = 0.85;
+  // 226 modules is a compact AAMVA PDF417 (13 data columns). See the round-4
+  // header: the owner's own frame divides out at 225.
+  const PDF417_MODULES = 226;
+
+  function smooth5(a) {
+    const o = new Float32Array(a.length);
+    for (let i = 0; i < a.length; i++) {
+      let s = 0, n = 0;
+      for (let k = -2; k <= 2; k++) { const j = i + k; if (j >= 0 && j < a.length) { s += a[j]; n++; } }
+      o[i] = s / n;
+    }
+    return o;
+  }
+  // THE LONGEST CONTIGUOUS RUN above `t`, tolerating gaps of up to `gap`. The
+  // tolerance is what makes it usable on a real profile: a barcode's own wide
+  // bars leave columns that dip under the threshold, and a run finder with no
+  // tolerance would return one bar.
+  function longestRun(a, t, gap) {
+    let best = null, start = -1, lastOn = -1;
+    function close() {
+      if (start < 0) return;
+      if (!best || (lastOn - start) > (best[1] - best[0])) best = [start, lastOn];
+      start = -1;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] >= t) { if (start < 0) start = i; lastOn = i; }
+      else if (start >= 0 && (i - lastOn) > gap) close();
+    }
+    close();
+    return best;
+  }
+  function peakOf(a) {
+    let p = 0;
+    for (let i = 0; i < a.length; i++) if (a[i] > p) p = a[i];
+    return p;
+  }
+
+  // PURE. `g` is luma over the GUIDE STRIP ONLY (w × h), so every fraction it
+  // returns is a fraction OF THE GUIDE, which is the number the 70 % target and
+  // the zoom are both written in. Returns null when there is no band to speak
+  // of, and null is a real answer, not a failure.
+  function bandProfile(g, w, h) {
+    if (!g || w < 16 || h < 6) return null;
+    function cross(i) { return Math.abs(g[i + 1] - g[i - 1]) > EDGE_T; }
+
+    // 1. THE ROWS. See the long note above for why this axis comes first.
+    const row = new Float32Array(h);
+    for (let y = 1; y < h - 1; y++) {
+      let n = 0;
+      for (let x = 1; x < w - 1; x++) if (cross(y * w + x)) n++;
+      row[y] = n;
+    }
+    const rS = smooth5(row);
+    const rpeak = peakOf(rS);
+    if (rpeak < w * BAND_MIN_ROW_FRAC) return null;    // nothing barcode-like
+    const ey = longestRun(rS, rpeak * BAND_PROFILE_FRAC, Math.max(1, Math.round(h * 0.03)));
+    if (!ey || ey[1] - ey[0] < 2) return null;
+    const bh = (ey[1] - ey[0] + 1) / h;
+    if (bh > BAND_MAX_H_FRAC) return null;             // not a band: a whole card
+
+    // 2. THE COLUMNS, counted only inside those rows.
+    const col = new Float32Array(w);
+    for (let y = Math.max(1, ey[0]); y <= Math.min(h - 2, ey[1]); y++) {
+      for (let x = 1; x < w - 1; x++) if (cross(y * w + x)) col[x] += 1;
+    }
+    const cS = smooth5(col);
+    const cpeak = peakOf(cS);
+    if (cpeak < 1.5) return null;
+    const ex = longestRun(cS, cpeak * BAND_PROFILE_FRAC, Math.max(2, Math.round(w * 0.02)));
+    if (!ex || ex[1] - ex[0] < 8) return null;
+
+    let sum = 0, n = 0;
+    for (let y = ey[0]; y <= ey[1]; y++) {
+      for (let x = ex[0]; x <= ex[1]; x++) { sum += g[y * w + x]; n++; }
+    }
+    return {
+      x: ex[0] / w, y: ey[0] / h,
+      w: (ex[1] - ex[0] + 1) / w, h: bh,
+      frac: (ex[1] - ex[0] + 1) / w,       // of the GUIDE's width — the target
+      luma: n ? (sum / n) / 255 : null,
+    };
+  }
+
+  // The canvas half. Draws the GUIDE REGION of the raw video into a strip at
+  // most BAND_EDGE wide, profiles it, and translates the answer back into two
+  // coordinate systems the callers need:
+  //   `norm`  the band in FRAME-normalised coordinates, which is what the crop
+  //           and the on-screen indicator are both built from;
+  //   `w_px`  the band's width in SOURCE pixels, which is the only number that
+  //           says whether a decode is even possible.
+  function makeBandAnalyser() {
+    const c = document.createElement('canvas');
+    let ctx = null;
+    try { ctx = c.getContext('2d', { willReadFrequently: true }); }
+    catch (e) { ctx = c.getContext('2d'); }
+
+    function read(video, rectNorm) {
+      if (!ctx || !video || !rectNorm) return null;
+      const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
+      if (!vw || !vh) return null;
+      const sx = clamp(Math.floor(rectNorm.x * vw), 0, vw - 2);
+      const sy = clamp(Math.floor(rectNorm.y * vh), 0, vh - 2);
+      const sw = clamp(Math.round(rectNorm.w * vw), 2, vw - sx);
+      const sh = clamp(Math.round(rectNorm.h * vh), 2, vh - sy);
+      const k = Math.min(1, BAND_EDGE / sw);
+      const w = Math.max(16, Math.round(sw * k)), h = Math.max(6, Math.round(sh * k));
+      c.width = w; c.height = h;
+      try { ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h); } catch (e) { return null; }
+      let px;
+      try { px = ctx.getImageData(0, 0, w, h).data; } catch (e) { return null; }
+      const g = new Float32Array(w * h);
+      for (let i = 0, p = 0; i < g.length; i++, p += 4) {
+        g[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
+      }
+      const b = bandProfile(g, w, h);
+      if (!b) return { band_frac: null, band_luma: null, band_w_px: null, band_norm: null };
+      return {
+        band_frac: round3(b.frac),
+        band_luma: round3(b.luma),
+        band_w_px: Math.round(b.w * sw),
+        px_per_module_est: round3((b.w * sw) / PDF417_MODULES),
+        // Frame-normalised, so it survives every later mapping unchanged.
+        band_norm: { x: (sx + b.x * sw) / vw, y: (sy + b.y * sh) / vh,
+          w: (b.w * sw) / vw, h: (b.h * sh) / vh },
+      };
+    }
+    return { read: read };
+  }
+
   // The same two measurements over a whole CANVAS rather than a video's guide
   // region. The tilt burst needs them: those frames are grabbed from an already
   // scaled canvas, they have no guide of their own (the card is moving, that is
@@ -580,9 +853,18 @@
     DENSITY_LOW: 0.03,       // below this there is nothing in the guide at all
     MOTION_MAX: 3.2,
     STEADY_MS: 400,
-    // The back-of-licence advice thresholds, from the brief and from the probe.
-    BAND_W_MIN: 0.40,        // barcode band under 40 % of frame width → closer
-    BAND_LUMA_MIN: 0.20,     // → more light
+    // ── the back-of-licence advice thresholds, ROUND 4 ──
+    // BAND_FILL_MIN is a fraction OF THE 4 : 1 GUIDE, not of the frame, and it
+    // is the whole design. On a 2160-wide portrait stream the band guide is
+    // ~0.94 of the frame width, so 70 % of it is ~1420 source pixels — 6.3
+    // px/module against a decoder floor near 2.0. Even on a 1080-wide fallback
+    // it is ~710 px, 3.1 px/module. The owner's failing frame was 417 px.
+    BAND_FILL_MIN: 0.70,
+    // 70/255. The brief's number, and it is deliberately far below the old
+    // 0.20-of-frame exposure rule: round 3 measured that zxing's LocalAverage
+    // binarizer normalises a 0.42× exposure away entirely, so "More light" is
+    // only worth saying when the band is genuinely near-black.
+    BAND_DARK: 0.275,
     // Face, measured against the OVAL, not the frame.
     FACE_FILL_MIN: 0.40,
     FACE_FILL_MAX: 0.70,
@@ -668,12 +950,59 @@
   // 1.0× at every barcode width, so telling a guest their picture is too dark
   // while the decoder is perfectly happy is telling them to fix the wrong
   // thing.
-  function barcodeHint(m) {
-    if (!m) return null;
-    if (m.band_w != null && m.band_w < GATE.BAND_W_MIN) return 'Move closer';
-    if (m.band_luma != null && m.band_luma < GATE.BAND_LUMA_MIN) return 'More light';
-    if (m.band_w == null && m.exposure != null && m.exposure < GATE.BAND_LUMA_MIN) return 'More light';
+  //
+  // FOUR SENTENCES AND NOT ONE MORE, and the first of them is the honest
+  // "we cannot see a barcode at all":
+  //   band unknown          'Fit the barcode inside the box'
+  //   band < 70 % of guide  'Move closer'   — unless the page ZOOMED instead,
+  //                          in which case the guest is told to hold still,
+  //                          because they have nothing left to do
+  //   band mean luma < 0.275 'More light'
+  //   otherwise              'Hold still'
+  // `zoomed` is passed in by the step, not measured here, so this stays a pure
+  // function of an object.
+  function barcodeHint(m, zoomed) {
+    if (!m) return 'Fit the barcode inside the box';
+    if (m.band_frac == null) return 'Fit the barcode inside the box';
+    if (m.band_frac < GATE.BAND_FILL_MIN) return zoomed ? 'Hold still' : 'Move closer';
+    if (m.band_luma != null && m.band_luma < GATE.BAND_DARK) return 'More light';
     return 'Hold still';
+  }
+  // "IS THE BAND DARK ENOUGH TO EARN THE TORCH." Separate from the hint on
+  // purpose: the torch should come on the moment the band is dark, including
+  // while the guest is still being told to move closer, and the hint can only
+  // say one thing at a time.
+  function bandIsDark(m) {
+    return !!(m && m.band_luma != null && m.band_luma < GATE.BAND_DARK);
+  }
+  // THE ZOOM THE BAND WANTS, or null when there is nothing to do or nothing to
+  // do it with. PURE, and it is the only place the zoom arithmetic lives, so
+  // "does this device even have a zoom" is answered with numbers rather than
+  // with a phone.
+  //
+  //   caps     the track's `getCapabilities().zoom` — { min, max, step } — or
+  //            anything falsy, which means this device has no zoom and the
+  //            answer is null and the guest is asked to move instead;
+  //   current  the track's `getSettings().zoom`, defaulting to caps.min or 1;
+  //   frac     the band's width as a fraction of the guide.
+  //
+  // The target is BAND_FILL_MIN plus a small margin, because zooming to
+  // exactly the threshold leaves the band oscillating across it as the hand
+  // moves. Capped at the device's own max, and refused when the change is
+  // under 8 % — a zoom that moves nothing costs an applyConstraints round trip
+  // and a visible lens hunt for no gain.
+  const ZOOM_TARGET = GATE.BAND_FILL_MIN + 0.08;
+  const ZOOM_MIN_STEP = 1.08;
+  const ZOOM_MAX_FACTOR = 4;
+  function zoomFor(caps, current, frac) {
+    if (!caps || caps.max == null || caps.min == null) return null;
+    if (frac == null || frac <= 0 || frac >= GATE.BAND_FILL_MIN) return null;
+    const now = current == null ? (caps.min || 1) : current;
+    if (!(now > 0)) return null;
+    const wantRaw = now * (ZOOM_TARGET / frac);
+    const want = clamp(Math.min(wantRaw, now * ZOOM_MAX_FACTOR), caps.min, caps.max);
+    if (!(want > now * ZOOM_MIN_STEP)) return null;
+    return Math.round(want * 100) / 100;
   }
 
   function faceGate(m, relax) {
@@ -731,6 +1060,25 @@
       doc_outside: s.doc_outside == null ? null : s.doc_outside,
       doc_box: s.doc_box || null,
       band_w: s.band_w == null ? null : s.band_w,
+      // ── ROUND 4: THE FOUR NUMBERS THAT WOULD HAVE DIAGNOSED SESSION #4 ──
+      // `band_w` above is round 3's advisory "a barcode on that document box
+      // would be this wide", a fraction of the FRAME, inferred and never
+      // measured. These are measured, and they are what an analyst needs:
+      //   band_w_px          the band's width in SOURCE pixels
+      //   px_per_module_est  band_w_px / 226 — the number that was 1.85
+      //   band_frac          the band as a fraction of the guide, the target
+      //   decode_ms          what the worker took on the frame that decoded
+      //   capture_w/h        what the camera actually gave us, which is not
+      //                      always what we asked it for
+      band_w_px: s.band_w_px == null ? null : s.band_w_px,
+      px_per_module_est: s.px_per_module_est == null ? null : s.px_per_module_est,
+      band_frac: s.band_frac == null ? null : s.band_frac,
+      band_luma: s.band_luma == null ? null : s.band_luma,
+      decode_ms: s.decode_ms == null ? null : s.decode_ms,
+      capture_w: s.capture_w == null ? null : s.capture_w,
+      capture_h: s.capture_h == null ? null : s.capture_h,
+      zoom: s.zoom == null ? null : s.zoom,
+      torch: s.torch == null ? null : !!s.torch,
       face_fill: s.face_fill == null ? null : s.face_fill,
       detector: s.detector || fallbackDetector || 'heuristic',
       // THE DECODE, AND NEVER THE PAYLOAD. `barcode_bytes` is the LENGTH of the
@@ -780,12 +1128,14 @@
   //              that forbids worker-src). Slower and jankier, but a guest
   //              whose browser refuses Workers still gets a barcode read.
   const ZX_BOOT_MS = 9000;       // worker has this long to answer 'ready'
-  const DECODE_MIN_EDGE = 560;   // upscale a small crop to at least this
-  const DECODE_MAX_EDGE = 1600;  // and never hand the decoder more than this
 
-  // THE CROP, AND WHY IT IS INFLATED. Measured against the vendored decoder on
-  // synthetic 1920×1080 frames carrying a real 294-byte AAMVA payload, with the
-  // TIGHTER guide round 2 drew (62 % of the frame):
+  // ── WHAT ROUND 3 CROPPED, AND WHY ROUND 4 DOES NOT ───────────────────────
+  // Round 3 handed the decoder the GUIDE, inflated 22 %. That inflation was a
+  // correctness rule and it was measured: on synthetic 1920×1080 frames
+  // carrying a real 294-byte AAMVA payload, a crop tight to round 2's guide
+  // DECAPITATED the symbol at 700 and 820 px wide — the top and bottom rows
+  // sheared off a barcode that was otherwise perfect — while +22 % read every
+  // width from 449 px up.
   //
   //     barcode width   guide crop   guide+10%   guide+22%   full frame
   //        449 px          OK           OK          OK           OK
@@ -793,56 +1143,85 @@
   //        700 px          —            OK          OK           OK
   //        820 px          —            —           OK           OK
   //
-  // A card big enough to be easy overflows the guide, and cropping to exactly
-  // the guide DECAPITATES its barcode — the two failures at 700 and 820 px are
-  // the crop cutting the top and bottom rows off a symbol that was otherwise
-  // perfect.
+  // The rule survives into round 4 (see BAND_PAD_Y); the FUNCTION does not.
+  // Round 4 crops the BAND — measured on this frame, by the projection profile
+  // — rather than the guide, so `cropForDecode` and its ±22 % have been
+  // deleted rather than left sitting next to the thing that replaced them.
+  // `bandCropPlan` is above, it is pure, and it is checkable from Node.
   //
-  // WITH ROUND 3's LARGER GUIDE THE INFLATION USUALLY CLAMPS TO THE WHOLE
-  // FRAME, and that is worth saying rather than implying a saving that is not
-  // there. Measured in the browser: a card guide on a landscape 1920×1080
-  // stream is 0.79 × 0.89 of the frame, so +22 % clamps to 1920×1080 — no crop
-  // at all. It still crops where it matters: the same guide on a PORTRAIT
-  // 1080×1920 stream gives 1080×922 (52 % of the pixels), and the taller 'page'
-  // guide for a doctor's recommendation gives 1061×1080 (55 %). So the inflate
-  // is a correctness rule first — never decapitate the symbol — and a saving
-  // only on the shapes where there is something to save.
-  //
-  // UPSCALING BUYS NOTHING AND WAS MEASURED SAYING SO. At 1.76 px/module the
-  // 2× crop failed exactly as the 1× crop did, for 2–3.5× the time; the floor
-  // is the optics, not the sampling. So the upscale here is not a quality
-  // trick — it exists only to lift a SMALL crop (a 640×480 webcam) above
-  // zxing's own downscale threshold, where its internal downscaled search would
-  // otherwise start throwing away the pixels we just cropped to.
-  const DECODE_INFLATE = 0.22;
-  function cropForDecode(video, rect) {
-    const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
-    if (!vw || !vh || !rect) return null;
-    const r = inflateNorm(rect, DECODE_INFLATE);
-    const sx = Math.max(0, Math.floor(r.x * vw)), sy = Math.max(0, Math.floor(r.y * vh));
-    const sw = Math.max(8, Math.min(vw - sx, Math.round(r.w * vw)));
-    const sh = Math.max(8, Math.min(vh - sy, Math.round(r.h * vh)));
-    let up = clamp(DECODE_MIN_EDGE / Math.min(sw, sh), 1, 2);
-    const longEdge = Math.max(sw, sh) * up;
-    if (longEdge > DECODE_MAX_EDGE) up = DECODE_MAX_EDGE / Math.max(sw, sh);
-    if (up < 1) up = 1;
-    const w = Math.max(8, Math.round(sw * up)), h = Math.max(8, Math.round(sh * up));
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    let ctx = null;
-    try { ctx = c.getContext('2d', { willReadFrequently: true }); }
-    catch (e) { ctx = c.getContext('2d'); }
-    if (!ctx) return null;
-    // Nearest-neighbour on the upscale. A smoothed upscale invents grey where
-    // the binarizer wants a decision, and a barcode is nothing but decisions.
-    ctx.imageSmoothingEnabled = false;
-    try { ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h); } catch (e) { return null; }
-    return { canvas: c, ctx: ctx, sx: sx, sy: sy, sw: sw, sh: sh, up: up, vw: vw, vh: vh };
-  }
+  // ONE MEASUREMENT FROM ROUND 3 IS LOAD-BEARING AND IS KEPT HERE: UPSCALING
+  // BUYS NOTHING. At 1.76 px/module the 2× crop failed exactly as the 1× crop
+  // did, for 2–3.5× the time; the floor is the optics, not the sampling. The
+  // brief's "upscale ×2 under 600 px" is therefore not a quality trick — it
+  // lifts a SMALL crop (a 640×480 webcam) above zxing's own thresholds, and it
+  // is the only reason BAND_UPSCALE exists.
 
   function imageDataOf(crop) {
     try { return crop.ctx.getImageData(0, 0, crop.canvas.width, crop.canvas.height); }
     catch (e) { return null; }
+  }
+
+  // ── ROUND 4: THE BAND CROP ───────────────────────────────────────────────
+  // THE DECODER IS HANDED THE BARCODE AND NOTHING ELSE, AT 1 : 1. Round 3
+  // cropped the GUIDE — on the round-4 band guide that is a 2030 × 508 strip,
+  // 1.0 Mpx, most of it card. The band itself is about 9.7 : 1, so the same
+  // barcode arrives as a 2030 × 210 strip: 0.43 Mpx, less than half the work,
+  // and every pixel of it is symbol.
+  //
+  // THE PADS ARE NOT SYMMETRIC AND THAT IS THE POINT. Round 3 measured that a
+  // crop tight to the guide DECAPITATED the symbol at 700 and 820 px wide —
+  // the top and bottom rows sheared off a symbol that was otherwise perfect.
+  // A PDF417 also requires a quiet zone of two modules on every side. So the
+  // vertical pad is generous (35 % of the band's own height, which at 9.7 : 1
+  // is only 3.6 % of its width) and the horizontal one is 6 %, comfortably
+  // more than two modules at any width worth decoding.
+  //
+  // AND THE UPSCALE IS THE BRIEF'S, WITH ROUND 3's CAVEAT INTACT: ×2 under
+  // 600 px, nearest-neighbour, and it buys NO accuracy — round 3 measured a
+  // 1.76 px/module symbol failing identically at 1× and 2×. It exists so a
+  // small crop off a 640 × 480 webcam clears zxing's own internal thresholds,
+  // not to rescue an under-sampled barcode. Nothing here ever scales DOWN.
+  const BAND_PAD_X = 0.06;             // of the band's own width
+  const BAND_PAD_Y = 0.35;             // of the band's own height
+  const BAND_UPSCALE_UNDER_PX = 600;   // brief §1
+  const BAND_UPSCALE = 2;
+
+  // PURE. `rect` is frame-normalised; returns the source rectangle in device
+  // pixels plus the canvas size to draw it into. No canvas, no video, so the
+  // "does it keep native pixels" question is answerable from Node.
+  function bandCropPlan(rect, vw, vh, padX, padY) {
+    if (!rect || !vw || !vh) return null;
+    const px = padX == null ? BAND_PAD_X : padX;
+    const py = padY == null ? BAND_PAD_Y : padY;
+    const r = { x: rect.x - rect.w * px, y: rect.y - rect.h * py,
+      w: rect.w * (1 + px * 2), h: rect.h * (1 + py * 2) };
+    const sx = clamp(Math.floor(r.x * vw), 0, vw - 2);
+    const sy = clamp(Math.floor(r.y * vh), 0, vh - 2);
+    const sw = clamp(Math.round(r.w * vw), 8, vw - sx);
+    const sh = clamp(Math.round(r.h * vh), 4, vh - sy);
+    const up = sw < BAND_UPSCALE_UNDER_PX ? BAND_UPSCALE : 1;
+    return { sx: sx, sy: sy, sw: sw, sh: sh, up: up,
+      w: Math.round(sw * up), h: Math.round(sh * up), vw: vw, vh: vh };
+  }
+
+  function cropFromPlan(video, plan) {
+    if (!plan) return null;
+    const c = document.createElement('canvas');
+    c.width = plan.w; c.height = plan.h;
+    let ctx = null;
+    try { ctx = c.getContext('2d', { willReadFrequently: true }); }
+    catch (e) { ctx = c.getContext('2d'); }
+    if (!ctx) return null;
+    // Nearest-neighbour, for the reason round 3 wrote down: a smoothed upscale
+    // invents grey where the binarizer wants a decision.
+    ctx.imageSmoothingEnabled = false;
+    if ('mozImageSmoothingEnabled' in ctx) ctx.mozImageSmoothingEnabled = false;
+    if ('webkitImageSmoothingEnabled' in ctx) ctx.webkitImageSmoothingEnabled = false;
+    try { ctx.drawImage(video, plan.sx, plan.sy, plan.sw, plan.sh, 0, 0, plan.w, plan.h); }
+    catch (e) { return null; }
+    return { canvas: c, ctx: ctx, plan: plan,
+      sx: plan.sx, sy: plan.sy, sw: plan.sw, sh: plan.sh, up: plan.up,
+      vw: plan.vw, vh: plan.vh };
   }
 
   // ── native ──
@@ -1122,6 +1501,41 @@
       .then(function () { return true; }, function () { return false; });
   }
 
+  // ── the zoom ─────────────────────────────────────────────────────────────
+  // SAME CONTRACT AS THE TORCH: read the capability, and where it is absent do
+  // nothing and say nothing. `zoom` landed in iOS 17 Safari and has been in
+  // Android Chrome for years; on anything older `getCapabilities` either does
+  // not exist or has no `zoom` key, `zoomCaps` answers null, `zoomFor` answers
+  // null, and the guest is asked to move closer — which is what round 3 did
+  // for everyone.
+  //
+  // `getCapabilities` is missing entirely on Firefox and on older Safari, and
+  // `trackCaps` already swallows that into `{}`. The one extra guard here is
+  // that a capability object can carry a `zoom` that is not a range (some
+  // Android drivers report a bare boolean), which would make the arithmetic
+  // produce NaN and the constraint throw.
+  function zoomCaps(track) {
+    const c = trackCaps(track);
+    const z = c && c.zoom;
+    if (!z || typeof z !== 'object') return null;
+    if (typeof z.min !== 'number' || typeof z.max !== 'number') return null;
+    if (!(z.max > z.min)) return null;
+    return { min: z.min, max: z.max, step: typeof z.step === 'number' ? z.step : null };
+  }
+  function trackSettings(track) {
+    try { return (track && track.getSettings) ? (track.getSettings() || {}) : {}; }
+    catch (e) { return {}; }
+  }
+  function currentZoom(track) {
+    const s = trackSettings(track);
+    return typeof s.zoom === 'number' ? s.zoom : null;
+  }
+  function setZoom(track, z) {
+    if (!track || !track.applyConstraints || z == null) return Promise.resolve(false);
+    return track.applyConstraints({ advanced: [{ zoom: z }] })
+      .then(function () { return true; }, function () { return false; });
+  }
+
   // ── the wake lock ────────────────────────────────────────────────────────
   // THE OWNER'S SCREEN DIMMED WHILE HE WAITED, AND THE UNLOCK RELOADED THE
   // PAGE. Half of that is this hook and half is the router; both halves are
@@ -1317,7 +1731,11 @@
   const STEP_COPY = {
     consent: { big: "Let's check your ID", say: 'Two photos of your ID and a quick look at the camera.' },
     document_front: { big: 'Front of your ID', say: 'Lay it flat inside the frame.' },
-    document_back: { big: 'Now the back', say: 'Point the barcode at the frame.' },
+    // ROUND 4: the back asks for the BARCODE, not for the card. The owner's
+    // sentence was "we need the system to look for and recognize the barcode
+    // on the screen before we proceed", and a screen that says "now the back"
+    // while drawing a card-shaped box is asking for the wrong thing.
+    document_back: { big: 'Now the barcode', say: 'Fit the barcode inside the box' },
     medical_rec: { big: "Doctor's recommendation", say: 'Lay the whole page flat inside the frame.' },
     selfie: { big: 'Look at the camera', say: 'Put your face in the oval.' },
     challenge: { big: 'One quick check', say: 'Follow the prompts.' },
@@ -1427,14 +1845,47 @@
     }
   }
 
+  // ── THE RESOLUTION LADDER, ROUND 4 ───────────────────────────────────────
+  // ASK FOR 4 K ON THE REAR CAMERA. `ideal` is a hint, not a demand, so on a
+  // phone that cannot do it the browser silently gives its best — but "best"
+  // for an unspecified request is routinely 640 × 480, and round 3's flat
+  // 1920 × 1080 ask capped a 12-megapixel sensor at 2. On the owner's iPhone
+  // the difference is the entire defect: at 1080 across, a barcode filling
+  // 70 % of the band guide is 710 px and 3.1 px/module; at 2160 across it is
+  // 1420 px and 6.3.
+  //
+  // WHY A LADDER AND NOT ONE `ideal`. `ideal` alone is right in theory and
+  // unreliable in practice: several Android drivers answer a 4 K ideal with an
+  // OverconstrainedError instead of a downgrade, and at least one answers it
+  // with a 4 K stream it cannot actually sustain and then drops frames. So the
+  // ask is explicit and descending, each rung tried only when the previous one
+  // failed for a reason that is about the CONSTRAINT rather than about
+  // PERMISSION — a NotAllowedError stops the ladder dead, because retrying a
+  // refusal is how a page gets a second permission prompt it has not earned.
+  //
+  // The front camera is not laddered. MediaPipe runs an inference on every
+  // frame of it and a 4 K selfie stream buys nothing but heat.
+  const HI_LADDER = [{ width: { ideal: 3840 }, height: { ideal: 2160 } },
+    { width: { ideal: 1920 }, height: { ideal: 1080 } }, null];
+  const LO_LADDER = [{ width: { ideal: 1920 }, height: { ideal: 1080 } }, null];
+  function isPermissionError(n) {
+    return n === 'NotAllowedError' || n === 'SecurityError' || n === 'PermissionDeniedError';
+  }
+
   function useCamera(active, facing) {
     const [stream, setStream] = React.useState(null);
     const [status, setStatus] = React.useState('idle');
     const [detail, setDetail] = React.useState(null);
+    // WHAT THE CAMERA ACTUALLY GAVE US, read from the track rather than from
+    // what we asked for. On iOS the two disagree routinely — and `getSettings`
+    // itself disagrees with `videoWidth`/`videoHeight` when the phone is held
+    // portrait, which is why every pixel calculation in this file reads the
+    // VIDEO ELEMENT and this is only ever reported.
+    const [settings, setSettings] = React.useState(null);
     const videoRef = React.useRef(null);
 
     React.useEffect(function () {
-      if (!active) { setStatus('idle'); setStream(null); return undefined; }
+      if (!active) { setStatus('idle'); setStream(null); setSettings(null); return undefined; }
       const md = navigator.mediaDevices;
       if (!md || typeof md.getUserMedia !== 'function') {
         setStatus('unavailable');
@@ -1444,34 +1895,48 @@
       let cancelled = false;
       let got = null;
       setStatus('starting'); setDetail(null);
-      // `ideal`, never `exact`: a tablet with one camera must still work. An
-      // `exact` facingMode is an OverconstrainedError on every such device.
-      const want = { facingMode: { ideal: facing === 'environment' ? 'environment' : 'user' },
-        width: { ideal: 1920 }, height: { ideal: 1080 } };
+      const env = facing === 'environment';
+      const ladder = env ? HI_LADDER : LO_LADDER;
       let sup = {};
       try { sup = (md.getSupportedConstraints && md.getSupportedConstraints()) || {}; } catch (e) { sup = {}; }
-      // `advanced` entries are BEST-EFFORT by spec — a device that cannot
-      // honour one skips it rather than failing the whole request — but a
-      // browser that has never heard of the name can still reject, so it is
-      // only sent where the name is a supported constraint.
-      if (sup.focusMode) want.advanced = [{ focusMode: 'continuous' }];
-      md.getUserMedia({ video: want, audio: false }).then(function (s) {
-        got = s;
-        if (cancelled) { stopStream(s); return; }
-        tuneTrack(videoTrackOf(s));
-        setStream(s); setStatus('live');
-      }).catch(function (err) {
+
+      // `ideal`, never `exact`: a tablet with one camera must still work. An
+      // `exact` facingMode is an OverconstrainedError on every such device.
+      function askFor(size) {
+        const want = { facingMode: { ideal: env ? 'environment' : 'user' } };
+        if (size) { want.width = size.width; want.height = size.height; }
+        // `advanced` entries are BEST-EFFORT by spec — a device that cannot
+        // honour one skips it rather than failing the whole request — but a
+        // browser that has never heard of the name can still reject, so it is
+        // only sent where the name is a supported constraint.
+        if (sup.focusMode) want.advanced = [{ focusMode: 'continuous' }];
+        return md.getUserMedia({ video: want, audio: false });
+      }
+      function attempt(i, lastErr) {
         if (cancelled) return;
+        if (i >= ladder.length) { fail(lastErr); return; }
+        askFor(ladder[i]).then(function (s) {
+          got = s;
+          if (cancelled) { stopStream(s); return; }
+          const track = videoTrackOf(s);
+          tuneTrack(track);
+          setSettings(trackSettings(track));
+          setStream(s); setStatus('live');
+        }, function (err) {
+          if (cancelled) return;
+          const n = (err && err.name) || '';
+          if (isPermissionError(n)) { fail(err); return; }
+          attempt(i + 1, err);
+        });
+      }
+      function fail(err) {
         const n = (err && err.name) || '';
-        if (n === 'NotAllowedError' || n === 'SecurityError' || n === 'PermissionDeniedError') {
-          setStatus('denied');
-        } else if (n === 'NotFoundError' || n === 'DevicesNotFoundError' || n === 'OverconstrainedError') {
-          setStatus('unavailable');
-        } else {
-          setStatus('failed');
-        }
+        if (isPermissionError(n)) setStatus('denied');
+        else if (n === 'NotFoundError' || n === 'DevicesNotFoundError' || n === 'OverconstrainedError') setStatus('unavailable');
+        else setStatus('failed');
         setDetail((err && err.message) || n || null);
-      });
+      }
+      attempt(0, null);
       return function () {
         cancelled = true;
         if (got) stopStream(got);
@@ -1506,7 +1971,7 @@
       return function () { document.removeEventListener('visibilitychange', onVis); };
     }, []);
 
-    return { status: status, detail: detail, videoRef: videoRef, stream: stream };
+    return { status: status, detail: detail, videoRef: videoRef, stream: stream, settings: settings };
   }
   function stopStream(s) {
     try { (s.getTracks() || []).forEach(function (t) { t.stop(); }); } catch (e) {}
@@ -1536,7 +2001,7 @@
   const READY_FADE_PER_S = 5.5;   // how fast the accent stroke arrives
   const PULSE_MS = 480;
 
-  function CaptureOverlay({ shape, tone, ready, progress, locked, dim, reduced, mirrored }) {
+  function CaptureOverlay({ shape, tone, ready, progress, locked, dim, reduced, mirrored, bandRef }) {
     const P = useP();
     const wrapRef = React.useRef(null);
     const cvRef = React.useRef(null);
@@ -1547,7 +2012,7 @@
     const live = React.useRef({});
     live.current = { shape: shape, tone: tone || P.accent, neutral: P.railInk, good: P.good,
       ready: !!ready, progress: clamp01(progress || 0), locked: !!locked, dim: dim || null,
-      reduced: !!reduced, mirrored: !!mirrored };
+      reduced: !!reduced, mirrored: !!mirrored, bandRef: bandRef || null };
 
     React.useEffect(function () {
       let raf = 0, stop = false;
@@ -1632,6 +2097,13 @@
     if (box.oval) {
       strokeShape(s.neutral, 3, 1, 0);
       if (alpha > 0.01) strokeShape(s.tone, 3.5, alpha, 0);
+    } else if (s.shape === 'band') {
+      // A CLOSED BOX, NOT CORNER BRACKETS, AND THE COPY IS WHY. Brackets say
+      // "fill this space"; the back of a licence says "fit the barcode inside
+      // the box", which is an instruction about a boundary, and a boundary you
+      // can see all of is a boundary you can fit something inside.
+      strokeShape(s.neutral, 3, 1, 0);
+      if (alpha > 0.01) strokeShape(s.tone, 3.5, alpha, 0);
     } else {
       // Corner brackets, not a closed rectangle: the Concept D document frame,
       // and the shape Onfido uses for the same reason — a closed box invites a
@@ -1657,6 +2129,51 @@
       }
       brackets(s.neutral, 4, 1);
       if (alpha > 0.01) brackets(s.tone, 4.5, alpha);
+    }
+
+    // ── THE LIVE BAND INDICATOR (round 4, the back of the card only) ───────
+    // WHAT THE ANALYSER FOUND, DRAWN WHERE IT FOUND IT, plus one meter that is
+    // the actual target. The guest is being asked for a number they cannot
+    // see — "70 % of the guide's width" — so the number is drawn: a rail the
+    // width of the guide, a fill the width of the barcode, and a tick at the
+    // line the fill has to cross. Nothing here gates anything; it is a
+    // speedometer, and the decode is the finish line.
+    //
+    // READ FROM A REF, NOT A PROP. This updates at the analyser's 12 Hz and is
+    // drawn at 60; routing it through React state would re-render the whole
+    // capture screen twelve times a second to move a rectangle.
+    const band = s.bandRef && s.bandRef.current;
+    if (band && !box.oval) {
+      if (band.box && band.box.w > 1) {
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.strokeStyle = band.ok ? s.good : s.tone;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([7, 5]);
+        ctx.strokeRect(band.box.x, band.box.y, band.box.w, band.box.h);
+        ctx.restore();
+      }
+      if (band.frac != null) {
+        const railY = box.y + box.h + 12;
+        const railW = box.w, railX = box.x;
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 4;
+        ctx.globalAlpha = 0.45;
+        ctx.strokeStyle = s.neutral;
+        ctx.beginPath(); ctx.moveTo(railX, railY); ctx.lineTo(railX + railW, railY); ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = band.ok ? s.good : s.tone;
+        ctx.beginPath(); ctx.moveTo(railX, railY);
+        ctx.lineTo(railX + railW * clamp01(band.frac), railY); ctx.stroke();
+        // The target tick.
+        ctx.globalAlpha = 0.8;
+        ctx.strokeStyle = s.neutral;
+        ctx.lineWidth = 2;
+        const tx = railX + railW * (band.target == null ? 0.7 : band.target);
+        ctx.beginPath(); ctx.moveTo(tx, railY - 6); ctx.lineTo(tx, railY + 6); ctx.stroke();
+        ctx.restore();
+      }
     }
 
     // The settle ring.
@@ -2021,6 +2538,11 @@
     const [started, setStarted] = React.useState(false); // any media uploaded from this page
     const [procElapsed, setProcElapsed] = React.useState(0);
     const [retrying, setRetrying] = React.useState(false);
+
+    // ROUND 4 §3: the guest's own way out of the barcode step. `null` until
+    // they take it; then `{ applied }`, where `applied` is what the SERVER said
+    // about the abandon — see giveUpToStore().
+    const [inStore, setInStore] = React.useState(null);
 
     const submittedRef = React.useRef(false);
     const beaconedRef = React.useRef(false);
@@ -2465,6 +2987,28 @@
       // eslint-disable-next-line
     }, [phase, status, retryStep, retryInfo, guidance]);
 
+    // ── "I'll verify in store" ────────────────────────────────────────────
+    // THE ONE PLACE THIS FLOW LETS SOMEBODY LEAVE, AND IT DOES NOT LIE ABOUT
+    // WHAT HAPPENED. `POST abandon` is best-effort and the server is entitled
+    // to refuse it: wmdemo/idv_api.py only abandons a `Not Started`/`In
+    // Progress` session WITH NO MEDIA ON IT, and by the time a guest has
+    // reached the back of the card the front is already uploaded — so the
+    // honest answer here is usually `applied: false`, "this session has 1
+    // capture on it and the beacon will not discard them".
+    //
+    // WHICH IS WHY THE SCREEN READS THE ANSWER RATHER THAN ASSUMING ONE. A
+    // session that was abandoned says so; a session the server kept says the
+    // associate can pick it up, because that is true and because telling a
+    // guest their session is gone when it is not is how somebody gets asked to
+    // start over at the counter for no reason.
+    function giveUpToStore() {
+      setInStore({ applied: null });
+      capPost(token, 'abandon', {}, base).then(function (r) {
+        if (!aliveRef.current) return;
+        setInStore({ applied: !!(r && r.ok && r.body && r.body.applied) });
+      });
+    }
+
     // ── the pos-mode override ─────────────────────────────────────────────
     // This is the ONE console route this file touches, and the reason HWIdv is
     // read at all: `PATCH /api/idv/sessions/{id}/update-status` with
@@ -2598,6 +3142,24 @@
         'Check-in does not continue · no decision has been made', null);
     }
 
+    // ── the guest chose the counter ───────────────────────────────────────
+    // Above every phase, because it is a decision the guest made and no camera
+    // screen may draw over it.
+    if (inStore) {
+      return shell('Verify in store', (
+        <React.Fragment>
+          <Plate tone="neutral" icon="card" />
+          <Big>Bring your ID to the counter</Big>
+          <Say>{NEXT_STEP_SENTENCE.in_store}</Say>
+          <Say mute>{inStore.applied === null ? 'Closing this off…'
+            : inStore.applied ? 'We have closed this check off — nothing was kept.'
+              : 'What you already sent us is still here, so the associate can pick this up.'}</Say>
+        </React.Fragment>),
+        inStore.applied === false
+          ? 'The guest stopped at the barcode · the session is still open for you'
+          : 'The guest stopped at the barcode · the session was abandoned', null);
+    }
+
     // ── consent ───────────────────────────────────────────────────────────
     if (phase === 'consent') {
       return (
@@ -2616,7 +3178,7 @@
           onNotice={setNotice} notice={notice}
           fix={fixRef.current}
           pickerPhotos={pickerPhotos} setPickerPhotos={setPickerPhotos}
-          medicalRecOffered={medicalRecOffered} />);
+          medicalRecOffered={medicalRecOffered} onGiveUp={giveUpToStore} />);
     }
 
     // ── selfie + challenge, ONE screen and ONE camera session ─────────────
@@ -3050,23 +3612,32 @@
   //   medical_rec     one frame. A recommendation is a page held flat, not a
   //                   card to be rocked, so no burst and no extras.
   const TILT_MS = 1500, TILT_N = 4;
-  // The decode clock. 125 ms is eight attempts a second; the decode itself is
-  // 8–14 ms on a laptop and 25–45 ms on a phone and runs in a Worker, so it
-  // never collides with the 12 Hz analyser on the main thread. A hit is not
-  // re-scanned — the gate fires on the same tick.
-  const DECODE_MS = 125;
-  // HOW LONG THE DECODER GETS BEFORE THE QUALITY GATES ARE ALLOWED TO SNAP THE
-  // BACK. A decoded barcode is worth more than any photograph of one, so the
-  // heuristic shutter holds off while there is still a real chance; after this
-  // it behaves like any other document step. Long enough for a guest to bring
-  // the card up and steady it, short enough that a licence with a scuffed
-  // barcode is still photographed and sent.
-  const BACK_DECODE_GRACE_MS = 5000;
-  // And the disagreement escape gets longer on the back for the same reason.
-  const DISAGREE_FRONT_MS = 3000, DISAGREE_BACK_MS = 6000;
+  // ── THE DECODE CLOCK, ROUND 4 ────────────────────────────────────────────
+  // TEN ATTEMPTS A SECOND, ADAPTED. The brief asks for ~10 fps with an EMA of
+  // decode latency driving the rate, and the two halves matter for different
+  // reasons. 10 fps is the ceiling: a band crop is 0.4–1.0 Mpx and the worker
+  // answers in 15–60 ms, so on a good phone the loop idles between attempts
+  // and the analyser and the settle ring get the main thread. The EMA is the
+  // floor: on a slow device the honest period is the decode's own latency, and
+  // scheduling faster than that just queues work behind work.
+  //
+  // ROUND 3 PACED BY COMPLETION AND THAT WAS ALREADY RIGHT — the change here
+  // is that the period is no longer a constant it races against but a number
+  // learned from the device, and that it is REPORTED (`decode_ms`) so the next
+  // failure has a measurement instead of a guess.
+  const DECODE_TARGET_MS = 100;      // ~10 fps ceiling
+  const DECODE_MIN_GAP_MS = 16;      // never spin: one frame of breathing room
+  const DECODE_MAX_PERIOD_MS = 450;  // and never go quieter than this
+  const DECODE_EMA_ALPHA = 0.3;
+  // How often the zoom may be nudged. A lens hunt is ~300 ms of visible
+  // refocus; nudging faster than it settles is how a preview ends up pumping.
+  const ZOOM_EVERY_MS = 700;
+  // §3: after 25 s with no decode, ONE line, a Retry and an honest way out.
+  const BACK_STALL_MS = 25000;
+  const DISAGREE_FRONT_MS = 3000;
 
   function DocStep({ step, token, base, accent, copy, shell, onUploaded, onNotice, notice,
-    fix, pickerPhotos, setPickerPhotos, medicalRecOffered, reduced }) {
+    fix, pickerPhotos, setPickerPhotos, medicalRecOffered, reduced, onGiveUp }) {
     const P = useP();
     // THE CHOICE COMES BEFORE THE CAMERA. An 18–20-year-old on a REC_21
     // workflow is OFFERED this step, not made to sit through it — so while that
@@ -3090,9 +3661,25 @@
     const [torchOn, setTorchOn] = React.useState(false);
     const [torchable, setTorchable] = React.useState(false);
     const openedRef = React.useRef(Date.now());
+    // ── ROUND 4 state, all of it about the band ──
+    const bandAnalyser = React.useMemo(function () {
+      return isBack ? makeBandAnalyser() : null;
+    }, [isBack]);
+    // The overlay reads this at 60 Hz and the analyser writes it at 12; it is a
+    // ref rather than state so a moving rectangle does not re-render a screen.
+    const bandRef = React.useRef(null);
+    const [stalled, setStalled] = React.useState(false);
+    const [givingUp, setGivingUp] = React.useState(false);
+    // The zoom the page applied, and the zoom it found. `base` is restored on
+    // the way out — a step that leaves a phone zoomed to 4× has broken the next
+    // one, and the next one is the selfie.
+    const zoomRef = React.useRef({ caps: null, base: null, applied: null, at: 0, fails: 0 });
+    const torchAutoRef = React.useRef(false);
+    const torchTriedRef = React.useRef(0);
 
     const c = STEP_COPY[step] || { big: 'One more photo', say: '' };
-    const shape = step === 'medical_rec' ? 'page' : 'card';
+    // THE BACK GETS THE BAND GUIDE. Everything else is unchanged.
+    const shape = step === 'medical_rec' ? 'page' : isBack ? 'band' : 'card';
     const boxAspect = step === 'medical_rec' ? '3 / 4' : '3 / 2';
 
     React.useEffect(function () {
@@ -3102,130 +3689,287 @@
       return function () { dead = true; reader.close(); };
     }, [reader]);
 
-    // The torch, read off the live track once it exists.
+    // The torch and the zoom, both read off the live track once it exists, and
+    // both entirely absent where the track does not report them.
+    //
+    // THE CLEANUP IS NOT OPTIONAL. A `zoom` constraint lives on the TRACK, and
+    // on iOS the same physical camera is handed to the next getUserMedia in the
+    // same page — so a back step that zoomed to 3× and walked away leaves the
+    // selfie step looking through a telephoto at somebody's nose. The torch is
+    // worse: it stays lit.
     React.useEffect(function () {
       const track = videoTrackOf(cam.stream);
       setTorchable(!!track && hasTorch(track));
       setTorchOn(false);
-      return undefined;
+      torchAutoRef.current = false;
+      const caps = track ? zoomCaps(track) : null;
+      zoomRef.current = { caps: caps, base: track ? currentZoom(track) : null, applied: null, at: 0, fails: 0 };
+      torchTriedRef.current = 0;
+      return function () {
+        if (!track) return;
+        const z = zoomRef.current;
+        if (z && z.applied != null && z.base != null) setZoom(track, z.base);
+        if (torchAutoRef.current) setTorch(track, false);
+      };
     }, [cam.stream]);
     function toggleTorch() {
       const track = videoTrackOf(cam.stream);
       if (!track) return;
       const want = !torchOn;
-      setTorch(track, want).then(function (ok) { if (ok) setTorchOn(want); });
+      setTorch(track, want).then(function (ok) { if (ok) { setTorchOn(want); torchAutoRef.current = want; } });
     }
 
-    // THE GUIDE, MEASURED FROM THE DOM AND MAPPED THROUGH object-fit: cover.
-    // One function, called by the analyser, by the barcode crop and (through
-    // the same `guideBox`) by the overlay, so all three are looking at the same
-    // rectangle. Round 2's framing bug lived in the gap between them.
-    function guideNorm() {
-      const g = measureGuide(boxRef.current, cam.videoRef.current, shape);
-      return g ? g.rect : null;
-    }
+    // THE GUIDE IS MEASURED FROM THE DOM AND MAPPED THROUGH object-fit: cover,
+    // by `measureGuide`, and BOTH the analyser tick and the decode loop call it
+    // directly — round 3's one-line `guideNorm()` wrapper is gone because it
+    // threw away `boxW/boxH/vw/vh`, which the band indicator needs to put a
+    // rectangle back on screen. One function, one rectangle, three readers:
+    // the analyser, the crop, and (through the same `guideBox`) the overlay.
+    // Round 2's framing bug lived in the gap between them.
 
+    // ── ONE TICK, TWO ANALYSERS ON THE BACK ────────────────────────────────
+    // The 208 px analyser still runs there — not to gate anything (on the back
+    // nothing but the decode gates) but because `sharpness`, `glare_fraction`
+    // and `exposure` are what an analyst reads off a failed session, and round
+    // 4 exists because round 3's numbers were the ones that told us the truth.
+    // The band analyser adds the four that matter now.
+    //
+    // AND THE BAND INDICATOR IS FED FROM HERE, in the same pass that measured
+    // it, mapped into the overlay's own pixels through the one cover map.
     const measure = React.useCallback(function () {
       const v = cam.videoRef.current;
-      const rect = guideNorm();
-      if (!v || !rect) return null;
-      return analyser.read(v, rect);
+      const g = measureGuide(boxRef.current, v, shape);
+      if (!v || !g) return null;
+      const base2 = analyser.read(v, g.rect);
+      if (!isBack || !bandAnalyser) return base2;
+      const b = bandAnalyser.read(v, g.rect);
+      const merged = Object.assign({}, base2 || {}, b || {});
+      const track = videoTrackOf(cam.stream);
+      // The overlay's rectangle, in box pixels, or null when there is nothing
+      // to draw — which is the honest state and reads as "we are still looking".
+      if (b && b.band_norm) {
+        const tl = videoNormToBox({ x: b.band_norm.x, y: b.band_norm.y }, g.boxW, g.boxH, g.vw, g.vh);
+        const br = videoNormToBox({ x: b.band_norm.x + b.band_norm.w, y: b.band_norm.y + b.band_norm.h },
+          g.boxW, g.boxH, g.vw, g.vh);
+        bandRef.current = {
+          box: tl && br ? { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y } : null,
+          frac: b.band_frac, target: GATE.BAND_FILL_MIN,
+          ok: b.band_frac != null && b.band_frac >= GATE.BAND_FILL_MIN,
+        };
+      } else {
+        bandRef.current = null;
+      }
+      // ── THE TORCH, AUTOMATICALLY, AND ONLY ON A GENUINELY DARK BAND ───────
+      // Guarded twice: the capability must be there (`torchable` is read from
+      // `getCapabilities().torch`, which iOS Safari never reports) and the
+      // measurement must be there. It is never turned off automatically while
+      // the step is open — a torch that flickers with the guest's hand is worse
+      // than one that stays on — only at the snap and on the way out.
+      //
+      // AND IT IS TRIED AT MOST TWICE. `getCapabilities().torch` being true is
+      // a claim, and `applyConstraints` is entitled to reject it anyway; without
+      // a latch a device that says yes and means no would be sent twelve failed
+      // constraint calls a second for as long as the step is open.
+      if (track && torchable && !torchOn && torchTriedRef.current < 2 && bandIsDark(merged)) {
+        torchTriedRef.current += 1;
+        setTorch(track, true).then(function (ok) {
+          if (ok) { torchAutoRef.current = true; setTorchOn(true); }
+        });
+      }
+      // ── THE ZOOM, INSTEAD OF ASKING THE GUEST TO MOVE ─────────────────────
+      // `zoomFor` is pure and answers null for every device without the
+      // capability, so on iOS 16 and on Firefox this whole branch costs one
+      // null check and the guest reads "Move closer", exactly as before.
+      //
+      // Same latch, same reason: three refusals and the page stops asking and
+      // the guest is told to move, which is what a device with no usable zoom
+      // was always going to get.
+      const z = zoomRef.current;
+      if (track && z && z.caps && z.fails < 3 && merged.band_frac != null
+        && Date.now() - z.at > ZOOM_EVERY_MS) {
+        const from = z.applied != null ? z.applied : (z.base != null ? z.base : z.caps.min);
+        const want = zoomFor(z.caps, from, merged.band_frac);
+        if (want != null) {
+          z.at = Date.now();
+          setZoom(track, want).then(function (ok) { if (ok) z.applied = want; else z.fails += 1; });
+        }
+      }
+      merged.zoom = z && z.applied != null ? z.applied : (z ? z.base : null);
+      merged.torch = torchOn || torchAutoRef.current;
+      return merged;
       // eslint-disable-next-line
-    }, [analyser, cam.videoRef, shape]);
+    }, [analyser, bandAnalyser, cam.videoRef, cam.stream, shape, isBack, torchable, torchOn]);
 
     // ── the decode loop ──
     // Its own clock, its own in-flight guard. A scan that has not answered must
     // never have a second one queued behind it — on the main-thread fallback
     // that would stack 40 ms of wasm behind 40 ms of wasm until the page stops
     // painting, which is the "super buggy" the owner was describing.
-    const hitRef = React.useRef(null);      // { bytes, quad } once, then sticky
+    // Re-arm the auto-capture after a recoverable failure. `gen` lifts the
+    // hook's one-shot latch; it is NOT a React key on the preview, because
+    // remounting the <video> element would drop the srcObject the camera hook
+    // only re-attaches when the STREAM changes — and the stream would not have.
+    //
+    // DECLARED UP HERE, ABOVE THE DECODE LOOP, because that loop now lists it
+    // as a dependency and a `const` read from a deps array literal that runs
+    // before its own declaration is a temporal-dead-zone ReferenceError, not a
+    // stale value. See the note at the end of that effect for why it needs it.
+    const [gen, setGen] = React.useState(0);
+
+    const hitRef = React.useRef(null);      // { bytes, quad, canvas, plan } once, then sticky
+    const emaRef = React.useRef(null);      // decode latency, ms
     const [decodeSeen, setDecodeSeen] = React.useState(false);
     React.useEffect(function () {
       if (!reader || cam.status !== 'live' || !readerKind) return undefined;
       let stop = false, t = null;
-      // PACED BY COMPLETION, NOT BY A FIXED TICK. The next attempt is scheduled
-      // when the previous one ANSWERS, for whatever is left of DECODE_MS — so a
-      // laptop that answers in 50 ms gets its eight attempts a second, and a
-      // phone that answers in 250 ms gets four, instead of burning every other
-      // tick discovering a scan is still in flight. A fixed interval with a
-      // busy flag halves the rate on exactly the devices that can least afford
-      // it.
+      // PACED BY COMPLETION, WITH THE PERIOD LEARNED FROM THE DEVICE. Round 3
+      // raced a fixed 125 ms; round 4 races `max(DECODE_TARGET_MS, ema)` so a
+      // laptop answering in 15 ms still only attempts ten times a second (the
+      // eleventh would be a frame the camera has not produced) and a phone
+      // answering in 300 ms is not asked for four a second it cannot give.
       function again(spent) {
         if (stop) return;
-        t = setTimeout(run, Math.max(0, DECODE_MS - (spent || 0)));
+        const ema = emaRef.current;
+        const period = clamp(Math.max(DECODE_TARGET_MS, ema == null ? 0 : ema * 1.15),
+          DECODE_TARGET_MS, DECODE_MAX_PERIOD_MS);
+        t = setTimeout(run, Math.max(DECODE_MIN_GAP_MS, period - (spent || 0)));
       }
       function run() {
         if (stop || hitRef.current) return;
         const v = cam.videoRef.current;
-        const rect = guideNorm();
-        if (!v || !rect) { again(0); return; }
-        const crop = cropForDecode(v, rect);
+        const g = measureGuide(boxRef.current, v, shape);
+        if (!v || !g) { again(0); return; }
+        // ── THE CROP THE WHOLE ROUND IS ABOUT ────────────────────────────
+        // THE BAND IF THERE IS ONE, THE GUIDE IF THERE IS NOT, AND NEITHER OF
+        // THEM RESAMPLED DOWN. The band is measured HERE, on this frame, rather
+        // than read off the 12 Hz analyser's last answer: the crop has to match
+        // the pixels about to be decoded, and an 80 ms-old rectangle around a
+        // moving hand is a crop that clips a symbol it was drawn around. It
+        // costs one 512-wide getImageData, about 1–2 ms.
+        //
+        // The guide fallback uses tiny pads (2 %) because the guide is already
+        // the boundary the guest was asked to work inside; the band's pads are
+        // generous because a band box is drawn from a profile and a profile's
+        // edges are where the quiet zone is.
+        const fresh = bandAnalyser ? bandAnalyser.read(v, g.rect) : null;
+        const src = (fresh && fresh.band_norm) || g.rect;
+        const plan = (fresh && fresh.band_norm)
+          ? bandCropPlan(src, v.videoWidth, v.videoHeight)
+          : bandCropPlan(src, v.videoWidth, v.videoHeight, 0.02, 0.02);
+        const crop = plan ? cropFromPlan(v, plan) : null;
         if (!crop) { again(0); return; }
         const t0 = Date.now();
         reader.scan(crop).then(function (r) {
           if (stop) return;
+          const spent = Date.now() - t0;
+          emaRef.current = emaRef.current == null ? spent
+            : emaRef.current * (1 - DECODE_EMA_ALPHA) + spent * DECODE_EMA_ALPHA;
           // The reader can demote itself mid-step (see NATIVE_MISS_LIMIT), and
           // the footer line and the `detector` on the upload must both say what
           // is actually reading, not what was reading when the step opened.
           const now = reader.kind();
           if (now && now !== kindRef.current) { kindRef.current = now; setReaderKind(now); }
           if (r && r.bytes) {
-            hitRef.current = { bytes: r.bytes, quad: r.quad || null };
+            // THE CANVAS IS KEPT, AND THAT IS THE POINT OF §3. These are the
+            // exact pixels the worker just read a PDF417 out of; uploading a
+            // fresh grab would upload a DIFFERENT frame — one nobody has proved
+            // decodable — and the server would be asked to repeat a success it
+            // was never given the evidence for.
+            hitRef.current = { bytes: r.bytes, quad: r.quad || null,
+              canvas: crop.canvas, plan: plan, ms: r.ms == null ? spent : r.ms,
+              band_w_px: fresh ? fresh.band_w_px : null,
+              px_per_module_est: fresh ? fresh.px_per_module_est : null,
+              band_frac: fresh ? fresh.band_frac : null,
+              band_luma: fresh ? fresh.band_luma : null };
             setDecodeSeen(true);
             return;               // the gate fires on the next analyser tick
           }
-          again(Date.now() - t0);
+          again(spent);
         }, function () { if (!stop) again(Date.now() - t0); });
       }
       run();
       return function () { stop = true; clearTimeout(t); };
       // eslint-disable-next-line
-    }, [reader, readerKind, cam.status, cam.videoRef, shape]);
+      // ── `gen` IS IN THE DEPS AND IT IS LOAD-BEARING ──────────────────────
+      // On a hit, `run()` returns WITHOUT scheduling another attempt — the
+      // sticky `hitRef` is the loop's stop condition. `reopen()` clears that
+      // ref (a refused upload, a canvas that gave back nothing), and without a
+      // dependency that restarts this effect nothing would ever call `run`
+      // again: the hunt would be silently dead while the screen went on saying
+      // "Fit the barcode inside the box", and on the back — where round 4 has
+      // deliberately removed every other way to fire the shutter — that is a
+      // permanent dead end. Round 3 survived the same omission only because its
+      // heuristic gate could still snap. Found by reading, not by a phone.
+    }, [reader, readerKind, cam.status, cam.videoRef, shape, bandAnalyser, gen]);
 
-    // THE GATE.
-    //   BACK, decoder available: the decode is the ONLY thing that fires the
-    //     shutter for the first five seconds, and the advice is the barcode's
-    //     own — width, then light, then stillness. Nothing about "fitting the
-    //     card in the frame" is ever said on the back, because the decoder does
-    //     not care and the owner spent five minutes being told it did.
-    //   BACK, after the grace, or no decoder at all: the ordinary document
-    //     gate, with the "too big for the guide" half switched off — the back
-    //     of a licence is mostly barcode and a card that overhangs the guide
-    //     still photographs perfectly well.
-    //   FRONT / medical rec: the ordinary document gate.
+    // ── THE GATE, AND ON THE BACK THERE IS ONLY ONE ────────────────────────
+    // ROUND 4 DELETES THE BACK'S QUALITY GATE ENTIRELY. Round 3 gave the
+    // decoder a five-second grace and then let `docGate` snap the card anyway
+    // — which is how a 1.85 px/module frame reached the server wearing a
+    // "sharpness 1065, exposure 0.60" badge and was refused there instead. A
+    // photograph of a barcode nobody could read is not a fallback, it is a
+    // decline with extra steps and forty seconds of the guest's afternoon in
+    // front of it. So:
+    //
+    //   BACK   the decode is the ONLY thing that fires the shutter. Ever. No
+    //          grace, no relax ramp, no disagreement escape, no "Take photo".
+    //          The advice is the barcode's own — box, width, light, stillness —
+    //          and if it never decodes the screen says so at 25 s and offers a
+    //          way out that does not pretend.
+    //   FRONT / medical rec   the ordinary document gate, untouched.
+    //
+    // AND `gates` IS DELIBERATELY A SINGLE KEY ON THE BACK. `useAutoCapture`'s
+    // disagreement escape fires when SOME gates pass and others fail; with one
+    // gate there is never a disagreement, so even if a `disagreeMs` were passed
+    // it could not force a snap. It is not passed either — belt and braces, on
+    // the one path where a forced snap is the defect being fixed.
     const gate = React.useCallback(function (m, relax) {
       if (hitRef.current) {
+        const h = hitRef.current;
         return { pass: true, immediate: true, detector: readerKind === 'barcode' ? 'barcode' : 'zxing',
-          barcode_decoded: true, barcode_bytes: hitRef.current.bytes,
+          barcode_decoded: true, barcode_bytes: h.bytes,
           hint: null, gates: { barcode: true } };
       }
       if (isBack) {
-        const waiting = readerKind && (Date.now() - openedRef.current) < BACK_DECODE_GRACE_MS;
-        const g = docGate(m, relax, { ignoreOutside: true });
-        g.detector = readerKind === 'barcode' ? 'barcode' : readerKind === 'zxing' ? 'zxing' : 'heuristic';
-        if (readerKind) g.hint = barcodeHint(m);
-        if (waiting) g.pass = false;
-        return g;
+        return {
+          pass: false,
+          detector: readerKind === 'barcode' ? 'barcode' : readerKind === 'zxing' ? 'zxing' : 'heuristic',
+          hint: readerKind === null
+            ? 'Hold the barcode inside the box'
+            : barcodeHint(m, !!(zoomRef.current && zoomRef.current.applied != null)),
+          gates: { barcode: false },
+        };
       }
       return docGate(m, relax);
     }, [isBack, readerKind]);
 
     // Degraded means "there is no PDF417 decoder on this device at all", which
     // is now a genuinely rare state (it needs no Worker, no BarcodeDetector and
-    // a blocked wasm fetch) and is the one case that earns the 6 s button.
+    // a blocked wasm fetch). On the FRONT it earns the 6 s escape button; on
+    // the back there is no button to earn, and the 25 s line says the honest
+    // thing instead.
     const degraded = isBack && readerKind === null;
 
-    // Re-arm the auto-capture after a recoverable failure. `gen` lifts the
-    // hook's one-shot latch; it is NOT a React key on the preview, because
-    // remounting the <video> element would drop the srcObject the camera hook
-    // only re-attaches when the STREAM changes — and the stream would not have.
-    const [gen, setGen] = React.useState(0);
-    function reopen() { hitRef.current = null; setDecodeSeen(false); openedRef.current = Date.now(); setGen(function (g) { return g + 1; }); }
+    function reopen() {
+      hitRef.current = null; setDecodeSeen(false); emaRef.current = null;
+      openedRef.current = Date.now(); setStalled(false);
+      setGen(function (g) { return g + 1; });
+    }
+
+    // THE 25-SECOND LINE. One timer, restarted by `gen`, and it never touches
+    // the camera or the decoder — the hunt continues underneath it, so a guest
+    // who is still trying is not interrupted by being told they have failed.
+    React.useEffect(function () {
+      if (!isBack || cam.status !== 'live') return undefined;
+      setStalled(false);
+      const id = setTimeout(function () { if (!hitRef.current) setStalled(true); }, BACK_STALL_MS);
+      return function () { clearTimeout(id); };
+    }, [isBack, cam.status, gen]);
 
     const auto = useAutoCapture({
       live: cam.status === 'live' && !showMedOffer,
       measure: measure, gate: gate, degraded: degraded, gen: gen,
-      disagreeMs: isBack ? DISAGREE_BACK_MS : DISAGREE_FRONT_MS,
+      disagreeMs: isBack ? null : DISAGREE_FRONT_MS,
       paused: shutter || snapped || sending,
       onSnap: function (metrics) { snap(metrics); },
     });
@@ -3240,20 +3984,125 @@
         return blob ? { blob: blob, metrics: m } : null;
       });
     }
+    // THE UPLOAD CAP FOR THE PRIMARY FRAME OF THIS STEP. The front's 2400 is
+    // §4 of the brief; the back never comes through here at all (see snapBack).
+    function stepEdge() { return step === 'document_front' ? MAX_EDGE_FRONT : MAX_EDGE; }
+
+    // Both torch paths meet here: the automatic one and the guest's button. It
+    // is switched off the moment the picture is taken, because leaving it
+    // burning through the upload and into the next step is a hot phone and a
+    // flat battery for no gain.
+    function torchOff() {
+      if (!torchOn && !torchAutoRef.current) return;
+      const tr = videoTrackOf(cam.stream);
+      if (tr) setTorch(tr, false);
+      torchAutoRef.current = false;
+      setTorchOn(false);
+    }
+    // And the zoom is put back where it was found, for the reason in the
+    // capability effect: the next step shares the camera.
+    function zoomReset() {
+      const z = zoomRef.current;
+      if (!z || z.applied == null || z.base == null) return;
+      const tr = videoTrackOf(cam.stream);
+      if (tr) setZoom(tr, z.base);
+      z.applied = null;
+    }
+
+    // ── THE BACK, AND IT UPLOADS WHAT WAS DECODED ──────────────────────────
+    // §3 of the brief, in the order the server needs it:
+    //
+    //   1. `document_back` — THE CROP. The literal canvas the worker read the
+    //      PDF417 out of, at native pixels, q 0.92. Not a fresh grab of a frame
+    //      that merely looks similar: the server has to decode the same symbol
+    //      this page decoded, and the only way to guarantee that is to send the
+    //      same pixels.
+    //   2. `challenge_frame` — the whole frame, for the record, so a reviewer
+    //      can see the card the crop came out of. Capped at 2400 because its
+    //      job is provenance, not decoding, and because a 4 K JPEG on cellular
+    //      is fifteen seconds of a guest watching a spinner.
+    //
+    // THE ORDER IS LOAD-BEARING FOR A SECOND REASON. `_count_attempt` in
+    // wmdemo/idv_api.py only advances a step's counter while the session is
+    // `Awaiting User`/`Resubmitted`, and the FIRST upload of a retake flips it
+    // to `In Progress`. Sending the crop first means a re-taken back burns a
+    // `document_back` attempt and the record frame behind it burns nothing;
+    // sending the frame first would have burned a `challenge` attempt off the
+    // liveness budget for a photograph of a driving licence.
+    //
+    // AND THE RECORD FRAME DOES NOT HOLD THE GUEST UP. It is grabbed before we
+    // advance (the <video> is about to be torn down) but its upload is not
+    // awaited — a fetch is not cancelled by a React unmount, and the step that
+    // matters has already landed. A failure there is swallowed for the same
+    // reason the front's tilt frames are: it must never cost the step.
+    function snapBack(metrics) {
+      const hit = hitRef.current;
+      const v = cam.videoRef.current;
+      if (!hit || !hit.canvas || !v) {
+        onNotice('The camera gave us no picture. Move a little and we will try again.');
+        setTimeout(function () { setSnapped(false); reopen(); }, 900);
+        return;
+      }
+      setShutter(true);
+      torchOff();
+      const record = drawScaled(v, MAX_EDGE_FRONT);
+      setTimeout(function () { setShutter(false); setSnapped(true); }, 200);
+      setSending(true);
+      // `doc_box` AND ITS FRIENDS ARE NULLED HERE, for the reason the face step
+      // nulls them: the analyser measured them, but it measured them over a
+      // 4 : 1 BAND guide, and "the document's bounding box inside a strip that
+      // is one eighth of a card" is a number whose name promises something it
+      // is not. `band_w` — round 3's inferred fraction-of-frame — goes with
+      // them: `band_w_px` is measured and this row carries it.
+      const m = clientMetrics(metrics, 'zxing', {
+        doc_box: null, doc_fill: null, doc_outside: null, card_fill: null, band_w: null,
+        band_w_px: hit.band_w_px, px_per_module_est: hit.px_per_module_est,
+        band_frac: hit.band_frac, band_luma: hit.band_luma,
+        decode_ms: hit.ms == null ? null : Math.round(hit.ms),
+        crop_w: hit.plan ? hit.plan.w : null, crop_h: hit.plan ? hit.plan.h : null,
+        crop_upscale: hit.plan ? hit.plan.up : null,
+        capture_w: v.videoWidth || null, capture_h: v.videoHeight || null,
+      });
+      canvasToJpeg(hit.canvas, JPEG_Q_BACK).then(function (blob) {
+        if (!blob) {
+          setSending(false);
+          onNotice('We could not save that picture. We will read it again.');
+          setSnapped(false); reopen();
+          return;
+        }
+        capUpload(token, 'document_back', blob, { metrics: m, base: base,
+          filename: 'document_back_barcode.jpg' }).then(function (r) {
+          setSending(false);
+          if (!r.ok) { onNotice(uploadFail(r)); setSnapped(false); reopen(); return; }
+          if (record) {
+            canvasToJpeg(record, JPEG_Q).then(function (full) {
+              if (!full) return;
+              capUpload(token, 'challenge_frame', full,
+                { metrics: clientMetrics(metrics, 'zxing',
+                  { steady_ms: null, card_fill: null, doc_box: null, doc_fill: null,
+                    doc_outside: null, band_w: null, band_w_px: hit.band_w_px,
+                    px_per_module_est: hit.px_per_module_est }),
+                base: base, filename: 'document_back_frame.jpg' })
+                .then(function () {}, function () {});
+            });
+          }
+          zoomReset();
+          setTimeout(function () { onUploaded(step); }, 380);
+        });
+      });
+    }
 
     function snap(metrics) {
+      if (isBack) { snapBack(metrics); return; }
       setShutter(true);
-      grabFrame().then(function (f) {
+      grabFrame(stepEdge()).then(function (f) {
         setTimeout(function () { setShutter(false); setSnapped(true); }, 200);
         if (!f) {
           onNotice('The camera gave us no picture. Move a little and we will try again.');
           setTimeout(function () { setSnapped(false); reopen(); }, 900);
           return;
         }
-        // The torch is switched off the moment the picture is taken. Leaving it
-        // burning through the upload and into the next step is a hot phone and
-        // a flat battery for no gain.
-        if (torchOn) { const tr = videoTrackOf(cam.stream); if (tr) setTorch(tr, false); setTorchOn(false); }
+        torchOff();
         setSending(true);
         const m = clientMetrics(metrics, 'heuristic');
         const up = capUpload(token, step, f.blob, { metrics: m, base: base });
@@ -3358,8 +4207,15 @@
           : (auto.hint || fix || c.say);
     const readerLine = !isBack ? null
       : readerKind === undefined ? null
-        : readerKind ? 'Reading the barcode as you hold it — this snaps itself the moment it comes through.'
-          : 'This browser cannot read the barcode, so we will photograph it instead.';
+        : readerKind ? 'Looking for the barcode — this snaps itself the moment it reads.'
+          : 'This browser has no barcode reader, so we cannot read the back here.';
+    // ON THE BACK THE PREVIEW IS NOT A SHUTTER. Everywhere else a tap anywhere
+    // fires the capture, and that is the cheapest answer to "I could not get it
+    // to register". On the back it would be the opposite: a tap would upload a
+    // frame nothing has decoded, which is exactly the picture the server then
+    // refuses. The decode is the only shutter here, and the way out at 25 s is
+    // an honest one rather than a photograph that will not work.
+    const tapToSnap = live && !snapped && !isBack;
 
     return shell(STEP_TITLE[step] || 'Photo', (
       <React.Fragment>
@@ -3369,16 +4225,17 @@
             advertised on screen — a visible shutter button is an invitation to
             press it before the gates are happy — but it is always there, and
             the upload it produces is marked `manual: true` so a decline can be
-            explained honestly. */}
-        <div ref={boxRef} onClick={live && !snapped ? auto.fire : undefined}
+            explained honestly. NOT ON THE BACK — see `tapToSnap`. */}
+        <div ref={boxRef} onClick={tapToSnap ? auto.fire : undefined}
           style={{ position: 'relative', width: '100%', aspectRatio: boxAspect,
             background: P.canvas2, borderRadius: P.r12, overflow: 'hidden',
-            border: `1px solid ${P.hairline}`, cursor: live && !snapped ? 'pointer' : 'default' }}>
+            border: `1px solid ${P.hairline}`, cursor: tapToSnap ? 'pointer' : 'default' }}>
           <video ref={cam.videoRef} playsInline muted autoPlay
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
               opacity: live ? 1 : 0.25, transition: 'opacity .2s ease' }} />
           <CaptureOverlay shape={shape} tone={accent} ready={auto.ready && !snapped} dim={P.imgScrim}
-            progress={snapped ? 0 : auto.progress} locked={snapped} reduced={reduced} />
+            progress={snapped ? 0 : auto.progress} locked={snapped} reduced={reduced}
+            bandRef={isBack && !snapped ? bandRef : null} />
           <HintChip text={standing} tone={auto.ready ? P.good : null} />
           {torchable && live && !snapped ? <TorchButton on={torchOn} onToggle={toggleTorch} /> : null}
           <Shutter on={shutter} done={snapped && !tilt} />
@@ -3389,12 +4246,34 @@
             about, so it stays visible for as long as they are. */}
         {fix && !snapped ? <Say>{fix}</Say> : null}
         {!fix && !snapped ? <Say mute>{c.say}</Say> : null}
-        {readerLine && !snapped ? <Say mute>{readerLine}</Say> : null}
+        {readerLine && !snapped && !stalled ? <Say mute>{readerLine}</Say> : null}
         {notice ? <Say>{notice}</Say> : null}
         {!live ? <Say mute>Starting the camera…</Say> : null}
+        {/* ── 25 SECONDS WITH NO DECODE: ONE LINE AND TWO HONEST DOORS ─────
+            The hunt is still running underneath this — Retry only restarts the
+            clock and the zoom, it does not stop anything — so a guest who is
+            about to succeed is not interrupted, and a guest who is not is told
+            so in one sentence instead of being left to work it out over five
+            minutes, which is what happened to the owner in round 2. */}
+        {isBack && stalled && live && !snapped ? (
+          <React.Fragment>
+            <Say>Can&rsquo;t read it? Try in better light, or verify in store</Say>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: P.space.x2, alignItems: 'center' }}>
+              <window.PBtn size="lg" variant="secondary" icon="refresh"
+                onClick={function () { zoomReset(); reopen(); }}>Retry</window.PBtn>
+              <window.PBtn size="md" variant="ghost" busy={givingUp}
+                onClick={function () {
+                  if (givingUp) return;
+                  setGivingUp(true);
+                  if (typeof onGiveUp === 'function') onGiveUp();
+                }}>I&rsquo;ll verify in store</window.PBtn>
+            </div>
+          </React.Fragment>) : null}
         {/* THE ESCAPE HATCH, AND NOTHING ELSE. There is no shutter button on
-            this screen until the auto-capture has had its chance and failed. */}
-        {auto.manual && live && !snapped ? (
+            this screen until the auto-capture has had its chance and failed —
+            and on the back there is never one at all, because a photograph the
+            decoder could not read is not a capture, it is a decline. */}
+        {auto.manual && live && !snapped && !isBack ? (
           <window.PBtn size="xl" variant="secondary" icon="camera" onClick={auto.fire}>Take photo</window.PBtn>
         ) : null}
       </React.Fragment>),
@@ -3404,6 +4283,7 @@
             : 'Rear camera · no PDF417 decoder on this device')
         : 'Rear camera · quality gates on-device')
       + (decodeSeen ? ' · barcode decoded' : '')
+      + (isBack && !decodeSeen ? ' · the decode is the only shutter' : '')
       + ' · the server still decides', null, { flush: true });
   }
 
@@ -3984,12 +4864,34 @@
     faceMetricsFrom: faceMetricsFrom, faceYaw: faceYaw, blend: blend,
     order: orderByQuality, best: bestOfBurst, clientMetrics: clientMetrics,
     GATE: GATE, ANALYSIS_EDGE: ANALYSIS_EDGE, SATURATED: SATURATED, EDGE_T: EDGE_T,
-    TICK_MS: TICK_MS, HINT_MS: HINT_MS, DECODE_MS: DECODE_MS,
+    TICK_MS: TICK_MS, HINT_MS: HINT_MS, DECODE_TARGET_MS: DECODE_TARGET_MS,
+  };
+  // ── ROUND 4's OWN STATICS ────────────────────────────────────────────────
+  // EVERY ONE OF THESE IS THE ANSWER TO A QUESTION THAT COST A SESSION ON A
+  // PHONE. `bandProfile` and `bandCropPlan` are pure and take numbers, so
+  // "does a 1.5 px/module barcode produce a Move closer" and "does the crop
+  // keep native pixels" are both answerable from Node against a synthetic
+  // frame, which is exactly how the floor below was measured. `zoomFor` is
+  // here because "is the zoom code guarded when the capability is absent" must
+  // be provable without a device that has one.
+  window.IdvCapture.barcode = {
+    bandProfile: bandProfile, bandAnalyser: makeBandAnalyser,
+    bandCropPlan: bandCropPlan, cropFromPlan: cropFromPlan,
+    hint: barcodeHint, isDark: bandIsDark, zoomFor: zoomFor,
+    zoomCaps: zoomCaps, torchOf: hasTorch,
+    BAND_ASPECT: BAND_ASPECT, BAND_EDGE: BAND_EDGE, PDF417_MODULES: PDF417_MODULES,
+    BAND_PAD_X: BAND_PAD_X, BAND_PAD_Y: BAND_PAD_Y,
+    BAND_UPSCALE_UNDER_PX: BAND_UPSCALE_UNDER_PX, BAND_UPSCALE: BAND_UPSCALE,
+    MAX_EDGE_FRONT: MAX_EDGE_FRONT, JPEG_Q_BACK: JPEG_Q_BACK,
+    HI_LADDER: HI_LADDER, BACK_STALL_MS: BACK_STALL_MS,
+    DECODE_TARGET_MS: DECODE_TARGET_MS, DECODE_MAX_PERIOD_MS: DECODE_MAX_PERIOD_MS,
   };
   window.IdvCapture.geometry = { guideBox: guideBox, coverMap: coverMap,
     toVideo: boxRectToVideoNorm, toBox: videoNormToBox, inflate: inflateNorm,
     measureGuide: measureGuide, GUIDE_PAD: GUIDE_PAD };
   window.IdvCapture.detectors = { pdf417: makePdf417Reader, native: makeNativeReader,
-    zxing: makeZxingReader, cropForDecode: cropForDecode, startBarcodeLoad: startBarcodeLoad,
-    startFaceLoad: startFaceLoad, faceState: faceState, DECODE_INFLATE: DECODE_INFLATE };
+    zxing: makeZxingReader, startBarcodeLoad: startBarcodeLoad,
+    startFaceLoad: startFaceLoad, faceState: faceState,
+    // Round 4: the crop is planned, not inflated. See window.IdvCapture.barcode.
+    bandCropPlan: bandCropPlan, cropFromPlan: cropFromPlan };
 })();
