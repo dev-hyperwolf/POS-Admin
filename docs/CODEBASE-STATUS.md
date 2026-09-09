@@ -5,7 +5,9 @@ read-only for this work by the owner's decision**: findings go to the developer 
 `codebase-audit/TEAM-TODO.md`, and nothing under `/Users/jt/hyper-tech` has been modified.
 Nothing has been pushed anywhere; both our repos auto-deploy on push and the owner pushes.
 
-## Modules on the contract — status (2026-09-09, late)
+## Modules on the contract — status (2026-09-09, night)
+
+**Everything below except the last two commits is already live**: you pushed both repos during the day, so GitHub Pages and Render carry contract 0.3.0 and every wave. Unpushed on POS-Admin: the orders cents conversion and the final refuter fixes (`44aaafd`, `72da34f`).
 
 | Module | State | Evidence |
 |---|---|---|
@@ -14,16 +16,16 @@ Nothing has been pushed anywhere; both our repos auto-deploy on push and the own
 | Promotions Suite (`promo/`, `pweb/`) | Platform ids, one promotion status vocabulary (`live` → `active`), one discount-kind list, Weedmaps ids as `external_ids`; the promo↔draft bridge no longer collapses status (a real bug) | 34 JS tests incl. `promo-builder-native-offer-roundtrip`; live on 8802 |
 | wm-demo backend | one dollars↔cents boundary (`pricing.py`), `order_lines`/`engine` route through it; fulfillment stages, check-in states, txn types and promo relations are local literals checked against the contract (never crash boot) | `contract_vocab_probe` 13, `fulfillment_probe` 27, `cycle1/2`, `pricing_probe` |
 | shared/ | one `cents()` boundary (adapter → contract), one money formatter (`hd-format.jsx`), one live-feed vocabulary, one age-since-epoch helper; `roundHalfEven` in hw-live.js kept for Weedmaps parity | 55-test gate incl. mutation floor; live on 8803 |
-| pos/ | roles via `roleAtLeast`, stages from `FulfillmentStage`, one store registry (`pos/stores.jsx`), one `round2`/`moneyK`, one tax table, `external_ids` at the brand build site; screen-orders pricing block and the frozen register untouched | `pos-stages-contract` test; live sale on 8806 moved the board |
+| pos/ | roles via `roleAtLeast`, stages from `FulfillmentStage`, one store registry (`pos/stores.jsx`), one `round2`/`moneyK`, one tax table, `external_ids` at the brand build site; the screen-orders pricing block is extracted to `pos/orders-pricing.js` and computes in integer cents through the one boundary (19-row characterisation floor; 720,000 swept carts differ from the old float math only where a half-cent discount now rounds up); the frozen register untouched | `pos-orders-pricing` 20, order suites 81; live on 8806/8808/8809 |
 | shop/, athome/, pipeline/ | checkout goes through the adapter; athome's five money copies are one file; pipeline no longer overrides `window.HD` (proven by test) | `pipeline-hd-no-override`, 86 shop tests; live on 8804 |
 | delivery/, logistics/, driver app, terminals/ | terminal-kind bug fixed; FNV-1a hash replaces the colliding char-sum; real driver names and phones replaced with synthetic data; drawer math in integer cents; mobile task statuses on the contract shape | `terminals-drawer-math`, `delivery-weedmaps-hash`, 141 mobile/driver tests; live on 8805 |
-| engage/ | inventoried, not started (money/time already disciplined; four enums to extract) | `gaps/engage-and-promotions.md` |
+| engage/ | channels and the campaign/flow/audience status vocabularies from the contract (0.3.0), loyalty liability keyed on `PointsKind`, vendor ids as `external_ids`; the analytics `/100` was correct, the dead cohort arithmetic removed | 29-test gate; live on 8807 |
 
 Displayed-number changes made on purpose in these waves (record, not regression): card fees round half away from zero like a till (+1¢ on ~0.4% of amounts); logistics mockup totals use the real tax table (23.22%) instead of a flat 8.22%; money at or above $1,000 gains a thousands separator and negatives print as `-$5.00`; the AOV and incentives cards always show two decimals.
 Owner decisions still open: the real driver roster in `logistics/ldata.jsx` is gone from HEAD but remains in history (commits 58e1b04..0c9b4a6^) — rewriting history is yours; `screenshots/*.png` were not inspected.
 Attribution note: `e6ef263` (terminals) also carries wave 4's pipeline files, swept in from the shared index; `aov-attribution-signal` and the two `demo-seed` failures come from the other session's uncommitted `pos/store.jsx`/`pos/screen-cart.jsx`, not from these commits.
 
-Contract is 0.2.1 (45 enums). Queued for 0.3.0: `DiscountKind` (percent|dollar|bogo|bundle|gift|tiered|points), the engine channel's move to the contract preimage.
+Contract is 0.3.0 (52 enums), every enum drift-tested against the file that owns its values. Still queued: the Verify engine channel's move to the contract preimage (both sides together).
 Three refuter lenses ran over the eleven wave commits: 1 blocker (Publish crash) and 8 warnings, all fixed the same evening; the only surviving caveat is that the register's demo order ids come from a pool of 40 values, so a colliding demo id is swallowed as a replay — a demo limit, not a contract defect.
 
 ## Phase 3 — compatibility (done, committed, not pushed)

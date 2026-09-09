@@ -81,8 +81,7 @@ Known exceptions after the 2026-09-09 waves, each deliberate and each named wher
 `shared/hw-live.js` `roundHalfEven` (Weedmaps parity, documented in the file);
 `shared/merch-store.js` REGIONS (delivery-zone cities, not store slugs — a false namesake);
 `pos/screen-register.jsx` (frozen: its own `round2`, role and store literals);
-`pos/screen-cart.jsx`, `pos/store.jsx` (owned by another session at the time);
-`pos/screen-orders.jsx` pricing/refund block (~25 float sites, last on the list);
+`pos/screen-cart.jsx`, `pos/store.jsx` (owned by another session at the time; the orders pricing block itself is now `pos/orders-pricing.js`, on cents);
 Verify's engine webhook channel (its own canonicalisation until 0.3.0).
 
 ## 4. How a platform service is consumed
