@@ -214,7 +214,9 @@ Workflow = { "id", "name", "kind": "KYC", "version": 3, "status": "active|archiv
 `GET /v3/lists/` · `GET /v3/lists/{id}/entries/` · `GET /v3/users/?limit&offset` (Person rows)
 Rate limits: 600 GET/min, 300 write/min per key; 429 `{ "error" }`.
 
-### Didit-compatibility facade (what `hyperwolf-backend` calls today)
+### Didit-compatibility facade (what `hyperwolf-backend` calls today) — **header `x-api-key`**
+Both routes below need `x-api-key` (scopes `sessions:write` to create, `sessions:read` to read a
+decision) as of the 2026-09-08 safety-pass addendum **A**. They shipped unauthenticated.
 `POST /v2/session` body `{ "workflow_id" }` → `{ "session_id", "session_token", "url", "status", "workflow_id", "vendor_data": null }`
 `GET /v2/session/{id}/decision` → `Decision` with the V2 aliases the site reads: `kyc: { first_name, last_name, full_name, date_of_birth, date_of_issue, expiration_date, address, parsed_address{city,region,postal_code,country}, gender, document_number, front_image, back_image, portrait_image }`, `status`, `vendor_data`. The `url` is iframe-embeddable for the origins in `IDV_FRAME_ANCESTORS`. `In Review` is returned as `In Review`.
 
@@ -575,3 +577,91 @@ Headers `X-Signature-V2` (hex HMAC-SHA256 over canonical JSON: floats shortened 
   separate file this pass did not touch. `wmdemo/server.py`'s PUBLIC-mode write gate still refuses
   the engine callback and the capture API (the known deployment gap recorded above) — unchanged,
   and still one line for the owner.
+
+- 2026-09-08 (backend safety pass, `wmdemo/idv_api.py`, four confirmed findings — probes
+  `qa/idv_api_probe.py` AP-95..AP-101, 94 → 101 checks):
+
+  **A. `/v2` IS AUTHENTICATED. THE SITE BACKEND MUST SEND A HEADER IT DOES NOT SEND TODAY.**
+  Both facade routes now take the same `x-api-key` gate as `/v3`, plus a scope each that `/v3`
+  itself does **not** enforce (see the caveat at the end of this item):
+
+  ```
+  POST /v2/session                 x-api-key: <Verify key with scope sessions:write>
+  GET  /v2/session/{id}/decision   x-api-key: <Verify key with scope sessions:read>
+  ```
+
+  The exact header is `x-api-key: hwv_live_…` — the same header, name and value shape the site
+  already sends to `/v3`. No key, an unknown key, a **revoked** key, or a key without the route's
+  scope is **403 `{ "error" }`** (never 401, matching Didit and the rest of this file). A key that
+  authenticates has its `last_used_at` stamped **even when it is then refused for scope** — a key
+  being hammered by a mis-configured site must not read as "never used" on the API Keys screen, and
+  the refusal is metered like any other call. Rate limits are the `/v3` ones: 600 GET/min, 300
+  write/min per key.
+
+  This route shipped **open**: anyone who could reach the host could mint sessions and read a
+  decision — name, date of birth, licence number, the portrait and selfie URLs — for any session id
+  they could guess or observe. "The site posts server-to-server" describes who we expected to call
+  it, not a control. **This is the header the migration checklist on the Integrate screen already
+  implies**: that screen says `DIDIT_API_KEY` → a Verify key, and until now that swap was cosmetic
+  because `/v2` read no key at all. It is now load-bearing, and a site backend that repoints its
+  base URL without setting the key will get 403 on every call. Cut the key in the console
+  (`POST /api/idv/api-keys` with `scopes: ["sessions:read", "sessions:write"]`, or both scopes on
+  one key), set it as the site's `DIDIT_API_KEY`, and the existing `x-api-key` send path carries it.
+
+  **Caveat, stated rather than left to be found: `/v3` enforces no scopes.** All seven of its
+  `_api_key_gate` call sites pass none, so a `sessions:read` key still creates a session on
+  `/v3/session/`. Scopes bite on `/v2` only, which is where the site is being pointed. Making them
+  mean the same thing on `/v3` changes behaviour for live integrations holding narrow keys and is
+  a separate decision; it is owed, not done.
+
+  **B. Every `/api/idv/*` route needs an actor, READS INCLUDED.** `require(actor, "viewer")` now
+  runs for every console route before it dispatches. An absent `X-HW-Actor`, or one that resolves
+  to nobody, is **403 `{ "error" }`** on `GET /sessions`, `GET /sessions/{id}`, `/people`,
+  `/dashboard`, `/audit`, `/lists`, `/workflows`, `/team`, `/usage`, `/retention` — everything.
+  Four routes are deliberately exempt and stay open: `GET /api/idv/version` and
+  `GET /api/idv/engine/health` (the header polls both before anyone is known and neither says
+  anything about a person), the `/api/idv/capture/{session_token}/*` routes (the bearer IS the
+  token in the path), and `POST /api/idv/webhooks/engine` (HMAC-signed; it holds no actor). The
+  media route `GET /api/idv/media/{id}` keeps its own two-way gate — a job token **or** a viewer
+  role — and is therefore also not behind the blanket check.
+
+  **One route will have to join that exempt list and does not exist yet.** `submit_engine_job`
+  hands the engine `templates_url = /api/idv/internal/templates?person_id=…`, and the engine
+  fetches it with `?token=<media token>` (`idv-engine/app.py:427`, `163-164`). Nothing implements
+  it: it fell through to 404 before this change and answers 403 now, and the engine swallows both
+  into an error node, so the 1:N face search degrades **in silence** either way. Whoever
+  implements it must gate it on the media token, not the viewer role, or it is born behind this
+  gate and breaks the engine on day one with nothing raised.
+
+  Until now the WRITE routes each took their own `require` while the reads took no actor at all, so
+  the console looked gated: a name, a date of birth, a licence number and the audit trail itself
+  came back to any caller who could reach the host, and the audit row written for that read
+  recorded actor `null`. **Note the honest limit:** `X-HW-Actor` identifies, it does not
+  authenticate. What changed is that a caller must now name somebody who exists, so every look at
+  an identity document is attributable. A real session login is still owed.
+
+  **C. The engine media token is scoped to its job AND that job's media ids.** `mint_media_token`
+  takes the media ids the job lists and stores them on the token record; `check_media_token`
+  refuses any id that is not on it. The token also dies when its job does: the callback receiver
+  writes `mt.spent:{job_id}` **in the same transaction that applies the decision**, so an applied
+  callback and a live token cannot come apart, and a token whose job never calls back still expires
+  at `MEDIA_TOKEN_TTL_S` (3600 s). A token minted before this binding existed carries no media ids
+  and is refused rather than treated as a wildcard — fail closed; the engine re-fetches on its next
+  job, a leaked old token does not. The docstring claimed job scoping and the code compared only
+  `session_id`: one token opened every file on the session for a full hour, including media
+  captured **after** the job was submitted and media belonging to a later job the engine was never
+  given.
+
+  **D. `In Review` is refused on a decision NODE too.** `PATCH /api/idv/sessions/{id}/features/
+  {node_id}/update-status` now answers **409** with the r3 ruling text — verbatim the same sentence
+  as addendum G's session route — when the session is native. Imported Didit rows still accept it,
+  because their nodes legitimately carry `In Review` and support has to be able to put one back;
+  the test is `idv_sessions.imported_from IS NOT NULL`. The refusal is checked AFTER the role gate,
+  so a viewer still gets 403. Addendum G closed the session route and left this one open: the same
+  state by a quieter door. A node's status drives the per-feature badge on the session screen
+  (`idv/screen-session.jsx:657-661`); it is NOT what the review queue reads — that reads
+  `idv_review_queue` rows, a separate table. Note also the term this route has that
+  `update-status` does not: `_update_status` refuses `In Review` for every session, imported ones
+  included, because moving a SESSION into that state is what the ruling forbids, while a feature
+  NODE on an imported row legitimately carries it. `imported_from` is written only by the importer
+  and by no API create path, so the exemption is not caller-reachable.
