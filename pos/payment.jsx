@@ -333,13 +333,58 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
         const priced = saleLines.filter((l) => l.line_gross_cents != null);
         const subtotalCents = priced.length ? priced.reduce((t, l) => t + l.line_gross_cents, 0) : null;
         const discountCents = priced.length ? priced.reduce((t, l) => t + (l.discount_cents || 0), 0) : null;
-        window.HW_LIVE.post('/api/pos/sale', {
+        const totalCents = Math.round(rec.total * 100);
+        const legacyBody = {
           order_id: rec.id, store_id: a.storeId, associate_id: a.id,
-          total_cents: Math.round(rec.total * 100), item_count: rec.items,
+          total_cents: totalCents, item_count: rec.items,
           subtotal_cents: subtotalCents, discount_cents: discountCents,
           method: rec.method, customer_name: rec.name,
           lines: saleLines,
-        }).then((r) => {
+        };
+
+        // THE PRODUCTION PATH — docs/BUILD-AGAINST-THE-SOURCE.md §4: Bounty ingests
+        // production sales through POST /api/contracts/orders (a contract Order, or
+        // an order.completed Event wrapping one); /api/pos/sale stays for the demo
+        // register only. Same numbers, same ex-tax basis, built once from the exact
+        // fields already computed above — nothing here is recomputed from the cart a
+        // second time. A line this register could not price (missing catalogue
+        // match) has no Money to put in unit_price/line_gross/discount, and this is
+        // not the call site that gets to invent one (see buildSaleLines' own
+        // comment), so HWContracts.money() below throws for that line and the whole
+        // sale falls back to the legacy body rather than posting a fabricated cost.
+        let postPath = '/api/pos/sale';
+        let postBody = legacyBody;
+        const HC = window.HWContracts;
+        if (!HC) {
+          console.warn('pos/payment.jsx: window.HWContracts not loaded — posting the legacy /api/pos/sale body');
+        } else {
+          try {
+            const order = {
+              id: rec.id, platform: 'hyperwolf', store_id: a.storeId, associate_id: a.id,
+              status: 'completed', txn_type: 'sale', created_at: HC.isoNow(),
+              subtotal: HC.money(subtotalCents, 'ex_tax_gross'),
+              discount: HC.money(discountCents, 'ex_tax_gross'),
+              total: HC.money(totalCents, 'inc_tax'),
+              lines: saleLines.map((l) => ({
+                product_id: l.sku || l.product_name || 'line',
+                name: l.product_name || '',
+                brand: l.brand, category: l.category,
+                quantity: l.quantity,
+                unit_price: HC.money(l.unit_price_cents, 'ex_tax_gross'),
+                line_gross: HC.money(l.line_gross_cents, 'ex_tax_gross'),
+                discount: HC.money(l.discount_cents, 'ex_tax_gross'),
+              })),
+              external_ids: [HC.externalId('hwpos', rec.id)],
+            };
+            const v = HC.validate('Order', order);
+            if (v.ok) { postPath = '/api/contracts/orders'; postBody = order; }
+            else console.warn('pos/payment.jsx: contract Order failed validation, falling back to /api/pos/sale', v.errors);
+          } catch (e) {
+            console.warn('pos/payment.jsx: could not build a contract Order, falling back to /api/pos/sale:', e && e.message);
+          }
+        }
+
+        window.HW_LIVE.post(postPath, postBody).then((r) => {
           if (!mountedRef.current || (r && r.ok)) return;
           setSale((prev) => (prev && prev.id === rec.id) ? { ...prev, aovFailed: true } : prev);
         });

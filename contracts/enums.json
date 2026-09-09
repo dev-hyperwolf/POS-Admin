@@ -1,5 +1,5 @@
 {
-  "contract": "0.1.0",
+  "contract": "0.2.0",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -168,7 +168,11 @@
       "verified"
     ],
     "PromotionStatus": [
+      "draft",
+      "scheduled",
       "active",
+      "paused",
+      "ended",
       "inactive"
     ],
     "RuleType": [
@@ -201,7 +205,9 @@
       "hwpos",
       "connecteam",
       "airtable",
-      "hyperwolf"
+      "hyperwolf",
+      "metrc",
+      "onfleet"
     ],
     "SourceState": [
       "failing",
@@ -209,6 +215,98 @@
       "healthy",
       "not_configured",
       "never_synced"
+    ],
+    "FulfillmentStage": [
+      "verify",
+      "pack",
+      "packing",
+      "ready",
+      "done",
+      "canceled"
+    ],
+    "WeedmapsOrderStatus": [
+      "DRAFT",
+      "PENDING",
+      "IN_PROGRESS",
+      "READY_FOR_ATTAINMENT",
+      "COMPLETE",
+      "CANCELED_SELLER"
+    ],
+    "DriverDutyState": [
+      "duty",
+      "idle",
+      "break",
+      "meal",
+      "oos",
+      "offline",
+      "on_route"
+    ],
+    "CalloffStatus": [
+      "open",
+      "covered"
+    ],
+    "RegionShiftStatus": [
+      "on",
+      "off"
+    ],
+    "TerminalKind": [
+      "station",
+      "mobile"
+    ],
+    "DrawerState": [
+      "open",
+      "closed"
+    ],
+    "CloseoutDestination": [
+      "safe",
+      "bank",
+      "hand"
+    ],
+    "PaymentMethod": [
+      "cash",
+      "card",
+      "split",
+      "cod",
+      "prepaid"
+    ],
+    "Lane": [
+      "express",
+      "scheduled"
+    ],
+    "CheckinState": [
+      "waiting",
+      "bound",
+      "served",
+      "left"
+    ],
+    "NotificationChannel": [
+      "sms",
+      "email",
+      "push",
+      "wallet"
+    ],
+    "PromoRelation": [
+      "mirrors",
+      "supersedes",
+      "conflict"
+    ],
+    "BatchStage": [
+      "incoming",
+      "received",
+      "labeling",
+      "sealing",
+      "shelf_ready",
+      "merchandised",
+      "approved",
+      "quarantined",
+      "recalled",
+      "destroyed"
+    ],
+    "LoyaltyTier": [
+      "bronze",
+      "silver",
+      "gold",
+      "platinum"
     ],
     "ErrorCode": [
       "bad_request",

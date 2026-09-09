@@ -230,6 +230,16 @@ test('our estate: wm-demo enums still equal the contract (FAILS on drift)', { sk
   for (const r of [...mr[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])) assert.ok(C.roleAtLeast(r, 'manager'), r + ' must map to manager+');
   const idvApi = fs.readFileSync(path.join(WM, 'wmdemo/idv_api.py'), 'utf8');
   for (const r of ['viewer', 'analyst', 'admin']) assert.ok(idvApi.includes('"' + r + '"') || idvApi.includes("'" + r + "'"), 'Verify ladder still names ' + r);
+  // 0.2.0 enums copied from estate files: keep those files the source of truth.
+  const domain = fs.readFileSync(path.join(ROOT, 'pipeline/domain.jsx'), 'utf8');
+  const bs = /BATCH_STATUS_ORDER\s*=\s*\[([^\]]*)\]/.exec(domain); assert.ok(bs);
+  assert.deepEqual([...bs[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]), C.enumValues('BatchStage'), 'pipeline/domain.jsx BATCH_STATUS_ORDER');
+  const fulfil = fs.readFileSync(path.join(WM, 'wmdemo/fulfillment.py'), 'utf8');
+  const wm = /WM_STATUS_ORDER\s*=\s*\(([^)]*)\)/.exec(fulfil); assert.ok(wm);
+  for (const v of [...wm[1].matchAll(/"([A-Z_]+)"/g)].map((m) => m[1])) assert.ok(C.isEnum('WeedmapsOrderStatus', v), 'WeedmapsOrderStatus lacks ' + v);
+  const chk = fs.readFileSync(path.join(WM, 'wmdemo/checkin_api.py'), 'utf8');
+  const all = /_ALL_STATES\s*=\s*\(([^)]*)\)/.exec(chk); assert.ok(all);
+  assert.deepEqual([...all[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]), C.enumValues('CheckinState'), 'checkin_api.py _ALL_STATES');
   const contract = fs.readFileSync(path.join(ROOT, 'docs/IDV-API-CONTRACT.md'), 'utf8');
   const reasons = [...contract.slice(contract.indexOf('// Reason'), contract.indexOf('// Score')).matchAll(/\b[A-Z][A-Z0-9_]{3,}\b/g)].map((m) => m[0]);
   assert.deepEqual([...new Set(reasons)], C.enumValues('VerificationReason'), 'IDV-API-CONTRACT Reason list');
@@ -254,7 +264,11 @@ test('production repos: report (or, with HW_CONTRACTS_STRICT_PROD=1, fail) where
   check('hyperdrive-backend Tasks validTaskStatus', jsArray(path.join(HT, 'hyperdrive-backend/models/TasksModel.js'), 'validTaskStatus'), C.enumValues('TaskStatus'));
   check('hyperdrive-backend Tasks validTaskAssignmentMode', jsArray(path.join(HT, 'hyperdrive-backend/models/TasksModel.js'), 'validTaskAssignmentMode'), C.enumValues('TaskAssignmentMode'));
   const promo = fs.readFileSync(path.join(HT, 'promotion-backend/models/Promotion.js'), 'utf8');
-  const ps = /status:\s*\{[^}]*enum:\s*\[([^\]]*)\]/.exec(promo); assert.ok(ps, 'Promotion.status enum'); check('promotion-backend Promotion.status', [...ps[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]), C.enumValues('PromotionStatus'));
+  const ps = /status:\s*\{[^}]*enum:\s*\[([^\]]*)\]/.exec(promo); assert.ok(ps, 'Promotion.status enum');
+  // The writer's enum is a SUBSET of the contract's (0.2.0 widened it for the Promotions Suite); a value the writer has that we lack is drift.
+  const writerStatuses = [...ps[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]);
+  const missing = writerStatuses.filter((v) => !C.isEnum('PromotionStatus', v));
+  if (missing.length) drift.push('promotion-backend Promotion.status has values the contract lacks: ' + JSON.stringify(missing));
   const orderJoi = fs.readFileSync(path.join(HT, 'hyperwolf-backend/models/Order.js'), 'utf8');
   const os = /status: Joi\.string\(\)\.valid\(([^)]*)\)/.exec(orderJoi);
   const joiStatuses = [...os[1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]);

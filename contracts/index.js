@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.1.0';
+  var VERSION = '0.2.0'; // 0.2.0: additive enums from docs/codebase-audit/MODULE-CONTRACT-GAPS.md §2
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -80,18 +80,38 @@
       source: 'hyperdrive-backend/models/Fleets.js validFleetStatus' },
     FleetVerificationStatus: { values: ['pending', 'verified'],
       source: 'hyperdrive-backend/models/Fleets.js' },
-    PromotionStatus: { values: ['active', 'inactive'],
-      source: 'promotion-backend/models/Promotion.js status enum (the writer; engine constants list five)' },
+    PromotionStatus: { values: ['draft', 'scheduled', 'active', 'paused', 'ended', 'inactive'],
+      source: 'promotion-backend/models/Promotion.js writes active|inactive; the Promotions Suite (pweb/, promo/) needs draft|scheduled|paused|ended; widened 0.2.0' },
     RuleType: { values: ['cart', 'product', 'user', 'bogo', 'time', 'payment'],
       source: 'promotion-engine/rule-types/* directory (the evaluators that exist)' },
     ProductSource: { values: ['blaze', 'meadow', 'treez', 'first-party'],
       source: 'hyperwolf Product (Blaze mirror) vs hemp/stilo typed products; Meadow/Treez from Bounty ingest' },
     PosVendor: { values: ['blaze', 'meadow', 'treez', 'hwpos', 'none'],
       source: 'docs/BOUNTY-API-CONTRACT.md Store.pos + Source' },
-    IdSource: { values: ['blaze', 'meadow', 'treez', 'weedmaps', 'didit', 'hwpos', 'connecteam', 'airtable', 'hyperwolf'],
+    IdSource: { values: ['blaze', 'meadow', 'treez', 'weedmaps', 'didit', 'hwpos', 'connecteam', 'airtable', 'hyperwolf', 'metrc', 'onfleet'],
       source: 'every external id seen across the twelve repos and the GAS estate' },
     SourceState: { values: ['failing', 'stale', 'healthy', 'not_configured', 'never_synced'],
       source: 'docs/BOUNTY-API-CONTRACT.md Source.state' },
+    // ── 0.2.0 additions (MODULE-CONTRACT-GAPS.md §2) ──
+    FulfillmentStage: { values: ['verify', 'pack', 'packing', 'ready', 'done', 'canceled'],
+      source: 'pos/data.jsx ORDER_STAGES and wm-demo/wmdemo/fulfillment.py STAGES (identical); the queue stages, distinct from OrderStatus' },
+    WeedmapsOrderStatus: { values: ['DRAFT', 'PENDING', 'IN_PROGRESS', 'READY_FOR_ATTAINMENT', 'COMPLETE', 'CANCELED_SELLER'],
+      source: 'pos/data.jsx WM_STATUS_MAP, wmdemo/fulfillment.py WM_STATUS_ORDER — the vendor vocabulary, kept verbatim' },
+    DriverDutyState: { values: ['duty', 'idle', 'break', 'meal', 'oos', 'offline', 'on_route'],
+      source: 'logistics/ldata.jsx, pos/data.jsx DRIVERS, delivery/ddata.jsx, mobile/ — four lists reconciled' },
+    CalloffStatus: { values: ['open', 'covered'], source: 'delivery/ddata.jsx CALLOFFS' },
+    RegionShiftStatus: { values: ['on', 'off'], source: 'delivery/ddata.jsx SUBREGIONS' },
+    TerminalKind: { values: ['station', 'mobile'], source: 'terminals/tdata.jsx (the wizard emits driver — a bug)' },
+    DrawerState: { values: ['open', 'closed'], source: 'terminals/tdata.jsx' },
+    CloseoutDestination: { values: ['safe', 'bank', 'hand'], source: 'terminals/tdrawer.jsx DESTS' },
+    PaymentMethod: { values: ['cash', 'card', 'split', 'cod', 'prepaid'], source: 'shop/, mobile/data.jsx pay|tender, pos/payment.jsx method' },
+    Lane: { values: ['express', 'scheduled'], source: 'shop/data.jsx lane; wmdemo/cities.py room CHECK' },
+    CheckinState: { values: ['waiting', 'bound', 'served', 'left'], source: 'wmdemo/checkin_api.py _ALL_STATES' },
+    NotificationChannel: { values: ['sms', 'email', 'push', 'wallet'], source: 'engage/data.jsx CHANNELS' },
+    PromoRelation: { values: ['mirrors', 'supersedes', 'conflict'], source: 'wmdemo/store.py promo_links CHECK' },
+    BatchStage: { values: ['incoming', 'received', 'labeling', 'sealing', 'shelf_ready', 'merchandised', 'approved', 'quarantined', 'recalled', 'destroyed'],
+      source: 'pipeline/domain.jsx:24 BATCH_STATUS_ORDER (verbatim, in order)' },
+    LoyaltyTier: { values: ['bronze', 'silver', 'gold', 'platinum'], source: 'athome/, crm.jsx (title-cased on screen)' },
     ErrorCode: { values: ['bad_request', 'unauthorized', 'forbidden', 'not_found', 'conflict',
       'unprocessable', 'rate_limited', 'internal', 'not_built'],
       source: 'CANONICAL-DATA-MODEL.md §7.6' },

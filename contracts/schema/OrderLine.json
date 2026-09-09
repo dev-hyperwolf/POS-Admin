@@ -1,6 +1,6 @@
 {
   "$id": "OrderLine",
-  "contract": "0.1.0",
+  "contract": "0.2.0",
   "type": "object",
   "required": [
     "product_id",
