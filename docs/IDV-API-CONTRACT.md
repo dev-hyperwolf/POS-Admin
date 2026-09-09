@@ -982,3 +982,199 @@ Headers `X-Signature-V2` (hex HMAC-SHA256 over canonical JSON: floats shortened 
   *Coverage:* `qa/idv_rules_probe.py` 293 → **313** (section `IDV-J*`, built on the real scrubbed
   callback); `qa/idv_api_probe.py` unchanged at **122** — it deduped its own copy of `reasons`,
   which is exactly why the duplicate `LIVENESS_LOW` was invisible to it.
+
+---
+
+## Addendum — 2026-09-09: the challenge outcome, and never being stuck on "checking"
+
+Measured on the first real end-to-end capture this system has been given: the owner's own iPhone,
+session 1, engine job `job_fb9ed08726d1485ebce6267eb27ec655`. Passive liveness **98.6**, face match
+**78.7**, a **43.9°** head turn held for 29 frames, a blink on cue — and
+**`Declined ['CHALLENGE_NONCE_MISMATCH']`**, no guidance, `next_step: none`.
+
+### A. `liveness_checks[].challenge` gains `result`, `result_reason` and `detail`
+
+```jsonc
+"challenge": {
+  "id": "ch_…",
+  "script": [ … as issued, in either vocabulary … ],
+  "result": "completed | not_completed | replay_suspected | not_recorded",
+  "result_reason": "…" ,        // null when result == "completed"
+  "nonce_ok": true,             // DERIVED: exactly `result == "completed"`
+  "detail": {
+    "prompts": [{ "index", "expected", "raw", "prompt_ms",
+                  "window_s": [start, end], "window_is_inferred": true,
+                  "frames_analysed_in_window", "observed", "satisfied",
+                  "events", "first_t", "in_inferred_window", "reason" }],
+    "series": { "yaw":   { "neutral_deg", "min_deg", "max_deg",
+                           "max_left_delta_deg", "max_right_delta_deg",
+                           "accept_deg", "sustain_frames", "samples", "sign_note" },
+                "blink": { "ear_baseline", "ear_threshold", "ear_min",
+                           "relative_drop", "min_closed_frames", "events", "samples" } },
+    "clip": { "codec", "fps_reported", "fps_measured", "duration_s",
+              "frames_decoded", "frames_analysed", "frames_with_face",
+              "width", "height", "orientation",
+              "rotation_meta_deg", "rotation_auto_applied_by_decoder",
+              "rotation_applied_here_deg", "decode_error" },
+    "prompt_timing_tolerance_s": 0.75,
+    "prompt_min_frames": 12,
+    "window_caveat": "…"
+  }
+}
+```
+
+**`nonce_ok` is not removed and its meaning is narrowed, not changed:** it is now computed as
+`result == "completed"`. Every existing reader keeps working. New readers should key on `result`,
+because a boolean was the defect: it went false for a prompt not performed, prompts performed out of
+order, a response outside the nonce validity window, **and a script the engine could not parse** —
+and the consumer could only decline all four the same way.
+
+**`replay_suspected` is rationed to hard evidence** and is the only value that may reach a decline:
+byte-identical frames spanning the challenge, a response timestamped outside the nonce validity
+window, or a clip too short to contain the script it was issued. An implausibly *regular* frame
+cadence is explicitly **not** on that list — OpenCV synthesises `t = i/fps` whenever a container
+carries no per-frame timestamps, which is most browser WebM, so a `frame_gap_cv` of 0.0000 is
+routinely a property of the decoder. It remains a soft `CAPTURE_TIMING_ANOMALY` warning.
+
+**`not_recorded` covers the engine's own inability to score**, including a script whose prompts it
+does not recognise. A vocabulary drift between the two services is an engine defect and can never be
+evidence about the person holding the phone.
+
+### B. The challenge `script` has two legal vocabularies and both are canonical
+
+`POST /api/idv/capture/{token}/challenge` issues, stores and forwards to the engine:
+
+```json
+[{"kind":"turn","dir":"left","ms":1500}, {"kind":"blink"},
+ {"kind":"flash","colors":["accent","info","good","warn"],"ms":250}]
+```
+
+The **decision** example in §Decision above shows `["turn_left","blink","flash"]`. Both are on the
+wire today; the engine now normalises both (`pipeline.liveness.normalise_script`). Until 2026-09-09
+it matched only the flat strings, so every prompt from a live capture scored "unsupported challenge
+step" and `nonce_ok` went false on clips where nothing was wrong. **Neither suite could see it** —
+each side was internally consistent and neither had ever been handed the other's shape.
+
+Two details that are part of the contract, not the implementation:
+
+* a `flash` step's `ms` is **per colour**; the prompt occupies `ms × len(colors)`;
+* `turn` `dir: "left"` means the **guest's own left**, which on an unmirrored front-camera frame is
+  a positive MediaPipe yaw delta (measured: Pearson +0.992 between yaw and nose-tip offset toward
+  image right; `MediaRecorder` records the unmirrored track even behind a CSS-flipped preview).
+
+**Prompt windows are inferred and never gate satisfaction.** Nothing in this contract carries a
+client-side "prompt shown at" timestamp, so the engine infers each window from the script's own
+durations. The inference is known to be wrong: the owner's script opens with a 1500 ms turn and the
+turn does not begin until t=1.5 s, because the capture page runs its own countdown first. The
+windows therefore drive **sampling density only** (≥ 12 analysed frames per window) and are reported
+for diagnosis. The ±0.75 s tolerance is applied to the **order** check, where it can only help — a
+blink performed *during* a turn lands a few hundred ms out of the issued order and is not evidence of
+anything. **If a future capture page sends real prompt timestamps, that is the field to add here**,
+and windows can then become a check rather than a diagnostic.
+
+### C. Consumer rule: a failed challenge is a retry
+
+`CHALLENGE_NONCE_MISMATCH` may be raised **only** for `result == "replay_suspected"`.
+`not_completed` and `not_recorded` are `LIVENESS_LOW` on guidance step **`challenge`**, spending an
+attempt exactly as today. With `face_liveness_method: ACTIVE_3D`, a `not_completed` challenge is
+still a retake **even when the passive score clears `liveness_min`** — passive liveness alone never
+approves. A consumer reading a node with no `result` (an engine older than 2026-09-09) must degrade a
+false `nonce_ok` to the **retake**, not the decline: the worst case there is one extra guided try,
+which the attempt counter already bounds, and the worst case the other way is a real customer
+accused of fraud.
+
+The same guard applies wherever the code appears. In `wmdemo/idv_rules.py` there are **three** paths
+to that decline — the liveness node, the engine's top-level `reasons`, and the catch-all sweep over
+`REASONS_DECLINE` — and all three now go through `replay_claim_stands()`: when the node contradicts
+the summary, the **node wins**, because the node is the evidence.
+
+### D. `GET /engine/v1/jobs/{id}` and `POST /engine/v1/jobs/{id}/redeliver` are a consumer contract
+
+Both routes already existed and both are signed like every other `/engine/v1` route (`X-Signature-V2`
+/ `X-Timestamp`). A **`GET` carries an empty body**, which is signed as `HMAC(secret, "<ts>.")` —
+the engine's `signing.verify` falls back to verifying the raw bytes when they are not JSON, so this
+is the same scheme and not a second one. `wmdemo/idv_webhooks.sign` canonicalises through
+`json.loads` and cannot express it; `idv_api._sign_raw` does.
+
+```
+GET  /engine/v1/jobs/{job_id}
+  -> 200 { "job_id", "state": "queued|running|done|failed",
+           "callback_status": "pending|delivered|dead"|null, "callback_attempts", … }
+  -> 404 { "error": "no such job" }
+
+POST /engine/v1/jobs/{job_id}/redeliver   { "force": true }
+  -> 200 { "job_id", "redelivered": [{ "kind", "rearmed", "was", "attempt",
+                                       "delivered", "state", "event_id" }] }
+  -> 409 when the job has no stored callback (the pipeline is NEVER re-run to make one)
+```
+
+**wm-demo's obligation.** When a session is `In Progress` with an `engine_job_id`, **no row in
+`idv_decisions`**, and ≥ 20 s since its `engine.job_queued` event, `idv_api` calls `GET
+/engine/v1/jobs/{id}`; unless the job is still `queued`/`running` it calls `redeliver` with
+`{"force": true}` and writes an `engine.redeliver_requested` session event. Bounded at **one ask per
+30 s** per session on an `idv_kv` due time, fired by whoever gets there first — `idv_store.sweep`
+or the guest's own `/status` poll. After **5 minutes** with no verdict the session takes the existing
+outage give-up path: `engine.gave_up`, `next_step` `in_store` (online) or `none` (register), status
+still `In Progress`, and the same guest-facing sentence. Nothing is declined: nothing judged it.
+
+Three things about that which are contract, not taste:
+
+* **Redeliver, never re-post.** The verdict already exists. Re-posting is the *outage* path and runs
+  the pipeline again — minutes of CPU, and it re-fires every external side effect the job has.
+* **`force: true`, and `delivered` is nudged too.** This is the shape that stranded the owner: the
+  engine's sixth attempt got a `200`, and this server had failed to persist it. A delivery this end
+  never wrote is indistinguishable from one that never arrived, and only this side can tell. Safety
+  comes from `_engine_callback`'s existing transition guard, which still refuses to overwrite a
+  session an analyst has since decided, and from `event_id` dedupe — a redelivery carries a new
+  attempt number, so it applies exactly once.
+* **"Stuck" is the decision table being empty**, never the status column. `In Progress` is equally
+  what a session submitted two seconds ago looks like, and what one looks like while a guest is being
+  asked for another photo.
+
+Why it was needed: `job_fb9ed08726d1485ebce6267eb27ec655` finished **correctly** at 05:14:02Z. Its
+callback then `500`d five times against wm-demo (`InterfaceError: Error binding parameter 7`), the
+engine's ladder backed off to a 54-minute gap, and the guest sat on "checking" from **05:14 to
+06:10 — 56 minutes** — with a finished verdict in the engine's `callbacks` table the whole time.
+The engine retries the *callback*, wm-demo retries the *job*, and neither is the thing that failed.
+Only the side watching the guest wait can close that.
+
+### E. Known gap, stated rather than fixed: `valid_for_s` does not reach the engine
+
+`POST /api/idv/capture/{token}/challenge` returns `valid_for_s: 90` to the browser and does **not**
+persist it on the session, so the engine job carries a challenge with no validity window and
+`window_ok` comes back `null`. Nonce binding — described in the engine's own liveness module as the
+one cryptographically sound component of the challenge — is therefore inert in production unless a
+workflow sets `challenge_valid_for_s`, which is where `app.py` reads it from.
+
+It was left inert on purpose. `window_ok` is measured from `issued_at` to the engine's `received_at`,
+which defaults to *when the pipeline runs* and so includes queue delay. Persisting the field on its
+own would let a busy engine queue produce `replay_suspected` — after this addendum, the one outcome
+that still declines — which is precisely the failure this change exists to remove. The fix is both
+halves at once: persist `valid_for_s`, **and** measure the window against the clip's upload time
+rather than the engine's dequeue time.
+
+### F. The retake counter, and why §C's bound is not free
+
+`_attempts_for(session, "challenge")` is what makes a `not_completed` challenge terminate rather
+than loop. It reads `attempts.challenge`, and **that row only advances when a capture answers a
+retake** — `_count_attempt` fires while the session is `Awaiting User`/`Resubmitted` and the first
+upload of the retake flips it to `In Progress`, so one retake episode counts exactly once.
+
+Until 2026-09-09 the kind→step map carried `challenge_frame` and **not `liveness_video`** — the clip
+that *is* the answer to the prompts, and the only media the engine's challenge scoring reads. A
+retake that re-recorded the video therefore advanced nothing, `_attempts_for` fell through to
+`liveness_attempts`, and the engine reports `attempts: 1` on every job, so that never grows either.
+Harmless while a failed challenge was a first-pass decline; an **unbounded** retake — and unlimited
+fresh nonces for anyone genuinely replaying — the moment `not_completed` became a retry. Both kinds
+map to the `challenge` step now.
+
+Anything implementing this contract needs the same property, stated as a rule rather than a
+constant: **whatever media a client sends to answer a prompt must advance that step's counter.**
+And the bound is `attempt >= max`, not `attempt > max`: `liveness_attempts_max: 3` buys **two**
+retakes and then the in-store path.
+
+*Coverage:* engine `pytest` 257 → **279** passed / 2 skipped (`tests/test_challenge_taxonomy.py`,
+plus six tests in `tests/test_liveness_ip.py` rewritten onto the measured yaw sign — they had
+asserted the module's convention against itself). `qa/idv_rules_probe.py` 313 → **321**
+(`IDV-A10`, `IDV-A10b..A10i`); `qa/idv_api_probe.py` 122 → **135** (`AP-120..AP-132` — the watchdog, and the challenge retake loop driven through the real capture and callback routes; `AP-74` was also corrected, having asserted a third retake that `idv_rules` does not give);
+`qa/idv_store_probe.py` **64** and `qa/idv_import_probe.py` **78** untouched and both still green.
