@@ -149,7 +149,9 @@ function WmReadonlyView({ promo }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: '12px 16px' }}>{children}</div></div>;
 
   const mapRows = [
-  ['promo_type', p.promo_type, 'Reward type', { percentage: '% off', dollar: '$ off', bogo: 'BOGO', bundle: 'Bundle', gift: 'Free gift' }[p.promo_type] || p.promo_type],
+  // 'Reward type' uses window.DISCOUNT_KIND_LABEL (promo/pshared.jsx) -- the
+  // one discount-kind vocabulary -- not a private 'percentage' spelling.
+  ['promo_type', p.promo_type, 'Reward type', (window.DISCOUNT_KIND_LABEL || {})[p.promo_type] || p.promo_type],
   ['discount_value + unit', `${p.discount_value}${p.discount_unit}`, 'Reward value', disc],
   ['scope + targets', `${val(p.scope)} · ${arr(p.targets)}`, 'Condition', p.scope === 'cart' ? 'Whole order' : `${p.scope}: ${arr(p.targets)}`],
   ['apply / code', p.apply + (p.code ? ` · ${p.code}` : ''), 'Trigger', p.apply === 'automatic' || !p.code ? 'Auto-apply' : 'Promo code'],
