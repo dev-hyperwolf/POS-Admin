@@ -1,0 +1,1999 @@
+{
+ "repo": "hyperdrive-backend",
+ "sha": "afa975b",
+ "scanned_at": "2026-09-09T10:04:40",
+ "files": 91,
+ "src_files": 78,
+ "src_lines": 10872,
+ "by_ext": [
+  [
+   ".js",
+   78
+  ],
+  [
+   "(none)",
+   4
+  ],
+  [
+   ".json",
+   4
+  ],
+  [
+   ".md",
+   2
+  ],
+  [
+   ".example",
+   1
+  ],
+  [
+   ".yml",
+   1
+  ],
+  [
+   ".txt",
+   1
+  ]
+ ],
+ "biggest": [
+  [
+   "admin/controllers/task-controller.js",
+   2535
+  ],
+  [
+   "controllers/tasks/task-controller.js",
+   1489
+  ],
+  [
+   "controllers/fleets/fleet-controller.js",
+   978
+  ],
+  [
+   "admin/controllers/driverAnalytics/driver-analytics-controller.js",
+   800
+  ],
+  [
+   "admin/controllers/analyze/analyze-controller.js",
+   433
+  ],
+  [
+   "admin/controllers/headQuarter-controller.js",
+   424
+  ],
+  [
+   "common/util.js",
+   388
+  ],
+  [
+   "models/TasksModel.js",
+   363
+  ],
+  [
+   "models/Fleets.js",
+   302
+  ],
+  [
+   "driverAssignment/assignment/regionAssignmentRule.js",
+   292
+  ],
+  [
+   "driverAssignment/monitoring/monitoringCron.js",
+   249
+  ],
+  [
+   "driverAssignment/commonFunc.js",
+   153
+  ]
+ ],
+ "engines": null,
+ "scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+ },
+ "lockfiles": [
+  "package-lock.json"
+ ],
+ "deps_count": 28,
+ "dev_count": 0,
+ "pins": {
+  "caret": 28
+ },
+ "frameworks": {
+  "express": "^4.19.2",
+  "mongoose": "^8.5.2",
+  "jsonwebtoken": "^9.0.2",
+  "axios": "^1.7.7",
+  "node-cron": "^3.0.3",
+  "cors": "^2.8.5",
+  "joi": "^17.13.3",
+  "bcrypt": "^5.1.1",
+  "winston": "^3.14.1",
+  "firebase-admin": "^12.4.0",
+  "aws-sdk": "^2.1687.0"
+ },
+ "eol_notes": [
+  "express 4.x (5.x current)",
+  "no engines.node"
+ ],
+ "test_deps": [],
+ "test_files": [],
+ "test_file_count": 0,
+ "test_lines": 0,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 8,
+    "files": 4,
+    "top": [
+     [
+      "startup/middleware.js",
+      5
+     ],
+     [
+      "common/util.js",
+      1
+     ],
+     [
+      "controllers/tasks/task-controller.js",
+      1
+     ],
+     [
+      "models/Fleets.js",
+      1
+     ]
+    ]
+   },
+   "objectid_24hex": {
+    "count": 2,
+    "files": 2,
+    "top": [
+     [
+      "controllers/tasks/task-controller.js",
+      1
+     ],
+     [
+      "driverAssignment/monitoring/monitoringCron.js",
+      1
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 10,
+    "files": 2,
+    "top": [
+     [
+      "admin/controllers/task-controller.js",
+      9
+     ],
+     [
+      "models/TasksModel.js",
+      1
+     ]
+    ]
+   },
+   "phone_literal": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "common/util.js",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {},
+  "security": {
+   "cors_wildcard": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "startup/middleware.js",
+      1
+     ]
+    ]
+   },
+   "child_process": {
+    "count": 21,
+    "files": 8,
+    "top": [
+     [
+      "admin/controllers/task-controller.js",
+      9
+     ],
+     [
+      "controllers/tasks/task-controller.js",
+      3
+     ],
+     [
+      "admin/controllers/headQuarter-controller.js",
+      2
+     ],
+     [
+      "driverAssignment/assignment/regionAssignmentRule.js",
+      2
+     ],
+     [
+      "driverAssignment/commonFunc.js",
+      2
+     ]
+    ]
+   },
+   "unfiltered_find": {
+    "count": 6,
+    "files": 4,
+    "top": [
+     [
+      "admin/controllers/headQuarter-controller.js",
+      2
+     ],
+     [
+      "admin/controllers/task-controller.js",
+      2
+     ],
+     [
+      "admin/controllers/closeOut/closeOut-controller.js",
+      1
+     ],
+     [
+      "admin/controllers/driverAnalytics/driver-analytics-controller.js",
+      1
+     ]
+    ]
+   },
+   "jwt_no_expiry_hint": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "models/FleetAccessTokens.js",
+      1
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "sync_fs": {
+    "count": 7,
+    "files": 2,
+    "top": [
+     [
+      "common/logger.js",
+      4
+     ],
+     [
+      "admin/controllers/analyze/analyze-controller.js",
+      3
+     ]
+    ]
+   },
+   "await_in_loop_hint": {
+    "count": 4,
+    "files": 3,
+    "top": [
+     [
+      "admin/controllers/task-controller.js",
+      2
+     ],
+     [
+      "controllers/fleets/fleet-controller.js",
+      1
+     ],
+     [
+      "driverAssignment/reAssignment/reAssignTaskAuto.js",
+      1
+     ]
+    ]
+   },
+   "find_without_limit": {
+    "count": 57,
+    "files": 16,
+    "top": [
+     [
+      "admin/controllers/driverAnalytics/driver-analytics-controller.js",
+      15
+     ],
+     [
+      "admin/controllers/task-controller.js",
+      9
+     ],
+     [
+      "controllers/tasks/task-controller.js",
+      9
+     ],
+     [
+      "controllers/fleets/fleet-controller.js",
+      4
+     ],
+     [
+      "admin/controllers/analyze/analyze-controller.js",
+      3
+     ]
+    ]
+   },
+   "populate_calls": {
+    "count": 7,
+    "files": 6,
+    "top": [
+     [
+      "driverAssignment/scheduleAssignment/updateOrderTask.js",
+      2
+     ],
+     [
+      "admin/controllers/driverAnalytics/driver-analytics-controller.js",
+      1
+     ],
+     [
+      "admin/controllers/mapFleetDetails/fleetInfo-controller.js",
+      1
+     ],
+     [
+      "admin/controllers/task-controller.js",
+      1
+     ],
+     [
+      "driverAssignment/monitoring/monitoringCron.js",
+      1
+     ]
+    ]
+   },
+   "aggregate_calls": {
+    "count": 7,
+    "files": 6,
+    "top": [
+     [
+      "controllers/fleets/fleet-controller.js",
+      2
+     ],
+     [
+      "admin/controllers/driverAnalytics/driver-analytics-controller.js",
+      1
+     ],
+     [
+      "admin/controllers/headQuarter-controller.js",
+      1
+     ],
+     [
+      "controllers/tasks/task-controller.js",
+      1
+     ],
+     [
+      "driverAssignment/assignment/regionAssignmentRule.js",
+      1
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "awsEvent/iotCore.js",
+      2
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 90,
+    "files": 17,
+    "top": [
+     [
+      "driverAssignment/monitoring/monitoringCron.js",
+      15
+     ],
+     [
+      "startup/cronJobs.js",
+      15
+     ],
+     [
+      "admin/controllers/task-controller.js",
+      10
+     ],
+     [
+      "driverAssignment/scheduleAssignment/assignToDriver.js",
+      10
+     ],
+     [
+      "controllers/fleets/fleet-controller.js",
+      7
+     ]
+    ]
+   },
+   "empty_catch": {
+    "count": 12,
+    "files": 3,
+    "top": [
+     [
+      "admin/controllers/task-controller.js",
+      5
+     ],
+     [
+      "controllers/tasks/task-controller.js",
+      4
+     ],
+     [
+      "common/util.js",
+      3
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 136,
+    "files": 12,
+    "top": [
+     [
+      "controllers/tasks/task-controller.js",
+      42
+     ],
+     [
+      "driverAssignment/assignment/regionAssignmentRule.js",
+      37
+     ],
+     [
+      "driverAssignment/commonFunc.js",
+      15
+     ],
+     [
+      "admin/controllers/task-controller.js",
+      12
+     ],
+     [
+      "admin/controllers/driverAnalytics/driver-analytics-controller.js",
+      8
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "common/util.js:312",
+    "controllers/tasks/task-controller.js:972",
+    "models/Fleets.js:7",
+    "startup/middleware.js:4",
+    "startup/middleware.js:4",
+    "startup/middleware.js:4"
+   ],
+   "objectid_24hex": [
+    "controllers/tasks/task-controller.js:1021",
+    "driverAssignment/monitoring/monitoringCron.js:238"
+   ],
+   "role_string": [
+    "admin/controllers/task-controller.js:286",
+    "admin/controllers/task-controller.js:309",
+    "admin/controllers/task-controller.js:346",
+    "admin/controllers/task-controller.js:411",
+    "admin/controllers/task-controller.js:425",
+    "admin/controllers/task-controller.js:456"
+   ],
+   "phone_literal": [
+    "common/util.js:273"
+   ]
+  },
+  "secrets": {},
+  "security": {
+   "cors_wildcard": [
+    "startup/middleware.js:27"
+   ],
+   "child_process": [
+    "admin/controllers/closeOut/closeOut-controller.js:31",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:791",
+    "admin/controllers/headQuarter-controller.js:156",
+    "admin/controllers/headQuarter-controller.js:228",
+    "admin/controllers/task-controller.js:768",
+    "admin/controllers/task-controller.js:780"
+   ],
+   "unfiltered_find": [
+    "admin/controllers/closeOut/closeOut-controller.js:31",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:716",
+    "admin/controllers/headQuarter-controller.js:228",
+    "admin/controllers/headQuarter-controller.js:277",
+    "admin/controllers/task-controller.js:2088",
+    "admin/controllers/task-controller.js:2312"
+   ],
+   "jwt_no_expiry_hint": [
+    "models/FleetAccessTokens.js:21"
+   ]
+  },
+  "performance": {
+   "sync_fs": [
+    "admin/controllers/analyze/analyze-controller.js:396",
+    "admin/controllers/analyze/analyze-controller.js:399",
+    "admin/controllers/analyze/analyze-controller.js:402",
+    "common/logger.js:14",
+    "common/logger.js:15",
+    "common/logger.js:17"
+   ],
+   "await_in_loop_hint": [
+    "admin/controllers/task-controller.js:308",
+    "admin/controllers/task-controller.js:2471",
+    "controllers/fleets/fleet-controller.js:897",
+    "driverAssignment/reAssignment/reAssignTaskAuto.js:17"
+   ],
+   "find_without_limit": [
+    "admin/controllers/analyze/analyze-controller.js:43",
+    "admin/controllers/analyze/analyze-controller.js:121",
+    "admin/controllers/analyze/analyze-controller.js:269",
+    "admin/controllers/closeOut/closeOut-controller.js:31",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:76",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:92"
+   ],
+   "populate_calls": [
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:193",
+    "admin/controllers/mapFleetDetails/fleetInfo-controller.js:44",
+    "admin/controllers/task-controller.js:2137",
+    "driverAssignment/monitoring/monitoringCron.js:239",
+    "driverAssignment/reAssignment/reAssignTaskAuto.js:102",
+    "driverAssignment/scheduleAssignment/updateOrderTask.js:14"
+   ],
+   "aggregate_calls": [
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:615",
+    "admin/controllers/headQuarter-controller.js:135",
+    "controllers/fleets/fleet-controller.js:129",
+    "controllers/fleets/fleet-controller.js:839",
+    "controllers/tasks/task-controller.js:40",
+    "driverAssignment/assignment/regionAssignmentRule.js:36"
+   ],
+   "settimeout_in_handler": [
+    "awsEvent/iotCore.js:50",
+    "awsEvent/iotCore.js:57"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "admin/controllers/headQuarter-controller.js:327",
+    "admin/controllers/headQuarter-controller.js:398",
+    "admin/controllers/task-controller.js:179",
+    "admin/controllers/task-controller.js:2043",
+    "admin/controllers/task-controller.js:2169",
+    "admin/controllers/task-controller.js:2358"
+   ],
+   "empty_catch": [
+    "admin/controllers/task-controller.js:261",
+    "admin/controllers/task-controller.js:535",
+    "admin/controllers/task-controller.js:1404",
+    "admin/controllers/task-controller.js:1522",
+    "admin/controllers/task-controller.js:1943",
+    "common/util.js:244"
+   ],
+   "commented_code_hint": [
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:31",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:189",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:780",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:781",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:782",
+    "admin/controllers/driverAnalytics/driver-analytics-controller.js:790"
+   ]
+  }
+ },
+ "routes_total": 86,
+ "routes_unguarded": 82,
+ "routes_sample": [
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/analyze/analyze-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/export",
+   "file": "routes/admin/analyze/analyze-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/graph",
+   "file": "routes/admin/analyze/analyze-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/add",
+   "file": "routes/admin/closeOut/closeOut-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/closeOut/closeOut-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/admin/closeOut/closeOut-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/details/:fleetId",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/export",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/view/route",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/view/checkInDetails",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/returnToHQ/address",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/returnToHQ/address",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/returnToHQ/list",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/returnToHQ/update/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/returnToHQ/delete/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/region/task",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/cron/automatic",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/:fleetId",
+   "file": "routes/admin/mapFleetDetail/fleetInfo-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 19,
+   "middleware": [
+    "conditionalAdminAuth"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/table/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/table/list/export",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/map/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/accessibility",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/archived/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/archived/list/export",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/existing",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/route/analytics",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/route/analytics/export",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/detail",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/reassignment",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/activity/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/idleFleetsList",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/latestFleetLocation",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/reassignTask/:taskId",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/start",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/start/delete/:id",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/start/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 37,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/start/update/:id",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/start/task/cron",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 39,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/break/task/cron",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 40,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/closeOut/closeOut-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submit",
+   "file": "routes/closeOut/closeOut-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 16,
+   "middleware": [
+    "fleetLoginValidation"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/getProfile",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/forgotPassword",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 18,
+   "middleware": [
+    "fleetForgotPasswordValidation"
+   ]
+  },
+  {
+   "verb": "POST",
+   "path": "/verifyPassword",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/loginViaAccessToken",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/updateDutyStatus",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/logout",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/deleteAccount",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/profileUpdate",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/closeout",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/notificationList",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/multiUploads",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset/password",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/name/listing",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/changePassword",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/notificationCount",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/readNotification",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/recommend",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 34,
+   "middleware": [
+    "recommendFleetValidation"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/orderMonitor",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/scheduleCron",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/scheduleTaskStatusCron",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 37,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/onDutyChecklists/onDutyChecklists-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submit",
+   "file": "routes/onDutyChecklists/onDutyChecklists-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/today",
+   "file": "routes/tasks/task-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/schedule",
+   "file": "routes/tasks/task-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/scanItemProducts",
+   "file": "routes/tasks/task-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/updateStatus",
+   "file": "routes/tasks/task-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/break-logs",
+   "file": "routes/tasks/task-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/failureReasons",
+   "file": "routes/tasks/task-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/orderHistory",
+   "file": "routes/tasks/task-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/taskHistory",
+   "file": "routes/tasks/task-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/taskHistoryDetails",
+   "file": "routes/tasks/task-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/orderHistoryDetail",
+   "file": "routes/tasks/task-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/activityTracking",
+   "file": "routes/tasks/task-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/detail",
+   "file": "routes/tasks/task-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/clearNotification",
+   "file": "routes/tasks/task-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetchActiveTransportations",
+   "file": "routes/transportationTypes/transportation-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "startup/routes.js",
+   "line": 10,
+   "middleware": []
+  }
+ ],
+ "unguarded_sample": [
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/analyze/analyze-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/export",
+   "file": "routes/admin/analyze/analyze-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/graph",
+   "file": "routes/admin/analyze/analyze-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/add",
+   "file": "routes/admin/closeOut/closeOut-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/closeOut/closeOut-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/admin/closeOut/closeOut-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/details/:fleetId",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/export",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/view/route",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/view/checkInDetails",
+   "file": "routes/admin/driverAnalytics/driver-analytics-route.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/returnToHQ/address",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/returnToHQ/address",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/returnToHQ/list",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/returnToHQ/update/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/returnToHQ/delete/:id",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/region/task",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/cron/automatic",
+   "file": "routes/admin/headQuarter/headQuarter-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/:fleetId",
+   "file": "routes/admin/mapFleetDetail/fleetInfo-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/table/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/table/list/export",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/map/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/accessibility",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/archived/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/archived/list/export",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/existing",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/route/analytics",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/route/analytics/export",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/detail",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/reassignment",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/activity/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/idleFleetsList",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/latestFleetLocation",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/reassignTask/:taskId",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/start",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/start/delete/:id",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/start/list",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 37,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/start/update/:id",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/start/task/cron",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 39,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/break/task/cron",
+   "file": "routes/admin/tasks/tasks-routes.js",
+   "line": 40,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/closeOut/closeOut-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submit",
+   "file": "routes/closeOut/closeOut-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getProfile",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/verifyPassword",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/loginViaAccessToken",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/updateDutyStatus",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/logout",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/deleteAccount",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/profileUpdate",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/closeout",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/notificationList",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/multiUploads",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset/password",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/name/listing",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/changePassword",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 30,
+   "middleware": []
+  }
+ ],
+ "middleware_freq": [
+  [
+   "conditionalAdminAuth",
+   1
+  ],
+  [
+   "fleetLoginValidation",
+   1
+  ],
+  [
+   "fleetForgotPasswordValidation",
+   1
+  ],
+  [
+   "recommendFleetValidation",
+   1
+  ]
+ ],
+ "models": [
+  {
+   "kind": "mongoose",
+   "name": "ActivityLogs",
+   "file": "models/ActivityLogs.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Admin",
+   "file": "models/Admin.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Announcements",
+   "file": "models/Announcements.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ApprovalNotifications",
+   "file": "models/ApprovalNotifications.js",
+   "fields": 10,
+   "enums": [],
+   "indexes": 4,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Break",
+   "file": "models/Breaks.js",
+   "fields": 11,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "closeOut",
+   "file": "models/Closeout.js",
+   "fields": 11,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FailureReason",
+   "file": "models/FailureReason.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "fleetAccessTokens",
+   "file": "models/FleetAccessTokens.js",
+   "fields": 6,
+   "enums": [
+    "true, false"
+   ],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "fleetActivityLogs",
+   "file": "models/FleetActivityLogs.js",
+   "fields": 9,
+   "enums": [
+    "'pending','completed'",
+    "true, false"
+   ],
+   "indexes": 4,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FleetBreakLog",
+   "file": "models/FleetBreakLogs.js",
+   "fields": 12,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FleetCloseout",
+   "file": "models/FleetCloseout.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "fleetDevices",
+   "file": "models/FleetDevices.js",
+   "fields": 8,
+   "enums": [
+    "true, false"
+   ],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FleetOffDutyCloseout",
+   "file": "models/FleetOffDutyCloseout.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FleetOnDutyChecklists",
+   "file": "models/FleetOnDutyChecklists.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "fleetTaskActivityLogs",
+   "file": "models/FleetTaskActivityLogs.js",
+   "fields": 7,
+   "enums": [
+    "'in_progress','completed','cancelled'",
+    "true, false"
+   ],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FleetTasks",
+   "file": "models/FleetTasks.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Fleets",
+   "file": "models/Fleets.js",
+   "fields": 29,
+   "enums": [
+    "'pending', 'verified'"
+   ],
+   "indexes": 4,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "HyperdriveResetRequest",
+   "file": "models/HyperdriveResetRequest.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Miscellaneous",
+   "file": "models/Miscellaneous.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "HyperDriveNotification",
+   "file": "models/Notifications.js",
+   "fields": 10,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "onDutyChecklists",
+   "file": "models/OnDutyChecklists.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Order",
+   "file": "models/Order.js",
+   "fields": 20,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Region",
+   "file": "models/Region.js",
+   "fields": 36,
+   "enums": [
+    "'zipCode', 'geoFence', 'customZone'"
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ReturnToHQ",
+   "file": "models/ReturnToHQ.js",
+   "fields": 11,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StartTask",
+   "file": "models/StartTask.js",
+   "fields": 10,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Tasks",
+   "file": "models/TasksModel.js",
+   "fields": 65,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "TerminalProducts",
+   "file": "models/TerminalProducts.js",
+   "fields": 3,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "TransportationTypes",
+   "file": "models/TransportationTypes.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  }
+ ],
+ "money_field_types": {
+  "String": 1,
+  "Number": 4
+ },
+ "next_pages": 0,
+ "next_api_routes": [],
+ "unused_deps": [
+  "nodemon"
+ ],
+ "undeclared_imports": [
+  "csv-writer",
+  "form-data"
+ ],
+ "env_refs": [
+  "ALLOW_ORIGIN",
+  "API_BASE_URL",
+  "AUTH_TOKEN",
+  "AWS_ACCESS_KEY",
+  "AWS_BUCKET",
+  "AWS_REGION",
+  "AWS_SECRET_ACCESS_KEY",
+  "BLAZE_BASE_URL",
+  "BLAZE_RETAIL_AUTH_EMAIL",
+  "BLAZE_RETAIL_AUTH_PASSWORD",
+  "BLAZE_RETAIL_BASE_URL",
+  "CRON_TIME",
+  "DATABASE_URL",
+  "FLEET_TABLE",
+  "GOOGLE_API_KEY_STREET_VIEW",
+  "HERE_MAPS_BASE_URL",
+  "HERE_MAPS_KEY",
+  "HYPERWOLF_STREET_VIEW_SHORT_URL",
+  "IOT_CORE_ENDPOINT",
+  "IOT_CORE_TOPIC",
+  "IS_DEVELOPMENT",
+  "JWT_FLEET_PRIVATE_KEY",
+  "KLAVIYO_API_KEY",
+  "KLAVIYO_BASE_URL",
+  "LOCALE",
+  "PARTNER_KEY",
+  "PORT",
+  "PROFILE_NAME",
+  "TEXT_VOLT_BEARER_TOKEN",
+  "TEXT_VOLT_URL",
+  "TIMEZONE"
+ ],
+ "env_example": [
+  "ALLOW_ORIGIN",
+  "API_BASE_URL",
+  "APP_ENV",
+  "APP_MAP_KEY_TOKEN",
+  "AUTH_TOKEN",
+  "AWS_ACCESS_KEY",
+  "AWS_BUCKET",
+  "AWS_REGION",
+  "AWS_SECRET_ACCESS_KEY",
+  "BLAZE_BASE_URL",
+  "BLAZE_RETAIL_AUTH_EMAIL",
+  "BLAZE_RETAIL_AUTH_PASSWORD",
+  "BLAZE_RETAIL_BASE_URL",
+  "DATABASE_URL",
+  "DISTRIBUTION_DATABASE_URL",
+  "FLEET_TABLE",
+  "GOOGLE_API_KEY_STREET_VIEW",
+  "GRASSHOPPER_API_KEY",
+  "GRASSHOPPER_API_URL",
+  "HERE_MAPS_BASE_URL",
+  "HERE_MAPS_KEY",
+  "HYPERDRIVE_FORGOT_PASSWORD",
+  "HYPERWOLF_STREET_VIEW_SHORT_URL",
+  "IOT_CORE_ENDPOINT",
+  "IOT_CORE_TOPIC",
+  "JWT_FLEET_PRIVATE_KEY",
+  "KLAVIYO_BASE_URL",
+  "LOCALE",
+  "MAIN_SERVER_URL",
+  "MAPBOX_API_KEY",
+  "MASTER_PASSWORD",
+  "PARTNER_KEY",
+  "PORT",
+  "PROFILE_NAME",
+  "SCHEDULE_TASK_EMPLOYEE_ID",
+  "SENDGRID_API_KEY",
+  "SENDGRID_FROM_EMAIL",
+  "SENDGRID_FROM_NAME",
+  "SLACK_WEBHOOK_URL",
+  "SOCKET_INTERNAL_SECRET",
+  "TEXT_VOLT_BEARER_TOKEN",
+  "TEXT_VOLT_URL",
+  "TIMEZONE"
+ ],
+ "env_missing_from_example": [
+  "CRON_TIME",
+  "IS_DEVELOPMENT",
+  "KLAVIYO_API_KEY"
+ ],
+ "inrepo_duplicate_groups": [],
+ "ci_deploy_files": [
+  ".github/workflows/dev.yml"
+ ],
+ "docs": [
+  "README.md",
+  "awsEvent/readme.md"
+ ]
+}

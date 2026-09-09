@@ -1,0 +1,4933 @@
+{
+ "repo": "hyperwolf-backend",
+ "sha": "cd74550",
+ "scanned_at": "2026-09-09T10:04:41",
+ "files": 294,
+ "src_files": 207,
+ "src_lines": 34681,
+ "by_ext": [
+  [
+   ".js",
+   207
+  ],
+  [
+   ".png",
+   37
+  ],
+  [
+   ".json",
+   16
+  ],
+  [
+   "(none)",
+   8
+  ],
+  [
+   ".txt",
+   5
+  ],
+  [
+   ".kml",
+   5
+  ],
+  [
+   ".svg",
+   3
+  ],
+  [
+   ".yml",
+   2
+  ],
+  [
+   ".md",
+   2
+  ],
+  [
+   ".jpg",
+   2
+  ],
+  [
+   ".jpeg",
+   2
+  ],
+  [
+   ".gif",
+   2
+  ]
+ ],
+ "biggest": [
+  [
+   "controllers/blaze/product-controllers.js",
+   4851
+  ],
+  [
+   "controllers/common-controllers.js",
+   2016
+  ],
+  [
+   "common/utils.js",
+   1739
+  ],
+  [
+   "controllers/admin/shop-time-controllers.js",
+   1621
+  ],
+  [
+   "controllers/blaze/integration/blaze-integration-controllers.js",
+   1617
+  ],
+  [
+   "controllers/admin/product-carousel-controllers.js",
+   1565
+  ],
+  [
+   "controllers/blaze/user-cart-controllers.js",
+   1259
+  ],
+  [
+   "controllers/admin/category-controllers.js",
+   1189
+  ],
+  [
+   "controllers/order-controllers.js",
+   1094
+  ],
+  [
+   "controllers/fleets/fleet-controller.js",
+   885
+  ],
+  [
+   "controllers/admin/brand-controllers.js",
+   869
+  ],
+  [
+   "controllers/admin/hyperwolf-blog-controllers.js",
+   842
+  ]
+ ],
+ "engines": {
+  "node": "12.x"
+ },
+ "scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+ },
+ "lockfiles": [],
+ "deps_count": 48,
+ "dev_count": 0,
+ "pins": {
+  "caret": 46,
+  "exact": 2
+ },
+ "frameworks": {
+  "express": "^4.17.1",
+  "mongoose": "^5.11.15",
+  "jsonwebtoken": "^8.5.1",
+  "axios": "^0.21.1",
+  "node-cron": "^3.0.0",
+  "cors": "^2.8.5",
+  "express-rate-limit": "^6.3.0",
+  "joi": "^17.4.0",
+  "bcrypt": "^5.0.1",
+  "newrelic": "^9.0.0",
+  "firebase-admin": "^12.5.0",
+  "aws-sdk": "^2.1466.0",
+  "twilio": "^3.62.0",
+  "nodemailer": "^6.6.0",
+  "@sendgrid/mail": "^7.4.2"
+ },
+ "eol_notes": [
+  "mongoose 5.x (EOL; 8.x current)",
+  "express 4.x (5.x current)",
+  "axios 0.x (1.x current; 0.21 has CVEs)",
+  "jsonwebtoken <9 (CVE-2022-23529 family)",
+  "engines.node = 12.x (EOL Node)"
+ ],
+ "test_deps": [],
+ "test_files": [
+  "test/admin-security.test.js",
+  "uploads/test/Oakland Test Region.kml"
+ ],
+ "test_file_count": 2,
+ "test_lines": 105,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 25,
+    "files": 13,
+    "top": [
+     [
+      "startup/middleware.js",
+      5
+     ],
+     [
+      "common/utils.js",
+      3
+     ],
+     [
+      "controllers/weedmaps/weedmap-controllers.js",
+      3
+     ],
+     [
+      "controllers/admin/shop-time-controllers.js",
+      2
+     ],
+     [
+      "controllers/blaze/integration/blaze-integration-controllers.js",
+      2
+     ]
+    ]
+   },
+   "objectid_24hex": {
+    "count": 49,
+    "files": 8,
+    "top": [
+     [
+      "controllers/blaze/user-cart-controllers.js",
+      21
+     ],
+     [
+      "controllers/common-controllers.js",
+      12
+     ],
+     [
+      "controllers/blaze/integration/blaze-integration-controllers.js",
+      3
+     ],
+     [
+      "controllers/blaze/product-controllers.js",
+      3
+     ],
+     [
+      "controllers/blaze/user-auth-controllers.js",
+      3
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 22,
+    "files": 12,
+    "top": [
+     [
+      "controllers/admin/category-controllers.js",
+      4
+     ],
+     [
+      "controllers/cannabinoids/cannabinoids-controllers.js",
+      4
+     ],
+     [
+      "controllers/strain/strain-controller.js",
+      3
+     ],
+     [
+      "controllers/intercom/intercom-controllers.js",
+      2
+     ],
+     [
+      "controllers/ledgergreen/ledgergreen-controllers.js",
+      2
+     ]
+    ]
+   },
+   "email_literal": {
+    "count": 4,
+    "files": 1,
+    "top": [
+     [
+      "test/admin-security.test.js",
+      4
+     ]
+    ]
+   },
+   "phone_literal": {
+    "count": 4,
+    "files": 2,
+    "top": [
+     [
+      "controllers/textVolt/textVolt-controllers.js",
+      3
+     ],
+     [
+      "common/utils.js",
+      1
+     ]
+    ]
+   },
+   "store_name_literal": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "common/utils.js",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {
+   "private_key_block": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "hyperdrive-firebase-adminsdk.json",
+      1
+     ]
+    ]
+   },
+   "google_api_key": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "controllers/google-controllers.js",
+      1
+     ]
+    ]
+   },
+   "assigned_secret": {
+    "count": 4,
+    "files": 1,
+    "top": [
+     [
+      "test/admin-security.test.js",
+      4
+     ]
+    ]
+   }
+  },
+  "security": {
+   "cors_wildcard": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "startup/middleware.js",
+      1
+     ]
+    ]
+   },
+   "child_process": {
+    "count": 25,
+    "files": 16,
+    "top": [
+     [
+      "controllers/strain/strain-controller.js",
+      5
+     ],
+     [
+      "controllers/fleets/fleet-controller.js",
+      3
+     ],
+     [
+      "controllers/breaks/break-controller.js",
+      2
+     ],
+     [
+      "controllers/common-controllers.js",
+      2
+     ],
+     [
+      "controllers/intercom/intercom-controllers.js",
+      2
+     ]
+    ]
+   },
+   "mass_assign_create": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "controllers/admin/product-carousel-controllers.js",
+      1
+     ]
+    ]
+   },
+   "mass_assign_update": {
+    "count": 4,
+    "files": 4,
+    "top": [
+     [
+      "controllers/admin/product-carousel-controllers.js",
+      1
+     ],
+     [
+      "controllers/admin/promotion-controllers.js",
+      1
+     ],
+     [
+      "controllers/blaze/product-controllers.js",
+      1
+     ],
+     [
+      "controllers/common-controllers.js",
+      1
+     ]
+    ]
+   },
+   "unfiltered_find": {
+    "count": 48,
+    "files": 19,
+    "top": [
+     [
+      "controllers/blaze/product-controllers.js",
+      14
+     ],
+     [
+      "controllers/cannabinoids/cannabinoids-controllers.js",
+      4
+     ],
+     [
+      "controllers/admin/truck-controllers.js",
+      3
+     ],
+     [
+      "controllers/strain/strain-controller.js",
+      3
+     ],
+     [
+      "controllers/admin/banner-controllers.js",
+      2
+     ]
+    ]
+   },
+   "jwt_no_expiry_hint": {
+    "count": 2,
+    "files": 2,
+    "top": [
+     [
+      "models/Admin.js",
+      1
+     ],
+     [
+      "models/BlazeUser.js",
+      1
+     ]
+    ]
+   },
+   "sql_concat": {
+    "count": 3,
+    "files": 2,
+    "top": [
+     [
+      "controllers/blaze/integration/blaze-integration-controllers.js",
+      2
+     ],
+     [
+      "controllers/blaze/product-controllers.js",
+      1
+     ]
+    ]
+   },
+   "req_query_in_regex": {
+    "count": 5,
+    "files": 4,
+    "top": [
+     [
+      "controllers/admin/shop-time-controllers.js",
+      2
+     ],
+     [
+      "controllers/cannabinoids/cannabinoids-controllers.js",
+      1
+     ],
+     [
+      "controllers/cart-controllers.js",
+      1
+     ],
+     [
+      "controllers/strain/strain-controller.js",
+      1
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "sync_fs": {
+    "count": 7,
+    "files": 3,
+    "top": [
+     [
+      "controllers/didit/didit-controllers.js",
+      4
+     ],
+     [
+      "controllers/persona/personaController.js",
+      2
+     ],
+     [
+      "controllers/kml-controllers.js",
+      1
+     ]
+    ]
+   },
+   "await_in_loop_hint": {
+    "count": 9,
+    "files": 6,
+    "top": [
+     [
+      "controllers/admin/shop-time-controllers.js",
+      2
+     ],
+     [
+      "controllers/blaze/integration/blaze-integration-controllers.js",
+      2
+     ],
+     [
+      "controllers/common-controllers.js",
+      2
+     ],
+     [
+      "controllers/admin/category-controllers.js",
+      1
+     ],
+     [
+      "controllers/blaze/product-controllers.js",
+      1
+     ]
+    ]
+   },
+   "find_without_limit": {
+    "count": 179,
+    "files": 39,
+    "top": [
+     [
+      "controllers/blaze/product-controllers.js",
+      46
+     ],
+     [
+      "controllers/common-controllers.js",
+      17
+     ],
+     [
+      "controllers/strain/strain-controller.js",
+      10
+     ],
+     [
+      "controllers/cannabinoids/cannabinoids-controllers.js",
+      9
+     ],
+     [
+      "controllers/admin/shop-time-controllers.js",
+      8
+     ]
+    ]
+   },
+   "populate_calls": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "controllers/breaks/break-controller.js",
+      1
+     ]
+    ]
+   },
+   "aggregate_calls": {
+    "count": 35,
+    "files": 13,
+    "top": [
+     [
+      "controllers/admin/product-carousel-controllers.js",
+      10
+     ],
+     [
+      "controllers/admin/category-controllers.js",
+      4
+     ],
+     [
+      "controllers/order-controllers.js",
+      4
+     ],
+     [
+      "controllers/blaze/product-controllers.js",
+      3
+     ],
+     [
+      "controllers/fleets/fleet-controller.js",
+      3
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 3,
+    "files": 3,
+    "top": [
+     [
+      "common/utils.js",
+      1
+     ],
+     [
+      "controllers/alpine/alpine-controllers.js",
+      1
+     ],
+     [
+      "controllers/fleets/fleet-controller.js",
+      1
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 137,
+    "files": 36,
+    "top": [
+     [
+      "controllers/common-controllers.js",
+      25
+     ],
+     [
+      "controllers/blaze/integration/blaze-integration-controllers.js",
+      22
+     ],
+     [
+      "startup/nodeCrons.js",
+      14
+     ],
+     [
+      "controllers/blaze/user-auth-controllers.js",
+      8
+     ],
+     [
+      "awsEvent/iotCore.js",
+      6
+     ]
+    ]
+   },
+   "empty_catch": {
+    "count": 24,
+    "files": 14,
+    "top": [
+     [
+      "controllers/blaze/integration/blaze-integration-controllers.js",
+      6
+     ],
+     [
+      "controllers/blaze/user-cart-controllers.js",
+      3
+     ],
+     [
+      "common/utils.js",
+      2
+     ],
+     [
+      "controllers/admin/hyperwolf-blog-controllers.js",
+      2
+     ],
+     [
+      "controllers/fleets/fleet-controller.js",
+      2
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 233,
+    "files": 24,
+    "top": [
+     [
+      "controllers/common-controllers.js",
+      42
+     ],
+     [
+      "controllers/admin/shop-time-controllers.js",
+      32
+     ],
+     [
+      "controllers/order-controllers.js",
+      29
+     ],
+     [
+      "controllers/blaze/product-controllers.js",
+      24
+     ],
+     [
+      "controllers/blaze/user-cart-controllers.js",
+      20
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "common/utils.js:712",
+    "common/utils.js:1701",
+    "common/utils.js:1724",
+    "controllers/admin/brand-controllers.js:777",
+    "controllers/admin/distributor-controllers.js:295",
+    "controllers/admin/shop-time-controllers.js:22"
+   ],
+   "objectid_24hex": [
+    "common/utils.js:24",
+    "common/utils.js:47",
+    "controllers/admin/hyperwolf-blog-controllers.js:159",
+    "controllers/admin/hyperwolf-blog-controllers.js:226",
+    "controllers/blaze/integration/blaze-integration-controllers.js:57",
+    "controllers/blaze/integration/blaze-integration-controllers.js:844"
+   ],
+   "role_string": [
+    "controllers/admin/brand-controllers.js:224",
+    "controllers/admin/category-controllers.js:321",
+    "controllers/admin/category-controllers.js:536",
+    "controllers/admin/category-controllers.js:634",
+    "controllers/admin/category-controllers.js:638",
+    "controllers/admin/hyperwolf-blog-controllers.js:80"
+   ],
+   "email_literal": [
+    "test/admin-security.test.js:9",
+    "test/admin-security.test.js:31",
+    "test/admin-security.test.js:56",
+    "test/admin-security.test.js:63"
+   ],
+   "phone_literal": [
+    "common/utils.js:1166",
+    "controllers/textVolt/textVolt-controllers.js:20",
+    "controllers/textVolt/textVolt-controllers.js:75",
+    "controllers/textVolt/textVolt-controllers.js:114"
+   ],
+   "store_name_literal": [
+    "common/utils.js:834"
+   ]
+  },
+  "secrets": {
+   "private_key_block": [
+    "hyperdrive-firebase-adminsdk.json:5"
+   ],
+   "google_api_key": [
+    "controllers/google-controllers.js:23"
+   ],
+   "assigned_secret": [
+    "test/admin-security.test.js:13",
+    "test/admin-security.test.js:57",
+    "test/admin-security.test.js:59",
+    "test/admin-security.test.js:71"
+   ]
+  },
+  "security": {
+   "cors_wildcard": [
+    "startup/middleware.js:60"
+   ],
+   "child_process": [
+    "controllers/admin/banner-controllers.js:37",
+    "controllers/admin/shop-time-controllers.js:1031",
+    "controllers/announcements/announcements-controller.js:28",
+    "controllers/breaks/break-controller.js:183",
+    "controllers/breaks/break-controller.js:229",
+    "controllers/cannabinoids/cannabinoids-banner-controllers.js:59"
+   ],
+   "mass_assign_create": [
+    "controllers/admin/product-carousel-controllers.js:55"
+   ],
+   "mass_assign_update": [
+    "controllers/admin/product-carousel-controllers.js:813",
+    "controllers/admin/promotion-controllers.js:33",
+    "controllers/blaze/product-controllers.js:4354",
+    "controllers/common-controllers.js:1887"
+   ],
+   "unfiltered_find": [
+    "controllers/admin/banner-controllers.js:37",
+    "controllers/admin/banner-controllers.js:83",
+    "controllers/admin/brand-controllers.js:183",
+    "controllers/admin/brand-controllers.js:429",
+    "controllers/admin/category-controllers.js:203",
+    "controllers/admin/category-controllers.js:514"
+   ],
+   "jwt_no_expiry_hint": [
+    "models/Admin.js:17",
+    "models/BlazeUser.js:28"
+   ],
+   "sql_concat": [
+    "controllers/blaze/integration/blaze-integration-controllers.js:210",
+    "controllers/blaze/integration/blaze-integration-controllers.js:246",
+    "controllers/blaze/product-controllers.js:1244"
+   ],
+   "req_query_in_regex": [
+    "controllers/admin/shop-time-controllers.js:1021",
+    "controllers/admin/shop-time-controllers.js:1538",
+    "controllers/cannabinoids/cannabinoids-controllers.js:74",
+    "controllers/cart-controllers.js:49",
+    "controllers/strain/strain-controller.js:103"
+   ]
+  },
+  "performance": {
+   "sync_fs": [
+    "controllers/didit/didit-controllers.js:244",
+    "controllers/didit/didit-controllers.js:255",
+    "controllers/didit/didit-controllers.js:256",
+    "controllers/didit/didit-controllers.js:257",
+    "controllers/kml-controllers.js:19",
+    "controllers/persona/personaController.js:208"
+   ],
+   "await_in_loop_hint": [
+    "controllers/admin/category-controllers.js:226",
+    "controllers/admin/shop-time-controllers.js:853",
+    "controllers/admin/shop-time-controllers.js:1105",
+    "controllers/blaze/integration/blaze-integration-controllers.js:76",
+    "controllers/blaze/integration/blaze-integration-controllers.js:511",
+    "controllers/blaze/product-controllers.js:3593"
+   ],
+   "find_without_limit": [
+    "common/sendPushNotifications.js:42",
+    "common/utils.js:371",
+    "common/utils.js:374",
+    "common/utils.js:408",
+    "common/utils.js:530",
+    "common/utils.js:1485"
+   ],
+   "populate_calls": [
+    "controllers/breaks/break-controller.js:134"
+   ],
+   "aggregate_calls": [
+    "controllers/admin/brand-controllers.js:203",
+    "controllers/admin/category-controllers.js:144",
+    "controllers/admin/category-controllers.js:170",
+    "controllers/admin/category-controllers.js:473",
+    "controllers/admin/category-controllers.js:828",
+    "controllers/admin/product-carousel-controllers.js:194"
+   ],
+   "settimeout_in_handler": [
+    "common/utils.js:445",
+    "controllers/alpine/alpine-controllers.js:294",
+    "controllers/fleets/fleet-controller.js:851"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "awsEvent/iotCore.js:10",
+    "awsEvent/iotCore.js:17",
+    "awsEvent/iotCore.js:25",
+    "awsEvent/iotCore.js:29",
+    "awsEvent/iotCore.js:51",
+    "awsEvent/iotCore.js:64"
+   ],
+   "empty_catch": [
+    "common/utils.js:1459",
+    "common/utils.js:1677",
+    "controllers/admin/hyperwolf-blog-controllers.js:438",
+    "controllers/admin/hyperwolf-blog-controllers.js:805",
+    "controllers/admin/product-carousel-controllers.js:64",
+    "controllers/admin/shop-time-controllers.js:838"
+   ],
+   "commented_code_hint": [
+    "common/utils.js:1206",
+    "common/utils.js:1210",
+    "common/utils.js:1211",
+    "controllers/admin/brand-controllers.js:452",
+    "controllers/admin/category-controllers.js:224",
+    "controllers/admin/category-controllers.js:225"
+   ]
+  }
+ },
+ "routes_total": 421,
+ "routes_unguarded": 419,
+ "routes_sample": [
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/banner-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/banner-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/banner-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/brand-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/brand-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/blaze",
+   "file": "routes/admin/brand-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/brand/image",
+   "file": "routes/admin/brand-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web/seo/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/wp",
+   "file": "routes/admin/brand-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/category-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/category-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/images",
+   "file": "routes/admin/category-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blaze",
+   "file": "routes/admin/category-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/wp/list",
+   "file": "routes/admin/category-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/category-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web/list",
+   "file": "routes/admin/category-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/web/create-or-update",
+   "file": "routes/admin/category-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/web/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sub/list",
+   "file": "routes/admin/category-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sub/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/sub/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/multi",
+   "file": "routes/admin/category-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/bulk/update",
+   "file": "routes/admin/category-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/blaze/category",
+   "file": "routes/admin/category-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/blaze",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/quick/update/:id",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/web/data",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/check/page",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/author/update",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 12,
+   "middleware": [
+    "validateCarouselPayload"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/single/:id",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 18,
+   "middleware": [
+    "validateCarouselPayload"
+   ]
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:carouselId/products",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/:carouselId/assignment",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "PATCH",
+   "path": "/update/status/:id",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/product-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:productId",
+   "file": "routes/admin/product-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/infoEffects",
+   "file": "routes/admin/product-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getLastSync",
+   "file": "routes/admin/product-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/specialOrder",
+   "file": "routes/admin/product-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/product-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brand",
+   "file": "routes/admin/product-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brand/blaze",
+   "file": "routes/admin/product-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/product-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/brand",
+   "file": "routes/admin/product-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/syncProducts",
+   "file": "routes/admin/product-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/specialOrder",
+   "file": "routes/admin/product-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/edit/:id",
+   "file": "routes/admin/product-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/brand",
+   "file": "routes/admin/product-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/brand/:id",
+   "file": "routes/admin/product-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/product/seo/:productId",
+   "file": "routes/admin/product-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/products/seo",
+   "file": "routes/admin/product-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/upload/image",
+   "file": "routes/admin/product-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/sync",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/shop/timings",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id/slots/:slotIdDb",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/activity/logs",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/day/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/holiday/management",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/holiday/listing",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "PATCH",
+   "path": "/update/holiday/management/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/holiday/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/holiday/detail/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/holiday/management/activity/logs",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/region/data",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/brb/graphic",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/brb/graphic/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brb/graphic/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/brb/graphic/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brb/graphic",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brb/graphic/activity/logs",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/bulk/delete/holiday/:id",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/images",
+   "file": "routes/admin/shop-time-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/time-slot-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/time-slot-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id/slots/:slotIdDb",
+   "file": "routes/admin/time-slot-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/admin/time-slot-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/day/:id",
+   "file": "routes/admin/time-slot-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/activity/logs",
+   "file": "routes/admin/time-slot-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/activity/logs/rolledBack/:activityLogId",
+   "file": "routes/admin/time-slot-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/truck-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/terminals",
+   "file": "routes/admin/truck-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/truck-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/truck-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/truck-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/truck-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/user-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/admin/user-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/edit/:id",
+   "file": "routes/admin/user-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/admin/user-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getUnlockableCoupons",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/getReferCode",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/getReedemPoints",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/getUnlockableDeals",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/alpine/validate",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/refCode/usingPhone",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/apply/RefCode",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/rec/products",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/add",
+   "file": "routes/announcemnets/announcements-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/announcemnets/announcements-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/show/:id",
+   "file": "routes/announcemnets/announcements-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/announcemnets/announcements-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/edit/:id",
+   "file": "routes/announcemnets/announcements-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/approval/approval-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submit",
+   "file": "routes/approval/approval-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/forgot_password",
+   "file": "routes/auth-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/forgot_password/email",
+   "file": "routes/auth-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset_password",
+   "file": "routes/auth-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/admin/login",
+   "file": "routes/auth-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/admin/create",
+   "file": "routes/auth-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/admin/get",
+   "file": "routes/auth-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/admin/edit/:id",
+   "file": "routes/auth-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/admin/delete/:id",
+   "file": "routes/auth-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/logout",
+   "file": "routes/auth-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/createMobileUser",
+   "file": "routes/auth-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getMobileUser",
+   "file": "routes/auth-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/createToken",
+   "file": "routes/berbix/berbix-route.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/verifyBerbix",
+   "file": "routes/berbix/berbix-route.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/blaze/banner-timings-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/variables",
+   "file": "routes/blaze/banner-timings-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/importProducts",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/webhook/product/add",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/webhook/order",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/importBrands",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/addBrandDescription",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/control/delivery",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/control/delivery",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/revenue/kit/feedback",
+   "file": "routes/blaze/integration/blaze-integration-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/loyalty/promotions",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/loyalty/rewards",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/purchaseorders/list",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/inventory/inventories",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/inventory/terminals",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/transactions/members/:memberId/completed",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/promotions",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/promotions/:id",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/employees/drivers/nearby",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/region/details/:id",
+   "file": "routes/blaze/other-blaze-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing/products/data",
+   "file": "routes/blaze/products-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/trait/data/:slug",
+   "file": "routes/blaze/products-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/products/total/count",
+   "file": "routes/blaze/products-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/products/asap",
+   "file": "routes/blaze/products-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/products/nearby",
+   "file": "routes/blaze/products-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/store/inventory/products",
+   "file": "routes/blaze/products-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/products/specials",
+   "file": "routes/blaze/products-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/store/inventory/categories",
+   "file": "routes/blaze/products-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/store/inventory/brands",
+   "file": "routes/blaze/products-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/delivery/drivers/nearby",
+   "file": "routes/blaze/products-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/products/modified",
+   "file": "routes/blaze/products-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/products/shop",
+   "file": "routes/blaze/products-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/products/:id",
+   "file": "routes/blaze/products-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/deliveryMethods",
+   "file": "routes/blaze/products-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/generate-sitemap",
+   "file": "routes/blaze/products-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/generate/brand/sitemap",
+   "file": "routes/blaze/products-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/products/url",
+   "file": "routes/blaze/products-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/product/id/array",
+   "file": "routes/blaze/products-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/dispatchRegion/id",
+   "file": "routes/blaze/products-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/check/address/availability",
+   "file": "routes/blaze/products-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/category/products",
+   "file": "routes/blaze/products-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/partner/store/inventory/products/admin",
+   "file": "routes/blaze/products-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/product/trait/assignment",
+   "file": "routes/blaze/products-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/product/trait/delete/:productId/:traitId",
+   "file": "routes/blaze/products-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/product/trait/update",
+   "file": "routes/blaze/products-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/trait/details/:productId",
+   "file": "routes/blaze/products-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/product/trait/assign/multiple/strains",
+   "file": "routes/blaze/products-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/trait/individual/details",
+   "file": "routes/blaze/products-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/trait/subtraits/listing",
+   "file": "routes/blaze/products-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/:productId",
+   "file": "routes/blaze/products-routes.js",
+   "line": 37,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/subtrait/:id",
+   "file": "routes/blaze/products-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/product/delete/matched/strains",
+   "file": "routes/blaze/products-routes.js",
+   "line": 39,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/product/main/delete/:id",
+   "file": "routes/blaze/products-routes.js",
+   "line": 40,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/product/sub/delete/:id",
+   "file": "routes/blaze/products-routes.js",
+   "line": 41,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/product/trait/main/update/:id",
+   "file": "routes/blaze/products-routes.js",
+   "line": 42,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/product/trait/sub/update/:id",
+   "file": "routes/blaze/products-routes.js",
+   "line": 43,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/product/seo/:productId",
+   "file": "routes/blaze/products-routes.js",
+   "line": 44,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/trait/main/sitemap",
+   "file": "routes/blaze/products-routes.js",
+   "line": 45,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/trait/sub/sitemap",
+   "file": "routes/blaze/products-routes.js",
+   "line": 46,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/brand/promotions",
+   "file": "routes/blaze/products-routes.js",
+   "line": 47,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/brand/listing",
+   "file": "routes/blaze/products-routes.js",
+   "line": 48,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/deals/category/product",
+   "file": "routes/blaze/products-routes.js",
+   "line": 49,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/products/seo",
+   "file": "routes/blaze/products-routes.js",
+   "line": 50,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/category/seo",
+   "file": "routes/blaze/products-routes.js",
+   "line": 51,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brand/listing",
+   "file": "routes/blaze/products-routes.js",
+   "line": 52,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/product/tags",
+   "file": "routes/blaze/products-routes.js",
+   "line": 54,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/product/tags/listing",
+   "file": "routes/blaze/products-routes.js",
+   "line": 55,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/variables",
+   "file": "routes/blaze/shop-variables-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/variables",
+   "file": "routes/blaze/shop-variables-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/alpine/iq",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/find",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sign",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/register",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/phoneLogin",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blocked/status",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/check/member/group",
+   "file": "routes/blaze/user-auth-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/slots",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/wolfpack",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/active",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/prepare",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/history",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/items/finalize",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/checkExpress",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/checkValidOrder",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/cancelCart/:id",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submitCart/:id",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/updateCart/:id",
+   "file": "routes/blaze/user-cart-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/assets/:key",
+   "file": "routes/blaze/user-profile-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/dlPhoto",
+   "file": "routes/blaze/user-profile-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/recPhoto",
+   "file": "routes/blaze/user-profile-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/verify",
+   "file": "routes/blaze/user-profile-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/blaze/user-profile-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/blaze/user-profile-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/breaks/break-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/breaks/break-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/export",
+   "file": "routes/breaks/break-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/show/:id",
+   "file": "routes/breaks/break-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/edit/:id",
+   "file": "routes/breaks/break-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/breaks/break-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/page",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/main/metas",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sitemap/data",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/tags/list",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/authorize",
+   "file": "routes/canpay-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/canpay-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/authid",
+   "file": "routes/canpay-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/status",
+   "file": "routes/canpay-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/status",
+   "file": "routes/canpay-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/order/status",
+   "file": "routes/canpay-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/transactions",
+   "file": "routes/canpay-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/logs/:id",
+   "file": "routes/canpay-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/cart-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/:cuid",
+   "file": "routes/cart-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getorders",
+   "file": "routes/cart-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/common/searching",
+   "file": "routes/common-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/terminal/inventory",
+   "file": "routes/common-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/script",
+   "file": "routes/common-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/service/time",
+   "file": "routes/common-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/service/time",
+   "file": "routes/common-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/process/time",
+   "file": "routes/common-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/process/time",
+   "file": "routes/common-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/package/time",
+   "file": "routes/common-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/package/time",
+   "file": "routes/common-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/region",
+   "file": "routes/common-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/region/start/task",
+   "file": "routes/common-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/disclaimer",
+   "file": "routes/common-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/product/disclaimer",
+   "file": "routes/common-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/legal/site/map",
+   "file": "routes/common-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/regions",
+   "file": "routes/common-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/reassign/drivers",
+   "file": "routes/common-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/receipt",
+   "file": "routes/common-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blaze/employees",
+   "file": "routes/common-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/signup/status/update",
+   "file": "routes/common-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/signup/status",
+   "file": "routes/common-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/blaze/status/update",
+   "file": "routes/common-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blaze/status",
+   "file": "routes/common-routes.js",
+   "line": 37,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category/sitemap/listing",
+   "file": "routes/common-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/all/reviews",
+   "file": "routes/common-routes.js",
+   "line": 39,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/blog/category",
+   "file": "routes/common-routes.js",
+   "line": 40,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blog/category/listing",
+   "file": "routes/common-routes.js",
+   "line": 41,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/blog/category/:slug",
+   "file": "routes/common-routes.js",
+   "line": 42,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blog/web/data",
+   "file": "routes/common-routes.js",
+   "line": 43,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/ccfees/status",
+   "file": "routes/common-routes.js",
+   "line": 45,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/ccfees/status",
+   "file": "routes/common-routes.js",
+   "line": 46,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/min/amount/settings",
+   "file": "routes/common-routes.js",
+   "line": 48,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/min/amount/settings",
+   "file": "routes/common-routes.js",
+   "line": 49,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blog/sitemap/data",
+   "file": "routes/common-routes.js",
+   "line": 51,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category/sitemap/data",
+   "file": "routes/common-routes.js",
+   "line": 52,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/author/sitemap/data",
+   "file": "routes/common-routes.js",
+   "line": 54,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brand/web/seo/:id",
+   "file": "routes/common-routes.js",
+   "line": 55,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/main/brand",
+   "file": "routes/common-routes.js",
+   "line": 57,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/main/brand/meta/data",
+   "file": "routes/common-routes.js",
+   "line": 58,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/toggle/status",
+   "file": "routes/common-routes.js",
+   "line": 60,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/toggle/status",
+   "file": "routes/common-routes.js",
+   "line": 61,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/admin/seo/fetch/coordinates",
+   "file": "routes/common-routes.js",
+   "line": 62,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/url",
+   "file": "routes/didit/didit-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/retrieve/session",
+   "file": "routes/didit/didit-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/retrieve/status",
+   "file": "routes/didit/didit-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/errors-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/add",
+   "file": "routes/failureReason/failureReason-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/failureReason/failureReason-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/show/:id",
+   "file": "routes/failureReason/failureReason-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/failureReason/failureReason-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/edit/:id",
+   "file": "routes/failureReason/failureReason-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/check/and/create/customer",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/hyperwolf/createUser",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/check/customer/status",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/employees/drivers/nearby",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/get/otp",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/validate/otp",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/webhook/otp",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/webhook/otp",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/get/otp/from/fhl",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/history/data",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/order/limit",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/order/limit",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/script/deatils",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/status",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/status",
+   "file": "routes/fhl/fhl-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/register",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/edit",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/details",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getAdmins",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/exportDrivers",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/bulkDelete",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/import",
+   "file": "routes/fleets/fleet-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/google-route.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/integration",
+   "file": "routes/herbpixel/herbpixel-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/hyperdrive/hyperdrive-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset",
+   "file": "routes/hyperdrive/hyperdrive-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/employees",
+   "file": "routes/hyperdrive/hyperdrive-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/employee",
+   "file": "routes/hyperdrive/hyperdrive-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/employee/:id",
+   "file": "routes/hyperdrive/hyperdrive-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/hyperdrive/hyperdrive-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/driver/conversation",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/get/hash/data",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/latest/order",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/close/conversation",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/all/orders",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get-kml-coordinates",
+   "file": "routes/kml-route.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/contactless",
+   "file": "routes/ledgergreen/ledgergreen-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/webhook",
+   "file": "routes/ledgergreen/ledgergreen-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/assign",
+   "file": "routes/ledgergreen/ledgergreen-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/payment/status/webhook",
+   "file": "routes/ledgergreen/ledgergreen-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/data",
+   "file": "routes/llm-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/orders",
+   "file": "routes/member/member-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/member/member-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/add",
+   "file": "routes/onDutyChecklists/onDutyChecklists-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/onDutyChecklists/onDutyChecklists-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/onDutyChecklists/onDutyChecklists-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/onfleet/onfleet-route.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/integration",
+   "file": "routes/optin/optin-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing",
+   "file": "routes/order-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/order-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/order-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getLastOrder",
+   "file": "routes/order-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:paymentId",
+   "file": "routes/order-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/active/count",
+   "file": "routes/order-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reassign/driver",
+   "file": "routes/order-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/complete/order",
+   "file": "routes/order-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/track/eta",
+   "file": "routes/order-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/paymentoptions",
+   "file": "routes/payment-route.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/createInquiryId",
+   "file": "routes/persona/persona-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/verifyInquiryId",
+   "file": "routes/persona/persona-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/getInquiryId",
+   "file": "routes/persona/persona-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/member/details",
+   "file": "routes/persona/persona-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/regions/region-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/listing",
+   "file": "routes/regions/region-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product",
+   "file": "routes/reviews/reviews-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/all",
+   "file": "routes/reviews/reviews-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/all/company",
+   "file": "routes/reviews/reviews-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main",
+   "file": "routes/strain/strain-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/strain/strain-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/strain/strain-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/strain/:id",
+   "file": "routes/strain/strain-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/strain/strain-routes.js",
+   "line": 12,
+   "middleware": []
+  }
+ ],
+ "unguarded_sample": [
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/banner-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/banner-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/banner-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/brand-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/brand-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/blaze",
+   "file": "routes/admin/brand-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/brand/image",
+   "file": "routes/admin/brand-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web/seo/:id",
+   "file": "routes/admin/brand-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/wp",
+   "file": "routes/admin/brand-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/category-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/category-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/images",
+   "file": "routes/admin/category-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blaze",
+   "file": "routes/admin/category-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/wp/list",
+   "file": "routes/admin/category-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/category-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web/list",
+   "file": "routes/admin/category-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/web/create-or-update",
+   "file": "routes/admin/category-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/web/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sub/list",
+   "file": "routes/admin/category-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sub/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/sub/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/multi",
+   "file": "routes/admin/category-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/bulk/update",
+   "file": "routes/admin/category-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/blaze/category",
+   "file": "routes/admin/category-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sync/blaze",
+   "file": "routes/admin/distributor-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/quick/update/:id",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/web/data",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/check/page",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/author/update",
+   "file": "routes/admin/hyperwolf-blog-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/single/:id",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:carouselId/products",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/:carouselId/assignment",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "PATCH",
+   "path": "/update/status/:id",
+   "file": "routes/admin/product-carousel-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/product-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:productId",
+   "file": "routes/admin/product-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/infoEffects",
+   "file": "routes/admin/product-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getLastSync",
+   "file": "routes/admin/product-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/specialOrder",
+   "file": "routes/admin/product-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/product-routes.js",
+   "line": 22,
+   "middleware": []
+  }
+ ],
+ "middleware_freq": [
+  [
+   "validateCarouselPayload",
+   2
+  ]
+ ],
+ "models": [
+  {
+   "kind": "mongoose",
+   "name": "ActiveCart",
+   "file": "models/ActiveCart.js",
+   "fields": 11,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ActivityLogs",
+   "file": "models/ActivityLogs.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Admin",
+   "file": "models/Admin.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Announcements",
+   "file": "models/Announcements.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ApprovalNotifications",
+   "file": "models/ApprovalNotifications.js",
+   "fields": 11,
+   "enums": [],
+   "indexes": 4,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Authors",
+   "file": "models/Authors.js",
+   "fields": 16,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "BRBGraphics",
+   "file": "models/BRBGraphics.js",
+   "fields": 17,
+   "enums": [
+    "\"image\", \"video\""
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Banners",
+   "file": "models/Banners.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "BlazeUser",
+   "file": "models/BlazeUser.js",
+   "fields": 16,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Brand",
+   "file": "models/Brand.js",
+   "fields": 21,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Break",
+   "file": "models/Break.js",
+   "fields": 11,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "CanPayUsers",
+   "file": "models/CanPayUsers.js",
+   "fields": 3,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Cannabinoid",
+   "file": "models/Cannabinoid.js",
+   "fields": 19,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "CannabinoidBanners",
+   "file": "models/CannabinoidBanners.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Category",
+   "file": "models/Category.js",
+   "fields": 25,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Distributor",
+   "file": "models/Distributors.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Driver",
+   "file": "models/Driver.js",
+   "fields": 3,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Employee",
+   "file": "models/Employees.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ErrorLog",
+   "file": "models/ErrorLogs.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FailureReason",
+   "file": "models/FailureReason.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "FhlScript",
+   "file": "models/FhlScript.js",
+   "fields": 13,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "fleetAccessTokens",
+   "file": "models/FleetAccessTokens.js",
+   "fields": 6,
+   "enums": [
+    "true, false"
+   ],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "fleetDevices",
+   "file": "models/FleetDevices.js",
+   "fields": 8,
+   "enums": [
+    "true, false"
+   ],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Fleets",
+   "file": "models/Fleets.js",
+   "fields": 30,
+   "enums": [
+    "'pending', 'verified'"
+   ],
+   "indexes": 5,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "HempProducts",
+   "file": "models/HempProducts.js",
+   "fields": 52,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "HolidayManagement",
+   "file": "models/HolidayManagement.js",
+   "fields": 17,
+   "enums": [
+    "\"image\", \"video\""
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "HyperwolfBlogs",
+   "file": "models/HyperwolfBlogs.js",
+   "fields": 28,
+   "enums": [
+    "\"draft\", \"published\""
+   ],
+   "indexes": 5,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "LedgerGreen",
+   "file": "models/LedgerGreen.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Legal",
+   "file": "models/Legal.js",
+   "fields": 48,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Log",
+   "file": "models/Log.js",
+   "fields": 2,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainBrand",
+   "file": "models/MainBrand.js",
+   "fields": 10,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainCannabinoid",
+   "file": "models/MainCannabinoid.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainProductTraits",
+   "file": "models/MainProductTraits.js",
+   "fields": 35,
+   "enums": [
+    "'Active', 'Inactive'",
+    "'image', 'video'",
+    "'image', 'video'"
+   ],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainStrain",
+   "file": "models/MainStrain.js",
+   "fields": 11,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Miscellaneous",
+   "file": "models/Miscellaneous.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Miscellaneous",
+   "file": "models/Miscellaneous.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "HyperDriveNotification",
+   "file": "models/Notifications.js",
+   "fields": 10,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "onDutyChecklists",
+   "file": "models/OnDutyChecklists.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Order",
+   "file": "models/Order.js",
+   "fields": 31,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "OrderManager",
+   "file": "models/OrderManager.js",
+   "fields": 3,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "OrderTracker",
+   "file": "models/OrderTracker.js",
+   "fields": 12,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ProductCarousel",
+   "file": "models/ProductCarousel.js",
+   "fields": 15,
+   "enums": [
+    "\"Hyperwolf\", \"Hemp\", \"Stilo\", \"Other\"",
+    "\"active\", \"inactive\""
+   ],
+   "indexes": 6,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Product",
+   "file": "models/Products.js",
+   "fields": 23,
+   "enums": [],
+   "indexes": 9,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Promotion",
+   "file": "models/Promotions.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Regions",
+   "file": "models/Regions.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ResetRequest",
+   "file": "models/ResetRequest.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ShopTime",
+   "file": "models/ShopTime.js",
+   "fields": 12,
+   "enums": [
+    "         \"Monday\",         \"Tuesday\",         \"Wednesday\",         \"Thursday\",         \"Friday\",         \"Saturday\",         \"Sunday\",       "
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "SlotsCoordinates",
+   "file": "models/SlotsCoordinates.js",
+   "fields": 5,
+   "enums": [
+    "'Polygon'"
+   ],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StartTask",
+   "file": "models/StartTask.js",
+   "fields": 10,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StoreProducts",
+   "file": "models/StoreProducts.js",
+   "fields": 13,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Strain",
+   "file": "models/Strain.js",
+   "fields": 23,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "SubProductTraits",
+   "file": "models/SubProductTraits.js",
+   "fields": 34,
+   "enums": [
+    "'Active', 'Inactive'"
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Tasks",
+   "file": "models/TasksModel.js",
+   "fields": 42,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "TerminalProducts",
+   "file": "models/TerminalProducts.js",
+   "fields": 3,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "TimeSlot",
+   "file": "models/TimeSlot.js",
+   "fields": 10,
+   "enums": [
+    "         \"Monday\",         \"Tuesday\",         \"Wednesday\",         \"Thursday\",         \"Friday\",         \"Saturday\",         \"Sunday\",       "
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "TransportationTypes",
+   "file": "models/TransportationTypes.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Truck",
+   "file": "models/Trucks.js",
+   "fields": 14,
+   "enums": [
+    "'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'"
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "User",
+   "file": "models/User.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "VersionSync",
+   "file": "models/VersionSync.js",
+   "fields": 2,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "WebCategory",
+   "file": "models/WebCategory.js",
+   "fields": 24,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  }
+ ],
+ "money_field_types": {
+  "Number": 6,
+  "String": 2
+ },
+ "next_pages": 0,
+ "next_api_routes": [],
+ "unused_deps": [
+  "bcrypt",
+  "express-rate-limit",
+  "fcm-node",
+  "msg91",
+  "nodemailer",
+  "nodemon",
+  "pug",
+  "remove",
+  "twilio"
+ ],
+ "undeclared_imports": [
+  "products",
+  "uuid"
+ ],
+ "env_refs": [
+  "ADMIN_SEND_EMAIL",
+  "AIRCALL_API_URL",
+  "AIRCALL_PASSWORD",
+  "AIRCALL_SEND_NUMBER",
+  "AIRCALL_USERNAME",
+  "ALLOW_ORIGIN",
+  "ALPINE_BASE_URL",
+  "ALPINE_IQ_FAVORITE_STORE",
+  "ALPINE_IQ_KEY",
+  "ALPINE_IQ_PROJECT_ID",
+  "API_BASE_URL",
+  "API_SECRET_KEY",
+  "ASAP_ABANONED_TEMP_ID",
+  "AUTH_TOKEN",
+  "AWS_ACCESS_KEY",
+  "AWS_SECRET_ACCESS_KEY",
+  "BLAZE_BASE_URL",
+  "BLAZE_RETAIL_AUTH_EMAIL",
+  "BLAZE_RETAIL_AUTH_PASSWORD",
+  "BLAZE_RETAIL_BASE_URL",
+  "BLOG_FIRST_PROMO",
+  "BLOG_SECOND_PROMO",
+  "BLOG_THIRD_PROMO",
+  "CANCELLED_ORDER_TEMP_ID",
+  "CANPAY_API_SECRET",
+  "CANPAY_APP_KEY",
+  "CANPAY_INTEGRATOR_ID",
+  "CANPAY_INTERNAL_VERSION",
+  "CANPAY_URL",
+  "CHICKEN_WAFELS_API_KEY",
+  "CHICKEN_WAFELS_REVENUE_KIT_API_KEY",
+  "CLIENT_ID_FOR_GET_OTP_FHL",
+  "CLIENT_SIDE_REDIRECT_URL",
+  "CLIENT_SIDE_STILO_REDIRECT_URL",
+  "COMPLETE_ORDER_TEMP_ID",
+  "DATABASE_URL",
+  "DEV_API_BASE_URL",
+  "DIDIT_API_BASE_URL",
+  "DIDIT_API_KEY",
+  "DIDIT_WORKFLOW_ID",
+  "FHL_ASSOCIATE_CLIENTID",
+  "FHL_ASSOCIATE_SECRET_KEY",
+  "FHL_ASSOCIATE_URL",
+  "FHL_BASE_URL",
+  "FHL_CHECK_CUSTOMER",
+  "FHL_CLIENT_ID",
+  "FHL_CUSTOMER_URL",
+  "FHL_OTP_URL",
+  "FHL_REDIRECT_URL",
+  "FHL_SECRET_KEY",
+  "FHL_URL_FOR_GET_OTP",
+  "FHL_URL_FOR_VALIDATE_OTP",
+  "FHL_WEBHOOK_TOKEN",
+  "FLOWER_CATEGORIES",
+  "FLOWER_WEIGHT_CATEGORY",
+  "FOOTER_COLOR",
+  "FORGOT_PASSWORD_TEMP_ID",
+  "GOOGLE_API_KEY_STREET_VIEW",
+  "HEMP_DATABASE_URL",
+  "HEMP_REDIRECT_URL",
+  "HERB_FIRST_PROMO",
+  "HERB_SECOND_PROMO",
+  "HERB_THIRD_PROMO",
+  "HW_FIRST_PROMO",
+  "HW_SECOND_PROMO",
+  "HW_THIRD_PROMO",
+  "HYBRID_FLOWER_CATEGORY",
+  "HYPERDRIVE_BASE_URL",
+  "HYPERWOLF_BLOG_OPT_TEMP_ID",
+  "HYPERWOLF_STREET_VIEW_SHORT_URL",
+  "IE_API_KEY",
+  "INDICA_FLOWER_CATEGORY",
+  "INTERCOM_ANROID_HASH_SECRET_KEY",
+  "INTERCOM_AUTH_TOKEN",
+  "INTERCOM_HASH_SECRET_KEY",
+  "INTERCOM_IOS_HASH_SECRET_KEY",
+  "INTERCOM_URL",
+  "IOT_CORE_ENDPOINT",
+  "IOT_CORE_TOPIC",
+  "IS_DEVELOPMENT",
+  "JWT_ADMIN_PRIVATE_KEY",
+  "JWT_USER_PRIVATE_KEY",
+  "KLAVIYO_API_KEY",
+  "KLAVIYO_BASE_URL",
+  "LEDGERGREEN_PUBLIC_KEY",
+  "LEDGERGREEN_SECRET_KEY",
+  "LEDGER_GREEN_BASE_URL",
+  "LEISURE_PAY_API_KEY",
+  "LEISURE_PAY_DEVICE_ID",
+  "LEISURE_PAY_SECRET_KEY",
+  "LESIURE_PAY_BASE_URL",
+  "NEW_RELIC_APP_NAME",
+  "NEW_RELIC_LICENSE_KEY",
+  "ONFLEET_API_ID",
+  "ONFLEET_BASE_URL",
+  "OPTIN_TOKEN",
+  "ORDER_PLACED_TEMP_ID",
+  "PARTNER_KEY",
+  "PAYMENT_API_KEY",
+  "PERSONA_TOKEN",
+  "PERSONA_URL",
+  "PROJECT_NAME",
+  "PROJECT_THEME_COLOR",
+  "PUBLIC_TOKEN",
+  "REASSIGN_ASSOCIATE_URL",
+  "REQUIRED_DIFF_IN_KM",
+  "REVENUE_KIT_API_KEY",
+  "REVENUE_KIT_COMPANY_NO",
+  "REVIEW_API_KEY",
+  "REVIEW_BASE_URL",
+  "REVIEW_STORE_ID",
+  "REVNUE_KIT_URL",
+  "S3_BRAND_BASE_URL",
+  "SAFE_INVENTORY_ID",
+  "SATIVA_FLOWER_CATEGORY",
+  "SB_REGION_ID",
+  "SCHEDULE_ABANONED_TEMP_ID",
+  "SENDGRID_API_KEY",
+  "SENDGRID_FROM_EMAIL",
+  "SENDGRID_FROM_NAME",
+  "SENDGRID_HYPERDRIVE_LOGIN_TEMPLATE_ID",
+  "SENTRY_DSN",
+  "STILO_DATABASE_URL",
+  "STREET_AUTH_TOKEN",
+  "STRONGHOLD_API_BASE_URL",
+  "STRONGHOLD_API_KEY",
+  "STRONGHOLD_INTEGRATION_ID",
+  "TEMPLATE_KEY",
+  "TEXT_VOLT_BEARER_TOKEN",
+  "TEXT_VOLT_URL",
+  "TOKEN_FOR_GET_OTP_FHL",
+  "VERDELOOT_BASE_URL",
+  "WEEDMAP_PROMOTION_ID"
+ ],
+ "env_example": [
+  "ADMIN_SEND_EMAIL",
+  "AIRCALL_API_URL",
+  "AIRCALL_PASSWORD",
+  "AIRCALL_SEND_NUMBER",
+  "AIRCALL_USERNAME",
+  "ALLOW_ORIGIN",
+  "ALPINE_BASE_URL",
+  "ALPINE_IQ_FAVORITE_STORE",
+  "ALPINE_IQ_KEY",
+  "ALPINE_IQ_PROJECT_ID",
+  "API_BASE_URL",
+  "API_SECRET_KEY",
+  "ASAP_ABANONED_TEMP_ID",
+  "AUTH_TOKEN",
+  "AWS_ACCESS_KEY",
+  "AWS_SECRET_ACCESS_KEY",
+  "BLAZE_BASE_URL",
+  "BLAZE_RETAIL_AUTH_EMAIL",
+  "BLAZE_RETAIL_AUTH_PASSWORD",
+  "BLAZE_RETAIL_BASE_URL",
+  "BLOG_FIRST_PROMO",
+  "BLOG_SECOND_PROMO",
+  "BLOG_THIRD_PROMO",
+  "CANCELLED_ORDER_TEMP_ID",
+  "CANPAY_API_SECRET",
+  "CANPAY_APP_KEY",
+  "CANPAY_INTEGRATOR_ID",
+  "CANPAY_INTERNAL_VERSION",
+  "CANPAY_URL",
+  "CHICKEN_WAFELS_API_KEY",
+  "CHICKEN_WAFELS_REVENUE_KIT_API_KEY",
+  "CLIENT_SIDE_REDIRECT_URL",
+  "CLIENT_SIDE_STILO_REDIRECT_URL",
+  "COMPLETE_ORDER_TEMP_ID",
+  "DATABASE_URL",
+  "DEV_API_BASE_URL",
+  "DIDIT_API_BASE_URL",
+  "DIDIT_API_KEY",
+  "DIDIT_WORKFLOW_ID",
+  "FHL_BASE_URL",
+  "FHL_CLIENT_ID",
+  "FHL_REDIRECT_URL",
+  "FHL_SECRET_KEY",
+  "FHL_WEBHOOK_TOKEN",
+  "FLOWER_CATEGORIES",
+  "FLOWER_WEIGHT_CATEGORY",
+  "FORGOT_PASSWORD_TEMP_ID",
+  "GOOGLE_API_KEY_STREET_VIEW",
+  "HEMP_DATABASE_URL",
+  "HEMP_REDIRECT_URL",
+  "HERB_FIRST_PROMO",
+  "HERB_SECOND_PROMO",
+  "HERB_THIRD_PROMO",
+  "HW_FIRST_PROMO",
+  "HW_SECOND_PROMO",
+  "HW_THIRD_PROMO",
+  "HYBRID_FLOWER_CATEGORY",
+  "HYPERDRIVE_BASE_URL",
+  "HYPERWOLF_BLOG_OPT_TEMP_ID",
+  "HYPERWOLF_STREET_VIEW_SHORT_URL",
+  "IE_API_KEY",
+  "INDICA_FLOWER_CATEGORY",
+  "INTERCOM_ANROID_HASH_SECRET_KEY",
+  "INTERCOM_AUTH_TOKEN",
+  "INTERCOM_HASH_SECRET_KEY",
+  "INTERCOM_IOS_HASH_SECRET_KEY",
+  "INTERCOM_URL",
+  "IOT_CORE_ENDPOINT",
+  "IOT_CORE_TOPIC",
+  "IS_DEVELOPMENT",
+  "JWT_ADMIN_PRIVATE_KEY",
+  "JWT_USER_PRIVATE_KEY",
+  "KLAVIYO_API_KEY",
+  "KLAVIYO_BASE_URL",
+  "LEDGERGREEN_PUBLIC_KEY",
+  "LEDGERGREEN_SECRET_KEY",
+  "LEDGER_GREEN_BASE_URL",
+  "LEISURE_PAY_API_KEY",
+  "LEISURE_PAY_DEVICE_ID",
+  "LEISURE_PAY_SECRET_KEY",
+  "LESIURE_PAY_BASE_URL",
+  "NEW_RELIC_APP_NAME",
+  "NEW_RELIC_LICENSE_KEY",
+  "ONFLEET_API_ID",
+  "ONFLEET_BASE_URL",
+  "OPTIN_TOKEN",
+  "ORDER_PLACED_TEMP_ID",
+  "PARTNER_KEY",
+  "PAYMENT_API_KEY",
+  "PERSONA_TOKEN",
+  "PERSONA_URL",
+  "PUBLIC_TOKEN",
+  "REQUIRED_DIFF_IN_KM",
+  "REVENUE_KIT_API_KEY",
+  "REVENUE_KIT_COMPANY_NO",
+  "REVIEW_API_KEY",
+  "REVIEW_BASE_URL",
+  "REVIEW_STORE_ID",
+  "REVNUE_KIT_URL",
+  "S3_BRAND_BASE_URL",
+  "SAFE_INVENTORY_ID",
+  "SATIVA_FLOWER_CATEGORY",
+  "SB_REGION_ID",
+  "SCHEDULE_ABANONED_TEMP_ID",
+  "SENDGRID_API_KEY",
+  "SENDGRID_FROM_EMAIL",
+  "SENDGRID_FROM_NAME",
+  "SENDGRID_HYPERDRIVE_LOGIN_TEMPLATE_ID",
+  "SENTRY_DSN",
+  "STILO_DATABASE_URL",
+  "STREET_AUTH_TOKEN",
+  "STRONGHOLD_API_BASE_URL",
+  "STRONGHOLD_API_KEY",
+  "STRONGHOLD_INTEGRATION_ID",
+  "TEMPLATE_KEY",
+  "TEXT_VOLT_BEARER_TOKEN",
+  "TEXT_VOLT_URL",
+  "VERDELOOT_BASE_URL",
+  "WEEDMAP_PROMOTION_ID"
+ ],
+ "env_missing_from_example": [
+  "CLIENT_ID_FOR_GET_OTP_FHL",
+  "FHL_ASSOCIATE_CLIENTID",
+  "FHL_ASSOCIATE_SECRET_KEY",
+  "FHL_ASSOCIATE_URL",
+  "FHL_CHECK_CUSTOMER",
+  "FHL_CUSTOMER_URL",
+  "FHL_OTP_URL",
+  "FHL_URL_FOR_GET_OTP",
+  "FHL_URL_FOR_VALIDATE_OTP",
+  "FOOTER_COLOR",
+  "PROJECT_NAME",
+  "PROJECT_THEME_COLOR",
+  "REASSIGN_ASSOCIATE_URL",
+  "TOKEN_FOR_GET_OTP_FHL"
+ ],
+ "inrepo_duplicate_groups": [],
+ "ci_deploy_files": [
+  ".github/workflows/node.js.yml",
+  ".github/workflows/stage.yml"
+ ],
+ "docs": [
+  "README.md",
+  "awsEvent/readme.md"
+ ]
+}

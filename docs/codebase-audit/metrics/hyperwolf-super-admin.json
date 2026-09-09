@@ -1,0 +1,935 @@
+{
+ "repo": "hyperwolf-super-admin",
+ "sha": "c1d9cbd",
+ "scanned_at": "2026-09-09T10:04:47",
+ "files": 1312,
+ "src_files": 1203,
+ "src_lines": 296940,
+ "by_ext": [
+  [
+   ".js",
+   626
+  ],
+  [
+   ".jsx",
+   577
+  ],
+  [
+   ".svg",
+   51
+  ],
+  [
+   ".png",
+   22
+  ],
+  [
+   ".json",
+   7
+  ],
+  [
+   ".md",
+   5
+  ],
+  [
+   ".scss",
+   5
+  ],
+  [
+   ".jpg",
+   4
+  ],
+  [
+   ".yml",
+   3
+  ],
+  [
+   "(none)",
+   3
+  ],
+  [
+   ".gif",
+   2
+  ],
+  [
+   ".yaml",
+   2
+  ]
+ ],
+ "biggest": [
+  [
+   "src/utilities/common/Cities.js",
+   19163
+  ],
+  [
+   "src/components/landingPage/createLanding/sections/category-section.jsx",
+   9879
+  ],
+  [
+   "src/components/homePage/createHome/sections/category-section.jsx",
+   9862
+  ],
+  [
+   "src/layouts/promo/data.js",
+   4504
+  ],
+  [
+   "src/components/homePage/viewHome/index.jsx",
+   4323
+  ],
+  [
+   "src/components/landingPage/viewLanding/index.jsx",
+   4142
+  ],
+  [
+   "src/utilities/common/index.js",
+   3750
+  ],
+  [
+   "src/routes.js",
+   3735
+  ],
+  [
+   "src/components/legalPages/SameDayDelivery.js",
+   2709
+  ],
+  [
+   "src/components/homePage/createHome/index.jsx",
+   2401
+  ],
+  [
+   "src/components/landingPage/createLanding/index.jsx",
+   1974
+  ],
+  [
+   "src/components/legalPages/ServiceGuaranteePageEdit.js",
+   1864
+  ]
+ ],
+ "engines": null,
+ "scripts": {
+  "start": "set \"GENERATE_SOURCEMAP=false\" && node scripts/start.js",
+  "build": "set \"GENERATE_SOURCEMAP=false\" && node --max-old-space-size=4096 scripts/build.js",
+  "test": "node scripts/test.js",
+  "install:clean": "rm -rf node_modules/ && rm -rf package-lock.json && npm install && npm start",
+  "prepare": "husky install",
+  "lint": "eslint 'src/**/*.jsx' --max-warnings 0",
+  "lint:fix": "eslint 'src/**/*.jsx' --fix"
+ },
+ "lockfiles": [],
+ "deps_count": 111,
+ "dev_count": 17,
+ "pins": {
+  "caret": 106,
+  "exact": 20
+ },
+ "frameworks": {
+  "react": "18.2.0",
+  "axios": "^1.9.0",
+  "yup": "1.1.1",
+  "redux": "^5.0.0",
+  "@reduxjs/toolkit": "^2.6.0",
+  "jest": "^27.4.3",
+  "eslint": "^8.57.1",
+  "prettier": "2.8.8",
+  "husky": "^8.0.3"
+ },
+ "eol_notes": [
+  "react 18.2.0",
+  "no engines.node"
+ ],
+ "test_deps": [
+  "jest"
+ ],
+ "test_files": [],
+ "test_file_count": 0,
+ "test_lines": 0,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 121,
+    "files": 54,
+    "top": [
+     [
+      "src/components/homePage/viewHome/index.jsx",
+      10
+     ],
+     [
+      "src/utilities/common/index.js",
+      7
+     ],
+     [
+      "src/components/brand/addBrandForm.jsx",
+      5
+     ],
+     [
+      "src/examples/Footer/index.js",
+      5
+     ],
+     [
+      "public/firebase-messaging-sw.js",
+      4
+     ]
+    ]
+   },
+   "localhost": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "config/webpackDevServer.config.js",
+      2
+     ]
+    ]
+   },
+   "ip_literal": {
+    "count": 2,
+    "files": 2,
+    "top": [
+     [
+      "config/webpackDevServer.config.js",
+      1
+     ],
+     [
+      "scripts/start.js",
+      1
+     ]
+    ]
+   },
+   "objectid_24hex": {
+    "count": 399,
+    "files": 6,
+    "top": [
+     [
+      "src/utilities/common/index.js",
+      392
+     ],
+     [
+      "src/components/hyperdrive/settings/BufferRules/index.js",
+      3
+     ],
+     [
+      "src/common/CommonModal/Hyperwolf/freezeDistribution.jsx",
+      1
+     ],
+     [
+      "src/layouts/cannabinoids/manageCannabinoids/AddMainCannabinoid.jsx",
+      1
+     ],
+     [
+      "src/layouts/hyperwolf/HyperdriveTestingPanel.js/WebFlow.js",
+      1
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 104,
+    "files": 72,
+    "top": [
+     [
+      "src/layouts/manageCategories/index.jsx",
+      4
+     ],
+     [
+      "src/layouts/orders/index.jsx",
+      4
+     ],
+     [
+      "src/App.js",
+      3
+     ],
+     [
+      "src/components/hyperdrive/createTask/BreakTask.jsx",
+      3
+     ],
+     [
+      "src/components/promotion/addPromotionForm.jsx",
+      3
+     ]
+    ]
+   },
+   "email_literal": {
+    "count": 17,
+    "files": 2,
+    "top": [
+     [
+      "src/utilities/common/index.js",
+      14
+     ],
+     [
+      "src/layouts/billing/components/BillingInformation/index.js",
+      3
+     ]
+    ]
+   },
+   "phone_literal": {
+    "count": 13,
+    "files": 3,
+    "top": [
+     [
+      "src/utilities/common/index.js",
+      11
+     ],
+     [
+      "src/App.js",
+      1
+     ],
+     [
+      "src/components/hyperdrive/createTask/DropOffTask.jsx",
+      1
+     ]
+    ]
+   },
+   "store_name_literal": {
+    "count": 7,
+    "files": 1,
+    "top": [
+     [
+      "src/utilities/common/Cities.js",
+      7
+     ]
+    ]
+   }
+  },
+  "secrets": {},
+  "security": {
+   "child_process": {
+    "count": 10,
+    "files": 5,
+    "top": [
+     [
+      "scripts/test.js",
+      3
+     ],
+     [
+      "src/components/cannabinoids/AddCannabinoidBannerForm.jsx",
+      2
+     ],
+     [
+      "src/components/homepageBanner/index.jsx",
+      2
+     ],
+     [
+      "src/layouts/hyperwolf/manageHyperwolfBanners/AddBanner.jsx",
+      2
+     ],
+     [
+      "src/utilities/common/index.js",
+      1
+     ]
+    ]
+   },
+   "weak_hash": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "config/webpack/persistentCache/createEnvironmentHash.js",
+      1
+     ]
+    ]
+   },
+   "dangerously_set_html": {
+    "count": 134,
+    "files": 27,
+    "top": [
+     [
+      "src/components/legalPages/DetailsPages/LabTestingStandardsDetail.js",
+      10
+     ],
+     [
+      "src/components/legalPages/DetailsPages/SameDayDeliveryPageDetail.js",
+      9
+     ],
+     [
+      "src/components/legalPages/DetailsPages/CareerDetail.js",
+      7
+     ],
+     [
+      "src/components/legalPages/DetailsPages/DeliveryTime.js",
+      7
+     ],
+     [
+      "src/components/legalPages/DetailsPages/DiscreetCannabisDeliveryDetail.js",
+      7
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "sync_fs": {
+    "count": 16,
+    "files": 9,
+    "top": [
+     [
+      "config/webpack.config.js",
+      4
+     ],
+     [
+      "config/getHttpsConfig.js",
+      2
+     ],
+     [
+      "config/modules.js",
+      2
+     ],
+     [
+      "scripts/start.js",
+      2
+     ],
+     [
+      "scripts/test.js",
+      2
+     ]
+    ]
+   },
+   "find_without_limit": {
+    "count": 298,
+    "files": 103,
+    "top": [
+     [
+      "src/components/homePage/createHome/sections/category-section.jsx",
+      34
+     ],
+     [
+      "src/components/landingPage/createLanding/sections/category-section.jsx",
+      34
+     ],
+     [
+      "src/layouts/promo/IfRuleView.jsx",
+      15
+     ],
+     [
+      "src/examples/Sidenav/index.js",
+      10
+     ],
+     [
+      "src/common/filters.jsx",
+      9
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 72,
+    "files": 50,
+    "top": [
+     [
+      "src/components/homePage/createHome/index.jsx",
+      5
+     ],
+     [
+      "src/components/landingPage/createLanding/index.jsx",
+      5
+     ],
+     [
+      "src/layouts/promo/AddPromotions.jsx",
+      4
+     ],
+     [
+      "src/components/SocketMobileScanner.jsx",
+      2
+     ],
+     [
+      "src/components/distributionSetting/boxes/components/createBox.jsx",
+      2
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 30,
+    "files": 7,
+    "top": [
+     [
+      "scripts/build.js",
+      12
+     ],
+     [
+      "scripts/start.js",
+      7
+     ],
+     [
+      "public/firebase-messaging-sw.js",
+      4
+     ],
+     [
+      "src/HOC/useSocket.jsx",
+      3
+     ],
+     [
+      "firebase-messaging-sw.js",
+      2
+     ]
+    ]
+   },
+   "todo_fixme": {
+    "count": 4,
+    "files": 4,
+    "top": [
+     [
+      "config/webpack.config.js",
+      1
+     ],
+     [
+      "src/components/CardSetting/OrderSetting.js",
+      1
+     ],
+     [
+      "src/components/hyperdrive/mapDriverList.js",
+      1
+     ],
+     [
+      "src/layouts/hyperwolf/HyperdriveTestingPanel.js/WebFlow.js",
+      1
+     ]
+    ]
+   },
+   "empty_catch": {
+    "count": 51,
+    "files": 43,
+    "top": [
+     [
+      "src/components/hyperwolf/products/productTraits/SelectProductTrait.jsx",
+      4
+     ],
+     [
+      "src/components/products/productTraits/selectProductTrait.jsx",
+      4
+     ],
+     [
+      "src/components/distributionSetting/distributionManagement/components/productsListing.jsx",
+      2
+     ],
+     [
+      "src/components/distributionSetting/refillLogs/components/productsListing.jsx",
+      2
+     ],
+     [
+      "src/common/CommonModal/Hyperwolf/AddDiscrepancyNote backup.jsx",
+      1
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 1000,
+    "files": 184,
+    "top": [
+     [
+      "src/layouts/promo/data.js",
+      54
+     ],
+     [
+      "src/components/landingPage/viewLanding/index.jsx",
+      38
+     ],
+     [
+      "src/common/CommonModal/orders/ReturnReason.jsx",
+      34
+     ],
+     [
+      "src/components/distributionSetting/driverKitVerification/components/driverKitDetails copy.js",
+      34
+     ],
+     [
+      "src/utilities/common/index.js",
+      34
+     ]
+    ]
+   },
+   "ts_ignore": {
+    "count": 18,
+    "files": 15,
+    "top": [
+     [
+      "public/firebase-messaging-sw.js",
+      3
+     ],
+     [
+      "src/components/products/ProductSelect.jsx",
+      2
+     ],
+     [
+      "scripts/build.js",
+      1
+     ],
+     [
+      "src/App.js",
+      1
+     ],
+     [
+      "src/components/MDButton/MDButtonRoot.js",
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "config/env.js:47",
+    "config/jest/cssTransform.js:4",
+    "config/jest/fileTransform.js:7",
+    "config/webpack.config.js:314",
+    "config/webpackDevServer.config.js:23",
+    "public/firebase-messaging-sw.js:1"
+   ],
+   "localhost": [
+    "config/webpackDevServer.config.js:36",
+    "config/webpackDevServer.config.js:36"
+   ],
+   "ip_literal": [
+    "config/webpackDevServer.config.js:11",
+    "scripts/start.js:48"
+   ],
+   "objectid_24hex": [
+    "src/common/CommonModal/Hyperwolf/freezeDistribution.jsx:37",
+    "src/components/hyperdrive/settings/BufferRules/index.js:18",
+    "src/components/hyperdrive/settings/BufferRules/index.js:23",
+    "src/components/hyperdrive/settings/BufferRules/index.js:28",
+    "src/layouts/cannabinoids/manageCannabinoids/AddMainCannabinoid.jsx:24",
+    "src/layouts/hyperwolf/HyperdriveTestingPanel.js/WebFlow.js:258"
+   ],
+   "role_string": [
+    "src/App.js:105",
+    "src/App.js:109",
+    "src/App.js:112",
+    "src/Rtk/slices/user/userSlice.js:5",
+    "src/common/CommonModal/ApprovalOverride.jsx:27",
+    "src/common/component/Hyperwolf/DriverFilters.jsx:36"
+   ],
+   "email_literal": [
+    "src/layouts/billing/components/BillingInformation/index.js:26",
+    "src/layouts/billing/components/BillingInformation/index.js:32",
+    "src/layouts/billing/components/BillingInformation/index.js:38",
+    "src/utilities/common/index.js:2215",
+    "src/utilities/common/index.js:2230",
+    "src/utilities/common/index.js:2250"
+   ],
+   "phone_literal": [
+    "src/App.js:335",
+    "src/components/hyperdrive/createTask/DropOffTask.jsx:323",
+    "src/utilities/common/index.js:2323",
+    "src/utilities/common/index.js:2354",
+    "src/utilities/common/index.js:2364",
+    "src/utilities/common/index.js:2395"
+   ],
+   "store_name_literal": [
+    "src/utilities/common/Cities.js:1380",
+    "src/utilities/common/Cities.js:3641",
+    "src/utilities/common/Cities.js:8911",
+    "src/utilities/common/Cities.js:10318",
+    "src/utilities/common/Cities.js:10871",
+    "src/utilities/common/Cities.js:11228"
+   ]
+  },
+  "secrets": {},
+  "security": {
+   "child_process": [
+    "scripts/test.js:19",
+    "scripts/test.js:24",
+    "scripts/test.js:33",
+    "src/components/cannabinoids/AddCannabinoidBannerForm.jsx:77",
+    "src/components/cannabinoids/AddCannabinoidBannerForm.jsx:85",
+    "src/components/homepageBanner/index.jsx:75"
+   ],
+   "weak_hash": [
+    "config/webpack/persistentCache/createEnvironmentHash.js:5"
+   ],
+   "dangerously_set_html": [
+    "src/components/homePage/viewHome/index.jsx:871",
+    "src/components/homePage/viewHome/index.jsx:3552",
+    "src/components/homePage/viewHome/index.jsx:3769",
+    "src/components/homePage/viewHome/index.jsx:4253",
+    "src/components/hyperwolf/products/ProductDetails.jsx:723",
+    "src/components/hyperwolf/products/ProductDetails.jsx:735"
+   ]
+  },
+  "performance": {
+   "sync_fs": [
+    "config/env.js:34",
+    "config/getHttpsConfig.js:36",
+    "config/getHttpsConfig.js:43",
+    "config/modules.js:96",
+    "config/modules.js:97",
+    "config/paths.js:43"
+   ],
+   "find_without_limit": [
+    "src/App.js:219",
+    "src/HOC/PublicRoute.jsx:50",
+    "src/HOC/PublicRoute.jsx:54",
+    "src/common/CommonDrawer/hyperwolf/discrepancyDetails.jsx:211",
+    "src/common/CommonDrawer/hyperwolf/discrepancyDetails.jsx:227",
+    "src/common/CommonDrawer/hyperwolf/discrepancyDetails.jsx:230"
+   ],
+   "settimeout_in_handler": [
+    "src/common/CommonModal/AddNewStrainModal.jsx:56",
+    "src/common/CommonModal/FetchDriveMessage.jsx:11",
+    "src/common/CommonModal/FetchDriveMessageConfirm.jsx:13",
+    "src/common/component/Hyperwolf/InfiniteScrollListBlog.jsx:102",
+    "src/common/editorBlog/fix.js:150",
+    "src/components/SocketMobileScanner.jsx:46"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "firebase-messaging-sw.js:4",
+    "firebase-messaging-sw.js:7",
+    "public/firebase-messaging-sw.js:23",
+    "public/firebase-messaging-sw.js:25",
+    "public/firebase-messaging-sw.js:29",
+    "public/firebase-messaging-sw.js:42"
+   ],
+   "todo_fixme": [
+    "config/webpack.config.js:354",
+    "src/components/CardSetting/OrderSetting.js:80",
+    "src/components/hyperdrive/mapDriverList.js:184",
+    "src/layouts/hyperwolf/HyperdriveTestingPanel.js/WebFlow.js:539"
+   ],
+   "empty_catch": [
+    "src/common/CommonModal/Hyperwolf/AddDiscrepancyNote backup.jsx:67",
+    "src/common/CommonModal/Hyperwolf/AddDiscrepancyNote.jsx:67",
+    "src/common/CommonModal/Hyperwolf/AddNewStrainModal.jsx:23",
+    "src/common/CommonModal/UploadIdImageModal.jsx:40",
+    "src/common/component/Infintescroll.jsx:40",
+    "src/common/editorBlog/index.jsx:162"
+   ],
+   "commented_code_hint": [
+    "config/env.js:29",
+    "config/modules.js:116",
+    "config/webpack.config.js:298",
+    "config/webpack.config.js:308",
+    "config/webpack.config.js:608",
+    "config/webpackDevServer.config.js:58"
+   ],
+   "ts_ignore": [
+    "public/firebase-messaging-sw.js:18",
+    "public/firebase-messaging-sw.js:21",
+    "public/firebase-messaging-sw.js:35",
+    "scripts/build.js:82",
+    "src/App.js:152",
+    "src/components/MDButton/MDButtonRoot.js:1"
+   ]
+  }
+ },
+ "routes_total": 0,
+ "routes_unguarded": 0,
+ "routes_sample": [],
+ "unguarded_sample": [],
+ "middleware_freq": [],
+ "models": [],
+ "money_field_types": {},
+ "next_pages": 0,
+ "next_api_routes": [],
+ "unused_deps": [
+  "@babel/core",
+  "@emotion/cache",
+  "@emotion/styled",
+  "@mapbox/togeojson",
+  "@sentry/browser",
+  "@svgr/webpack",
+  "ag-grid-community",
+  "babel-loader",
+  "babel-plugin-named-asset-import",
+  "babel-preset-react-app",
+  "css-loader",
+  "date-fns-tz",
+  "daterangepicker",
+  "eslint-config-react-app",
+  "file-loader",
+  "identity-obj-proxy",
+  "jest-resolve",
+  "jest-watch-typeahead",
+  "jszip",
+  "msal",
+  "openai",
+  "os-browserify",
+  "postcss",
+  "postcss-flexbugs-fixes",
+  "postcss-loader",
+  "postcss-normalize",
+  "postcss-preset-env",
+  "react-app-polyfill",
+  "react-date-range",
+  "react-refresh",
+  "react-table",
+  "react-virtualized-select",
+  "resolve-url-loader",
+  "sass",
+  "sass-loader",
+  "source-map-loader",
+  "style-loader",
+  "stylis",
+  "tailwindcss",
+  "yup"
+ ],
+ "undeclared_imports": [
+  ",\n                    value: ",
+  "@here/maps-api-for-javascript",
+  "@mui/system",
+  "App",
+  "HOC",
+  "Rtk",
+  "assets",
+  "axiosClient",
+  "common",
+  "components",
+  "context",
+  "contexts",
+  "date-fns",
+  "examples",
+  "firebaseInit",
+  "hemp",
+  "hooks",
+  "jquery",
+  "layouts",
+  "lodash",
+  "prompt",
+  "quill",
+  "react-router",
+  "react-window",
+  "routes",
+  "services",
+  "sideMenus",
+  "socket",
+  "utilities",
+  "validations"
+ ],
+ "env_refs": [
+  "BABEL_ENV",
+  "BUILD_PATH",
+  "CI",
+  "DANGEROUSLY_DISABLE_HOST_CHECK",
+  "DISABLE_ESLINT_PLUGIN",
+  "DISABLE_NEW_JSX_TRANSFORM",
+  "ESLINT_NO_DEV_ERRORS",
+  "FAST_REFRESH",
+  "GENERATE_SOURCEMAP",
+  "HOST",
+  "HTTPS",
+  "IMAGE_INLINE_SIZE_LIMIT",
+  "INLINE_RUNTIME_CHUNK",
+  "NODE_ENV",
+  "NODE_PATH",
+  "PORT",
+  "PUBLIC_URL",
+  "REACT_APP_AMZAON_S3_URL",
+  "REACT_APP_API_AUTH_KEY",
+  "REACT_APP_API_KEY",
+  "REACT_APP_APP_ID",
+  "REACT_APP_AUTH_DOMAIN",
+  "REACT_APP_AUTH_PHRASE_KEY",
+  "REACT_APP_BASE_URL",
+  "REACT_APP_BASE_URL_HYPER_DRIVE",
+  "REACT_APP_BASE_URL_PROMOTIONS",
+  "REACT_APP_DISTRIBUTION_API_BASE_URL",
+  "REACT_APP_GOOGLE_KEY",
+  "REACT_APP_GOOGLE_PLACES_KEY",
+  "REACT_APP_HEMP_API_DEV_BASE_URL",
+  "REACT_APP_HEMP_FRONTEND_URL",
+  "REACT_APP_HYPERWOLF_API_BASE_URL",
+  "REACT_APP_HYPERWOLF_API_DEV_BASE_URL",
+  "REACT_APP_HYPERWOLF_FRONTEND_URL",
+  "REACT_APP_IMAGE_UPLOAD_API_KEY",
+  "REACT_APP_MAP_KEY",
+  "REACT_APP_MAP_KEY_TOKEN",
+  "REACT_APP_MEASUREMENT_ID",
+  "REACT_APP_MESSAGING_SENDER_ID",
+  "REACT_APP_METRC_ACCESS_1",
+  "REACT_APP_METRC_ACCESS_2",
+  "REACT_APP_MODE",
+  "REACT_APP_PROJECT_ID",
+  "REACT_APP_PUBLIC_BASE_URL",
+  "REACT_APP_PUBLIC_REDIRECT_URL",
+  "REACT_APP_PUBLIC_SENTRY_DSN",
+  "REACT_APP_STILO_API_BASE_URL",
+  "REACT_APP_STILO_FRONTEND_URL",
+  "REACT_APP_STORAGE_BUCKET",
+  "REACT_APP_VAPID_KEY",
+  "REACT_APP_X_AUTH_TOKEN",
+  "REACT_APP__HYPERWOLF_PUBLIC_BASE_URL",
+  "TSC_COMPILE_ON_ERROR",
+  "WDS_SOCKET_HOST",
+  "WDS_SOCKET_PATH",
+  "WDS_SOCKET_PORT"
+ ],
+ "env_example": [
+  "REACT_APP_API_AUTH_KEY",
+  "REACT_APP_API_KEY",
+  "REACT_APP_APP_ID",
+  "REACT_APP_AUTH_DOMAIN",
+  "REACT_APP_AUTH_PHRASE_KEY",
+  "REACT_APP_BASE_URL",
+  "REACT_APP_BASE_URL_HYPER_DRIVE",
+  "REACT_APP_BASE_URL_PROMOTIONS",
+  "REACT_APP_DISTRIBUTION_API_BASE_URL",
+  "REACT_APP_GOOGLE_KEY",
+  "REACT_APP_HEMP_FRONTEND_URL",
+  "REACT_APP_HYPERWOLF_API_BASE_URL",
+  "REACT_APP_HYPERWOLF_API_DEV_BASE_URL",
+  "REACT_APP_HYPERWOLF_FRONTEND_URL",
+  "REACT_APP_IMAGE_UPLOAD_API_KEY",
+  "REACT_APP_MAP_KEY",
+  "REACT_APP_MAP_KEY_TOKEN",
+  "REACT_APP_MEASUREMENT_ID",
+  "REACT_APP_MESSAGING_SENDER_ID",
+  "REACT_APP_METRC_ACCESS_1",
+  "REACT_APP_METRC_ACCESS_2",
+  "REACT_APP_METRC_ACCESS_3",
+  "REACT_APP_MODE",
+  "REACT_APP_PROJECT_ID",
+  "REACT_APP_PUBLIC_BASE_URL",
+  "REACT_APP_PUBLIC_SENTRY_DSN",
+  "REACT_APP_STILO_API_BASE_URL",
+  "REACT_APP_STILO_FRONTEND_URL",
+  "REACT_APP_STORAGE_BUCKET",
+  "REACT_APP_VAPID_KEY"
+ ],
+ "env_missing_from_example": [
+  "BABEL_ENV",
+  "BUILD_PATH",
+  "CI",
+  "DANGEROUSLY_DISABLE_HOST_CHECK",
+  "DISABLE_ESLINT_PLUGIN",
+  "DISABLE_NEW_JSX_TRANSFORM",
+  "ESLINT_NO_DEV_ERRORS",
+  "FAST_REFRESH",
+  "GENERATE_SOURCEMAP",
+  "HOST",
+  "HTTPS",
+  "IMAGE_INLINE_SIZE_LIMIT",
+  "INLINE_RUNTIME_CHUNK",
+  "NODE_ENV",
+  "NODE_PATH",
+  "PORT",
+  "PUBLIC_URL",
+  "REACT_APP_AMZAON_S3_URL",
+  "REACT_APP_GOOGLE_PLACES_KEY",
+  "REACT_APP_HEMP_API_DEV_BASE_URL",
+  "REACT_APP_PUBLIC_REDIRECT_URL",
+  "REACT_APP_X_AUTH_TOKEN",
+  "REACT_APP__HYPERWOLF_PUBLIC_BASE_URL",
+  "TSC_COMPILE_ON_ERROR",
+  "WDS_SOCKET_HOST",
+  "WDS_SOCKET_PATH",
+  "WDS_SOCKET_PORT"
+ ],
+ "inrepo_duplicate_groups": [
+  [
+   "src/layouts/hyperwolf/userAndRoles/components/roles.jsx",
+   "src/layouts/hyperwolf/userAndRoles/components/users.jsx"
+  ]
+ ],
+ "ci_deploy_files": [
+  ".github/workflows/linting.yml",
+  ".github/workflows/security.yml",
+  ".github/workflows/stage.yml"
+ ],
+ "docs": [
+  "README-roles-permissions-V2.md",
+  "README-roles-permissions.md",
+  "README.md",
+  "src/layouts/hyperwolf/BannerManagement/Holidays/HOLIDAY_README.md",
+  "src/layouts/promo/PromoSummary.md"
+ ]
+}

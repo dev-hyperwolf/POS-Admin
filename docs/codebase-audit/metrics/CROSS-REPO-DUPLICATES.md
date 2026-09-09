@@ -1,0 +1,233 @@
+# Cross-repo duplication (mechanical)
+Exact = identical after whitespace removal. Near = same basename, difflib ratio >= 0.6, both >= 40 lines.
+
+## Exact duplicates across repos: 64 groups, 7,043 lines
+- 480 lines: hemp-backend:controllers/intercom/intercom-controllers.js; stilo-backend:controllers/intercom/intercom-controllers.js
+- 285 lines: hemp-backend:emailTemplates/storeCreateTemplate.js; stilo-backend:emailTemplates/storeCreateTemplate.js
+- 236 lines: hemp-retailer-admin:src/examples/Charts/MixedChart/index.js; hyperwolf-super-admin:src/examples/Charts/MixedChart/index.js
+- 230 lines: hemp-backend:controllers/admin/promotion-controllers.js; stilo-backend:controllers/admin/promotion-controllers.js
+- 187 lines: hemp-retailer-admin:src/layouts/members/walletlogs.js; hyperwolf-super-admin:src/layouts/members/walletlogs.js
+- 174 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/GradientLineChart/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/GradientLineChart/index.js
+- 171 lines: hemp-retailer-admin:src/redux/slices/memberships.js; hyperwolf-super-admin:src/redux/slices/memberships.js
+- 166 lines: hyperwolf-backend:models/Legal.js; stilo-backend:models/Legal.js
+- 163 lines: hemp-retailer-admin:src/redux/slices/regions.js; hyperwolf-super-admin:src/redux/slices/hyperwolf/driver/regions.js
+- 157 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/DefaultLineChart/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/DefaultLineChart/index.js
+- 148 lines: hemp-backend:controllers/cannabinoids/cannabinoids-banner-controllers.js; hyperwolf-backend:controllers/cannabinoids/cannabinoids-banner-controllers.js; stilo-backend:controllers/cannabinoids/cannabinoids-banner-controllers.js
+- 147 lines: hemp-backend:controllers/textVolt/textVolt-controllers.js; stilo-backend:controllers/textVolt/textVolt-controllers.js
+- 142 lines: hemp-retailer-admin:src/components/settings/CardSetting/FeePreview.js; hyperwolf-super-admin:src/components/CardSetting/FeePreview.js
+- 142 lines: hemp-retailer-admin:src/examples/Charts/BarCharts/HorizontalBarChart/index.js; hyperwolf-super-admin:src/examples/Charts/BarCharts/HorizontalBarChart/index.js
+- 142 lines: hemp-retailer-admin:src/examples/Charts/BarCharts/VerticalBarChart/index.js; hyperwolf-super-admin:src/examples/Charts/BarCharts/VerticalBarChart/index.js
+- 140 lines: hemp-backend:emailTemplates/storeForgotEmailTemplate.js; stilo-backend:emailTemplates/storeForgotEmailTemplates.js
+- 139 lines: hemp-retailer-admin:src/examples/Charts/RadarChart/index.js; hyperwolf-super-admin:src/examples/Charts/RadarChart/index.js
+- 136 lines: hemp-backend:controllers/reviews/reviews-controllers.js; stilo-backend:controllers/reviews/reviews-controllers.js
+- 136 lines: hemp-retailer-admin:src/examples/Charts/BubbleChart/index.js; hyperwolf-super-admin:src/examples/Charts/BubbleChart/index.js
+- 133 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/ProgressLineChart/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/ProgressLineChart/index.js
+- 132 lines: hemp-retailer-admin:src/components/settings/CardSetting/FeeAmountInput.js; hyperwolf-super-admin:src/components/CardSetting/FeeAmountInput.js
+- 126 lines: hemp-backend:controllers/admin/product-rules-controllers.js; stilo-backend:controllers/admin/product-rules-controllers.js
+- 119 lines: hemp-backend:controllers/admin/cart-rules-controllers.js; stilo-backend:controllers/admin/cart-rules-controllers.js
+- 119 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/ReportsLineChart/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/ReportsLineChart/index.js
+- 117 lines: hemp-backend:controllers/ledgergreen/ledgergreen-controllers.js; stilo-backend:controllers/ledgergreen/ledgergreen-controllers.js
+- 117 lines: hemp-retailer-admin:src/examples/Charts/DoughnutCharts/DefaultDoughnutChart/index.js; hyperwolf-super-admin:src/examples/Charts/DoughnutCharts/DefaultDoughnutChart/index.js
+- 117 lines: hemp-retailer-admin:src/examples/Charts/PieChart/index.js; hyperwolf-super-admin:src/examples/Charts/PieChart/index.js
+- 116 lines: hemp-retailer-admin:src/examples/Charts/PolarChart/index.js; hyperwolf-super-admin:src/examples/Charts/PolarChart/index.js
+- 112 lines: hemp-backend:controllers/weedmaps/weedmap-controllers.js; stilo-backend:controllers/weedmaps/weedmap-controllers.js
+- 110 lines: hemp-frontend-nextjs:commitlint.config.js; hemp-retailer-admin:commitlint.config.js; hyperwolf-super-admin:commitlint.config.js
+- 108 lines: hemp-retailer-admin:src/examples/Charts/BarCharts/ReportsBarChart/index.js; hyperwolf-super-admin:src/examples/Charts/BarCharts/ReportsBarChart/index.js
+- 103 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/ProgressLineChart/config/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/ProgressLineChart/config/index.js
+- 102 lines: hemp-backend:controllers/admin/banner-controllers.js; stilo-backend:controllers/admin/banner-controllers.js
+- 98 lines: hemp-retailer-admin:src/examples/Charts/BarCharts/ReportsBarChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/BarCharts/ReportsBarChart/configs/index.js
+- 98 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/ReportsLineChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/ReportsLineChart/configs/index.js
+- 85 lines: hemp-backend:controllers/kml-controllers.js; stilo-backend:controllers/kml-controllers.js
+- 85 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/DefaultLineChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/DefaultLineChart/configs/index.js
+- 84 lines: hemp-retailer-admin:src/examples/Charts/BubbleChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/BubbleChart/configs/index.js
+- 84 lines: hemp-retailer-admin:src/examples/Charts/LineCharts/GradientLineChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/LineCharts/GradientLineChart/configs/index.js
+- 84 lines: hemp-retailer-admin:src/examples/Charts/MixedChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/MixedChart/configs/index.js
+- 82 lines: hemp-retailer-admin:src/components/MDPagination/index.js; hyperwolf-super-admin:src/components/MDPagination/index.js
+- 81 lines: hemp-retailer-admin:src/examples/Charts/BarCharts/HorizontalBarChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/BarCharts/HorizontalBarChart/configs/index.js
+- 79 lines: hemp-retailer-admin:src/examples/Charts/BarCharts/VerticalBarChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/BarCharts/VerticalBarChart/configs/index.js
+- 78 lines: hemp-retailer-admin:src/redux/slices/faq.js; hyperwolf-super-admin:src/redux/slices/faq.js
+- 77 lines: hyperwolf-backend:models/MainProductTraits.js; stilo-backend:models/MainProductTraits.js
+- 75 lines: hemp-retailer-admin:src/examples/Charts/DoughnutCharts/DefaultDoughnutChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/DoughnutCharts/DefaultDoughnutChart/configs/index.js
+- 71 lines: hemp-retailer-admin:src/redux/slices/materialUISlice.js; hyperwolf-super-admin:src/redux/slices/materialUISlice.js
+- 69 lines: hemp-retailer-admin:src/examples/Charts/PieChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/PieChart/configs/index.js
+- 63 lines: hemp-retailer-admin:src/examples/Charts/PolarChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/PolarChart/configs/index.js
+- 53 lines: hemp-backend:common/emailTemplates.js; hyperwolf-backend:common/emailTemplates.js; stilo-backend:common/emailTemplates.js
+- 52 lines: hemp-retailer-admin:src/components/MDBox/index.js; hyperwolf-super-admin:src/components/MDBox/index.js
+- 45 lines: hyperwolf-backend:models/Authors.js; stilo-backend:models/Authors.js
+- 43 lines: hemp-retailer-admin:src/redux/apis/terpenoids.js; hyperwolf-super-admin:src/redux/apis/terpenoids.js
+- 42 lines: hemp-backend:emailTemplates/forgotEmailTemplates.js; stilo-backend:emailTemplates/forgotEmailTemplates.js
+- 41 lines: hemp-backend:middlewares/awsBucketProduct.js; stilo-backend:middlewares/awsBucketProduct.js
+- 40 lines: hemp-backend:controllers/blaze/shop-variables-controller.js; stilo-backend:controllers/blaze/shop-variables-controller.js
+- 39 lines: hemp-retailer-admin:src/examples/Charts/RadarChart/configs/index.js; hyperwolf-super-admin:src/examples/Charts/RadarChart/configs/index.js
+- 39 lines: hyperwolf-backend:models/MainCannabinoid.js; stilo-backend:models/MainCannabinoid.js
+- 37 lines: hemp-backend:routes/cannabinoids/cannabinoid-routes.js; hyperwolf-backend:routes/cannabinoids/cannabinoid-routes.js; stilo-backend:routes/cannabinoids/cannabinoid-routes.js
+- 37 lines: hemp-retailer-admin:src/examples/Items/NotificationItem/styles.js; hyperwolf-super-admin:src/examples/Items/NotificationItem/styles.js
+- 34 lines: distribution-backend:middlewares/awsBucket.js; hemp-backend:middlewares/awsBucket.js; hyperwolf-backend:middlewares/awsBucket.js; stilo-backend:middlewares/awsBucket.js
+- 33 lines: hemp-backend:common/commonSendMail.js; hemp-backend:common/emailService.js; stilo-backend:common/emailService.js
+- 33 lines: hemp-backend:common/sensitiveResponse.js; hyperwolf-backend:common/sensitiveResponse.js
+- 30 lines: hyperwolf-backend:common/commonSendMail.js; stilo-backend:common/commonSendMail.js
+
+## Shared exact lines by repo pair
+- hemp-retailer-admin ↔ hyperwolf-super-admin: 4,146 lines
+- hemp-backend ↔ stilo-backend: 2,507 lines
+- hyperwolf-backend ↔ stilo-backend: 629 lines
+- hemp-backend ↔ hyperwolf-backend: 305 lines
+- hemp-frontend-nextjs ↔ hemp-retailer-admin: 110 lines
+- hemp-frontend-nextjs ↔ hyperwolf-super-admin: 110 lines
+- distribution-backend ↔ hemp-backend: 34 lines
+- distribution-backend ↔ hyperwolf-backend: 34 lines
+- distribution-backend ↔ stilo-backend: 34 lines
+
+## Near duplicates (same basename, different content)
+- 1.00  hemp-backend:controllers/admin/dashboard-controllers.js  ~  stilo-backend:controllers/admin/dashboard-controllers.js
+- 1.00  hemp-retailer-admin:src/common/CommonModal/member/BanMemberModal.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/member/BanMemberModal.jsx
+- 1.00  hemp-backend:controllers/agechecker/agechecker-controllers.js  ~  stilo-backend:controllers/agechecker/agechecker-controllers.js
+- 1.00  hemp-backend:controllers/cannabinoids/cannabinoids-controllers.js  ~  stilo-backend:controllers/cannabinoids/cannabinoids-controllers.js
+- 1.00  hemp-retailer-admin:src/common/CustomTable.js  ~  hyperwolf-super-admin:src/common/CustomTable.js
+- 1.00  hemp-backend:controllers/product/productBatch-controllers.js  ~  stilo-backend:controllers/product/productBatch-controllers.js
+- 1.00  hemp-backend:controllers/admin/inventory-controllers.js  ~  stilo-backend:controllers/admin/inventory-controllers.js
+- 1.00  hemp-backend:controllers/retailer-settings/payment-controllers.js  ~  stilo-backend:controllers/store-settings/payment-controllers.js
+- 0.99  hemp-backend:controllers/admin/store-controller.js  ~  stilo-backend:controllers/admin/store-controller.js
+- 0.99  hemp-backend:models/Cannabinoid.js  ~  stilo-backend:models/Cannabinoid.js
+- 0.99  distribution-backend:templates/userForgotEmailTemplate.js  ~  stilo-backend:emailTemplates/userForgotEmailTemplate.js
+- 0.99  hemp-backend:models/SubProductTraits.js  ~  stilo-backend:models/SubProductTraits.js
+- 0.99  hemp-backend:middlewares/awsBucketBarCode.js  ~  stilo-backend:middlewares/awsBucketBarCode.js
+- 0.99  hemp-backend:controllers/retailer-settings/user-roles-permission-controllers.js  ~  stilo-backend:controllers/store-settings/user-roles-permission-controllers.js
+- 0.99  hemp-backend:models/Brand.js  ~  promotion-backend:models/Hemp/Brand.js
+- 0.99  hemp-retailer-admin:src/common/CommonModal/BulkSalePriceUpdate.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/BulkSalePriceUpdate.jsx
+- 0.99  hemp-backend:models/Category.js  ~  promotion-backend:models/Hemp/Category.js
+- 0.99  hemp-retailer-admin:src/examples/Navbars/DashboardNavbar/styles.js  ~  hyperwolf-super-admin:src/examples/Navbars/DashboardNavbar/styles.js
+- 0.99  hemp-backend:models/Promotions.js  ~  stilo-backend:models/Promotions.js
+- 0.99  hyperwolf-backend:controllers/intercom/intercom-controllers.js  ~  stilo-backend:controllers/intercom/intercom-controllers.js
+- 0.99  hemp-backend:controllers/intercom/intercom-controllers.js  ~  hyperwolf-backend:controllers/intercom/intercom-controllers.js
+- 0.99  hemp-backend:models/StoreUser.js  ~  stilo-backend:models/StoreUser.js
+- 0.99  hemp-backend:controllers/alpine/alpine-controllers.js  ~  stilo-backend:controllers/alpine/alpine-controllers.js
+- 0.99  hemp-backend:models/HempProducts.js  ~  promotion-backend:models/HempProducts.js
+- 0.99  hemp-retailer-admin:src/common/CommonModal/orders/ReturnReason.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/orders/ReturnReason.jsx
+- 0.98  hyperwolf-backend:models/SubProductTraits.js  ~  stilo-backend:models/SubProductTraits.js
+- 0.98  hemp-backend:controllers/admin/region-controllers.js  ~  stilo-backend:controllers/admin/region-controllers.js
+- 0.98  hemp-backend:models/ProductBatch.js  ~  stilo-backend:models/ProductBatch.js
+- 0.98  hemp-backend:models/Authors.js  ~  stilo-backend:models/Authors.js
+- 0.98  hemp-backend:models/Authors.js  ~  hyperwolf-backend:models/Authors.js
+- 0.98  hemp-backend:controllers/retailer-settings/branch-controllers.js  ~  stilo-backend:controllers/store-settings/branch-controllers.js
+- 0.98  hemp-retailer-admin:src/layouts/rolesPermissions/RolesPermission.jsx  ~  hyperwolf-super-admin:src/layouts/rolesPermissions/RolesPermission.jsx
+- 0.98  hyperwolf-backend:models/Cannabinoid.js  ~  stilo-backend:models/Cannabinoid.js
+- 0.98  hemp-backend:models/SubProductTraits.js  ~  hyperwolf-backend:models/SubProductTraits.js
+- 0.98  hyperwolf-backend:models/HempProducts.js  ~  promotion-backend:models/HempProducts.js
+- 0.98  hemp-retailer-admin:src/redux/slices/inventory.js  ~  hyperwolf-super-admin:src/redux/slices/inventory.js
+- 0.97  hemp-backend:controllers/retailer-settings/notification-controllers.js  ~  stilo-backend:controllers/store-settings/notification-controllers.js
+- 0.97  distribution-backend:models/OnDutyChecklists.js  ~  hyperdrive-backend:models/OnDutyChecklists.js
+- 0.97  hemp-backend:controllers/retailer-settings/shop-controllers.js  ~  stilo-backend:controllers/store-settings/shop-controllers.js
+- 0.97  hemp-retailer-admin:src/common/CommonModal/AddNewUnitModal.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/AddNewUnitModal.jsx
+- 0.97  hemp-backend:controllers/retailer-settings/printer-controllers.js  ~  stilo-backend:controllers/store-settings/printer-controllers.js
+- 0.97  hemp-backend:controllers/retailer-settings/barcode-controllers.js  ~  stilo-backend:controllers/store-settings/barcode-controllers.js
+- 0.97  hemp-backend:models/Cannabinoid.js  ~  hyperwolf-backend:models/Cannabinoid.js
+- 0.97  hemp-retailer-admin:src/components/inventory/addInventoryForm.js  ~  hyperwolf-super-admin:src/components/inventory/addInventoryForm.js
+- 0.97  hemp-retailer-admin:src/components/MDButton/MDButtonRoot.js  ~  hyperwolf-super-admin:src/components/MDButton/MDButtonRoot.js
+- 0.96  hemp-backend:models/HempProducts.js  ~  hyperwolf-backend:models/HempProducts.js
+- 0.96  hemp-retailer-admin:src/assets/theme-dark/theme-rtl.js  ~  hyperwolf-super-admin:src/assets/theme-dark/theme-rtl.js
+- 0.96  hemp-retailer-admin:src/components/products/productTraits/selectProductTrait.jsx  ~  hyperwolf-super-admin:src/components/products/productTraits/selectProductTrait.jsx
+- 0.95  hemp-retailer-admin:src/components/strain/stiloForm.jsx  ~  hyperwolf-super-admin:src/components/strain/stiloForm.jsx
+- 0.95  distribution-backend:startup/middleware.js  ~  hyperwolf-backend:startup/middleware.js
+- 0.94  hemp-retailer-admin:src/assets/theme-dark/base/typography.js  ~  hyperwolf-super-admin:src/assets/theme-dark/base/typography.js
+- 0.94  hyperwolf-backend:controllers/blaze/shop-variables-controller.js  ~  stilo-backend:controllers/blaze/shop-variables-controller.js
+- 0.94  hemp-backend:controllers/blaze/shop-variables-controller.js  ~  hyperwolf-backend:controllers/blaze/shop-variables-controller.js
+- 0.94  hemp-backend:controllers/sitemap-controllers.js  ~  stilo-backend:controllers/sitemap-controllers.js
+- 0.94  hemp-backend:models/Store.js  ~  stilo-backend:models/Store.js
+- 0.93  hemp-retailer-admin:src/components/MDBadge/MDBadgeRoot.js  ~  hyperwolf-super-admin:src/components/MDBadge/MDBadgeRoot.js
+- 0.93  promotion-backend:services/category-brand-composite.js  ~  promotion-engine:rule-types/product/category-brand-composite.js
+- 0.92  hemp-backend:controllers/strain/strain-controller.js  ~  stilo-backend:controllers/strain/strain-controller.js
+- 0.92  hemp-backend:controllers/weedmaps/weedmap-controllers.js  ~  hyperwolf-backend:controllers/weedmaps/weedmap-controllers.js
+- 0.91  hemp-retailer-admin:src/assets/theme-dark/base/boxShadows.js  ~  hyperwolf-super-admin:src/assets/theme-dark/base/boxShadows.js
+- 0.91  hemp-backend:routes/product/product-routes.js  ~  stilo-backend:routes/product/product-routes.js
+- 0.91  hemp-retailer-admin:src/components/MDBox/MDBoxRoot.js  ~  hyperwolf-super-admin:src/components/MDBox/MDBoxRoot.js
+- 0.90  hemp-retailer-admin:src/common/charts/TrendChart.jsx  ~  hyperwolf-super-admin:src/common/charts/TrendChart.jsx
+- 0.90  hemp-backend:controllers/product/brand-controllers.js  ~  stilo-backend:controllers/product/brand-controllers.js
+- 0.90  hemp-retailer-admin:src/common/CommonModal/stores/UploadIdImageModal.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/UploadIdImageModal.jsx
+- 0.90  hemp-retailer-admin:src/assets/theme-dark/components/form/autocomplete.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/form/autocomplete.js
+- 0.89  promotion-backend:models/Hemp/Brand.js  ~  stilo-backend:models/Brand.js
+- 0.89  hemp-retailer-admin:src/components/MDInput/MDInputRoot.js  ~  hyperwolf-super-admin:src/components/MDInput/MDInputRoot.js
+- 0.89  hyperwolf-backend:controllers/weedmaps/weedmap-controllers.js  ~  stilo-backend:controllers/weedmaps/weedmap-controllers.js
+- 0.89  hemp-retailer-admin:src/assets/theme-dark/components/form/checkbox.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/form/checkbox.js
+- 0.89  hemp-backend:models/Brand.js  ~  stilo-backend:models/Brand.js
+- 0.88  hemp-backend:models/MainProductTraits.js  ~  stilo-backend:models/MainProductTraits.js
+- 0.88  hemp-backend:models/MainProductTraits.js  ~  hyperwolf-backend:models/MainProductTraits.js
+- 0.88  hemp-backend:common/toastMessages.js  ~  stilo-backend:common/toastMessages.js
+- 0.88  hemp-retailer-admin:src/components/dashboard/CompleteAndCancelledOrdersStats.jsx  ~  hyperwolf-super-admin:src/components/dashboard/CompleteAndCancelledOrdersStats.jsx
+- 0.88  hemp-retailer-admin:src/assets/theme-dark/components/form/switchButton.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/form/switchButton.js
+- 0.87  hemp-retailer-admin:src/assets/theme-dark/components/button/text.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/button/text.js
+- 0.87  hemp-retailer-admin:src/assets/theme-dark/components/form/radio.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/form/radio.js
+- 0.87  hyperwolf-backend:controllers/textVolt/textVolt-controllers.js  ~  stilo-backend:controllers/textVolt/textVolt-controllers.js
+- 0.87  hemp-backend:controllers/textVolt/textVolt-controllers.js  ~  hyperwolf-backend:controllers/textVolt/textVolt-controllers.js
+- 0.87  hemp-retailer-admin:src/components/MDAvatar/MDAvatarRoot.js  ~  hyperwolf-super-admin:src/components/MDAvatar/MDAvatarRoot.js
+- 0.87  hemp-retailer-admin:src/components/MDTypography/MDTypographyRoot.js  ~  hyperwolf-super-admin:src/components/MDTypography/MDTypographyRoot.js
+- 0.86  hemp-retailer-admin:src/assets/theme-dark/components/button/contained.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/button/contained.js
+- 0.86  hemp-retailer-admin:src/examples/Navbars/DefaultNavbar/DefaultNavbarMobile.js  ~  hyperwolf-super-admin:src/examples/Navbars/DefaultNavbar/DefaultNavbarMobile.js
+- 0.85  hemp-retailer-admin:src/common/charts/LinChart.jsx  ~  hyperwolf-super-admin:src/common/charts/LinChart.jsx
+- 0.85  hemp-retailer-admin:src/assets/theme-dark/components/button/outlined.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/button/outlined.js
+- 0.85  hemp-retailer-admin:src/common/CommonModal/ActiveCard.js  ~  hyperwolf-super-admin:src/common/CommonModal/ActiveCard.js
+- 0.85  hemp-backend:controllers/admin/category-controllers.js  ~  stilo-backend:controllers/admin/category-controllers.js
+- 0.85  hemp-retailer-admin:src/assets/theme-dark/components/divider.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/divider.js
+- 0.85  hemp-retailer-admin:src/common/imageDragger.jsx  ~  hyperwolf-super-admin:src/common/imageDragger.jsx
+- 0.85  hemp-retailer-admin:src/assets/theme/components/iconButton.js  ~  hyperwolf-super-admin:src/assets/theme/components/iconButton.js
+- 0.84  hemp-backend:controllers/shipstation/shipstation-controllers.js  ~  stilo-backend:controllers/shipstation/shipstation-controllers.js
+- 0.84  hemp-retailer-admin:src/assets/theme-dark/components/form/inputOutlined.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/form/inputOutlined.js
+- 0.84  hemp-retailer-admin:src/examples/Navbars/DefaultNavbar/DefaultNavbarLink.js  ~  hyperwolf-super-admin:src/examples/Navbars/DefaultNavbar/DefaultNavbarLink.js
+- 0.84  hemp-backend:controllers/admin/banner-controllers.js  ~  hyperwolf-backend:controllers/admin/banner-controllers.js
+- 0.84  hemp-retailer-admin:src/assets/theme-dark/components/container.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/container.js
+- 0.83  hemp-backend:controllers/admin/product-traits-controllers.js  ~  stilo-backend:controllers/admin/product-traits-controllers.js
+- 0.83  hemp-retailer-admin:src/assets/theme-dark/components/slider.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/slider.js
+- 0.83  hemp-retailer-admin:src/assets/theme-dark/components/tabs/tab.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/tabs/tab.js
+- 0.83  hyperwolf-backend:controllers/admin/banner-controllers.js  ~  stilo-backend:controllers/admin/banner-controllers.js
+- 0.83  hemp-retailer-admin:src/components/MDPagination/MDPaginationItemRoot.js  ~  hyperwolf-super-admin:src/components/MDPagination/MDPaginationItemRoot.js
+- 0.83  hemp-backend:models/Order.js  ~  stilo-backend:models/Order.js
+- 0.83  hemp-retailer-admin:src/examples/Sidenav/styles/sidenavCollapse.js  ~  hyperwolf-super-admin:src/examples/Footer/Sidenav/styles/sidenavCollapse.js
+- 0.82  hemp-backend:controllers/product/product-controllers.js  ~  stilo-backend:controllers/product/product-controllers.js
+- 0.82  hemp-retailer-admin:src/examples/Configurator/ConfiguratorRoot.js  ~  hyperwolf-super-admin:src/examples/Configurator/ConfiguratorRoot.js
+- 0.82  distribution-backend:models/Fleets.js  ~  hyperwolf-backend:models/Fleets.js
+- 0.82  distribution-backend:models/Order.js  ~  hyperdrive-backend:models/Order.js
+- 0.82  hemp-retailer-admin:src/components/terpenoids/addTerepnoidForm.jsx  ~  hyperwolf-super-admin:src/components/terpenoids/addTerepnoidForm.jsx
+- 0.82  hemp-retailer-admin:src/assets/theme/components/flatpickr.js  ~  hyperwolf-super-admin:src/assets/theme/components/flatpickr.js
+- 0.81  hemp-retailer-admin:src/components/promotion/addPromotionForm.jsx  ~  hyperwolf-super-admin:src/components/promotion/addPromotionForm.jsx
+- 0.80  hemp-retailer-admin:src/assets/theme-dark/components/stepper/stepIcon.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/stepper/stepIcon.js
+- 0.80  hemp-retailer-admin:src/components/googleMaps/GoogleSuggestion.jsx  ~  hyperwolf-super-admin:src/components/googleMaps/GoogleSuggestion.jsx
+- 0.80  hemp-backend:controllers/member/member-controllers.js  ~  stilo-backend:controllers/member/member-controllers.js
+- 0.79  hemp-retailer-admin:src/assets/theme-dark/components/tooltip.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/tooltip.js
+- 0.79  hemp-retailer-admin:src/assets/theme-dark/components/form/input.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/form/input.js
+- 0.79  hyperwolf-backend:startup/db.js  ~  promotion-backend:startup/db.js
+- 0.79  hemp-retailer-admin:src/assets/theme-dark/components/button/root.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/button/root.js
+- 0.78  hemp-retailer-admin:src/assets/theme-dark/components/form/inputLabel.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/form/inputLabel.js
+- 0.78  distribution-backend:startup/middleware.js  ~  hemp-backend:startup/middleware.js
+- 0.78  hemp-retailer-admin:src/assets/theme-dark/base/borders.js  ~  hyperwolf-super-admin:src/assets/theme-dark/base/borders.js
+- 0.78  hemp-retailer-admin:src/firebaseInit.js  ~  hyperwolf-super-admin:src/firebaseInit.js
+- 0.78  distribution-backend:models/Order.js  ~  hyperwolf-backend:models/Order.js
+- 0.78  hemp-retailer-admin:src/assets/theme-dark/base/colors.js  ~  hyperwolf-super-admin:src/assets/theme-dark/base/colors.js
+- 0.78  hemp-retailer-admin:src/examples/Sidenav/SidenavCollapse.js  ~  hyperwolf-super-admin:src/examples/Footer/Sidenav/SidenavCollapse.js
+- 0.77  hemp-backend:controllers/admin/seo-pages-controllers.js  ~  stilo-backend:controllers/admin/seo-pages-controllers.js
+- 0.77  hemp-retailer-admin:src/common/CommonModal/BulkDeleteModal.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/BulkDeleteModal.jsx
+- 0.77  hemp-backend:models/Strain.js  ~  stilo-backend:models/Strain.js
+- 0.77  hyperdrive-backend:common/sendPushNotifications.js  ~  hyperwolf-backend:common/sendPushNotifications.js
+- 0.77  distribution-backend:startup/middleware.js  ~  stilo-backend:startup/middleware.js
+- 0.77  hyperwolf-backend:models/Category.js  ~  stilo-backend:models/Category.js
+- 0.77  hemp-retailer-admin:src/assets/theme-dark/components/linearProgress.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/linearProgress.js
+- 0.77  hemp-retailer-admin:src/common/tabs/FilterTabs.jsx  ~  hyperwolf-super-admin:src/components/common/FilterTabs.jsx
+- 0.77  hemp-retailer-admin:src/common/CommonModal/orders/CancelOrderReason.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/orders/CancelOrderReason.jsx
+- 0.77  hemp-backend:models/Legal.js  ~  stilo-backend:models/Legal.js
+- 0.77  hemp-backend:models/Legal.js  ~  hyperwolf-backend:models/Legal.js
+- 0.76  hemp-retailer-admin:src/components/dashboard/NewCustomersStats.jsx  ~  hyperwolf-super-admin:src/components/dashboard/NewCustomersStats.jsx
+- 0.76  hemp-backend:startup/middleware.js  ~  stilo-backend:startup/middleware.js
+- 0.75  hemp-backend:startup/middleware.js  ~  hyperwolf-backend:startup/middleware.js
+- 0.75  hyperwolf-backend:controllers/cannabinoids/cannabinoids-controllers.js  ~  stilo-backend:controllers/cannabinoids/cannabinoids-controllers.js
+- 0.74  distribution-backend:models/Products.js  ~  hyperwolf-backend:models/Products.js
+- 0.74  hemp-backend:controllers/cannabinoids/cannabinoids-controllers.js  ~  hyperwolf-backend:controllers/cannabinoids/cannabinoids-controllers.js
+- 0.74  hemp-retailer-admin:src/components/memberShips/addMemberShipForm.jsx  ~  hyperwolf-super-admin:src/components/memberShips/addMemberShipForm.jsx
+- 0.74  hemp-backend:routes/common-routes.js  ~  stilo-backend:routes/common-routes.js
+- 0.73  hemp-retailer-admin:src/assets/theme-dark/components/stepper/stepConnector.js  ~  hyperwolf-super-admin:src/assets/theme-dark/components/stepper/stepConnector.js
+- 0.73  hemp-retailer-admin:public/firebase-messaging-sw.js  ~  hyperwolf-super-admin:public/firebase-messaging-sw.js
+- 0.72  hemp-backend:models/Strain.js  ~  hyperwolf-backend:models/Strain.js
+- 0.72  hemp-retailer-admin:src/common/CommonModal/orders/HotNotesModal.jsx  ~  hyperwolf-super-admin:src/common/CommonModal/HotNotesModal.jsx
+- 0.72  hemp-retailer-admin:src/components/InfiniteAutoComplete.jsx  ~  hyperwolf-super-admin:src/components/InfiniteAutoComplete.jsx
+- 0.72  hyperwolf-backend:startup/middleware.js  ~  stilo-backend:startup/middleware.js
+- 0.71  hemp-backend:controllers/didit/didit-controllers.js  ~  stilo-backend:controllers/didit/didit-controllers.js
+
+(177 near-duplicate pairs total)

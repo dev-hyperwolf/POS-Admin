@@ -1,0 +1,537 @@
+{
+ "repo": "promotion-engine",
+ "sha": "8e37229",
+ "scanned_at": "2026-09-09T10:04:47",
+ "files": 64,
+ "src_files": 57,
+ "src_lines": 17727,
+ "by_ext": [
+  [
+   ".js",
+   57
+  ],
+  [
+   ".json",
+   3
+  ],
+  [
+   "(none)",
+   2
+  ],
+  [
+   ".example",
+   1
+  ],
+  [
+   ".yml",
+   1
+  ]
+ ],
+ "biggest": [
+  [
+   "engine.js",
+   2316
+  ],
+  [
+   "utils/common.js",
+   1972
+  ],
+  [
+   "rule-types/user/evaluator.js",
+   1562
+  ],
+  [
+   "rule-types/cart/evaluator.js",
+   1484
+  ],
+  [
+   "rule-types/product/evaluator.js",
+   1477
+  ],
+  [
+   "utils/normalization.js",
+   1104
+  ],
+  [
+   "rule-types/bogo/evaluator.js",
+   908
+  ],
+  [
+   "controllers/promotion-controllers.js",
+   486
+  ],
+  [
+   "core/adapter/legacy.js",
+   398
+  ],
+  [
+   "rule-types/bogo/context.js",
+   336
+  ],
+  [
+   "core/validation.js",
+   320
+  ],
+  [
+   "rule-types/time/evaluator.js",
+   318
+  ]
+ ],
+ "engines": {
+  "node": ">=18.0.0"
+ },
+ "scripts": {
+  "build:bundle": "ncc build index.js -o bundle",
+  "dev": "nodemon server.js",
+  "start": "node server.js",
+  "test": "jest --coverage"
+ },
+ "lockfiles": [
+  "package-lock.json"
+ ],
+ "deps_count": 8,
+ "dev_count": 4,
+ "pins": {
+  "caret": 12
+ },
+ "frameworks": {
+  "express": "^5.2.1",
+  "mongoose": "^8.21.0",
+  "axios": "^1.13.6",
+  "jest": "^29.7.0"
+ },
+ "eol_notes": [],
+ "test_deps": [
+  "jest"
+ ],
+ "test_files": [],
+ "test_file_count": 0,
+ "test_lines": 0,
+ "hits": {
+  "hardcoded": {
+   "mongo_uri": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "core/db-connection-manager.js",
+      2
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 13,
+    "files": 4,
+    "top": [
+     [
+      "engine.js",
+      10
+     ],
+     [
+      "core/compiler.js",
+      1
+     ],
+     [
+      "core/constants.js",
+      1
+     ],
+     [
+      "rule-types/user/compiler.js",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {},
+  "security": {},
+  "performance": {
+   "sync_fs": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "core/logger.js",
+      1
+     ]
+    ]
+   },
+   "find_without_limit": {
+    "count": 26,
+    "files": 11,
+    "top": [
+     [
+      "rule-types/bogo/evaluator.js",
+      4
+     ],
+     [
+      "utils/common.js",
+      4
+     ],
+     [
+      "engine.js",
+      3
+     ],
+     [
+      "rule-types/cart/evaluator.js",
+      3
+     ],
+     [
+      "controllers/promotion-controllers.js",
+      2
+     ]
+    ]
+   },
+   "aggregate_calls": {
+    "count": 13,
+    "files": 1,
+    "top": [
+     [
+      "utils/common.js",
+      13
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 5,
+    "files": 3,
+    "top": [
+     [
+      "core/errors.js",
+      2
+     ],
+     [
+      "utils/initialize.js",
+      2
+     ],
+     [
+      "core/db-connection-manager.js",
+      1
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 34,
+    "files": 8,
+    "top": [
+     [
+      "rule-types/user/evaluator.js",
+      13
+     ],
+     [
+      "rule-types/bogo/evaluator.js",
+      10
+     ],
+     [
+      "rule-types/product/evaluator.js",
+      3
+     ],
+     [
+      "engine.js",
+      2
+     ],
+     [
+      "rule-types/cart/evaluator.js",
+      2
+     ]
+    ]
+   },
+   "todo_fixme": {
+    "count": 14,
+    "files": 5,
+    "top": [
+     [
+      "rule-types/product/evaluator.js",
+      8
+     ],
+     [
+      "rule-types/product/context.js",
+      2
+     ],
+     [
+      "rule-types/user/evaluator.js",
+      2
+     ],
+     [
+      "engine.js",
+      1
+     ],
+     [
+      "rule-types/cart/evaluator.js",
+      1
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 7,
+    "files": 7,
+    "top": [
+     [
+      "engine.js",
+      1
+     ],
+     [
+      "rule-types/product/compiler.js",
+      1
+     ],
+     [
+      "rule-types/product/context.js",
+      1
+     ],
+     [
+      "rule-types/product/evaluator.js",
+      1
+     ],
+     [
+      "rule-types/user/evaluator.js",
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "mongo_uri": [
+    "core/db-connection-manager.js:26",
+    "core/db-connection-manager.js:26"
+   ],
+   "role_string": [
+    "core/compiler.js:19",
+    "core/constants.js:203",
+    "engine.js:287",
+    "engine.js:413",
+    "engine.js:590",
+    "engine.js:591"
+   ]
+  },
+  "secrets": {},
+  "security": {},
+  "performance": {
+   "sync_fs": [
+    "core/logger.js:12"
+   ],
+   "find_without_limit": [
+    "controllers/promotion-controllers.js:336",
+    "controllers/promotion-controllers.js:431",
+    "engine.js:158",
+    "engine.js:1368",
+    "engine.js:1654",
+    "repositories/cart.repository.js:17"
+   ],
+   "aggregate_calls": [
+    "utils/common.js:140",
+    "utils/common.js:218",
+    "utils/common.js:309",
+    "utils/common.js:425",
+    "utils/common.js:462",
+    "utils/common.js:509"
+   ],
+   "settimeout_in_handler": [
+    "core/db-connection-manager.js:236",
+    "core/errors.js:104",
+    "core/errors.js:119",
+    "utils/initialize.js:52",
+    "utils/initialize.js:79"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "engine.js:1325",
+    "engine.js:1399",
+    "rule-types/bogo/evaluator.js:411",
+    "rule-types/bogo/evaluator.js:442",
+    "rule-types/bogo/evaluator.js:486",
+    "rule-types/bogo/evaluator.js:502"
+   ],
+   "todo_fixme": [
+    "engine.js:912",
+    "rule-types/cart/evaluator.js:1390",
+    "rule-types/product/context.js:80",
+    "rule-types/product/context.js:131",
+    "rule-types/product/evaluator.js:198",
+    "rule-types/product/evaluator.js:232"
+   ],
+   "commented_code_hint": [
+    "engine.js:1432",
+    "rule-types/product/compiler.js:88",
+    "rule-types/product/context.js:81",
+    "rule-types/product/evaluator.js:1464",
+    "rule-types/user/evaluator.js:877",
+    "utils/normalization.js:306"
+   ]
+  }
+ },
+ "routes_total": 6,
+ "routes_unguarded": 4,
+ "routes_sample": [
+  {
+   "verb": "GET",
+   "path": "/health",
+   "file": "routes/promotion-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/evaluate",
+   "file": "routes/promotion-routes.js",
+   "line": 11,
+   "middleware": [
+    "validationMiddleware(\"evaluatePromotions\")"
+   ]
+  },
+  {
+   "verb": "POST",
+   "path": "/compile-promotion",
+   "file": "routes/promotion-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/userPromotions",
+   "file": "routes/promotion-routes.js",
+   "line": 21,
+   "middleware": [
+    "validationMiddleware(\"userPromotions\")"
+   ]
+  },
+  {
+   "verb": "POST",
+   "path": "/consume-usage",
+   "file": "routes/promotion-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "startup/routes.js",
+   "line": 5,
+   "middleware": []
+  }
+ ],
+ "unguarded_sample": [
+  {
+   "verb": "GET",
+   "path": "/health",
+   "file": "routes/promotion-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/compile-promotion",
+   "file": "routes/promotion-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/consume-usage",
+   "file": "routes/promotion-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "startup/routes.js",
+   "line": 5,
+   "middleware": []
+  }
+ ],
+ "middleware_freq": [
+  [
+   "validationMiddleware",
+   2
+  ]
+ ],
+ "models": [
+  {
+   "kind": "mongoose",
+   "name": "Cart",
+   "file": "repositories/cart.repository.js",
+   "fields": 0,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Promotion",
+   "file": "repositories/promotion.repository.js",
+   "fields": 2,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  }
+ ],
+ "money_field_types": {},
+ "next_pages": 0,
+ "next_api_routes": [],
+ "unused_deps": [
+  "p-limit"
+ ],
+ "undeclared_imports": [
+  "*25%"
+ ],
+ "env_refs": [
+  "API_KEY",
+  "AUTH_TOKEN",
+  "BLAZE_BASE_URL",
+  "BOGO_MAX_FREE_ITEMS",
+  "CACHE_TTL_SECONDS",
+  "CURRENCY_DECIMAL_PLACES",
+  "DATABASE_URL",
+  "DB_POOL_MAX_SIZE",
+  "DB_POOL_MIN_SIZE",
+  "DB_SOCKET_TIMEOUT_MS",
+  "ENABLE_RULE_CACHING",
+  "HEALTH_CHECK_INTERVAL_MS",
+  "HEMP_DATABASE_URL",
+  "HW_DATABASE_URL",
+  "INSTANCE_ID",
+  "LOG_LEVEL",
+  "NODE_ENV",
+  "PARTNER_KEY",
+  "PORT",
+  "RATE_LIMIT_ENABLED",
+  "RATE_LIMIT_MAX_REQUESTS",
+  "RATE_LIMIT_WINDOW_MS",
+  "REQUEST_TIMEOUT_MS"
+ ],
+ "env_example": [
+  "API_KEY",
+  "AUTH_TOKEN",
+  "BLAZE_BASE_URL",
+  "BOGO_MAX_FREE_ITEMS",
+  "CACHE_TTL_SECONDS",
+  "CURRENCY_DECIMAL_PLACES",
+  "DATABASE_URL",
+  "DB_POOL_MAX_SIZE",
+  "DB_POOL_MIN_SIZE",
+  "DB_SOCKET_TIMEOUT_MS",
+  "ENABLE_RULE_CACHING",
+  "HEALTH_CHECK_INTERVAL_MS",
+  "HEMP_DATABASE_URL",
+  "HW_DATABASE_URL",
+  "INSTANCE_ID",
+  "LOG_LEVEL",
+  "NODE_ENV",
+  "PARTNER_KEY",
+  "PORT",
+  "RATE_LIMIT_ENABLED",
+  "RATE_LIMIT_MAX_REQUESTS",
+  "RATE_LIMIT_WINDOW_MS",
+  "REQUEST_TIMEOUT_MS"
+ ],
+ "env_missing_from_example": [],
+ "inrepo_duplicate_groups": [],
+ "ci_deploy_files": [
+  ".github/workflows/dev.yml"
+ ],
+ "docs": []
+}

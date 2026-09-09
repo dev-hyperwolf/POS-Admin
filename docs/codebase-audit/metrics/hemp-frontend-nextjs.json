@@ -1,0 +1,777 @@
+{
+ "repo": "hemp-frontend-nextjs",
+ "sha": "755eab4",
+ "scanned_at": "2026-09-09T10:04:39",
+ "files": 468,
+ "src_files": 244,
+ "src_lines": 45869,
+ "by_ext": [
+  [
+   ".js",
+   130
+  ],
+  [
+   ".jsx",
+   114
+  ],
+  [
+   ".svg",
+   90
+  ],
+  [
+   ".png",
+   65
+  ],
+  [
+   ".jpg",
+   19
+  ],
+  [
+   ".md",
+   9
+  ],
+  [
+   ".gif",
+   9
+  ],
+  [
+   ".webp",
+   8
+  ],
+  [
+   ".json",
+   5
+  ],
+  [
+   ".scss",
+   5
+  ],
+  [
+   ".woff2",
+   4
+  ],
+  [
+   "(none)",
+   3
+  ]
+ ],
+ "biggest": [
+  [
+   "app/components/app/Checkout/SecondStep.js",
+   3063
+  ],
+  [
+   "app/components/app/Auth/Signup.js",
+   1523
+  ],
+  [
+   "app/redux/actions/common.js",
+   1417
+  ],
+  [
+   "app/redux/reducers/common.js",
+   1306
+  ],
+  [
+   "app/redux/reducers/products.js",
+   1292
+  ],
+  [
+   "app/utils.js",
+   1176
+  ],
+  [
+   "app/components/app/Drawer/ShoppingCartSidebar.js",
+   1146
+  ],
+  [
+   "app/components/app/Shop/Types/SubSingleCategoryProducts.js",
+   1082
+  ],
+  [
+   "app/shop/order_status/(_component)/OrderStatusPage.jsx",
+   980
+  ],
+  [
+   "app/components/app/Shop/Details/SingleProductDetails.js",
+   928
+  ],
+  [
+   "app/redux/actions/products.js",
+   783
+  ],
+  [
+   "app/redux/actions/externals.js",
+   760
+  ]
+ ],
+ "engines": {
+  "npm": ">=9.5.0",
+  "node": ">=18.15.0"
+ },
+ "scripts": {
+  "dev": "next dev -p 3047",
+  "build": "next build",
+  "start": "next start -p 3047",
+  "lint": "next lint",
+  "production": "next build && next start -p 3047"
+ },
+ "lockfiles": [],
+ "deps_count": 48,
+ "dev_count": 14,
+ "pins": {
+  "caret": 55,
+  "exact": 7
+ },
+ "frameworks": {
+  "next": "14.0.4",
+  "react": "^18",
+  "axios": "^1.6.7",
+  "redux": "^5.0.0",
+  "@reduxjs/toolkit": "^2.0.1",
+  "eslint": "^8.55.0",
+  "prettier": "2.8.8",
+  "husky": "^8.0.3"
+ },
+ "eol_notes": [
+  "next 14.0.4 (15/16 current)",
+  "react 18"
+ ],
+ "test_deps": [],
+ "test_files": [
+  "app/components/common/__tests__/smartCartUpsellState.test.js"
+ ],
+ "test_file_count": 1,
+ "test_lines": 94,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 158,
+    "files": 50,
+    "top": [
+     [
+      "app/constants.js",
+      18
+     ],
+     [
+      "app/components/app/Shop/Types/SubSingleCategoryProducts.js",
+      16
+     ],
+     [
+      "app/components/wrapper/Footer.js",
+      13
+     ],
+     [
+      "app/components/app/Checkout/Ads.jsx",
+      10
+     ],
+     [
+      "app/optimized-scripts.jsx",
+      9
+     ]
+    ]
+   },
+   "localhost": {
+    "count": 4,
+    "files": 3,
+    "top": [
+     [
+      "app/api/register/route.js",
+      2
+     ],
+     [
+      "app/api/checkout/route.js",
+      1
+     ],
+     [
+      "app/components/app/Auth/Signup.js",
+      1
+     ]
+    ]
+   },
+   "ip_literal": {
+    "count": 8,
+    "files": 3,
+    "top": [
+     [
+      "app/shop/strain/_components/SingleStrain.jsx",
+      6
+     ],
+     [
+      "app/constants.js",
+      1
+     ],
+     [
+      "app/shop/strain/_components/Strains.jsx",
+      1
+     ]
+    ]
+   },
+   "objectid_24hex": {
+    "count": 12,
+    "files": 3,
+    "top": [
+     [
+      "app/utils.js",
+      10
+     ],
+     [
+      "app/components/app/Checkout/FHLcredit.js",
+      1
+     ],
+     [
+      "app/constants.js",
+      1
+     ]
+    ]
+   },
+   "s3_bucket": {
+    "count": 4,
+    "files": 1,
+    "top": [
+     [
+      "app/components/app/Shop/Shop.js",
+      4
+     ]
+    ]
+   },
+   "email_literal": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "app/components/app/Auth/Signup.js",
+      1
+     ]
+    ]
+   },
+   "phone_literal": {
+    "count": 2,
+    "files": 2,
+    "top": [
+     [
+      "app/components/app/Auth/Signup.js",
+      1
+     ],
+     [
+      "app/components/app/Checkout/FHLcredit.js",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {},
+  "security": {
+   "child_process": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "app/utils.js",
+      1
+     ]
+    ]
+   },
+   "mongo_where": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "app/utilities/validations/queryParams.js",
+      1
+     ]
+    ]
+   },
+   "dangerously_set_html": {
+    "count": 93,
+    "files": 38,
+    "top": [
+     [
+      "app/blog/_components/BlogDetailView.jsx",
+      8
+     ],
+     [
+      "app/components/app/CareerPage/index.js",
+      7
+     ],
+     [
+      "app/components/app/AboutsUs/index.js",
+      6
+     ],
+     [
+      "app/optimized-scripts.jsx",
+      6
+     ],
+     [
+      "app/components/app/Team/index.js",
+      5
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "find_without_limit": {
+    "count": 73,
+    "files": 21,
+    "top": [
+     [
+      "app/components/app/Shop/Details/SingleProductDetails.js",
+      9
+     ],
+     [
+      "app/components/app/Shop/Shop.js",
+      7
+     ],
+     [
+      "app/components/common/DeliveryTabs.js",
+      6
+     ],
+     [
+      "app/template.js",
+      5
+     ],
+     [
+      "app/components/app/Shop/FAQ.jsx",
+      4
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 12,
+    "files": 10,
+    "top": [
+     [
+      "app/components/app/Checkout/SecondStep.js",
+      2
+     ],
+     [
+      "app/components/common/DeliveryTabs.js",
+      2
+     ],
+     [
+      "app/HOC/AuthComponent.jsx",
+      1
+     ],
+     [
+      "app/author/_components/AuthorBlogList.jsx",
+      1
+     ],
+     [
+      "app/blog/_components/BlogListView.jsx",
+      1
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 6,
+    "files": 5,
+    "top": [
+     [
+      "app/HOC/RenderMainComponent.jsx",
+      2
+     ],
+     [
+      "app/components/app/Drawer/ShoppingCartSidebar.js",
+      1
+     ],
+     [
+      "app/components/app/Shop/Details/SingleProductDetails.js",
+      1
+     ],
+     [
+      "app/components/app/Shop/Shop.js",
+      1
+     ],
+     [
+      "app/template.js",
+      1
+     ]
+    ]
+   },
+   "todo_fixme": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "app/components/app/Shop/FAQ.jsx",
+      1
+     ]
+    ]
+   },
+   "empty_catch": {
+    "count": 21,
+    "files": 19,
+    "top": [
+     [
+      "app/shop/deals/[dealType]/[category-slug]/page.jsx",
+      3
+     ],
+     [
+      "app/author_sitemap/sitemap.js",
+      1
+     ],
+     [
+      "app/blog_category_sitemap/sitemap.js",
+      1
+     ],
+     [
+      "app/blog_sitemap/sitemap.js",
+      1
+     ],
+     [
+      "app/brands_sitemap/sitemap.js",
+      1
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 407,
+    "files": 51,
+    "top": [
+     [
+      "app/components/app/Checkout/SecondStep.js",
+      111
+     ],
+     [
+      "app/redux/actions/common.js",
+      45
+     ],
+     [
+      "app/components/app/Auth/Signup.js",
+      32
+     ],
+     [
+      "app/redux/apis/products.js",
+      23
+     ],
+     [
+      "app/components/common/DeliveryTabs.js",
+      16
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "app/api/checkout/route.js:10",
+    "app/api/checkout/route.js:10",
+    "app/api/register/route.js:11",
+    "app/api/register/route.js:11",
+    "app/author/_components/AuthorBlogList.jsx:13",
+    "app/author/_components/AuthorBlogList.jsx:78"
+   ],
+   "localhost": [
+    "app/api/checkout/route.js:10",
+    "app/api/register/route.js:11",
+    "app/api/register/route.js:25",
+    "app/components/app/Auth/Signup.js:622"
+   ],
+   "ip_literal": [
+    "app/constants.js:39",
+    "app/shop/strain/_components/SingleStrain.jsx:341",
+    "app/shop/strain/_components/SingleStrain.jsx:341",
+    "app/shop/strain/_components/SingleStrain.jsx:341",
+    "app/shop/strain/_components/SingleStrain.jsx:341",
+    "app/shop/strain/_components/SingleStrain.jsx:341"
+   ],
+   "objectid_24hex": [
+    "app/components/app/Checkout/FHLcredit.js:74",
+    "app/constants.js:12",
+    "app/utils.js:613",
+    "app/utils.js:613",
+    "app/utils.js:613",
+    "app/utils.js:613"
+   ],
+   "s3_bucket": [
+    "app/components/app/Shop/Shop.js:322",
+    "app/components/app/Shop/Shop.js:322",
+    "app/components/app/Shop/Shop.js:324",
+    "app/components/app/Shop/Shop.js:324"
+   ],
+   "email_literal": [
+    "app/components/app/Auth/Signup.js:190"
+   ],
+   "phone_literal": [
+    "app/components/app/Auth/Signup.js:191",
+    "app/components/app/Checkout/FHLcredit.js:49"
+   ]
+  },
+  "secrets": {},
+  "security": {
+   "child_process": [
+    "app/utils.js:239"
+   ],
+   "mongo_where": [
+    "app/utilities/validations/queryParams.js:30"
+   ],
+   "dangerously_set_html": [
+    "app/author/_components/AuthorBlogList.jsx:137",
+    "app/author/_components/AuthorDetailView.jsx:77",
+    "app/blog/_components/BlogDetailView.jsx:238",
+    "app/blog/_components/BlogDetailView.jsx:257",
+    "app/blog/_components/BlogDetailView.jsx:260",
+    "app/blog/_components/BlogDetailView.jsx:291"
+   ]
+  },
+  "performance": {
+   "find_without_limit": [
+    "app/blog/_components/BlogDetailView.jsx:94",
+    "app/blog/_components/BlogDetailView.jsx:101",
+    "app/components/app/Brands/Brands.js:199",
+    "app/components/app/Brands/Brands.js:295",
+    "app/components/app/Brands/Brands.js:302",
+    "app/components/app/Checkout/SecondStep.js:2693"
+   ],
+   "settimeout_in_handler": [
+    "app/HOC/AuthComponent.jsx:8",
+    "app/author/_components/AuthorBlogList.jsx:39",
+    "app/blog/_components/BlogListView.jsx:51",
+    "app/blog/_components/CategoryBlogView.jsx:58",
+    "app/components/app/Checkout/FinalStep.js:12",
+    "app/components/app/Checkout/SecondStep.js:714"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "app/HOC/RenderMainComponent.jsx:23",
+    "app/HOC/RenderMainComponent.jsx:41",
+    "app/components/app/Drawer/ShoppingCartSidebar.js:453",
+    "app/components/app/Shop/Details/SingleProductDetails.js:39",
+    "app/components/app/Shop/Shop.js:67",
+    "app/template.js:293"
+   ],
+   "todo_fixme": [
+    "app/components/app/Shop/FAQ.jsx:10"
+   ],
+   "empty_catch": [
+    "app/author_sitemap/sitemap.js:20",
+    "app/blog_category_sitemap/sitemap.js:20",
+    "app/blog_sitemap/sitemap.js:20",
+    "app/brands_sitemap/sitemap.js:20",
+    "app/cannabinoids_sitemap/sitemap.js:20",
+    "app/categories_sitemap/sitemap.js:20"
+   ],
+   "commented_code_hint": [
+    "app/HOC/RenderMainComponent.jsx:6",
+    "app/HOC/RenderMainComponent.jsx:30",
+    "app/HOC/RenderMainComponent.jsx:39",
+    "app/HOC/RenderMainComponent.jsx:42",
+    "app/HOC/RenderMainComponent.jsx:49",
+    "app/[template]/page.jsx:12"
+   ]
+  }
+ },
+ "routes_total": 0,
+ "routes_unguarded": 0,
+ "routes_sample": [],
+ "unguarded_sample": [],
+ "middleware_freq": [],
+ "models": [],
+ "money_field_types": {},
+ "next_pages": 35,
+ "next_api_routes": [
+  "app/api/checkout/route.js",
+  "app/api/register/route.js",
+  "app/api/shop/route.js"
+ ],
+ "unused_deps": [
+  "@emotion/cache",
+  "@emotion/react",
+  "@emotion/styled",
+  "@sentry/nextjs",
+  "date-fns",
+  "isomorphic-dompurify",
+  "next-redux-wrapper",
+  "next-seo",
+  "persona",
+  "react-chartjs-2",
+  "react-dom",
+  "react-ga",
+  "redux-thunk",
+  "sass",
+  "sharp",
+  "slick-carousel"
+ ],
+ "undeclared_imports": [
+  "@/app",
+  "@actions/auth",
+  "@actions/common",
+  "@actions/externals",
+  "@actions/products",
+  "@components/GlobalLoaderLootie",
+  "@components/Layout",
+  "@components/Slider",
+  "@components/analytics",
+  "@components/app",
+  "@components/common",
+  "@components/wrapper",
+  "@constants",
+  "@utils",
+  "@validations/accountDetails",
+  "@validations/auth",
+  "@validations/externals",
+  "@validations/postOrder",
+  "app",
+  "classnames",
+  "prop-types"
+ ],
+ "env_refs": [
+  "API_AUTH_KEY",
+  "HEMP_BASE_URL",
+  "NEXT_PUBLIC_ACTIVATE_FHL",
+  "NEXT_PUBLIC_AGE_CHECKER_LIVE_API_KEY",
+  "NEXT_PUBLIC_ALT36_POS_ID",
+  "NEXT_PUBLIC_ALT_36_API_KEY",
+  "NEXT_PUBLIC_ALT_36_BASE_URL",
+  "NEXT_PUBLIC_ALT_36_X_API_KEY",
+  "NEXT_PUBLIC_AMZAON_S3_URL",
+  "NEXT_PUBLIC_ANKAR_INTIGRATION_BASE_URL",
+  "NEXT_PUBLIC_ANKAR_INTIGRATION_BASE_URL_APIKEY",
+  "NEXT_PUBLIC_API_AUTH_KEY",
+  "NEXT_PUBLIC_AUTH_PHRASE_KEY",
+  "NEXT_PUBLIC_BASE_URL",
+  "NEXT_PUBLIC_CLIENT_SIDE_REDIRECT_URL",
+  "NEXT_PUBLIC_COUNTRY_CODE",
+  "NEXT_PUBLIC_CUSTOM_BASE_URL",
+  "NEXT_PUBLIC_DATA_OWL_BASE_URL",
+  "NEXT_PUBLIC_DEALS_TAG",
+  "NEXT_PUBLIC_DEFAULT_SHOP_ADDRESS",
+  "NEXT_PUBLIC_ENABLE_ALT36",
+  "NEXT_PUBLIC_ENABLE_EXPRESS",
+  "NEXT_PUBLIC_ENABLE_SPRINGBIG",
+  "NEXT_PUBLIC_FAQ_WORDPRESS_URL",
+  "NEXT_PUBLIC_FHL_ASSOCIATE_ID",
+  "NEXT_PUBLIC_FHL_BASE_URL",
+  "NEXT_PUBLIC_FHL_CLIENT_ID",
+  "NEXT_PUBLIC_FHL_REDIRECT_URL",
+  "NEXT_PUBLIC_FOOTER_MENU_WORDPRESS_URL",
+  "NEXT_PUBLIC_GOOGLE_ANALYTICS_KEY",
+  "NEXT_PUBLIC_GOOGLE_ANALYTICS_TRAKING_KEY",
+  "NEXT_PUBLIC_GOOGLE_GEOCODE_KEY",
+  "NEXT_PUBLIC_GOOGLE_PLACES_BASE_URL",
+  "NEXT_PUBLIC_GOOGLE_PLACES_KEY",
+  "NEXT_PUBLIC_GOOGLE_RECAPTCHA_KEY",
+  "NEXT_PUBLIC_GOOGLE_REVIEW_URL",
+  "NEXT_PUBLIC_GOOGLE_SECRETE_KEY",
+  "NEXT_PUBLIC_GOOGLE_SITE_KEY",
+  "NEXT_PUBLIC_GOOGLE_STORE_PLACE_ID",
+  "NEXT_PUBLIC_HEMP_BASE_URL",
+  "NEXT_PUBLIC_HYPERWOLF_WORDPRESS_URL",
+  "NEXT_PUBLIC_MAILERLITE_API_KEY",
+  "NEXT_PUBLIC_META_TITLE_BRAND_URL",
+  "NEXT_PUBLIC_PARTNER_KEY",
+  "NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID",
+  "NEXT_PUBLIC_PERSONA_TEMPLATE_ID",
+  "NEXT_PUBLIC_POWERED_BY",
+  "NEXT_PUBLIC_PRODUCT_COUNT",
+  "NEXT_PUBLIC_PROJECT_NAME_TEXT",
+  "NEXT_PUBLIC_SERVER_SIDE_URL",
+  "NEXT_PUBLIC_SHOP_CLOSE_TIME",
+  "NEXT_PUBLIC_SHOP_KEY",
+  "NEXT_PUBLIC_SHOP_OPEN_TIME",
+  "NEXT_PUBLIC_SHOP_OPEN_TIME_SPECIALADDRESS",
+  "NEXT_PUBLIC_SPRING_BIG_API_KEY",
+  "NEXT_PUBLIC_SPRING_BIG_AUTH_KEY",
+  "NEXT_PUBLIC_WEBSITE_BASE_URL",
+  "NEXT_PUBLIC_WORDPRESS_BANNER_URL",
+  "NEXT_PUBLIC_WORDPRESS_DESCRIPTION_URL",
+  "NEXT_PUBLIC_X_AUTH_TOKEN",
+  "NODE_ENV",
+  "REACT_APP_BASE_URL"
+ ],
+ "env_example": [
+  "ANALYZE",
+  "API_AUTH_KEY",
+  "API_SECRET_KEY",
+  "GOOGLE_PLACES_ORIGINAL_KEY",
+  "HEMP_BASE_URL",
+  "NEXT_PUBLIC_ACTIVATE_FHL",
+  "NEXT_PUBLIC_ACTIVATE_SCHEDULE",
+  "NEXT_PUBLIC_AGE_CHECKER_LIVE_API_KEY",
+  "NEXT_PUBLIC_ALT36_POS_ID",
+  "NEXT_PUBLIC_ALT_36_API_KEY",
+  "NEXT_PUBLIC_ALT_36_BASE_URL",
+  "NEXT_PUBLIC_ALT_36_X_API_KEY",
+  "NEXT_PUBLIC_AMZAON_S3_URL",
+  "NEXT_PUBLIC_ANKAR_INTIGRATION_BASE_URL",
+  "NEXT_PUBLIC_ANKAR_INTIGRATION_BASE_URL_APIKEY",
+  "NEXT_PUBLIC_API_AUTH_KEY",
+  "NEXT_PUBLIC_APP",
+  "NEXT_PUBLIC_AUTH_PHRASE_KEY",
+  "NEXT_PUBLIC_BASE_URL",
+  "NEXT_PUBLIC_COUNTRY_CODE",
+  "NEXT_PUBLIC_CUSTOM_BASE_URL",
+  "NEXT_PUBLIC_DATA_OWL_BASE_URL",
+  "NEXT_PUBLIC_DEALS_TAG",
+  "NEXT_PUBLIC_DEFAULT_SHOP_ADDRESS",
+  "NEXT_PUBLIC_ENABLE_ALT36",
+  "NEXT_PUBLIC_ENABLE_EXPRESS",
+  "NEXT_PUBLIC_ENABLE_SPRINGBIG",
+  "NEXT_PUBLIC_FAQ_WORDPRESS_URL",
+  "NEXT_PUBLIC_FHL_ASSOCIATE_ID",
+  "NEXT_PUBLIC_FHL_BASE_URL",
+  "NEXT_PUBLIC_FHL_CLIENT_ID",
+  "NEXT_PUBLIC_FHL_REDIRECT_URL",
+  "NEXT_PUBLIC_FRONTEND_PORT",
+  "NEXT_PUBLIC_GOOGLE_ANALYTICS_KEY",
+  "NEXT_PUBLIC_GOOGLE_ANALYTICS_TRAKING_KEY",
+  "NEXT_PUBLIC_GOOGLE_GEOCODE_KEY",
+  "NEXT_PUBLIC_GOOGLE_PLACES_BASE_URL",
+  "NEXT_PUBLIC_GOOGLE_PLACES_KEY",
+  "NEXT_PUBLIC_GOOGLE_RECAPTCHA_KEY",
+  "NEXT_PUBLIC_GOOGLE_REVIEW_URL",
+  "NEXT_PUBLIC_GOOGLE_SECRETE_KEY",
+  "NEXT_PUBLIC_GOOGLE_SITE_KEY",
+  "NEXT_PUBLIC_GOOGLE_STORE_PLACE_ID",
+  "NEXT_PUBLIC_HEMP_BASE_URL",
+  "NEXT_PUBLIC_HYPERWOLF_BASE_URL",
+  "NEXT_PUBLIC_HYPERWOLF_WORDPRESS_URL",
+  "NEXT_PUBLIC_MAILERLITE_API_KEY",
+  "NEXT_PUBLIC_PARTNER_KEY",
+  "NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID",
+  "NEXT_PUBLIC_PERSONA_TEMPLATE_ID",
+  "NEXT_PUBLIC_POWERED_BY",
+  "NEXT_PUBLIC_PRODUCT_COUNT",
+  "NEXT_PUBLIC_PROJECT_NAME_TEXT",
+  "NEXT_PUBLIC_SENTRY_CLI_EXECUTABLE",
+  "NEXT_PUBLIC_SENTRY_DSN",
+  "NEXT_PUBLIC_SERVER_SIDE_URL",
+  "NEXT_PUBLIC_SHOP_CLOSE_TIME",
+  "NEXT_PUBLIC_SHOP_KEY",
+  "NEXT_PUBLIC_SHOP_OPEN_TIME",
+  "NEXT_PUBLIC_SHOP_OPEN_TIME_SPECIALADDRESS",
+  "NEXT_PUBLIC_SPRING_BIG_API_KEY",
+  "NEXT_PUBLIC_SPRING_BIG_AUTH_KEY",
+  "NEXT_PUBLIC_X_AUTH_TOKEN",
+  "TEMPLATE_KEY"
+ ],
+ "env_missing_from_example": [
+  "NEXT_PUBLIC_CLIENT_SIDE_REDIRECT_URL",
+  "NEXT_PUBLIC_FOOTER_MENU_WORDPRESS_URL",
+  "NEXT_PUBLIC_META_TITLE_BRAND_URL",
+  "NEXT_PUBLIC_WEBSITE_BASE_URL",
+  "NEXT_PUBLIC_WORDPRESS_BANNER_URL",
+  "NEXT_PUBLIC_WORDPRESS_DESCRIPTION_URL",
+  "NODE_ENV",
+  "REACT_APP_BASE_URL"
+ ],
+ "inrepo_duplicate_groups": [],
+ "ci_deploy_files": [
+  ".github/workflows/node.js.yml"
+ ],
+ "docs": [
+  "CLAUDE.md",
+  "DEALS_FLOW_IMPLEMENTATION_GUIDE.md",
+  "README.md",
+  "SECURITY_IMPLEMENTATION.md",
+  "dependency_analysis_report.md",
+  "docs/architecture.md",
+  "docs/components.md",
+  "docs/development-guidelines.md",
+  "project_analysis_report.md"
+ ]
+}

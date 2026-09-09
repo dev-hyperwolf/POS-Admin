@@ -1,0 +1,746 @@
+{
+ "repo": "hemp-retailer-admin",
+ "sha": "1d09f69",
+ "scanned_at": "2026-09-09T10:04:40",
+ "files": 760,
+ "src_files": 640,
+ "src_lines": 87888,
+ "by_ext": [
+  [
+   ".js",
+   376
+  ],
+  [
+   ".jsx",
+   264
+  ],
+  [
+   ".svg",
+   48
+  ],
+  [
+   ".png",
+   25
+  ],
+  [
+   ".jpg",
+   17
+  ],
+  [
+   ".jpeg",
+   7
+  ],
+  [
+   ".md",
+   6
+  ],
+  [
+   ".scss",
+   5
+  ],
+  [
+   ".json",
+   4
+  ],
+  [
+   ".yml",
+   3
+  ],
+  [
+   ".example",
+   1
+  ],
+  [
+   "(none)",
+   1
+  ]
+ ],
+ "biggest": [
+  [
+   "src/components/POS/OrderDetailsView.jsx",
+   2233
+  ],
+  [
+   "src/layouts/rolesPermissions/addRoles/index.jsx",
+   1379
+  ],
+  [
+   "src/components/orders/AddOrderForm.jsx",
+   1354
+  ],
+  [
+   "src/components/products/AddProduct.jsx",
+   1290
+  ],
+  [
+   "src/utilities/common/index.js",
+   1151
+  ],
+  [
+   "src/layouts/orders/index.jsx",
+   1128
+  ],
+  [
+   "src/layouts/members/memberDetails/index.jsx",
+   1110
+  ],
+  [
+   "src/components/members/addMemberForm.jsx",
+   1077
+  ],
+  [
+   "src/layouts/orders/memberOrders.jsx",
+   1025
+  ],
+  [
+   "src/components/promotion/addPromotionForm.jsx",
+   957
+  ],
+  [
+   "src/components/orders/OrderDetails.jsx",
+   903
+  ],
+  [
+   "src/layouts/orders/storeOrders.jsx",
+   901
+  ]
+ ],
+ "engines": null,
+ "scripts": {
+  "start": "PORT=3001 GENERATE_SOURCEMAP=false react-scripts start",
+  "build": "GENERATE_SOURCEMAP=false react-scripts build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject",
+  "install:clean": "rm -rf node_modules/ && rm -rf package-lock.json && npm install && npm start"
+ },
+ "lockfiles": [
+  "package-lock.json"
+ ],
+ "deps_count": 60,
+ "dev_count": 17,
+ "pins": {
+  "caret": 57,
+  "exact": 20
+ },
+ "frameworks": {
+  "react": "18.2.0",
+  "react-scripts": "5.0.1",
+  "axios": "^1.6.3",
+  "yup": "1.1.1",
+  "redux": "^5.0.0",
+  "@reduxjs/toolkit": "^2.0.1",
+  "eslint": "^8.55.0",
+  "prettier": "2.8.8",
+  "husky": "^8.0.3"
+ },
+ "eol_notes": [
+  "react 18.2.0",
+  "create-react-app (react-scripts; unmaintained since 2023)",
+  "no engines.node"
+ ],
+ "test_deps": [],
+ "test_files": [],
+ "test_file_count": 0,
+ "test_lines": 0,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 485,
+    "files": 241,
+    "top": [
+     [
+      "public/firebase-messaging-sw.js",
+      5
+     ],
+     [
+      "src/examples/Footer/index.js",
+      5
+     ],
+     [
+      "src/layouts/profile/index.js",
+      5
+     ],
+     [
+      "src/examples/Configurator/index.js",
+      4
+     ],
+     [
+      "src/common/imageDragger.jsx",
+      3
+     ]
+    ]
+   },
+   "localhost": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "src/index.js",
+      1
+     ]
+    ]
+   },
+   "ip_literal": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "src/common/CommonModal/AddPrinterModal.js",
+      1
+     ]
+    ]
+   },
+   "objectid_24hex": {
+    "count": 2,
+    "files": 2,
+    "top": [
+     [
+      "src/layouts/POS/layouts/Purchased/index.jsx",
+      1
+     ],
+     [
+      "src/utilities/constants/index.js",
+      1
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 37,
+    "files": 22,
+    "top": [
+     [
+      "src/common/CommonModal/stores/ScanMemberModal.jsx",
+      5
+     ],
+     [
+      "src/components/promotion/addPromotionForm.jsx",
+      3
+     ],
+     [
+      "src/layouts/manageCategories/index.jsx",
+      3
+     ],
+     [
+      "src/components/members/addMemberForm.jsx",
+      2
+     ],
+     [
+      "src/components/settings/PrinterSetup/index.jsx",
+      2
+     ]
+    ]
+   },
+   "email_literal": {
+    "count": 10,
+    "files": 3,
+    "top": [
+     [
+      "src/layouts/tables/data/authorsTableData.js",
+      6
+     ],
+     [
+      "src/layouts/billing/components/BillingInformation/index.js",
+      3
+     ],
+     [
+      "src/layouts/profile/index.js",
+      1
+     ]
+    ]
+   },
+   "phone_literal": {
+    "count": 3,
+    "files": 2,
+    "top": [
+     [
+      "src/utilities/printer/index.js",
+      2
+     ],
+     [
+      "public/firebase-messaging-sw.js",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {
+   "private_key_block": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "src/components/settings/PrinterSetup/index_old.jsx",
+      1
+     ]
+    ]
+   },
+   "google_api_key": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "public/firebase-messaging-sw.js",
+      2
+     ]
+    ]
+   },
+   "assigned_secret": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "public/firebase-messaging-sw.js",
+      2
+     ]
+    ]
+   }
+  },
+  "security": {
+   "child_process": {
+    "count": 3,
+    "files": 2,
+    "top": [
+     [
+      "src/components/homepageBanner/index.jsx",
+      2
+     ],
+     [
+      "src/utilities/common/index.js",
+      1
+     ]
+    ]
+   },
+   "unfiltered_find": {
+    "count": 5,
+    "files": 2,
+    "top": [
+     [
+      "src/components/settings/PrinterSetup/index_old.jsx",
+      3
+     ],
+     [
+      "src/utilities/printer/index.js",
+      2
+     ]
+    ]
+   },
+   "dangerously_set_html": {
+    "count": 16,
+    "files": 6,
+    "top": [
+     [
+      "src/layouts/brands/index.jsx",
+      4
+     ],
+     [
+      "src/layouts/strains/index.jsx",
+      4
+     ],
+     [
+      "src/components/products/productDetails/index.jsx",
+      3
+     ],
+     [
+      "src/components/products/productDetails/masterDetailView.js",
+      3
+     ],
+     [
+      "src/layouts/disclaimers/index.jsx",
+      1
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "find_without_limit": {
+    "count": 83,
+    "files": 38,
+    "top": [
+     [
+      "src/components/products/FilterProducts.jsx",
+      10
+     ],
+     [
+      "src/components/orders/AddOrderForm.jsx",
+      9
+     ],
+     [
+      "src/components/MDBox/MDBoxRoot.js",
+      5
+     ],
+     [
+      "src/components/orders/OrderDetails.jsx",
+      4
+     ],
+     [
+      "src/components/products/productTerpenoids/addProductTerpenoid/index.jsx",
+      3
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 18,
+    "files": 17,
+    "top": [
+     [
+      "src/components/POS/OrderDetailsView.jsx",
+      2
+     ],
+     [
+      "src/bluetooth/callback-queue.js",
+      1
+     ],
+     [
+      "src/bluetooth/event-emitter.js",
+      1
+     ],
+     [
+      "src/common/component/BarcodeScanArea.jsx",
+      1
+     ],
+     [
+      "src/components/MDAlert/index.js",
+      1
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 4,
+    "files": 3,
+    "top": [
+     [
+      "firebase-messaging-sw.js",
+      2
+     ],
+     [
+      "src/components/tables/PaginationTable.jsx",
+      1
+     ],
+     [
+      "src/firebaseInit.js",
+      1
+     ]
+    ]
+   },
+   "empty_catch": {
+    "count": 11,
+    "files": 7,
+    "top": [
+     [
+      "src/components/products/productTraits/selectProductTrait.jsx",
+      4
+     ],
+     [
+      "src/components/react-select/PaginationSelct.jsx",
+      2
+     ],
+     [
+      "public/firebase-messaging-sw.js",
+      1
+     ],
+     [
+      "src/bluetooth/main.js",
+      1
+     ],
+     [
+      "src/common/CommonModal/stores/ScanMemberModal.jsx",
+      1
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 845,
+    "files": 147,
+    "top": [
+     [
+      "src/components/POS/OrderDetailsView.jsx",
+      85
+     ],
+     [
+      "src/common/CommonDrawer/AddBatchDrawer.jsx",
+      35
+     ],
+     [
+      "src/components/orders/AddOrderForm.jsx",
+      35
+     ],
+     [
+      "src/common/CommonModal/orders/ReturnReason.jsx",
+      34
+     ],
+     [
+      "src/layouts/orders/memberOrders.jsx",
+      28
+     ]
+    ]
+   },
+   "ts_ignore": {
+    "count": 15,
+    "files": 10,
+    "top": [
+     [
+      "public/firebase-messaging-sw.js",
+      3
+     ],
+     [
+      "src/layouts/dashboard/components/Projects/data/index.js",
+      2
+     ],
+     [
+      "src/layouts/tables/data/authorsTableData.js",
+      2
+     ],
+     [
+      "src/layouts/tables/data/projectsTableData.js",
+      2
+     ],
+     [
+      "src/components/MDButton/MDButtonRoot.js",
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "public/firebase-messaging-sw.js:1",
+    "public/firebase-messaging-sw.js:2",
+    "public/firebase-messaging-sw.js:4",
+    "public/firebase-messaging-sw.js:5",
+    "public/firebase-messaging-sw.js:53",
+    "src/App.js:234"
+   ],
+   "localhost": [
+    "src/index.js:50"
+   ],
+   "ip_literal": [
+    "src/common/CommonModal/AddPrinterModal.js:261"
+   ],
+   "objectid_24hex": [
+    "src/layouts/POS/layouts/Purchased/index.jsx:105",
+    "src/utilities/constants/index.js:11"
+   ],
+   "role_string": [
+    "src/App.js:93",
+    "src/common/CommonModal/stores/ScanMemberModal.jsx:26",
+    "src/common/CommonModal/stores/ScanMemberModal.jsx:192",
+    "src/common/CommonModal/stores/ScanMemberModal.jsx:192",
+    "src/common/CommonModal/stores/ScanMemberModal.jsx:201",
+    "src/common/CommonModal/stores/ScanMemberModal.jsx:202"
+   ],
+   "email_literal": [
+    "src/layouts/billing/components/BillingInformation/index.js:39",
+    "src/layouts/billing/components/BillingInformation/index.js:45",
+    "src/layouts/billing/components/BillingInformation/index.js:51",
+    "src/layouts/profile/index.js:73",
+    "src/layouts/tables/data/authorsTableData.js:62",
+    "src/layouts/tables/data/authorsTableData.js:81"
+   ],
+   "phone_literal": [
+    "public/firebase-messaging-sw.js:32",
+    "src/utilities/printer/index.js:22",
+    "src/utilities/printer/index.js:42"
+   ]
+  },
+  "secrets": {
+   "private_key_block": [
+    "src/components/settings/PrinterSetup/index_old.jsx:58"
+   ],
+   "google_api_key": [
+    "public/firebase-messaging-sw.js:18",
+    "public/firebase-messaging-sw.js:28"
+   ],
+   "assigned_secret": [
+    "public/firebase-messaging-sw.js:18",
+    "public/firebase-messaging-sw.js:28"
+   ]
+  },
+  "security": {
+   "child_process": [
+    "src/components/homepageBanner/index.jsx:73",
+    "src/components/homepageBanner/index.jsx:81",
+    "src/utilities/common/index.js:975"
+   ],
+   "unfiltered_find": [
+    "src/components/settings/PrinterSetup/index_old.jsx:26",
+    "src/components/settings/PrinterSetup/index_old.jsx:36",
+    "src/components/settings/PrinterSetup/index_old.jsx:42",
+    "src/utilities/printer/index.js:5",
+    "src/utilities/printer/index.js:38"
+   ],
+   "dangerously_set_html": [
+    "src/components/products/productDetails/index.jsx:398",
+    "src/components/products/productDetails/index.jsx:403",
+    "src/components/products/productDetails/index.jsx:409",
+    "src/components/products/productDetails/masterDetailView.js:217",
+    "src/components/products/productDetails/masterDetailView.js:222",
+    "src/components/products/productDetails/masterDetailView.js:228"
+   ]
+  },
+  "performance": {
+   "find_without_limit": [
+    "src/bluetooth/main.js:265",
+    "src/bluetooth/main.js:281",
+    "src/common/CommonDrawer/AddBatchDrawer.jsx:196",
+    "src/common/CommonModal/orders/ReturnOrderModal.jsx:37",
+    "src/common/tabs/FilterTabs.jsx:30",
+    "src/components/MDBox/MDBoxRoot.js:83"
+   ],
+   "settimeout_in_handler": [
+    "src/bluetooth/callback-queue.js:32",
+    "src/bluetooth/event-emitter.js:15",
+    "src/common/component/BarcodeScanArea.jsx:50",
+    "src/components/MDAlert/index.js:54",
+    "src/components/POS/OrderDetailsView.jsx:197",
+    "src/components/POS/OrderDetailsView.jsx:446"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "firebase-messaging-sw.js:5",
+    "firebase-messaging-sw.js:8",
+    "src/components/tables/PaginationTable.jsx:55",
+    "src/firebaseInit.js:39"
+   ],
+   "empty_catch": [
+    "public/firebase-messaging-sw.js:62",
+    "src/bluetooth/main.js:254",
+    "src/common/CommonModal/stores/ScanMemberModal.jsx:28",
+    "src/components/masterCatalog/MasterCatalogProductList.jsx:542",
+    "src/components/products/productDetails/index.jsx:130",
+    "src/components/products/productTraits/selectProductTrait.jsx:52"
+   ],
+   "commented_code_hint": [
+    "public/firebase-messaging-sw.js:1",
+    "public/firebase-messaging-sw.js:2",
+    "public/firebase-messaging-sw.js:6",
+    "public/firebase-messaging-sw.js:26",
+    "public/firebase-messaging-sw.js:48",
+    "src/App.js:164"
+   ],
+   "ts_ignore": [
+    "public/firebase-messaging-sw.js:38",
+    "public/firebase-messaging-sw.js:42",
+    "public/firebase-messaging-sw.js:56",
+    "src/components/MDButton/MDButtonRoot.js:1",
+    "src/examples/Charts/DoughnutCharts/DefaultDoughnutChart/configs/index.js:16",
+    "src/examples/Charts/LineCharts/ProgressLineChart/config/index.js:16"
+   ]
+  }
+ },
+ "routes_total": 0,
+ "routes_unguarded": 0,
+ "routes_sample": [],
+ "unguarded_sample": [],
+ "middleware_freq": [],
+ "models": [],
+ "money_field_types": {},
+ "next_pages": 0,
+ "next_api_routes": [],
+ "unused_deps": [
+  "@emotion/cache",
+  "@emotion/react",
+  "@point-of-sale/receipt-printer-encoder",
+  "ag-grid-community",
+  "mrz",
+  "msal",
+  "npm",
+  "openai",
+  "react-barcode",
+  "react-qr-code",
+  "react-scripts",
+  "react-webcam",
+  "redux",
+  "sass",
+  "stylis",
+  "tesseract.js",
+  "yup"
+ ],
+ "undeclared_imports": [
+  "@mui/system",
+  "@splidejs/react-splide",
+  "App",
+  "HOC",
+  "assets",
+  "axiosClient",
+  "bluetooth",
+  "common",
+  "components",
+  "context",
+  "examples",
+  "firebaseInit",
+  "hooks",
+  "layouts",
+  "lodash",
+  "prompt",
+  "react-router",
+  "routes",
+  "sideMenus",
+  "utilities",
+  "validations"
+ ],
+ "env_refs": [
+  "NODE_ENV",
+  "REACT_APP_AMZAON_S3_URL",
+  "REACT_APP_API_AUTH_KEY",
+  "REACT_APP_API_KEY",
+  "REACT_APP_APP_ID",
+  "REACT_APP_AUTH_DOMAIN",
+  "REACT_APP_BASE_URL",
+  "REACT_APP_GOOGLE_KEY",
+  "REACT_APP_HEMP_BASE_URL",
+  "REACT_APP_MEASUREMENT_ID",
+  "REACT_APP_MESSAGING_SENDER_ID",
+  "REACT_APP_PROJECT_ID",
+  "REACT_APP_PUBLIC_BASE_URL",
+  "REACT_APP_STORAGE_BUCKET",
+  "REACT_APP_VAPID_KEY"
+ ],
+ "env_example": [
+  "REACT_APP_API_AUTH_KEY",
+  "REACT_APP_API_KEY",
+  "REACT_APP_APP_ID",
+  "REACT_APP_AUTH_DOMAIN",
+  "REACT_APP_BASE_URL",
+  "REACT_APP_GOOGLE_KEY",
+  "REACT_APP_HEMP_BASE_URL",
+  "REACT_APP_HYPERWOLF_BASE_URL",
+  "REACT_APP_MEASUREMENT_ID",
+  "REACT_APP_MESSAGING_SENDER_ID",
+  "REACT_APP_METRC_ACCESS_1",
+  "REACT_APP_METRC_ACCESS_2",
+  "REACT_APP_METRC_ACCESS_3",
+  "REACT_APP_METRC_BASE_URL",
+  "REACT_APP_PROJECT_ID",
+  "REACT_APP_STORAGE_BUCKET",
+  "REACT_APP_VAPID_KEY"
+ ],
+ "env_missing_from_example": [
+  "NODE_ENV",
+  "REACT_APP_AMZAON_S3_URL",
+  "REACT_APP_PUBLIC_BASE_URL"
+ ],
+ "inrepo_duplicate_groups": [
+  [
+   "src/assets/theme-dark/components/list/listItem.js",
+   "src/assets/theme/components/list/listItem.js"
+  ]
+ ],
+ "ci_deploy_files": [
+  ".github/workflows/dev.yml",
+  ".github/workflows/security.yml",
+  ".github/workflows/stage.yml"
+ ],
+ "docs": [
+  "CLAUDE.md",
+  "PERMISSIONS_REFACTOR.md",
+  "README.md",
+  "docs/architecture.md",
+  "docs/components.md",
+  "docs/development-guidelines.md"
+ ]
+}

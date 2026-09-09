@@ -1,0 +1,875 @@
+{
+ "repo": "hyperwolf-frontend-nextjs",
+ "sha": "f419ef0",
+ "scanned_at": "2026-09-09T10:04:42",
+ "files": 624,
+ "src_files": 430,
+ "src_lines": 46988,
+ "by_ext": [
+  [
+   ".tsx",
+   337
+  ],
+  [
+   ".md",
+   92
+  ],
+  [
+   ".ts",
+   91
+  ],
+  [
+   ".webp",
+   53
+  ],
+  [
+   ".svg",
+   21
+  ],
+  [
+   ".json",
+   7
+  ],
+  [
+   ".TTF",
+   4
+  ],
+  [
+   ".woff2",
+   4
+  ],
+  [
+   ".gif",
+   4
+  ],
+  [
+   "(none)",
+   2
+  ],
+  [
+   ".css",
+   2
+  ],
+  [
+   ".mjs",
+   2
+  ]
+ ],
+ "biggest": [
+  [
+   "app/actions/cart.ts",
+   1703
+  ],
+  [
+   "components/checkout/checkout-container.tsx",
+   1286
+  ],
+  [
+   "lib/api/cached-fetch.ts",
+   921
+  ],
+  [
+   "components/cms-templates/SameDayWeedDelivery.tsx",
+   781
+  ],
+  [
+   "lib/api/hooks/useCart.ts",
+   678
+  ],
+  [
+   "components/shop/product-details-client.tsx",
+   677
+  ],
+  [
+   "components/auth/signup-form.tsx",
+   658
+  ],
+  [
+   "components/shop/order-status-content.tsx",
+   644
+  ],
+  [
+   "lib/api/common-fetch.ts",
+   606
+  ],
+  [
+   "components/shop/category-filters.tsx",
+   593
+  ],
+  [
+   "components/cms-templates/ReviewPage.tsx",
+   544
+  ],
+  [
+   "lib/schema/schema-builders.ts",
+   540
+  ]
+ ],
+ "engines": null,
+ "scripts": {
+  "dev": "next dev -p 3020",
+  "dev:stage": "env-cmd -f .env.stage next dev -p 3020",
+  "dev:prod": "env-cmd -f .env.production next dev -p 3020",
+  "build": "next build",
+  "build:stage": "env-cmd -f .env.stage next build",
+  "build:prod": "env-cmd -f .env.production next build",
+  "start": "next start -p 3020",
+  "start:stage": "env-cmd -f .env.stage next start -p 3020",
+  "start:prod": "env-cmd -f .env.production next start -p 3020",
+  "uat": "npm run build:stage && npm run start",
+  "production": "next build && next start -p 3020",
+  "lint": "eslint",
+  "audit": "npm audit",
+  "audit:json": "npm audit --json",
+  "audit:fix": "npm audit fix"
+ },
+ "lockfiles": [],
+ "deps_count": 48,
+ "dev_count": 13,
+ "pins": {
+  "caret": 57,
+  "exact": 4
+ },
+ "frameworks": {
+  "next": "^16.1.6",
+  "react": "19.2.3",
+  "typescript": "^5",
+  "axios": "^1.13.4",
+  "zod": "^4.3.6",
+  "zustand": "^5.0.11",
+  "@tanstack/react-query": "^5.90.20",
+  "eslint": "^9",
+  "prettier": "^3.8.1"
+ },
+ "eol_notes": [
+  "no engines.node"
+ ],
+ "test_deps": [],
+ "test_files": [],
+ "test_file_count": 0,
+ "test_lines": 0,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 292,
+    "files": 61,
+    "top": [
+     [
+      "next.config.ts",
+      82
+     ],
+     [
+      "lib/schema/schema-builders.ts",
+      26
+     ],
+     [
+      "app/layout.tsx",
+      11
+     ],
+     [
+      "app/shop/deals/[dealType]/page.tsx",
+      11
+     ],
+     [
+      "lib/constants.ts",
+      11
+     ]
+    ]
+   },
+   "ip_literal": {
+    "count": 167,
+    "files": 5,
+    "top": [
+     [
+      "components/icons/StrainsNotFound.tsx",
+      153
+     ],
+     [
+      "components/icons/FlowerTypeIcon.tsx",
+      6
+     ],
+     [
+      "components/shop/strain/strain-detail-client.tsx",
+      6
+     ],
+     [
+      "components/icons/IndicaIcon.tsx",
+      1
+     ],
+     [
+      "components/icons/WhiteIndicaIcon.tsx",
+      1
+     ]
+    ]
+   },
+   "objectid_24hex": {
+    "count": 12,
+    "files": 3,
+    "top": [
+     [
+      "lib/utils.ts",
+      10
+     ],
+     [
+      "components/cart/CartSummary.tsx",
+      1
+     ],
+     [
+      "lib/constants.ts",
+      1
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 6,
+    "files": 4,
+    "top": [
+     [
+      "lib/store/authStore.ts",
+      3
+     ],
+     [
+      "app/actions/auth.ts",
+      1
+     ],
+     [
+      "app/actions/cart.ts",
+      1
+     ],
+     [
+      "components/navigation/AuthLink.tsx",
+      1
+     ]
+    ]
+   },
+   "email_literal": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "components/checkout/checkout-guest-info.tsx",
+      1
+     ]
+    ]
+   },
+   "phone_literal": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "lib/schema/schema-builders.ts",
+      1
+     ]
+    ]
+   },
+   "store_name_literal": {
+    "count": 8,
+    "files": 5,
+    "top": [
+     [
+      "components/WeedDeliveryLocations.tsx",
+      2
+     ],
+     [
+      "components/cms-templates/DeliveryArea.tsx",
+      2
+     ],
+     [
+      "components/cms-templates/SameDayWeedDelivery.tsx",
+      2
+     ],
+     [
+      "lib/constants.ts",
+      1
+     ],
+     [
+      "lib/schema/schema-builders.ts",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {},
+  "security": {
+   "dangerously_set_html": {
+    "count": 119,
+    "files": 35,
+    "top": [
+     [
+      "components/cms-templates/SameDayWeedDelivery.tsx",
+      13
+     ],
+     [
+      "components/cms-templates/LabTestingStandards.tsx",
+      8
+     ],
+     [
+      "components/shop/product-details-client.tsx",
+      7
+     ],
+     [
+      "components/cms-templates/CareerPage.tsx",
+      6
+     ],
+     [
+      "components/cms-templates/DeliveryTime.tsx",
+      6
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "foreach_async": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "components/checkout/checkout-container.tsx",
+      1
+     ]
+    ]
+   },
+   "find_without_limit": {
+    "count": 33,
+    "files": 20,
+    "top": [
+     [
+      "components/shop/product-details-client.tsx",
+      4
+     ],
+     [
+      "lib/schema/schema-builders.ts",
+      4
+     ],
+     [
+      "components/common/DeliveryTabs.tsx",
+      3
+     ],
+     [
+      "app/blog/category/[categorySlug]/page.tsx",
+      2
+     ],
+     [
+      "app/shop/[type]/[subtype]/page.tsx",
+      2
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 12,
+    "files": 11,
+    "top": [
+     [
+      "components/common/LocationInitializer.tsx",
+      2
+     ],
+     [
+      "components/account/account-sidebar.tsx",
+      1
+     ],
+     [
+      "components/auth/auth-layout.tsx",
+      1
+     ],
+     [
+      "components/checkout/order-thank-you-overlay.tsx",
+      1
+     ],
+     [
+      "components/cms-templates/ReviewPage.tsx",
+      1
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 3,
+    "files": 2,
+    "top": [
+     [
+      "lib/utils/surfside.ts",
+      2
+     ],
+     [
+      "components/checkout/checkout-container.tsx",
+      1
+     ]
+    ]
+   },
+   "todo_fixme": {
+    "count": 3,
+    "files": 2,
+    "top": [
+     [
+      "lib/utils/phone.ts",
+      2
+     ],
+     [
+      "components/shop/strain/strain-detail-client.tsx",
+      1
+     ]
+    ]
+   },
+   "empty_catch": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "app/actions/cart.ts",
+      1
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 27,
+    "files": 14,
+    "top": [
+     [
+      "components/cart/CartDrawer.tsx",
+      5
+     ],
+     [
+      "app/actions/cart.ts",
+      4
+     ],
+     [
+      "components/checkout/checkout-container.tsx",
+      3
+     ],
+     [
+      "components/Footer.tsx",
+      2
+     ],
+     [
+      "components/common/DeliveryTabs.tsx",
+      2
+     ]
+    ]
+   },
+   "any_type": {
+    "count": 413,
+    "files": 109,
+    "top": [
+     [
+      "lib/schema/schema-builders.ts",
+      19
+     ],
+     [
+      "app/shop/deals/[dealType]/page.tsx",
+      18
+     ],
+     [
+      "components/checkout/checkout-container.tsx",
+      14
+     ],
+     [
+      "lib/utils/gtag.ts",
+      14
+     ],
+     [
+      "components/cms-templates/SameDayWeedDelivery.tsx",
+      11
+     ]
+    ]
+   },
+   "ts_ignore": {
+    "count": 8,
+    "files": 5,
+    "top": [
+     [
+      "lib/api/hooks/useCart.ts",
+      4
+     ],
+     [
+      "components/account/order-history.tsx",
+      1
+     ],
+     [
+      "components/checkout/checkout-container.tsx",
+      1
+     ],
+     [
+      "components/common/DeliveryTabs.tsx",
+      1
+     ],
+     [
+      "components/footer-contact-button.tsx",
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "app/(sitemaps)/author-sitemap.xml/route.ts:84",
+    "app/(sitemaps)/author-sitemap.xml/route.ts:91",
+    "app/(sitemaps)/blog-category-sitemap.xml/route.ts:85",
+    "app/(sitemaps)/blog-category-sitemap.xml/route.ts:92",
+    "app/(sitemaps)/blog-sitemap.xml/route.ts:85",
+    "app/(sitemaps)/blog-sitemap.xml/route.ts:92"
+   ],
+   "ip_literal": [
+    "components/icons/FlowerTypeIcon.tsx:6",
+    "components/icons/FlowerTypeIcon.tsx:6",
+    "components/icons/FlowerTypeIcon.tsx:6",
+    "components/icons/FlowerTypeIcon.tsx:6",
+    "components/icons/FlowerTypeIcon.tsx:6",
+    "components/icons/FlowerTypeIcon.tsx:6"
+   ],
+   "objectid_24hex": [
+    "components/cart/CartSummary.tsx:54",
+    "lib/constants.ts:7",
+    "lib/utils.ts:180",
+    "lib/utils.ts:180",
+    "lib/utils.ts:180",
+    "lib/utils.ts:180"
+   ],
+   "role_string": [
+    "app/actions/auth.ts:11",
+    "app/actions/cart.ts:1174",
+    "components/navigation/AuthLink.tsx:15",
+    "lib/store/authStore.ts:35",
+    "lib/store/authStore.ts:65",
+    "lib/store/authStore.ts:87"
+   ],
+   "email_literal": [
+    "components/checkout/checkout-guest-info.tsx:122"
+   ],
+   "phone_literal": [
+    "lib/schema/schema-builders.ts:23"
+   ],
+   "store_name_literal": [
+    "components/WeedDeliveryLocations.tsx:10",
+    "components/WeedDeliveryLocations.tsx:20",
+    "components/cms-templates/DeliveryArea.tsx:16",
+    "components/cms-templates/DeliveryArea.tsx:26",
+    "components/cms-templates/SameDayWeedDelivery.tsx:23",
+    "components/cms-templates/SameDayWeedDelivery.tsx:33"
+   ]
+  },
+  "secrets": {},
+  "security": {
+   "dangerously_set_html": [
+    "app/layout.tsx:184",
+    "components/FAQ.tsx:45",
+    "components/FAQ.tsx:51",
+    "components/Footer.tsx:156",
+    "components/Footer.tsx:177",
+    "components/author/author-detail-client.tsx:156"
+   ]
+  },
+  "performance": {
+   "foreach_async": [
+    "components/checkout/checkout-container.tsx:577"
+   ],
+   "find_without_limit": [
+    "app/blog/category/[categorySlug]/page.tsx:29",
+    "app/blog/category/[categorySlug]/page.tsx:64",
+    "app/shop/[type]/[subtype]/page.tsx:84",
+    "app/shop/[type]/[subtype]/page.tsx:87",
+    "app/shop/[type]/page.tsx:70",
+    "app/shop/brand/[brandId]/page.tsx:108"
+   ],
+   "settimeout_in_handler": [
+    "components/account/account-sidebar.tsx:60",
+    "components/auth/auth-layout.tsx:15",
+    "components/checkout/order-thank-you-overlay.tsx:20",
+    "components/cms-templates/ReviewPage.tsx:182",
+    "components/common/FindYourHighInitializer.tsx:64",
+    "components/common/FullscreenLoader.tsx:30"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "components/checkout/checkout-container.tsx:755",
+    "lib/utils/surfside.ts:43",
+    "lib/utils/surfside.ts:54"
+   ],
+   "todo_fixme": [
+    "components/shop/strain/strain-detail-client.tsx:191",
+    "lib/utils/phone.ts:2",
+    "lib/utils/phone.ts:2"
+   ],
+   "empty_catch": [
+    "app/actions/cart.ts:277"
+   ],
+   "commented_code_hint": [
+    "app/actions/cart.ts:811",
+    "app/actions/cart.ts:1148",
+    "app/actions/cart.ts:1235",
+    "app/actions/cart.ts:1257",
+    "app/blog/category/[categorySlug]/page.tsx:73",
+    "app/shop/brand/[brandId]/page.tsx:98"
+   ],
+   "any_type": [
+    ".agent/skills/axios-api-patterns/examples/user-service.ts:25",
+    ".agent/skills/axios-api-patterns/examples/user-service.ts:26",
+    ".agent/skills/axios-api-patterns/examples/user-service.ts:26",
+    ".agent/skills/axios-api-patterns/examples/user-service.ts:27",
+    ".agent/skills/axios-api-patterns/examples/user-service.ts:27",
+    ".agent/skills/axios-api-patterns/examples/user-service.ts:28"
+   ],
+   "ts_ignore": [
+    "components/account/order-history.tsx:98",
+    "components/checkout/checkout-container.tsx:493",
+    "components/common/DeliveryTabs.tsx:98",
+    "components/footer-contact-button.tsx:10",
+    "lib/api/hooks/useCart.ts:203",
+    "lib/api/hooks/useCart.ts:292"
+   ]
+  }
+ },
+ "routes_total": 0,
+ "routes_unguarded": 0,
+ "routes_sample": [],
+ "unguarded_sample": [],
+ "middleware_freq": [],
+ "models": [],
+ "money_field_types": {},
+ "next_pages": 41,
+ "next_api_routes": [],
+ "unused_deps": [
+  "@heroicons/react",
+  "@radix-ui/react-avatar",
+  "@radix-ui/react-dropdown-menu",
+  "@radix-ui/react-switch",
+  "@tanstack/react-query",
+  "lottie-react",
+  "motion",
+  "persona",
+  "react-dom",
+  "react-intersection-observer",
+  "react-player"
+ ],
+ "undeclared_imports": [
+  "@/app",
+  "@/components",
+  "@/hooks",
+  "@/lib",
+  "@/public",
+  "@/types",
+  "@radix-ui/react-visually-hidden",
+  "framer-motion"
+ ],
+ "env_refs": [
+  "ANALYZE",
+  "NEXT_PUBLIC_ALT36_POS_ID",
+  "NEXT_PUBLIC_ALT_36_API_KEY",
+  "NEXT_PUBLIC_ALT_36_BASE_URL",
+  "NEXT_PUBLIC_ALT_36_X_API_KEY",
+  "NEXT_PUBLIC_AMZAON_S3_URL",
+  "NEXT_PUBLIC_ANKAR_INTIGRATION_BASE_URL_APIKEY",
+  "NEXT_PUBLIC_API_HEMP_AUTH_KEY",
+  "NEXT_PUBLIC_APP",
+  "NEXT_PUBLIC_BASE_URL",
+  "NEXT_PUBLIC_BASE_URL_HYPER_DRIVE",
+  "NEXT_PUBLIC_CREDIT_CARD_COMPLIANCE_FEE",
+  "NEXT_PUBLIC_CUSTOM_BASE_URL",
+  "NEXT_PUBLIC_DEALS_TAG",
+  "NEXT_PUBLIC_DELIVERYCHANGE",
+  "NEXT_PUBLIC_DISTRIBUTION_API_BASE_URL",
+  "NEXT_PUBLIC_ENABLE_SPRINGBIG",
+  "NEXT_PUBLIC_FAQ_WORDPRESS_URL",
+  "NEXT_PUBLIC_FOOTER_MENU_WORDPRESS_URL",
+  "NEXT_PUBLIC_GOOGLE_GEOCODE_KEY",
+  "NEXT_PUBLIC_GOOGLE_PLACES_BASE_URL",
+  "NEXT_PUBLIC_GOOGLE_PLACES_KEY",
+  "NEXT_PUBLIC_GOOGLE_RECAPTCHA_KEY",
+  "NEXT_PUBLIC_GOOGLE_REVIEW",
+  "NEXT_PUBLIC_GOOGLE_REVIEW_URL",
+  "NEXT_PUBLIC_HEMP_API_BASE_URL",
+  "NEXT_PUBLIC_HEMP_BASE_URL",
+  "NEXT_PUBLIC_HYPERWOLF_API_BASE_URL",
+  "NEXT_PUBLIC_HYPERWOLF_WORDPRESS_URL",
+  "NEXT_PUBLIC_MAILERLITE_API_KEY",
+  "NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID",
+  "NEXT_PUBLIC_PERSONA_TEMPLATE_ID",
+  "NEXT_PUBLIC_PRODUCT_COUNT",
+  "NEXT_PUBLIC_SERVER_SIDE_URL",
+  "NEXT_PUBLIC_SPRING_BIG_API_KEY",
+  "NEXT_PUBLIC_SPRING_BIG_AUTH_KEY",
+  "NEXT_PUBLIC_WORDPRESS_BANNER_URL",
+  "NEXT_PUBLIC_X_AUTH_TOKEN",
+  "NODE_ENV",
+  "REVIEWS_IO_STORE"
+ ],
+ "env_example": [
+  "CLIENT_SIDE_REDIRECT_URL",
+  "NEXT_PUBLIC_ACTIVATE_FHL",
+  "NEXT_PUBLIC_ACTIVATE_SCHEDULE",
+  "NEXT_PUBLIC_ALT36_POS_ID",
+  "NEXT_PUBLIC_ALT_36_API_KEY",
+  "NEXT_PUBLIC_ALT_36_BASE_URL",
+  "NEXT_PUBLIC_ALT_36_X_API_KEY",
+  "NEXT_PUBLIC_AMZAON_S3_URL",
+  "NEXT_PUBLIC_ANKAR_INTIGRATION_BASE_URL",
+  "NEXT_PUBLIC_ANKAR_INTIGRATION_BASE_URL_APIKEY",
+  "NEXT_PUBLIC_API_HEMP_AUTH_KEY",
+  "NEXT_PUBLIC_APP",
+  "NEXT_PUBLIC_BASE_URL",
+  "NEXT_PUBLIC_COUNTRY_CODE",
+  "NEXT_PUBLIC_CUSTOM_BASE_URL",
+  "NEXT_PUBLIC_DATA_OWL_BASE_URL",
+  "NEXT_PUBLIC_DEALS_TAG",
+  "NEXT_PUBLIC_DEFAULT_SHOP_ADDRESS",
+  "NEXT_PUBLIC_DEFAULT_SHOP_ID",
+  "NEXT_PUBLIC_DISTRIBUTION_API_BASE_URL",
+  "NEXT_PUBLIC_ENABLE_ALT36",
+  "NEXT_PUBLIC_ENABLE_EXPRESS",
+  "NEXT_PUBLIC_ENABLE_SPRINGBIG",
+  "NEXT_PUBLIC_FAQ_WORDPRESS_URL",
+  "NEXT_PUBLIC_FHL_ASSOCIATE_ID",
+  "NEXT_PUBLIC_FHL_BASE_URL",
+  "NEXT_PUBLIC_FHL_CLIENT_ID",
+  "NEXT_PUBLIC_FHL_REDIRECT_URL",
+  "NEXT_PUBLIC_FOOTER_MENU_WORDPRESS_URL",
+  "NEXT_PUBLIC_GOOGLE_ANALYTICS_KEY",
+  "NEXT_PUBLIC_GOOGLE_GEOCODE_KEY",
+  "NEXT_PUBLIC_GOOGLE_PLACES_BASE_URL",
+  "NEXT_PUBLIC_GOOGLE_PLACES_KEY",
+  "NEXT_PUBLIC_GOOGLE_RECAPTCHA_KEY",
+  "NEXT_PUBLIC_GOOGLE_REVIEW",
+  "NEXT_PUBLIC_GOOGLE_REVIEW_URL",
+  "NEXT_PUBLIC_GOOGLE_SECRETE_KEY",
+  "NEXT_PUBLIC_GOOGLE_SITE_KEY",
+  "NEXT_PUBLIC_GOOGLE_STORE_PLACE_ID",
+  "NEXT_PUBLIC_HEMP_API_BASE_URL",
+  "NEXT_PUBLIC_HEMP_BASE_URL",
+  "NEXT_PUBLIC_HYPERWOLF_API_BASE_URL",
+  "NEXT_PUBLIC_HYPERWOLF_WORDPRESS_URL",
+  "NEXT_PUBLIC_MAILERLITE_API_KEY",
+  "NEXT_PUBLIC_META_TITLE_BRAND_URL",
+  "NEXT_PUBLIC_PARTNER_KEY",
+  "NEXT_PUBLIC_PERSONA_ENVIRONMENT_ID",
+  "NEXT_PUBLIC_PERSONA_TEMPLATE_ID",
+  "NEXT_PUBLIC_POWERED_BY",
+  "NEXT_PUBLIC_PRODUCT_COUNT",
+  "NEXT_PUBLIC_PROJECT_NAME_TEXT",
+  "NEXT_PUBLIC_SENTRY_CLI_EXECUTABLE",
+  "NEXT_PUBLIC_SENTRY_DSN",
+  "NEXT_PUBLIC_SERVER_SIDE_URL",
+  "NEXT_PUBLIC_SHOP_CLOSE_TIME",
+  "NEXT_PUBLIC_SHOP_KEY",
+  "NEXT_PUBLIC_SHOP_OPEN_TIME",
+  "NEXT_PUBLIC_SHOP_OPEN_TIME_SPECIALADDRESS",
+  "NEXT_PUBLIC_SPRING_BIG_API_KEY",
+  "NEXT_PUBLIC_SPRING_BIG_AUTH_KEY",
+  "NEXT_PUBLIC_WEBSITE_BASE_URL",
+  "NEXT_PUBLIC_WORDPRESS_BANNER_URL",
+  "NEXT_PUBLIC_X_AUTH_TOKEN",
+  "REACT_APP_BASE_URL",
+  "REACT_APP_DISTRIBUTION_API_BASE_URL",
+  "REACT_APP_GOOGLE_KEY",
+  "REACT_APP_HYPERWOLF_API_BASE_URL",
+  "REACT_APP_X_AUTH_TOKEN"
+ ],
+ "env_missing_from_example": [
+  "ANALYZE",
+  "NEXT_PUBLIC_BASE_URL_HYPER_DRIVE",
+  "NEXT_PUBLIC_CREDIT_CARD_COMPLIANCE_FEE",
+  "NEXT_PUBLIC_DELIVERYCHANGE",
+  "NODE_ENV",
+  "REVIEWS_IO_STORE"
+ ],
+ "inrepo_duplicate_groups": [],
+ "ci_deploy_files": [
+  ".github/workflows/deployment.yml"
+ ],
+ "docs": [
+  ".agent/api-caching-strategy.md",
+  ".agent/cached-api-implementation.md",
+  ".agent/delivery-type-cookie-migration.md",
+  ".agent/skills/accessibility-compliance/SKILL.md",
+  ".agent/skills/accessibility-compliance/references/aria-patterns.md",
+  ".agent/skills/accessibility-compliance/references/mobile-accessibility.md",
+  ".agent/skills/accessibility-compliance/references/wcag-guidelines.md",
+  ".agent/skills/api-input-validation/SKILL.md",
+  ".agent/skills/axios-api-patterns/SKILL.md",
+  ".agent/skills/css-tailwind-styling/SKILL.md",
+  ".agent/skills/frontend-design/SKILL.md",
+  ".agent/skills/gtm-implementation/SKILL.md",
+  ".agent/skills/gtm-implementation/examples/sample.md",
+  ".agent/skills/gtm-implementation/references/datalayer-patterns.md",
+  ".agent/skills/gtm-implementation/references/event-taxonomies.md",
+  ".agent/skills/gtm-implementation/template.md",
+  ".agent/skills/hyperwolf-design-system/SKILL.md",
+  ".agent/skills/legacy-code-migration/SKILL.md",
+  ".agent/skills/nextjs-best-practices/SKILL.md",
+  ".agent/skills/owasp-security/SKILL.md",
+  ".agent/skills/project-structure/SKILL.md",
+  ".agent/skills/project-structure/examples/naming-conventions.md",
+  ".agent/skills/schema-markup/SKILL.md",
+  ".agent/skills/schema-markup/references/schema-examples.md",
+  ".agent/skills/seo-audit/SKILL.md",
+  ".agent/skills/seo-audit/references/aeo-geo-patterns.md",
+  ".agent/skills/seo-audit/references/ai-writing-detection.md",
+  ".agent/skills/vercel-react-best-practices/AGENTS.md",
+  ".agent/skills/vercel-react-best-practices/SKILL.md",
+  ".agent/skills/vercel-react-best-practices/rules/advanced-event-handler-refs.md",
+  ".agent/skills/vercel-react-best-practices/rules/advanced-init-once.md",
+  ".agent/skills/vercel-react-best-practices/rules/advanced-use-latest.md",
+  ".agent/skills/vercel-react-best-practices/rules/async-api-routes.md",
+  ".agent/skills/vercel-react-best-practices/rules/async-defer-await.md",
+  ".agent/skills/vercel-react-best-practices/rules/async-dependencies.md",
+  ".agent/skills/vercel-react-best-practices/rules/async-parallel.md",
+  ".agent/skills/vercel-react-best-practices/rules/async-suspense-boundaries.md",
+  ".agent/skills/vercel-react-best-practices/rules/bundle-barrel-imports.md",
+  ".agent/skills/vercel-react-best-practices/rules/bundle-conditional.md",
+  ".agent/skills/vercel-react-best-practices/rules/bundle-defer-third-party.md",
+  ".agent/skills/vercel-react-best-practices/rules/bundle-dynamic-imports.md",
+  ".agent/skills/vercel-react-best-practices/rules/bundle-preload.md",
+  ".agent/skills/vercel-react-best-practices/rules/client-event-listeners.md",
+  ".agent/skills/vercel-react-best-practices/rules/client-localstorage-schema.md",
+  ".agent/skills/vercel-react-best-practices/rules/client-passive-event-listeners.md",
+  ".agent/skills/vercel-react-best-practices/rules/client-swr-dedup.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-batch-dom-css.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-cache-function-results.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-cache-property-access.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-cache-storage.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-combine-iterations.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-early-exit.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-hoist-regexp.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-index-maps.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-length-check-first.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-min-max-loop.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-set-map-lookups.md",
+  ".agent/skills/vercel-react-best-practices/rules/js-tosorted-immutable.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-activity.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-animate-svg-wrapper.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-conditional-render.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-content-visibility.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-hoist-jsx.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-hydration-no-flicker.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-hydration-suppress-warning.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-svg-precision.md",
+  ".agent/skills/vercel-react-best-practices/rules/rendering-usetransition-loading.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-defer-reads.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-dependencies.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-derived-state-no-effect.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-derived-state.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-functional-setstate.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-lazy-state-init.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-memo-with-default-value.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-memo.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-move-effect-to-event.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-simple-expression-in-memo.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-transitions.md",
+  ".agent/skills/vercel-react-best-practices/rules/rerender-use-ref-transient-values.md",
+  ".agent/skills/vercel-react-best-practices/rules/server-after-nonblocking.md",
+  ".agent/skills/vercel-react-best-practices/rules/server-auth-actions.md",
+  ".agent/skills/vercel-react-best-practices/rules/server-cache-lru.md",
+  ".agent/skills/vercel-react-best-practices/rules/server-cache-react.md",
+  ".agent/skills/vercel-react-best-practices/rules/server-dedup-props.md",
+  ".agent/skills/vercel-react-best-practices/rules/server-parallel-fetching.md",
+  ".agent/skills/vercel-react-best-practices/rules/server-serialization.md",
+  ".agent/skills/web-design-guidelines/SKILL.md",
+  ".agent/workflows/migrate-from-legacy.md",
+  "BUNDLE_SIZE_ISSUES.md",
+  "CLAUDE.md",
+  "CONTRIBUTING.md",
+  "README.md"
+ ]
+}

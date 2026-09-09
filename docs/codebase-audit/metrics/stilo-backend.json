@@ -1,0 +1,4834 @@
+{
+ "repo": "stilo-backend",
+ "sha": "a9f4407",
+ "scanned_at": "2026-09-09T10:04:48",
+ "files": 249,
+ "src_files": 197,
+ "src_lines": 45438,
+ "by_ext": [
+  [
+   ".js",
+   197
+  ],
+  [
+   ".png",
+   21
+  ],
+  [
+   ".json",
+   14
+  ],
+  [
+   ".txt",
+   4
+  ],
+  [
+   ".svg",
+   3
+  ],
+  [
+   ".kml",
+   3
+  ],
+  [
+   "(none)",
+   2
+  ],
+  [
+   ".yml",
+   2
+  ],
+  [
+   ".example",
+   1
+  ],
+  [
+   ".md",
+   1
+  ],
+  [
+   ".html",
+   1
+  ]
+ ],
+ "biggest": [
+  [
+   "controllers/POS/pos-controllers.js",
+   4696
+  ],
+  [
+   "common/utils.js",
+   3697
+  ],
+  [
+   "controllers/product/product-controllers.js",
+   3425
+  ],
+  [
+   "controllers/order/order-controllers.js",
+   3165
+  ],
+  [
+   "controllers/common-controllers.js",
+   2374
+  ],
+  [
+   "controllers/admin/store-product-controllers.js",
+   2121
+  ],
+  [
+   "controllers/admin/dashboard-controllers.js",
+   2055
+  ],
+  [
+   "controllers/cart/cart-controllers.js",
+   2051
+  ],
+  [
+   "controllers/member/member-controllers.js",
+   1857
+  ],
+  [
+   "controllers/metrc-controllers.js",
+   1558
+  ],
+  [
+   "controllers/admin/product-traits-controllers.js",
+   1546
+  ],
+  [
+   "controllers/admin/blog-controller.js",
+   1003
+  ]
+ ],
+ "engines": null,
+ "scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+ },
+ "lockfiles": [],
+ "deps_count": 45,
+ "dev_count": 0,
+ "pins": {
+  "caret": 45
+ },
+ "frameworks": {
+  "express": "^4.21.2",
+  "mongoose": "^8.9.5",
+  "sequelize": "^6.37.5",
+  "pg": "^8.13.1",
+  "jsonwebtoken": "^9.0.2",
+  "axios": "^1.7.9",
+  "node-cron": "^3.0.2",
+  "express-rate-limit": "^7.5.1",
+  "joi": "^17.13.3",
+  "bcrypt": "^5.1.1",
+  "firebase-admin": "^13.3.0",
+  "aws-sdk": "^2.1692.0",
+  "@sendgrid/mail": "^8.1.5"
+ },
+ "eol_notes": [
+  "express 4.x (5.x current)",
+  "BOTH sequelize and mongoose in one service",
+  "no engines.node"
+ ],
+ "test_deps": [],
+ "test_files": [],
+ "test_file_count": 0,
+ "test_lines": 0,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 57,
+    "files": 15,
+    "top": [
+     [
+      "emailTemplates/orderCompletedOrCancelled.js",
+      7
+     ],
+     [
+      "startup/middleware.js",
+      6
+     ],
+     [
+      "emailTemplates/ordersEmailTemplates.js",
+      5
+     ],
+     [
+      "emailTemplates/resetPasswordEmail.js",
+      5
+     ],
+     [
+      "emailTemplates/storeCreateTemplate.js",
+      5
+     ]
+    ]
+   },
+   "localhost": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "controllers/common-controllers.js",
+      2
+     ]
+    ]
+   },
+   "mongo_uri": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "controllers/common-controllers.js",
+      2
+     ]
+    ]
+   },
+   "ip_literal": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "controllers/common-controllers.js",
+      2
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 44,
+    "files": 15,
+    "top": [
+     [
+      "controllers/admin/category-controllers.js",
+      7
+     ],
+     [
+      "controllers/common-controllers.js",
+      6
+     ],
+     [
+      "controllers/admin/blog-controller.js",
+      5
+     ],
+     [
+      "controllers/product/product-controllers.js",
+      4
+     ],
+     [
+      "controllers/strain/strain-controller.js",
+      4
+     ]
+    ]
+   },
+   "s3_bucket": {
+    "count": 2,
+    "files": 2,
+    "top": [
+     [
+      "controllers/POS/pos-controllers.js",
+      1
+     ],
+     [
+      "emailTemplates/userForgotEmailTemplate.js",
+      1
+     ]
+    ]
+   },
+   "email_literal": {
+    "count": 2,
+    "files": 2,
+    "top": [
+     [
+      "controllers/POS/pos-controllers.js",
+      1
+     ],
+     [
+      "controllers/cart/cart-controllers.js",
+      1
+     ]
+    ]
+   },
+   "phone_literal": {
+    "count": 4,
+    "files": 2,
+    "top": [
+     [
+      "controllers/textVolt/textVolt-controllers.js",
+      3
+     ],
+     [
+      "common/utils.js",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {
+   "private_key_block": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "staticDB/fcmtoken.json",
+      1
+     ]
+    ]
+   },
+   "assigned_secret": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "controllers/common-controllers.js",
+      1
+     ]
+    ]
+   }
+  },
+  "security": {
+   "cors_wildcard": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "startup/middleware.js",
+      2
+     ]
+    ]
+   },
+   "child_process": {
+    "count": 60,
+    "files": 22,
+    "top": [
+     [
+      "controllers/admin/dashboard-controllers.js",
+      10
+     ],
+     [
+      "controllers/member/member-controllers.js",
+      7
+     ],
+     [
+      "controllers/product/product-controllers.js",
+      5
+     ],
+     [
+      "controllers/strain/strain-controller.js",
+      5
+     ],
+     [
+      "common/utils.js",
+      4
+     ]
+    ]
+   },
+   "mass_assign_update": {
+    "count": 8,
+    "files": 5,
+    "top": [
+     [
+      "controllers/POS/pos-controllers.js",
+      4
+     ],
+     [
+      "controllers/admin/cannabisLimit-controller.js",
+      1
+     ],
+     [
+      "controllers/admin/store-product-controllers.js",
+      1
+     ],
+     [
+      "controllers/product/brand-controllers.js",
+      1
+     ],
+     [
+      "controllers/store-settings/user-roles-permission-controllers.js",
+      1
+     ]
+    ]
+   },
+   "unfiltered_find": {
+    "count": 37,
+    "files": 24,
+    "top": [
+     [
+      "controllers/product/product-controllers.js",
+      5
+     ],
+     [
+      "controllers/cannabinoids/cannabinoids-controllers.js",
+      3
+     ],
+     [
+      "controllers/sitemap-controllers.js",
+      3
+     ],
+     [
+      "controllers/admin/banner-controllers.js",
+      2
+     ],
+     [
+      "controllers/admin/inventory-controllers.js",
+      2
+     ]
+    ]
+   },
+   "jwt_no_expiry_hint": {
+    "count": 3,
+    "files": 3,
+    "top": [
+     [
+      "models/Admin.js",
+      1
+     ],
+     [
+      "models/Store.js",
+      1
+     ],
+     [
+      "models/StoreUser.js",
+      1
+     ]
+    ]
+   },
+   "sql_concat": {
+    "count": 7,
+    "files": 5,
+    "top": [
+     [
+      "controllers/admin/cart-rules-controllers.js",
+      2
+     ],
+     [
+      "controllers/admin/product-rules-controllers.js",
+      2
+     ],
+     [
+      "controllers/admin/admin-user-controller.js",
+      1
+     ],
+     [
+      "controllers/admin/store-controller.js",
+      1
+     ],
+     [
+      "controllers/storeUser/store-user-controllers.js",
+      1
+     ]
+    ]
+   },
+   "req_query_in_regex": {
+    "count": 9,
+    "files": 7,
+    "top": [
+     [
+      "controllers/admin/cart-rules-controllers.js",
+      2
+     ],
+     [
+      "controllers/admin/product-rules-controllers.js",
+      2
+     ],
+     [
+      "controllers/admin/dashboard-controllers.js",
+      1
+     ],
+     [
+      "controllers/admin/store-controller.js",
+      1
+     ],
+     [
+      "controllers/admin/store-product-controllers.js",
+      1
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "sync_fs": {
+    "count": 6,
+    "files": 4,
+    "top": [
+     [
+      "controllers/common-controllers.js",
+      2
+     ],
+     [
+      "controllers/didit/didit-controllers.js",
+      2
+     ],
+     [
+      "controllers/member/member-controllers.js",
+      1
+     ],
+     [
+      "controllers/metrc-controllers.js",
+      1
+     ]
+    ]
+   },
+   "await_in_loop_hint": {
+    "count": 15,
+    "files": 8,
+    "top": [
+     [
+      "controllers/POS/pos-controllers.js",
+      4
+     ],
+     [
+      "controllers/admin/product-traits-controllers.js",
+      3
+     ],
+     [
+      "controllers/cart/cart-controllers.js",
+      3
+     ],
+     [
+      "controllers/admin/inventory-controllers.js",
+      1
+     ],
+     [
+      "controllers/admin/store-product-controllers.js",
+      1
+     ]
+    ]
+   },
+   "find_without_limit": {
+    "count": 232,
+    "files": 39,
+    "top": [
+     [
+      "controllers/product/product-controllers.js",
+      33
+     ],
+     [
+      "common/utils.js",
+      23
+     ],
+     [
+      "controllers/admin/product-traits-controllers.js",
+      17
+     ],
+     [
+      "controllers/order/order-controllers.js",
+      16
+     ],
+     [
+      "controllers/common-controllers.js",
+      15
+     ]
+    ]
+   },
+   "aggregate_calls": {
+    "count": 74,
+    "files": 15,
+    "top": [
+     [
+      "controllers/product/product-controllers.js",
+      13
+     ],
+     [
+      "controllers/admin/dashboard-controllers.js",
+      12
+     ],
+     [
+      "controllers/POS/pos-controllers.js",
+      9
+     ],
+     [
+      "controllers/order/order-controllers.js",
+      8
+     ],
+     [
+      "controllers/common-controllers.js",
+      6
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "common/utils.js",
+      1
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 147,
+    "files": 32,
+    "top": [
+     [
+      "controllers/POS/pos-controllers.js",
+      25
+     ],
+     [
+      "controllers/common-controllers.js",
+      17
+     ],
+     [
+      "common/utils.js",
+      14
+     ],
+     [
+      "controllers/order/order-controllers.js",
+      14
+     ],
+     [
+      "controllers/admin/store-product-controllers.js",
+      9
+     ]
+    ]
+   },
+   "todo_fixme": {
+    "count": 4,
+    "files": 2,
+    "top": [
+     [
+      "emailTemplates/storeCreateTemplate.js",
+      2
+     ],
+     [
+      "emailTemplates/storeUserTemplate.js",
+      2
+     ]
+    ]
+   },
+   "empty_catch": {
+    "count": 28,
+    "files": 9,
+    "top": [
+     [
+      "controllers/admin/store-product-controllers.js",
+      8
+     ],
+     [
+      "common/utils.js",
+      6
+     ],
+     [
+      "controllers/order/order-controllers.js",
+      4
+     ],
+     [
+      "controllers/POS/pos-controllers.js",
+      3
+     ],
+     [
+      "controllers/admin/store-controller.js",
+      3
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 280,
+    "files": 24,
+    "top": [
+     [
+      "controllers/POS/pos-controllers.js",
+      78
+     ],
+     [
+      "controllers/admin/blog-controller.js",
+      66
+     ],
+     [
+      "controllers/order/order-controllers.js",
+      26
+     ],
+     [
+      "controllers/cart/cart-controllers.js",
+      19
+     ],
+     [
+      "models/ProductBatch.js",
+      17
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "common/utils.js:647",
+    "controllers/POS/pos-controllers.js:47",
+    "controllers/common-controllers.js:1756",
+    "controllers/common-controllers.js:1757",
+    "controllers/common-controllers.js:1832",
+    "controllers/common-controllers.js:1861"
+   ],
+   "localhost": [
+    "controllers/common-controllers.js:1756",
+    "controllers/common-controllers.js:1757"
+   ],
+   "mongo_uri": [
+    "controllers/common-controllers.js:1911",
+    "controllers/common-controllers.js:1911"
+   ],
+   "ip_literal": [
+    "controllers/common-controllers.js:1756",
+    "controllers/common-controllers.js:1757"
+   ],
+   "role_string": [
+    "controllers/admin/blog-controller.js:255",
+    "controllers/admin/blog-controller.js:261",
+    "controllers/admin/blog-controller.js:711",
+    "controllers/admin/blog-controller.js:715",
+    "controllers/admin/blog-controller.js:754",
+    "controllers/admin/category-controllers.js:172"
+   ],
+   "s3_bucket": [
+    "controllers/POS/pos-controllers.js:47",
+    "emailTemplates/userForgotEmailTemplate.js:40"
+   ],
+   "email_literal": [
+    "controllers/POS/pos-controllers.js:1323",
+    "controllers/cart/cart-controllers.js:1105"
+   ],
+   "phone_literal": [
+    "common/utils.js:765",
+    "controllers/textVolt/textVolt-controllers.js:19",
+    "controllers/textVolt/textVolt-controllers.js:67",
+    "controllers/textVolt/textVolt-controllers.js:100"
+   ]
+  },
+  "secrets": {
+   "private_key_block": [
+    "staticDB/fcmtoken.json:5"
+   ],
+   "assigned_secret": [
+    "controllers/common-controllers.js:46"
+   ]
+  },
+  "security": {
+   "cors_wildcard": [
+    "startup/middleware.js:66",
+    "startup/middleware.js:68"
+   ],
+   "child_process": [
+    "common/utils.js:921",
+    "common/utils.js:922",
+    "common/utils.js:923",
+    "common/utils.js:1890",
+    "controllers/POS/pos-controllers.js:3170",
+    "controllers/POS/pos-controllers.js:3387"
+   ],
+   "mass_assign_update": [
+    "controllers/POS/pos-controllers.js:2590",
+    "controllers/POS/pos-controllers.js:2603",
+    "controllers/POS/pos-controllers.js:2629",
+    "controllers/POS/pos-controllers.js:2652",
+    "controllers/admin/cannabisLimit-controller.js:72",
+    "controllers/admin/store-product-controllers.js:402"
+   ],
+   "unfiltered_find": [
+    "common/utils.js:1215",
+    "controllers/POS/pos-controllers.js:109",
+    "controllers/admin/admin-user-controller.js:314",
+    "controllers/admin/banner-controllers.js:36",
+    "controllers/admin/banner-controllers.js:82",
+    "controllers/admin/blog-controller.js:735"
+   ],
+   "jwt_no_expiry_hint": [
+    "models/Admin.js:23",
+    "models/Store.js:50",
+    "models/StoreUser.js:35"
+   ],
+   "sql_concat": [
+    "controllers/admin/admin-user-controller.js:124",
+    "controllers/admin/cart-rules-controllers.js:92",
+    "controllers/admin/cart-rules-controllers.js:96",
+    "controllers/admin/product-rules-controllers.js:99",
+    "controllers/admin/product-rules-controllers.js:103",
+    "controllers/admin/store-controller.js:325"
+   ],
+   "req_query_in_regex": [
+    "controllers/admin/cart-rules-controllers.js:92",
+    "controllers/admin/cart-rules-controllers.js:96",
+    "controllers/admin/dashboard-controllers.js:1982",
+    "controllers/admin/product-rules-controllers.js:99",
+    "controllers/admin/product-rules-controllers.js:103",
+    "controllers/admin/store-controller.js:257"
+   ]
+  },
+  "performance": {
+   "sync_fs": [
+    "controllers/common-controllers.js:852",
+    "controllers/common-controllers.js:949",
+    "controllers/didit/didit-controllers.js:213",
+    "controllers/didit/didit-controllers.js:257",
+    "controllers/member/member-controllers.js:735",
+    "controllers/metrc-controllers.js:1454"
+   ],
+   "await_in_loop_hint": [
+    "controllers/POS/pos-controllers.js:213",
+    "controllers/POS/pos-controllers.js:722",
+    "controllers/POS/pos-controllers.js:2436",
+    "controllers/POS/pos-controllers.js:2575",
+    "controllers/admin/inventory-controllers.js:96",
+    "controllers/admin/product-traits-controllers.js:38"
+   ],
+   "find_without_limit": [
+    "common/utils.js:358",
+    "common/utils.js:361",
+    "common/utils.js:378",
+    "common/utils.js:496",
+    "common/utils.js:1066",
+    "common/utils.js:1144"
+   ],
+   "aggregate_calls": [
+    "common/utils.js:921",
+    "common/utils.js:922",
+    "common/utils.js:923",
+    "common/utils.js:2951",
+    "common/utils.js:3532",
+    "controllers/POS/pos-controllers.js:1831"
+   ],
+   "settimeout_in_handler": [
+    "common/utils.js:411"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "common/emailService.js:23",
+    "common/fcmNotifications.js:7",
+    "common/fcmNotifications.js:30",
+    "common/fcmNotifications.js:33",
+    "common/fcmNotifications.js:38",
+    "common/utils.js:962"
+   ],
+   "todo_fixme": [
+    "emailTemplates/storeCreateTemplate.js:18",
+    "emailTemplates/storeCreateTemplate.js:18",
+    "emailTemplates/storeUserTemplate.js:18",
+    "emailTemplates/storeUserTemplate.js:18"
+   ],
+   "empty_catch": [
+    "common/utils.js:1758",
+    "common/utils.js:2048",
+    "common/utils.js:2092",
+    "common/utils.js:2214",
+    "common/utils.js:2229",
+    "common/utils.js:2292"
+   ],
+   "commented_code_hint": [
+    "common/utils.js:1314",
+    "common/utils.js:1783",
+    "common/utils.js:1785",
+    "common/utils.js:3471",
+    "common/utils.js:3472",
+    "common/utils.js:3473"
+   ]
+  }
+ },
+ "routes_total": 504,
+ "routes_unguarded": 490,
+ "routes_sample": [
+  {
+   "verb": "GET",
+   "path": "/get/products/:id",
+   "file": "routes/POS/pos-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/prepare/cart",
+   "file": "routes/POS/pos-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submit/cart",
+   "file": "routes/POS/pos-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/purchased/list",
+   "file": "routes/POS/pos-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/return/list",
+   "file": "routes/POS/pos-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/order",
+   "file": "routes/POS/pos-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/order/:id",
+   "file": "routes/POS/pos-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/return/order",
+   "file": "routes/POS/pos-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/age/verification",
+   "file": "routes/POS/pos-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fulfillment/orders",
+   "file": "routes/POS/pos-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/search/member",
+   "file": "routes/POS/pos-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/checkin/member",
+   "file": "routes/POS/pos-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/checkin/logs",
+   "file": "routes/POS/pos-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/pin/login",
+   "file": "routes/POS/pos-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/scan/items",
+   "file": "routes/POS/pos-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/detail",
+   "file": "routes/POS/pos-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/pickedup/order/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/delivered/order/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/checkin/list",
+   "file": "routes/POS/pos-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/user/forgot/pin",
+   "file": "routes/POS/pos-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/user/reset/pin",
+   "file": "routes/POS/pos-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/select/payment",
+   "file": "routes/POS/pos-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/verify/checkin/member",
+   "file": "routes/POS/pos-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/order/fulfillment/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/fulfillment/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/member/check/out",
+   "file": "routes/POS/pos-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/real/time/transaction/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/checkin/order",
+   "file": "routes/POS/pos-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/scan/items/batch",
+   "file": "routes/POS/pos-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/edit/:id",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/forgot",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/roles/permission",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/user/rules",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/pagination",
+   "file": "routes/admin/banner-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/banner-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/banner-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing",
+   "file": "routes/admin/blog-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/check/page",
+   "file": "routes/admin/blog-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/blog-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/all/data",
+   "file": "routes/admin/blog-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/quick/update/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/author/update",
+   "file": "routes/admin/blog-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/cart-rules-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/cart-rules-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/cart-rules-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/cart-rules-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/category-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/web/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/admin/category-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/category-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/admin/category-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/update",
+   "file": "routes/admin/category-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/multiple",
+   "file": "routes/admin/category-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/wp/list",
+   "file": "routes/admin/category-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/bulk/update",
+   "file": "routes/admin/category-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/sold",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/total/revenue",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/total/orders",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/member/data",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/total/products/sold",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category/sold",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/total/orders/completed",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/total/order/canceled",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/total/credit",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/tax/calculation",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/customers/graph",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/location/wise",
+   "file": "routes/admin/dashboard-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/admin/inventory-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/inventory-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/inventory-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/inventory-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/admin/inventory-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/add",
+   "file": "routes/admin/physicians-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/list",
+   "file": "routes/admin/physicians-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/physicians-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/physicians-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/physicians-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/product-rules-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/product-rules-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/product-rules-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/product-rules-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/main/create",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/listing",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/main/update/:slug",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/main/delete/:slug",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/:id",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/sub/create",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sub/listing",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/sub/update/:slug",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/sub/delete/:slug",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sub/:id",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/assignment",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:productId/:traitId",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/details/:productId",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/assign/multiple/strains",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/individual/details",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/subtraits/listing",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/store/assignment",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/store/delete/:productId/:traitId",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/store/update",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/details/:productId",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/store/assign/multiple/strains",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/individual/details",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/subtraits/listing",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/store/delete/matched/strains/data",
+   "file": "routes/admin/product-trait-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/all",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/membership",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/all/membership",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/membership/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/membership/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/membership/:id",
+   "file": "routes/admin/promotion-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/admin/region-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/region-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/region-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/region-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/admin/region-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/seo-pages-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/sections/reorder",
+   "file": "routes/admin/seo-pages-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/orders/percentage",
+   "file": "routes/admin/store-dashboard-routes.js",
+   "line": 6,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/total/revenue",
+   "file": "routes/admin/store-dashboard-routes.js",
+   "line": 7,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/total/orders",
+   "file": "routes/admin/store-dashboard-routes.js",
+   "line": 8,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/total/delivered/orders",
+   "file": "routes/admin/store-dashboard-routes.js",
+   "line": 9,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/total/cancelled/orders",
+   "file": "routes/admin/store-dashboard-routes.js",
+   "line": 10,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "POST",
+   "path": "/all",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 6,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/delete",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/productBatchId/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/batches/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/batches",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/batches/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/batches/delete",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/approvals/details",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/approvals/update",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/approvals/history/details",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/bulk/update",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/approvals/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/override/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/product/batch",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/product/batches/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/inventories/:id",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/shop",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/quantity/status",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/batches/listing/:productId",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category/listing",
+   "file": "routes/admin/store-product-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/all",
+   "file": "routes/admin/store-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/store-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/store-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/store-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/store-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/admin/store-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/forgot",
+   "file": "routes/admin/store-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset",
+   "file": "routes/admin/store-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/logout",
+   "file": "routes/admin/store-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/verify",
+   "file": "routes/agechecker/agechecker-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/status",
+   "file": "routes/agechecker/agechecker-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/getReedemPoints",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/wolfpack/points",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/rec/products",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/getReferCode",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/alpine/validate",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/refCode/usingPhone",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/apply/RefCode",
+   "file": "routes/alpine/alpine-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/variables",
+   "file": "routes/blaze/shop-variables-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/variables",
+   "file": "routes/blaze/shop-variables-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/page",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/main/metas",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sitemap/data",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/tags/list",
+   "file": "routes/cannabinoids/cannabinoid-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/cannabinoids/cannabinooid-banner-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/active",
+   "file": "routes/cart/cart-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/prepare",
+   "file": "routes/cart/cart-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submit",
+   "file": "routes/cart/cart-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/slots",
+   "file": "routes/cart/cart-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/upload/image",
+   "file": "routes/common-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/upload/product/image",
+   "file": "routes/common-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/common/searching",
+   "file": "routes/common-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/nmi/payment",
+   "file": "routes/common-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/faq",
+   "file": "routes/common-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/faq",
+   "file": "routes/common-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/legal/listing",
+   "file": "routes/common-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/legal",
+   "file": "routes/common-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/legal/:slug",
+   "file": "routes/common-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/legal/:slug",
+   "file": "routes/common-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/legal/:slug",
+   "file": "routes/common-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/signup/status/update",
+   "file": "routes/common-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/signup/status",
+   "file": "routes/common-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/product/disclaimer",
+   "file": "routes/common-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/disclaimer",
+   "file": "routes/common-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/payment/status/update",
+   "file": "routes/common-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/payment/status",
+   "file": "routes/common-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/notification/count/data",
+   "file": "routes/common-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/notification/read/all",
+   "file": "routes/common-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/notification/read/single",
+   "file": "routes/common-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/notification/count",
+   "file": "routes/common-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/generate/barcode",
+   "file": "routes/common-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/generate/qrcode",
+   "file": "routes/common-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/refund/order/value",
+   "file": "routes/common-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/refund/order/value",
+   "file": "routes/common-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product/unit/listing",
+   "file": "routes/common-routes.js",
+   "line": 37,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/product/unit",
+   "file": "routes/common-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/product/unit/:unit",
+   "file": "routes/common-routes.js",
+   "line": 39,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/details",
+   "file": "routes/common-routes.js",
+   "line": 41,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/shipping/status",
+   "file": "routes/common-routes.js",
+   "line": 43,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/shipping/status",
+   "file": "routes/common-routes.js",
+   "line": 44,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/ccfees/status",
+   "file": "routes/common-routes.js",
+   "line": 46,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/ccfees/status",
+   "file": "routes/common-routes.js",
+   "line": 47,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/script",
+   "file": "routes/common-routes.js",
+   "line": 48,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/deliveryStatus",
+   "file": "routes/common-routes.js",
+   "line": 50,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/delivery/status",
+   "file": "routes/common-routes.js",
+   "line": 51,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/user/instructions",
+   "file": "routes/common-routes.js",
+   "line": 53,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/user/instructions",
+   "file": "routes/common-routes.js",
+   "line": 54,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/price/roundamount",
+   "file": "routes/common-routes.js",
+   "line": 56,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/price/roundamount",
+   "file": "routes/common-routes.js",
+   "line": 57,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/blog/category",
+   "file": "routes/common-routes.js",
+   "line": 59,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blog/category/listing",
+   "file": "routes/common-routes.js",
+   "line": 60,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/blog/category/:slug",
+   "file": "routes/common-routes.js",
+   "line": 61,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blog/web/data",
+   "file": "routes/common-routes.js",
+   "line": 62,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/blog/author",
+   "file": "routes/common-routes.js",
+   "line": 64,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blog/author/listing",
+   "file": "routes/common-routes.js",
+   "line": 65,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/blog/author/:slug",
+   "file": "routes/common-routes.js",
+   "line": 66,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/print/receipt",
+   "file": "routes/common-routes.js",
+   "line": 68,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category/syncing",
+   "file": "routes/common-routes.js",
+   "line": 69,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sendgrid",
+   "file": "routes/common-routes.js",
+   "line": 71,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/revenuekit/check/status",
+   "file": "routes/common-routes.js",
+   "line": 72,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/generate/description",
+   "file": "routes/common-routes.js",
+   "line": 74,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/author/sitemap/data",
+   "file": "routes/common-routes.js",
+   "line": 76,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blog/sitemap/data",
+   "file": "routes/common-routes.js",
+   "line": 77,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category/sitemap/data",
+   "file": "routes/common-routes.js",
+   "line": 78,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/url",
+   "file": "routes/didit/didit-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/retrieve/session",
+   "file": "routes/didit/didit-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/retrieve/status",
+   "file": "routes/didit/didit-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/errors-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/driver/conversation",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/get/hash/data",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/latest/order",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/close/conversation",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get/all/orders",
+   "file": "routes/intercom/intercom-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get-kml-coordinates",
+   "file": "routes/kml-route.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/contactless",
+   "file": "routes/ledgergreen/ledgergreen-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/webhook",
+   "file": "routes/ledgergreen/ledgergreen-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/assign",
+   "file": "routes/ledgergreen/ledgergreen-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/member/member-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/register",
+   "file": "routes/member/member-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/orders",
+   "file": "routes/member/member-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/member/member-routes.js",
+   "line": 9,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/member/member-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/addresses/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/addresses/update/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/addresses/delete/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/addresses/get/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/addresses/list/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/forgot",
+   "file": "routes/member/member-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset",
+   "file": "routes/member/member-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/check/status",
+   "file": "routes/member/member-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/password",
+   "file": "routes/member/member-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/store/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/block/reason",
+   "file": "routes/member/member-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/block/reason",
+   "file": "routes/member/member-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/blocked/status",
+   "file": "routes/member/member-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/block/online/payments",
+   "file": "routes/member/member-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/adjust/wallet",
+   "file": "routes/member/member-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/wallet/logs",
+   "file": "routes/member/member-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/wallet/adjust/reason",
+   "file": "routes/member/member-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/wallet/adjust/reason",
+   "file": "routes/member/member-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/wallet/adjust/reason/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/wallet/adjust/reason/:id",
+   "file": "routes/member/member-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/wallet/adjust/reason/list",
+   "file": "routes/member/member-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/status/verify",
+   "file": "routes/member/member-routes.js",
+   "line": 37,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/status/dlExpiration/:memberId",
+   "file": "routes/member/member-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/metrc-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/active/packages",
+   "file": "routes/metrc-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/reward/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reward/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/reward/templates/:rewardUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/reward/templates/:rewardUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/compliance/fee",
+   "file": "routes/metrc-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/compliance/fee",
+   "file": "routes/metrc-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/delivery/fee",
+   "file": "routes/metrc-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/delivery/fee",
+   "file": "routes/metrc-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/promotion/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/promotion/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/promotion/templates/:promoUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/promotion/templates/:promoUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/tax/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/tax/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/tax/templates/:taxSettingUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/tax/templates/:taxSettingUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/member/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/member/templates",
+   "file": "routes/metrc-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/member/templates/:memberTaxUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 31,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/member/templates/:memberTaxUniqueId",
+   "file": "routes/metrc-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/generate/receipts",
+   "file": "routes/metrc-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/orders",
+   "file": "routes/metrc-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/warranty",
+   "file": "routes/order/order-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/order/order-routes.js",
+   "line": 8,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/order/order-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/track/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/active/count",
+   "file": "routes/order/order-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/return",
+   "file": "routes/order/order-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/warranty/status",
+   "file": "routes/order/order-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/package/proof",
+   "file": "routes/order/order-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/package/proof",
+   "file": "routes/order/order-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/package/proof/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/activity/logs",
+   "file": "routes/order/order-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/refund/reason",
+   "file": "routes/order/order-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/refund/reason",
+   "file": "routes/order/order-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/refund/reason/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/refund/reason/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/refund/reasons/list",
+   "file": "routes/order/order-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/returned/items/details/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/items/detail/:id",
+   "file": "routes/order/order-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/active/session/data",
+   "file": "routes/order/order-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/createInquiryId",
+   "file": "routes/persona/persona-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/verifyInquiryId",
+   "file": "routes/persona/persona-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/getInquiryId",
+   "file": "routes/persona/persona-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/member/details",
+   "file": "routes/persona/persona-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/product/brand-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/product/brand-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/product/brand-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/product/brand-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/product/brand-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/sitemap/data",
+   "file": "routes/product/brand-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/page",
+   "file": "routes/product/brand-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/main/metas",
+   "file": "routes/product/brand-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/top/popular",
+   "file": "routes/product/brand-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/product/product-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/web",
+   "file": "routes/product/product-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/terpenoids",
+   "file": "routes/product/product-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/infoeffects",
+   "file": "routes/product/product-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/list",
+   "file": "routes/product/product-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/product/product-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 15,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/inventory/assigned",
+   "file": "routes/product/product-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/inventory/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/terpenoids/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 20,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/terpenoids",
+   "file": "routes/product/product-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/terpenoids/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/terpenoids/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/assign/terpenoids/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/delete/terpenoids/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/update/terpenoids/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/terpenoids/details/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/bulk/update",
+   "file": "routes/product/product-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category/seo",
+   "file": "routes/product/product-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/bulk/reset/quantity",
+   "file": "routes/product/product-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/inventory/activity/logs",
+   "file": "routes/product/product-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/master/catalogue",
+   "file": "routes/product/product-routes.js",
+   "line": 35,
+   "middleware": [
+    "checkStoreExists"
+   ]
+  },
+  {
+   "verb": "GET",
+   "path": "/fetch/instructions",
+   "file": "routes/product/product-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/wp/blogs",
+   "file": "routes/product/product-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/hold/quantity/status",
+   "file": "routes/product/product-routes.js",
+   "line": 39,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/admin/inventory/count",
+   "file": "routes/product/product-routes.js",
+   "line": 40,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/hold/quantity/reset",
+   "file": "routes/product/product-routes.js",
+   "line": 41,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/main/trait/:id",
+   "file": "routes/product/product-routes.js",
+   "line": 43,
+   "middleware": []
+  }
+ ],
+ "unguarded_sample": [
+  {
+   "verb": "GET",
+   "path": "/get/products/:id",
+   "file": "routes/POS/pos-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/prepare/cart",
+   "file": "routes/POS/pos-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/submit/cart",
+   "file": "routes/POS/pos-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/purchased/list",
+   "file": "routes/POS/pos-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/return/list",
+   "file": "routes/POS/pos-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/order",
+   "file": "routes/POS/pos-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/order/:id",
+   "file": "routes/POS/pos-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/return/order",
+   "file": "routes/POS/pos-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/age/verification",
+   "file": "routes/POS/pos-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/fulfillment/orders",
+   "file": "routes/POS/pos-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/search/member",
+   "file": "routes/POS/pos-routes.js",
+   "line": 17,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/checkin/member",
+   "file": "routes/POS/pos-routes.js",
+   "line": 18,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/checkin/logs",
+   "file": "routes/POS/pos-routes.js",
+   "line": 19,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/pin/login",
+   "file": "routes/POS/pos-routes.js",
+   "line": 21,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/scan/items",
+   "file": "routes/POS/pos-routes.js",
+   "line": 22,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/detail",
+   "file": "routes/POS/pos-routes.js",
+   "line": 23,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/pickedup/order/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 24,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/update/delivered/order/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 25,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/checkin/list",
+   "file": "routes/POS/pos-routes.js",
+   "line": 26,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/user/forgot/pin",
+   "file": "routes/POS/pos-routes.js",
+   "line": 27,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/user/reset/pin",
+   "file": "routes/POS/pos-routes.js",
+   "line": 28,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/select/payment",
+   "file": "routes/POS/pos-routes.js",
+   "line": 29,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/verify/checkin/member",
+   "file": "routes/POS/pos-routes.js",
+   "line": 30,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/order/fulfillment/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 32,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/order/fulfillment/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 33,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/member/check/out",
+   "file": "routes/POS/pos-routes.js",
+   "line": 34,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/real/time/transaction/status",
+   "file": "routes/POS/pos-routes.js",
+   "line": 35,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/checkin/order",
+   "file": "routes/POS/pos-routes.js",
+   "line": 36,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/scan/items/batch",
+   "file": "routes/POS/pos-routes.js",
+   "line": 38,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/get",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/login",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/edit/:id",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/forgot",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/reset",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/roles/permission",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/user/rules",
+   "file": "routes/admin/admin-user-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/pagination",
+   "file": "routes/admin/banner-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/banner-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/web",
+   "file": "routes/admin/banner-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/banner-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/listing",
+   "file": "routes/admin/blog-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/check/page",
+   "file": "routes/admin/blog-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/blog-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/all/data",
+   "file": "routes/admin/blog-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/delete/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/quick/update/:id",
+   "file": "routes/admin/blog-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/author/update",
+   "file": "routes/admin/blog-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/admin/cannabisLimit-routes.js",
+   "line": 16,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/",
+   "file": "routes/admin/cart-rules-routes.js",
+   "line": 5,
+   "middleware": []
+  }
+ ],
+ "middleware_freq": [
+  [
+   "checkStoreExists",
+   13
+  ],
+  [
+   "pingRateLimiter",
+   1
+  ]
+ ],
+ "models": [
+  {
+   "kind": "mongoose",
+   "name": "ActiveCart",
+   "file": "models/ActiveCart.js",
+   "fields": 26,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ActivityLogs",
+   "file": "models/ActivityLog.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Admin",
+   "file": "models/Admin.js",
+   "fields": 12,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Approvals",
+   "file": "models/Approvals.js",
+   "fields": 19,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Authors",
+   "file": "models/Authors.js",
+   "fields": 16,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Banners",
+   "file": "models/Banners.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Blog",
+   "file": "models/Blog.js",
+   "fields": 32,
+   "enums": [
+    "'published', 'draft'"
+   ],
+   "indexes": 5,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "BranchSetting",
+   "file": "models/BranchSetting.js",
+   "fields": 12,
+   "enums": [],
+   "indexes": 3,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Brand",
+   "file": "models/Brand.js",
+   "fields": 26,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Cannabinoid",
+   "file": "models/Cannabinoid.js",
+   "fields": 20,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "CannabinoidBanners",
+   "file": "models/CannabinoidBanners.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "CannabisLimit",
+   "file": "models/CannabisLimit.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "CartRules",
+   "file": "models/CartRules.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Category",
+   "file": "models/Category.js",
+   "fields": 28,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Employee",
+   "file": "models/Employees.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ErrorLog",
+   "file": "models/ErrorLogs.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Faq",
+   "file": "models/Faq.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Inventory",
+   "file": "models/Inventory.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Legal",
+   "file": "models/Legal.js",
+   "fields": 48,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Log",
+   "file": "models/Log.js",
+   "fields": 2,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainBrand",
+   "file": "models/MainBrand.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainCannabinoid",
+   "file": "models/MainCannabinoid.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainProductTraits",
+   "file": "models/MainProductTraits.js",
+   "fields": 35,
+   "enums": [
+    "'Active', 'Inactive'",
+    "'image', 'video'",
+    "'image', 'video'"
+   ],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MainStrain",
+   "file": "models/MainStrain.js",
+   "fields": 9,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Member",
+   "file": "models/Member.js",
+   "fields": 52,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "MemberWalletReasons",
+   "file": "models/MemberWalletReasons.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Miscellaneous",
+   "file": "models/Miscellaneous.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Miscellaneous",
+   "file": "models/Miscellaneous.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "NotificationData",
+   "file": "models/NotificationData.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Order",
+   "file": "models/Order.js",
+   "fields": 80,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "OrderManager",
+   "file": "models/OrderManager.js",
+   "fields": 3,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "OrderTracker",
+   "file": "models/OrderTracker.js",
+   "fields": 10,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "POSChekIn",
+   "file": "models/POSCheckIn.js",
+   "fields": 14,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "PaymentSetting",
+   "file": "models/PaymentSetting.js",
+   "fields": 8,
+   "enums": [
+    "'test', 'live'"
+   ],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Physicisans",
+   "file": "models/Physicians.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "PrinterSetup",
+   "file": "models/PrinterSetup.js",
+   "fields": 9,
+   "enums": [
+    "'Network', 'USB'"
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ProductBatch",
+   "file": "models/ProductBatch.js",
+   "fields": 18,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ProductRules",
+   "file": "models/ProductRules.js",
+   "fields": 12,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Promotion",
+   "file": "models/Promotions.js",
+   "fields": 31,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "RefundReasons",
+   "file": "models/RefundReasons.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Region",
+   "file": "models/Region.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ResetRequest",
+   "file": "models/ResetRequest.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StiloProducts",
+   "file": "models/StiloProducts.js",
+   "fields": 56,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Store",
+   "file": "models/Store.js",
+   "fields": 27,
+   "enums": [],
+   "indexes": 3,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StoreCoordinates",
+   "file": "models/StoreCoordinates.js",
+   "fields": 6,
+   "enums": [
+    "'Polygon'"
+   ],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StoreProducts",
+   "file": "models/StoreProducts.js",
+   "fields": 13,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StoreUser",
+   "file": "models/StoreUser.js",
+   "fields": 18,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Strain",
+   "file": "models/Strain.js",
+   "fields": 24,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "SubProductTraits",
+   "file": "models/SubProductTraits.js",
+   "fields": 34,
+   "enums": [
+    "'Active', 'Inactive'"
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Tax",
+   "file": "models/Tax.js",
+   "fields": 16,
+   "enums": [
+    "\"pre-taxed\", \"post-taxed\"",
+    "\"MedicinalUser\", \"AdultUse\"",
+    "\"Cannabis\", \"Non-Cannabis\""
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "TaxSettings",
+   "file": "models/TaxSettings.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Terpenoids",
+   "file": "models/Terpenoids.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "TransactionLog",
+   "file": "models/TransactionLog.js",
+   "fields": 11,
+   "enums": [
+    "'success', 'failed', 'pending'"
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "UserRolesPermissions",
+   "file": "models/UserRolesPermissions.js",
+   "fields": 6,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "VersionSync",
+   "file": "models/VersionSync.js",
+   "fields": 2,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "WebCategory",
+   "file": "models/WebCategory.js",
+   "fields": 25,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  }
+ ],
+ "money_field_types": {
+  "Number": 18,
+  "String": 9
+ },
+ "next_pages": 0,
+ "next_api_routes": [],
+ "unused_deps": [
+  "@graphql-tools/merge",
+  "apollo-server",
+  "apollo-server-express",
+  "child_process",
+  "fetch",
+  "get-stream",
+  "graphql",
+  "join-images",
+  "nodemon",
+  "pdf-to-printer",
+  "pg",
+  "pg-hstore",
+  "sequelize",
+  "tar-fs"
+ ],
+ "undeclared_imports": [
+  "cors",
+  "escpos",
+  "form-data",
+  "fromInventory",
+  "moment-timezone",
+  "sharp"
+ ],
+ "env_refs": [
+  "AGE_CHECKER_BASE_URL",
+  "ALLOW_ORIGIN",
+  "ALPINE_BASE_URL",
+  "ALPINE_IQ_FAVORITE_STORE",
+  "ALPINE_IQ_KEY",
+  "API_BASE_URL",
+  "AUTH_TOKEN",
+  "AWS_ACCESS_KEY",
+  "AWS_SECRET_ACCESS_KEY",
+  "BLAZE_BASE_URL",
+  "BLAZE_RETAIL_AUTH_EMAIL",
+  "BLAZE_RETAIL_AUTH_PASSWORD",
+  "BLAZE_RETAIL_BASE_URL",
+  "CC_CASHIER_ID",
+  "CC_DEVICE_ID",
+  "CC_TERMINAL_API_KEY",
+  "CC_TERMINAL_SECRET_KEY",
+  "CLIENT_EMAIL",
+  "CLIENT_PROFILE_ID",
+  "CLIENT_SIDE_HYPERWOLF_REDIRECT_URL",
+  "CLIENT_SIDE_REDIRECT_URL",
+  "CLIENT_SIDE_STILO_POS_REDIRECT_URL",
+  "CLIENT_SIDE_STILO_REDIRECT_URL",
+  "DATABASE_URL",
+  "DIDIT_API_BASE_URL",
+  "DIDIT_API_KEY",
+  "DIDIT_WORKFLOW_ID",
+  "FOOTER_COLOR",
+  "GOOGLE_API_KEY_STREET_VIEW",
+  "HEMP_DATABASE_URL",
+  "HYPERDRIVE_BASE_URL",
+  "HYPERWOLF_STREET_VIEW_SHORT_URL",
+  "INTERCOM_AUTH_TOKEN",
+  "INTERCOM_HASH_SECRET_KEY",
+  "INTERCOM_URL",
+  "IS_DEVELOPMENT",
+  "JWT_ADMIN_PRIVATE_KEY",
+  "KLAVIYO_API_KEY",
+  "KLAVIYO_BASE_URL",
+  "LEDGERGREEN_PUBLIC_KEY",
+  "LEDGERGREEN_SECRET_KEY",
+  "LEDGER_GREEN_BASE_URL",
+  "LEISUREPAY_BASE_URL",
+  "LEISUREPAY_SECURITY_KEY",
+  "LEISURE_PAY_API_KEY",
+  "LEISURE_PAY_SECRET_KEY",
+  "LESIURE_PAY_BASE_URL",
+  "MAVERICK_BASE_URL",
+  "MAVERICK_SECURITY_KEY",
+  "METRC_BASE_URL",
+  "METRC_PASSWORD",
+  "METRC_USERNAME",
+  "ONFLEET_API_ID",
+  "OPEN_AI_AUTH_KEY",
+  "PARTNER_KEY",
+  "PERSONA_TOKEN",
+  "PERSONA_URL",
+  "PORT",
+  "POS_REDIRECT_URL",
+  "POS_TERMINAL_URL",
+  "PRINTER_IP",
+  "PRINTER_PORT",
+  "PROJECT_ADDRESS",
+  "PROJECT_API_KEY",
+  "PROJECT_NAME",
+  "PROJECT_PHONE_NUMBER",
+  "PROJECT_THEME_COLOR",
+  "PUBLIC_TOKEN",
+  "REVENUE_KIT_COMPANY_NO",
+  "REVENUE_KIT_URL",
+  "REVIEW_API_KEY",
+  "REVIEW_BASE_URL",
+  "REVIEW_STORE_ID",
+  "SAFE_INVENTORY_ID",
+  "SAFE_INVENTORY_KEY",
+  "SENDGRID_API_KEY",
+  "SENDGRID_FROM_EMAIL",
+  "SENDGRID_FROM_NAME",
+  "SENTRY_DSN",
+  "SENTRY_ENVIRONMENT",
+  "SHIPSTATION_API_KEY",
+  "SHIPSTATION_BASE_URL",
+  "SUPPORT_EMAIL",
+  "SUPPORT_PROFILE_ID",
+  "TEXT_VOLT_BEARER_TOKEN",
+  "TEXT_VOLT_URL",
+  "USPS_BASE_URL",
+  "USPS_CLIENT_ID",
+  "USPS_CODE",
+  "USPS_SECRET_KEY",
+  "VERDELOOT_BASE_URL"
+ ],
+ "env_example": [
+  "AGE_CHECKER_BASE_URL",
+  "ALLOW_ORIGIN",
+  "ALPINE_BASE_URL",
+  "ALPINE_IQ_FAVORITE_STORE",
+  "ALPINE_IQ_KEY",
+  "API_BASE_URL",
+  "AUTH_TOKEN",
+  "AWS_ACCESS_KEY",
+  "AWS_SECRET_ACCESS_KEY",
+  "BLAZE_BASE_URL",
+  "BLAZE_RETAIL_AUTH_EMAIL",
+  "BLAZE_RETAIL_AUTH_PASSWORD",
+  "BLAZE_RETAIL_BASE_URL",
+  "CC_CASHIER_ID",
+  "CC_DEVICE_ID",
+  "CC_TERMINAL_API_KEY",
+  "CC_TERMINAL_SECRET_KEY",
+  "CLIENT_EMAIL",
+  "CLIENT_PROFILE_ID",
+  "CLIENT_SIDE_HYPERWOLF_REDIRECT_URL",
+  "CLIENT_SIDE_REDIRECT_URL",
+  "CLIENT_SIDE_STILO_POS_REDIRECT_URL",
+  "CLIENT_SIDE_STILO_REDIRECT_URL",
+  "DATABASE_URL",
+  "DIDIT_API_BASE_URL",
+  "DIDIT_API_KEY",
+  "DIDIT_WORKFLOW_ID",
+  "FOOTER_COLOR",
+  "GOOGLE_API_KEY_STREET_VIEW",
+  "HEMP_DATABASE_URL",
+  "HYPERDRIVE_BASE_URL",
+  "HYPERWOLF_STREET_VIEW_SHORT_URL",
+  "INTERCOM_AUTH_TOKEN",
+  "INTERCOM_HASH_SECRET_KEY",
+  "INTERCOM_URL",
+  "IS_DEVELOPMENT",
+  "JWT_ADMIN_PRIVATE_KEY",
+  "KLAVIYO_API_KEY",
+  "KLAVIYO_BASE_URL",
+  "LEDGERGREEN_PUBLIC_KEY",
+  "LEDGERGREEN_SECRET_KEY",
+  "LEDGER_GREEN_BASE_URL",
+  "LEISUREPAY_BASE_URL",
+  "LEISUREPAY_SECURITY_KEY",
+  "LEISURE_PAY_API_KEY",
+  "LEISURE_PAY_SECRET_KEY",
+  "LESIURE_PAY_BASE_URL",
+  "MAVERICK_BASE_URL",
+  "MAVERICK_SECURITY_KEY",
+  "METRC_BASE_URL",
+  "METRC_PASSWORD",
+  "METRC_USERNAME",
+  "ONFLEET_API_ID",
+  "OPEN_AI_AUTH_KEY",
+  "PARTNER_KEY",
+  "PERSONA_TOKEN",
+  "PERSONA_URL",
+  "PORT",
+  "POS_REDIRECT_URL",
+  "POS_TERMINAL_URL",
+  "PRINTER_IP",
+  "PRINTER_PORT",
+  "PROJECT_ADDRESS",
+  "PROJECT_API_KEY",
+  "PROJECT_NAME",
+  "PROJECT_PHONE_NUMBER",
+  "PROJECT_THEME_COLOR",
+  "PUBLIC_TOKEN",
+  "REVENUE_KIT_COMPANY_NO",
+  "REVENUE_KIT_URL",
+  "REVIEW_API_KEY",
+  "REVIEW_BASE_URL",
+  "REVIEW_STORE_ID",
+  "SAFE_INVENTORY_ID",
+  "SAFE_INVENTORY_KEY",
+  "SENDGRID_API_KEY",
+  "SENDGRID_FROM_EMAIL",
+  "SENDGRID_FROM_NAME",
+  "SENTRY_DSN",
+  "SENTRY_ENVIRONMENT",
+  "SHIPSTATION_API_KEY",
+  "SHIPSTATION_BASE_URL",
+  "SUPPORT_EMAIL",
+  "SUPPORT_PROFILE_ID",
+  "TEXT_VOLT_BEARER_TOKEN",
+  "TEXT_VOLT_URL",
+  "USPS_BASE_URL",
+  "USPS_CLIENT_ID",
+  "USPS_CODE",
+  "USPS_SECRET_KEY",
+  "VERDELOOT_BASE_URL"
+ ],
+ "env_missing_from_example": [],
+ "inrepo_duplicate_groups": [],
+ "ci_deploy_files": [
+  ".github/workflows/security.yml",
+  ".github/workflows/stage.yml"
+ ],
+ "docs": [
+  "README.md"
+ ]
+}

@@ -1,0 +1,836 @@
+{
+ "repo": "promotion-backend",
+ "sha": "d1bd9a8",
+ "scanned_at": "2026-09-09T10:04:47",
+ "files": 46,
+ "src_files": 39,
+ "src_lines": 16369,
+ "by_ext": [
+  [
+   ".js",
+   39
+  ],
+  [
+   ".json",
+   3
+  ],
+  [
+   ".example",
+   1
+  ],
+  [
+   ".yml",
+   1
+  ],
+  [
+   "(none)",
+   1
+  ],
+  [
+   ".md",
+   1
+  ]
+ ],
+ "biggest": [
+  [
+   "common/index.js",
+   10940
+  ],
+  [
+   "services/product-promo-tag.service.js",
+   1407
+  ],
+  [
+   "controllers/promotion-controllers.js",
+   1108
+  ],
+  [
+   "utils/product-listing-utils.js",
+   360
+  ],
+  [
+   "services/promo-price-sync.service.js",
+   309
+  ],
+  [
+   "controllers/product-listing-controller.js",
+   252
+  ],
+  [
+   "utils/rule-duplicate-check.js",
+   234
+  ],
+  [
+   "engine/attributeResolvers/index.js",
+   157
+  ],
+  [
+   "models/Promotion.js",
+   142
+  ],
+  [
+   "engine/actionExecutor.js",
+   129
+  ],
+  [
+   "services/category-brand-composite.js",
+   117
+  ],
+  [
+   "services/promotionService.js",
+   102
+  ]
+ ],
+ "engines": null,
+ "scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+ },
+ "lockfiles": [
+  "package-lock.json"
+ ],
+ "deps_count": 7,
+ "dev_count": 1,
+ "pins": {
+  "caret": 8
+ },
+ "frameworks": {
+  "express": "^4.19.2",
+  "mongoose": "^5.11.15",
+  "cors": "^2.8.5",
+  "joi": "^18.0.2",
+  "newrelic": "^13.8.1"
+ },
+ "eol_notes": [
+  "mongoose 5.x (EOL; 8.x current)",
+  "express 4.x (5.x current)",
+  "no engines.node"
+ ],
+ "test_deps": [],
+ "test_files": [],
+ "test_file_count": 0,
+ "test_lines": 0,
+ "hits": {
+  "hardcoded": {
+   "http_url": {
+    "count": 25,
+    "files": 2,
+    "top": [
+     [
+      "common/index.js",
+      23
+     ],
+     [
+      "controllers/promotion-controllers.js",
+      2
+     ]
+    ]
+   },
+   "objectid_24hex": {
+    "count": 7,
+    "files": 2,
+    "top": [
+     [
+      "controllers/product-listing-controller.js",
+      6
+     ],
+     [
+      "common/index.js",
+      1
+     ]
+    ]
+   },
+   "role_string": {
+    "count": 6,
+    "files": 3,
+    "top": [
+     [
+      "common/index.js",
+      4
+     ],
+     [
+      "models/Rule.js",
+      1
+     ],
+     [
+      "models/Rules.js",
+      1
+     ]
+    ]
+   }
+  },
+  "secrets": {},
+  "security": {
+   "cors_wildcard": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "index.js",
+      1
+     ]
+    ]
+   },
+   "child_process": {
+    "count": 2,
+    "files": 1,
+    "top": [
+     [
+      "common/index.js",
+      2
+     ]
+    ]
+   },
+   "math_random_token": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "controllers/promotion-controllers.js",
+      1
+     ]
+    ]
+   }
+  },
+  "performance": {
+   "sync_fs": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "common/index.js",
+      1
+     ]
+    ]
+   },
+   "find_without_limit": {
+    "count": 15,
+    "files": 5,
+    "top": [
+     [
+      "common/index.js",
+      4
+     ],
+     [
+      "controllers/product-listing-controller.js",
+      4
+     ],
+     [
+      "services/product-promo-tag.service.js",
+      4
+     ],
+     [
+      "controllers/promotion-controllers.js",
+      2
+     ],
+     [
+      "services/promotionService.js",
+      1
+     ]
+    ]
+   },
+   "aggregate_calls": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "common/index.js",
+      1
+     ]
+    ]
+   },
+   "settimeout_in_handler": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "controllers/promotion-controllers.js",
+      1
+     ]
+    ]
+   }
+  },
+  "quality": {
+   "console_log": {
+    "count": 28,
+    "files": 7,
+    "top": [
+     [
+      "common/index.js",
+      14
+     ],
+     [
+      "controllers/product-listing-controller.js",
+      5
+     ],
+     [
+      "startup/db.js",
+      4
+     ],
+     [
+      "controllers/promotion-controllers.js",
+      2
+     ],
+     [
+      "engine/attributeResolvers/index.js",
+      1
+     ]
+    ]
+   },
+   "todo_fixme": {
+    "count": 1,
+    "files": 1,
+    "top": [
+     [
+      "common/index.js",
+      1
+     ]
+    ]
+   },
+   "commented_code_hint": {
+    "count": 24,
+    "files": 3,
+    "top": [
+     [
+      "common/index.js",
+      18
+     ],
+     [
+      "controllers/promotion-controllers.js",
+      5
+     ],
+     [
+      "utils/product-listing-utils.js",
+      1
+     ]
+    ]
+   }
+  }
+ },
+ "examples": {
+  "hardcoded": {
+   "http_url": [
+    "common/index.js:1269",
+    "common/index.js:3089",
+    "common/index.js:3890",
+    "common/index.js:3913",
+    "common/index.js:4042",
+    "common/index.js:4091"
+   ],
+   "objectid_24hex": [
+    "common/index.js:412",
+    "controllers/product-listing-controller.js:115",
+    "controllers/product-listing-controller.js:116",
+    "controllers/product-listing-controller.js:117",
+    "controllers/product-listing-controller.js:118",
+    "controllers/product-listing-controller.js:119"
+   ],
+   "role_string": [
+    "common/index.js:177",
+    "common/index.js:485",
+    "common/index.js:524",
+    "common/index.js:9941",
+    "models/Rule.js:13",
+    "models/Rules.js:28"
+   ]
+  },
+  "secrets": {},
+  "security": {
+   "cors_wildcard": [
+    "index.js:7"
+   ],
+   "child_process": [
+    "common/index.js:1108",
+    "common/index.js:3390"
+   ],
+   "math_random_token": [
+    "controllers/promotion-controllers.js:227"
+   ]
+  },
+  "performance": {
+   "sync_fs": [
+    "common/index.js:401"
+   ],
+   "find_without_limit": [
+    "common/index.js:565",
+    "common/index.js:1782",
+    "common/index.js:2749",
+    "common/index.js:5918",
+    "controllers/product-listing-controller.js:55",
+    "controllers/product-listing-controller.js:144"
+   ],
+   "aggregate_calls": [
+    "common/index.js:10413"
+   ],
+   "settimeout_in_handler": [
+    "controllers/promotion-controllers.js:180"
+   ]
+  },
+  "quality": {
+   "console_log": [
+    "common/index.js:392",
+    "common/index.js:396",
+    "common/index.js:503",
+    "common/index.js:8816",
+    "common/index.js:8818",
+    "common/index.js:9002"
+   ],
+   "todo_fixme": [
+    "common/index.js:8711"
+   ],
+   "commented_code_hint": [
+    "common/index.js:451",
+    "common/index.js:500",
+    "common/index.js:1565",
+    "common/index.js:1754",
+    "common/index.js:2702",
+    "common/index.js:2752"
+   ]
+  }
+ },
+ "routes_total": 15,
+ "routes_unguarded": 15,
+ "routes_sample": [
+  {
+   "verb": "GET",
+   "path": "/product",
+   "file": "routes/product-listing-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category",
+   "file": "routes/product-listing-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brand",
+   "file": "routes/product-listing-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/region",
+   "file": "routes/product-listing-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/promotion-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/promotion-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product-tags",
+   "file": "routes/promotion-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/product-tags/rebuild",
+   "file": "routes/promotion-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/promotion-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/promotion-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/promotion-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/validate",
+   "file": "routes/promotion-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/rule",
+   "file": "routes/promotion-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/dynamic/validate",
+   "file": "routes/promotion-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "startup/routes.js",
+   "line": 10,
+   "middleware": []
+  }
+ ],
+ "unguarded_sample": [
+  {
+   "verb": "GET",
+   "path": "/product",
+   "file": "routes/product-listing-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/category",
+   "file": "routes/product-listing-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/brand",
+   "file": "routes/product-listing-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/region",
+   "file": "routes/product-listing-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create",
+   "file": "routes/promotion-routes.js",
+   "line": 5,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "routes/promotion-routes.js",
+   "line": 6,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/product-tags",
+   "file": "routes/promotion-routes.js",
+   "line": 7,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/product-tags/rebuild",
+   "file": "routes/promotion-routes.js",
+   "line": 8,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/:id",
+   "file": "routes/promotion-routes.js",
+   "line": 9,
+   "middleware": []
+  },
+  {
+   "verb": "PUT",
+   "path": "/:id",
+   "file": "routes/promotion-routes.js",
+   "line": 10,
+   "middleware": []
+  },
+  {
+   "verb": "DELETE",
+   "path": "/:id",
+   "file": "routes/promotion-routes.js",
+   "line": 11,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/validate",
+   "file": "routes/promotion-routes.js",
+   "line": 12,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/create/rule",
+   "file": "routes/promotion-routes.js",
+   "line": 13,
+   "middleware": []
+  },
+  {
+   "verb": "POST",
+   "path": "/dynamic/validate",
+   "file": "routes/promotion-routes.js",
+   "line": 14,
+   "middleware": []
+  },
+  {
+   "verb": "GET",
+   "path": "/",
+   "file": "startup/routes.js",
+   "line": 10,
+   "middleware": []
+  }
+ ],
+ "middleware_freq": [],
+ "models": [
+  {
+   "kind": "mongoose",
+   "name": "Brand",
+   "file": "models/Hemp/Brand.js",
+   "fields": 22,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Category",
+   "file": "models/Hemp/Category.js",
+   "fields": 21,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Region",
+   "file": "models/Hemp/Region.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "HempProducts",
+   "file": "models/HempProducts.js",
+   "fields": 54,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Brand",
+   "file": "models/Hyperwolf/Brand.js",
+   "fields": 7,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Category",
+   "file": "models/Hyperwolf/Category.js",
+   "fields": 24,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Regions",
+   "file": "models/Hyperwolf/Region.js",
+   "fields": 4,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Product",
+   "file": "models/Product.js",
+   "fields": 15,
+   "enums": [],
+   "indexes": 9,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "ProductPromoTag",
+   "file": "models/ProductPromoTag.js",
+   "fields": 21,
+   "enums": [],
+   "indexes": 4,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "PromoCode",
+   "file": "models/PromoCode.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": true
+  },
+  {
+   "kind": "mongoose",
+   "name": "PromoCode",
+   "file": "models/PromoCode.js",
+   "fields": 5,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": true
+  },
+  {
+   "kind": "mongoose",
+   "name": "Promotion",
+   "file": "models/Promotion.js",
+   "fields": 27,
+   "enums": [
+    "\"active\", \"inactive\""
+   ],
+   "indexes": 6,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Rule",
+   "file": "models/Rule.js",
+   "fields": 10,
+   "enums": [
+    "\"cart\", \"user\", \"product\", \"bogo\"",
+    "         \"each_or_any\",         \"cart_total\",         \"cart_count\",         \"category_id\",         \"product_id\",         \"user_group\",         \"mp_id\"       "
+   ],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Rule",
+   "file": "models/Rule.js",
+   "fields": 10,
+   "enums": [
+    "\"cart\", \"user\", \"product\", \"bogo\"",
+    "         \"each_or_any\",         \"cart_total\",         \"cart_count\",         \"category_id\",         \"product_id\",         \"user_group\",         \"mp_id\"       "
+   ],
+   "indexes": 1,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Rules",
+   "file": "models/Rules.js",
+   "fields": 16,
+   "enums": [
+    "'input', 'select'",
+    "'>', '<=', '>=', '=='"
+   ],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Brand",
+   "file": "models/Stilo/Brand.js",
+   "fields": 26,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Category",
+   "file": "models/Stilo/Category.js",
+   "fields": 28,
+   "enums": [],
+   "indexes": 2,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "Region",
+   "file": "models/Stilo/Region.js",
+   "fields": 8,
+   "enums": [],
+   "indexes": 0,
+   "timestamps": false
+  },
+  {
+   "kind": "mongoose",
+   "name": "StoreProducts",
+   "file": "models/StoreProducts.js",
+   "fields": 13,
+   "enums": [],
+   "indexes": 1,
+   "timestamps": false
+  }
+ ],
+ "money_field_types": {
+  "Number": 2
+ },
+ "next_pages": 0,
+ "next_api_routes": [],
+ "unused_deps": [
+  "mongoose-sequence",
+  "newrelic"
+ ],
+ "undeclared_imports": [
+  "*25%"
+ ],
+ "env_refs": [
+  "COMPILE_PROMOTION_URL",
+  "DATABASE_URL",
+  "HEMP_DATABASE_URL",
+  "HW_DATABASE_URL",
+  "PORT",
+  "PROMO_PRICE_SYNC_INTERVAL_MS",
+  "REVIEWS_IO_APIKEY",
+  "REVIEWS_IO_STORE",
+  "REVIEWS_IO_URL",
+  "STILO_DATABASE_URL"
+ ],
+ "env_example": [
+  "COMPILE_PROMOTION_URL",
+  "DATABASE_URL",
+  "HEMP_DATABASE_URL",
+  "HW_DATABASE_URL",
+  "PORT",
+  "PROMO_PRICE_SYNC_INTERVAL_MS",
+  "REVIEWS_IO_APIKEY",
+  "REVIEWS_IO_STORE",
+  "REVIEWS_IO_URL",
+  "STILO_DATABASE_URL"
+ ],
+ "env_missing_from_example": [],
+ "inrepo_duplicate_groups": [],
+ "ci_deploy_files": [
+  ".github/workflows/dev.yml"
+ ],
+ "docs": [
+  "README.md"
+ ]
+}
