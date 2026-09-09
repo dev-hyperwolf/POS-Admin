@@ -189,10 +189,14 @@
   }
 
   // ── the manager console ─────────────────────────────────────────────────
-  function ConsoleBounties({ navigate, session, me }) {
+  function ConsoleBounties({ navigate, session, me, store }) {
     const P = useP();
     const S = window.IncShared;
-    const storeId = session.storeId;
+    // The app-wide switcher, not this person's home store. "All stores" sends
+    // NO store_id, which is what the route already means by "every store's
+    // bounties" — a bounty that runs at three stores is one row, not three.
+    const viewingAll = (store && store.id) === 'all';
+    const storeId = viewingAll ? '' : ((store && store.id) || session.storeId);
     const [cls, setCls] = React.useState('all');
     // The AUDIENCE filter is server-side, not a filter over the rows already
     // in hand: a bounty matches when the class is ONE of its audiences, and
@@ -388,7 +392,7 @@
     return (
       <div style={{ width: '100%' }}>
         {seat ? <SeatBounties navigate={props.navigate} me={props.me} />
-          : <ConsoleBounties navigate={props.navigate} session={props.session} me={props.me} />}
+          : <ConsoleBounties navigate={props.navigate} session={props.session} me={props.me} store={props.store} />}
       </div>);
   };
 })();

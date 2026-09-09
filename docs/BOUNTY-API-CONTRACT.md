@@ -24,7 +24,14 @@ Source            { "source": "blaze-api|meadow-api|blaze-csv|meadow-csv|hwpos",
                     "last_error": "401 Unauthorized (client key)" | null,
                     "last_error_at": "..." | null,
                     "today": { "txns": 143, "lines": 412 },
-                    "stale": false }                  // no ok in > 30 min for api sources
+                    "stale": false,                   // no ok in > 30 min for api sources
+                    "error_superseded": false,        // last_error is OLDER than last_ok_at
+                    "state": "healthy" }              // failing|stale|healthy|not_configured|never_synced
+Store             { "id": "corona", "name": "Corona", "tz": "America/Los_Angeles",
+                    "pos": "blaze|meadow|treez|none",
+                    "name_source": "seed|vendor|manual|slug",  // 'slug' = named after its own id, rename me
+                    "source": "seed|env|manual",      // how the row got here
+                    "active": true }
 Person            { "associate_id": "manisha-saini", "name": "Manisha Saini",
                     "store_id": "elsinore", "store_name": "Lake Elsinore", "role": "Floor Manager" }
 Standing          { ...Person, "value": 61200, "value_kind": "net_cents|units|gross_cents|txn_count|aov_cents",
@@ -262,12 +269,58 @@ on the tax-inclusive receipt total.
 
 ## Settings
 
-`GET /api/incentives/settings` → `{ "stores": [ {"id","name","tz","pos": "blaze|meadow|treez|none"} ], "tie_rule_default": "split", "managers": [Person] }`
+`GET /api/incentives/settings` → `{ "stores": [Store], "tie_rule_default": "split", "managers": [Person] }`
 `POST /api/incentives/settings` `{ tie_rule_default?, actor }` → the GET shape.
+
+`settings.stores` is **active stores only** — it is what every picker in the app is built from
+(the builder's store chips, Data's upload target, the standings switcher), and a retired store
+must not be offerable. The full registry, retired rows included, is `GET /stores?include_inactive=1`.
+
+## Stores (the registry)
+
+`GET /api/incentives/stores[?include_inactive=1]` →
+`{ "stores": [Store], "vendors": ["blaze","meadow","treez","none"], "key_names": {"blaze": {store_id: ENV_NAME}, "meadow": {store_id: {consumer_key_env, client_key_env}}}, "as_of": iso }`
+
+`POST /api/incentives/stores` **(manager only, 403 otherwise)** →
+`{ "store": Store|null, "stores": [Store] /* all, incl. inactive */, "settings": <the /settings shape> }`
+
+| `action` | body | notes |
+|---|---|---|
+| `add` (default) | `store_id, name, tz?, pos?` | id is lowercase `[a-z0-9-]`, **no `_`** — see below |
+| `rename` / `update` | `store_id, name?, tz?, pos?` | sets `name_source: "manual"` |
+| `deactivate` / `activate` | `store_id` | keeps every row the store ever wrote |
+| `delete` | `store_id` | **refused (409)** while anything points at it |
+
+Errors: `400` bad input, `403` not a manager, `404` no such store, **`409` refused because of
+current state** (id already taken, id contains `_`, or the store holds rows). A `409` body's
+`error` is a sentence written for a manager and screens must render it verbatim — the delete
+refusal names the row counts and says to deactivate instead.
+
+**Where the list comes from, and how it grows.** `inc_stores` seeds itself once from
+`associates.STORES` + `schema.STORE_TZ` + `sync.STORE_POS` (those literals are now the seed and
+nothing else). After that, at **server start and at the top of every sync sweep**, every
+`BLAZE_AUTH_KEY_<SLUG>` / `MEADOW_CLIENT_KEY_<SLUG>` in the environment names a store, and any
+slug not yet registered is added with `source: "env"` and that vendor. `<SLUG>` is the store id
+upper-cased with `-` → `_`; the inverse lower-cases `_` → `-`, which is why an id may not
+contain `_` (`long_beach` and `long-beach` would be indistinguishable).
+
+**Display names are measured, not assumed** (2026-09-08):
+
+* **Meadow** — `GET /api/v1/organization` returns `{"name": "PleasureMed", "tz": "America/Los_Angeles", …}`,
+  so an auto-registered Meadow store gets both, `name_source: "vendor"`.
+* **Blaze** — *no endpoint this client speaks carries a shop name.* `/transactions` rows carry
+  `shopId`/`companyId` (opaque 24-hex ids); `/employees` rows carry `shops: [shopId]`,
+  `lastLoggedInShopId`, and a `name` that is the **person's**. So an auto-registered Blaze store
+  is named after its slug, `name_source: "slug"`, and the Settings table flags it "named from
+  its id" rather than pretending the name came from the POS.
+
+Every route that takes a `store_id` validates it against the **active** registry (404 for an
+unknown or retired id), and every "all stores" list is the active registry — not the old
+hard-coded five-key dict.
 
 ## Addenda (2026-09-08, from the screen builds — backend must honour)
 
-- Screens receive props `{ navigate, query, route, path, session, isManager, previewing, seat: 'console'|'seat', me }` from `incentives/app.jsx`; `me` is the app-wide `/api/incentives/me` poll (`{loading, error, data, refresh}`).
+- Screens receive props `{ navigate, query, route, path, session, isManager, previewing, seat: 'console'|'seat', me, store, stores, refreshStores, homeStoreId }` from `incentives/app.jsx`; `me` is the app-wide `/api/incentives/me` poll (`{loading, error, data, refresh}`).
 - `POST /api/incentives/snaps` (create/update) → `{ "snap": Snap }` (the detail shape). `POST .../publish|expire` → the same.
 - Snap body may carry `"quiz_reward": {"unit": "cents|points", "amount": int}`; the detail returns it under the same key; `reward_summary` is derived from it.
 - `video_url` cards carry the URL in `media_url` (no separate field).
@@ -368,3 +421,61 @@ divergence look like a defect. It is not one.
 `/api/incentives/*` `aov_cents` as the same measurement, and never compute one from the other.
 A bounty settled on `aov_cents` is settled on the netted number; the Goals screen's target is
 set against the un-netted one.
+
+
+### The store switcher, `props.store`, and the source-state rule (2026-09-08)
+
+**`session.storeId` is who you are; `props.store` is what you are looking at.** They used to be
+the same value, which is why a floor manager could only ever see their own store — the owner's
+report was "I can only see the Lake Elsinore store data". They are now separate:
+
+* `session.storeId` — the person's **home** store. Unchanged, and still what `/me` is called
+  with: their own day, their own rank, their own bounties, their own AOV goal card.
+* `props.store` — `{ id, name, all: bool, tz?, pos? }`, the store being **viewed**. `id` is a
+  store id, or the literal `'all'`. Every screen that takes a store_id reads this, never
+  `session.storeId`.
+
+The control is one `<select>` in `app.jsx`'s Topbar, fed by `GET /api/incentives/stores`,
+persisted in `localStorage['hw-bounty-store']`, and **manager/admin only** — a budtender has no
+switcher and `props.store` is always their home store, whatever a stale key from a previous
+session on the same browser says. A remembered store that is not in the served list (retired, or
+from another deployment) falls back to the home store once the list lands. Native `<select>`
+rather than a `Seg`: the registry is unbounded by design, and a Seg stops working at the sixth
+store.
+
+What `'all'` means, per screen — it is not one behaviour:
+
+| Screen | `store.id === 'all'` |
+|---|---|
+| Standings | `scope=all` people board **with a Store column**, and the store-vs-store table underneath it |
+| Bounties | no `store_id` param — every store's bounties, one row each |
+| Data | every store's connections; the upload picker still offers every store |
+| Goals | AOV goals are **per store**: the screen shows a store Seg and writes to the one picked |
+| Earnings | a ledger is per store (`/earnings` 400s without one): same store Seg |
+| Builder | no store pre-selected; the store_ids picker lists every store either way |
+
+The per-screen store Seg on Data is **gone** — it now follows the switcher, so "which store am I
+looking at" has one answer on every screen at once.
+
+**The source-state rule.** `record_error()` deliberately does not clear a cursor's error (a
+failed pass must not roll the window forward, and erasing the reason erases the only record it
+happened). So a source that failed and then recovered carried both, and every screen read the
+error. Observed live: West Hollywood `meadow-api`, `last_error_at 2026-09-08T19:14`,
+`last_ok_at 2026-09-09T06:08` — rendered "Failing" for a failure the next sync had already fixed.
+
+`sync._source` now orders the two and serves the verdict:
+
+```
+error_superseded := last_error && last_ok_at && last_ok_at > last_error_at   (parsed instants, not strings)
+state := not_configured  if kind == 'api' and not configured
+         failing         if last_error and not error_superseded
+         stale           if stale
+         healthy         if last_ok_at
+         never_synced    otherwise
+```
+
+Screens render `state` and **must not** re-derive "failing" from `last_error` alone. A superseded
+error is **dimmed, never hidden** — "it failed at 19:14 and recovered at 06:08" is exactly what a
+manager chasing a gap in a board needs — and the Data screen prints it under the error line as
+*"before the last successful sync"*. `/me`'s `inbox.source_errors` counts `state === "failing"`,
+so the console inbox and the Data screen cannot disagree.

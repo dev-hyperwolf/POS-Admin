@@ -335,9 +335,17 @@
                   drivers, a "Driver" pill on each is noise. */}
               {mixed && <IncShared.ClassPill cls={r.classification} />}
             </div>
-            {data.scope !== 'store' && r.store_name && <div style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{r.store_name}</div>}
           </div>
         </div>) },
+      // A COLUMN, not a sub-line under the name (2026-09-08). On an all-stores
+      // board the store is the thing a manager sorts and scans by — "who is
+      // top at Corona" is read down a column, not out of a caption under each
+      // avatar. Absent entirely on a single-store board, where every row would
+      // carry the same value.
+      ...(data.scope !== 'store'
+        ? [{ key: 'store', label: 'Store', width: 150, render: (r) => (
+            <span style={{ fontSize: 12, color: P.inkMute, fontFamily: P.fontMono }}>{r.store_name || r.store_id || '—'}</span>) }]
+        : []),
       { key: 'value', label: formatMetricLabel(metric), align: 'right', render: (r) => <span style={{ fontFamily: P.fontMono, fontWeight: 700, color: P.ink2 }}>{formatMetricValue(metric, r.value)}</span> },
       { key: 'progress', label: 'Share of top', width: 150, render: (r) => <BarMeter value={top ? r.value / top : 0} color={r.associate_id === sessionId ? P.accent : P.info} height={7} /> },
     ];
@@ -398,9 +406,19 @@
       </div>);
   }
 
-  function BountyBoard({ session, navigate }) {
+  function BountyBoard({ session, navigate, store }) {
     const P = useP();
-    const [scope, setScope] = React.useState('store');
+    // SCOPE IS DERIVED FROM THE SWITCHER, NOT PICKED TWICE. The Topbar store
+    // switcher already answers "which store am I looking at", so a second
+    // This store / All stores Seg here could contradict it — a manager on
+    // Corona with the Seg on "All stores" had no way to tell which of the two
+    // controls the numbers came from. With a store picked, the board is that
+    // store's; with "All stores" picked, the people board spans every store
+    // AND the store-vs-store table appears under it (both, because "who is
+    // top overall" and "which store is winning" are the two questions that
+    // sentence means, and the app already computes both).
+    const viewingAll = (store && store.id) === 'all';
+    const scope = viewingAll ? 'all' : 'store';
     const [period, setPeriod] = React.useState('today');
     const [metric, setMetric] = React.useState('net_cents');
     const [cls, setCls] = React.useState('budtender');
@@ -418,8 +436,16 @@
       return () => { alive = false; };
     }, []);
 
-    const path = standingsPath({ scope, period, metric, from, to, storeId: session.storeId, cls });
+    const storeId = viewingAll ? '' : (store && store.id) || session.storeId;
+    const path = standingsPath({ scope, period, metric, from, to, storeId, cls });
     const st = HWInc.usePoll(path, { intervalMs: 20000 });
+    // The store-vs-store table is a SECOND shape of the same window, so it is a
+    // second request rather than a third mode of the first — the backend
+    // computes `stores` only for scope=stores, and asking for both in one call
+    // would mean changing a contract five screens already build to.
+    const vs = HWInc.usePoll(
+      standingsPath({ scope: 'stores', period, metric, from, to, storeId: '', cls }),
+      { intervalMs: 20000, enabled: viewingAll });
 
     // The caption names the board that is actually on screen, from the answer
     // rather than from this component's own state — if the two ever disagree,
@@ -454,9 +480,7 @@
           </div>)}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Seg value={scope} onChange={setScope} size="sm" options={[
-            { value: 'store', label: 'This store' }, { value: 'all', label: 'All stores' }, { value: 'stores', label: 'Store vs store' },
-          ]} />
+          <Pill kind="neutral" size="sm">{viewingAll ? 'All stores' : ((store && store.name) || store && store.id || session.storeId)}</Pill>
           <Seg value={period} onChange={setPeriod} size="sm" options={[
             { value: 'today', label: 'Today' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }, { value: 'custom', label: 'Custom' },
           ]} />
@@ -471,15 +495,29 @@
         {st.error && <IncShared.NotConnected onRetry={st.refresh} />}
         {!st.error && (st.loading || !st.data) && <SkeletonRows rows={5} />}
         {!st.error && st.data && <BoardBody data={st.data} scope={scope} metric={metric} cls={shown} sessionId={session.id} navigate={navigate} />}
+
+        {viewingAll && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h3 style={{ margin: '4px 0 0', fontSize: 15, fontWeight: 700, color: P.ink }}>Store vs store</h3>
+            <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.5, maxWidth: 640 }}>
+              The same window, totalled per store. A store with no live feed is listed and not ranked, with the reason — a zero that means “no data” is never shown as a zero that means “no sales”.
+            </div>
+            {vs.error && <IncShared.NotConnected onRetry={vs.refresh} />}
+            {!vs.error && (vs.loading || !vs.data) && <SkeletonRows rows={4} />}
+            {!vs.error && vs.data && <StoreVsStoreTable stores={vs.data.stores} metric={metric} />}
+          </div>)}
       </div>);
   }
 
   // ── entry point ───────────────────────────────────────────────────────
-  window.IncScreenStandings = function IncScreenStandings({ navigate, session, isManager, seat, me }) {
+  window.IncScreenStandings = function IncScreenStandings({ navigate, session, isManager, seat, me, store }) {
     const showConsole = isManager && seat !== 'seat';
     return (
       <div style={{ width: '100%' }}>
-        {showConsole ? <BountyBoard session={session} navigate={navigate} /> : <MyDay session={session} navigate={navigate} me={me} />}
+        {/* MyDay is the person's OWN day and stays on their own store, whatever
+            the switcher says — /me is called with `session.storeId` in app.jsx
+            for exactly that reason. */}
+        {showConsole ? <BountyBoard session={session} navigate={navigate} store={store} /> : <MyDay session={session} navigate={navigate} me={me} />}
       </div>);
   };
 })();

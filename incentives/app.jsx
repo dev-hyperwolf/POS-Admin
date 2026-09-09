@@ -28,12 +28,77 @@
 ;(function () {
   const useP = window.useP;
 
-  // Mirrors pos/screen-aov.jsx's AOV_STORE_NAMES exactly (same lookup, same
-  // five stores) — kept as its own copy rather than a shared import because
-  // there is no module system here (see the estate's global-collision rule)
-  // and this is a display-only label, not a source of truth.
+  // LAST-RESORT LABELS ONLY. The store list is now served —
+  // GET /api/incentives/stores, backed by the `inc_stores` registry, which
+  // grows by itself when a store is added to the POS system. This map is what
+  // renders in the half-second before that request lands (and if it never
+  // does); anything that must be CURRENT reads `useStores()` below, never this.
+  // Same five names as pos/screen-aov.jsx's AOV_STORE_NAMES — kept as its own
+  // copy rather than a shared import because there is no module system here
+  // (see the estate's global-collision rule).
   const STORE_NAMES = { elsinore: 'Lake Elsinore', 'west-la': 'West Hollywood', 'long-beach': 'Long Beach', corona: 'Corona', riverside: 'Riverside' };
   const storeName = (id) => STORE_NAMES[id] || id || 'Store';
+
+  // ── the store list, and which store this session is looking at ──────────
+  // WHY THE APP OWNS THIS AND NOT EACH SCREEN. Seven screens take a store_id.
+  // If each read it from `session.storeId` (which they did until now) then a
+  // manager could only ever see their own store — the owner's report: "I can
+  // only see the Lake Elsinore store data". A manager is responsible for more
+  // than one store, so the store being VIEWED is app state, and every screen
+  // receives it as `props.store` instead of deriving it.
+  //
+  // `session.storeId` does NOT change. It is still who this person is and
+  // where they work: /me is called with it (their own day, their own rank,
+  // their own bounties), and a budtender has no switcher at all.
+  const STORE_KEY = 'hw-bounty-store';
+  const ALL_STORES = { id: 'all', name: 'All stores' };
+
+  function readStored() {
+    // localStorage throws outright in some embedded contexts, so every read
+    // and write here is guarded — a switcher that cannot remember is a minor
+    // annoyance; one that white-screens the app is not.
+    try { return localStorage.getItem(STORE_KEY) || ''; } catch (e) { return ''; }
+  }
+  function writeStored(id) {
+    try { if (id) localStorage.setItem(STORE_KEY, id); else localStorage.removeItem(STORE_KEY); } catch (e) {}
+  }
+
+  function useStores(enabled) {
+    const [state, setState] = React.useState({ loading: true, error: null, stores: [] });
+    const load = React.useCallback(() => {
+      if (!enabled) { setState({ loading: false, error: null, stores: [] }); return; }
+      window.HWInc.get('/api/incentives/stores').then((r) => {
+        if (r.ok && r.body && Array.isArray(r.body.stores)) setState({ loading: false, error: null, stores: r.body.stores });
+        else setState({ loading: false, error: r.error || ('HTTP ' + r.code), stores: [] });
+      });
+    }, [enabled]);
+    React.useEffect(() => { load(); }, [load]);
+    return { loading: state.loading, error: state.error, stores: state.stores, refresh: load };
+  }
+
+  // A plain <select>, styled to the estate's field tokens. Deliberately native:
+  // the store list is unbounded (that is the entire point of the registry), so
+  // a Seg — which lays every option out side by side — stops working at the
+  // sixth store, and a hand-rolled popover would be one more thing to get
+  // keyboard support wrong on.
+  function StoreSwitcher({ stores, value, onChange, includeAll }) {
+    const P = useP();
+    const opts = (includeAll ? [ALL_STORES] : []).concat(stores.map((s) => ({ id: s.id, name: s.name })));
+    // The current value always appears, even if the list has not landed yet or
+    // the store was retired — a <select> whose value is absent from its options
+    // renders BLANK, which would read as "no store" rather than "still loading".
+    if (value && !opts.some((o) => o.id === value)) opts.unshift({ id: value, name: storeName(value) });
+    return (
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 30, padding: '0 8px 0 10px',
+        background: P.field, border: `1px solid ${P.fieldBorder}`, borderRadius: P.r8, cursor: 'pointer' }}>
+        <Icon name="map-pin" size={13} stroke={1.9} color={P.inkMute} />
+        <select value={value || ''} onChange={(e) => onChange(e.target.value)} aria-label="Store being viewed"
+          style={{ border: 'none', outline: 'none', background: 'transparent', color: P.ink, fontSize: 12,
+            fontWeight: 600, fontFamily: P.fontSans, cursor: 'pointer', maxWidth: 190 }}>
+          {opts.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
+      </label>);
+  }
 
   // ── routes ──────────────────────────────────────────────────────────────
   // Exactly the ten routes specified for this shell. Resolved at RENDER time
@@ -102,7 +167,7 @@
   const BFrame = window.ScreenBoundary || function BFrame(p) { return p.children; };
 
   // ── chrome shared by both seats ─────────────────────────────────────────
-  function Topbar() {
+  function Topbar({ stores, storeId, onStoreChange, canSwitch }) {
     const P = useP();
     const { mode, toggle } = window.useTheme();
     const session = window.HWInc.session();
@@ -115,7 +180,12 @@
         </div>
         <span style={{ fontSize: 16, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>Bounty</span>
         <div style={{ flex: 1 }} />
-        <Pill kind="neutral" size="sm">{storeName(session.storeId)}</Pill>
+        {/* A budtender gets the pill they always had — one store, stated, not
+            offered. A manager gets the switcher, because "which store am I
+            looking at" is a question only they can have. */}
+        {canSwitch
+          ? <StoreSwitcher stores={stores} value={storeId} onChange={onStoreChange} includeAll />
+          : <Pill kind="neutral" size="sm">{storeName(session.storeId)}</Pill>}
         <IconBtn icon={mode === 'dark' ? 'sun' : 'moon'} size={16} onClick={toggle} title="Toggle theme" style={{ width: 34, height: 34 }} />
         <Avatar name={session.name} size={30} />
       </header>);
@@ -252,7 +322,37 @@
     // version for a manager who asked to see it.
     const session = window.HWInc.session();
     const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
-    const ctx = { navigate, query, route, path, session, isManager, previewing, seat: isManager && !previewing ? 'console' : 'seat', me };
+
+    // THE STORE BEING VIEWED. Managers only: `canSwitch` gates the control AND
+    // the resolution below, so a budtender's `props.store` is their home store
+    // no matter what a stale localStorage key from a previous manager session
+    // on the same browser says.
+    const canSwitch = isManager;
+    const storesQ = useStores(canSwitch);
+    const [picked, setPicked] = React.useState(readStored);
+    const chooseStore = React.useCallback((id) => { setPicked(id); writeStored(id); }, []);
+
+    const home = session.storeId || null;
+    let storeId = home;
+    if (canSwitch) {
+      const wanted = picked || home;
+      // Validated against the SERVED list once it lands: a store that was
+      // deactivated (or a slug from another deployment) must not leave the app
+      // pinned to a store the backend will 404 on every request. Before the
+      // list lands, the remembered choice is honoured optimistically — the
+      // alternative is one render of the wrong store's board on every load.
+      const resolved = (wanted === ALL_STORES.id || !storesQ.stores.length
+        || storesQ.stores.some((x) => x.id === wanted)) ? wanted : home;
+      storeId = resolved || home;
+    }
+    const storeRow = storesQ.stores.find((x) => x.id === storeId);
+    const store = storeId === ALL_STORES.id
+      ? { id: ALL_STORES.id, name: ALL_STORES.name, all: true }
+      : { id: storeId, name: (storeRow && storeRow.name) || storeName(storeId), all: false,
+          tz: storeRow && storeRow.tz, pos: storeRow && storeRow.pos };
+
+    const ctx = { navigate, query, route, path, session, isManager, previewing, seat: isManager && !previewing ? 'console' : 'seat', me,
+      store, stores: storesQ.stores, refreshStores: storesQ.refresh, homeStoreId: home };
 
     let Screen = null;
     if (/^\/contests\/[^/]+\/edit$/.test(path)) Screen = window.IncScreenContestBuilder;
@@ -281,12 +381,14 @@
       <div style={{ display: 'flex', height: '100%', background: P.bg, color: P.ink, fontFamily: P.fontSans }}>
         <BFrame name="The navigation rail"><window.HWRail active="bounty" /></BFrame>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <BFrame name="The top bar"><Topbar /></BFrame>
+          <BFrame name="The top bar">
+            <Topbar stores={storesQ.stores} storeId={storeId} onStoreChange={chooseStore} canSwitch={canSwitch} />
+          </BFrame>
           <main style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             {/* Keyed by path: without the key, React keeps the same boundary
                 instance across a navigation and its error state follows the
                 operator to a route that would otherwise work. */}
-            <BFrame key={path} name={label} onReset={() => navigate('#/')} resetLabel="Back to Standings">
+            <BFrame key={path + '|' + storeId} name={label} onReset={() => navigate('#/')} resetLabel="Back to Standings">
               {showConsole ? (
                 <ConsoleFrame navigate={navigate} path={path} screenSlot={screenSlot} isManager={isManager}
                   previewing={previewing} onTogglePreview={setPreviewing}

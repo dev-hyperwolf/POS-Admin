@@ -76,7 +76,7 @@
   }
 
   // ── manager console ─────────────────────────────────────────────────────
-  function ManagerGoalsCard({ storeId, actorId, actorName }) {
+  function ManagerGoalsCard({ storeId, actorId, actorName, picker, storeLabel }) {
     const P = useP();
     const goals = useAovGoalsStatus(storeId);
     const hist = useAovHistory(storeId);
@@ -111,11 +111,15 @@
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: '-.01em', color: P.ink }}>AOV goals</h1>
-          <p style={{ margin: '4px 0 0', maxWidth: 640, fontSize: 12.5, color: P.inkMute, lineHeight: 1.5 }}>
-            {storeName(storeId)}. Every associate at this store inherits the default unless they have their own override below.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 21, fontWeight: 800, letterSpacing: '-.01em', color: P.ink }}>AOV goals</h1>
+            <p style={{ margin: '4px 0 0', maxWidth: 640, fontSize: 12.5, color: P.inkMute, lineHeight: 1.5 }}>
+              {storeLabel || storeName(storeId)}. Every associate at this store inherits the default unless they have their own override below.
+              {picker ? ' A goal is set per store — pick the one you are setting.' : ''}
+            </p>
+          </div>
+          {picker}
         </div>
 
         {goals.loading && <Card padding={16}><SkeletonRows rows={3} /></Card>}
@@ -245,9 +249,21 @@
       </Card>);
   }
 
-  window.IncScreenGoals = function IncScreenGoals({ session, isManager, seat, me }) {
+  window.IncScreenGoals = function IncScreenGoals({ session, isManager, seat, me, store, stores }) {
+    // AN AOV GOAL IS PER STORE. "All stores" is not a goal target — a default
+    // goal set across four stores is four different decisions — so this screen
+    // asks which store when the switcher is on All, instead of silently
+    // writing to whichever one happened to be first.
+    const viewingAll = (store && store.id) === 'all';
+    const [pick, setPick] = React.useState((store && store.id !== 'all' && store.id) || session.storeId || '');
+    React.useEffect(() => { if (store && store.id && store.id !== 'all') setPick(store.id); }, [store && store.id]);
+    const storeId = viewingAll ? pick : ((store && store.id) || session.storeId);
+    const picker = (viewingAll && (stores || []).length)
+      ? <Seg value={pick} onChange={setPick} size="sm" options={(stores || []).map((x) => ({ value: x.id, label: x.name }))} />
+      : null;
     return (isManager && seat !== 'seat')
-      ? <ManagerGoalsCard storeId={session.storeId} actorId={session.id} actorName={session.name} />
+      ? <ManagerGoalsCard storeId={storeId} actorId={session.id} actorName={session.name} picker={picker}
+          storeLabel={((stores || []).find((x) => x.id === storeId) || {}).name} />
       : <SeatGoalsCard me={me} />;
   };
 })();

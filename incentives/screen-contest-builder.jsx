@@ -340,7 +340,14 @@
   }
 
   // ── the screen ──────────────────────────────────────────────────────────
-  function Builder({ navigate, query, path, session }) {
+  function Builder({ navigate, query, path, session, store }) {
+    // A NEW BOUNTY STARTS AT THE STORE THE MANAGER IS LOOKING AT. On "All
+    // stores" it starts with no store pre-picked rather than with an arbitrary
+    // one — the store_ids picker below lists every store either way, and a
+    // silently pre-selected store is how a bounty gets written for the wrong
+    // one.
+    const viewingAll = (store && store.id) === 'all';
+    const homeStore = viewingAll ? null : ((store && store.id) || session.storeId);
     const P = useP();
     const S = window.IncShared;
     // `#/contests/:id/edit` is the real route (app.jsx); the older '?id='
@@ -348,7 +355,7 @@
     const pathMatch = /^\/contests\/([^/]+)\/edit$/.exec(path || '');
     const editId = (pathMatch && pathMatch[1]) || (query && query.get ? query.get('id') : null);
 
-    const [draft, setDraft] = React.useState(() => emptyDraft(session.storeId));
+    const [draft, setDraft] = React.useState(() => emptyDraft(homeStore));
     const [loadingDraft, setLoadingDraft] = React.useState(!!editId);
     const [loadError, setLoadError] = React.useState(null);
     const [reloadTick, setReloadTick] = React.useState(0);
@@ -375,7 +382,7 @@
         setSettings(r.body);
         setDraft((d) => {
           if (d.tz) return d;
-          const mine = (r.body.stores || []).find((s) => s.id === session.storeId);
+          const mine = (r.body.stores || []).find((s) => s.id === homeStore);
           const tie = r.body.tie_rule_default;
           return { ...d, tz: mine ? mine.tz : d.tz, tie_rule: tie || d.tie_rule };
         });
@@ -392,7 +399,7 @@
         setLoadingDraft(false);
         if (!r.ok) { setLoadError((r.body && r.body.error) || r.error || ('HTTP ' + r.code)); return; }
         const c = r.body && r.body.contest;
-        if (c) setDraft({ ...emptyDraft(session.storeId), ...c, filter: { ...emptyDraft().filter, ...(c.filter || {}) },
+        if (c) setDraft({ ...emptyDraft(homeStore), ...c, filter: { ...emptyDraft().filter, ...(c.filter || {}) },
           participants: { ...emptyDraft().participants, ...(c.participants || {}) },
           reward: { ...(c.reward || { type: 'threshold', unit: 'cents' }) },
           funding: { ...emptyDraft().funding, ...(c.funding || {}) } });
@@ -405,7 +412,7 @@
     React.useEffect(() => {
       if (!needsRoster || roster) return undefined;
       let alive = true;
-      const q = session.storeId ? '?store_id=' + encodeURIComponent(session.storeId) : '';
+      const q = homeStore ? '?store_id=' + encodeURIComponent(homeStore) : '';
       window.HWInc.get('/api/incentives/roster' + q).then((r) => {
         if (!alive) return;
         setRoster(r.ok && Array.isArray(r.body.roster) ? r.body.roster : []);
@@ -978,7 +985,7 @@
           <EmptyState icon="lock" title="Building a bounty is a manager’s job"
             body="You can see every bounty that includes you, and where you stand in it, on the bounty board. Ask a floor manager to start a new one." />
         ) : (
-          <Builder navigate={props.navigate} query={props.query} path={props.path} session={props.session} />)}
+          <Builder navigate={props.navigate} query={props.query} path={props.path} session={props.session} store={props.store} />)}
       </div>);
   };
 })();

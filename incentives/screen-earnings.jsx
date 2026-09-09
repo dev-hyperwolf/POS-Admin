@@ -256,10 +256,19 @@
       </div>);
   }
 
-  function StoreLedgerView({ session }) {
+  function StoreLedgerView({ session, store, stores }) {
     const P = useP();
-    const path = `/api/incentives/earnings?store_id=${encodeURIComponent(session.storeId || '')}`;
-    const q = HWInc.usePoll(path, { intervalMs: 20000 });
+    // A LEDGER IS PER STORE, ALWAYS. `/earnings` refuses a request that names
+    // neither a person nor a store (400), and summing four stores' balances
+    // into one column would produce a total nobody can pay out. So when the
+    // switcher says "All stores" this view asks which one — the same
+    // treatment Goals gets, and for the same reason.
+    const viewingAll = (store && store.id) === 'all';
+    const [pick, setPick] = React.useState((store && store.id !== 'all' && store.id) || session.storeId || '');
+    React.useEffect(() => { if (store && store.id && store.id !== 'all') setPick(store.id); }, [store && store.id]);
+    const storeId = viewingAll ? pick : ((store && store.id) || session.storeId);
+    const path = `/api/incentives/earnings?store_id=${encodeURIComponent(storeId || '')}`;
+    const q = HWInc.usePoll(path, { intervalMs: 20000, enabled: !!storeId });
     const [recordFor, setRecordFor] = React.useState(null);
     const [kindFilter, setKindFilter] = React.useState('all');
     const [personFilter, setPersonFilter] = React.useState([]);
@@ -290,7 +299,12 @@
               Settling writes each person's row once and cannot double-write, so re-running it is safe.
             </div>
           </div>
-          <PBtn size="sm" variant="secondary" icon="refresh" onClick={q.refresh}>Refresh</PBtn>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {viewingAll && (stores || []).length > 0 && (
+              <Seg value={pick} onChange={setPick} size="sm"
+                options={(stores || []).map((x) => ({ value: x.id, label: x.name }))} />)}
+            <PBtn size="sm" variant="secondary" icon="refresh" onClick={q.refresh}>Refresh</PBtn>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
@@ -321,11 +335,11 @@
   }
 
   // ── entry point ───────────────────────────────────────────────────────
-  window.IncScreenEarnings = function IncScreenEarnings({ session, isManager, seat }) {
+  window.IncScreenEarnings = function IncScreenEarnings({ session, isManager, seat, store, stores }) {
     const showConsole = isManager && seat !== 'seat';
     return (
       <div style={{ width: '100%' }}>
-        {showConsole ? <StoreLedgerView session={session} /> : <MyLedgerView session={session} />}
+        {showConsole ? <StoreLedgerView session={session} store={store} stores={stores} /> : <MyLedgerView session={session} />}
       </div>);
   };
 })();

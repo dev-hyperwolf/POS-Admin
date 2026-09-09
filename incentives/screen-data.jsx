@@ -90,12 +90,35 @@
       </span>);
   }
 
+  // THE SERVER'S OWN VERDICT FIRST (2026-09-08). `sync._source` now sends
+  // `state` and `error_superseded`, derived from whether the last error is
+  // older than the last success. This function prefers that field and keeps
+  // the local derivation only as the fallback for an older backend — with the
+  // ordering rule applied there too, so the two can never disagree about the
+  // one case that produced this fix: West Hollywood's meadow-api showing
+  // "Failing" on an error from 19:14 when the sync had succeeded at 06:08 the
+  // next morning.
+  const STATE_LABEL = {
+    failing: { kind: 'bad', label: 'Failing' },
+    stale: { kind: 'warn', label: 'Stale' },
+    healthy: { kind: 'good', label: 'Healthy' },
+    not_configured: { kind: 'neutral', label: 'Not configured' },
+    never_synced: { kind: 'neutral', label: 'Never synced' },
+  };
+  function errorSuperseded(s) {
+    if (typeof s.error_superseded === 'boolean') return s.error_superseded;
+    if (!s.last_error || !s.last_ok_at) return false;
+    if (!s.last_error_at) return true;   // an error with no time cannot outrank a dated success
+    const ok = Date.parse(s.last_ok_at), bad = Date.parse(s.last_error_at);
+    return !isNaN(ok) && !isNaN(bad) && ok > bad;
+  }
   function connState(s) {
-    if (s.last_error) return { kind: 'bad', label: 'Failing' };
-    if (s.stale) return { kind: 'warn', label: 'Stale' };
-    if (s.last_ok_at) return { kind: 'good', label: 'Healthy' };
-    if (!s.configured) return { kind: 'neutral', label: 'Not configured' };
-    return { kind: 'neutral', label: 'Never synced' };
+    if (s.state && STATE_LABEL[s.state]) return STATE_LABEL[s.state];
+    if (s.last_error && !errorSuperseded(s)) return STATE_LABEL.failing;
+    if (s.stale) return STATE_LABEL.stale;
+    if (s.last_ok_at) return STATE_LABEL.healthy;
+    if (!s.configured) return STATE_LABEL.not_configured;
+    return STATE_LABEL.never_synced;
   }
   function noSourceReason(store) {
     if (store.pos === 'treez') return 'no data source · runs ' + (store.pos.charAt(0).toUpperCase() + store.pos.slice(1));
@@ -188,7 +211,20 @@
             { key: 'source', label: 'Source', render: (r) => r.kind === 'source' ? <Pill kind="neutral" size="sm">{r.s.source}</Pill> : <Pill kind="neutral" size="sm">none</Pill> },
             { key: 'state', label: 'State', render: (r) => { const st = r.kind === 'source' ? connState(r.s) : { kind: 'neutral', label: 'No source' }; return <Pill kind={st.kind} size="sm" dot>{st.label}</Pill>; } },
             { key: 'last_ok', label: 'Last ok', render: (r) => r.kind === 'source' ? <span style={{ fontFamily: P.fontMono, fontSize: 11.5 }}>{r.s.last_ok_at ? `${r.s.last_ok_at} · ${HWInc.fmt.relative(r.s.last_ok_at)}` : 'never'}</span> : <span style={{ color: P.inkMute, fontFamily: P.fontMono, fontSize: 11.5 }}>never</span> },
-            { key: 'last_error', label: 'Last error', render: (r) => r.kind === 'source' && r.s.last_error ? <span style={{ fontFamily: P.fontMono, fontSize: 11, color: P.bad }}>{r.s.last_error_at ? `${r.s.last_error_at} — ` : ''}{r.s.last_error}</span> : (r.kind === 'none' ? <span style={{ fontSize: 11.5, color: P.inkDim }}>{noSourceReason(r.store)}</span> : <span style={{ color: P.inkFaint }}>—</span>) },
+            // A SUPERSEDED ERROR IS DIMMED, NEVER HIDDEN. "It failed at 19:14
+            // and recovered at 06:08" is exactly what a manager chasing a gap
+            // in a board needs; deleting the line would leave them with a
+            // healthy row and an unexplained hole in the numbers.
+            { key: 'last_error', label: 'Last error', render: (r) => {
+              if (r.kind === 'none') return <span style={{ fontSize: 11.5, color: P.inkDim }}>{noSourceReason(r.store)}</span>;
+              if (!r.s.last_error) return <span style={{ color: P.inkFaint }}>—</span>;
+              const old = errorSuperseded(r.s);
+              return (
+                <span style={{ fontFamily: P.fontMono, fontSize: 11, color: old ? P.inkFaint : P.bad }}>
+                  {r.s.last_error_at ? `${r.s.last_error_at} — ` : ''}{r.s.last_error}
+                  {old && <span style={{ display: 'block', fontFamily: P.fontSans, fontSize: 10.5, color: P.inkFaint }}>before the last successful sync</span>}
+                </span>);
+            } },
             { key: 'today', label: 'Today', align: 'right', render: (r) => r.kind === 'source' && r.s.today ? <span style={{ fontFamily: P.fontMono, fontSize: 12 }}>{HWInc.fmt.number(r.s.today.txns)} txns</span> : <span style={{ color: P.inkFaint }}>—</span> },
             {
               key: 'action', label: '', align: 'right', render: (r) => {
@@ -604,12 +640,15 @@
   }
 
   // ── screen ──────────────────────────────────────────────────────────────
-  window.IncScreenData = function IncScreenData({ session, isManager }) {
+  window.IncScreenData = function IncScreenData({ session, isManager, store }) {
     const P = useP();
 
     const status = HWInc.usePoll('/api/incentives/ingest/status', { intervalMs: 20000, enabled: isManager });
     const settings = useGet('/api/incentives/settings', isManager);
-    const [storeFilter, setStoreFilter] = React.useState(session.storeId || 'all');
+    // ONE CONTROL, IN THE TOPBAR. This screen used to own a store Seg of its
+    // own; it now follows the app-wide switcher, so "which store am I looking
+    // at" has a single answer on every screen at once.
+    const storeFilter = (store && store.id) || session.storeId || 'all';
     const [uploadJump, setUploadJump] = React.useState(null);
     const scopedStoreId = storeFilter === 'all' ? undefined : storeFilter;
     const runs = useGet(isManager ? `/api/incentives/ingest/runs${scopedStoreId ? `?store_id=${encodeURIComponent(scopedStoreId)}&limit=25` : '?limit=25'}` : null, isManager);
@@ -634,7 +673,14 @@
     if (settings.loading && !settings.data) return <div style={{ padding: 16 }}><SkeletonRows rows={2} avatar={false} /></div>;
     if (settings.error || !settings.data) return <window.IncShared.NotConnected onRetry={settings.refresh} />;
 
-    const stores = settings.data.stores || [];
+    const allStores = settings.data.stores || [];
+    // 🔴 THE BUG THE OWNER SAW LIVE: this Seg filtered the runs, the identity
+    // queue and the roster (all three requests carry `store_id`) but NOT the
+    // connections table, which was handed the whole store list regardless — so
+    // selecting Corona left Lake Elsinore's rows on screen underneath it. The
+    // filter is applied to the LIST the table is built from, which is the only
+    // input that decides which rows exist.
+    const stores = storeFilter === 'all' ? allStores : allStores.filter((x) => x.id === storeFilter);
     // `roster` is in here now: creating a person from the identity queue adds
     // a roster row, and classifying one changes a cell in the table below.
     const refreshAll = () => { status.refresh(); runs.refresh(); identities.refresh(); roster.refresh(); };
@@ -648,12 +694,14 @@
               Where every number in Bounty comes from, and what happened the last time each source was read.
             </p>
           </div>
-          <Seg value={storeFilter} onChange={setStoreFilter} size="sm"
-            options={[{ value: 'all', label: 'All stores' }].concat(stores.map((s) => ({ value: s.id, label: s.name })))} />
+          <Pill kind="neutral" size="sm">{storeFilter === 'all' ? 'All stores' : ((store && store.name) || storeFilter)}</Pill>
         </div>
 
         <ConnectionsCard status={status} stores={stores} actorId={session.id} onSynced={refreshAll} onJumpToUpload={(id) => setUploadJump(id)} />
-        <UploadCard stores={stores} defaultStoreId={session.storeId || (stores[0] && stores[0].id)} actorId={session.id} onRunProduced={refreshAll} jumpKey={uploadJump} />
+        {/* Uploading is a per-store act, so its picker always offers EVERY
+            store — narrowing it to the store in view would make "All stores"
+            mean "you cannot upload", which is not true. */}
+        <UploadCard stores={allStores} defaultStoreId={(storeFilter !== 'all' && storeFilter) || session.storeId || (allStores[0] && allStores[0].id)} actorId={session.id} onRunProduced={refreshAll} jumpKey={uploadJump} />
         <RunsCard runs={runs} actorId={session.id} onChanged={refreshAll} />
         <IdentitiesCard identities={identities} roster={roster} classes={settings.data.classes || []} actorId={session.id} onChanged={refreshAll} />
         <RosterCard roster={roster} classes={settings.data.classes || []} actorId={session.id}
