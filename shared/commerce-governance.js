@@ -217,7 +217,10 @@
     return null;
   }
 
-  const cents = (dollars) => Math.round((+dollars || 0) * 100);
+  // The one dollars→cents boundary (shared/commerce-adapter.js), not a second
+  // copy of it. SWAP is guaranteed non-null here — this file already returned
+  // `HWGovern = null` above when the adapter had not loaded.
+  const cents = SWAP.cents;
 
   /**
    * Coerce a caller-supplied `now`.

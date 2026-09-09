@@ -18,7 +18,22 @@
   const E = typeof window !== 'undefined' && window.HWCommerce;
   if (!E) { window.HWSwap = null; return; }
 
-  const cents = (dollars) => Math.round((+dollars || 0) * 100);
+  // THE dollars→cents boundary. Junk/missing input floors to 0 — never NaN,
+  // which would poison every price band and silently empty the ladders — so
+  // that sanitising happens here, BEFORE the value ever reaches a rounding
+  // rule. Delegates to window.HWContracts.centsFromDollars (contracts/index.js)
+  // when it has loaded: same rounding, half away from zero, but correct on the
+  // float-imprecision edge cases the naive `Math.round(dollars*100)` below
+  // gets wrong (0.285 rounds to 28, not 29). Falls back to the naive form when
+  // contracts has not loaded, so this file still works stand-alone.
+  const cents = (dollars) => {
+    const n = +dollars;
+    const safe = Number.isFinite(n) ? n : 0;
+    const HWC = typeof window !== 'undefined' && window.HWContracts;
+    return (HWC && typeof HWC.centsFromDollars === 'function')
+      ? HWC.centsFromDollars(safe)
+      : Math.round(safe * 100);
+  };
 
   /**
    * '1g' → 1 · '3.5g' → 3.5 · '5x.5g' → 2.5 · '10mg' → undefined.
@@ -262,5 +277,5 @@
   }
 
   window.HWSwap = { toEngineProduct, candidates, emptyNote, buildContext, recommendations,
-    MODES: E.SWAP_MODES, engine: E };
+    cents, MODES: E.SWAP_MODES, engine: E };
 })();

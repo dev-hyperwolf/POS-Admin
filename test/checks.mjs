@@ -190,6 +190,29 @@ export const CHECKS = {
     }
   },
 
+  /* ONE cents() boundary (BUILD-AGAINST-THE-SOURCE.md §3). When
+   * window.HWContracts has loaded, this adapter's cents() must delegate to
+   * HWContracts.centsFromDollars rather than keep its own rounding — and the
+   * delegation must not regress the rounding rule it inherits: half away from
+   * zero, correct on the float-imprecision cases the naive `Math.round(d*100)`
+   * gets wrong. 0.285 * 100 is 28.499999999999996 in binary float, so a naive
+   * round gives 28 cents; the contract's epsilon-corrected rounding gives the
+   * true 29. */
+  'cents() delegates to HWContracts.centsFromDollars and its rounding is exact'(load = loadWindow) {
+    const HWSwap = swapFrom(load, { contracts: true });
+    assert.equal(typeof HWSwap.cents, 'function', 'HWSwap.cents must be exported for governance to reuse');
+
+    const cases = [[0.285, 29], [1.005, 101], [0.07, 7], [19.99, 1999], [-2.5, -250]];
+    for (const [dollars, expected] of cases) {
+      assert.equal(HWSwap.cents(dollars), expected,
+        `$${dollars} should delegate to ${expected} cents, half away from zero`);
+    }
+    // Junk still floors to 0 through the delegated path too.
+    for (const junk of [undefined, null, '', 'free', NaN]) {
+      assert.equal(HWSwap.cents(junk), 0, `junk ${String(junk)} must floor to 0 cents`);
+    }
+  },
+
   /* If the engine script fails to load, every caller does
    * `window.HWSwap && …` and renders no swap control. A throw at load time
    * would instead take out whatever script tag ran next. */

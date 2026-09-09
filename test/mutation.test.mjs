@@ -29,8 +29,21 @@ const MUTATIONS = [
     name: 'cents: drop the rounding, leave binary float dollars',
     check: 'dollars convert to exact integer cents',
     patch: (src) => replaceOnce(src,
-      'const cents = (dollars) => Math.round((+dollars || 0) * 100);',
-      'const cents = (dollars) => (+dollars || 0) * 100;'),
+      ': Math.round(safe * 100);',
+      ': safe * 100;'),
+  },
+  {
+    // ONE cents() (BUILD-AGAINST-THE-SOURCE.md §3): when HWContracts has
+    // loaded, this adapter must actually USE its centsFromDollars rather than
+    // keep rounding on its own. Delete the delegation and the naive fallback's
+    // float-imprecision bug comes straight back (0.285 -> 28, not 29).
+    name: 'cents: delegation to HWContracts.centsFromDollars removed, always uses the naive fallback',
+    check: 'cents() delegates to HWContracts.centsFromDollars and its rounding is exact',
+    patch: (src) => replaceOnce(src,
+      "return (HWC && typeof HWC.centsFromDollars === 'function')\n" +
+      "      ? HWC.centsFromDollars(safe)\n" +
+      "      : Math.round(safe * 100);",
+      'return Math.round(safe * 100);'),
   },
   {
     name: "grams: treat 'mg' as a weight, so a 10mg gummy reads as 10 GRAMS",

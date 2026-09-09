@@ -25,6 +25,7 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 
 const ENGINE = path.join(ROOT, 'shared', 'commerce-engine.js');
 const ADAPTER = path.join(ROOT, 'shared', 'commerce-adapter.js');
+const CONTRACTS = path.join(ROOT, 'contracts', 'index.js');
 
 export const adapterSource = () => fs.readFileSync(ADAPTER, 'utf8');
 
@@ -32,16 +33,23 @@ export const adapterSource = () => fs.readFileSync(ADAPTER, 'utf8');
  * Boot a fresh browser-ish global and evaluate the two scripts into it.
  *
  * @param {object}   [opts]
- * @param {boolean}  [opts.engine=true]  load commerce-engine.js first
+ * @param {boolean}  [opts.engine=true]     load commerce-engine.js first
+ * @param {boolean}  [opts.contracts=false] load contracts/index.js first of all,
+ *                   exactly as `BUILD-AGAINST-THE-SOURCE.md` orders script tags —
+ *                   so window.HWContracts is present for the adapter to delegate to
  * @param {(src:string)=>string} [opts.patch] rewrite the adapter in memory
  * @returns {object} the `window` — carries `HWCommerce` and `HWSwap`
  */
 export function loadWindow(opts = {}) {
-  const { engine = true, patch } = opts;
+  const { engine = true, contracts = false, patch } = opts;
 
   const sandbox = { console };
   sandbox.window = sandbox;
   const ctx = vm.createContext(sandbox);
+
+  if (contracts) {
+    vm.runInContext(fs.readFileSync(CONTRACTS, 'utf8'), ctx, { filename: 'contracts/index.js' });
+  }
 
   if (engine) {
     vm.runInContext(fs.readFileSync(ENGINE, 'utf8'), ctx, { filename: 'shared/commerce-engine.js' });

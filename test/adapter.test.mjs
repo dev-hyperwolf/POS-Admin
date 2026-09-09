@@ -32,7 +32,7 @@ test('the two scripts load into a bare `window` with no DOM', () => {
   assert.equal(typeof w.HWSwap, 'object');
   assert.deepEqual(
     Object.keys(w.HWSwap).sort(),
-    ['MODES', 'buildContext', 'candidates', 'emptyNote', 'engine', 'recommendations', 'toEngineProduct'],
+    ['MODES', 'buildContext', 'candidates', 'cents', 'emptyNote', 'engine', 'recommendations', 'toEngineProduct'],
     'the public surface callers depend on',
   );
 });
