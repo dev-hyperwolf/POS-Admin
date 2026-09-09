@@ -1,0 +1,85 @@
+{
+  "$id": "Order",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "id",
+    "platform",
+    "store_id",
+    "status",
+    "txn_type",
+    "created_at",
+    "subtotal",
+    "discount",
+    "total"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "$enum": "Platform"
+    },
+    "store_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "$enum": "OrderStatus"
+    },
+    "txn_type": {
+      "type": "string",
+      "$enum": "TxnType"
+    },
+    "ref_order_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "customer_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "associate_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "completed_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "subtotal": {
+      "$ref": "Money"
+    },
+    "discount": {
+      "$ref": "Money"
+    },
+    "tax": {
+      "$ref": "Money",
+      "nullable": true
+    },
+    "total": {
+      "$ref": "Money"
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "$ref": "OrderLine"
+      }
+    },
+    "external_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "ExternalId"
+      }
+    }
+  }
+}

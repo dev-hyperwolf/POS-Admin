@@ -1,0 +1,61 @@
+{
+  "$id": "Person",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "display_name"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "$enum": "PersonKind"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "$enum": "Role",
+      "nullable": true
+    },
+    "classification": {
+      "type": "string",
+      "$enum": "Classification",
+      "nullable": true
+    },
+    "store_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "email": {
+      "type": "string",
+      "nullable": true
+    },
+    "phone": {
+      "type": "string",
+      "nullable": true
+    },
+    "external_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "ExternalId"
+      }
+    },
+    "verified": {
+      "type": "boolean",
+      "nullable": true
+    },
+    "created_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    }
+  }
+}

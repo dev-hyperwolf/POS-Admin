@@ -1,0 +1,59 @@
+{
+  "$id": "Product",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "id",
+    "platform",
+    "source",
+    "name",
+    "price"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "$enum": "Platform"
+    },
+    "source": {
+      "type": "string",
+      "$enum": "ProductSource"
+    },
+    "name": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string",
+      "nullable": true
+    },
+    "brand": {
+      "type": "string",
+      "nullable": true
+    },
+    "category": {
+      "type": "string",
+      "nullable": true
+    },
+    "price": {
+      "$ref": "Money"
+    },
+    "sale_price": {
+      "$ref": "Money",
+      "nullable": true
+    },
+    "quantity_on_hand": {
+      "type": "integer",
+      "nullable": true
+    },
+    "external_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "ExternalId"
+      }
+    }
+  }
+}

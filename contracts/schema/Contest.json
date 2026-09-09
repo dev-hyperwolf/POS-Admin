@@ -1,0 +1,64 @@
+{
+  "$id": "Contest",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "kind",
+    "status",
+    "metric",
+    "audience",
+    "store_ids"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "$enum": "ContestKind"
+    },
+    "status": {
+      "type": "string",
+      "$enum": "ContestStatus"
+    },
+    "metric": {
+      "type": "string",
+      "$enum": "Metric"
+    },
+    "audience": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "$enum": "Classification"
+      }
+    },
+    "store_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "starts_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "ends_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "prize": {
+      "$ref": "Money",
+      "nullable": true
+    }
+  }
+}

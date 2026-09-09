@@ -245,5 +245,21 @@
     },
   };
 
-  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can };
+  // contract — see incentives/inc-client.jsx `contract`: the same records in
+  // @hyper-tech/contracts shape via /api/contracts/verify/*, one adapter server-side.
+  var contract = {
+    get: function (path) { return get('/api/contracts/verify/' + String(path || '').replace(/^\/+/, '')); },
+    validate: function (schema, obj) {
+      var K = window.HWContracts;
+      return K ? K.validate(schema, obj) : { ok: false, errors: ['contracts/index.js not loaded'] };
+    },
+    session: function () {
+      var s = session(), K = window.HWContracts;
+      return { id: s.id, kind: 'staff', display_name: s.name, store_id: s.storeId,
+        role: K ? K.roleFrom(s.role) : null, classification: null,
+        external_ids: [{ source: 'hwpos', id: s.id }] };
+    },
+    version: function () { return window.HWContracts ? window.HWContracts.VERSION : null; },
+  };
+  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can, contract: contract };
 })();

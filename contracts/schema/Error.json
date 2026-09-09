@@ -1,0 +1,31 @@
+{
+  "$id": "Error",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "error"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string",
+          "$enum": "ErrorCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "nullable": true
+        }
+      }
+    }
+  }
+}

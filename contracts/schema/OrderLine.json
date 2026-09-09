@@ -1,0 +1,44 @@
+{
+  "$id": "OrderLine",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "product_id",
+    "name",
+    "quantity",
+    "unit_price",
+    "line_gross",
+    "discount"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string",
+      "nullable": true
+    },
+    "category": {
+      "type": "string",
+      "nullable": true
+    },
+    "quantity": {
+      "type": "number",
+      "minimum": 0
+    },
+    "unit_price": {
+      "$ref": "Money"
+    },
+    "line_gross": {
+      "$ref": "Money"
+    },
+    "discount": {
+      "$ref": "Money"
+    }
+  }
+}

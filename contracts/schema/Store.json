@@ -1,0 +1,47 @@
+{
+  "$id": "Store",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "platform",
+    "tz",
+    "pos",
+    "active"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "platform": {
+      "type": "string",
+      "$enum": "Platform"
+    },
+    "tz": {
+      "type": "string"
+    },
+    "pos": {
+      "type": "string",
+      "$enum": "PosVendor"
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "region_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "external_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "ExternalId"
+      }
+    }
+  }
+}

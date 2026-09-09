@@ -1,0 +1,237 @@
+{
+  "contract": "0.1.0",
+  "header": "x-hw-contract",
+  "http_status": {
+    "bad_request": 400,
+    "unauthorized": 401,
+    "forbidden": 403,
+    "not_found": 404,
+    "conflict": 409,
+    "unprocessable": 422,
+    "rate_limited": 429,
+    "internal": 500,
+    "not_built": 501
+  },
+  "enums": {
+    "Platform": [
+      "hyperwolf",
+      "hemp",
+      "stilo"
+    ],
+    "PersonKind": [
+      "customer",
+      "staff",
+      "driver",
+      "tenant",
+      "service"
+    ],
+    "Role": [
+      "viewer",
+      "associate",
+      "manager",
+      "admin",
+      "superadmin"
+    ],
+    "Classification": [
+      "budtender",
+      "driver",
+      "manager",
+      "loss_prevention",
+      "support",
+      "other"
+    ],
+    "ContestKind": [
+      "spiff",
+      "contest",
+      "team_goal",
+      "store_vs_store",
+      "aov_goal"
+    ],
+    "ContestStatus": [
+      "draft",
+      "pending_approval",
+      "active",
+      "settled",
+      "cancelled",
+      "ended"
+    ],
+    "Metric": [
+      "units",
+      "net_cents",
+      "gross_cents",
+      "txn_count",
+      "aov_cents"
+    ],
+    "PointsKind": [
+      "earned",
+      "adjusted",
+      "recorded_paid",
+      "redeemed"
+    ],
+    "SnapStatus": [
+      "draft",
+      "published",
+      "expired"
+    ],
+    "MatchKind": [
+      "id",
+      "email",
+      "name-exact-vendor",
+      "name-new",
+      "confirmed",
+      "manual",
+      "unresolved"
+    ],
+    "TxnType": [
+      "sale",
+      "refund",
+      "void"
+    ],
+    "MoneyBasis": [
+      "ex_tax_net",
+      "ex_tax_gross",
+      "inc_tax"
+    ],
+    "Currency": [
+      "USD"
+    ],
+    "VerificationStatus": [
+      "Not Started",
+      "In Progress",
+      "Awaiting User",
+      "In Review",
+      "Approved",
+      "Declined",
+      "Resubmitted",
+      "Abandoned",
+      "Expired",
+      "Kyc Expired"
+    ],
+    "VerificationChannel": [
+      "hosted",
+      "embedded",
+      "pos",
+      "import"
+    ],
+    "VerificationReason": [
+      "LIVENESS_LOW",
+      "LIVENESS_FAILED_3X",
+      "FACE_MATCH_LOW",
+      "DOC_QUALITY_LOW",
+      "BARCODE_OCR_MISMATCH",
+      "NAME_MISMATCH_EXPECTED",
+      "DUPLICATE_PERSON",
+      "IP_HOSTING",
+      "IP_VPN",
+      "AGE_ESTIMATE_UNDER_MARGIN",
+      "OUT_OF_STATE",
+      "DOC_NEAR_EXPIRY",
+      "ENGINE_UNAVAILABLE_MANUAL",
+      "DOC_EXPIRED",
+      "UNDER_AGE",
+      "FACE_BLOCKLIST_HIT",
+      "DOCUMENT_BLOCKLIST_HIT",
+      "USER_BLOCKLIST_HIT",
+      "IP_TOR",
+      "INJECTION_DETECTED",
+      "CHALLENGE_NONCE_MISMATCH",
+      "LIVENESS_ATTEMPTS_EXHAUSTED_HARD"
+    ],
+    "OrderStatus": [
+      "pending",
+      "confirmed",
+      "packed",
+      "out_for_delivery",
+      "completed",
+      "cancelled",
+      "refunded"
+    ],
+    "TaskStatus": [
+      "not_started",
+      "unassigned",
+      "in_progress",
+      "completed",
+      "cancelled"
+    ],
+    "TaskAssignmentMode": [
+      "auto",
+      "manual",
+      "driver",
+      "region"
+    ],
+    "FleetStatus": [
+      "active",
+      "inactive"
+    ],
+    "FleetVerificationStatus": [
+      "pending",
+      "verified"
+    ],
+    "PromotionStatus": [
+      "active",
+      "inactive"
+    ],
+    "RuleType": [
+      "cart",
+      "product",
+      "user",
+      "bogo",
+      "time",
+      "payment"
+    ],
+    "ProductSource": [
+      "blaze",
+      "meadow",
+      "treez",
+      "first-party"
+    ],
+    "PosVendor": [
+      "blaze",
+      "meadow",
+      "treez",
+      "hwpos",
+      "none"
+    ],
+    "IdSource": [
+      "blaze",
+      "meadow",
+      "treez",
+      "weedmaps",
+      "didit",
+      "hwpos",
+      "connecteam",
+      "airtable",
+      "hyperwolf"
+    ],
+    "SourceState": [
+      "failing",
+      "stale",
+      "healthy",
+      "not_configured",
+      "never_synced"
+    ],
+    "ErrorCode": [
+      "bad_request",
+      "unauthorized",
+      "forbidden",
+      "not_found",
+      "conflict",
+      "unprocessable",
+      "rate_limited",
+      "internal",
+      "not_built"
+    ],
+    "EventType": [
+      "order.created",
+      "order.completed",
+      "order.refunded",
+      "order.cancelled",
+      "task.status_changed",
+      "verification.decided",
+      "points.earned",
+      "points.redeemed",
+      "promotion.consumed",
+      "person.merged"
+    ]
+  }
+}

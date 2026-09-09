@@ -115,5 +115,25 @@
     relative: function (iso) { return window.HD ? window.HD.relativeTime(iso) : iso; },
   };
 
-  window.HWInc = { session: session, get: get, post: post, usePoll: usePoll, fmt: fmt };
+  // contract — the production shapes of the same records, served by wmdemo/contracts_api.py
+  // through one adapter (docs/BUILD-AGAINST-THE-SOURCE.md). `contract.get('standings?…')`
+  // hits /api/contracts/bounty/standings and resolves to the same {ok, code, body, error}
+  // envelope as get(); `contract.session()` is session() expressed as a contract Person, with
+  // the display role mapped by window.HWContracts.roleFrom — the one role vocabulary.
+  var contract = {
+    get: function (path) { return get('/api/contracts/bounty/' + String(path || '').replace(/^\/+/, '')); },
+    validate: function (schema, obj) {
+      var K = window.HWContracts;
+      return K ? K.validate(schema, obj) : { ok: false, errors: ['contracts/index.js not loaded'] };
+    },
+    session: function () {
+      var s = session(), K = window.HWContracts;
+      return { id: s.id, kind: 'staff', display_name: s.name, store_id: s.storeId,
+        role: K ? K.roleFrom(s.role) : null, classification: null,
+        external_ids: [{ source: 'hwpos', id: s.id }] };
+    },
+    version: function () { return window.HWContracts ? window.HWContracts.VERSION : null; },
+  };
+
+  window.HWInc = { session: session, get: get, post: post, usePoll: usePoll, fmt: fmt, contract: contract };
 })();

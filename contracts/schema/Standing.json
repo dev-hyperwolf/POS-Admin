@@ -1,0 +1,40 @@
+{
+  "$id": "Standing",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "person",
+    "metric",
+    "value",
+    "rank"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "person": {
+      "$ref": "Person"
+    },
+    "metric": {
+      "type": "string",
+      "$enum": "Metric"
+    },
+    "value": {
+      "type": "integer"
+    },
+    "rank": {
+      "type": "integer",
+      "minimum": 1,
+      "nullable": true
+    },
+    "tied": {
+      "type": "boolean"
+    },
+    "earned": {
+      "$ref": "Money",
+      "nullable": true
+    },
+    "progress": {
+      "type": "number",
+      "nullable": true
+    }
+  }
+}

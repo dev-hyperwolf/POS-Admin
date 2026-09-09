@@ -1,0 +1,60 @@
+{
+  "$id": "Promotion",
+  "contract": "0.1.0",
+  "type": "object",
+  "required": [
+    "id",
+    "platform",
+    "name",
+    "status",
+    "rule_types"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "platform": {
+      "type": "string",
+      "$enum": "Platform"
+    },
+    "name": {
+      "type": "string"
+    },
+    "codes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "$enum": "PromotionStatus"
+    },
+    "rule_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "$enum": "RuleType"
+      }
+    },
+    "starts_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "ends_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "usage_limit": {
+      "type": "integer",
+      "nullable": true
+    },
+    "stackable": {
+      "type": "boolean"
+    }
+  }
+}
