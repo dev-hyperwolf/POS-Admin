@@ -1,5 +1,5 @@
 {
-  "contract": "0.2.0",
+  "contract": "0.2.1",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -307,6 +307,13 @@
       "silver",
       "gold",
       "platinum"
+    ],
+    "PersonStatus": [
+      "unverified",
+      "active",
+      "blocked",
+      "deleted",
+      "flagged"
     ],
     "ErrorCode": [
       "bad_request",

@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.2.0'; // 0.2.0: additive enums from docs/codebase-audit/MODULE-CONTRACT-GAPS.md §2
+  var VERSION = '0.2.1'; // 0.2.0: additive enums from docs/codebase-audit/MODULE-CONTRACT-GAPS.md §2; 0.2.1: PersonStatus
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -112,6 +112,8 @@
     BatchStage: { values: ['incoming', 'received', 'labeling', 'sealing', 'shelf_ready', 'merchandised', 'approved', 'quarantined', 'recalled', 'destroyed'],
       source: 'pipeline/domain.jsx:24 BATCH_STATUS_ORDER (verbatim, in order)' },
     LoyaltyTier: { values: ['bronze', 'silver', 'gold', 'platinum'], source: 'athome/, crm.jsx (title-cased on screen)' },
+    PersonStatus: { values: ['unverified', 'active', 'blocked', 'deleted', 'flagged'],
+      source: 'wm-demo idv_people.status (Verify); `flagged` is legacy from the Didit import, accepted on read only, never written by our code' },
     ErrorCode: { values: ['bad_request', 'unauthorized', 'forbidden', 'not_found', 'conflict',
       'unprocessable', 'rate_limited', 'internal', 'not_built'],
       source: 'CANONICAL-DATA-MODEL.md §7.6' },
@@ -258,7 +260,10 @@
     if (c) { var a = new Uint8Array(bytes); c.getRandomValues(a); for (var i = 0; i < a.length; i++) out += (a[i] < 16 ? '0' : '') + a[i].toString(16); return out; }
     try { return require('crypto').randomBytes(bytes).toString('hex'); } catch (e) { throw new Error('no secure random available'); }
   }
-  // Signing preimage, identical to wm-demo/wmdemo/idv_webhooks.py: "<unix_ts>.<canonical_json>".
+  // Signing preimage for CONTRACT EVENT ENVELOPES: "<unix_ts>.<canonical_json>". Same shape as
+  // wm-demo/wmdemo/idv_webhooks.py's engine channel, but NOT the same bytes: that channel prints
+  // integral floats as `100.0` and rounds ties banker's-style, and it is a two-party contract with
+  // idv-engine, so it keeps its own canonicalisation until both sides move together (planned 0.3.0).
   // The HMAC itself is computed by the host (node crypto / python hmac); this only fixes the bytes.
   function canonicalJson(v) {
     if (v === null || typeof v !== 'object') {

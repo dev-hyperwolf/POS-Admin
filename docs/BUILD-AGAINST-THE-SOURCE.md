@@ -101,8 +101,10 @@ The eight services and their state are in `docs/codebase-audit/CONSOLIDATION-AND
    Until it exists, `x-hw-write-token` (writes) and `X-HW-Actor` (Verify console) are the seams,
    and `HWInc.contract.session()` / `HWIdv.contract.session()` are where a real session plugs in.
 5. **Sign what leaves**: `signingPreimage(unixTs, body)` → HMAC-SHA256 with the destination's
-   secret, headers `X-Signature-V2` + `X-Timestamp`, ±300 s window — the rule Verify's webhooks
-   already follow (`wmdemo/idv_webhooks.py`), now written once in the contract.
+   secret, headers `X-Signature-V2` + `X-Timestamp`, ±300 s window. This is the rule for contract
+   Event envelopes. Verify's engine channel (`wmdemo/idv_webhooks.py` ↔ `idv-engine`) keeps its
+   own canonicalisation (integral floats print as `100.0`, ties round banker's) because both
+   parties sign the same bytes; they move to the contract rule together in 0.3.0.
 6. **Prove it**: a probe on a scratch database, three refuter lenses (numbers, safety, blast
    radius) on the diff, and a live check on a fresh port — the same dev port can serve stale
    `.jsx`.

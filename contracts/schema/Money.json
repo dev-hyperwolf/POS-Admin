@@ -1,6 +1,6 @@
 {
   "$id": "Money",
-  "contract": "0.2.0",
+  "contract": "0.2.1",
   "type": "object",
   "required": [
     "cents",
