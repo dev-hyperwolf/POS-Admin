@@ -899,3 +899,86 @@ Headers `X-Signature-V2` (hex HMAC-SHA256 over canonical JSON: floats shortened 
   real number — 96 on a session whose barcode did not decode. Without the warning beside it, that
   row reads as a clean 96 and the reason the guest was sent to the **back** of the card appears on
   no screen.
+
+- 2026-09-09 (engine node shapes, measured on a live guest session — `wmdemo/idv_rules.py`):
+
+  **A. Node-level `status` from the engine is `null`, and that does NOT mean "not finished".**
+  This is not a defect and it is not optional. The engine posts `decision.*[].status: null` on
+  every node and says so in the callback body itself:
+
+  > `proposed_status and reasons are the engine's opinion only. wm-demo's workflow rules and list
+  > matches decide the session's actual status; every decision node in decision carries status:
+  > null for the same reason.`
+
+  The engine measures; it does not judge. `idv_rules` is the only thing in Verify that judges, so a
+  node's `status` is the *workflow's* verdict and the engine is not entitled to fill it in.
+
+  **`"Not Finished"` remains the one and only unfinished marker.** A consumer deciding whether a
+  node ran must ask "did it carry a signal?" — a numeric score, or for a document node the per-side
+  quality scores and the fields it read — and must not treat a null `status` as an absent node.
+
+  *What it cost:* `idv_rules._finished` read `status in (None, "Not Finished")` as unfinished.
+  On the session of 2026-09-09 (`job_4205c5baac5e409eaef53e185bfa7566`, saved scrubbed at
+  `wm-demo/qa/fixtures/idv/engine-callback-real-2026-09-09.json`) that produced
+  `Awaiting User ['DOC_QUALITY_LOW', 'LIVENESS_LOW', 'LIVENESS_LOW', 'FACE_MATCH_LOW']` with
+  "The document node did not finish" for a document scoring **96.8 / 97.4**, "the passive liveness
+  model produced no score" for a passive PAD of **97.86**, and "The 1:1 face match produced no
+  usable score" for a match of **84.3** — and it pointed the guest at the **front** of a card whose
+  front was fine. It was not session-specific: `Approved` was unreachable through this engine for
+  **every** guest, and no test could see it, because every fixture in `qa/idv_rules_probe.py` was
+  hand-written in the shape the rules expected. The correct verdict for that session is
+  `Awaiting User ['BARCODE_NOT_DETECTED', 'LIVENESS_LOW']`, guidance on `document_back`.
+
+  **B. Consumers must read `Score.score`, not the field as a number.** The `Score` fragment under
+  *Common fragments* is the shape the engine sends on `liveness_checks[].score`,
+  `face_matches[].score` and `face_searches[].matches[].similarity`: an **object**
+  `{ score, status, model, model_version, certified, caption }`, carrying the model provenance a
+  decision has to be auditable against. `Score.status` is null for the same reason node `status`
+  is.
+
+  Both shapes are live on the same field, so a reader must accept both: the bare number is what an
+  imported Didit decision, `/v2`, and every hand-written fixture carry.
+  `front_image_quality_score` has a **third** shape — the Didit importer writes `{ "value": 96.8 }`
+  — so the accepted forms are `n`, `{"score": n}` and `{"value": n}`. A `Score` whose `score` is
+  null is **missing**, which is not the same as `0.0`; conflating them is how an absent model
+  produces a confident decline. `idv_rules._score_num` is the single reader and every score read in
+  that module goes through it; `idv_store._score` already did the same.
+
+  **C. `liveness_checks[0].challenge` may be `null`** when the session ran no challenge (a passive
+  capture). A workflow pinning `face_liveness_method: ACTIVE_3D` still requires one, so that is a
+  `LIVENESS_LOW` — but the guidance step is **`challenge`**, not `selfie`: there is nothing wrong
+  with the selfie they took. `reasons` is de-duplicated, once, at the end: two rules reaching the
+  same code is not two facts.
+
+  **D. `document_type` and `issuing_country` come OFF THE BARCODE**, so on a session where the
+  barcode did not decode they are usually `null` — including on a genuine US driver licence. Any
+  rule scoped by them is therefore asking the document to identify itself with the very data source
+  that just failed. `barcode_expected_but_absent` now also fires on an unidentified document when
+  `engine_detail.barcode_state` shows a **located-but-unreadable** symbol (`BARCODE_UNDECODABLE`,
+  or any non-`DECODED` state with `barcode_regions_found > 0`). `NO_BACK_SUPPLIED` and a clean
+  "nothing barcode-shaped found" stay excluded — those are what a passport produces, and a passport
+  carries no AAMVA PDF417 by design.
+
+  **E. `portrait_image` on the document node is never set by this engine.** The document portrait
+  arrives as the callback's **top-level `portrait_crop`** (`{media_id_source, jpeg_b64}`), and the
+  finding is stated as `engine_detail.portrait_face_found`. A consumer asking "was there a face on
+  the document?" must accept any of: `portrait_image`, top-level `portrait_crop`,
+  `engine_detail.portrait_face_found === true`, or a `face_matches[]` entry whose
+  `engine_detail.target` is `document_portrait` with a usable score. Keying on `portrait_image`
+  alone raised "No face found on the document" plus a below-the-approve-line score cap on **every**
+  hw-engine session — including ones whose 1:1 match against that very portrait scored 84.3.
+
+  **F. The engine's `reasons` are its opinion and are not re-recorded over ours.** The engine has
+  no `BARCODE_NOT_DETECTED` in its `reasons` vocabulary and reports an unreadable barcode as
+  `DOC_QUALITY_LOW`. That is the coarse sentence addendum **B** of 2026-09-08 exists to stop
+  saying, and it outranks `BARCODE_NOT_DETECTED` in the guidance order, so re-raising it takes the
+  guest back to the front of the card. It is dropped when these rules have already raised
+  `BARCODE_NOT_DETECTED` for the same fact, and still recorded when they have not. Same reasoning
+  for the age gate: with the barcode unread there is no trustworthy date of birth, and "no readable
+  DOB" is `BARCODE_NOT_DETECTED` on `document_back` — already open, with the right sentence — not
+  `DOC_QUALITY_LOW`. The session cannot fail open: `CAP_BARCODE_UNREADABLE` (49.0) is below the
+  70.0 approve line.
+
+  *Coverage:* `qa/idv_rules_probe.py` 293 → **313** (section `IDV-J*`, built on the real scrubbed
+  callback); `qa/idv_api_probe.py` unchanged at **122** — it deduped its own copy of `reasons`,
+  which is exactly why the duplicate `LIVENESS_LOW` was invisible to it.
