@@ -231,7 +231,7 @@
   // backend's step list is derived from workflow FEATURES, and consent is not a
   // feature), it reports consent separately as `state.consents`. So the cursor
   // walks a list with consent prepended when no `terms` row exists yet.
-  const CAPTURE_STEPS = ['document_front', 'document_back', 'selfie', 'challenge'];
+  const CAPTURE_STEPS = ['document_front', 'document_back', 'medical_rec', 'selfie', 'challenge'];
   const TERMINAL = ['Approved', 'Declined', 'In Review', 'Abandoned', 'Expired', 'Kyc Expired'];
   function isTerminal(status) { return TERMINAL.indexOf(status) >= 0; }
 
@@ -243,8 +243,19 @@
     consent: { big: "Let's check your ID", say: 'Two photos of your licence, then a quick look at the camera. It takes about half a minute.' },
     document_front: { big: 'Front of your licence', say: 'Lay it flat inside the corners. Rock the card gently — that is how we see the ink move.' },
     document_back: { big: 'Now the back', say: 'The barcode on the back is the part we read. It carries your name and date of birth, so we do not have to guess at the print on the front.' },
+    medical_rec: { big: "Now your doctor's recommendation", say: "Lay the whole page flat so the doctor's name, licence number and dates are readable." },
     selfie: { big: 'Look at the camera', say: 'Hold still for two seconds.' },
     challenge: { big: 'One quick check', say: 'Follow the prompt. The screen will change colour while you do — that is the check.' },
+  };
+
+  // THE OFFERED (optional) ENTRY COPY — an 18–20-year-old on a REC_21 workflow
+  // with offer_medical_path on (contract round-3 addendum; plan §5.5). This is
+  // shown ONLY while `state.steps[]`'s medical_rec entry is both `optional:true`
+  // and still `todo` — a guided retry of an attempt already made skips straight
+  // to the capture screen below, because the guest already decided.
+  const MED_REC_OFFER = {
+    big: 'Under 21?',
+    say: "Recreational purchases need you to be 21. If you have a doctor's recommendation, add it now.",
   };
 
   // GUEST-SAFE DECLINE SENTENCES. The server sends a reason CODE
@@ -381,10 +392,14 @@
         return;
       }
       // 'card' — an ID-1 aspect box (85.6 x 53.98 mm) with corner brackets.
+      // 'page' — the same brackets, but TALLER THAN WIDE: a doctor's
+      // recommendation is a full sheet held up to the camera, not a wallet
+      // card, and a landscape guide over a portrait document would have the
+      // guest hunting for where the corners are supposed to land.
       const pad = Math.min(w, h) * 0.09;
       let bw = w - pad * 2;
-      let bh = bw / 1.586;
-      if (bh > h - pad * 2) { bh = h - pad * 2; bw = bh * 1.586; }
+      let bh = shape === 'page' ? bw * 1.294 : bw / 1.586;
+      if (bh > h - pad * 2) { bh = h - pad * 2; bw = shape === 'page' ? bh / 1.294 : bh * 1.586; }
       const x = (w - bw) / 2, y = (h - bh) / 2;
       if (dim) {
         ctx.fillStyle = dim;
@@ -549,6 +564,17 @@
     const accent = (branding && P[branding.accent]) || P.accent;
     const workflowName = (state && state.workflow && state.workflow.name) || null;
     const status = (poll && poll.status) || (state && state.status) || null;
+
+    // OFFERED, NOT REQUIRED. `medical_rec` carries `optional:true` for an
+    // 18–20-year-old on a REC_21 workflow with `offer_medical_path` on
+    // (contract round-3 addendum; plan §5.5). The choice frame is shown only
+    // while the server's own `state` for the step is still `todo` — once an
+    // attempt exists (`retry`) the guest already decided to add one, so a
+    // guided retry goes straight back to the camera rather than asking again.
+    const medicalRecOffered = React.useMemo(function () {
+      const entry = ((state && state.steps) || []).filter(function (s) { return s.id === 'medical_rec'; })[0];
+      return !!(entry && entry.optional && entry.state === 'todo');
+    }, [state]);
 
     // The step list, with consent prepended while the terms row is missing.
     const stepIds = React.useMemo(function () {
@@ -970,7 +996,8 @@
         <CaptureStep key={cursor} step={cursor} token={token} base={base} accent={accent}
           copy={copy} shell={shell} sessionRef={sessionRef} onUploaded={advance}
           onNotice={setNotice} notice={notice} hint={hint} onHint={setHint}
-          pickerPhotos={pickerPhotos} setPickerPhotos={setPickerPhotos} />);
+          pickerPhotos={pickerPhotos} setPickerPhotos={setPickerPhotos}
+          medicalRecOffered={medicalRecOffered} />);
     }
 
     // ── challenge ─────────────────────────────────────────────────────────
@@ -1032,7 +1059,16 @@
     }
     if (status === 'Declined') {
       const reasons = (poll && poll.reasons) || [];
-      const sentence = reasons.map(function (r) { return DECLINE_SENTENCE[r]; }).filter(Boolean)[0] || null;
+      // MED_REC_* NEVER SHOWS ITS CODE, AND NEVER GUESSES ONE EITHER. The five
+      // decline reasons (expired, name/DOB mismatch, bad licence, out of
+      // state) turn on facts about a document this page cannot re-derive, so
+      // the server's own sentence (`poll.message`, contract round-3 addendum)
+      // wins when it sent one; the fallback is the one plain sentence, never
+      // the DECLINE_SENTENCE map's per-code text and never the code itself.
+      const isMedRec = reasons.some(function (r) { return /^MED_REC_/.test(r); });
+      const sentence = isMedRec
+        ? ((poll && poll.message) || "We couldn't verify your doctor's recommendation")
+        : (reasons.map(function (r) { return DECLINE_SENTENCE[r]; }).filter(Boolean)[0] || null);
       const nextStep = NEXT_STEP_SENTENCE[(poll && poll.next_step) || 'in_store'] || NEXT_STEP_SENTENCE.in_store;
       return shell('Sorry', sessionRef, (
         <React.Fragment>
@@ -1174,14 +1210,25 @@
   //                   The engine reads them as the frames that accompany the
   //                   document front of the same session.
   //   document_back   one frame. PDF417 is a read, not an average.
+  //   medical_rec     one frame, kind `medical_rec` — a recommendation is a
+  //                   page held flat, not a card to be rocked, so no burst
+  //                   and no `challenge_frame` extras (contract round-3
+  //                   addendum). Offered, not required, to an 18–20-year-old
+  //                   on a REC_21 workflow — see the choice frame below.
   //   selfie          3 passive frames as `selfie_frame`, then one `selfie`.
   const BURST_N = 4, BURST_GAP_MS = 300;
   const PASSIVE_N = 3, PASSIVE_GAP_MS = 320;
 
-  function CaptureStep({ step, token, base, accent, copy, shell, sessionRef, onUploaded, onNotice, notice, hint, onHint, pickerPhotos, setPickerPhotos }) {
+  function CaptureStep({ step, token, base, accent, copy, shell, sessionRef, onUploaded, onNotice, notice, hint, onHint, pickerPhotos, setPickerPhotos, medicalRecOffered }) {
     const P = useP();
     const facing = step === 'selfie' ? 'user' : 'environment';
-    const cam = useCamera(true, facing);
+    // THE CHOICE COMES BEFORE THE CAMERA. An 18–20-year-old on a REC_21
+    // workflow is OFFERED this step, not made to sit through it — so while
+    // that choice is still open the camera stays off (`active` below), and no
+    // permission prompt fires before the guest has said yes to one.
+    const [medChoice, setMedChoice] = React.useState(null); // null | 'add'
+    const showMedOffer = step === 'medical_rec' && medicalRecOffered && !medChoice;
+    const cam = useCamera(!showMedOffer, facing);
     const [busy, setBusy] = React.useState(false);
     const [progress, setProgress] = React.useState(null);
     const c = STEP_COPY[step] || { big: 'One more photo', say: '' };
@@ -1268,7 +1315,9 @@
         return;
       }
 
-      // document_back — one frame.
+      // document_back and medical_rec — one frame each. A recommendation is a
+      // page held flat, not something a tilt burst reads better, so it takes
+      // the same single-frame path as the barcode read.
       grabOne().then(function (f) {
         if (!f) { onNotice('The camera gave us no picture. Try again.'); setBusy(false); return; }
         onHint(frameHint(f.metrics));
@@ -1278,6 +1327,27 @@
           setBusy(false); setProgress(null); onUploaded(step);
         });
       });
+    }
+
+    // ── the offer (18–20 on a REC_21 workflow, offer_medical_path on) ──────
+    // A CHOICE, NOT A DECLINE. "I don't have one" continues the flow exactly
+    // as if this step were not there — no local verdict is drawn, and the
+    // backend still decides: it may accept the guest at 21+ regardless, or
+    // decline `UNDER_AGE` once everything is submitted. This screen only
+    // decides whether the guest photographs anything.
+    if (showMedOffer) {
+      return shell(MED_REC_OFFER.big, sessionRef, (
+        <React.Fragment>
+          <Plate tone="info" icon="help" />
+          <Big>{MED_REC_OFFER.big}</Big>
+          <Say>{MED_REC_OFFER.say}</Say>
+          {notice ? <Say>{notice}</Say> : null}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: P.space.x2, width: '100%', maxWidth: 340 }}>
+            <window.PBtn size="xl" variant="accent" onClick={function () { setMedChoice('add'); }}>Add my recommendation</window.PBtn>
+            <window.PBtn size="lg" variant="ghost" onClick={function () { onUploaded(step); }}>I don&rsquo;t have one</window.PBtn>
+          </div>
+        </React.Fragment>),
+        'Offered, not required · a decline here is not a local verdict — the backend decides', null);
     }
 
     // ── camera refused / missing ─────────────────────────────────────────
@@ -1310,10 +1380,18 @@
     }
 
     const live = cam.status === 'live';
+    // A PAGE, NOT A CARD. medical_rec gets its own guide shape (taller than
+    // wide — GuideOverlay's 'page' branch) and a taller preview box to match,
+    // because a doctor's recommendation is a full sheet held up to the
+    // camera, and a landscape card frame over a portrait page would have the
+    // guest guessing where the corners belong.
+    const guideShape = step === 'selfie' ? 'oval' : step === 'medical_rec' ? 'page' : 'card';
+    const boxMaxWidth = step === 'selfie' ? 340 : step === 'medical_rec' ? 400 : 520;
+    const boxAspect = step === 'selfie' || step === 'medical_rec' ? '3 / 4' : '3 / 2';
     return shell(c.big, sessionRef, (
       <React.Fragment>
-        <div style={{ position: 'relative', width: '100%', maxWidth: step === 'selfie' ? 340 : 520,
-          aspectRatio: step === 'selfie' ? '3 / 4' : '3 / 2', background: P.canvas2,
+        <div style={{ position: 'relative', width: '100%', maxWidth: boxMaxWidth,
+          aspectRatio: boxAspect, background: P.canvas2,
           borderRadius: P.r12, overflow: 'hidden', border: `1px solid ${P.hairline}` }}>
           <video ref={cam.videoRef} playsInline muted autoPlay
             style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block',
@@ -1322,7 +1400,7 @@
               // drawScaled reads the video element's pixels, not this transform.
               transform: step === 'selfie' ? 'scaleX(-1)' : 'none',
               opacity: live ? 1 : 0.25 }} />
-          <GuideOverlay shape={step === 'selfie' ? 'oval' : 'card'} tone={accent} dim={P.imgScrim} />
+          <GuideOverlay shape={guideShape} tone={accent} dim={P.imgScrim} />
         </div>
         <Big>{c.big}</Big>
         <Say>{brandSay || c.say}</Say>
