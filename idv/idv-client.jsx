@@ -53,10 +53,18 @@
   // Verify ladder, so production auth swapping session() in later is still a
   // one-function change — nothing downstream reads `session().role` for a
   // permission decision, only role()/can() do.
-  var DISPLAY_ROLE_TO_IDV = { Admin: 'admin', Owner: 'admin', 'Floor Manager': 'analyst' };
+  // Mirrors the backend's rule (idv_api.actor): an explicit Team role wins,
+  // else a job title containing "manager" or "admin" is admin, any other
+  // associate is analyst. The client mapped "Floor Manager" to analyst while
+  // the backend treated it as admin, so Save buttons were greyed for a user
+  // the server would have accepted (found 2026-09-09).
+  var DISPLAY_ROLE_TO_IDV = { Admin: 'admin', Owner: 'admin', 'Floor Manager': 'admin' };
   function role() {
     var s = session();
-    return DISPLAY_ROLE_TO_IDV[s.role] || 'viewer';
+    var t = String(s.role || '').toLowerCase();
+    if (DISPLAY_ROLE_TO_IDV[s.role]) return DISPLAY_ROLE_TO_IDV[s.role];
+    if (t.indexOf('manager') >= 0 || t.indexOf('admin') >= 0) return 'admin';
+    return s.role ? 'analyst' : 'viewer';
   }
   var ROLE_RANK = { viewer: 0, analyst: 1, admin: 2 };
   // Action -> minimum role, from plan §6: viewer reads; analyst approves,
