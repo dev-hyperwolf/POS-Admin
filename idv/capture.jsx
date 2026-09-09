@@ -3629,6 +3629,7 @@
   const DECODE_MIN_GAP_MS = 16;      // never spin: one frame of breathing room
   const DECODE_MAX_PERIOD_MS = 450;  // and never go quieter than this
   const DECODE_EMA_ALPHA = 0.3;
+  const AUTO_ZOOM = false;
   // How often the zoom may be nudged. A lens hunt is ~300 ms of visible
   // refocus; nudging faster than it settles is how a preview ends up pumping.
   const ZOOM_EVERY_MS = 700;
@@ -3784,8 +3785,13 @@
       // Same latch, same reason: three refusals and the page stops asking and
       // the guest is told to move, which is what a device with no usable zoom
       // was always going to get.
+      // AUTO-ZOOM IS OFF (2026-09-09). On the owner's iPhone it zoomed far in,
+      // magnified every hand tremor into a smeared frame, and forced him to
+      // hold the card two to three feet away. "Move closer" is the guidance;
+      // the only zoom the page ever applies is the 1.0 reset in `tuneTrack`,
+      // which stops multi-camera iPhones starting on the 0.5x ultra-wide.
       const z = zoomRef.current;
-      if (track && z && z.caps && z.fails < 3 && merged.band_frac != null
+      if (AUTO_ZOOM && track && z && z.caps && z.fails < 3 && merged.band_frac != null
         && Date.now() - z.at > ZOOM_EVERY_MS) {
         const from = z.applied != null ? z.applied : (z.base != null ? z.base : z.caps.min);
         const want = zoomFor(z.caps, from, merged.band_frac);
