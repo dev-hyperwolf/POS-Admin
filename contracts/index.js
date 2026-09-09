@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.2.3'; // 0.2.0: additive enums (MODULE-CONTRACT-GAPS.md §2); 0.2.1 PersonStatus; 0.2.2 LiveFeedStatus; 0.2.3 AtHomeVisitStatus, GeniusShiftStatus
+  var VERSION = '0.3.0'; // 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -48,8 +48,8 @@
       source: 'wm-demo/wmdemo/incentives/contests.py stored statuses + derived "ended"' },
     Metric: { values: ['units', 'net_cents', 'gross_cents', 'txn_count', 'aov_cents'],
       source: 'wm-demo/wmdemo/incentives/scoring.py METRICS' },
-    PointsKind: { values: ['earned', 'adjusted', 'recorded_paid', 'redeemed'],
-      source: 'wm-demo/wmdemo/incentives/rewards.py KINDS + redeemed (Rewards service, plan §3)' },
+    PointsKind: { values: ['earned', 'adjusted', 'recorded_paid', 'redeemed', 'expired'],
+      source: 'wm-demo/wmdemo/incentives/rewards.py KINDS + redeemed (Rewards service, plan §3) + expired (engage/screen-loyalty.jsx liability)' },
     SnapStatus: { values: ['draft', 'published', 'expired'],
       source: 'wm-demo/wmdemo/incentives/education.py STATUSES' },
     MatchKind: { values: ['id', 'email', 'name-exact-vendor', 'name-new', 'confirmed', 'manual', 'unresolved'],
@@ -88,7 +88,7 @@
       source: 'hyperwolf Product (Blaze mirror) vs hemp/stilo typed products; Meadow/Treez from Bounty ingest' },
     PosVendor: { values: ['blaze', 'meadow', 'treez', 'hwpos', 'none'],
       source: 'docs/BOUNTY-API-CONTRACT.md Store.pos + Source' },
-    IdSource: { values: ['blaze', 'meadow', 'treez', 'weedmaps', 'didit', 'hwpos', 'connecteam', 'airtable', 'hyperwolf', 'metrc', 'onfleet'],
+    IdSource: { values: ['blaze', 'meadow', 'treez', 'weedmaps', 'didit', 'hwpos', 'connecteam', 'airtable', 'hyperwolf', 'metrc', 'onfleet', 'twilio', 'sendgrid', 'alpineiq', 'hyperdrive'],
       source: 'every external id seen across the twelve repos and the GAS estate' },
     SourceState: { values: ['failing', 'stale', 'healthy', 'not_configured', 'never_synced'],
       source: 'docs/BOUNTY-API-CONTRACT.md Source.state' },
@@ -118,6 +118,14 @@
       source: 'athome/athome-shared.jsx STATUS (Shop @ Home visits)' },
     GeniusShiftStatus: { values: ['available', 'en_route', 'in_session', 'off'],
       source: 'athome/athome-shared.jsx GSTATUS (at-home associates)' },
+    DiscountKind: { values: ['percent', 'dollar', 'bogo', 'bundle', 'gift', 'tiered', 'points'],
+      source: 'promo/pshared.jsx DISCOUNT_KINDS — the REWARD shape of a promotion; RuleType is its trigger scope' },
+    CampaignStatus: { values: ['sent', 'sending', 'scheduled', 'queued', 'draft', 'paused'],
+      source: 'engage/data.jsx CAMPAIGN_STATUSES' },
+    FlowStatus: { values: ['draft', 'live', 'paused', 'archived'],
+      source: 'engage/data.jsx FLOW_STATUSES (the display word Active is a label for live)' },
+    AudienceStatus: { values: ['draft', 'live', 'paused', 'archived', 'suggested'],
+      source: 'engage/data.jsx AUDIENCE_STATUSES' },
     PersonStatus: { values: ['unverified', 'active', 'blocked', 'deleted', 'flagged'],
       source: 'wm-demo idv_people.status (Verify); `flagged` is legacy from the Didit import, accepted on read only, never written by our code' },
     ErrorCode: { values: ['bad_request', 'unauthorized', 'forbidden', 'not_found', 'conflict',

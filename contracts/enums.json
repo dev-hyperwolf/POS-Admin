@@ -1,5 +1,5 @@
 {
-  "contract": "0.2.3",
+  "contract": "0.3.0",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -66,7 +66,8 @@
       "earned",
       "adjusted",
       "recorded_paid",
-      "redeemed"
+      "redeemed",
+      "expired"
     ],
     "SnapStatus": [
       "draft",
@@ -207,7 +208,11 @@
       "airtable",
       "hyperwolf",
       "metrc",
-      "onfleet"
+      "onfleet",
+      "twilio",
+      "sendgrid",
+      "alpineiq",
+      "hyperdrive"
     ],
     "SourceState": [
       "failing",
@@ -329,6 +334,36 @@
       "en_route",
       "in_session",
       "off"
+    ],
+    "DiscountKind": [
+      "percent",
+      "dollar",
+      "bogo",
+      "bundle",
+      "gift",
+      "tiered",
+      "points"
+    ],
+    "CampaignStatus": [
+      "sent",
+      "sending",
+      "scheduled",
+      "queued",
+      "draft",
+      "paused"
+    ],
+    "FlowStatus": [
+      "draft",
+      "live",
+      "paused",
+      "archived"
+    ],
+    "AudienceStatus": [
+      "draft",
+      "live",
+      "paused",
+      "archived",
+      "suggested"
     ],
     "PersonStatus": [
       "unverified",

@@ -220,7 +220,15 @@ test('our estate: wm-demo enums still equal the contract (FAILS on drift)', { sk
   assert.deepEqual(pyTuple(path.join(WM, 'wmdemo/incentives/scoring.py'), 'KINDS'), C.enumValues('ContestKind'));
   assert.deepEqual(pyTuple(path.join(WM, 'wmdemo/incentives/education.py'), 'STATUSES'), C.enumValues('SnapStatus'));
   const pk = pyTuple(path.join(WM, 'wmdemo/incentives/rewards.py'), 'KINDS');
-  assert.deepEqual(pk, C.enumValues('PointsKind').filter((k) => k !== 'redeemed'), 'rewards KINDS (redeemed is the planned addition)');
+  assert.deepEqual(pk, C.enumValues('PointsKind').filter((k) => k !== 'redeemed' && k !== 'expired'), 'rewards KINDS (redeemed/expired are the Rewards-service and Engage additions)');
+  // Estate files that own a 0.3.0 vocabulary.
+  const jsList = (file, name) => { const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+    const m = new RegExp('(?:const |window\\.)' + name + '\\s*=\\s*\\[([^\\]]*)\\]').exec(src); assert.ok(m, name + ' in ' + file);
+    return [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]); };
+  assert.deepEqual(jsList('promo/pshared.jsx', 'DISCOUNT_KINDS'), C.enumValues('DiscountKind'), 'promo/pshared.jsx DISCOUNT_KINDS');
+  assert.deepEqual(jsList('engage/data.jsx', 'CAMPAIGN_STATUSES'), C.enumValues('CampaignStatus'), 'engage CAMPAIGN_STATUSES');
+  assert.deepEqual(jsList('engage/data.jsx', 'FLOW_STATUSES'), C.enumValues('FlowStatus'), 'engage FLOW_STATUSES');
+  assert.deepEqual(jsList('engage/data.jsx', 'AUDIENCE_STATUSES'), C.enumValues('AudienceStatus'), 'engage AUDIENCE_STATUSES');
   assert.deepEqual(pyTuple(path.join(WM, 'wmdemo/idv_rules.py'), 'STATUSES'), C.enumValues('VerificationStatus'));
   const server = fs.readFileSync(path.join(WM, 'wmdemo/server.py'), 'utf8');
   const tx = /txn_type not in \(([^)]*)\)/.exec(server); assert.ok(tx);

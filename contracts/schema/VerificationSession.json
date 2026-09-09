@@ -1,6 +1,6 @@
 {
   "$id": "VerificationSession",
-  "contract": "0.2.3",
+  "contract": "0.3.0",
   "type": "object",
   "required": [
     "id",
