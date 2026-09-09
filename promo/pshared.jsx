@@ -5,6 +5,27 @@ const { pfmt, ENTITIES, REWARDS, RULE, CATEGORIES, BRANDS, PRODUCTS, MEMBER_GROU
 // tone → color resolver
 function toneColor(P, tone) {return { info: P.info, good: P.good, sativa: P.sativa, hybrid: P.hybrid, edibles: P.cat.edibles, indica: P.indica, warn: P.warn, bad: P.bad, accent: P.accent }[tone] || P.ink2;}
 
+// ── Platform display labels ─────────────────────────────────────────────────
+// Contract Platform values (contracts/index.js) are lower-case ids
+// ('hyperwolf'|'hemp'|'stilo'); this is the one place they get a title-cased
+// label for the UI. Never write 'Hyperwolf'/'Hemp'/'Stilo' as a value again --
+// route it through this map instead.
+window.PLATFORM_LABEL = { hyperwolf: 'Hyperwolf', hemp: 'Hemp', stilo: 'Stilo' };
+
+// ── Discount-kind vocabulary (REWARD shape, NOT a contract enum) ───────────
+// The shape of a promo's payout -- percent off, flat dollar off, BOGO,
+// bundle, gift, spend-tier breakpoints, points multiplier. Unifies
+// pweb/module.jsx's OFFERS ids (already this exact 7-value list) with
+// promo/builder-blocks.jsx's stray 'percentage' and promo/pdata.jsx's stray
+// Title-cased 'BOGO'. This is a DIFFERENT axis from the contract's RuleType
+// (cart/product/user/bogo/time/payment, contracts/index.js) -- RuleType is
+// which TRIGGER a rule matches, this is what it pays out -- so 'bogo'
+// legitimately appears in both without being the same field. Propose as
+// contract `DiscountKind` in 0.3.0 (see
+// docs/codebase-audit/gaps/engage-and-promotions.md §1).
+window.DISCOUNT_KINDS = ['percent', 'dollar', 'bogo', 'bundle', 'gift', 'tiered', 'points'];
+window.DISCOUNT_KIND_LABEL = { percent: '% off', dollar: '$ off', bogo: 'BOGO', bundle: 'Bundle', gift: 'Free gift', tiered: 'Spend & save', points: 'Points boost' };
+
 // ── Shell: rail + top bar ───────────────────────────────────────────────────
 // The rail itself is shared by every app — see shared/app-rail.jsx.
 window.PRail = function PRail({ active, onNav }) {
@@ -36,9 +57,17 @@ window.PTopBar = function PTopBar({ platform, setPlatform, right }) {
 };
 
 // ── status pill mapping ─────────────────────────────────────────────────────
+// Keys are contracts/index.js PromotionStatus values. pweb/module.jsx's
+// statusMeta() is the same vocabulary for pweb's own Pill; both read
+// HWContracts.enumValues('PromotionStatus') so a status this map doesn't
+// know about is a console warning at load, not a silent Draft pill.
+const STATUS_PILL_MAP = { active: { kind: 'good', dot: true, label: 'Active' }, scheduled: { kind: 'info', dot: true, label: 'Scheduled' }, paused: { kind: 'warn', dot: true, label: 'Paused' }, ended: { kind: 'neutral', dot: true, label: 'Ended' }, draft: { kind: 'ghost', dot: true, label: 'Draft' }, inactive: { kind: 'ghost', dot: true, label: 'Inactive' } };
+if (window.HWContracts) {
+  const missing = window.HWContracts.enumValues('PromotionStatus').filter((s) => !STATUS_PILL_MAP[s]);
+  if (missing.length) console.warn('promo/pshared.jsx: statusPill has no entry for contract PromotionStatus value(s)', missing);
+}
 window.statusPill = function statusPill(status) {
-  const map = { active: { kind: 'good', dot: true, label: 'Active' }, scheduled: { kind: 'info', dot: true, label: 'Scheduled' }, paused: { kind: 'warn', dot: true, label: 'Paused' }, ended: { kind: 'neutral', dot: true, label: 'Ended' }, draft: { kind: 'ghost', dot: true, label: 'Draft' } };
-  const c = map[status] || map.draft;
+  const c = STATUS_PILL_MAP[status] || STATUS_PILL_MAP.draft;
   return <Pill kind={c.kind} dot={c.dot}>{c.label}</Pill>;
 };
 
