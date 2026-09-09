@@ -141,6 +141,47 @@
     return (
       <Card padding={0}>
         <SubHead icon="plug" title="Connections" right={<span style={{ fontSize: 11, color: P.inkMute, fontFamily: P.fontMono }}>{stores.length} stores</span>} />
+        {window.DevNote && <div style={{ padding: '0 16px' }}>
+          <window.DevNote id="conn-hwpos-production-wiring" tone="gap" title="Production POS wiring">
+            <window.DevNoteP>
+              This note is itself a developer marker, not customer copy — it exists so whoever wires the real
+              register reads this before the <window.DevNoteMono>hwpos</window.DevNoteMono> row above shows up
+              here as a live source.
+            </window.DevNoteP>
+            <window.DevNoteP>
+              The production POS must <window.DevNoteMono>POST /api/pos/sale</window.DevNoteMono> on
+              <b> every completed tender</b> with the documented body (docs/BOUNTY-API-CONTRACT.md), including
+              {' '}<window.DevNoteMono>lines[]</window.DevNoteMono> — one entry per cart line, built once at tender
+              time: <window.DevNoteMono>product_name, brand, category, sku, quantity, unit_price_cents,
+              line_gross_cents, line_net_cents, discount_cents</window.DevNoteMono>. Without{' '}
+              <window.DevNoteMono>lines[]</window.DevNoteMono>, the register's sales post their total to the
+              store/associate boards but are <b>invisible to every brand and category bounty</b> — those score off
+              <window.DevNoteMono> inc_lines</window.DevNoteMono>, not the transaction total.
+            </window.DevNoteP>
+            <window.DevNoteP>
+              A field the register genuinely does not know (an unresolved SKU, a catalogue with no brand on a
+              line) must be sent as <window.DevNoteMono>null</window.DevNoteMono> — never{' '}
+              <window.DevNoteMono>0</window.DevNoteMono>, which reads as "this line cost nothing" instead of
+              "we don't know what this line cost."
+            </window.DevNoteP>
+            <window.DevNoteP>
+              Refunds and voids are their <b>own POST</b>, never folded into the sale they reverse — add
+              {' '}<window.DevNoteMono>txn_type</window.DevNoteMono> to the body,
+              one of <window.DevNoteMono>sale|refund|void</window.DevNoteMono>, defaulting to{' '}
+              <window.DevNoteMono>sale</window.DevNoteMono> when absent (see{' '}
+              <window.DevNoteMono>aov_compat.record_hwpos_sale</window.DevNoteMono>). A refund should also carry
+              {' '}<window.DevNoteMono>ref_txn_id</window.DevNoteMono> — the original sale's{' '}
+              <window.DevNoteMono>order_id</window.DevNoteMono> — the same role Blaze's{' '}
+              <window.DevNoteMono>parentTransactionId</window.DevNoteMono> plays.
+            </window.DevNoteP>
+            <window.DevNoteP>
+              <window.DevNoteMono>associate_id</window.DevNoteMono> must be the person who actually rang the
+              sale — never the terminal or a shared till login. Every board and bounty here attributes to a
+              person, not a register; a terminal ID in that field makes every sale on that lane
+              unattributable to any one associate.
+            </window.DevNoteP>
+          </window.DevNote>
+        </div>}
         <DataTable
           columns={[
             { key: 'store', label: 'Store', render: (r) => <b style={{ color: P.ink }}>{r.store.name}</b> },
@@ -217,6 +258,19 @@
       <Card padding={0}>
         <SubHead icon="download" title="Upload" />
         <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {window.DevNote && (
+            <window.DevNote id="upload-vs-live-paths" tone="info" title="CSV upload is the backfill path">
+              <window.DevNoteP>
+                This note is a developer marker, not user copy. CSV upload here is how a store's <b>past</b>{' '}
+                Blaze/Meadow export gets into the ledger — a manager runs it by hand, after the fact. The{' '}
+                <b>live</b> paths are the vendor APIs (Connections' "Sync now") and the register's own{' '}
+                <window.DevNoteMono>POST /api/pos/sale</window.DevNoteMono> — those land the moment a sale
+                happens, with no manager action. A production POS integration replaces the need for this
+                card for <window.DevNoteMono>hwpos</window.DevNoteMono>, the same way a Blaze/Meadow API key
+                replaces it for those vendors.
+              </window.DevNoteP>
+            </window.DevNote>
+          )}
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <Seg value={storeId} onChange={setStoreId} options={stores.map((s) => ({ value: s.id, label: s.name }))} size="sm" />
             <input ref={inputRef} type="file" accept=".csv,.xlsx,.xlsm" style={{ display: 'none' }}

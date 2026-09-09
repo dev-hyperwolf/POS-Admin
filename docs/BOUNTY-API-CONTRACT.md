@@ -152,6 +152,91 @@ Run               { "id", "kind": "csv|api", "source", "store_id", "filename", "
 
 `/api/aov/*` unchanged (see plan §3.5). Bounty's Goals screen calls exactly those.
 
+## Register → Bounty: the production POS integration contract
+
+**`POST /api/pos/sale`** — called by the register at the point of sale (today: pos/payment.jsx's
+`finalize()`, demo scope only; a production POS integration replaces that call site, not this
+contract). One POST per completed tender. Dual-writes `pos_sales` (unchanged, legacy shape) and
+`inc_txns`/`inc_lines` (the Bounty ledger) from the same call, so a sale is on every board the
+moment it is tendered.
+
+```jsonc
+// request body
+{ "order_id": "ORD-00224",        // string, required — this register's own sale id
+  "store_id": "elsinore",          // string, required
+  "associate_id": "manisha-saini", // string, required — the person who RANG the sale, never a
+                                    // terminal id or a shared till login
+  "total_cents": 6120,             // int, required — the tender total, cents
+  "item_count": 3,                 // int, optional, default 1
+  "method": "cash|card|split",     // string, optional
+  "customer_name": "...",          // string, optional
+  "txn_type": "sale|refund|void",  // string, optional, DEFAULT "sale". A refund/void is its own
+                                    // POST — never folded into the sale it reverses.
+  "ref_txn_id": "ORD-00219",       // string, optional — for a refund/void, the original sale's
+                                    // order_id. Same role Blaze's parentTransactionId / Meadow's
+                                    // orderId play for those vendors (see the refund-netting
+                                    // section below). Never on a CSV export; only a live POST.
+  "lines": [                       // array of objects, OPTIONAL BUT STRONGLY EXPECTED — see
+                                    // "why lines[] matters" below. Built ONCE, at tender time,
+                                    // from the cart that is actually being charged.
+    { "product_name": "Cake Crasher",  // string or null
+      "brand": "Jeeter",               // string or null — the catalogue's own display name,
+                                        // never a vendor-raw spelling that needs normalizing
+      "category": "Pre-Rolls",         // string or null
+      "sku": "H480PRO1",               // string or null
+      "quantity": 1,                   // number, required, > 0
+      "unit_price_cents": 1500,        // int or null — NEVER 0 for "unknown"
+      "line_gross_cents": 1500,        // int or null — quantity × unit price, before discount
+      "line_net_cents": 1500,          // int or null — after this line's own discount
+      "discount_cents": 0 }            // int or null — line_gross_cents - line_net_cents
+  ] }
+```
+
+```jsonc
+// response, 200
+{ "sale": { /* pos_sales row, unchanged shape */ },
+  "lines": "not sent"                          // no `lines` key in the request at all — an
+                                                 // OLDER CLIENT, accepted exactly as before
+      | { "inserted": 3, "unchanged": 0, "conflicts": [] }   // lines were sent and upserted
+      | { "error": "ledger mirror failed" } }               // sale recorded; the inc_* mirror
+                                                              // (txn and/or lines) did not land —
+                                                              // see log_event, never silent
+```
+
+**Refusal rules — the whole POST fails together, nothing partial is stored:**
+
+- Missing any of `order_id`, `store_id`, `associate_id`, `total_cents` → `400`.
+- `associate_id` not on the roster, or not that store's own associate → `400`
+  (`pos_sales.UnknownAssociate`).
+- `txn_type` present but not one of `sale|refund|void` → `400`.
+- `lines` **present** and invalid — not a list, an entry not an object, `quantity` missing/≤0/not
+  numeric, or any of the four cents fields not an integer-or-null (a non-integer float or a bool
+  refuses too) — → `400` **naming the bad line's index**, e.g. `"line 2: quantity must be > 0,
+  got 0"`. Nothing from this sale (not even `pos_sales`, not `inc_txns`) is written.
+- `lines` **absent entirely** (no `"lines"` key in the body) is **not** a validation failure — it
+  is an older client, accepted, and the response says `"lines": "not sent"`.
+- A missing field ON A LINE the client legitimately doesn't know (unresolved SKU, no brand on
+  record) is sent as `null` — **never `0`**, which would tell the ledger a real product sold for
+  free.
+
+**Idempotency.** Retried with the same `order_id`: `pos_sales` no-ops (`INSERT OR IGNORE`),
+`inc_txns` no-ops on the same `txn_key`/content hash, and `inc_lines` no-ops on the same
+`line_key`s — a replay is a no-op end to end, never a duplicate.
+
+**Why `lines[]` matters.** `/api/incentives/*`'s brand and category bounties score off
+`inc_lines`, not the transaction total. A sale posted with no `lines[]` still lands on the
+store/associate boards (`inc_txns` alone is enough for those) but is **invisible to every
+brand-funded or category-scoped bounty** — there is nothing in `inc_lines` for that sale to
+match against. See the "Production POS wiring" DevNote on `incentives/screen-data.jsx` for the
+same rule stated to whoever wires the real register.
+
+**Refund/void netting.** `/api/aov/*` (legacy Goals numbers) reads `txn_type='sale'` only —
+refunds/voids are invisible there, exactly as `pos_sales` always was. `/api/incentives/*`
+(Bounty's own boards) nets them: a `refund`/`void` row's `total_cents` is subtracted, and when
+`ref_txn_id` names the original sale, that sale is also dropped from the netted `txn_count`. See
+"`/api/aov/*` and `/api/incentives/*` disagree about refunds — on purpose" below for the full
+reasoning; the same divergence applies to hwpos rows as to Blaze/Meadow ones.
+
 ## Settings
 
 `GET /api/incentives/settings` → `{ "stores": [ {"id","name","tz","pos": "blaze|meadow|treez|none"} ], "tie_rule_default": "split", "managers": [Person] }`

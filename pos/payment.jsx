@@ -240,6 +240,45 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
   const pad = (k) => setCash((s) => padPush(s, k));
   const closeDrawer = () => { setMethod(null); setCash(''); };
 
+  // ── cart lines, for the Bounty ledger's brand/category attribution ────────
+  // window.POS.getCartLines() is screen-register.jsx's own `lines` (product +
+  // qty + per-line discount), republished by CartPane on every render — see
+  // pos/store.jsx's cartLines comment for why this indirection exists at all
+  // (screen-register.jsx cannot be touched to pass the cart into PaymentModal
+  // directly). Read ONCE, here, at tender time — not memoised across renders,
+  // not re-read after the POST — so a cart mutation between "Charge card" and
+  // the terminal's approval can never relabel a line after the fact.
+  //
+  // A line whose SKU is not in the catalogue (`l.missing`, screen-register.jsx
+  // ~207) sends null for name/brand/category/price — NEVER 0, which would tell
+  // the ledger a real product sold for nothing. See the "Production POS
+  // wiring" DevNote on incentives/screen-data.jsx for the same rule stated to
+  // production-POS developers.
+  const buildSaleLines = () => {
+    try {
+      const cartLines = (window.POS && window.POS.getCartLines && window.POS.getCartLines()) || [];
+      return cartLines.map((l) => {
+        const p = l.p;
+        const qty = Number(l.qty) || 0;
+        const unitPriceCents = p && typeof p.price === 'number' ? Math.round(p.price * 100) : null;
+        const discCents = (p && typeof l.disc === 'number') ? Math.round(l.disc * qty * 100) : null;
+        const lineGrossCents = unitPriceCents != null ? unitPriceCents * qty : null;
+        const lineNetCents = (lineGrossCents != null && discCents != null) ? lineGrossCents - discCents : null;
+        return {
+          product_name: p ? p.name : null,
+          brand: p ? p.brand : null,
+          category: p ? p.cat : null,
+          sku: l.sku || null,
+          quantity: qty,
+          unit_price_cents: unitPriceCents,
+          line_gross_cents: lineGrossCents,
+          line_net_cents: lineNetCents,
+          discount_cents: discCents,
+        };
+      });
+    } catch (e) { return []; }
+  };
+
   // finalize: build the sale record, pop drawer if cash component, print
   const finalize = () => {
     const rec = {
@@ -283,6 +322,7 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
           order_id: rec.id, store_id: a.storeId, associate_id: a.id,
           total_cents: Math.round(rec.total * 100), item_count: rec.items,
           method: rec.method, customer_name: rec.name,
+          lines: buildSaleLines(),
         }).then((r) => {
           if (!mountedRef.current || (r && r.ok)) return;
           setSale((prev) => (prev && prev.id === rec.id) ? { ...prev, aovFailed: true } : prev);

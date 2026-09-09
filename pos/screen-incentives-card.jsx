@@ -137,6 +137,19 @@
             </button>
           </div>
 
+          {window.DevNote && (
+            <div style={{ padding: '0 16px' }}>
+              <window.DevNote id="pos-card-live-seam" title="This card reads /api/incentives/me">
+                <window.DevNoteP>
+                  Developer marker. Every number below is one GET against wmdemo's
+                  {' '}<window.DevNoteMono>/api/incentives/me</window.DevNoteMono> — and that endpoint is fed by
+                  the register's own tender posts (<window.DevNoteMono>POST /api/pos/sale</window.DevNoteMono>{' '}
+                  from pos/payment.jsx's <window.DevNoteMono>finalize()</window.DevNoteMono>), not a fixture.
+                </window.DevNoteP>
+              </window.DevNote>
+            </div>
+          )}
+
           {/* hero — the AOV goal meter, absorbed, in the exact wording AovDashboardCard uses */}
           <div style={{ padding: '14px 16px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
