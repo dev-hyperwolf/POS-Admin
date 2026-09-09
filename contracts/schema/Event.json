@@ -1,6 +1,6 @@
 {
   "$id": "Event",
-  "contract": "0.2.2",
+  "contract": "0.2.3",
   "type": "object",
   "required": [
     "event_id",

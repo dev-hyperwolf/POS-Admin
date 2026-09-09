@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.2.2'; // 0.2.0: additive enums from docs/codebase-audit/MODULE-CONTRACT-GAPS.md §2; 0.2.1: PersonStatus; 0.2.2: LiveFeedStatus
+  var VERSION = '0.2.3'; // 0.2.0: additive enums (MODULE-CONTRACT-GAPS.md §2); 0.2.1 PersonStatus; 0.2.2 LiveFeedStatus; 0.2.3 AtHomeVisitStatus, GeniusShiftStatus
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -114,6 +114,10 @@
     LoyaltyTier: { values: ['bronze', 'silver', 'gold', 'platinum'], source: 'athome/, crm.jsx (title-cased on screen)' },
     LiveFeedStatus: { values: ['off', 'pending', 'slow', 'live', 'unreachable', 'no-write-path'],
       source: 'shared/hw-live.js HW_LIVE_STATES (hw-live-history.js and hw-live-mapping.js read it)' },
+    AtHomeVisitStatus: { values: ['requested', 'confirmed', 'en_route', 'in_session', 'completed', 'canceled'],
+      source: 'athome/athome-shared.jsx STATUS (Shop @ Home visits)' },
+    GeniusShiftStatus: { values: ['available', 'en_route', 'in_session', 'off'],
+      source: 'athome/athome-shared.jsx GSTATUS (at-home associates)' },
     PersonStatus: { values: ['unverified', 'active', 'blocked', 'deleted', 'flagged'],
       source: 'wm-demo idv_people.status (Verify); `flagged` is legacy from the Didit import, accepted on read only, never written by our code' },
     ErrorCode: { values: ['bad_request', 'unauthorized', 'forbidden', 'not_found', 'conflict',

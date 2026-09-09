@@ -1,5 +1,5 @@
 {
-  "contract": "0.2.2",
+  "contract": "0.2.3",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -315,6 +315,20 @@
       "live",
       "unreachable",
       "no-write-path"
+    ],
+    "AtHomeVisitStatus": [
+      "requested",
+      "confirmed",
+      "en_route",
+      "in_session",
+      "completed",
+      "canceled"
+    ],
+    "GeniusShiftStatus": [
+      "available",
+      "en_route",
+      "in_session",
+      "off"
     ],
     "PersonStatus": [
       "unverified",
