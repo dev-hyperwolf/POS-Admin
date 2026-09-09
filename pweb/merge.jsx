@@ -68,7 +68,13 @@ function ruleToOffer(rule){
 function draftToMerged(draft, base){
   base = base || {};
   const rule = draft.rule;
-  const status = draft.status==='active' ? 'live' : 'draft';
+  // draft.status is already a contract PromotionStatus value (promo/pshared.jsx
+  // MetaFields' Status control only offers 'active'/'draft', but a promo
+  // opened from the merged dataset can carry 'scheduled'/'paused'/'ended' --
+  // see mergedToDraft() below). Both sides of this bridge use the same
+  // vocabulary now, so no translation belongs here; the old ternary silently
+  // downgraded every non-'active' status to 'draft' on save.
+  const status = draft.status;
   // Native-kind promos (see NATIVE_OFFER_KINDS above) write their real
   // discount object straight back -- never through ruleToOffer(), which
   // cannot represent them and is exactly what was silently collapsing them.
@@ -107,8 +113,13 @@ function mergedToDraft(promo){
   const kind = promo.discount && promo.discount.kind;
   const native = NATIVE_OFFER_KINDS.includes(kind);
   return {
-    name: promo.name || '', code: promo.code || '', platform:'Hyperwolf',
-    status: promo.status==='live' ? 'active' : 'draft',
+    // promo/pdata.jsx's PLATFORMS (contract Platform, lower-case ids) is a
+    // plain-JS global loaded before this file -- see Promotions Suite.html.
+    // The merged/pweb dataset carries no per-promo platform field yet, so
+    // default to the first contract platform rather than a hardcoded
+    // Title-cased literal.
+    name: promo.name || '', code: promo.code || '', platform: promo.platform || (window.PLATFORMS ? window.PLATFORMS[0] : 'hyperwolf'),
+    status: promo.status,
     auto: !promo.code,
     schedule:true, publishNow:false, expiry: !!(promo.schedule && promo.schedule.end),
     publishDate:'Jul 14, 2026 9:00 AM', expiryDate:'Aug 14, 2026 9:00 AM',

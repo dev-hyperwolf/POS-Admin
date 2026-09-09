@@ -80,9 +80,9 @@ function Suite() {
   };
   // `statusOverride` lets Save-draft reuse this exact persistence path while
   // forcing draft.status='draft' regardless of what the builder's own Status
-  // toggle is set to -- M.draftToMerged already maps any non-'active' status
-  // to 'draft' (pweb/merge.jsx), so this is the same data model the builder
-  // already understands, not a new mechanism.
+  // toggle is set to -- M.draftToMerged now passes draft.status straight
+  // through (pweb/merge.jsx), so overriding it here is the only place that
+  // happens, not a second status-collapsing rule.
   const saveBuilder = (statusOverride) => {
     const base = builderId !== 'new' ? promos.find((p) => p.id === builderId) : null;
     const toSave = statusOverride ? { ...draft, status: statusOverride } : draft;
