@@ -2,7 +2,7 @@
 ;(function () {
   const useP = window.useP;
   const CHANNEL_TONE = { sms: 'ok', email: 'info', push: 'brand', wallet: 'warn' };
-  const STATUS_TONE = { sent: 'ok', sending: 'info', scheduled: 'brand', queued: 'info', draft: 'neutral', paused: 'warn' };
+  const STATUS_TONE = window.ENGAGE_DATA.CAMPAIGN_STATUS_TONE; // one list, engage/data.jsx
 
   window.ScreenCampaigns = function ScreenCampaigns({ navigate }) {
     const P = useP(), HD = window.HD, D = window.ENGAGE_DATA;

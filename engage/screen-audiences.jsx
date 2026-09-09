@@ -2,7 +2,8 @@
 ;(function () {
   const useP = window.useP;
   const SOURCE_LABEL = { manual: ['Manual', 'neutral'], rule: ['Manual', 'neutral'], ai: ['AI', 'info'], lookalike: ['Lookalike', 'brand'], suggested: ['Suggested', 'info'] };
-  const STATUS_TONE = { draft: 'neutral', live: 'ok', active: 'ok', paused: 'warn', archived: 'neutral', suggested: 'info' };
+  const STATUS_TONE = window.ENGAGE_DATA.AUDIENCE_STATUS_TONE; // one list, engage/data.jsx
+  const STATUS_LABEL = window.ENGAGE_DATA.AUDIENCE_STATUS_LABEL;
 
   function SortableHead({ label, k, sort, onSort, align }) {
     const P = useP();
@@ -91,7 +92,7 @@
             <ChipGroup label="Source" active={sourceF} onToggle={toggleIn(setSourceF)}
               options={[{ value: 'rule', label: 'Manual' }, { value: 'ai', label: 'AI' }, { value: 'lookalike', label: 'Lookalike' }, { value: 'suggested', label: 'Suggested' }]} />
             <ChipGroup label="Status" active={statusF} onToggle={toggleIn(setStatusF)}
-              options={[{ value: 'draft', label: 'draft' }, { value: 'live', label: 'active' }, { value: 'paused', label: 'paused' }, { value: 'archived', label: 'archived' }]} />
+              options={['draft', 'live', 'paused', 'archived'].map((v) => ({ value: v, label: STATUS_LABEL[v] }))} />
           </div>
         </Card>
 
@@ -140,7 +141,7 @@
                           <div style={{ fontSize: 11.5, color: P.inkMute, maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.description}</div>
                         </TD>
                         <TD><HDPill tone={srcTone} icon={false} size="sm" label={srcLabel} /></TD>
-                        <TD><HDPill tone={STATUS_TONE[a.status]} icon={false} size="sm" label={a.status === 'live' ? 'active' : a.status} /></TD>
+                        <TD><HDPill tone={STATUS_TONE[a.status]} icon={false} size="sm" label={STATUS_LABEL[a.status] || a.status} /></TD>
                         <TD align="right" mono style={{ fontWeight: 600 }}>{HD.formatNumber(a.size)}</TD>
                         <TD><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: P.inkDim }}><Icon name="clock" size={11} stroke={2} />{a.refreshCadence}</span></TD>
                         <TD style={{ fontSize: 12.5, color: P.inkDim }}>{HD.relativeTime(a.lastRefreshedAt)}</TD>

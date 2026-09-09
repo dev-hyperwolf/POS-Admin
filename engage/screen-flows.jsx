@@ -1,8 +1,8 @@
 // ── /flows · /flows/[id] · /flows/new · /flows/templates ──────────────────
 ;(function () {
   const useP = window.useP;
-  const STATUS_TONE = { draft: 'neutral', live: 'ok', active: 'ok', paused: 'warn', archived: 'neutral' };
-  const STATUS_LABEL = { draft: 'Draft', live: 'Active', active: 'Active', paused: 'Paused', archived: 'Archived' };
+  const STATUS_TONE = window.ENGAGE_DATA.FLOW_STATUS_TONE; // one list, engage/data.jsx
+  const STATUS_LABEL = window.ENGAGE_DATA.FLOW_STATUS_LABEL;
   const TRIGGER_LABEL = (t) => (t.startsWith('schedule') ? 'Schedule' : t.startsWith('customer') || t.startsWith('commerce') || t.startsWith('loyalty') || t.startsWith('referral') ? 'Event' : 'Manual');
   const NODE_ICON = { trigger: 'zap', wait: 'clock', condition: 'split', message: 'send', action: 'gift', exit: 'ban' };
   const NODE_HUE = { trigger: 'violet', wait: 'blue', condition: 'teal', message: 'pink', action: 'green', exit: 'neutral' };

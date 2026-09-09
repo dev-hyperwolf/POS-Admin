@@ -2,7 +2,7 @@
 ;(function () {
   const useP = window.useP;
   const STATUS_META = { connected: ['Active', 'ok'], migrating: ['Mapping', 'info'], pending: ['Probing', 'info'], error: ['Error', 'blocked'], revoked: ['Revoked', 'neutral'] };
-  const HEALTH_META = { ok: ['Healthy', 'ok'], degraded: ['Degraded', 'warn'], warn: ['Needs review', 'warn'], idle: ['Idle', 'neutral'], failing: ['Failing', 'blocked'] };
+  const HEALTH_META = window.ENGAGE_DATA.INTEGRATION_HEALTH_META; // one list, engage/data.jsx
 
   window.ScreenIntegrations = function ScreenIntegrations({ navigate }) {
     const P = useP(), HD = window.HD, D = window.ENGAGE_DATA;
