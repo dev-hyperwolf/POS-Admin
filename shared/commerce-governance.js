@@ -46,9 +46,15 @@
     return;
   }
 
+  // shared/hd-format.jsx is the one money formatter (BUILD-AGAINST-THE-SOURCE.md
+  // §3). Prefer the engine's own money() when it has one; otherwise defer to
+  // window.HD.formatCents when it has loaded; the original arrow is the last
+  // resort for when neither has.
   const money = typeof E.money === 'function'
     ? E.money
-    : (c) => (c < 0 ? '-' : '') + '$' + (Math.abs(Math.round(c)) / 100).toFixed(2);
+    : (typeof window !== 'undefined' && window.HD && typeof window.HD.formatCents === 'function')
+      ? window.HD.formatCents
+      : (c) => (c < 0 ? '-' : '') + '$' + (Math.abs(Math.round(c)) / 100).toFixed(2);
 
   // ── Policy — the owner's decisions, 2026-08-19 ────────────────────────────
   //

@@ -33,6 +33,16 @@
   var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; };
   var money = function (n) { return Math.round(n * 100) / 100; };
 
+  // shared/hd-format.jsx is the one money formatter (BUILD-AGAINST-THE-SOURCE.md
+  // §3). `n` here is DOLLARS (this file's demo records store dollars, not
+  // cents) — delegates to window.HD.formatCents when it has loaded; the
+  // original '$' + n.toFixed(2) is the fallback for when it has not.
+  var fmtDollars = function (n) {
+    return (window.HD && typeof window.HD.formatCents === 'function')
+      ? window.HD.formatCents(Math.round(n * 100))
+      : '$' + n.toFixed(2);
+  };
+
   /** Next free ORD- number across everything already on the board. */
   function nextOrderNum() {
     var max = 0;
@@ -156,7 +166,7 @@
 
     return {
       ok: true, id: id, record: row,
-      message: id + ' · ' + name + ' · $' + total.toFixed(2) + ' (' + preset.label + ')',
+      message: id + ' · ' + name + ' · ' + fmtDollars(total) + ' (' + preset.label + ')',
       next: preset.next,
       where: 'Orders → Order queue',
     };
@@ -208,7 +218,7 @@
 
     return {
       ok: true, id: sku, record: p,
-      message: name + ' · ' + brand + ' · ' + cat + ' · $' + price.toFixed(2) + ' · ' + p.qty + ' in stock',
+      message: name + ' · ' + brand + ' · ' + cat + ' · ' + fmtDollars(price) + ' · ' + p.qty + ' in stock',
       next: 'It is in the catalogue now — Catalog, the POS product picker, and every swap ladder in its category.',
       where: 'Catalog',
     };

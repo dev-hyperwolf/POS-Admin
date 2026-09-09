@@ -358,10 +358,14 @@
     }
   }
 
+  // shared/hd-format.jsx is the one money formatter (BUILD-AGAINST-THE-SOURCE.md
+  // §3). Delegates to window.HD.formatCents when it has loaded; the original
+  // body is the fallback for when it has not.
   function money(v) {
     if (v == null) { return null; }
     var n = Number(v);
     if (!isFinite(n)) { return null; }
+    if (W.HD && typeof W.HD.formatCents === 'function') { return W.HD.formatCents(Math.round(n * 100)); }
     return '$' + n.toFixed(2);
   }
 
