@@ -1243,3 +1243,116 @@ challenge fields reach the job body, `answered_at` equal to the `liveness_video`
 existing read depends on its absence. Both standalone runs passed on this tree: 137/137, 64/64.
 `qa/battery.py`'s `EXPECTED_CHECKS["idv_api_probe"]` raised 135 → 137 and `TOTAL_CHECK_FLOOR` raised
 2142 → 2144 to match, each with the justification inline as a comment at the point of change.
+
+---
+
+## Addendum — 2026-09-09: the barcode is the data source, and our own OCR may not decline anyone
+
+**The session that produced this ruling.** Measured on the owner's real iPhone, tonight. The PDF417
+on the back decoded with **27 AAMVA fields**. Passive liveness **99.97**. 1:1 face match **80.6**.
+As clean a session as this system produces. The front-side OCR read a garbage first name and no
+surname at all, and the engine reported that honestly:
+
+```json
+"crosschecks": {
+  "barcode_vs_ocr": {
+    "agree":    ["expiration_date"],
+    "disagree": ["last_name", "first_name"],
+    "missing":  ["date_of_birth", "date_of_issue", "document_number"],
+    "confidence": 40.0
+  }
+}
+```
+
+The rules raised `BARCODE_OCR_MISMATCH`, spent the guest's one retake, and then returned
+**`Declined` — "The barcode and the print on this ID do not agree."** To a real, valid guest holding
+a current, machine-readable licence. `confidence: 40.0` was in the payload the whole time and no
+rule read it.
+
+**Why this was always going to happen.** The old rule was `disagree ∩ {first_name, last_name,
+date_of_birth} ≠ ∅`, with no confidence floor. The calibration report (2026-09-08) had **already**
+measured open OCR at **~50% exact-field match on ID cards**. A witness that is wrong half the time
+was being given an equal vote against a machine-written symbol that agrees with the vendor 97.6% of
+the time — and it was the only such vote in this module that could reach a decline. Everywhere else
+the rules already refuse to be decided by OCR: the age gate, the expiry check and the medical
+name/DOB comparisons all abstain when the barcode did not decode (`OCR_ONLY_EXPLAIN`). The
+cross-check was the last place the print could outvote the chip.
+
+### The rule now
+
+`BARCODE_OCR_MISMATCH` fires **only** when **both** hold:
+
+1. `barcode_vs_ocr.confidence >= 85` (`idv_rules.OCR_CROSSCHECK_CONFIDENCE_MIN`, inclusive), and
+2. the `disagree` set includes **`date_of_birth`** or **`document_number`**
+   (`idv_rules.OCR_IDENTITY_FIELDS`).
+
+That pair is the tamper signal and nothing else is: a confidently-read print naming a *different*
+date of birth or licence number than the chip is the shape a doctored card has, and the one shape
+our OCR is not plausibly inventing at ≥85 confidence. Both halves are load-bearing — without the
+floor a 40%-confidence read declines real people; without the field test a doctored date of birth
+walks through. When it fires, the mechanic is **unchanged**: one retake on `document_back`, then
+`Declined` with `next_step: "in_store"` (`MAX_BARCODE_MISMATCH_ATTEMPTS = 2`). *This supersedes the
+2026-09-08 §B sentence "`BARCODE_OCR_MISMATCH` is unchanged: a cross-check disagreement still gets
+one retake and then declines" — the mechanic is unchanged, the trigger is not.*
+
+Everything else the print has to say becomes a `warnings[]` entry with **no status effect, no score
+cap, no retake and no reason code**:
+
+| condition | `warnings[].risk` | effect |
+|---|---|---|
+| `confidence >= 85`, disagrees on `date_of_birth` or `document_number` | *(none — reason `BARCODE_OCR_MISMATCH`)* | one retake, then `Declined` |
+| `confidence >= 85`, disagrees only on names / address / `date_of_issue` / `expiration_date` | `OCR_PRINT_DISAGREES` | none — records the fields and the confidence |
+| `confidence < 85`, or absent (`null`), or the OCR never produced the fields (`missing`) | `OCR_LOW_CONFIDENCE` | none — records the fields it differed on *and* the ones it never read |
+| `disagree` and `missing` both empty (full agreement, or `status: "NO_BARCODE"`) | *(none)* | silent |
+| barcode did not decode at all (`barcode_expected_but_absent`) | *(none from the cross-check)* | `BARCODE_NOT_DETECTED` already re-opened `document_back` |
+
+Both new risks are advisory strings in `warnings[]`, the same shape as every other risk
+(`{risk, log_type, short_description}`). **No console filter, no `reasons` vocabulary and no §3.4
+reason code changes** — a client that does not know these two strings renders them as it renders any
+other warning. Age and expiry continue to be decided by the **barcode** and by nothing else.
+
+**A missing `confidence` is treated as low, not high.** `confidence: null` is what the engine sends
+when it could not score the comparison; defaulting an absent number to "confident enough" would
+restore the original bug for every engine version that omits the field.
+
+**`explain` names the source.** Every session where the print is recorded and not acted on carries
+`idv_rules.PRINT_IGNORED_EXPLAIN` — the barcode was the data source and was used, the print is a
+photograph read at ~50% field accuracy, and only a ≥85-confidence contradiction on `date_of_birth`
+or `document_number` could have changed the outcome. An approval whose audit trail does not name the
+deciding source cannot be reviewed later.
+
+**The engine's own opinion no longer re-opens the door.** `_engine_reason_block` re-raises a short
+list of engine-proposed `reasons` as findings, and `BARCODE_OCR_MISMATCH` is on it — but the engine
+derives that reason from the *same* `barcode_vs_ocr` block and applies **no confidence floor**.
+Re-recording it would have restored the false decline in full through a second door. It is now
+dropped when these rules' own reading of the block is not a tamper signal, and the disagreement
+between the two is written to `explain` rather than being silent. (Same precedent as the 2026-09-08
+`DOC_QUALITY_LOW` / `BARCODE_NOT_DETECTED` case immediately above it in that function.)
+
+**Guest-facing copy for `BARCODE_OCR_MISMATCH` changed**, because the old sentence described a
+condition this code can no longer be raised for: it said *"The barcode on the back didn't read
+cleanly"*, which is `BARCODE_NOT_DETECTED`'s fact, not this one. It now reads *"The details printed
+on this card don't match the barcode on the back — lay the card flat on a dark surface, fill the
+frame and photograph it again."* Step is still `document_back`.
+
+**Shape note.** The `Decision` example near the top of this file shows `barcode_vs_ocr` with only
+`agree` / `disagree` / `missing`. The engine also sends **`confidence`** (float or `null`) and, when
+there was no chip to compare against, **`status: "NO_BARCODE"`**. Both are read by the rules as of
+this addendum; the example is the older, narrower shape and is superseded here rather than edited in
+place, per the append-only convention.
+
+*Coverage:* `qa/idv_rules_probe.py` 321 → **333**, new section **K (IDV-K01..K12)** built on the
+owner's exact crosscheck with a full 27-field barcode. `K01` and `K04` are the same session decided
+twice — approved when the challenge is `completed`, and still `Awaiting User [LIVENESS_LOW]` on the
+`challenge` step when `challenge.result: "not_completed"` — because "not declined" is only half the
+claim and a rule that approved both would be a fail-open wearing this ruling as a disguise. `K05`
+walks the confident-DOB tamper path retake → `Declined` unchanged, `K06` does the same for
+`document_number`, `K07` is the confident name-only warning, `K08` pins the 85 floor from both
+sides, `K09` the absent confidence, `K10` the engine's second door, `K11` the no-chip case and `K12`
+silence on a clean session. `IDV-A24`/`A25`/`A30` were **edited, not added**: their cross-checks now
+carry the confidence the new rule requires. Verified by mutation — restoring the old predicate
+(floor 0, names as identity fields) fails 7 of the 12 new checks. `qa/idv_api_probe.py` **137**,
+untouched and still green: the API layer renders whatever the rules return and no route reads the
+cross-check itself. Both standalone runs passed on this tree: 333/333, 137/137.
+`qa/battery.py`'s `EXPECTED_CHECKS["idv_rules_probe"]` raised 321 → 333 and `TOTAL_CHECK_FLOOR`
+2144 → 2156, each with the justification inline at the point of change.
