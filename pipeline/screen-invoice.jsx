@@ -4,7 +4,7 @@
   const useP = window.useP;
 
   function MappingLegend() {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const item = (tone, label, flag) => {
       const c = HD.tone(P, tone);
       return (
@@ -28,7 +28,7 @@
   const mappingReasonLabel = (r) => ({ exact_sku_qty: 'Exact SKU + qty match', sum_match: 'Sibling package — sum matches', fuzzy_sku_exact_qty: 'Fuzzy SKU + exact qty', qty_only: 'Qty-only plausible match', manual: 'Manually mapped', unmapped: 'Unmapped' }[r] || r);
 
   function VarianceCell({ qty, unit, highlight, tooltip }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const c = highlight ? HD.tone(P, highlight) : null;
     return (
       <div title={tooltip} style={{ padding: '12px', borderLeft: `1px solid ${P.hairline2}`, textAlign: 'right', background: c ? c.bg : 'transparent' }}>
@@ -38,7 +38,7 @@
   }
 
   function UidRow({ uid, totalUnit, isSibling, siblingIndex, siblingCount }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const high = uid.confidence >= 0.92;
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     const unmapped = uid.matchReason === 'unmapped';
@@ -64,7 +64,7 @@
   }
 
   function LineRow({ li }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const manifest = li.manifestQty ?? li.qty;
     const receipt = li.receiptQty ?? li.qty;
     const invoiceQty = li.invoiceQty ?? li.qty;
@@ -115,7 +115,7 @@
   }
 
   function ThreeWayMatch({ invoice }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const head = (label, tone) => (
       <div style={{ padding: '10px 12px', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, fontWeight: 500, borderBottom: `1px solid ${P.hairline2}`, background: P.surface2, display: 'flex', alignItems: 'center', gap: 6 }}>
         {tone && <span style={{ width: 8, height: 8, borderRadius: 99, background: tone === 'brand' ? P.accent : HD.tone(P, tone).fg }} />}
@@ -134,7 +134,7 @@
   }
 
   function VariancePanel({ invoice }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const variances = invoice.lineItems.filter((li) => li.variance && li.variance !== 'none');
     const qtyShort = variances.filter((li) => (li.receiptQty ?? 0) < (li.invoiceQty ?? 0)).reduce((s, li) => s + ((li.invoiceQty ?? 0) - (li.receiptQty ?? 0)) * li.unitCost, 0);
     const costDiff = variances.reduce((s, li) => s + (li.unitCost - (li.expectedUnitCost ?? li.unitCost)) * (li.receiptQty ?? li.qty), 0);
@@ -171,7 +171,7 @@
   }
 
   function EvidenceGallery({ invoice }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const items = [
       { id: 'pdf', label: 'Vendor PDF', icon: 'note' },
       { id: 'manifest', label: 'METRC manifest', icon: 'receipt' },
@@ -212,7 +212,7 @@
   }
 
   function UnmappedResolver({ u, invoice, onMap }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const candidates = React.useMemo(() => scoreCandidates(u, invoice), [u, invoice]);
     const [showAll, setShowAll] = React.useState(false);
     const visible = showAll ? candidates : candidates.slice(0, 3);
@@ -274,7 +274,7 @@
   }
 
   function UnmappedUidsSection({ invoice }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const initial = invoice.unmappedManifestUids ?? [];
     const [remaining, setRemaining] = React.useState(initial);
     React.useEffect(() => { setRemaining(invoice.unmappedManifestUids ?? []); }, [invoice.id]);
@@ -313,7 +313,7 @@
   }
 
   window.ScreenInvoiceDetail = function ScreenInvoiceDetail({ path, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const id = path.split('/')[2];
     const invoice = window.HD_DATA.INVOICES.find((i) => i.id === id) || window.HD_DATA.INVOICES[0];
     const [selectedVersion, setSelectedVersion] = React.useState(String(invoice.version));

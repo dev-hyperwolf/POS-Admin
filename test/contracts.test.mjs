@@ -232,7 +232,9 @@ test('our estate: wm-demo enums still equal the contract (FAILS on drift)', { sk
   for (const r of ['viewer', 'analyst', 'admin']) assert.ok(idvApi.includes('"' + r + '"') || idvApi.includes("'" + r + "'"), 'Verify ladder still names ' + r);
   // 0.2.0 enums copied from estate files: keep those files the source of truth.
   const domain = fs.readFileSync(path.join(ROOT, 'pipeline/domain.jsx'), 'utf8');
-  const bs = /BATCH_STATUS_ORDER\s*=\s*\[([^\]]*)\]/.exec(domain); assert.ok(bs);
+  // The literal is now a fallback (BATCH_STATUS_ORDER = contract.enumValues(...) || [...]);
+  // match the fallback array itself, wherever the '[' lands after '='.
+  const bs = /BATCH_STATUS_ORDER\s*=[^[]*\[([^\]]*)\]/.exec(domain); assert.ok(bs);
   assert.deepEqual([...bs[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]), C.enumValues('BatchStage'), 'pipeline/domain.jsx BATCH_STATUS_ORDER');
   const fulfil = fs.readFileSync(path.join(WM, 'wmdemo/fulfillment.py'), 'utf8');
   const wm = /WM_STATUS_ORDER\s*=\s*\(([^)]*)\)/.exec(fulfil); assert.ok(wm);

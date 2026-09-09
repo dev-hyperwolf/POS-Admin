@@ -24,7 +24,7 @@
   }
 
   function APDrawer({ invoice, open, onClose }) {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     const [linkedMemoId, setLinkedMemoId] = React.useState(null);
     const [menuOpen, setMenuOpen] = React.useState(false);
     React.useEffect(() => { setLinkedMemoId(null); }, [invoice?.id]);
@@ -139,7 +139,7 @@
   }
 
   window.ScreenAP = function ScreenAP() {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     const [filter, setFilter] = React.useState('all');
     const [query, setQuery] = React.useState('');
     const [selected, setSelected] = React.useState(null);
@@ -268,7 +268,7 @@
   ];
 
   function CreditDrawer({ memo, open, onClose }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     if (!memo) return null;
     const entity = HD.ENTITIES.find((e) => e.id === memo.entity);
     const evIcon = (kind) => (kind === 'photo' ? 'camera' : kind === 'email' ? 'mail' : kind === 'manifest' ? 'link' : 'note');
@@ -345,7 +345,7 @@
   }
 
   window.ScreenCredits = function ScreenCredits() {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     const [source, setSource] = React.useState('all');
     const [status, setStatus] = React.useState('all');
     const [vendor, setVendor] = React.useState([]);
@@ -449,7 +449,7 @@
   }
 
   function MissingInvoiceCard({ navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const warn = HD.tone(P, 'warn');
     return (
       <Card padding={0} style={{ maxWidth: 680 }}>
@@ -477,7 +477,7 @@
   }
 
   window.ScreenCreditNew = function ScreenCreditNew({ query, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const invoiceId = query.get('invoiceId') ?? query.get('invoice') ?? '';
     const invoice = invoiceId ? window.HD_DATA.INVOICES.find((i) => i.id === invoiceId) : undefined;
     const [selected, setSelected] = React.useState(() => new Set());

@@ -36,12 +36,12 @@
   window.HD_MAPPING = { ...store, useMappingStore };
 
   function ConfidencePill({ confidence, tone }) {
-    const P = useP(), c = window.HD.tone(P, tone);
+    const P = useP(), c = window.HD_PIPE.tone(P, tone);
     return <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 6px', borderRadius: 99, fontSize: 11.5, fontWeight: 600, fontFamily: P.fontMono, background: c.bg, color: c.fg, border: `1px solid ${c.fg}66` }}>{Math.round(confidence * 100)}%</span>;
   }
 
   function DecisionPill({ decision }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     if (decision.kind === 'picked') return <HDPill tone="ok" size="sm" icon={false} label="✓ picked" />;
     if (decision.kind === 'create_new') return <HDPill tone="brand" size="sm" icon={false} label="+ new" />;
     return <HDPill tone="neutral" size="sm" icon={false} label="skipped" />;
@@ -104,7 +104,7 @@
   }
 
   function MatchRow({ line, match, decision }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const band = bandFor(match.confidence);
     const [pickerOpen, setPickerOpen] = React.useState(false);
     const tone = band === 'high' ? 'ok' : band === 'med' ? 'warn' : 'blocked';
@@ -154,7 +154,7 @@
   }
 
   function HelperSheet({ open, onClose, invoice, matches, onConfirmAll }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const need = matches.filter((m) => bandFor(m.match.confidence) !== 'high');
     return (
       <Sheet open={open} onClose={onClose} width={480}>
@@ -199,7 +199,7 @@
   }
 
   window.MatchPreview = function MatchPreview({ invoice }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const matches = React.useMemo(() => invoice.lineItems.map((line) => ({ line, match: PR.matchLineToProduct(line.productName, invoice.vendorName) })), [invoice.id]);
     const snap = useMappingStore();
     const mapped = snap.mappedInvoices.has(invoice.id);

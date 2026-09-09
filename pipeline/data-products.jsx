@@ -1,7 +1,8 @@
 // ── Product wrappers, product shells, product batches ─────────────────────
 // Verbatim port of prototype/lib/fixtures/products.ts + fake-product-matcher.ts.
 ;(function () {
-  const PRODUCTS_NOW = new Date('2026-04-20T18:30:00-07:00').getTime();
+  // window.PIPE_NOW is defined once, in pipeline/data.jsx (which loads first).
+  const PRODUCTS_NOW = window.PIPE_NOW;
   const daysAgoIso = (days) => new Date(PRODUCTS_NOW - days * 86400000).toISOString();
   const daysAheadIso = (days) => new Date(PRODUCTS_NOW + days * 86400000).toISOString();
 

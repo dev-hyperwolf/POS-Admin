@@ -12,34 +12,42 @@
 
 const STORE_T = { name: 'Hyperwolf Lake Elsinore', code: 'HW-00001-101' };
 
+// TerminalKind / DrawerState — docs/BUILD-AGAINST-THE-SOURCE.md §3: a status/kind
+// vocabulary is a contract enum, never a repeated literal. Falls back to the
+// literal list if contracts/index.js has not loaded on this page.
+const TERMINAL_KIND = window.HWContracts ? window.HWContracts.enumValues('TerminalKind') : ['station', 'mobile'];
+const [KIND_STATION, KIND_MOBILE] = TERMINAL_KIND;
+const DRAWER_STATE = window.HWContracts ? window.HWContracts.enumValues('DrawerState') : ['open', 'closed'];
+const [DRAWER_OPEN, DRAWER_CLOSED] = DRAWER_STATE;
+
 // ── Stations (this store) ───────────────────────────────────────────────────
-// drawer.state: 'open' | 'closed'.  variance = counted - expected
+// drawer.state: DrawerState ('open' | 'closed').  variance = counted - expected
 const STATIONS = [
-  { id:'ST1', kind:'station', name:'Front Counter 1', device:{ model:'iMac 24"', os:'macOS 14', tag:'LE-IMAC-01' },
+  { id:'ST1', kind:KIND_STATION, name:'Front Counter 1', device:{ model:'iMac 24"', os:'macOS 14', tag:'LE-IMAC-01' },
     online:true, lastActive:'Active now', employee:'Priya Nair',
     printer:{ model:'Epson TM-m30', conn:'Network', ip:'192.168.4.21', ok:true },
     reader:{ model:'BBPOS WisePad 3', sn:'00201', ok:true },
-    drawer:{ state:'open', float:300, expected:1240.50, counted:null, variance:null, since:'8:02 AM', cashier:'Priya Nair', cardSales:3120.75, cardCount:48, cashCount:22, splitCount:5, warrantyCount:1 } },
-  { id:'ST2', kind:'station', name:'Front Counter 2', device:{ model:'iMac 24"', os:'macOS 14', tag:'LE-IMAC-02' },
+    drawer:{ state:DRAWER_OPEN, float:300, expected:1240.50, counted:null, variance:null, since:'8:02 AM', cashier:'Priya Nair', cardSales:3120.75, cardCount:48, cashCount:22, splitCount:5, warrantyCount:1 } },
+  { id:'ST2', kind:KIND_STATION, name:'Front Counter 2', device:{ model:'iMac 24"', os:'macOS 14', tag:'LE-IMAC-02' },
     online:true, lastActive:'Active now', employee:'Marcus Hill',
     printer:{ model:'Epson TM-m30', conn:'Network', ip:'192.168.4.22', ok:true },
     reader:{ model:'BBPOS WisePad 3', sn:'00202', ok:true },
-    drawer:{ state:'open', float:300, expected:980.00, counted:null, variance:null, since:'8:00 AM', cashier:'Marcus Hill', cardSales:2450.00, cardCount:39, cashCount:18, splitCount:3, warrantyCount:0 } },
-  { id:'ST3', kind:'station', name:'Express Lane', device:{ model:'Mac mini', os:'macOS 14', tag:'LE-MINI-03' },
+    drawer:{ state:DRAWER_OPEN, float:300, expected:980.00, counted:null, variance:null, since:'8:00 AM', cashier:'Marcus Hill', cardSales:2450.00, cardCount:39, cashCount:18, splitCount:3, warrantyCount:0 } },
+  { id:'ST3', kind:KIND_STATION, name:'Express Lane', device:{ model:'Mac mini', os:'macOS 14', tag:'LE-MINI-03' },
     online:true, lastActive:'Active now', employee:null,
     printer:{ model:'Epson TM-T88', conn:'Network', ip:'192.168.4.23', ok:false },
     reader:{ model:'BBPOS WisePad 3', sn:'00203', ok:true },
-    drawer:{ state:'closed', float:300, expected:0, counted:300, variance:0, since:'Closed', cashier:null } },
-  { id:'ST4', kind:'station', name:'Drive-Thru', device:{ model:'iMac 24"', os:'macOS 13', tag:'LE-IMAC-04' },
+    drawer:{ state:DRAWER_CLOSED, float:300, expected:0, counted:300, variance:0, since:'Closed', cashier:null } },
+  { id:'ST4', kind:KIND_STATION, name:'Drive-Thru', device:{ model:'iMac 24"', os:'macOS 13', tag:'LE-IMAC-04' },
     online:false, lastActive:'2 days ago', employee:null,
     printer:{ model:'Epson TM-m30', conn:'Network', ip:'192.168.4.24', ok:true },
     reader:null,
-    drawer:{ state:'closed', float:300, expected:0, counted:300, variance:0, since:'Closed', cashier:null } },
-  { id:'ST5', kind:'station', name:'Manager Station', device:{ model:'MacBook Pro', os:'macOS 14', tag:'LE-MBP-05' },
+    drawer:{ state:DRAWER_CLOSED, float:300, expected:0, counted:300, variance:0, since:'Closed', cashier:null } },
+  { id:'ST5', kind:KIND_STATION, name:'Manager Station', device:{ model:'MacBook Pro', os:'macOS 14', tag:'LE-MBP-05' },
     online:true, lastActive:'Active now', employee:'Manisha Saini',
     printer:{ model:'Epson TM-m30', conn:'USB', ip:null, ok:true },
     reader:{ model:'Stripe M2', sn:'00205', ok:true },
-    drawer:{ state:'open', float:300, expected:512.00, counted:500.00, variance:-12.00, since:'9:14 AM', cashier:'Manisha Saini', cardSales:890.00, cardCount:12, cashCount:7, splitCount:2, warrantyCount:1 } },
+    drawer:{ state:DRAWER_OPEN, float:300, expected:512.00, counted:500.00, variance:-12.00, since:'9:14 AM', cashier:'Manisha Saini', cardSales:890.00, cardCount:12, cashCount:7, splitCount:2, warrantyCount:1 } },
 ];
 
 // ── Delivery regions — one driver + one static reader each ──────────────────
@@ -75,7 +83,7 @@ const REGION_TERMINALS = RAW_REGIONS.map((r,i)=>{
   const lastActive = status==='on-shift'?'Active now':status==='off'?(i%2?'3h ago':'Yesterday'):(i%2?'2 days ago':'5 days ago');
   const first = driver.split(' ')[0];
   return {
-    id:rid, kind:'mobile', region:rid, regionCity:name, name:driver,
+    id:rid, kind:KIND_MOBILE, region:rid, regionCity:name, name:driver,
     device:{ model: PHONE_MODELS[i%PHONE_MODELS.length], os: PHONE_MODELS[i%PHONE_MODELS.length].startsWith('i')?'iOS 17':'Android 14', tag:'HW-'+first.toUpperCase()+'-'+String(i+1).padStart(2,'0') },
     vehicle: VEHICLES[i%VEHICLES.length],
     online, lastActive, employee:driver, status,
@@ -142,7 +150,7 @@ const FLEET = {
   mobileOnShift: REGION_TERMINALS.filter(d=>d.status==='on-shift').length,
   unassignedReaders: [...STATIONS, ...REGION_TERMINALS].filter(t=>!t.reader).length,
   needsAttention: [...STATIONS, ...REGION_TERMINALS].filter(t=>attentionFor(t).length).length,
-  drawersOpen: STATIONS.filter(s=>s.drawer.state==='open').length,
+  drawersOpen: STATIONS.filter(s=>s.drawer.state===DRAWER_OPEN).length,
 };
 
 // Spare readers available to assign
@@ -156,4 +164,8 @@ window.TDATA = {
   STORE_T, T_REGIONS, T_REGION_BY_ID, STATIONS, REGION_TERMINALS, FLEET, READER_POOL,
   attentionFor, regionName, regionColor, REGION_COLORS, PHONE_MODELS,
   ROSTER, SCHEDULE, DAY_META,
+  // Contract-backed vocab (docs/BUILD-AGAINST-THE-SOURCE.md §3) — exported once here so
+  // consumers (tshared.jsx, tdrawer.jsx, v2.jsx) read the same values rather than each
+  // re-reading HWContracts and risking a second top-level binding on the same page.
+  KIND_STATION, KIND_MOBILE, DRAWER_OPEN, DRAWER_CLOSED,
 };

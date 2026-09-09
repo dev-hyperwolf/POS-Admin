@@ -6,7 +6,7 @@
 
   // Sell-through thermometer — days of supply against reorder cadence.
   function Thermometer({ daysOfSupply, reorderFrequencyDays, health, size = 'sm' }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const tone = health === 'stockout_imminent' ? 'blocked' : health === 'at_risk' ? 'warn' : 'ok';
     const c = HD.tone(P, tone);
     const finite = Number.isFinite(daysOfSupply);
@@ -52,7 +52,7 @@
   }
 
   function KpiCell({ label, value, sub, delta, horizon, tone = 'neutral' }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const deltaColor = delta === undefined ? P.inkMute : delta > 0 ? HD.tone(P, 'ok').fg : delta < 0 ? HD.tone(P, 'blocked').fg : P.inkMute;
     const valueColor = tone === 'warn' ? HD.tone(P, 'warn').fg : P.ink;
     return (
@@ -87,7 +87,7 @@
   }
 
   function StockoutWatchCard({ items, horizon }) {
-    const P = useP(), HD = window.HD, B = window.HD_BUYER;
+    const P = useP(), HD = window.HD_PIPE, B = window.HD_BUYER;
     return (
       <Card padding={20}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -112,7 +112,7 @@
   }
 
   function BrandMixCard({ rollup, total, activeBrand, onBrandClick }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const ring = [P.accent, HD.hueColor(P, 'blue'), HD.hueColor(P, 'violet'), HD.tone(P, 'warn').fg, HD.tone(P, 'info').fg, HD.hueColor(P, 'teal'), HD.hueColor(P, 'pink'), HD.hueColor(P, 'green')];
     return (
       <Card padding={20}>
@@ -149,7 +149,7 @@
   }
 
   window.ScreenBuyers = function ScreenBuyers() {
-    const P = useP(), HD = window.HD, B = window.HD_BUYER;
+    const P = useP(), HD = window.HD_PIPE, B = window.HD_BUYER;
     const [horizon, setHorizon] = React.useState('30d');
     const [storeFilter, setStoreFilter] = React.useState('all');
     const [categoryFilter, setCategoryFilter] = React.useState('all');
@@ -267,8 +267,8 @@
 
         <Card padding={0} style={{ overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
-            <div style={{ borderRight: `1px solid ${P.hairline2}` }}><KpiCell label="Revenue" value={HD.formatCurrency(kpis.revenueCents / 100, { showCents: false })} delta={kpis.revenueDelta} horizon={horizon} /></div>
-            <div style={{ borderRight: `1px solid ${P.hairline2}` }}><KpiCell label="Profit" value={HD.formatCurrency(kpis.profitCents / 100, { showCents: false })} delta={kpis.profitDelta} horizon={horizon} /></div>
+            <div style={{ borderRight: `1px solid ${P.hairline2}` }}><KpiCell label="Revenue" value={HD.formatCents(kpis.revenueCents, { showCents: false })} delta={kpis.revenueDelta} horizon={horizon} /></div>
+            <div style={{ borderRight: `1px solid ${P.hairline2}` }}><KpiCell label="Profit" value={HD.formatCents(kpis.profitCents, { showCents: false })} delta={kpis.profitDelta} horizon={horizon} /></div>
             <div style={{ borderRight: `1px solid ${P.hairline2}` }}><KpiCell label="Avg sell-through" value={HD.formatPercent(kpis.avgSellThrough, 0)} sub={`across ${baseSkus.length} SKUs`} /></div>
             <KpiCell label="Slow-movers" value={String(kpis.slowMoverCount)} sub="< ½ category median" tone={kpis.slowMoverCount > 0 ? 'warn' : 'neutral'} />
           </div>
@@ -369,10 +369,10 @@
                     <TR key={b.brand} onClick={() => setBrandFilter((cur) => (cur === b.brand ? null : b.brand))} style={{ background: brandFilter === b.brand ? P.surface3 : 'transparent' }}>
                       <TD style={{ borderLeft: `3px solid ${brandFilter === b.brand ? P.ink : 'transparent'}` }}>{b.brand}</TD>
                       <TD align="right" mono style={{ color: P.ink2 }}>{b.skuCount}</TD>
-                      <TD align="right" mono style={{ color: P.ink2 }}>{HD.formatCurrency(b.costCents / 100, { showCents: false })}</TD>
-                      <TD align="right" mono>{HD.formatCurrency(b.revenueCents / 100, { showCents: false })}</TD>
+                      <TD align="right" mono style={{ color: P.ink2 }}>{HD.formatCents(b.costCents, { showCents: false })}</TD>
+                      <TD align="right" mono>{HD.formatCents(b.revenueCents, { showCents: false })}</TD>
                       <TD align="right" mono style={{ color: margin < 0.35 ? warn.fg : HD.tone(P, 'ok').fg }}>{HD.formatPercent(margin, 0)}</TD>
-                      <TD align="right" mono>{HD.formatCurrency(b.profitCents / 100, { showCents: false })}</TD>
+                      <TD align="right" mono>{HD.formatCents(b.profitCents, { showCents: false })}</TD>
                       <TD align="right" mono>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
                           <div style={{ width: 64, height: 6, borderRadius: 99, background: P.surface3, overflow: 'hidden' }}>

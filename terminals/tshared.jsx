@@ -1,6 +1,7 @@
 // ── Terminal-config shared components + modals ──────────────────────────────
 const useP = window.useP;
-const { attentionFor, T_REGIONS, T_REGION_BY_ID, regionName, regionColor, READER_POOL, ROSTER, SCHEDULE, DAY_META, PHONE_MODELS } = window.TDATA;
+const { attentionFor, T_REGIONS, T_REGION_BY_ID, regionName, regionColor, READER_POOL, ROSTER, SCHEDULE, DAY_META, PHONE_MODELS,
+  KIND_STATION, KIND_MOBILE } = window.TDATA;
 const money = window.HW.fmt.money;
 
 // Tweak context (density + drawer model) — provided by the canvas root.
@@ -182,19 +183,23 @@ window.AddTerminal = function AddTerminal({ onClose }) {
 
   return (
     <Overlay onClose={onClose} width={620}>
-      <ModalHead eyebrow={step === 1 ? 'New terminal · Step 1 of 2' : 'New terminal · Step 2 of 2'} title={step === 1 ? 'What are you adding?' : kind === 'station' ? 'Set up station' : 'Set up mobile terminal'} onClose={onClose} />
+      <ModalHead eyebrow={step === 1 ? 'New terminal · Step 1 of 2' : 'New terminal · Step 2 of 2'} title={step === 1 ? 'What are you adding?' : kind === KIND_STATION ? 'Set up station' : 'Set up mobile terminal'} onClose={onClose} />
       <div style={{ padding: '20px 22px', overflowY: 'auto' }}>
         {step === 1 && <>
           <div style={{ display: 'flex', gap: 14 }}>
-            <KindCard k="station" icon="register" title="Station" desc="A fixed POS on a store computer. Gets a cash drawer, receipt printer and its own card reader." detected="Auto-binds to this computer" />
-            <KindCard k="driver" icon="truck" title="Mobile terminal" desc="A driver’s phone in the field. Uses the region’s static Credit Card Reader — one driver per region." detected="Auto-binds to the driver’s phone" />
+            {/* k must be a TerminalKind value ('station'|'mobile') — this used to pass
+                the literal 'driver', which the rest of the model (tdata.jsx, TerminalKind)
+                never recognizes, so a terminal "created" here could never match a real
+                kind === 'mobile' check anywhere else. */}
+            <KindCard k={KIND_STATION} icon="register" title="Station" desc="A fixed POS on a store computer. Gets a cash drawer, receipt printer and its own card reader." detected="Auto-binds to this computer" />
+            <KindCard k={KIND_MOBILE} icon="truck" title="Mobile terminal" desc="A driver’s phone in the field. Uses the region’s static Credit Card Reader — one driver per region." detected="Auto-binds to the driver’s phone" />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, padding: '11px 13px', background: P.infoSoft, borderRadius: P.r10 }}>
             <Icon name="info" size={15} color={P.info} /><span style={{ fontSize: 12.5, color: P.ink2, lineHeight: 1.4 }}>The device is detected and locked automatically — one terminal per device, no IDs to copy.</span>
           </div>
         </>}
-        {step === 2 && kind === 'station' && <StationForm name={name} setName={setName} model={tk.drawerModel} />}
-        {step === 2 && kind === 'driver' && <DriverForm name={name} setName={setName} region={region} setRegion={setRegion} regReader={regReader} />}
+        {step === 2 && kind === KIND_STATION && <StationForm name={name} setName={setName} model={tk.drawerModel} />}
+        {step === 2 && kind === KIND_MOBILE && <DriverForm name={name} setName={setName} region={region} setRegion={setRegion} regReader={regReader} />}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 22px', borderTop: `1px solid ${P.hairline}`, background: P.surface2 }}>
         <PBtn variant="ghost" onClick={step === 1 ? onClose : () => setStep(1)}>{step === 1 ? 'Cancel' : 'Back'}</PBtn>

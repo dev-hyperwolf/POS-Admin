@@ -21,7 +21,12 @@
     quarantined: 'Quarantined', recalled: 'Recalled', destroyed: 'Destroyed',
   };
 
-  const BATCH_STATUS_ORDER = ['incoming', 'received', 'labeling', 'sealing', 'shelf_ready', 'merchandised', 'approved', 'quarantined', 'recalled', 'destroyed'];
+  // Contract is the source of truth (BatchStage, contracts/index.js); the literal
+  // is only the fallback for a page that has not loaded contracts/index.js yet —
+  // kept byte-identical to the contract so the drift test in test/contracts.test.mjs
+  // still pins it.
+  const BATCH_STATUS_ORDER = (window.HWContracts && window.HWContracts.enumValues('BatchStage')) ||
+    ['incoming', 'received', 'labeling', 'sealing', 'shelf_ready', 'merchandised', 'approved', 'quarantined', 'recalled', 'destroyed'];
 
   function batchStatusTone(s) {
     switch (s) {
@@ -283,7 +288,15 @@
 
   // METRC / HUID short forms live in shared/hd-format.jsx.
 
-  window.HD = Object.assign({}, BASE, {
+  // Namespaced, NOT window.HD: shared/hd-format.jsx documents "domain.jsx does
+  // not redefine anything below" and it used to be false — this used to
+  // Object.assign over window.HD with different ENTITIES/hueColor/tone/
+  // formatCurrency/formatNumber/formatPercent/formatDate/formatDateTime/
+  // relativeTime, so any OTHER app sharing window.HD (Engage) silently got
+  // pipeline's formatting the moment this file loaded after it on the same
+  // page. window.HD now stays exactly what hd-format.jsx defines; every
+  // pipeline screen reads its own extensions from window.HD_PIPE instead.
+  window.HD_PIPE = Object.assign({}, BASE, {
     ENTITIES, hueColor, tone,
     BATCH_STATUS_LABEL, BATCH_STATUS_ORDER, batchStatusTone,
     INVOICE_STATUS_LABEL, invoiceStatusTone, varianceTone, INBOX_STATUS_META, INBOX_STATUS_ORDER,

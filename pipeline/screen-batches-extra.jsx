@@ -4,7 +4,7 @@
   const useP = window.useP;
 
   window.ScreenBatchArchive = function ScreenBatchArchive({ entity, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [query, setQuery] = React.useState('');
     const [sort, setSort] = React.useState({ key: 'archivedAt', dir: 'desc' });
 
@@ -113,7 +113,7 @@
   }
 
   function HeaderColumn({ batch, accent }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     return (
       <div style={{ padding: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -130,7 +130,7 @@
   }
 
   function ComparisonRow({ field, left, right, match, critical }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const bad = HD.tone(P, critical ? 'blocked' : 'warn');
     const ok = HD.tone(P, 'ok');
     const displayLeft = field === 'Unit cost' ? HD.formatCurrency(Number(left)) : left;
@@ -149,7 +149,7 @@
   }
 
   function MergeWizard({ left, right, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const eligibility = React.useMemo(() => buildEligibility(left, right), [left, right]);
     const criticalMismatches = Object.entries(eligibility).filter(([, v]) => v.critical && !v.match);
     const nonCriticalMismatches = Object.entries(eligibility).filter(([, v]) => !v.critical && !v.match);

@@ -15,7 +15,7 @@
   }
 
   function AutoPostRateTile() {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [win, setWin] = React.useState('30d');
     const metric = React.useMemo(() => window.HD_DATA.autoPostRate(win), [win]);
     const headline = Math.round(metric.rate * 100);
@@ -56,7 +56,7 @@
   }
 
   function SummaryCard({ icon, label, value, sub, tone }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const valueColor = tone === 'brand' ? (P.mode === 'dark' ? P.accent : P.accentBorder) : HD.tone(P, tone === 'ok' ? 'ok' : tone === 'warn' ? 'warn' : 'blocked').fg;
     return (
       <Card padding={16}>
@@ -87,7 +87,7 @@
   }
 
   function StatusChips({ value, counts, onChange }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const options = [{ value: 'all', label: 'All' }, ...HD.INBOX_STATUS_ORDER.map((s) => ({ value: s, label: HD.INBOX_STATUS_META[s].label }))];
     return (
       <div role="group" aria-label="Inbox status filter" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
@@ -190,7 +190,7 @@
   }
 
   function InvoiceRowActions({ inv, isMapped }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const single = !isMapped && inv.varianceSeverity === 'none' && typeof inv.confidence === 'number' && inv.confidence >= 0.92 && inv.inboxStatus !== 'autoposted';
     const ok = HD.tone(P, 'ok');
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
@@ -213,7 +213,7 @@
   }
 
   function InvoiceList({ invoices, selectedId, onSelect, expandedId, onToggleExpanded }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const snap = window.HD_MAPPING.useMappingStore();
     const th = { textAlign: 'left', fontSize: 11.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, padding: '8px 12px', borderBottom: `1px solid ${P.hairline2}`, whiteSpace: 'nowrap' };
     return (
@@ -270,7 +270,7 @@
   }
 
   function InvoicePreview({ invoice, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     if (!invoice) return <HDEmpty icon="receipt" title="Select an invoice" body="Click a row on the left to preview. Keyboard-nav works too — ↑ ↓ to move, Enter to open." style={{ height: '100%', justifyContent: 'center' }} />;
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -344,7 +344,7 @@
   }
 
   window.ScreenInbox = function ScreenInbox({ navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const INVOICES = window.HD_DATA.INVOICES;
     const [view, setView] = React.useState('mine');
     const [filter, setFilter] = React.useState('all');

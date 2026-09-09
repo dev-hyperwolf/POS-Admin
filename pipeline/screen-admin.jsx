@@ -12,7 +12,7 @@
   const TAMPER_DEFAULT = new Set(['mylar_bag', 'wrapped_box', 'child_resistant_tin']);
 
   function ToggleChip({ active, icon, label, onClick }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const seal = HD.tone(P, 'sealing');
     return (
       <button onClick={onClick} aria-pressed={active}
@@ -23,7 +23,7 @@
   }
 
   function StageRow({ stage, index, onToggle, onRemove, onRename, onDragStart, onDragOver, onDrop, dragging }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const catalog = HD.STAGE_CATALOG[stage.stageKey];
     const [editing, setEditing] = React.useState(false);
     const dot = HD.tone(P, catalog.defaultColor).fg;
@@ -47,7 +47,7 @@
   }
 
   window.ScreenAdminPipeline = function ScreenAdminPipeline({ path, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const entityId = path.split('/')[3] || 'thc';
     const entityMeta = HD.ENTITIES.find((e) => e.id === entityId);
     const [stages, setStages] = React.useState(() => HD.ENTITY_PIPELINE_CONFIG[entityId]?.stages ?? []);
@@ -169,7 +169,7 @@
 
   // ── Catalog ─────────────────────────────────────────────────────────────
   function CatalogIndex({ navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const seal = HD.tone(P, 'sealing');
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
     const rows = Object.values(HD.FAKE_MASTER_PACKAGING).sort((a, b) =>
@@ -208,7 +208,7 @@
   }
 
   function CatalogEditor({ id, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const initial = HD.FAKE_MASTER_PACKAGING[id];
     const [packaging, setPackaging] = React.useState(initial?.packagingType ?? null);
     const [tamperEvident, setTamperEvident] = React.useState(initial?.tamperEvidentPackaging ?? false);

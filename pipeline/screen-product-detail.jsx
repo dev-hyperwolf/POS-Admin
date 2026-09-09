@@ -11,7 +11,7 @@
   }
 
   function ExpiryCell({ iso }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const status = PR.batchExpiryStatus(iso);
     if (status === 'expired') return <span style={{ fontFamily: P.fontMono, color: HD.tone(P, 'blocked').fg }}>{HD.formatDate(iso)}</span>;
     if (status === 'near') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: P.fontMono, color: HD.tone(P, 'warn').fg }}><Icon name="flag" size={10} stroke={2} />{HD.formatDate(iso)}</span>;
@@ -19,7 +19,7 @@
   }
 
   function BatchTableRow({ batch, retailCents, navigate }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const margin = PR.batchMarginPct(batch.wholesaleCostCents, retailCents);
     const marginColor = margin == null ? P.inkMute : margin < 0.3 ? HD.tone(P, 'blocked').fg : margin < 0.45 ? HD.tone(P, 'warn').fg : HD.tone(P, 'ok').fg;
     const accentInk = P.mode === 'dark' ? P.accent : P.accentBorder;
@@ -35,7 +35,7 @@
           <div style={{ fontSize: 12.5, color: P.ink2 }}>Pkg {HD.formatDate(batch.packageDate)}</div>
           <div style={{ fontSize: 12.5 }}>Exp <ExpiryCell iso={batch.expirationDate} /></div>
         </TD>
-        <TD align="right" mono>{HD.formatCurrency(batch.wholesaleCostCents / 100)}</TD>
+        <TD align="right" mono>{HD.formatCents(batch.wholesaleCostCents)}</TD>
         <TD align="right" mono style={{ color: marginColor }}>{margin == null ? '—' : HD.formatPercent(margin, 0)}</TD>
         <TD>
           <button onClick={() => navigate('#/ap')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12.5, color: accentInk, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: P.fontMono, textDecoration: 'underline', textUnderlineOffset: 2 }}>
@@ -47,7 +47,7 @@
   }
 
   function AttachSheet({ open, onClose, sourceBatch }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const [picked, setPicked] = React.useState(null);
     React.useEffect(() => { if (open) setPicked(null); }, [open, sourceBatch?.id]);
     if (!sourceBatch) return null;
@@ -91,7 +91,7 @@
   }
 
   window.ScreenProductDetail = function ScreenProductDetail({ path, navigate }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const id = path.split('/')[2];
     const product = PR.PRODUCTS.find((p) => p.id === id);
     const [attachOpen, setAttachOpen] = React.useState(false);
@@ -159,7 +159,7 @@
             <Card padding={20}>
               <MicroLabel>Retail price</MicroLabel>
               <div style={{ marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <span style={{ fontSize: 30, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{retailCents != null ? HD.formatCurrency(retailCents / 100) : '—'}</span>
+                <span style={{ fontSize: 30, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{retailCents != null ? HD.formatCents(retailCents) : '—'}</span>
                 {product.customRetailCents != null ? <HDPill tone="warn" icon={false} size="sm" label="Custom override" />
                   : tpl ? <HDPill tone="brand" icon={false} size="sm" label="From shell" />
                   : <HDPill tone="neutral" icon={false} size="sm" label="Not set" />}
@@ -171,7 +171,7 @@
                     <Icon name="tag" size={12} stroke={2} color={accentInk} />
                     <div style={{ minWidth: 0, textAlign: 'left' }}>
                       <div style={{ fontSize: 12.5, color: P.ink }}>{tpl.name}</div>
-                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(tpl.basePriceCents / 100)} · {HD.formatPercent(tpl.marginPct, 0)} target margin</div>
+                      <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCents(tpl.basePriceCents)} · {HD.formatPercent(tpl.marginPct, 0)} target margin</div>
                     </div>
                   </div>
                   <Icon name="chevron-right" size={12} stroke={2} color={P.inkMute} />
@@ -246,7 +246,7 @@
 
   // ── Product shells ───────────────────────────────────────────────────
   window.ScreenProductShells = function ScreenProductShells({ navigate }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const [shells, setShells] = React.useState(PR.PRODUCT_SHELLS);
     const [editing, setEditing] = React.useState(null);
     const [confirming, setConfirming] = React.useState(null);
@@ -296,7 +296,7 @@
                     <TR key={t.id}>
                       <TD><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="tag" size={12} stroke={2} color={accentInk} /><span style={{ color: P.ink }}>{t.name}</span></div></TD>
                       <TD>{t.appliesToCategory ? <HDPill tone="neutral" icon={false} size="sm" label={t.appliesToCategory} /> : <span style={{ color: P.inkMute }}>—</span>}</TD>
-                      <TD align="right" mono>{HD.formatCurrency(t.basePriceCents / 100)}</TD>
+                      <TD align="right" mono>{HD.formatCents(t.basePriceCents)}</TD>
                       <TD align="right" mono style={{ color: P.ink2 }}>{HD.formatPercent(t.marginPct, 0)}</TD>
                       <TD align="right" mono>
                         <button onClick={() => navigate('#/products')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, color: accentInk, cursor: 'pointer', fontFamily: P.fontMono, fontSize: 13.5 }}>
@@ -320,7 +320,7 @@
               return (
                 <div key={t.id} style={{ borderRadius: P.r12, border: `1px solid ${P.hairline2}`, padding: 12, background: P.surface2 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon name="tag" size={12} stroke={2} color={accentInk} /><span style={{ fontSize: 13.5, color: P.ink }}>{t.name}</span></div>
-                  <div style={{ marginTop: 4, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCurrency(t.basePriceCents / 100)} · {HD.formatPercent(t.marginPct, 0)}</div>
+                  <div style={{ marginTop: 4, fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{HD.formatCents(t.basePriceCents)} · {HD.formatPercent(t.marginPct, 0)}</div>
                   <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {bound.map((p) => (
                       <button key={p.id} onClick={() => navigate(`#/products/${p.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: P.ink2, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }}>
@@ -362,8 +362,8 @@
                 <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: P.ink }}>Update shell?</h2>
                 <p style={{ margin: '6px 0 16px', fontSize: 13.5, color: P.inkDim }}>{confirming.shell.productCount} product{confirming.shell.productCount === 1 ? '' : 's'} will reflect the new retail price the next time the menu rebuilds.</p>
                 <div style={{ borderRadius: 10, border: `1px solid ${P.hairline2}`, background: P.surface3, padding: 12, fontSize: 12.5 }}>
-                  <Row label="Old price" value={HD.formatCurrency(confirming.shell.basePriceCents / 100)} />
-                  <Row label="New price" value={HD.formatCurrency(confirming.basePriceCents / 100)} emphasis />
+                  <Row label="Old price" value={HD.formatCents(confirming.shell.basePriceCents)} />
+                  <Row label="New price" value={HD.formatCents(confirming.basePriceCents)} emphasis />
                   <Row label="Old margin" value={HD.formatPercent(confirming.shell.marginPct, 0)} />
                   <Row label="New margin" value={HD.formatPercent(confirming.marginPct, 0)} emphasis />
                 </div>

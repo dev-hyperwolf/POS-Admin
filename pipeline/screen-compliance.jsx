@@ -6,7 +6,7 @@
   const severity = (h) => (h === 'green' ? 0 : h === 'yellow' ? 1 : 2);
 
   function MetrcHealthCard() {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     const worst = OPS.METRC_HEALTH.reduce((acc, e) => (severity(e.health) > severity(acc) ? e.health : acc), 'green');
     const t = worst === 'green' ? 'ok' : worst === 'yellow' ? 'warn' : 'blocked';
     const label = worst === 'green' ? 'All entities green' : worst === 'yellow' ? '1 entity lagging' : '1 entity red';
@@ -49,7 +49,7 @@
   }
 
   function SyncThemeRow({ kind, events }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [open, setOpen] = React.useState(false);
     const meta = THEME_META[kind];
     const latest = events.reduce((a, b) => (a.at > b.at ? a : b));
@@ -79,7 +79,7 @@
   }
 
   function MetrcTab() {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     const groups = THEME_ORDER.map((kind) => ({ kind, events: OPS.METRC_SYNC_EVENTS.slice(0, 24).filter((e) => e.kind === kind) })).filter((g) => g.events.length > 0);
     return (
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -116,7 +116,7 @@
   }
 
   function DocumentsTab() {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     return (
       <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Card padding={0}>
@@ -157,7 +157,7 @@
   }
 
   function MiniStat({ label, value, tone }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const color = tone ? HD.tone(P, tone === 'ok' ? 'ok' : 'warn').fg : P.ink;
     return (
       <div style={{ borderRadius: 8, background: P.surface3, border: `1px solid ${P.hairline2}`, padding: '8px 12px', minWidth: 80 }}>
@@ -167,7 +167,7 @@
   }
 
   function RecallsTab() {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     const [suggestOnly, setSuggestOnly] = React.useState(true);
     const [autoPull, setAutoPull] = React.useState(true);
     const ok = HD.tone(P, 'ok');
@@ -225,7 +225,7 @@
   }
 
   function AuditTab() {
-    const P = useP(), HD = window.HD, OPS = window.HD_OPS;
+    const P = useP(), HD = window.HD_PIPE, OPS = window.HD_OPS;
     const [mod, setMod] = React.useState('all');
     const [actor, setActor] = React.useState('all');
     const [query, setQuery] = React.useState('');
@@ -342,7 +342,7 @@
   }
 
   window.LineageTree = function LineageTree({ batch }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const all = window.HD_DATA.BATCHES;
     const root = React.useMemo(() => climbToRoot(batch, all), [batch]);
     const tree = React.useMemo(() => buildTree(root, all), [root]);
@@ -381,7 +381,7 @@
   ];
 
   function HoldRow({ b, canReturn, onLineage }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const hasLineage = !!b.parentMetrcPackageId || (b.childMetrcPackageIds?.length ?? 0) > 0;
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px,2fr) 1fr 1fr 1fr 1fr', borderBottom: `1px solid ${P.hairline}` }}

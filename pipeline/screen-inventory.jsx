@@ -5,7 +5,7 @@
   const daysToExpiry = (b) => (b.expirationDate ? Math.round((new Date(b.expirationDate).getTime() - window.HD_DATA.NOW) / 86400000) : null);
 
   function ExpiryLabel({ days }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     if (days === null) return <span style={{ fontSize: 12.5, color: P.inkMute }}>—</span>;
     const color = days < 0 || days <= 14 ? HD.tone(P, 'blocked').fg : days <= 30 ? HD.tone(P, 'warn').fg : P.ink2;
     return <span style={{ fontSize: 12.5, color, fontFamily: P.fontMono }}>{days < 0 ? `expired ${Math.abs(days)}d ago` : `${days}d left`}</span>;
@@ -14,7 +14,7 @@
   const INV_GRID = '28px minmax(200px,2fr) 1fr 1fr 1fr 1fr';
 
   function BatchRows({ batches, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const sub = (label, align) => <div style={{ padding: '6px 12px', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute, textAlign: align }}>{label}</div>;
     return (
       <div style={{ background: P.surface2, borderBottom: `1px solid ${P.hairline2}` }}>
@@ -43,7 +43,7 @@
   }
 
   function ProductGroup({ group, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [open, setOpen] = React.useState(false);
     return (
       <React.Fragment>
@@ -96,7 +96,7 @@
   }
 
   window.ScreenInventory = function ScreenInventory({ navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [query, setQuery] = React.useState('');
     const [sort, setSort] = React.useState('velocity');
     const [location, setLocation] = React.useState('all');
@@ -199,7 +199,7 @@
   }
 
   function ProductCard({ product, navigate }) {
-    const P = useP(), HD = window.HD, PR = window.HD_PRODUCTS;
+    const P = useP(), HD = window.HD_PIPE, PR = window.HD_PRODUCTS;
     const s = PR.summarize(product);
     const tpl = PR.getProductShell(product.productShellId);
     const weightLabel = `${product.weight.value}${product.weight.unit}`;
@@ -220,7 +220,7 @@
             <span style={{ flex: '0 0 auto', fontSize: 12.5, color: P.ink2, fontFamily: P.fontMono }}>{weightLabel}</span>
           </div>
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 21, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{s.effectiveRetailCents != null ? HD.formatCurrency(s.effectiveRetailCents / 100) : '—'}</span>
+            <span style={{ fontSize: 21, fontWeight: 600, color: P.ink, fontFamily: P.fontMono, lineHeight: 1 }}>{s.effectiveRetailCents != null ? HD.formatCents(s.effectiveRetailCents) : '—'}</span>
             {s.retailFromShell && tpl
               ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 6px', borderRadius: 99, background: P.accentSoft, color: accentInk, border: `1px solid ${P.accentBorder}`, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.06em' }}>from shell</span>
               : product.customRetailCents != null
@@ -238,7 +238,7 @@
   }
 
   window.ScreenProducts = function ScreenProducts({ navigate }) {
-    const P = useP(), PR = window.HD_PRODUCTS, HD = window.HD;
+    const P = useP(), PR = window.HD_PRODUCTS, HD = window.HD_PIPE;
     // "New product" is the SAME flow the POS catalog uses — pos/product-shell.jsx.
     // Not a second implementation: the component is loaded, not copied.
     const [addOpen, setAddOpen] = React.useState(false);

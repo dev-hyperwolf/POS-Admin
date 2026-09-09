@@ -5,7 +5,7 @@
   const useP = window.useP;
 
   function BatchCard({ batch, boardEntity, onClick, dragging, draggable = true, onDragStart, onDragEnd }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [h, setH] = React.useState(false);
     const sev = HD.stageSeverity(batch.status, batch.statusEnteredAt);
     const accent = HD.tone(P, HD.stageAccentTone(batch.status)).fg;
@@ -53,7 +53,7 @@
   }
 
   function Column({ status, batches, onCardClick, boardEntity, dragId, setDragId, onDrop }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [over, setOver] = React.useState(false);
     const totalValue = batches.reduce((s, b) => s + b.qty * b.unitValue, 0);
     const dot = HD.tone(P, HD.batchStatusTone(status)).fg;
@@ -81,7 +81,7 @@
   }
 
   function DetailDrawer({ batch, open, onClose, onTransition }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     if (!batch) return null;
     const validTargets = HD.BATCH_STATUS_ORDER.filter((s) => HD.canTransition(batch.status, s));
     return (
@@ -157,7 +157,7 @@
   }
 
   window.KanbanBoard = function KanbanBoard({ initial, entity }) {
-    const HD = window.HD;
+    const HD = window.HD_PIPE;
     const [batches, setBatches] = React.useState(initial);
     const [dragId, setDragId] = React.useState(null);
     const [selectedId, setSelectedId] = React.useState(null);

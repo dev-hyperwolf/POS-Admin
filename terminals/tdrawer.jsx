@@ -5,6 +5,10 @@
 const useP = window.useP;
 const { regionName, regionColor, ROSTER } = window.TDATA;
 const money = window.HW.fmt.money;
+const HC = window.HWContracts;
+// CloseoutDestination — docs/BUILD-AGAINST-THE-SOURCE.md §3. Falls back to the
+// literal list if contracts/index.js has not loaded on this page.
+const CLOSEOUT_DEST = HC ? HC.enumValues('CloseoutDestination') : ['safe', 'bank', 'hand'];
 
 const DENOM_BILLS = [{ v: 100, l: '$100' }, { v: 50, l: '$50' }, { v: 20, l: '$20' }, { v: 10, l: '$10' }, { v: 5, l: '$5' }, { v: 1, l: '$1' }];
 const DENOM_COINS = [{ v: 0.25, l: 'Quarters', u: '25¢' }, { v: 0.10, l: 'Dimes', u: '10¢' }, { v: 0.05, l: 'Nickels', u: '5¢' }, { v: 0.01, l: 'Pennies', u: '1¢' }];
@@ -54,8 +58,30 @@ function DenomCounter({ q, set }) {
     </div>);
 }
 
-const denomSum = (q) => [['b', DENOM_BILLS], ['c', DENOM_COINS], ['r', DENOM_ROLLS]]
-  .reduce((s, [p, arr]) => s + arr.reduce((ss, d) => ss + (parseInt(q[p + d.v] || '0', 10) || 0) * d.v, 0), 0);
+// The UI stays in dollars (denomination labels, the field the cashier types into), but the
+// sum itself is done in integer cents: HWContracts.centsFromDollars() per denomination value
+// times count, added as integers, then dollarsFromCents() once at the end for display. A
+// float accumulation here (0.10 + 0.10 + 0.10 + 0.05 + 0.05, repeated over every count on the
+// page) is exactly the kind of drift that shows up as a drawer "variance" nobody caused —
+// see test/terminals-drawer-math.test.mjs. Falls back to a rounded float sum if
+// contracts/index.js has not loaded.
+const denomSum = (q) => {
+  const groups = [['b', DENOM_BILLS], ['c', DENOM_COINS], ['r', DENOM_ROLLS]];
+  if (!HC) {
+    return groups.reduce((s, [p, arr]) => s + arr.reduce((ss, d) => ss + (parseInt(q[p + d.v] || '0', 10) || 0) * d.v, 0), 0);
+  }
+  let cents = 0;
+  for (const [p, arr] of groups) {
+    for (const d of arr) {
+      const n = parseInt(q[p + d.v] || '0', 10) || 0;
+      if (n) cents += n * HC.centsFromDollars(d.v);
+    }
+  }
+  return HC.dollarsFromCents(cents);
+};
+// Exposed for test/terminals-drawer-math.test.mjs — a pure function, safe to reach from
+// window the same way every other cross-file helper on this page already does.
+window.denomSum = denomSum;
 
 const nowTime = () => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 const rid = (pfx) => pfx + '-' + (4000 + Math.floor(Math.random() * 5000));
@@ -220,10 +246,14 @@ window.terminalEvents = function terminalEvents(t, sess) {
   out.push({ at: 'Yesterday', icon: 'lock', tone: 'neutral', t: isDriver ? 'Previous bag deposited' : 'Previous drawer closed', d: 'Balanced · no variance' });
   return out;
 };
-const DESTS = [
-  { v: 'safe', label: 'Safe drop — store', sub: 'Sealed and dropped in the store safe', icon: 'vault' },
-  { v: 'bank', label: 'Bank deposit — armored pickup', sub: 'Sealed for the next armored collection', icon: 'shield' },
-  { v: 'hand', label: 'Manager hand-off', sub: 'Counted a second time and signed over', icon: 'handoff' }];
+// v must be a CloseoutDestination value; labels/metadata keyed off it rather than
+// re-declaring the vocabulary here.
+const DEST_META = {
+  safe: { label: 'Safe drop — store', sub: 'Sealed and dropped in the store safe', icon: 'vault' },
+  bank: { label: 'Bank deposit — armored pickup', sub: 'Sealed for the next armored collection', icon: 'shield' },
+  hand: { label: 'Manager hand-off', sub: 'Counted a second time and signed over', icon: 'handoff' },
+};
+const DESTS = CLOSEOUT_DEST.map((v) => ({ v, ...DEST_META[v] }));
 
 window.DrawerReconcile = function DrawerReconcile({ t, onClose, onDeposited }) {
   const P = useP();

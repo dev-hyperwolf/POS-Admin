@@ -51,7 +51,7 @@
   }
 
   function ModuleSidebar({ route, navigate, collapsed, setCollapsed }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const isActive = (item) => {
       if (!item.match) return false;
       if (item.exact || item.nested) return route === item.match;
@@ -138,7 +138,7 @@
   }
 
   function Topbar({ route, entity, setEntity, navigate, onSearch }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const { mode, toggle } = window.useTheme();
     const crumbs = crumbsFor(route.replace(/^#/, ''));
     const entityMeta = HD.ENTITIES.find((e) => e.id === entity);

@@ -28,7 +28,7 @@
   }
 
   function OfflineChip({ online, onToggle }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const c = HD.tone(P, online ? 'ok' : 'warn');
     return (
       <button onClick={onToggle} aria-label={online ? 'Online — toggle to simulate offline' : 'Offline — toggle to simulate online'}
@@ -38,7 +38,7 @@
   }
 
   function ScanHistory({ items }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const ok = HD.tone(P, 'ok');
     return (
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>

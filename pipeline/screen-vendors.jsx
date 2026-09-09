@@ -33,7 +33,7 @@
   }
 
   function Metric({ label, value, tone, sparkline }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const c = HD.tone(P, tone === 'brand' ? 'brand' : tone);
     return (
       <Card padding={0} style={{ position: 'relative', overflow: 'hidden' }}>
@@ -49,7 +49,7 @@
   }
 
   function MetricCards({ vendor }) {
-    const HD = window.HD;
+    const HD = window.HD_PIPE;
     const m = vendor.metrics;
     const onTimeTone = m.onTimeRate > 0.92 ? 'ok' : m.onTimeRate > 0.82 ? 'warn' : 'blocked';
     const shortTone = m.shortShipRate < 0.03 ? 'ok' : m.shortShipRate < 0.08 ? 'warn' : 'blocked';
@@ -66,7 +66,7 @@
   }
 
   function VendorList({ vendors, selectedId, onSelect }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [q, setQ] = React.useState('');
     const filtered = React.useMemo(() => {
       const s = q.toLowerCase().trim();
@@ -103,7 +103,7 @@
   }
 
   window.ScreenScorecards = function ScreenScorecards() {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const VENDORS_FULL = window.HD_VENDORS.VENDORS_FULL;
     const [selectedId, setSelectedId] = React.useState(VENDORS_FULL[0]?.id ?? '');
     const vendor = VENDORS_FULL.find((v) => v.id === selectedId);

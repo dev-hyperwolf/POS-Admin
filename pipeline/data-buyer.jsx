@@ -15,7 +15,8 @@
   const rng = mulberry32(913177);
   const range = (lo, hi) => lo + Math.floor(rng() * (hi - lo + 1));
   const pick = (arr) => arr[Math.floor(rng() * arr.length)];
-  const BUYER_NOW = new Date('2026-04-20T18:30:00-07:00').getTime();
+  // window.PIPE_NOW is defined once, in pipeline/data.jsx (which loads first).
+  const BUYER_NOW = window.PIPE_NOW;
   const daysAgoIso = (days) => new Date(BUYER_NOW - days * 86400000).toISOString();
   const ENTITY_IDS = ['thc', 'ccd', 'ah', 'hwd'];
 

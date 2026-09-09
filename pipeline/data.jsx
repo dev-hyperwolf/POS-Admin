@@ -17,8 +17,12 @@
   const floatRange = (min, max) => min + rng() * (max - min);
   const chance = (p) => rng() < p;
 
-  // Fixed "now" for deterministic aging in the prototype.
-  const NOW = new Date('2026-04-20T18:30:00-07:00').getTime();
+  // Fixed "now" for deterministic aging in the prototype — defined ONCE, here,
+  // because pipeline/data.jsx loads first among the pipeline data files. Every
+  // other pipeline fixture file (data-products.jsx, data-buyer.jsx) reads this
+  // instead of hardcoding its own copy of the same epoch.
+  window.PIPE_NOW = window.PIPE_NOW || new Date('2026-04-20T18:30:00-07:00').getTime();
+  const NOW = window.PIPE_NOW;
   const daysAgo = (days, hours = 0) => new Date(NOW - days * 86400000 - hours * 3600000).toISOString();
 
   // The one brand DB — shared/brands.js. Vendors ARE brands; there is no second list.
@@ -50,6 +54,15 @@
     let s = '1A406030001';
     for (let i = 0; i < 13; i++) s += chars[Math.floor(rng() * 16)];
     return s;
+  }
+
+  // A METRC package id is a vendor id, not a first-party ObjectId, even though
+  // metrcPackage() shapes it to look like a 24-hex one — contracts/index.js
+  // IdSource has a 'metrc' value for exactly this. Batches keep the bare
+  // metrcPackageId field (every existing screen reads it) and ALSO carry the
+  // wrapped form other consumers should prefer, going forward.
+  function metrcExternalIds(id) {
+    return window.HWContracts ? [window.HWContracts.externalId('metrc', id)] : [{ source: 'metrc', id: String(id) }];
   }
 
   function genSiblingUids(totalQty, forceHigh = true) {
@@ -280,9 +293,11 @@
       const location = chance(0.65) ? 'foh' : 'boh';
       const testLab = pick(['Anresco Labs', 'CC Testing Labs', 'SC Labs', 'Steep Hill']);
       const coaId = `COA-2026-${range(1000, 9999)}`;
+      const metrcPackageId = metrcPackage();
       out.push({
         id: `b-${String(i).padStart(4, '0')}`,
-        metrcPackageId: metrcPackage(),
+        metrcPackageId,
+        external_ids: metrcExternalIds(metrcPackageId),
         sku: `${vendor.id.replace('v-', '').toUpperCase()}-${range(1000, 9999)}`,
         productName, brand: vendor.name, category: vendor.category, qty, unitValue, status, statusEnteredAt, entity,
         entityPipelineConfigVersion: 1, masterProductId: `mp-${vendor.id.replace('v-', '')}`, vendorName: vendor.name,

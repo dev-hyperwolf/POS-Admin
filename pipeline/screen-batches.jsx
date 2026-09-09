@@ -35,7 +35,7 @@
   }
 
   function FilterBar({ query, onQueryChange, filters, onFiltersChange, matchCount, brandOptions, categoryOptions, statusOptions }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const active = hasActiveFilters(filters);
     return (
       <div style={{ padding: '12px 20px', borderTop: `1px solid ${P.hairline}`, borderBottom: `1px solid ${P.hairline2}`, background: P.surface2 }}>
@@ -61,7 +61,7 @@
   }
 
   window.ScreenBatches = function ScreenBatches({ entity, setEntity, navigate }) {
-    const P = useP(), HD = window.HD;
+    const P = useP(), HD = window.HD_PIPE;
     const [rawQuery, setRawQuery] = React.useState('');
     const [debouncedQuery, setDebouncedQuery] = React.useState('');
     const [filters, setFilters] = React.useState(EMPTY_FILTERS);
