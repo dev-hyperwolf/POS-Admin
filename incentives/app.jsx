@@ -321,7 +321,17 @@
     // second /me poll. `previewing` lets a screen render its budtender
     // version for a manager who asked to see it.
     const session = window.HWInc.session();
-    const isManager = session.role === 'Floor Manager' || session.role === 'Admin';
+    // Gate through the contract's role vocabulary (HWInc.role() ->
+    // window.HWContracts.roleFrom), not the display spelling — the server
+    // gate is contests.MANAGER_ROLES ({'Floor Manager', 'Admin'}), and
+    // roleAtLeast(role, 'manager') is true for exactly manager/admin/
+    // superadmin, the same two display roles plus the ranks above them.
+    // Falls back to the literal display-role comparison this replaced if
+    // contracts/index.js has not loaded — identical behaviour either way.
+    const roleValue = window.HWInc.role();
+    const isManager = window.HWContracts
+      ? window.HWContracts.roleAtLeast(roleValue, 'manager')
+      : (roleValue === 'Floor Manager' || roleValue === 'Admin');
 
     // THE STORE BEING VIEWED. Managers only: `canSwitch` gates the control AND
     // the resolution below, so a budtender's `props.store` is their home store

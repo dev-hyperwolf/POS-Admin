@@ -40,6 +40,15 @@
 ;(function () {
   const useP = window.useP;
 
+  // DEFAULT_AUDIENCE — what a new draft's participants.classes is seeded
+  // with, derived from the Classification enum's first value. The backend's
+  // own default is the same value (see emptyDraft below for why the draft
+  // sends it explicitly rather than leaving it to that default). Falls back
+  // to the literal if contracts/index.js has not loaded on this page.
+  const DEFAULT_AUDIENCE = window.HWContracts ? [window.HWContracts.enumValues('Classification')[0]] :
+    (console.warn('screen-contest-builder: window.HWContracts not loaded — falling back to literal DEFAULT_AUDIENCE'),
+      ['budtender']);
+
   const KINDS = [
     { value: 'spiff', label: 'Spiff', hint: 'Short window, a number to hit, the same reward for everyone who hits it.' },
     { value: 'contest', label: 'Ranked bounty', hint: 'Places, first to third. Can reset hourly for a power-hour shift.' },
@@ -197,11 +206,12 @@
       filter: { brands: [], categories: [], products: [], min_line_cents: 0 },
       store_ids: storeId ? [storeId] : [],
       // `classes` IS SENT EXPLICITLY, never left to the backend's default.
-      // The default happens to be the same ['budtender'] — that is what keeps
-      // every bounty written before audiences existed meaning the floor — but
-      // a builder whose summary sentence names an audience it did not send is
-      // one release away from describing a bounty it did not create.
-      participants: { scope: 'all', classes: ['budtender'], associate_ids: [], teams: [] },
+      // The default happens to be the same DEFAULT_AUDIENCE — that is what
+      // keeps every bounty written before audiences existed meaning the
+      // floor — but a builder whose summary sentence names an audience it
+      // did not send is one release away from describing a bounty it did
+      // not create. `.slice()` so each draft owns its own array instance.
+      participants: { scope: 'all', classes: DEFAULT_AUDIENCE.slice(), associate_ids: [], teams: [] },
       window_start: '', window_end: '', tz: '', recurrence: 'none',
       reward: { type: 'threshold', unit: 'cents' },
       funding: { funded_by: 'store', brand: null, budget_cents: null, cap_per_person_cents: null },

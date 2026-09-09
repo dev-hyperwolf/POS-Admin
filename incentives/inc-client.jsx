@@ -32,6 +32,24 @@
     return { id: 'manisha-saini', name: 'Manisha Saini', role: 'Floor Manager', storeId: 'elsinore' };
   }
 
+  // role() — session().role stays the display string ('Floor Manager', 'Admin', …) for
+  // anything that shows it on screen; role() is that same string put through the
+  // contract's one role vocabulary (window.HWContracts.roleFrom) for anything that GATES
+  // on it. A screen comparing `role === 'Floor Manager'` is comparing against a display
+  // spelling that can drift from the backend's own MANAGER_ROLES; roleFrom + roleAtLeast
+  // is the one mapping both sides read. Degrades to the raw display role (and warns once)
+  // if contracts/index.js has not loaded — the caller is then responsible for falling
+  // back to the old literal comparison, exactly as it did before this existed.
+  var roleWarned = false;
+  function role() {
+    var K = window.HWContracts;
+    if (!K) {
+      if (!roleWarned) { console.warn('HWInc.role(): window.HWContracts not loaded — returning the raw display role'); roleWarned = true; }
+      return session().role;
+    }
+    return K.roleFrom(session().role);
+  }
+
   // get/post — never reject, mirror HW_LIVE's own {ok, code, body, error} shape
   // exactly so a caller never needs a second error-handling convention for the
   // "the seam itself is missing" case versus "the seam answered with an error".
@@ -135,5 +153,5 @@
     version: function () { return window.HWContracts ? window.HWContracts.VERSION : null; },
   };
 
-  window.HWInc = { session: session, get: get, post: post, usePoll: usePoll, fmt: fmt, contract: contract };
+  window.HWInc = { session: session, role: role, get: get, post: post, usePoll: usePoll, fmt: fmt, contract: contract };
 })();

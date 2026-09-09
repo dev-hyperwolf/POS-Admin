@@ -159,7 +159,13 @@
   // settings in hand should prefer those, so a class added server-side shows
   // up without a frontend release. This map is the fallback for the screens
   // that render a class beside a name before settings have landed.
-  const CLASS_ORDER = ['budtender', 'driver', 'manager', 'loss_prevention', 'support', 'other'];
+  // The value list itself comes from the contract's Classification enum
+  // (docs/BUILD-AGAINST-THE-SOURCE.md §3 — "a second copy of anything above" is
+  // exactly this list) — never a second copy of the six classes. Falls back to
+  // the literal order if contracts/index.js has not loaded on this page.
+  const CLASS_ORDER = window.HWContracts ? window.HWContracts.enumValues('Classification') :
+    (console.warn('IncShared: window.HWContracts not loaded — falling back to literal CLASS_ORDER'),
+      ['budtender', 'driver', 'manager', 'loss_prevention', 'support', 'other']);
   const CLASS_LABEL = {
     budtender: 'Budtender', driver: 'Driver', manager: 'Manager',
     loss_prevention: 'Loss prevention', support: 'Support', other: 'Other',

@@ -27,6 +27,14 @@
 ;(function () {
   const useP = window.useP;
 
+  // DEFAULT_AUDIENCE — the audience fallback for a row whose `audience` came
+  // back empty, derived from the Classification enum's first value (the
+  // backend's own default for a bounty is the same value). Falls back to the
+  // literal if contracts/index.js has not loaded on this page.
+  const DEFAULT_AUDIENCE = window.HWContracts ? [window.HWContracts.enumValues('Classification')[0]] :
+    (console.warn('screen-contests: window.HWContracts not loaded — falling back to literal DEFAULT_AUDIENCE'),
+      ['budtender']);
+
   const KIND_LABEL = { spiff: 'Spiff', contest: 'Ranked bounty', team_goal: 'Team goal',
     store_vs_store: 'Store vs store', aov_goal: 'AOV goal' };
   const METRIC_LABEL = { net_cents: 'Net $', gross_cents: 'Gross $', units: 'Units',
@@ -287,7 +295,7 @@
       // apart from one field, and only one of them pays the fleet.
       { key: 'audience', label: 'Audience', render: (c) => (
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {(c.audience && c.audience.length ? c.audience : ['budtender']).map((a) => (
+          {(c.audience && c.audience.length ? c.audience : DEFAULT_AUDIENCE).map((a) => (
             <S.ClassPill key={a} cls={a} />))}
         </div>) },
       { key: 'window', label: 'Window', render: (c) => (

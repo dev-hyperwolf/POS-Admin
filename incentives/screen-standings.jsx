@@ -35,7 +35,14 @@
   // "Everyone" is LAST and is not the default. Every board this estate had
   // before this feature was the floor's; opening on Everyone would go on
   // mixing the two exactly as before, and quietly.
-  const CLASS_SEG_ORDER = ['budtender', 'driver', 'manager', 'loss_prevention', 'support'];
+  // Classification minus 'other' — 'other' is not a seller segment worth a
+  // tab of its own. Filtered rather than re-listed so the on-screen order
+  // still comes straight from the contract's own enum order. Falls back to
+  // the literal order if contracts/index.js has not loaded on this page.
+  const CLASS_SEG_ORDER = window.HWContracts
+    ? window.HWContracts.enumValues('Classification').filter((c) => c !== 'other')
+    : (console.warn('screen-standings: window.HWContracts not loaded — falling back to literal CLASS_SEG_ORDER'),
+      ['budtender', 'driver', 'manager', 'loss_prevention', 'support']);
 
   function classOptions(settings) {
     const known = settings && settings.classes ? settings.classes : null;
