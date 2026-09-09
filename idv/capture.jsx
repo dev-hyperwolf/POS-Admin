@@ -120,6 +120,43 @@
 // file reports is `band_w_px / 226` and it is named `px_per_module_est`
 // because it is an estimate of a symbol whose column count we never decoded.
 //
+// ── ROUND 6, 2026-09-09 — "THE SYSTEM SEEMS TO RUN ON THE SLOWER SIDE" ────
+// Session #7 on the owner's iPhone, over a tunnel. Nothing failed. Everything
+// took too long, and each number has one cause:
+//
+//     liveness_video       4.06 MB, 24 s to upload (18:31:19 → 18:31:43)
+//     document_front       ~20 s to auto-snap
+//     selfie_frame ×3      520 kB each, 900 × 1600, uploaded ONE AFTER ANOTHER
+//     processing screen    "This is taking longer than usual" with a stale
+//                          guidance sentence underneath it
+//
+//   1. THE CLIP WAS RECORDED FROM THE PREVIEW STREAM AT THE ENCODER'S OWN
+//      BITRATE. `new MediaRecorder(stream, {mimeType})` on a 1080p front camera
+//      is 2.5–5 Mbps of a face. Round 6 records a 640 × 480 (480 × 640
+//      portrait) canvas copy at `videoBitsPerSecond: 600000` — 75 kB a second,
+//      so a blink-only script lands near 200 kB and uploads in about a second
+//      on the same link. See LIVENESS_BPS and `makeScaledStream`.
+//   2. THE FRONT WAS TRAPPED BETWEEN TWO CLOCKS THAT RESET EACH OTHER. The
+//      settle timer resets on any failing tick; round 5's disagreement escape
+//      reset on any tick where every gate PASSED. A hand-held card alternates
+//      between the two, so neither ever completed and the only thing that ever
+//      fired the shutter was luck. Fixed in `useAutoCapture`; the glare ceiling
+//      went 1 % → 2 % and the fill floor 0.62 → 0.50 in the same pass, because
+//      his measured frames sat on the wrong side of both.
+//   3. THE EXTRAS WERE SERIALISED. Three passive selfie frames, four tilt
+//      frames — independent, best-effort, and chained one behind another for no
+//      reason. They now go up in one `Promise.all` BEHIND the step's evidence,
+//      at 1200 px / q 0.8 and 1000 px / q 0.7 respectively.
+//   4. THE PROCESSING SCREEN PRINTED GUIDANCE UNDER A HEADING ABOUT A WAIT.
+//      `poll.message` is copy about a RETAKE and it is no longer rendered
+//      there at all; an `Awaiting User` now leaves that screen immediately for
+//      the step the guidance is about. See `openGuidedStep`.
+//   5. THE BLINK PROMPT IS THE DEFAULT NOW (the server issues blink-only
+//      scripts), so its glyph is a 76 px eye in a 140 px disc that closes and
+//      opens TWICE with the word under it, and the prompt is never dismissed
+//      before that demonstration has finished. The turn and flash prompts are
+//      untouched — the script is still the server's to choose.
+//
 // WHAT RUNS ON THE DEVICE, AND NOTHING LEAVES IT:
 //   · the frame analyser below (sharpness / glare / exposure / document box /
 //     motion) — plain canvas arithmetic, no library, pure and unit-testable;
@@ -345,6 +382,31 @@
         if (!r || !r.ok) droppedExtras += 1;
         return r;
       }, function () { droppedExtras += 1; return null; });
+  }
+  // ── ROUND 6, BRIEF §2: THE EXTRAS GO UP TOGETHER, NOT ONE AFTER ANOTHER ──
+  // MEASURED, session #7: three `selfie_frame` rows of 520 kB each, uploaded
+  // in a chain, took eighteen seconds over the owner's tunnel — three round
+  // trips of latency plus three transfers of bytes, serialised for no reason
+  // any of them needed. They are corroboration; they are independent of one
+  // another; nothing reads one before the next is sent. A `Promise.all` costs
+  // the SAME bytes over a link that is already going to multiplex them, and it
+  // costs one round trip of latency instead of three.
+  //
+  // EVIDENCE IS STILL FIRST AND STILL ALONE. Every caller of this awaits the
+  // step's own evidence upload before reaching here, so the frame the engine
+  // actually judges never competes with a provenance shot for the link. That
+  // ordering is not a preference — on the back it is what keeps a retake
+  // burning a `document_back` attempt rather than a `challenge` one.
+  //
+  // BEST-EFFORT ALL THE WAY DOWN: `uploadExtra` already swallows its own
+  // failures into `dropped_extras`, so this can never reject and no caller
+  // needs a catch.
+  function uploadExtras(token, items) {
+    const list = (items || []).filter(function (i) { return i && i.blob; });
+    if (!list.length) return Promise.resolve([]);
+    return Promise.all(list.map(function (i) {
+      return uploadExtra(token, i.kind, i.blob, i.opts || {});
+    }));
   }
 
   // ── frame capture ────────────────────────────────────────────────────────
@@ -1107,16 +1169,42 @@
   // ONE SENTENCE AT A TIME, IN THE ORDER A PERSON CAN ACT ON IT: light first
   // (nothing else is measurable in the dark), then glare (which the guest fixes
   // by moving, not by aiming), then framing, then focus, then stillness.
+  // ── ROUND 6, 2026-09-09: THE FRONT TOOK TWENTY SECONDS AND THREE NUMBERS
+  //    ARE WHY ─────────────────────────────────────────────────────────────
+  // MEASURED OFF THE OWNER'S SESSION #7 UPLOADS. His `document_front` frames
+  // carried sharpness 3 700–5 900 (at 2400 px), glare 0–2.5 %, exposure
+  // 0.28–0.65. Two of those three walked straight into a wall:
+  //
+  //   GLARE_MAX was 0.01. A laminated licence under any ceiling downlight
+  //   blows 1–3 % of the guide, and glare is the ONE gate the relax ramp never
+  //   loosens — so on his frames it could fail for ever, and it did. The brief's
+  //   number is 2 %, which is above every frame he actually produced and still
+  //   well under the 5–8 % of a licence lying in a reflected window.
+  //
+  //   DOC_FILL_MIN was 0.62 of the guide's AREA, i.e. a card ≥ 79 % of the
+  //   guide on each edge — a tolerance no hand holds while a phone hunts focus.
+  //   0.50 is 71 % linear, which at a 2400 px front still leaves the engine a
+  //   ~300 px portrait to crop, and below it the guest is told "Move closer"
+  //   rather than left guessing.
+  //
+  //   STEADY_MS was 400. 350 is the brief's, it is four ticks at 80 ms rather
+  //   than five, and it is 50 ms of a guest's afternoon per attempt.
+  //
+  // The THIRD number — the sharpness floor — is deliberately unchanged. On the
+  // 208 px canvas a sharp 1920-line frame reads ~7 800 and an 8 px defocus
+  // reads ~220; 420 sits between them with room on both sides, and lowering it
+  // would buy nothing but blurred fronts. What was actually trapping him is
+  // fixed in `useAutoCapture` — see the round-6 note on the disagreement clock.
   const GATE = {
     SHARP_BASE: 420,         // Laplacian variance on the 208 px canvas
-    GLARE_MAX: 0.01,         // < 1 % of the guide may be blown
+    GLARE_MAX: 0.02,         // < 2 % of the guide may be blown (round 6)
     EXPOSURE_MIN: 0.20,
     EXPOSURE_MAX: 0.92,
-    DOC_FILL_MIN: 0.62,      // of the guide, covered by the document
+    DOC_FILL_MIN: 0.50,      // of the guide, covered by the document (round 6)
     DOC_OUTSIDE_MAX: 0.22,   // of the document, outside the guide
     DENSITY_LOW: 0.03,       // below this there is nothing in the guide at all
     MOTION_MAX: 3.2,
-    STEADY_MS: 400,
+    STEADY_MS: 350,
     // ── the back-of-licence advice thresholds, ROUND 4 ──
     // BAND_FILL_MIN is a fraction OF THE 4 : 1 GUIDE, not of the frame, and it
     // is the whole design. On a 2160-wide portrait stream the band guide is
@@ -1273,7 +1361,12 @@
     if (!m) return { pass: false, hint: null, gates: {} };
     const gates = {
       light: m.exposure != null && m.exposure >= GATE.EXPOSURE_MIN && m.exposure <= GATE.EXPOSURE_MAX,
-      glare: m.glare_fraction == null || m.glare_fraction < GATE.GLARE_MAX * 4,
+      // × 2 of the document number, which is 0.04 — the same effective ceiling
+      // the face gate has always had. When GLARE_MAX moved from 0.01 to 0.02 in
+      // round 6 the multiplier moved with it, on purpose: this threshold is
+      // about a face under a window and nothing measured on the front of a card
+      // has any bearing on it.
+      glare: m.glare_fraction == null || m.glare_fraction < GATE.GLARE_MAX * 2,
       one: m.faces === 1,
       fill: m.face_fill != null && m.face_fill >= GATE.FACE_FILL_MIN && m.face_fill <= GATE.FACE_FILL_MAX,
       centre: m.face_offset != null && m.face_offset <= GATE.FACE_OFF_CENTRE_MAX,
@@ -1290,7 +1383,24 @@
     else if (!gates.centre) hint = 'Centre your face';
     else if (!gates.focus || !gates.still) hint = 'Hold still';
     return { pass: gates.light && gates.glare && gates.one && gates.fill && gates.centre && gates.focus && gates.still,
-      hint: hint, gates: gates };
+      hint: hint, gates: gates,
+      // ── ROUND 6: THE VETO ON A FORCED SNAP ────────────────────────────────
+      // `useAutoCapture`'s escape fires when SOMETHING passes and the step has
+      // been open too long. On a document that is exactly right — a card is a
+      // card and a mediocre photograph of one is still evidence. On a SELFIE it
+      // is not: `glare` passes when glare could not be measured and `still`
+      // passes on an empty room, so a phone lying face-up on a counter has two
+      // gates true and nothing to photograph, and forcing there would send the
+      // engine a picture of a ceiling to match against a driving licence.
+      //
+      // So when the model is running and reports NO FACE, no amount of elapsed
+      // time may fire the shutter. That is not a dead end: `auto.manual`
+      // already draws "Take photo" at 15 s (6 s when the model never loaded),
+      // so a guest whose face this model genuinely cannot see still has a way
+      // through — one they took deliberately, which is the honest record.
+      // `m.faces` is undefined on the heuristic path, where we cannot tell and
+      // therefore do not veto.
+      forceOk: m.faces == null ? true : m.faces >= 1 };
   }
 
   // BOTH VOCABULARIES ON EVERY UPLOAD, DELIBERATELY. The contract's
@@ -2598,15 +2708,36 @@
   // instruction and a prompt that sits still is read as decoration.
   //   turn   an arrow that slides IN from the direction of travel and keeps
   //          drifting that way, so the motion itself is the instruction.
-  //   blink  two icons alternating on a 380 ms clock — an actual blink, built
-  //          from `eye` and `eye-off`, needing no keyframe this page does not
-  //          already declare.
+  //   blink  an eye that actually closes and opens TWICE and then rests, with
+  //          the word under it, built from `eye` and `eye-off` and needing no
+  //          keyframe this page does not already declare.
   // Under `prefers-reduced-motion` the arrow simply appears in place and the
   // eye stops alternating; the instruction is still legible, which is the point.
+  //
+  // ── ROUND 6: THE BLINK GLYPH IS THE DEFAULT PROMPT NOW, SO IT IS THE BIG
+  //    ONE ────────────────────────────────────────────────────────────────
+  // The owner prefers the blink prompt and the server will issue blink-only
+  // scripts by default. Round 5's blink was a 58 px icon flipping on a 380 ms
+  // metronome, which reads as a flicker rather than as an eye — you cannot tell
+  // a two-state toggle from a rendering fault. A blink is not a metronome: it
+  // is SHUT briefly, OPEN for longer, twice, and then a pause. Drawn on that
+  // rhythm, at 76 px inside a 140 px disc with the word under it, it is
+  // unmistakably a demonstration of the thing being asked for.
+  //
+  // THE UI STAYS GENERIC. `turn` and `flash` are untouched and the component
+  // still takes whatever `kind` the server's script names — a page that had
+  // quietly become blink-only would break the moment a workflow asked for a
+  // head turn, and the script is the server's to choose.
+  //
+  // THE RHYTHM, in ms, cycling: open · shut · open · shut · rest. It sums to
+  // BLINK_CYCLE_MS, which is what the prompt's own minimum duration is set from
+  // so the demonstration always completes before the instruction leaves.
+  const BLINK_FRAMES = [{ shut: false, ms: 260 }, { shut: true, ms: 170 },
+    { shut: false, ms: 240 }, { shut: true, ms: 170 }, { shut: false, ms: 660 }];
   function PromptGlyph({ kind, dir, reduced }) {
     const P = useP();
     const [inPlace, setInPlace] = React.useState(false);
-    const [shut, setShut] = React.useState(false);
+    const [beat, setBeat] = React.useState(0);
 
     React.useEffect(function () {
       setInPlace(false);
@@ -2614,27 +2745,53 @@
       return function () { window.cancelAnimationFrame(id); };
     }, [kind, dir]);
 
+    // A CHAIN OF TIMEOUTS, NOT AN INTERVAL. The frames have different lengths —
+    // that unevenness IS the blink — and an interval can only do one length.
     React.useEffect(function () {
-      if (kind !== 'blink' || reduced) return undefined;
-      const id = setInterval(function () { setShut(function (s) { return !s; }); }, 380);
-      return function () { clearInterval(id); };
+      if (kind !== 'blink' || reduced) { setBeat(0); return undefined; }
+      let dead = false, t = null, i = 0;
+      function next() {
+        if (dead) return;
+        t = setTimeout(function () {
+          if (dead) return;
+          i = (i + 1) % BLINK_FRAMES.length;
+          setBeat(i);
+          next();
+        }, BLINK_FRAMES[i].ms);
+      }
+      setBeat(0);
+      next();
+      return function () { dead = true; clearTimeout(t); };
     }, [kind, reduced]);
 
     if (!kind) return null;
     const sign = dir === 'right' ? 1 : -1;
     const shift = inPlace ? sign * 26 : sign * -18;
+    const isBlink = kind === 'blink';
+    const shut = isBlink && !reduced && BLINK_FRAMES[beat] ? BLINK_FRAMES[beat].shut : false;
     const icon = kind === 'turn' ? (dir === 'right' ? 'arrow-right' : 'arrow-left')
-      : kind === 'blink' ? (shut ? 'eye-off' : 'eye') : 'sun';
+      : isBlink ? (shut ? 'eye-off' : 'eye') : 'sun';
+    const disc = isBlink ? 140 : 108;
     return (
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex',
-        alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-        <span style={{ width: 108, height: 108, borderRadius: P.r999, background: P.imgScrim,
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: P.space.x2, pointerEvents: 'none' }}>
+        <span style={{ width: disc, height: disc, borderRadius: P.r999, background: P.imgScrim,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           opacity: inPlace ? 1 : 0,
           transform: kind === 'turn' ? `translateX(${shift}px)` : 'none',
           transition: 'transform .2s ease, opacity .2s ease' }}>
-          <window.Icon name={icon} size={58} stroke={2.4} color={P.accent} />
+          <window.Icon name={icon} size={isBlink ? 76 : 58} stroke={2.4} color={P.accent} />
         </span>
+        {/* THE WORD, ON THE BLINK ONLY. A head turn is already described by an
+            arrow that moves the way the head should, and a colour panel has
+            nothing to name; a blink is the one prompt whose glyph could be read
+            as decoration, and one word settles it. */}
+        {isBlink ? (
+          <span style={{ background: P.imgScrim, color: P.railBright, borderRadius: P.r20,
+            padding: `${P.space.x1}px ${P.space.x4}px`, fontSize: P.type.h1,
+            fontWeight: P.weight.emph, letterSpacing: '.01em',
+            opacity: inPlace ? 1 : 0, transition: 'opacity .2s ease' }}>Blink</span>) : null}
       </div>);
   }
 
@@ -2789,14 +2946,55 @@
   ];
   const PROC_SLOW_MS = 45000;
 
-  function ProcessingScreen({ shell, elapsed, message, onRetry, retrying }) {
+  // ── ROUND 6, BRIEF §4: THE SCREEN SHOWS THE LIVE STATUS AND NOTHING ELSE ──
+  // WHAT THE OWNER SAW IN SESSION #7: "This is taking longer than usual", and
+  // underneath it, in the mute style reserved for a supporting note, a sentence
+  // of GUIDANCE — "move somewhere brighter and look straight at the camera" —
+  // which is advice about a RETAKE, printed under a heading about a WAIT.
+  // He had nothing to retake; the engine had not answered yet. That sentence
+  // came from `poll.message`, which is the server's copy for a decision, and it
+  // was rendered here purely because the slow branch had a slot for it.
+  //
+  // THREE RULES NOW, AND THEY ARE ALL THE SAME RULE:
+  //   · `message` IS NOT RENDERED HERE AT ALL. Not muted, not at 45 s, never.
+  //     Guidance belongs to the step it is about, and this screen has no step.
+  //   · THE 45-SECOND LINE NEEDS THE STATUS TO STILL BE `In Progress`. If the
+  //     server has answered — with anything — the slow copy is a statement
+  //     about a wait that has ended.
+  //   · WHILE IT IS `In Progress` THE SCREEN SHOWS THE ELAPSED TIME. Not a
+  //     promise, not an estimate: the number of seconds this has actually
+  //     taken, which is the one thing on the screen that cannot be wrong.
+  //
+  // `Awaiting User` never reaches here at all — the poller leaves for the
+  // guided step the moment it reads one. See the polling effect.
+  function procElapsedLine(ms) {
+    const s = Math.max(0, Math.round((ms || 0) / 1000));
+    if (s < 60) return s + 's';
+    return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  }
+  function ProcessingScreen({ shell, elapsed, status, onRetry, retrying }) {
     const P = useP();
     const floorRef = React.useRef(0);
     let idx = 0;
     for (let i = 0; i < PROC_STAGES.length; i++) if (elapsed >= PROC_STAGES[i].at) idx = i;
     idx = Math.max(floorRef.current, idx);
     floorRef.current = idx;
-    const slow = elapsed >= PROC_SLOW_MS;
+    // WHAT COUNTS AS "STILL WORKING", AND WHY IT IS NOT THE LITERAL
+    // `In Progress`. The first draft of round 6 listed the three statuses this
+    // screen normally sees — and an adversarial read caught that `Resubmitted`
+    // is not one of them, is NOT terminal, and the poller keeps polling it. A
+    // guest whose analyst re-queued their session would have sat here past 45 s
+    // with the "Check again" button gated off: a wait with no button, which is
+    // the exact shape of dead end this file exists to not have.
+    //
+    // So the question is asked the way the poller asks it: has the server
+    // ANSWERED. A terminal status is an answer and this screen is about to be
+    // replaced; an `Awaiting User` is an answer and never reaches here at all
+    // (see `openGuidedStep`). Everything else — `In Progress`, `Not Started`,
+    // `Resubmitted`, a status this file has never heard of — is a session still
+    // being worked on, and the guest gets the honest line and the button.
+    const working = status == null || (!isTerminal(status) && status !== 'Awaiting User');
+    const slow = elapsed >= PROC_SLOW_MS && working;
     // A meter that fills asymptotically and never reaches the end. A bar that
     // completes and then keeps waiting is a worse lie than no bar.
     const value = clamp01(1 - Math.exp(-elapsed / 14000)) * 0.92;
@@ -2805,7 +3003,10 @@
         <Plate tone="info" icon="clock" />
         <Big>{slow ? 'This is taking longer than usual' : 'Checking your ID'}</Big>
         <Say>{slow ? 'Keep this page open — nothing is lost and we are still working on it.' : PROC_STAGES[idx].line}</Say>
-        {slow && message ? <Say mute>{message}</Say> : null}
+        {/* THE ELAPSED LINE. Mono, quiet, and true. */}
+        <span style={{ fontSize: P.type.meta, fontFamily: P.fontMono, color: P.inkMute }}>
+          {procElapsedLine(elapsed)}
+        </span>
         <div style={{ width: 220 }}>
           <window.BarMeter value={value} color={slow ? P.warn : P.info} height={6} />
         </div>
@@ -2997,17 +3198,12 @@
           if (!aliveRef.current) return;
           const b = (r.ok && r.body) || null;
           if (b) setPoll(b);
-          const g = (b && b.guidance) || null;
-          const fromState = ((state.steps || []).filter(function (s) { return s.state === 'retry'; })[0] || {}).id;
-          const step = (g && g.step) || (b && b.retry && b.retry.step) || fromState || 'document_front';
-          // THE FIX SENTENCE FOLLOWS THE GUEST INTO THE CAMERA. It is held in a
-          // ref across the phase change and rendered as the standing line above
-          // the live hint, so a guest re-photographing their licence can still
-          // see WHY while they are doing it.
-          fixRef.current = (g && g.fix) || (b && b.message) || null;
-          setDone({});
-          setCursor(step);
-          setPhase(phaseFor(step));
+          // ONE DESTINATION FOR THIS STATUS, SHARED WITH THE POLLER. The fix
+          // sentence follows the guest into the camera: it is held in a ref
+          // across the phase change and rendered as the standing line above the
+          // live hint, so a guest re-photographing their licence can still see
+          // WHY while they are doing it.
+          openGuidedStep(b);
         });
         return;
       }
@@ -3074,6 +3270,39 @@
       };
     }, [token, base, status, started]);
 
+    // ── THE ONE WAY INTO A GUIDED RETAKE ──────────────────────────────────
+    // ROUND 6. Two callers now — the cold-load router and the poller — and one
+    // destination, because two spellings of "go where the server said" is how
+    // one of them drifts. `body` is a `GET status` payload.
+    //
+    // WHAT IT RESETS AND WHY EACH ONE MATTERS:
+    //   submittedRef   the router refuses to re-route while this page is
+    //                  driving; a guided retake means the server is driving
+    //                  again, so this has to come down or a later `GET state`
+    //                  could not move us.
+    //   reportedRef    `onDone` fires once per ending. This is not an ending.
+    //   resumeSubmitRef  the twelve-second unstick is per wait, not per session.
+    //   done           what THIS page uploaded is no longer what is outstanding;
+    //                  the server's own step list is now the authority.
+    // `fixRef` is the sentence itself, held across the phase change and
+    // rendered as the standing line above the live hint — which is the only
+    // place in this flow guidance is ever shown.
+    function openGuidedStep(body) {
+      const g = (body && body.guidance) || null;
+      const fromState = ((((state && state.steps) || []).filter(
+        function (s) { return s.state === 'retry'; })[0]) || {}).id;
+      const step = (g && g.step) || (body && body.retry && body.retry.step)
+        || fromState || 'document_front';
+      fixRef.current = (g && g.fix) || (body && body.message) || null;
+      submittedRef.current = false;
+      reportedRef.current = false;
+      resumeSubmitRef.current = false;
+      setNotice(null);
+      setDone({});
+      setCursor(step);
+      setPhase(phaseFor(step));
+    }
+
     // ── status polling ────────────────────────────────────────────────────
     // 1.5 s, backing off to 4 s once 30 s have gone by, stopping on a terminal
     // status and on `Awaiting User` (which is not terminal but IS waiting on
@@ -3105,9 +3334,27 @@
           if (r.ok && r.body) {
             setPoll(r.body);
             const s = r.body.status;
-            if (isTerminal(s) || s === 'Awaiting User') {
+            if (isTerminal(s)) {
               stopped = true;
               setPhase('outcome');
+              return;
+            }
+            // ── ROUND 6, BRIEF §4: `Awaiting User` LEAVES HERE IMMEDIATELY ──
+            // Round 5 answered an `Awaiting User` by going to the OUTCOME
+            // screen — the "One more try" card — and then a 1.2 s timer
+            // re-opened the camera. Three screens and 1.2 s of dead time to
+            // deliver one sentence that the camera screen then shows again as
+            // its standing hint. Worse, on the way past it the processing
+            // screen had already rendered that sentence under "This is taking
+            // longer than usual", which is where the owner read it.
+            //
+            // The guidance is the STEP's, so it goes to the step. No
+            // intermediate screen, no timer. This is the same route the cold-
+            // load router takes for the same status, which is the point: one
+            // status, one destination.
+            if (s === 'Awaiting User') {
+              stopped = true;
+              openGuidedStep(r.body);
               return;
             }
           }
@@ -3291,6 +3538,14 @@
       // eslint-disable-next-line
     }, [guidance, retryInfo, poll, loadState]);
 
+    // ── ROUND 6: THIS IS A BACKSTOP NOW, NOT THE ROUTE ─────────────────────
+    // Both paths that read an `Awaiting User` — the cold-load router and the
+    // poller — go straight to the guided step through `openGuidedStep`, so the
+    // "One more try" screen and this timer are no longer on the way to
+    // anything. They are kept because `phase` is set from more than two places
+    // and a status arriving at the outcome screen with nothing to advance it
+    // would be a dead end; a backstop that never fires costs a timer.
+    //
     // AUTO-REOPEN AFTER 1.2 s. The owner's rule is "one tap Try again max — or
     // auto-reopen after 1.2 s", and auto is the better half of that or: the
     // retry screen exists to deliver ONE sentence, the sentence is repeated
@@ -3536,7 +3791,7 @@
     if (phase === 'processing') {
       return (
         <ProcessingScreen shell={shell} elapsed={procElapsed} retrying={retrying}
-          message={(poll && poll.message) || null}
+          status={status}
           onRetry={function () { setRetrying(true); if (pollNowRef.current) pollNowRef.current(); }} />);
     }
 
@@ -3731,7 +3986,7 @@
   // The manual escape hatch. 6 s when a detector we wanted is missing (the
   // owner's number), 15 s otherwise.
   const MANUAL_AFTER_DEGRADED_MS = 6000, MANUAL_AFTER_MS = 15000;
-  // THE DISAGREEMENT ESCAPE — brief §3, "if the gates disagree for 3 s,
+  // THE DISAGREEMENT ESCAPE — brief §3, "if the gates disagree for 2.5 s,
   // auto-snap the sharpest recent frame (never wait for a button)". This is
   // what makes it impossible to end up where the owner ended up: five minutes
   // in front of a camera that will not fire, hunting for something to press.
@@ -3739,11 +3994,20 @@
   // "SHARPEST RECENT FRAME" WITHOUT BUFFERING FRAMES. Holding the last five
   // 1600-pixel canvases costs ~30 MB and a `drawImage` on every tick; instead
   // the window watches the sharpness the analyser is ALREADY computing, learns
-  // the best value over at least four samples, and fires on the first frame
+  // the best value over at least three samples, and fires on the first frame
   // within 8 % of it — or on whatever is live when the window closes. Same
   // outcome, no buffer, and it is the number the frame was judged on rather
   // than a second opinion.
-  const FORCE_WINDOW_MS = 700, FORCE_MIN_SAMPLES = 4, FORCE_SHARP_FRAC = 0.92;
+  //
+  // ── ROUND 6: THE WINDOW IS 400 ms, NOT 700, AND THE ARITHMETIC IS THE
+  //    WHOLE POINT ────────────────────────────────────────────────────────
+  // The brief asks for a front that snaps in under three seconds. The escape
+  // arms at 2 500 ms and then spends this window looking for the sharpest
+  // frame, so the worst case a guest can experience is 2 500 + FORCE_WINDOW_MS.
+  // At 700 that is 3.2 s — over the line for the sake of two extra samples.
+  // At 400 it is 2.9 s, and 400 ms is five ticks at 80 Hz, which is more than
+  // the three samples the sharpness comparison needs.
+  const FORCE_WINDOW_MS = 400, FORCE_MIN_SAMPLES = 3, FORCE_SHARP_FRAC = 0.92;
 
   function useAutoCapture({ live, measure, gate, onSnap, degraded, paused, gen, disagreeMs }) {
     const [hint, setHint] = React.useState(null);
@@ -3827,15 +4091,52 @@
             return;
           }
           // ── the disagreement escape ──
+          // ── ROUND 6: THE CLOCK USED TO BE RESET BY SUCCESS, AND THAT IS
+          //    THE TWENTY-SECOND FRONT ────────────────────────────────────
+          // Round 5 armed this clock only while SOME gates passed and others
+          // failed, and reset it to zero the moment that stopped being true —
+          // including when EVERY gate passed. A hand-held card oscillates: a
+          // tick where everything passes (which resets the escape) followed by
+          // a tick where motion spikes (which resets the 350 ms settle). Round
+          // 5 could sit in that loop for ever, and on the owner's phone it sat
+          // in it for about twenty seconds. NEITHER timer could ever complete,
+          // and no amount of loosening a threshold would have fixed it.
+          //
+          // The clock now starts on the first tick the gate actually MEASURED
+          // something and runs until the shutter fires or the step re-arms
+          // (`gen`). If the gates agree inside 350 ms the ordinary path fires
+          // first and this never matters; if they do not, it fires at 2.5 s.
+          // The two things it still refuses to do are snap when NOTHING passes
+          // — a pitch-dark frame is not a photograph — and snap when the gate
+          // itself has vetoed a forced snap (`forceOk`, which the face gate
+          // sets false while the model can see the frame and there is no face
+          // in it). Both are checked at the moment of firing rather than by
+          // resetting a clock that then has to start again.
           if (disagreeMs) {
             const gates = g.gates || {};
             let anyPass = false, anyFail = false;
             Object.keys(gates).forEach(function (k) { if (gates[k]) anyPass = true; else anyFail = true; });
-            const stuck = anyPass && anyFail;
-            if (!stuck) { disagreeSinceRef.current = 0; forceUntilRef.current = 0; }
+            const measured = anyPass || anyFail;
+            if (!measured) disagreeSinceRef.current = 0;
             else if (!disagreeSinceRef.current) disagreeSinceRef.current = now;
+            // THE FORCE WINDOW IS RE-ARMED, NOT CARRIED, ACROSS A TICK THAT
+            // PASSES NOTHING. Found by an adversarial read, not by a phone: if
+            // the window stayed open while `anyPass` went false, it could
+            // ELAPSE unwatched and then fire on the first tick that passed
+            // anything — bypassing FORCE_MIN_SAMPLES and FORCE_SHARP_FRAC
+            // entirely, i.e. snapping a frame nothing had compared. Clearing it
+            // here costs one more 400 ms window in a case that is already the
+            // slow path, and it keeps "the sharpest recent frame" true.
+            if (!measured || !anyPass) forceUntilRef.current = 0;
 
-            if (disagreeSinceRef.current && (now - disagreeSinceRef.current) >= disagreeMs) {
+            // `forceOk` IS THE GATE'S OWN VETO ON A FORCED SNAP, and the selfie
+            // is why it exists. `anyPass` alone is not "there is something to
+            // photograph": `faceGate.glare` passes when glare could not be
+            // measured, and `still` passes on an empty room, so a front camera
+            // pointed at a ceiling has two gates true and no face. A document
+            // gate never sets this and forcing there stays as it was.
+            const mayForce = g.forceOk !== false && anyPass;
+            if (mayForce && disagreeSinceRef.current && (now - disagreeSinceRef.current) >= disagreeMs) {
               if (!forceUntilRef.current) {
                 forceUntilRef.current = now + FORCE_WINDOW_MS;
                 forceBestRef.current = 0; forceSeenRef.current = 0;
@@ -3947,6 +4248,14 @@
   //   medical_rec     one frame. A recommendation is a page held flat, not a
   //                   card to be rocked, so no burst and no extras.
   const TILT_MS = 1500, TILT_N = 4;
+  // ── ROUND 6, BRIEF §3: THE TILT BURST STAYS, ITS BYTES DO NOT ────────────
+  // Four ink-under-tilt frames at 1280 px / q 0.8 were ~180 kB each. They are
+  // evidence that a laminate moves in the light, which is a question about
+  // SPECULAR BEHAVIOUR and not about resolution — the engine compares the same
+  // patch across four frames, and 1000 px is the same patch. At q 0.7 the four
+  // together land near 300 kB, roughly 40 % of what they were, and they now go
+  // up in one parallel batch behind an evidence upload that has already landed.
+  const TILT_EDGE = 1000, TILT_Q = 0.7;
   // ── THE DECODE CLOCK, ROUND 4 ────────────────────────────────────────────
   // TEN ATTEMPTS A SECOND, ADAPTED. The brief asks for ~10 fps with an EMA of
   // decode latency driving the rate, and the two halves matter for different
@@ -3970,7 +4279,13 @@
   const ZOOM_EVERY_MS = 700;
   // §3: after 25 s with no decode, ONE line, a Retry and an honest way out.
   const BACK_STALL_MS = 25000;
-  const DISAGREE_FRONT_MS = 3000;
+  // ── ROUND 6, BRIEF §3: 2.5 s, AND THE SUM IS THE PROMISE ─────────────────
+  // 2 500 + FORCE_WINDOW_MS (400) = 2 900 ms. That is the WORST case a guest
+  // can experience on the front of a card in any light: the gates agree and it
+  // fires at 350 ms, or they never do and it fires at 2.9 s with `forced:true`
+  // on the row so a decline can be explained. There is no third outcome and no
+  // path that waits for a button.
+  const DISAGREE_FRONT_MS = 2500;
 
   function DocStep({ step, token, base, accent, copy, shell, onUploaded, onNotice, notice,
     fix, pickerPhotos, setPickerPhotos, medicalRecOffered, reduced, onGiveUp }) {
@@ -4437,12 +4752,21 @@
           if (record && !frameIsBlank(record)) {
             canvasToJpeg(record, 0.8).then(function (full) {
               if (!full) { droppedExtras += 1; return; }
-              uploadExtra(token, 'challenge_frame', full,
-                { metrics: clientMetrics(metrics, 'zxing',
+              // ONE ITEM, THROUGH THE SAME BATCH HELPER AS THE OTHER TWO
+              // SURFACES. There is only ever one record shot on the back, so
+              // "in parallel" is a no-op here — it goes through `uploadExtras`
+              // anyway so that all three best-effort paths in this file are one
+              // code path. What must NOT change is that it starts after the
+              // evidence upload resolved: `_count_attempt` advances on the
+              // FIRST upload of a retake, and if this raced the crop it could
+              // burn a `challenge` attempt off the liveness budget for a
+              // photograph of a driving licence.
+              uploadExtras(token, [{ kind: 'challenge_frame', blob: full,
+                opts: { metrics: clientMetrics(metrics, 'zxing',
                   { steady_ms: null, card_fill: null, doc_box: null, doc_fill: null,
                     doc_outside: null, band_w: null, band_w_px: hit.band_w_px,
                     px_per_module_est: hit.px_per_module_est }),
-                base: base, filename: 'document_back_frame.jpg' });
+                base: base, filename: 'document_back_frame.jpg' } }]);
             }, function () { droppedExtras += 1; });
           } else if (record) {
             // Drawn, and blank. Counted rather than sent: a black provenance
@@ -4491,7 +4815,7 @@
         // was costing anyway.
         setTilt(true);
         const frames = [];
-        const shots = grabBurst(grabFrame, TILT_N, Math.round(TILT_MS / TILT_N), 1280, 0.8, true);
+        const shots = grabBurst(grabFrame, TILT_N, Math.round(TILT_MS / TILT_N), TILT_EDGE, TILT_Q, true);
         Promise.all([up, shots.then(function (fs) { fs.forEach(function (f2) { frames.push(f2); }); })])
           .then(function (out) {
             const r = out[0];
@@ -4508,15 +4832,20 @@
             // already landed. So the chain runs on unawaited and the step
             // advances now. Each frame gets one retry; a loss is counted into
             // `dropped_extras` and reaches the server on the next upload.
+            //
+            // ── ROUND 6, BRIEF §2: AND THEY GO UP TOGETHER ─────────────────
+            // Round 5 still chained them one behind another — unawaited, so
+            // the guest did not wait, but four serialised round trips on a
+            // phone that is already opening the next camera is four times the
+            // window in which a tunnel reset can eat one. `orderByQuality`
+            // survives because the FILENAMES still carry the ranking, so a
+            // reviewer opening three of four frames still knows which three.
             const ordered = orderByQuality(frames);
-            let ch = Promise.resolve();
-            ordered.forEach(function (fr, n) {
-              ch = ch.then(function () {
-                return uploadExtra(token, 'challenge_frame', fr.blob,
-                  { metrics: clientMetrics(fr.metrics, 'heuristic', { steady_ms: null, card_fill: null }),
-                    base: base, filename: 'document_front_tilt_' + (n + 1) + '.jpg' });
-              });
-            });
+            uploadExtras(token, ordered.map(function (fr, n) {
+              return { kind: 'challenge_frame', blob: fr.blob,
+                opts: { metrics: clientMetrics(fr.metrics, 'heuristic', { steady_ms: null, card_fill: null }),
+                  base: base, filename: 'document_front_tilt_' + (n + 1) + '.jpg' } };
+            }));
             onUploaded(step);
           });
       });
@@ -4562,6 +4891,7 @@
       return (
         <PickerFallback step={step} token={token} base={base} shell={shell}
           copy={copy} onUploaded={onUploaded} onNotice={onNotice} notice={notice}
+          fix={fix}
           detail={cam.detail} photos={pickerPhotos} setPhotos={setPickerPhotos} />);
     }
 
@@ -4674,7 +5004,7 @@
   }
 
   // ── the picker fallback ─────────────────────────────────────────────────
-  function PickerFallback({ step, token, base, shell, copy, onUploaded, onNotice, notice, detail, photos, setPhotos }) {
+  function PickerFallback({ step, token, base, shell, copy, onUploaded, onNotice, notice, fix, detail, photos, setPhotos }) {
     const P = useP();
     const [busy, setBusy] = React.useState(false);
     const c = STEP_COPY[step] || { big: 'One more photo', say: '' };
@@ -4714,6 +5044,15 @@
         {/* SAY WHAT HAPPENED. A picker where a camera was expected is a
             different experience and the guest is told why. */}
         <Say>This device gave the page no camera, so pick or take a photo with your own camera app instead.</Say>
+        {/* ── ROUND 6: THE GUIDED-RETAKE SENTENCE REACHES THIS SCREEN TOO ───
+            Found by the harness, not by a phone. A guest whose device gives the
+            page no camera and whose session comes back `Awaiting User` was
+            shown the picker and NO REASON — the one sentence the server wrote
+            about why they are here was rendered on every other capture surface
+            and dropped on this one. It is more important here than anywhere:
+            the guest is about to choose a file with their own camera app, and
+            "the ID was too dark" is the whole of what they need to know. */}
+        {fix ? <Say>{fix}</Say> : null}
         {detail ? <Say mute>{detail}</Say> : null}
         <Say mute>{copy.document || c.say}</Say>
         <div style={{ width: '100%', maxWidth: 520, textAlign: 'left' }}>
@@ -4766,12 +5105,143 @@
   // order or its own colours would make the nonce meaningless, which is the
   // whole point of CHALLENGE_NONCE_MISMATCH.
   const PASSIVE_N = 3, PASSIVE_GAP_MS = 300;
-  const TURN_MS = 1500, BLINK_MS = 1200, FLASH_MS = 250;
+  // ── ROUND 6, BRIEF §2: THE PASSIVE FRAMES ARE 1200 px AT q 0.8 ───────────
+  // MEASURED, session #7: three of them at 900 × 1600 and 520 kB each. They
+  // exist so the engine can see that the face in the `selfie` is the same face
+  // a third of a second either side of it — a corroboration question, not a
+  // resolution one. At 1200 px they are ~230 kB, and all three now go up in one
+  // parallel batch AFTER the selfie evidence has landed, so the frame the face
+  // match is actually made against never shares the link with them.
+  const PASSIVE_EDGE = 1200, PASSIVE_Q = 0.8;
+  const TURN_MS = 1500, BLINK_MS = 2200, FLASH_MS = 250;
   const PROMPT_MIN_MS = 600;             // never advance a prompt faster than this
+  // A BLINK PROMPT IS NOT DISMISSED BEFORE THE GLYPH HAS BLINKED TWICE. The
+  // eye animates closed/open twice over BLINK_CYCLE_MS; ending the prompt at
+  // PROMPT_MIN_MS because MediaPipe saw the first blink would take the
+  // instruction off the screen mid-demonstration, and a guest who blinked by
+  // reflex rather than on purpose would never see what was being asked.
+  const BLINK_CYCLE_MS = 1500;
   const YAW_HIT = 0.22, BLINK_HIT = 0.45;
   const FALLBACK_FRAMES = 10, FALLBACK_GAP_MS = 250;
   const FACE_WAIT_MS = 4000;             // how long we wait for a warm model
   const DONE_BEAT_MS = 900;              // the completion animation
+
+  // ── ROUND 6, BRIEF §1: THE FOUR-MEGABYTE LIVENESS CLIP ───────────────────
+  // MEASURED, SESSION #7 ON THE OWNER'S iPHONE: `liveness_video` was 4 060 000
+  // bytes and took TWENTY-FOUR SECONDS to upload (18:31:19 → 18:31:43) over a
+  // tunnel, at the very end of the flow, with the guest watching "Sending…".
+  // That is the single largest thing this page has ever asked a phone to do,
+  // and every byte of it was accidental:
+  //
+  //   · `new MediaRecorder(stream)` with no `videoBitsPerSecond` lets the
+  //     encoder pick, and Chrome's pick for a 1080p stream is 2.5–5 Mbps;
+  //   · the stream it was handed is the FULL FRONT CAMERA — 1280 × 720 or
+  //     1920 × 1080 — because it is the same stream the preview is showing.
+  //
+  // Neither number is doing any work. The engine's liveness model reads a face
+  // filling most of the frame for a couple of seconds; it does not read skin
+  // pores. 640 × 480 at 600 kbps is what the brief asks for and it is what the
+  // arithmetic supports:
+  //
+  //     600 000 bits/s ÷ 8  =  75 kB per second of clip
+  //       2.5 s  →  ~188 kB      3.0 s  →  ~225 kB
+  //       4.0 s  →  ~300 kB      5.3 s  →  ~400 kB  ← the brief's ceiling
+  //
+  // So a blink-only script (2.5–3 s, see LIVENESS_MIN_MS) lands around 200 kB
+  // — about 5 % of what session #7 sent, and about a second on the same link.
+  //
+  // WHERE THE PIXELS ARE THROWN AWAY, AND WHY IT IS A CANVAS. `applyConstraints`
+  // on the live track would shrink the PREVIEW too, and the guest would watch
+  // the picture of themselves collapse the instant the check began. So the
+  // recording is taken from a small canvas that the page paints the video into
+  // at LIVENESS_FPS, and `canvas.captureStream()` is what MediaRecorder is
+  // handed. The preview keeps its own resolution and nothing on screen changes.
+  //
+  // AND IF `captureStream` IS MISSING the raw stream is recorded instead —
+  // WITH the bitrate cap, which is the half of this that actually controls the
+  // bytes. A 1080p clip at 600 kbps is still ~75 kB a second; it is softer, not
+  // bigger. The size promise holds on every device; only the sharpness varies.
+  const LIVENESS_LONG = 640, LIVENESS_SHORT = 480;
+  const LIVENESS_BPS = 600000;
+  const LIVENESS_FPS = 15;
+  // THE CLIP IS AT LEAST THIS LONG. `runScript` ends a prompt the moment
+  // MediaPipe sees the thing happen, so a guest who blinks on cue can finish a
+  // blink-only script in well under a second — and a 700 ms clip is not
+  // something a liveness model can judge. The recorder therefore keeps running
+  // to LIVENESS_MIN_MS after the script has ended. There is deliberately NO
+  // maximum: truncating a script the server chose would be editing the evidence
+  // to fit a byte budget, and the bitrate is what holds the budget.
+  const LIVENESS_MIN_MS = 2500;
+
+  // PURE. Given what the camera is actually giving us, the size to record at —
+  // long edge 640, short edge 480, oriented the way the frame is. Answers with
+  // the landscape default when the video has not reported a size yet, because a
+  // clip at the wrong aspect is better than no clip at all.
+  function livenessPlan(vw, vh) {
+    const portrait = !!(vw && vh) && vh > vw;
+    return { w: portrait ? LIVENESS_SHORT : LIVENESS_LONG,
+      h: portrait ? LIVENESS_LONG : LIVENESS_SHORT,
+      fps: LIVENESS_FPS, bps: LIVENESS_BPS };
+  }
+  // THE MIME LADDER, UNCHANGED IN ORDER AND NOW IN ONE PLACE. vp9 first (about
+  // 30 % fewer bytes than vp8 at the same visual quality), vp8, bare webm, then
+  // mp4 — which is not a preference but the ONLY thing Safari records, and
+  // without it the whole liveness step on an iPhone falls through to the
+  // ten-frame path.
+  function livenessMime(MR) {
+    if (!MR || typeof MR.isTypeSupported !== 'function') return null;
+    const ladder = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm',
+      'video/mp4;codecs=avc1', 'video/mp4'];
+    for (let i = 0; i < ladder.length; i++) {
+      try { if (MR.isTypeSupported(ladder[i])) return ladder[i]; } catch (e) { /* keep looking */ }
+    }
+    return null;
+  }
+  function recorderOptions(mime, plan) {
+    return { mimeType: mime, videoBitsPerSecond: (plan && plan.bps) || LIVENESS_BPS };
+  }
+  // CONSTRUCT WITH THE OPTIONS, AND IF THE BROWSER REFUSES THEM, WITHOUT.
+  // `videoBitsPerSecond` is well supported but a NotSupportedError here would
+  // lose the entire liveness step, and a big clip is a far smaller problem than
+  // no clip. Returns { rec, options } so the row can report which one it got.
+  function makeRecorder(MR, stream, mime, plan) {
+    const opts = recorderOptions(mime, plan);
+    try { return { rec: new MR(stream, opts), options: opts }; } catch (e) { /* fall through */ }
+    try { return { rec: new MR(stream, { mimeType: mime }), options: { mimeType: mime } }; }
+    catch (e2) { return { rec: null, options: null }; }
+  }
+  // THE SMALL CANVAS AND ITS PAINTER. Returns null when this browser cannot
+  // hand a canvas to MediaRecorder, which is a real answer the caller turns
+  // into "record the raw stream instead".
+  function makeScaledStream(video, plan) {
+    if (!video || !plan) return null;
+    let c = null, ctx = null;
+    try { c = document.createElement('canvas'); } catch (e) { return null; }
+    if (!c || typeof c.captureStream !== 'function') return null;
+    c.width = plan.w; c.height = plan.h;
+    try { ctx = c.getContext('2d'); } catch (e) { ctx = null; }
+    if (!ctx) return null;
+    let stopped = false, timer = null;
+    const period = Math.max(1, Math.round(1000 / (plan.fps || LIVENESS_FPS)));
+    function paint() {
+      if (stopped) return;
+      // `drawImage` from a <video> with no current frame paints nothing rather
+      // than throwing, which would leave a hole in the clip; the camera-ready
+      // gate upstream is what makes that vanishingly unlikely.
+      try { ctx.drawImage(video, 0, 0, plan.w, plan.h); } catch (e) { /* skip this frame */ }
+      timer = setTimeout(paint, period);
+    }
+    paint();
+    let s = null;
+    try { s = c.captureStream(plan.fps || LIVENESS_FPS); } catch (e) { s = null; }
+    if (!s) { stopped = true; clearTimeout(timer); return null; }
+    return { stream: s, plan: plan,
+      stop: function () {
+        if (stopped) return;
+        stopped = true; clearTimeout(timer);
+        try { (s.getTracks() || []).forEach(function (t) { t.stop(); }); } catch (e) {}
+      } };
+  }
 
   function FaceStep({ token, base, accent, shell, copy, setFlash, startWith, withChallenge,
     fix, onNotice, notice, onUploaded, reduced }) {
@@ -4795,9 +5265,33 @@
     const lastFaceRef = React.useRef(null);      // last MediaPipe result, for the challenge
     const centreRef = React.useRef(null);
     const doneRef = React.useRef(false);
+    // The round-6 recording canvas and its painter, held so an unmount can stop
+    // it. A `setTimeout` loop painting into a canvas nobody records survives a
+    // React unmount exactly as a `fetch` does, and unlike a fetch it never ends.
+    const scaledRef = React.useRef(null);
 
     React.useEffect(function () {
-      return function () { stopRef.current = true; setFlash(null); };
+      return function () {
+        stopRef.current = true; setFlash(null);
+        const s = scaledRef.current;
+        scaledRef.current = null;
+        if (s) s.stop();
+        // ── A GAP IS ONE THING; A MYSTERY IS ANOTHER ──────────────────────
+        // The passive frames are held until the selfie evidence lands, so a
+        // selfie whose upload never succeeds leaves them here unsent. Round 5
+        // sent them unconditionally, so a loss went through `uploadExtra` and
+        // was COUNTED into `dropped_extras`; holding them quietly would have
+        // made the same loss invisible, and "a reviewer opening a session with
+        // no passive frames can see that we know" is the whole reason that
+        // counter exists. `PASSIVE_N` rather than the real count because the
+        // burst is a promise and this is a synchronous teardown — an estimate
+        // named after the thing it estimates.
+        if (passiveRef.current) {
+          passiveRef.current = null;
+          droppedExtras += PASSIVE_N;
+          noteError('selfie upload never landed; ' + PASSIVE_N + ' passive frames were not sent');
+        }
+      };
       // eslint-disable-next-line
     }, []);
 
@@ -4977,6 +5471,17 @@
     // uploaded best-effort — they are corroboration, they are not the evidence,
     // and no guest should ever wait on them again.
     const pendingSelfieRef = React.useRef(null);   // { blob, metrics } for a retry that re-sends
+    // ── ROUND 6, BRIEF §2: THE PASSIVE FRAMES ARE CAPTURED NOW AND SENT
+    //    AFTER ──────────────────────────────────────────────────────────────
+    // Round 5 fixed the ORDER of the captures (selfie first, out of the moment
+    // the gates approved) and left the UPLOADS racing it: three `selfie_frame`
+    // POSTs went out while the `selfie` itself was still in flight, on a link
+    // that had already proved it could only manage one thing at a time. So the
+    // frames are still grabbed immediately — capture is local, costs nothing,
+    // and a frame taken three seconds later is a different moment — but the
+    // blobs are HELD here and only uploaded once the evidence has landed.
+    const passiveRef = React.useRef(null);         // Promise<Blob[]>, held, never awaited by the guest
+    const passiveMetricsRef = React.useRef(null);
     function snapSelfie(metrics) {
       setShutter(true);
       const m = payload(metrics, { steady_ms: metrics && metrics.steady_ms });
@@ -4997,17 +5502,25 @@
       });
 
       // The passive frames, entirely off the critical path. They start after
-      // the selfie blob is in hand so they cannot delay it, and every one of
-      // them is blank-guarded by `grabOne` too.
-      grabBurst(function () { return grabOne(); }, PASSIVE_N, PASSIVE_GAP_MS).then(function (frames) {
-        let ch = Promise.resolve();
-        frames.forEach(function (b) {
-          ch = ch.then(function () {
-            return uploadExtra(token, 'selfie_frame', b, { metrics: payload(metrics, { steady_ms: null }), base: base });
-          });
-        });
-        // Deliberately not returned to anything: nothing waits on this.
-        return ch;
+      // the selfie grab has been asked for so they cannot delay it, and every
+      // one of them is blank-guarded by `grabOne` too. Nothing awaits this
+      // promise except `sendPassive`, which runs after the selfie has landed.
+      passiveRef.current = grabBurst(function () { return grabOne(PASSIVE_EDGE, PASSIVE_Q); },
+        PASSIVE_N, PASSIVE_GAP_MS)
+        .then(function (frames) { return frames || []; }, function () { return []; });
+      passiveMetricsRef.current = payload(metrics, { steady_ms: null });
+    }
+    // ALL THREE AT ONCE, BEHIND THE EVIDENCE, AND NOBODY WAITS ON IT.
+    function sendPassive() {
+      const held = passiveRef.current;
+      if (!held) return;
+      passiveRef.current = null;
+      const pm = passiveMetricsRef.current;
+      held.then(function (frames) {
+        uploadExtras(token, (frames || []).map(function (b, i) {
+          return { kind: 'selfie_frame', blob: b,
+            opts: { metrics: pm, base: base, filename: 'selfie_frame_' + (i + 1) + '.jpg' } };
+        }));
       }, function () {});
     }
 
@@ -5031,6 +5544,10 @@
           }
           onNotice(null);
           pendingSelfieRef.current = null;
+          // NOW the corroboration frames, all three at once, unawaited. The
+          // evidence is on the server; from here nothing the network does can
+          // cost the guest a second.
+          sendPassive();
           // STRAIGHT INTO THE CHALLENGE. No screen, no button, no second camera
           // acquisition — the same stream is already running.
           if (withChallenge) { setTimeout(function () { setSnapped(false); startChallenge(); }, 480); }
@@ -5061,14 +5578,15 @@
     // A prompt runs for at most `ms`, and ends early the moment MediaPipe sees
     // the thing actually happen (but never before PROMPT_MIN_MS, so the guest
     // is not whiplashed by an instruction that vanishes as they read it).
-    function runPrompt(ms, check) {
+    function runPrompt(ms, check, minMs) {
       const t0 = Date.now();
+      const floor = minMs == null ? PROMPT_MIN_MS : minMs;
       return new Promise(function (resolve) {
         function tick() {
           if (stopRef.current) { resolve(false); return; }
           const age = Date.now() - t0;
           if (age >= ms) { resolve(false); return; }
-          if (usingMp && age >= PROMPT_MIN_MS && check && check(lastFaceRef.current)) { resolve(true); return; }
+          if (usingMp && age >= floor && check && check(lastFaceRef.current)) { resolve(true); return; }
           setTimeout(tick, 60);
         }
         tick();
@@ -5114,11 +5632,16 @@
             }).then(function () { setPrompt(null); });
           }
           if (item.kind === 'blink') {
-            setPrompt({ text: 'Now blink', kind: 'blink', dir: null });
+            setPrompt({ text: 'Blink', kind: 'blink', dir: null });
+            // THE FLOOR IS THE GLYPH'S OWN CYCLE, not PROMPT_MIN_MS. See
+            // BLINK_CYCLE_MS: ending at 600 ms because MediaPipe caught a
+            // reflex blink would take the demonstration off the screen halfway
+            // through, and on a blink-only script that demonstration is the
+            // entire instruction the guest gets.
             return runPrompt(item.ms || BLINK_MS, function (res) {
               const l = blend(res, 'eyeBlinkLeft'), r = blend(res, 'eyeBlinkRight');
               return l != null && r != null && (l > BLINK_HIT || r > BLINK_HIT);
-            }).then(function () { setPrompt(null); });
+            }, BLINK_CYCLE_MS).then(function () { setPrompt(null); });
           }
           if (item.kind === 'flash') {
             // NEVER SHORTENED. The colour panels are there to light the guest's
@@ -5171,35 +5694,74 @@
         // answers `isTypeSupported('video/webm')` false for every profile; it
         // does record `video/mp4`, and the backend admits mp4. Without this the
         // whole liveness step on iPhone fell through to the ten-frame path.
-        const mime = (MR && stream && MR.isTypeSupported)
-          ? (MR.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
-            : MR.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8'
-              : MR.isTypeSupported('video/webm') ? 'video/webm'
-                : MR.isTypeSupported('video/mp4;codecs=avc1') ? 'video/mp4;codecs=avc1'
-                  : MR.isTypeSupported('video/mp4') ? 'video/mp4' : null)
-          : null;
+        const mime = stream ? livenessMime(MR) : null;
 
         if (mime) {
-          let rec = null;
+          // ── ROUND 6 §1: RECORD THE SMALL COPY, NOT THE PREVIEW ───────────
+          const v = cam.videoRef.current;
+          const plan = livenessPlan(v && v.videoWidth, v && v.videoHeight);
+          const scaled = makeScaledStream(v, plan);
+          const src = (scaled && scaled.stream) || stream;
+          const made = makeRecorder(MR, src, mime, plan);
+          const rec = made.rec;
           const chunks = [];
-          try { rec = new MR(stream, { mimeType: mime }); } catch (e) { rec = null; }
+          if (!rec && scaled) scaled.stop();
           if (rec) {
+            scaledRef.current = scaled;
+            const t0 = Date.now();
             rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
             rec.onstop = function () {
+              if (scaled) scaled.stop();
+              scaledRef.current = null;
               const type = mime.split(';')[0];
               const blob = new Blob(chunks, { type: type });
-              sendRecording(blob, ch.challenge_id, /mp4/.test(type) ? 'liveness.mp4' : 'liveness.webm');
+              // THE TWO NUMBERS THE BRIEF ASKS FOR, MEASURED RATHER THAN
+              // PROMISED. `bytes` is what actually left the phone and
+              // `duration_s` is how long it ran; together they are the bitrate
+              // this device really achieved, which is the only way the next
+              // person finds out that some browser ignored the cap.
+              sendRecording(blob, ch.challenge_id,
+                /mp4/.test(type) ? 'liveness.mp4' : 'liveness.webm',
+                { bytes: blob.size || null,
+                  duration_s: round3((Date.now() - t0) / 1000),
+                  liveness_w: plan.w, liveness_h: plan.h,
+                  liveness_bps: (made.options && made.options.videoBitsPerSecond) || null,
+                  liveness_mime: mime,
+                  liveness_scaled: !!scaled });
             };
-            try { rec.start(200); } catch (e) { rec = null; }
-            if (rec) {
+            try { rec.start(200); } catch (e) { rec.__dead = true; }
+            if (!rec.__dead) {
               runScript(ch.script).then(function () {
                 setPrompt(null);
                 setMode('sending');
-                try { rec.stop(); }
-                catch (e) { sendRecording(null, ch.challenge_id, 'liveness.webm'); }
+                // THE FLOOR, AND IT IS THE ONLY THING BETWEEN A BLINK-ONLY
+                // SCRIPT AND A 700 ms CLIP. `runPrompt` ends the moment the
+                // blink is seen, which is the right thing for the guest and the
+                // wrong thing for the recording.
+                const left = Math.max(0, LIVENESS_MIN_MS - (Date.now() - t0));
+                setTimeout(function () {
+                  // TWO WAYS THIS TIMER CAN ARRIVE AT A RECORDER THAT IS
+                  // ALREADY DONE, AND BOTH END IN `rec.stop()` THROWING AN
+                  // InvalidStateError — which the catch below would then report
+                  // to the guest as "the recording came back empty" for a clip
+                  // that is on its way to the server:
+                  //   · the step unmounted, and the unmount stopped the canvas
+                  //     stream, which ended the recorder and fired `onstop`;
+                  //   · a browser ended it on its own (the track went away).
+                  // So both are checked before asking, and neither is an error.
+                  if (stopRef.current) return;
+                  if (rec.state === 'inactive') return;
+                  try { rec.stop(); }
+                  catch (e) {
+                    if (scaled) scaled.stop();
+                    scaledRef.current = null;
+                    sendRecording(null, ch.challenge_id, 'liveness.webm', null);
+                  }
+                }, left);
               });
               return;
             }
+            if (scaled) { scaled.stop(); scaledRef.current = null; }
           }
         }
         // FALLBACK: no MediaRecorder at all. Ten frames at 250 ms as
@@ -5242,14 +5804,15 @@
     // re-uploads THE SAME BYTES; only an empty recording, where there is
     // genuinely nothing to send, re-runs the check.
     const pendingClipRef = React.useRef(null);
-    function sendRecording(blob, challengeId, filename) {
+    function sendRecording(blob, challengeId, filename, stats) {
       if (!blob || !blob.size) {
         setMode('challenge');
         challengeStartedRef.current = false;
         onNotice('The recording came back empty. Tap to run that check again.');
         return;
       }
-      pendingClipRef.current = { blob: blob, challengeId: challengeId, filename: filename };
+      pendingClipRef.current = { blob: blob, challengeId: challengeId, filename: filename,
+        stats: stats || null };
       sendClip();
     }
     function sendClip() {
@@ -5258,7 +5821,8 @@
       setRetryUpload(null);
       setMode('sending');
       return uploadEvidence(token, 'liveness_video', held.blob,
-        { challengeId: held.challengeId, base: base, filename: held.filename, metrics: payload(null),
+        { challengeId: held.challengeId, base: base, filename: held.filename,
+          metrics: payload(null, held.stats || {}),
           onAttempt: function (n) { onNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } })
         .then(function (r) {
           if (!r.ok) {
@@ -5394,9 +5958,31 @@
     withRetry: withRetry, retryable: retryable, NET_COPY: NET_COPY,
     safeSentence: safeSentence,
     uploadEvidence: uploadEvidence, uploadExtra: uploadExtra,
+    // ROUND 6: exported so "do the three best-effort frames go up TOGETHER"
+    // is answerable by counting requests in flight against a stub, rather than
+    // by reading a `Promise.all` and believing it.
+    uploadExtras: uploadExtras,
     telemetry: function () { return { last_error: lastError, dropped_extras: droppedExtras }; },
     resetTelemetry: clearTelemetry,
     RETRY_ATTEMPTS: RETRY_ATTEMPTS, EXTRA_ATTEMPTS: EXTRA_ATTEMPTS };
+  // ── ROUND 6's STATICS: THE CLIP ──────────────────────────────────────────
+  // `plan` and `options` are pure and take numbers, so "does a portrait phone
+  // record 480 × 640 at 600 kbps" is answerable from Node — which matters more
+  // than usual here, because the failure mode is not an error: it is a clip
+  // that uploads successfully and takes twenty-four seconds doing it.
+  window.IdvCapture.liveness = {
+    plan: livenessPlan, mime: livenessMime, options: recorderOptions,
+    scaledStream: makeScaledStream, recorder: makeRecorder,
+    LONG: LIVENESS_LONG, SHORT: LIVENESS_SHORT, BPS: LIVENESS_BPS,
+    FPS: LIVENESS_FPS, MIN_MS: LIVENESS_MIN_MS,
+    PASSIVE_EDGE: PASSIVE_EDGE, PASSIVE_Q: PASSIVE_Q,
+    TILT_EDGE: TILT_EDGE, TILT_Q: TILT_Q,
+    BLINK_FRAMES: BLINK_FRAMES, BLINK_CYCLE_MS: BLINK_CYCLE_MS,
+    // The budget this file promises, so a check can assert the arithmetic
+    // rather than restate it: bytes ≈ BPS / 8 × seconds.
+    expectedBytes: function (seconds) { return Math.round((LIVENESS_BPS / 8) * (seconds || 0)); } };
+  window.IdvCapture.processing = { STAGES: PROC_STAGES, SLOW_MS: PROC_SLOW_MS,
+    elapsedLine: procElapsedLine };
   window.IdvCapture.grab = { drawScaled: drawScaled, toJpeg: canvasToJpeg, MAX_EDGE: MAX_EDGE, JPEG_Q: JPEG_Q,
     // ── THE BLACK-FRAME GUARD, EXPORTED PURE ─────────────────────────────
     // `statsAreBlank` takes two numbers and answers the question that would
@@ -5414,6 +6000,11 @@
     order: orderByQuality, best: bestOfBurst, clientMetrics: clientMetrics,
     GATE: GATE, ANALYSIS_EDGE: ANALYSIS_EDGE, SATURATED: SATURATED, EDGE_T: EDGE_T,
     TICK_MS: TICK_MS, HINT_MS: HINT_MS, DECODE_TARGET_MS: DECODE_TARGET_MS,
+    // ROUND 6: the three numbers that decide how long a front takes, exported
+    // so the worst case (DISAGREE_FRONT_MS + FORCE_WINDOW_MS) can be asserted
+    // against the brief's three seconds instead of recomputed by hand.
+    DISAGREE_FRONT_MS: DISAGREE_FRONT_MS, FORCE_WINDOW_MS: FORCE_WINDOW_MS,
+    FORCE_MIN_SAMPLES: FORCE_MIN_SAMPLES,
   };
   // ── ROUND 4's OWN STATICS ────────────────────────────────────────────────
   // EVERY ONE OF THESE IS THE ANSWER TO A QUESTION THAT COST A SESSION ON A
