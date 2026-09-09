@@ -42,9 +42,8 @@
   function hex(n) { let s = ''; for (let i = 0; i < n; i++) s += '0123456789abcdef'[Math.floor(rng() * 16)]; return s; }
   function uuid() { return `${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}`; }
 
-  // {source, id} only for slugs the contract already recognises as an IdSource; every other
-  // vendor slug here (twilio, sendgrid, alpineiq, snowflake, hyperdrive) stays a plain string
-  // until IdSource is widened (reported alongside this wave).
+  // {source, id} for every slug the contract recognises as an IdSource (0.3.0 added twilio,
+  // sendgrid, alpineiq and hyperdrive); a slug it does not know (snowflake) stays a plain string.
   function extIds(slug, id) {
     const C = window.HWContracts;
     return C && C.isEnum('IdSource', slug) ? [C.externalId(slug, id)] : [];
@@ -276,11 +275,11 @@
 
   // ── Integrations ────────────────────────────────────────────────────────
   const INTEGRATIONS = [
-    { id: 'ig-1', name: 'Hyperdrive POS', slug: 'hyperdrive', kind: 'pos', status: 'connected', lastSyncAt: ago(4), rows24h: 18402, health: 'ok', direction: 'bidirectional' },
+    { id: 'ig-1', name: 'Hyperdrive POS', slug: 'hyperdrive', kind: 'pos', status: 'connected', lastSyncAt: ago(4), rows24h: 18402, health: 'ok', direction: 'bidirectional', external_ids: extIds('hyperdrive', 'ig-1') },
     { id: 'ig-2', name: 'Blaze POS', slug: 'blaze', kind: 'pos', status: 'connected', lastSyncAt: ago(11), rows24h: 9120, health: 'ok', direction: 'inbound', external_ids: extIds('blaze', 'ig-2') },
-    { id: 'ig-3', name: 'Twilio SMS', slug: 'twilio', kind: 'channel', status: 'connected', lastSyncAt: ago(1), rows24h: 42800, health: 'ok', direction: 'outbound' },
-    { id: 'ig-4', name: 'SendGrid', slug: 'sendgrid', kind: 'channel', status: 'connected', lastSyncAt: ago(2), rows24h: 61240, health: 'degraded', direction: 'outbound' },
-    { id: 'ig-5', name: 'Alpine IQ', slug: 'alpineiq', kind: 'crm', status: 'migrating', lastSyncAt: ago(180), rows24h: 4210, health: 'warn', direction: 'inbound' },
+    { id: 'ig-3', name: 'Twilio SMS', slug: 'twilio', kind: 'channel', status: 'connected', lastSyncAt: ago(1), rows24h: 42800, health: 'ok', direction: 'outbound', external_ids: extIds('twilio', 'ig-3') },
+    { id: 'ig-4', name: 'SendGrid', slug: 'sendgrid', kind: 'channel', status: 'connected', lastSyncAt: ago(2), rows24h: 61240, health: 'degraded', direction: 'outbound', external_ids: extIds('sendgrid', 'ig-4') },
+    { id: 'ig-5', name: 'Alpine IQ', slug: 'alpineiq', kind: 'crm', status: 'migrating', lastSyncAt: ago(180), rows24h: 4210, health: 'warn', direction: 'inbound', external_ids: extIds('alpineiq', 'ig-5') },
     { id: 'ig-6', name: 'Weedmaps', slug: 'weedmaps', kind: 'marketplace', status: 'pending', lastSyncAt: null, rows24h: 0, health: 'idle', direction: 'bidirectional', external_ids: extIds('weedmaps', 'ig-6') },
     { id: 'ig-7', name: 'Snowflake export', slug: 'snowflake', kind: 'warehouse', status: 'connected', lastSyncAt: ago(60), rows24h: 220400, health: 'ok', direction: 'outbound' },
   ];

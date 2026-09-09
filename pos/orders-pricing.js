@@ -231,7 +231,7 @@
         grand: window.HWContracts.money(grandCents, 'inc_tax'),
         sub: window.HWContracts.money(subCents, 'ex_tax_gross'),
         cartDisc: window.HWContracts.money(cartDiscCents, 'ex_tax_gross'),
-        taxBase: window.HWContracts.money(taxBaseCents, 'ex_tax_gross'),
+        taxBase: window.HWContracts.money(taxBaseCents, 'ex_tax_net'), // sub minus discounts = net, per BOUNTY-API-CONTRACT.md money_basis
       };
     }
     return out;

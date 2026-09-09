@@ -49,7 +49,7 @@
     Metric: { values: ['units', 'net_cents', 'gross_cents', 'txn_count', 'aov_cents'],
       source: 'wm-demo/wmdemo/incentives/scoring.py METRICS' },
     PointsKind: { values: ['earned', 'adjusted', 'recorded_paid', 'redeemed', 'expired'],
-      source: 'wm-demo/wmdemo/incentives/rewards.py KINDS + redeemed (Rewards service, plan §3) + expired (engage/screen-loyalty.jsx liability)' },
+      source: 'wm-demo/wmdemo/incentives/rewards.py KINDS + redeemed (Rewards service, plan §3) + expired (engage/screen-loyalty.jsx liability). rewards.balances() ignores kinds it does not write; expired must be added there before any writer emits it' },
     SnapStatus: { values: ['draft', 'published', 'expired'],
       source: 'wm-demo/wmdemo/incentives/education.py STATUSES' },
     MatchKind: { values: ['id', 'email', 'name-exact-vendor', 'name-new', 'confirmed', 'manual', 'unresolved'],

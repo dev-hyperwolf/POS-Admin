@@ -58,7 +58,8 @@
     const p = D.LOYALTY_PROGRAMS.find((x) => x.id === id) || D.LOYALTY_PROGRAMS[0];
     const wallets = [...D.CUSTOMERS].sort((a, b) => b.pointsBalance - a.pointsBalance).slice(0, 10);
     // Keys match contracts PointsKind (earned/adjusted/redeemed) where a value exists;
-    // `expired` has no PointsKind entry yet — kept as a local extra (0.3.0 widening candidate).
+    // `expired` is a PointsKind since contract 0.3.0; the Rewards service's own KINDS still lacks it,
+    // so a balance there ignores it — this row is Engage's liability view, not the ledger.
     // The on-screen label for `earned` stays "Accrued" via POINTS_KIND_LABEL below.
     const liability = { startingBalance: p.pointsOutstanding - 42000, earned: 88400, redeemed: 41200, expired: 5100, adjusted: -100, endingBalance: p.pointsOutstanding, wowEndingDelta: 32800 };
     const events = [

@@ -222,3 +222,20 @@ test('cents: a refund cap that lands on 0.05 is exact, never 0.04999999999999999
   assert.notEqual(0.30 - 0.25, 0.05, 'the float trap this test exists to route around');
   assert.equal(OP.refundCap(0.30, 0.25), 0.05);
 });
+
+// ── The fallback chain, pinned. A page that loads orders-pricing.js without commerce-adapter.js
+// must still round through the contract (0.285 → 29); only a page with NEITHER falls to the naive
+// Math.round (0.285 → 28). Today only Hyperwolf POS.html loads this file and it loads both.
+test('cents() fallback chain: contract-only still rounds like the till; naive only when nothing is loaded', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'pos', 'orders-pricing.js'), 'utf8');
+  const mk = (withContracts) => {
+    const sb = { console }; sb.window = sb; sb.self = sb;
+    const ctx = vm.createContext(sb);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'shared', 'brands.js'), 'utf8'), ctx, { filename: 'shared/brands.js' }); // DEMO_BASKET reads HW_BRANDS at load
+    if (withContracts) vm.runInContext(fs.readFileSync(path.join(ROOT, 'contracts', 'index.js'), 'utf8'), ctx, { filename: 'contracts/index.js' });
+    vm.runInContext(src, ctx, { filename: 'pos/orders-pricing.js' });
+    return sb.HW_ORDERS_PRICING;
+  };
+  assert.equal(mk(true).lineGross({ price: 0.285, qty: 1 }), 0.29, 'contract-only path');
+  assert.equal(mk(false).lineGross({ price: 0.285, qty: 1 }), 0.28, 'naive path, documented divergence');
+});

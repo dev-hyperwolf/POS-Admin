@@ -3502,9 +3502,11 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
       const left = Math.max(0, ((items[over.idx] && items[over.idx].qty) || 0) - (priorBy[over.key] || 0));
       return refuse(`${over.name}: only ${left} of that line ${left === 1 ? 'is' : 'are'} left to return, and ${over.qty} ${over.qty === 1 ? 'was' : 'were'} asked for. Nothing has been credited.`);
     }
+    // The same two functions the panel DISPLAYS with (pos/orders-pricing.js) decide what is
+    // committed — never a second float copy of the cap beside the cents one on screen.
     const priorAmt = +prior.reduce((s2, r) => s2 + (+(r && r.amount) || 0), 0).toFixed(2);
-    const cap = +Math.max(0, grand - priorAmt).toFixed(2);
-    const amount = +Math.min(+claimLines.reduce((s2, cl) => s2 + cl.unit * cl.qty, 0).toFixed(2), cap).toFixed(2);
+    const cap = OP.refundCap(grand, priorAmt);
+    const amount = OP.clampRefund(+claimLines.reduce((s2, cl) => s2 + cl.unit * cl.qty, 0).toFixed(2), cap);
     if (!(amount > 0)) return refuse(`This order has nothing left to give back — ${fmt.money(grand)} was collected and ${fmt.money(priorAmt)} has already been returned. Nothing has been credited.`);
     // The id is minted from what is already filed, so two returns on one order
     // cannot share one. A duplicate is refused rather than overwriting the
