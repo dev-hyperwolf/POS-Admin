@@ -238,7 +238,8 @@ test('our estate: wm-demo enums still equal the contract (FAILS on drift)', { sk
   const wm = /WM_STATUS_ORDER\s*=\s*\(([^)]*)\)/.exec(fulfil); assert.ok(wm);
   for (const v of [...wm[1].matchAll(/"([A-Z_]+)"/g)].map((m) => m[1])) assert.ok(C.isEnum('WeedmapsOrderStatus', v), 'WeedmapsOrderStatus lacks ' + v);
   const chk = fs.readFileSync(path.join(WM, 'wmdemo/checkin_api.py'), 'utf8');
-  const all = /_ALL_STATES\s*=\s*\(([^)]*)\)/.exec(chk); assert.ok(all);
+  // The module boots from contracts.vocab("CheckinState", (<local literal>), …); the literal is the source.
+  const all = /_ALL_STATES\s*=\s*(?:contracts\.vocab\("CheckinState",\s*)?\(([^)]*)\)/.exec(chk); assert.ok(all);
   assert.deepEqual([...all[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]), C.enumValues('CheckinState'), 'checkin_api.py _ALL_STATES');
   const contract = fs.readFileSync(path.join(ROOT, 'docs/IDV-API-CONTRACT.md'), 'utf8');
   const reasons = [...contract.slice(contract.indexOf('// Reason'), contract.indexOf('// Score')).matchAll(/\b[A-Z][A-Z0-9_]{3,}\b/g)].map((m) => m[0]);

@@ -85,7 +85,12 @@ function Suite() {
   // happens, not a second status-collapsing rule.
   const saveBuilder = (statusOverride) => {
     const base = builderId !== 'new' ? promos.find((p) => p.id === builderId) : null;
-    const toSave = statusOverride ? { ...draft, status: statusOverride } : draft;
+    // Only a STRING is a status override. The top bar wires onSave straight to a button, so the
+    // first argument can be a click event -- which, spread into `status`, crashed the whole
+    // screen ("Objects are not valid as a React child") the moment the old status-collapsing
+    // bridge stopped masking it.
+    const override = typeof statusOverride === 'string' ? statusOverride : null;
+    const toSave = override ? { ...draft, status: override } : draft;
     const merged = M.draftToMerged(toSave, base);
     setPromos((prev) => prev.find((p) => p.id === merged.id) ? prev.map((p) => p.id === merged.id ? merged : p) : [merged, ...prev]);
     setBuilderId(null);setView('studio');

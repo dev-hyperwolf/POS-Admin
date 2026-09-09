@@ -45,7 +45,9 @@
   // own default is the same value (see emptyDraft below for why the draft
   // sends it explicitly rather than leaving it to that default). Falls back
   // to the literal if contracts/index.js has not loaded on this page.
-  const DEFAULT_AUDIENCE = window.HWContracts ? [window.HWContracts.enumValues('Classification')[0]] :
+  // 'budtender' by NAME, checked against the enum -- never enumValues()[0], which would make the
+  // enum's ORDER decide who every new bounty is for.
+  const DEFAULT_AUDIENCE = (window.HWContracts && window.HWContracts.isEnum('Classification', 'budtender')) ? ['budtender'] :
     (console.warn('screen-contest-builder: window.HWContracts not loaded — falling back to literal DEFAULT_AUDIENCE'),
       ['budtender']);
 

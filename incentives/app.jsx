@@ -327,7 +327,9 @@
     // roleAtLeast(role, 'manager') is true for exactly manager/admin/
     // superadmin, the same two display roles plus the ranks above them.
     // Falls back to the literal display-role comparison this replaced if
-    // contracts/index.js has not loaded — identical behaviour either way.
+    // contracts/index.js has not loaded. The server applies the same rule
+    // (contests.is_manager: MANAGER_ROLES or contracts.role_at_least), so a
+    // title such as Owner or Manager is a manager on both sides.
     const roleValue = window.HWInc.role();
     const isManager = window.HWContracts
       ? window.HWContracts.roleAtLeast(roleValue, 'manager')

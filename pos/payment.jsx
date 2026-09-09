@@ -362,6 +362,11 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
             const order = {
               id: rec.id, platform: 'hyperwolf', store_id: a.storeId, associate_id: a.id,
               status: 'completed', txn_type: 'sale', created_at: HC.isoNow(),
+              // The tender method and the customer name the legacy body always carried; the
+              // ledger mirrors method into payment_type (aov_compat.py), so dropping it would
+              // leave every contract-path sale unattributed by tender.
+              payment_method: HC.isEnum('PaymentMethod', rec.method) ? rec.method : undefined,
+              customer_name: rec.name || undefined,
               subtotal: HC.money(subtotalCents, 'ex_tax_gross'),
               discount: HC.money(discountCents, 'ex_tax_gross'),
               total: HC.money(totalCents, 'inc_tax'),
@@ -384,9 +389,21 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
           }
         }
 
+        const markFailed = () => setSale((prev) => (prev && prev.id === rec.id) ? { ...prev, aovFailed: true } : prev);
         window.HW_LIVE.post(postPath, postBody).then((r) => {
           if (!mountedRef.current || (r && r.ok)) return;
-          setSale((prev) => (prev && prev.id === rec.id) ? { ...prev, aovFailed: true } : prev);
+          // A server that does not know the contract route (older wmdemo: 404/501) gets the
+          // legacy body once. A 422 is a real refusal of THIS sale (window, basis, associate)
+          // and stays visible as the sync notice -- never silently re-posted as something else.
+          if (postPath !== '/api/pos/sale' && r && (r.code === 404 || r.code === 501)) {
+            console.warn('pos/payment.jsx: /api/contracts/orders not served here (HTTP ' + r.code + '); posting the legacy /api/pos/sale body');
+            window.HW_LIVE.post('/api/pos/sale', legacyBody).then((r2) => {
+              if (!mountedRef.current || (r2 && r2.ok)) return;
+              markFailed();
+            });
+            return;
+          }
+          markFailed();
         });
       }
     } catch (e) {}
