@@ -1,74 +1,65 @@
-# Hyperwolf Bounty — overnight build status
+# Hyperwolf Bounty — build status
 
-Written 2026-09-08, for JT's morning. Everything below is committed locally on both repos and
-**nothing is pushed** (both repos auto-deploy on push; you push when you have looked).
+Updated 2026-09-08 (evening). Everything is committed locally on both repos and **nothing is
+pushed** (both repos auto-deploy on push; you push when you have looked).
 
-## What shipped
+## Where it stands
 
-**Backend (`/Users/jt/wm-demo`, `wmdemo/incentives/`, stdlib only)**
-- Ledger at transaction and line grain with content-hash dedupe and full ingest accounting
-  (`rows_read == inserted + unchanged + conflicts + rejected`, asserted on every run).
-- Identity resolution: Blaze employees become associates automatically (bound by id, retroactive
-  on the ledger); drivers are adopted after their first rung sale with the role "Driver"; deleted
-  and internal accounts are held back with a visible note. Names only ever *suggest*.
-- Blaze partner API client + sync (employees, then today's store-local day, paging guards,
-  never trusts `total`). Meadow API client + sync (orders, returns, `placedBy`).
-- CSV/XLSM ingestion for Blaze All Sales, Blaze Total Sales, Meadow Orders Report (built on the
-  documented headers; **not yet verified against real files**, see "Waiting on you").
-- Pure scoring (competition ranking, tie rules split | earliest, refunds netted, rounds incl.
-  hourly), contest state machine with append-only audit and idempotent settlement, earnings
-  ledger with a record-only "paid" marker, snaps with quiz rewards, `/api/aov/*` served from the
-  new ledger with identical shapes.
-- Every route in `docs/BOUNTY-API-CONTRACT.md`, a sync loop with an expiring lease, and the
-  register's `/api/pos/sale` dual-writing into the ledger with a reconciler every sweep.
+All four POS-connected stores rank real people from real sales, on the review server at
+http://127.0.0.1:8791/Hyperwolf%20Bounty.html (August loaded via the real exports; September
+via the live APIs):
 
-**Frontend (`/Users/jt/POS-Admin`)**
-- `Hyperwolf Bounty.html` + `incentives/` — Concept D (Two Seats): budtender seat and manager
-  console, hash router, one session accessor to swap at the production port.
-- Screens: Standings (with Concept B's "How this was computed" trail), Bounties list/detail/
-  builder (with Concept C's self-rewriting sentence and a 7-day dry run), Earnings, Learn
-  (story player + author), Data (connections, chunked upload, run reports, conflicts, identities,
-  roster), Goals (absorbed AOV), Settings. POS Home card replaces the AOV card.
-- Rail item, app-switcher entry, hub card. The Register screen is untouched (verified
-  byte-identical).
+| Store | POS | Live path | Backfill path | August board |
+|---|---|---|---|---|
+| Corona | Blaze | API sync every 5 min | Completed Sales Detail / Total Sales Products exports | 17 ranked, $375,571 net, $0 unattributed |
+| Lake Elsinore | Blaze | API sync | All Sales export | 33 ranked, $698,451 net, $0 unattributed |
+| West Hollywood | Meadow | API sync (Analytics key) | Orders Report workbook | 6 ranked, $79,583 net, $4,548 anonymous API orders |
+| Long Beach | Treez | none (no client) | Products Report (tickets + money) and Inventory Log (units) | 8 ranked, $240,727 net, 6,909 tickets, $12,200 awaiting two identity binds |
+| Register (demo POS) | in-house | every tender posts txn + cart lines | — | flows into the same ledger |
 
-## What was verified live (not just by probes)
+## What shipped today (on top of last night's module)
 
-- Real Blaze data: two store-local days pulled for Corona (202 txns) and Lake Elsinore (254),
-  all attributed to real people; weekly boards render in the app with ties marked; the POS Home
-  card reads the same backend; the Data screen shows each store's real source state.
-- Probe suites on scratch databases (see `docs/SCOREBOARD.md` BT-1…): scoring, ingest,
-  identity, AOV compat, contests, routes, Blaze sync, Meadow sync — all green at last run.
-- Three adversarial reviews (numbers, safety, blast radius) — findings and their fixes are in
-  the git log; the two BLOCK-level ones (line-grain net ignored discounts; media MIME and
-  manager-role gaps) were fixed the same night. See "Open" for anything still standing.
+- **Classification and audiences.** Six classes (budtender, driver, manager, loss prevention,
+  support, other) seeded from Blaze hints, editable on Data → Roster, audited; every bounty has
+  an audience; boards default to Budtenders with a class switch; ranks are within class.
+- **Real export formats, verified on your files:** Blaze Completed Sales Detail (title row)
+  and Total Sales Products; Meadow Orders Report workbook (Date + Time columns); Treez
+  Products Report (ticket grain, money) and Treez Inventory Log (units only, no ticket id —
+  the board says so). Refunds net; a products-report line supersedes its inventory-log twin
+  (90.4% matched on August); line keys are order- and format-independent.
+- **Identity without guessing.** Id and email bind automatically; a CSV name binds only when it
+  exactly matches the same vendor's own spelling of a person already bound by id at the same
+  store; a name with sales and no candidate becomes a new person; a later id-based adoption
+  merges into that person instead of duplicating; a name that could be two people waits for a
+  manager. "N/A" and internal accounts are never people.
+- **Register cart lines.** `/api/pos/sale` takes `lines[]` and `txn_type`; developer call-outs
+  on the Data screen, upload section and Home card state exactly what the production POS must
+  send (contract section "Register → Bounty").
+- **Bandwidth.** Server gzips, ETag/304 on scripts, dashboard poll backs off when hidden or
+  idle (8.5 GB/day per open tab → 69–139 MB).
+- **Safety (from the adversarial reviews):** media allowlist with byte sniffing and nosniff,
+  manager gate on every manager-only write, idempotent record-paid, leased and rate-limited
+  sync-now, vendor kill switch (`HW_INC_VENDOR_OFF=1`).
 
-## Facts you should know
+## Verification
 
-- **Blaze attribution is real.** `sellerId` names a person (13 distinct at Corona, 30 at
-  Elsinore, all resolving via `/employees`); `cart.items[]` is on the list response. No CSV is
-  needed for Blaze stores.
-- **Lake Elsinore's sellers are all drivers** in Blaze (delivery depot). They are ranked as
-  sellers with role "Driver". If you want drivers excluded from bounties, that is one rule in
-  `sync_blaze._no_adopt_reason` and a decision for you.
-- **Meadow key scope.** The West Hollywood client key has Customers scope only; orders and
-  returns return 403. The Data screen shows that verbatim. (Also: the two Meadow keys had been
-  pasted into each other's slots in `.env`; I swapped them.)
-- **Long Beach runs Treez.** No client exists; the Data screen says "no data source · runs Treez".
-- **`/api/aov/*`** keeps its shapes, but "today" is now the store-local day (plan §3.2), so
-  evening AOV figures on the old Home card differ from before. The AOV routes still exclude
-  refunds (legacy), while Bounty nets them — the contract addenda state this.
+Twelve probe suites on scratch databases, **638 checks, all green** (`docs/SCOREBOARD.md`
+BT-1 … BT-11): scoring 38, ingest 34, identity 37, aov_compat 20, contests 35, classes 55,
+routes 161, safety 47, blaze_export 29, meadow_real 10, treez 55, meadow_sync 117 (plus
+blaze_sync 48 offline). POS-Admin `test/global-collisions.test.mjs` 16/16. Live: a real cash
+tender on the demo register reached a brand board; every store's August board recomputed by
+hand from the raw files matches to the cent (adversarial pass in progress at time of writing).
 
 ## Waiting on you
 
-1. **A Meadow client key with Analytics scope** (Meadow Admin → Settings → API → Add Integration
-   → enable Analytics) into `MEADOW_CLIENT_KEY_WEST_LA` in `/Users/jt/wm-demo/.env`.
-2. **One real export per format** into `/Users/jt/wm-demo/qa/fixtures/incentives/` (Blaze All
-   Sales, Blaze Total Sales, Meadow Orders Report). Until then the CSV parsers are verified only
-   against synthetic files built from the documented headers.
-3. **Long Beach / Treez**: leave as "no data source" or scope a Treez client later.
-4. **Drivers as sellers** at Elsinore: keep (current) or exclude.
-5. **Push** both repos when you are satisfied.
+1. **Review** the app with August loaded; send anything that reads wrong as a list.
+2. **Push** both repos.
+3. **After the push, on Render:** add the five env variables (same names as in
+   `wm-demo/.env`: `BLAZE_PARTNER_KEY`, `BLAZE_AUTH_KEY_CORONA`, `BLAZE_AUTH_KEY_ELSINORE`,
+   `MEADOW_CONSUMER_KEY`, `MEADOW_CLIENT_KEY_WEST_LA`), then either let the sync run its
+   first pass or upload the August exports through Data → Upload on the deployed instance.
+   The repo carries no data and no keys.
+4. Two Long Beach identity binds (people who also work at West Hollywood): Data → Identities.
 
 ## Run it
 
@@ -76,38 +67,15 @@ Written 2026-09-08, for JT's morning. Everything below is committed locally on b
 cd /Users/jt/wm-demo && WM_DEMO_STATIC_DIR=/Users/jt/POS-Admin python3 -m wmdemo.server
 ```
 
-Then open http://127.0.0.1:8787/Hyperwolf%20Bounty.html (manager console as Manisha Saini at
-Lake Elsinore; "Preview as budtender" for the seat) and http://127.0.0.1:8787/Hyperwolf%20POS.html
-for the Home card. The sync loop polls Blaze every 5 minutes; set `HW_INC_VENDOR_OFF=1` to stop
-vendor polling, `HW_INC_SYNC_S=0` to idle the loop.
+Then http://127.0.0.1:8787/Hyperwolf%20Bounty.html. The review server I left on port 8791
+polls Blaze and Meadow every 5 minutes; `pkill -f wmdemo.server` stops it.
 
-## Open (known, not fixed tonight)
+## Open (known)
 
-- **Actor is self-asserted.** Every write takes `actor` in the body, exactly like the other ~60
-  wm-demo routes. The manager gate is a role check, not authentication; `serve.is_manager()` is
-  where real auth attaches (plan §6, escalated).
-- **Blaze refunds already in the ledger** were ingested before `ref_txn_id` was wired; the next
-  sync will list them as conflicts (3 rows) which a manager applies from the Data screen. New
-  refunds link automatically.
-- **Session identity** in the app is the estate's hard-coded demo user (Manisha Saini, Floor
-  Manager, Lake Elsinore) via one function, `HWInc.session()`.
-- **Notifications, brand-user logins, payouts, mobile**: out of scope by plan (§11).
-- The dev server I left running on port 8791 polls Blaze every 5 minutes; kill it with
-  `pkill -f wmdemo.server` if you start your own on 8787.
-
-## Verification summary (final run, scratch databases)
-
-| Suite | Checks |
-|---|---|
-| scoring | 38 |
-| ingest | 34 |
-| identity | 21 |
-| aov_compat | 20 |
-| contests | 35 |
-| routes | 150 |
-| safety | 47 |
-| blaze_sync | 45 (incl. one live read-only pass) |
-| meadow_sync | 86 |
-| **total** | **476 / 476** |
-
-POS-Admin: `node --test test/global-collisions.test.mjs` 15/15 (includes `Hyperwolf Bounty.html`).
+- Actor is self-asserted in every write, like the rest of wm-demo; `serve.is_manager()` is
+  where real authentication attaches (plan §6, escalated).
+- Session identity in the app is the estate's demo user via `HWInc.session()`.
+- The two Blaze exports for one store carry genuinely different money bases on ~3,000 lines
+  (Retail Value vs Retail Value of Sales); uploading both reports them as conflicts a manager
+  can apply, by design. Upload one report type per store per month.
+- Notifications, brand logins, payouts, mobile: out of scope (plan §11).
