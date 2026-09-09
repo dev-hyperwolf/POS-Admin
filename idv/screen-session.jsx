@@ -66,7 +66,14 @@
 //      the contract's `crosschecks.barcode_vs_ocr` only gives agree/disagree/
 //      missing field-name arrays, not the paired values Concept D's table
 //      shows. A dedicated per-field crosscheck shape would remove the
-//      guesswork.
+//      guesswork. (2026-09-09 fix: the "Print (OCR)" column was reading
+//      `id_verifications[0][field]` — the node's barcode-derived value once
+//      the barcode decodes — instead of the OCR reader's own output, so a
+//      failed OCR read showed the barcode's value twice under a "missing"
+//      Agrees flag. It now reads only `engine_detail.ocr_fields` (fallback
+//      `ocr_fields`) and shows "—" when the OCR reader produced nothing for
+//      that field; the Agrees column renders yes/no/not-read pills and a
+//      `DECODED_OCR_FAILED` / `NO_BARCODE` status prints a one-line note.)
 ;(function () {
   const useP = window.useP;
   const S = window.IdvShared || {};
@@ -502,11 +509,18 @@
     const crosscheckRows = React.useMemo(() => {
       const cc = decision && decision.crosschecks && decision.crosschecks.barcode_vs_ocr;
       if (!idn0 || !cc) return [];
+      // Print (OCR) values must come from the OCR reader itself, never from the
+      // node's top-level fields — those are barcode-derived once the barcode
+      // decodes, so filling the column from them silently echoes the barcode
+      // back in a column labeled "Print" (see 2026-09-09 contract addendum:
+      // barcode_vs_ocr.missing means the OCR reader produced nothing for that
+      // field, and this column must say so, not restate the chip's value).
+      const ocrFields = (idn0.engine_detail && idn0.engine_detail.ocr_fields) || idn0.ocr_fields || null;
       const fields = Array.from(new Set([].concat(cc.agree || [], cc.disagree || [], cc.missing || [])));
       return fields.map((f) => {
         const code = AAMVA_CODE[f];
         const barcode = code && idn0.barcode_fields ? idn0.barcode_fields[code] : null;
-        const print = idn0[f];
+        const print = ocrFields ? ocrFields[f] : null;
         const agrees = (cc.agree || []).includes(f) ? 'yes' : (cc.disagree || []).includes(f) ? 'no' : (cc.missing || []).includes(f) ? 'missing' : '—';
         return { field: FIELD_LABEL[f] || f, barcode: barcode == null ? '—' : String(barcode), print: print == null ? '—' : String(print), agrees };
       });
@@ -664,6 +678,12 @@
     }
 
     const otherCrosschecks = decision && decision.crosschecks;
+    const barcodeVsOcr = otherCrosschecks && otherCrosschecks.barcode_vs_ocr;
+    const ocrFailNote = barcodeVsOcr && barcodeVsOcr.status === 'DECODED_OCR_FAILED'
+      ? 'The print could not be read on this front; the barcode is the data source.'
+      : barcodeVsOcr && barcodeVsOcr.status === 'NO_BARCODE'
+      ? 'No barcode was decoded; print only.'
+      : null;
 
     const orderedMedia = MEDIA_ORDER.map((k) => media.find((m) => m.kind === k)).filter(Boolean)
       .concat(media.filter((m) => !MEDIA_ORDER.includes(m.kind)));
@@ -807,6 +827,8 @@
                   ? <div style={{ padding: 16 }}><EmptyState compact icon="barcode" title="Nothing to compare" body="No barcode read, or no document on this session." /></div>
                   : (
                     <div style={{ overflowX: 'auto' }}>
+                      {ocrFailNote && (
+                        <div style={{ padding: '8px 12px', fontSize: P.type.meta, color: P.inkDim, borderBottom: `1px solid ${P.hairline2}` }}>{ocrFailNote}</div>)}
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: P.type.meta }}>
                         <thead><tr style={{ background: P.surface2 }}>
                           {['Field', 'Barcode', 'Print (OCR)', 'Agrees'].map((h) => (
@@ -818,15 +840,20 @@
                               <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, color: P.ink }}>{r.field}</td>
                               <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, fontFamily: P.fontMono, color: P.ink }}>{r.barcode}</td>
                               <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, fontFamily: P.fontMono, color: P.ink }}>{r.print}</td>
-                              <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, color: r.agrees === 'no' ? P.bad : P.ink }}>{r.agrees}</td>
+                              <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}` }}>
+                                <Pill kind={r.agrees === 'yes' ? 'good' : r.agrees === 'no' ? 'bad' : 'neutral'} size="sm">
+                                  {r.agrees === 'yes' ? 'yes' : r.agrees === 'no' ? 'no' : r.agrees === 'missing' ? 'not read' : '—'}
+                                </Pill>
+                              </td>
                             </tr>))}
                         </tbody>
                       </table>
-                      {otherCrosschecks && (
+                      {(otherCrosschecks || (barcodeVsOcr && barcodeVsOcr.confidence != null)) && (
                         <div style={{ padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {otherCrosschecks.portrait_vs_selfie != null && <Pill kind="neutral" size="sm">Portrait vs selfie {fmt.score(otherCrosschecks.portrait_vs_selfie)}</Pill>}
-                          {otherCrosschecks.name_vs_expected && <Pill kind={otherCrosschecks.name_vs_expected === 'match' ? 'good' : otherCrosschecks.name_vs_expected === 'mismatch' ? 'bad' : 'neutral'} size="sm">Name vs expected: {otherCrosschecks.name_vs_expected}</Pill>}
-                          {otherCrosschecks.dob_vs_age_rule && <Pill kind={otherCrosschecks.dob_vs_age_rule === 'pass' ? 'good' : otherCrosschecks.dob_vs_age_rule === 'fail' ? 'bad' : 'neutral'} size="sm">DOB vs age rule: {otherCrosschecks.dob_vs_age_rule}</Pill>}
+                          {barcodeVsOcr && barcodeVsOcr.confidence != null && <Pill kind="neutral" size="sm">Print read at {Math.round(barcodeVsOcr.confidence)}% confidence</Pill>}
+                          {otherCrosschecks && otherCrosschecks.portrait_vs_selfie != null && <Pill kind="neutral" size="sm">Portrait vs selfie {fmt.score(otherCrosschecks.portrait_vs_selfie)}</Pill>}
+                          {otherCrosschecks && otherCrosschecks.name_vs_expected && <Pill kind={otherCrosschecks.name_vs_expected === 'match' ? 'good' : otherCrosschecks.name_vs_expected === 'mismatch' ? 'bad' : 'neutral'} size="sm">Name vs expected: {otherCrosschecks.name_vs_expected}</Pill>}
+                          {otherCrosschecks && otherCrosschecks.dob_vs_age_rule && <Pill kind={otherCrosschecks.dob_vs_age_rule === 'pass' ? 'good' : otherCrosschecks.dob_vs_age_rule === 'fail' ? 'bad' : 'neutral'} size="sm">DOB vs age rule: {otherCrosschecks.dob_vs_age_rule}</Pill>}
                         </div>)}
                     </div>)}
               </Card>
