@@ -6,8 +6,9 @@ const useP = window.useP, useTheme = window.useTheme, ThemeProvider = window.The
 const { Icon, Card, Eyebrow, SectionHead, KPI, Spark, Pill, IconBtn, Tabs, Avatar, Field, Switch, DataTable, Check, StrainPill } = window;
 
 // ── helpers ──────────────────────────────────────────────────────────────
-const money  = (n)=> '$'+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0});
-const money2 = (n)=> '$'+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+// money/money2 and STATUS/GSTATUS are now athome/athome-shared.jsx's one copy
+// (window.AtHome), loaded before this file.
+const { money, money2, STATUS, GSTATUS, LOYALTY_TIER_LABEL: AH_TIER } = window.AtHome;
 const TODAY  = 'Wed · Jul 8';
 
 // ── reference data ─────────────────────────────────────────────────────────
@@ -60,31 +61,18 @@ const TIMELINE_2041 = [
 
 // appointments (today Jul 8 + a couple queued)
 const APPTS = [
-  { id:'A-2041', cust:'Reggie Watts', tier:'Gold', region:'Rancho Cucamonga', addr:'1200 block · Vineyard Ave', win:'2:00–2:45p', genius:'g1', status:'in_session', cart:CART_2041, deposit:'paid', dep:100, subtotal:358, notes:"Restock live rosin carts + something for sleep. Open to recs. Bring Hyperwolf hoodie (L) if available.", orders:34, ltv:8240, member:'2 yr' },
-  { id:'A-2042', cust:'Dana Cho', tier:'Silver', region:'Riverside', addr:'Canyon Crest · Big Springs', win:'3:30–4:15p', genius:'g2', status:'en_route', cart:[], deposit:'paid', dep:100, subtotal:0, notes:"First house call. Wants to browse vapes + a starter edible. Gate code 4417.", orders:6, ltv:640, member:'4 mo' },
-  { id:'A-2043', cust:'Leo Park', tier:'Gold', region:'Corona', addr:'Sierra Del Oro', win:'4:00–4:45p', genius:'g3', status:'confirmed', cart:[], deposit:'paid', dep:100, subtotal:0, notes:"Repeat. Usual flower order + trying concentrates. Dog on property (friendly).", orders:22, ltv:4100, member:'1 yr' },
-  { id:'A-2044', cust:'Mia Flores', tier:'Silver', region:'Temecula', addr:'Redhawk', win:'5:15–6:00p', genius:'g4', status:'confirmed', cart:[], deposit:'paid', dep:100, subtotal:0, notes:"Birthday. Asked about the BOGO preroll deal + a gift for a friend.", orders:11, ltv:1350, member:'8 mo' },
-  { id:'A-2045', cust:'Jordan Blake', tier:'Gold', region:'Rancho Cucamonga', addr:'Etiwanda', win:'6:30–7:15p', genius:null, status:'requested', cart:[], deposit:'pending', dep:0, subtotal:0, notes:"VIP. Large restock ~$500. Prefers Marcus if available.", orders:41, ltv:11200, member:'3 yr' },
-  { id:'A-2039', cust:'Wesley Kim', tier:'Silver', region:'Riverside', addr:'Orangecrest', win:'12:00–12:45p', genius:'g2', status:'completed', cart:[], deposit:'applied', dep:100, subtotal:356, notes:"Wanted sativa vapes for a hike.", rating:5, tip:40, dur:'31 min', orders:9, ltv:1120, member:'6 mo' },
-  { id:'A-2038', cust:'Tara Nguyen', tier:'Bronze', region:'Corona', addr:'Coronita', win:'11:00–11:45a', genius:'g3', status:'completed', cart:[], deposit:'applied', dep:100, subtotal:189, notes:"New member, curious about edibles dosing.", rating:4, tip:15, dur:'44 min', orders:2, ltv:210, member:'2 wk' },
+  { id:'A-2041', cust:'Reggie Watts', tier:AH_TIER.gold, region:'Rancho Cucamonga', addr:'1200 block · Vineyard Ave', win:'2:00–2:45p', genius:'g1', status:'in_session', cart:CART_2041, deposit:'paid', dep:100, subtotal:358, notes:"Restock live rosin carts + something for sleep. Open to recs. Bring Hyperwolf hoodie (L) if available.", orders:34, ltv:8240, member:'2 yr' },
+  { id:'A-2042', cust:'Dana Cho', tier:AH_TIER.silver, region:'Riverside', addr:'Canyon Crest · Big Springs', win:'3:30–4:15p', genius:'g2', status:'en_route', cart:[], deposit:'paid', dep:100, subtotal:0, notes:"First house call. Wants to browse vapes + a starter edible. Gate code 4417.", orders:6, ltv:640, member:'4 mo' },
+  { id:'A-2043', cust:'Leo Park', tier:AH_TIER.gold, region:'Corona', addr:'Sierra Del Oro', win:'4:00–4:45p', genius:'g3', status:'confirmed', cart:[], deposit:'paid', dep:100, subtotal:0, notes:"Repeat. Usual flower order + trying concentrates. Dog on property (friendly).", orders:22, ltv:4100, member:'1 yr' },
+  { id:'A-2044', cust:'Mia Flores', tier:AH_TIER.silver, region:'Temecula', addr:'Redhawk', win:'5:15–6:00p', genius:'g4', status:'confirmed', cart:[], deposit:'paid', dep:100, subtotal:0, notes:"Birthday. Asked about the BOGO preroll deal + a gift for a friend.", orders:11, ltv:1350, member:'8 mo' },
+  { id:'A-2045', cust:'Jordan Blake', tier:AH_TIER.gold, region:'Rancho Cucamonga', addr:'Etiwanda', win:'6:30–7:15p', genius:null, status:'requested', cart:[], deposit:'pending', dep:0, subtotal:0, notes:"VIP. Large restock ~$500. Prefers Marcus if available.", orders:41, ltv:11200, member:'3 yr' },
+  { id:'A-2039', cust:'Wesley Kim', tier:AH_TIER.silver, region:'Riverside', addr:'Orangecrest', win:'12:00–12:45p', genius:'g2', status:'completed', cart:[], deposit:'applied', dep:100, subtotal:356, notes:"Wanted sativa vapes for a hike.", rating:5, tip:40, dur:'31 min', orders:9, ltv:1120, member:'6 mo' },
+  { id:'A-2038', cust:'Tara Nguyen', tier:AH_TIER.bronze, region:'Corona', addr:'Coronita', win:'11:00–11:45a', genius:'g3', status:'completed', cart:[], deposit:'applied', dep:100, subtotal:189, notes:"New member, curious about edibles dosing.", rating:4, tip:15, dur:'44 min', orders:2, ltv:210, member:'2 wk' },
   { id:'A-2046', cust:'Sam Ortiz', tier:'—', region:'Murrieta', addr:'—', win:'—', genius:null, status:'canceled', cart:[], deposit:'refunded', dep:0, subtotal:0, notes:"Address outside live zone — auto-declined, deposit refunded.", orders:0, ltv:0, member:'—' },
 ];
 const apptBy = id => APPTS.find(a=>a.id===id);
 
-const STATUS = {
-  requested:  { label:'Requested', kind:'warn', dot:true },
-  confirmed:  { label:'Confirmed', kind:'info', dot:true },
-  en_route:   { label:'En route',  kind:'info', dot:true },
-  in_session: { label:'In session',kind:'good', dot:true },
-  completed:  { label:'Completed', kind:'neutral' },
-  canceled:   { label:'Canceled',  kind:'bad' },
-};
-const GSTATUS = {
-  available:  { label:'Available', kind:'good' },
-  en_route:   { label:'En route',  kind:'info' },
-  in_session: { label:'In session',kind:'warn' },
-  off:        { label:'Off shift', kind:'neutral' },
-};
+// STATUS/GSTATUS are athome/athome-shared.jsx's one copy now (destructured above).
 
 // ── small ui bits ────────────────────────────────────────────────────────
 function Money({ n, size=13, dim, strong }){ const P=useP(); return <span className="mono" style={{ fontFamily:P.fontMono, fontVariantNumeric:'tabular-nums', fontSize:size, color:dim?P.inkDim:P.ink, fontWeight:strong?700:600 }}>{money(n)}</span>; }
@@ -204,7 +192,7 @@ function BoardView({ onOpen }){
         <div key={a.id} onClick={()=>onOpen(a.id)} style={{ display:'grid', gridTemplateColumns:'150px 1.4fr 1.2fr 130px 1fr 120px 40px', gap:0, padding:'14px 18px', borderTop:i?`1px solid ${P.hairline}`:'none', alignItems:'center', cursor:'pointer', transition:'background .1s' }}
           onMouseEnter={e=>e.currentTarget.style.background=P.surface2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
           <div><div className="mono" style={{ fontSize: 13.5, fontWeight:700, color:P.ink, fontVariantNumeric:'tabular-nums' }}>{a.win}</div><div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>{a.id}</div></div>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}><Avatar name={a.cust} size={32} crown={a.tier==='Gold'}/><div><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{a.cust}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{a.tier!=='—'?`${a.tier} · ${a.member}`:'Non-member'}</div></div></div>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}><Avatar name={a.cust} size={32} crown={a.tier===AH_TIER.gold}/><div><div style={{ fontSize:13.5, fontWeight:600, color:P.ink }}>{a.cust}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{a.tier!=='—'?`${a.tier} · ${a.member}`:'Non-member'}</div></div></div>
           <div><div style={{ fontSize:12.5, color:P.ink, fontWeight:500 }}>{a.region}</div><div style={{ fontSize: 11.5, color:P.inkMute }}>{a.addr}</div></div>
           <div>{g? <div style={{ display:'flex', alignItems:'center', gap:7 }}><Avatar name={g.name} size={24}/><span style={{ fontSize: 12.5, color:P.ink, fontWeight:500 }}>{g.name.split(' ')[0]}</span></div> : <Pill kind="warn" soft>Unassigned</Pill>}</div>
           <div><Pill kind={st.kind} soft dot={st.dot}>{st.label}</Pill>{a.status==='completed'&&a.rating&&<span className="mono" style={{ marginLeft:7, fontSize:11.5, color:P.inkDim }}>★ {a.rating.toFixed(1)}</span>}</div>
@@ -379,7 +367,7 @@ function ApptDetail({ id, onClose }){
     <div style={{ position:'relative', width:'min(720px, 94vw)', background:P.bg, borderLeft:`1px solid ${P.hairline2}`, boxShadow:P.shadowLg, display:'flex', flexDirection:'column', animation:'shSlide .28s cubic-bezier(.2,.8,.2,1)' }}>
       {/* header */}
       <div style={{ padding:'18px 24px', borderBottom:`1px solid ${P.hairline2}`, background:P.surface, display:'flex', alignItems:'center', gap:14 }}>
-        <Avatar name={a.cust} size={44} crown={a.tier==='Gold'}/>
+        <Avatar name={a.cust} size={44} crown={a.tier===AH_TIER.gold}/>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}><span style={{ fontSize: 16, fontWeight:700, color:P.ink }}>{a.cust}</span><Pill kind={st.kind} soft dot={st.dot}>{st.label}</Pill></div>
           <div className="mono" style={{ fontSize:11.5, color:P.inkMute, marginTop:2 }}>{a.id} · {a.tier!=='—'?`${a.tier} member · ${a.member}`:'Non-member'} · {a.orders} orders · LTV {money(a.ltv)}</div>

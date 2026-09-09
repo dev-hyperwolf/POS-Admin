@@ -4,8 +4,8 @@ const { useState, useMemo } = React;
 const useP = window.useP, useTheme = window.useTheme, ThemeProvider = window.ThemeProvider;
 const { Icon, Card, Eyebrow, SectionHead, KPI, Pill, IconBtn, Tabs, Avatar, Field, Switch, StrainPill } = window;
 
-const money = (n)=> '$'+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0});
-const money2 = (n)=> '$'+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+// money/money2 are athome/athome-shared.jsx's one copy now (window.AtHome).
+const { money, money2, LOYALTY_TIER_LABEL: AH_TIER } = window.AtHome;
 
 // tag color map (colorful member tags)
 const TAGTINT = { 'VIP':'accent', '@ Home regular':'info', 'High AOV':'good', 'Rosin fan':'indica', 'New':'info', 'At risk':'bad', 'Wholesale':'sativa' };
@@ -24,19 +24,19 @@ function IDPhoto({ size=64, radius=13, badge, showTag=true }){ const P=useP();
 
 // ── directory of members ────────────────────────────────────────────────
 const MEMBERS = [
-  { id:'C-1042', name:'Reggie Watts', tier:'Gold', region:'Rancho Cucamonga', ltv:8240, orders:34, last:'Today', status:'active' },
-  { id:'C-1043', name:'Jordan Blake', tier:'Gold', region:'Rancho Cucamonga', ltv:11200, orders:41, last:'Today', status:'active' },
-  { id:'C-1044', name:'Dana Cho', tier:'Silver', region:'Riverside', ltv:640, orders:6, last:'Today', status:'active' },
-  { id:'C-1045', name:'Leo Park', tier:'Gold', region:'Corona', ltv:4100, orders:22, last:'Jul 6', status:'active' },
-  { id:'C-1046', name:'Mia Flores', tier:'Silver', region:'Temecula', ltv:1350, orders:11, last:'Jul 5', status:'active' },
-  { id:'C-1047', name:'Wesley Kim', tier:'Silver', region:'Riverside', ltv:1120, orders:9, last:'Today', status:'active' },
-  { id:'C-1048', name:'Tara Nguyen', tier:'Bronze', region:'Corona', ltv:210, orders:2, last:'Today', status:'new' },
+  { id:'C-1042', name:'Reggie Watts', tier:AH_TIER.gold, region:'Rancho Cucamonga', ltv:8240, orders:34, last:'Today', status:'active' },
+  { id:'C-1043', name:'Jordan Blake', tier:AH_TIER.gold, region:'Rancho Cucamonga', ltv:11200, orders:41, last:'Today', status:'active' },
+  { id:'C-1044', name:'Dana Cho', tier:AH_TIER.silver, region:'Riverside', ltv:640, orders:6, last:'Today', status:'active' },
+  { id:'C-1045', name:'Leo Park', tier:AH_TIER.gold, region:'Corona', ltv:4100, orders:22, last:'Jul 6', status:'active' },
+  { id:'C-1046', name:'Mia Flores', tier:AH_TIER.silver, region:'Temecula', ltv:1350, orders:11, last:'Jul 5', status:'active' },
+  { id:'C-1047', name:'Wesley Kim', tier:AH_TIER.silver, region:'Riverside', ltv:1120, orders:9, last:'Today', status:'active' },
+  { id:'C-1048', name:'Tara Nguyen', tier:AH_TIER.bronze, region:'Corona', ltv:210, orders:2, last:'Today', status:'new' },
   { id:'C-1049', name:'Sam Ortiz', tier:'—', region:'Murrieta', ltv:0, orders:0, last:'—', status:'flagged' },
 ];
 
 // ── the focused record (Reggie, matches mobile + admin) ─────────────────
 const REC = {
-  id:'C-1042', name:'Reggie Watts', tier:'Gold', since:'Jun 12, 2024', years:'2 yr',
+  id:'C-1042', name:'Reggie Watts', tier:AH_TIER.gold, since:'Jun 12, 2024', years:'2 yr',
   phone:'(909) 555-0287', email:'reggie.w@gmail.com', dob:'Mar 14, 1990 · 36y',
   addr:'1200 Vineyard Ave, Rancho Cucamonga, CA 91739', region:'Rancho Cucamonga',
   idVerified:true, idType:"CA driver's license", idExpires:'Aug 2028',
@@ -113,7 +113,7 @@ function MembersList({ sel, onSel }){ const P=useP(); const [q,setQ]=useState(''
     <div style={{ flex:1, overflow:'auto' }}>
       {rows.map(m=>{ const a=sel===m.id; const ts=TSTAT[m.status]; return (
         <button key={m.id} onClick={()=>onSel(m.id)} style={{ width:'100%', display:'flex', alignItems:'center', gap:11, padding:'12px 16px', border:'none', borderLeft:`3px solid ${a?P.accent:'transparent'}`, background:a?P.accentSoft:'transparent', cursor:'pointer', textAlign:'left', borderBottom:`1px solid ${P.hairline}` }}>
-          <IDPhoto size={38} radius={10} showTag={false} badge={m.tier==='Gold'}/>
+          <IDPhoto size={38} radius={10} showTag={false} badge={m.tier===AH_TIER.gold}/>
           <div style={{ flex:1, minWidth:0 }}><div style={{ fontSize:13.5, fontWeight:700, color:P.ink }}>{m.name}</div><div className="mono" style={{ fontSize: 11.5, color:P.inkMute }}>{m.tier!=='—'?m.tier:'Guest'} · {m.orders} ord · {money(m.ltv)}</div></div>
           <Pill kind={ts.k} soft>{ts.l}</Pill>
         </button>); })}

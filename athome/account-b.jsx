@@ -5,24 +5,10 @@ const { useState, useMemo, useRef, useEffect } = React;
 const useP = window.useP, useTheme = window.useTheme, ThemeProvider = window.ThemeProvider;
 const { Icon, Avatar } = window;
 
-const money = (n)=> '$'+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0});
-const money2 = (n)=> '$'+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-
-// ── customer (same Reggie Watts as the admin side) ─────────────────────────
-const ME = {
-  name:'Reggie Watts', first:'Reggie', tier:'Gold', since:'Jun 2024', years:'2 yr',
-  phone:'(909) 555-0287', email:'reggie.w@gmail.com', dob:'Mar 14, 1990',
-  points:2840, pointsToNext:660, nextTier:'Platinum', wallet:42.50, orders:34, ltv:8240,
-  idVerified:true, idExpires:'Aug 2028',
-};
-
-const ORDERS = [
-  { id:'A-2041', kind:'@ Home', date:'Today · 2:00p', status:'In session', total:null, items:5, live:true, genius:'Marcus Vale', eta:'Now', note:'Live rosin + sleep' },
-  { id:'H-8841', kind:'Delivery', date:'Jul 2', status:'Delivered', total:212, items:4, rating:5 },
-  { id:'H-8720', kind:'Pickup', date:'Jun 24', status:'Delivered', total:96, items:2, rating:5 },
-  { id:'A-2010', kind:'@ Home', date:'Jun 12', status:'Completed', total:388, items:6, rating:5, genius:'Marcus Vale' },
-  { id:'H-8402', kind:'Delivery', date:'May 30', status:'Delivered', total:148, items:3, rating:4 },
-];
+// money/money2, ME and ORDERS were byte-identical across account-a/b/c.jsx —
+// now the one copy in athome/athome-shared.jsx (window.AtHome), loaded before
+// this file. This screen stays its own deliberate variant; only the data moved.
+const { money, money2, ME, ORDERS } = window.AtHome;
 
 const TRACK = [
   { k:'Requested', t:'1:41p', done:true },
