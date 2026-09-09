@@ -1,7 +1,7 @@
 // ── Hyperdrive Logistics — live pin map + order detail (logistics + POS) ────
 const useP = window.useP;
 const L = window.LDATA;
-const money = (n) => window.HW ? window.HW.fmt.money(n) : '$' + Number(n).toFixed(2);
+const money = L.money;
 const catColor = (c) => window.HW && window.HW.CAT_COLOR[c] || '#6E6E66';
 
 // Module-level so identity is stable across renders. Defining these inside the
@@ -322,7 +322,7 @@ window.LOrderDetail = function LOrderDetail({ order, drivers, onReassign, onItem
   const notes = L.hotNotesFor(o.recipient);
   const discount = promo ? promo.discount : 0;
   const taxable = Math.max(0, t.sub - discount);
-  const tax = +(taxable * 0.0822).toFixed(2);
+  const tax = L.taxFor(taxable);
   const total = +(taxable + tax).toFixed(2);
   const swap = (sku, to) => {onItems(o.id, o.items.map((it) => it.sku === sku ? { ...it, sku: to } : it));setSwapFor(null);onFlash('Item swapped');};
   const setQty = (sku, v) => {let items = o.items.slice();const idx = items.findIndex((x) => x.sku === sku);if (v <= 0) items.splice(idx, 1);else items[idx] = { ...items[idx], qty: v };onItems(o.id, items);};

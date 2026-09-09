@@ -1,7 +1,7 @@
 // ── Hyperdrive Logistics — order row, driver lane, action-queue item ────────
 const useP = window.useP;
 const L = window.LDATA;
-const _money = (n) => window.HW ? window.HW.fmt.money(n) : '$' + Number(n).toFixed(2);
+const _money = L.money;
 
 // ── Order triage row (dense list) ───────────────────────────────────────────
 window.LOrderRow = function LOrderRow({ o, drivers, onReassign, onFlash, up, first }) {

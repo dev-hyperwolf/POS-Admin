@@ -1,9 +1,20 @@
 // ── Hyperdrive Logistics — live dispatch data + primitives ──────────────────
 // Snapshot pinned at NOW = Jul 20 2026, 7:52 PM. Real region codes (from Buffer
-// Spillover Rules) + real driver names (from the roster screenshots). SLA 90m,
-// buffer 10m, risk thresholds OK≥.85 / BAD<.70 (from Routing Config).
+// Spillover Rules) + synthetic driver names/555-numbers (see the note above
+// DRIVERS — this table used to carry real names from roster screenshots, which
+// was PII in source and has been replaced). SLA 90m, buffer 10m, risk
+// thresholds OK≥.85 / BAD<.70 (from Routing Config).
 const useP = window.useP;
 const CC = { RC: '#3F73D6', SB: '#2FA59B', OC: '#D98316', LA: '#8A5CD6' };
+
+// DriverDutyState — docs/BUILD-AGAINST-THE-SOURCE.md §3: a status vocabulary is a
+// contract enum, never a repeated literal. The contract's list also covers
+// 'offline'/'on_route' (reconciled from pos/data.jsx and mobile/'s own duty
+// vocabularies) — this module only ever uses the five below. Falls back to the
+// literal list if contracts/index.js has not loaded.
+const LHC = window.HWContracts;
+const DUTY_STATES = LHC ? LHC.enumValues('DriverDutyState') : ['duty', 'idle', 'break', 'meal', 'oos', 'offline', 'on_route'];
+const [ST_DUTY, ST_IDLE, ST_BREAK, ST_MEAL, ST_OOS] = DUTY_STATES;
 
 const NOW = '7:52 PM';
 const CFG = { sla: 90, buffer: 10, ok: 0.85, bad: 0.70 };
@@ -23,24 +34,42 @@ const REGIONS = [
 const REGION_BY_CODE = Object.fromEntries(REGIONS.map((r) => [r.code, r]));
 const regionColor = (code) => CC[(REGION_BY_CODE[code] || {}).county] || '#7E7E74';
 const regionLabel = (code) => code + ' ' + ((REGION_BY_CODE[code] || {}).city || '');
+// This module's bare codes (RC5, SB1, RC8...) don't match the LA-01 shape
+// delivery/ddata.jsx uses (county prefix, dash, 2-digit) — one of four incompatible
+// region-id taxonomies in the estate (docs/codebase-audit/gaps §1). Renaming every
+// row here would touch REGIONS, REGION_BY_CODE, RMAP, DRIVERS.region, ORDERS.region
+// and every screen keyed off the bare code, so this maps THROUGH one helper for
+// display instead: the bare code stays the join key everywhere internally,
+// regionId() is only for showing it in the LA-01 shape. NOT a full fix — RC8
+// ("Floater") has no delivery/terminals counterpart at all, so standardizing the
+// SHAPE here does not standardize the underlying region SET across the four groups
+// (see final report).
+function regionId(code) {
+  const m = /^([A-Za-z]+)(\d+)$/.exec(code || '');
+  return m ? m[1].toUpperCase() + '-' + m[2].padStart(2, '0') : code;
+}
 
 // ── Drivers ───────────────────────────────────────────────────────────────
 // status: duty (working a load) · idle (on-duty, no active stop) · break · oos
+// Names and phone numbers below are synthetic (555-numbers) — this table used to
+// carry real driver names and phone numbers "from the roster screenshots" (see
+// git history), which is PII that does not belong in source. Count and shapes
+// (id, region, status mix, vehicle, load, etc.) are unchanged.
 const DRIVERS = [
-  { id: 1193, name: 'Fabian Romero',    region: 'RC5', status: 'duty', vehicle: 'Car',     load: 3, etaNext: 7.6,  since: '5:02 PM', phone: '+1 (951) 286-8707' },
-  { id: 1303, name: 'Anthony Campbell', region: 'RC5', status: 'idle', vehicle: 'Car',     load: 0, idle: 22,      since: '3:48 PM', phone: '+1 (951) 555-0142' },
-  { id: 1211, name: 'Arron Lemaster',   region: 'RC8', status: 'idle', vehicle: 'Car',     load: 0, idle: 8,       since: '4:10 PM', phone: '+1 (951) 555-0198', floater: true },
-  { id: 1274, name: 'Neha Gupta',       region: 'RC4', status: 'duty', vehicle: 'Car',     load: 2, etaNext: 11.2, since: '2:20 PM', phone: '+1 (714) 555-0110' },
-  { id: 1312, name: 'Francisco Guerra', region: 'RC4', status: 'duty', vehicle: 'Car',     load: 1, etaNext: 6.4,  since: '3:15 PM', phone: '+1 (714) 555-0187' },
-  { id: 1263, name: 'Uday Pathania',    region: 'RC3', status: 'duty', vehicle: 'Car',     load: 2, etaNext: 9.1,  since: '1:40 PM', phone: '+1 (951) 555-0166' },
-  { id: 1305, name: 'Jayant Grover',    region: 'RC3', status: 'oos',  vehicle: 'Car',     load: 0, reason: 'Maintenance', since: '—', phone: '+1 (951) 555-0173' },
-  { id: 1330, name: 'Armani Olivio',    region: 'RC1', status: 'duty', vehicle: 'Bike',    load: 1, etaNext: 4.8,  since: '4:02 PM', phone: '+1 (951) 555-0120', stock: ['Flower', 'Pre-Rolls', 'Vapes', 'Edibles'] },
-  { id: 1341, name: 'Cory Krcilek',     region: 'RC1', status: 'break',vehicle: 'Car',     load: 0, brk: 14, brkPlan: 5, since: '4:40 PM', phone: '+1 (951) 555-0155' },
-  { id: 1352, name: 'Diya Sharma',      region: 'RC2', status: 'duty', vehicle: 'Car',     load: 1, etaNext: 12.5, since: '2:55 PM', phone: '+1 (951) 555-0131' },
-  { id: 1360, name: 'Vivek Chamyal',    region: 'SB1', status: 'duty', vehicle: 'Car',     load: 1, etaNext: 8.0,  since: '3:36 PM', phone: '+1 (909) 555-0144' },
-  { id: 1371, name: 'Brenden Lemus',    region: 'SB1', status: 'meal', vehicle: 'Bicycle', load: 0, mealType: 'First Meal', brk: 22, brkPlan: 30, since: '4:20 PM', phone: '+1 (909) 555-0177', stock: ['Flower', 'Vapes', 'Pre-Rolls'] },
-  { id: 1380, name: 'Eduardo Martinez', region: 'SB2', status: 'duty', vehicle: 'Car',     load: 1, etaNext: 10.3, since: '3:00 PM', phone: '+1 (909) 555-0159' },
-  { id: 1391, name: 'Dylan Johnson',    region: 'SB3', status: 'duty', vehicle: 'Car',     load: 1, etaNext: 5.9,  since: '3:22 PM', phone: '+1 (909) 555-0162' },
+  { id: 1193, name: 'Miles Anderson',   region: 'RC5', status: ST_DUTY, vehicle: 'Car',     load: 3, etaNext: 7.6,  since: '5:02 PM', phone: '+1 (951) 555-0211' },
+  { id: 1303, name: 'Derek Coleman',    region: 'RC5', status: ST_IDLE, vehicle: 'Car',     load: 0, idle: 22,      since: '3:48 PM', phone: '+1 (951) 555-0212' },
+  { id: 1211, name: 'Trevor Mayfield',  region: 'RC8', status: ST_IDLE, vehicle: 'Car',     load: 0, idle: 8,       since: '4:10 PM', phone: '+1 (951) 555-0213', floater: true },
+  { id: 1274, name: 'Simran Kaur',      region: 'RC4', status: ST_DUTY, vehicle: 'Car',     load: 2, etaNext: 11.2, since: '2:20 PM', phone: '+1 (714) 555-0214' },
+  { id: 1312, name: 'Emilio Vargas',    region: 'RC4', status: ST_DUTY, vehicle: 'Car',     load: 1, etaNext: 6.4,  since: '3:15 PM', phone: '+1 (714) 555-0215' },
+  { id: 1263, name: 'Arjun Malhotra',   region: 'RC3', status: ST_DUTY, vehicle: 'Car',     load: 2, etaNext: 9.1,  since: '1:40 PM', phone: '+1 (951) 555-0216' },
+  { id: 1305, name: 'Rohan Chatterjee', region: 'RC3', status: ST_OOS,  vehicle: 'Car',     load: 0, reason: 'Maintenance', since: '—', phone: '+1 (951) 555-0217' },
+  { id: 1330, name: 'Damian Cruz',      region: 'RC1', status: ST_DUTY, vehicle: 'Bike',    load: 1, etaNext: 4.8,  since: '4:02 PM', phone: '+1 (951) 555-0218', stock: ['Flower', 'Pre-Rolls', 'Vapes', 'Edibles'] },
+  { id: 1341, name: 'Wesley Novak',     region: 'RC1', status: ST_BREAK,vehicle: 'Car',     load: 0, brk: 14, brkPlan: 5, since: '4:40 PM', phone: '+1 (951) 555-0219' },
+  { id: 1352, name: 'Ananya Rao',       region: 'RC2', status: ST_DUTY, vehicle: 'Car',     load: 1, etaNext: 12.5, since: '2:55 PM', phone: '+1 (951) 555-0220' },
+  { id: 1360, name: 'Rahul Deshmukh',   region: 'SB1', status: ST_DUTY, vehicle: 'Car',     load: 1, etaNext: 8.0,  since: '3:36 PM', phone: '+1 (909) 555-0221' },
+  { id: 1371, name: 'Tyler Ibarra',     region: 'SB1', status: ST_MEAL, vehicle: 'Bicycle', load: 0, mealType: 'First Meal', brk: 22, brkPlan: 30, since: '4:20 PM', phone: '+1 (909) 555-0222', stock: ['Flower', 'Vapes', 'Pre-Rolls'] },
+  { id: 1380, name: 'Julian Delgado',   region: 'SB2', status: ST_DUTY, vehicle: 'Car',     load: 1, etaNext: 10.3, since: '3:00 PM', phone: '+1 (909) 555-0223' },
+  { id: 1391, name: 'Nathan Brooks',    region: 'SB3', status: ST_DUTY, vehicle: 'Car',     load: 1, etaNext: 5.9,  since: '3:22 PM', phone: '+1 (909) 555-0224' },
 ];
 const DRIVER_BY_NAME = Object.fromEntries(DRIVERS.map((d) => [d.name, d]));
 
@@ -48,23 +77,23 @@ const DRIVER_BY_NAME = Object.fromEntries(DRIVERS.map((d) => [d.name, d]));
 // risk: 0..1 (share of SLA window remaining after projected ETA). late: minutes
 // projected past deadline (null if on time). speed: ASAP | Schedule.
 const ORDERS = [
-  { id: 1012, txn: '1284420', region: 'RC5', driver: null,             speed: 'Schedule', recipient: 'Manisha Saini',  addr: '431 Mulvihill Ave, Redlands',      product: 'Dev & Waffles Melted Diamonds', qty: 1, cash: 64, placed: '7:40 PM', deadline: '7:58 PM', eta: null, risk: 0.38, late: null, noCand: true, noCandReason: 'All RC5 Redlands drivers are over SLA capacity — no in-zone driver can hit the 90-min window. Nearest idle driver (Anthony Campbell) is just outside the region buffer.' },
-  { id: 1011, txn: '1284417', region: 'RC5', driver: 'Fabian Romero',  speed: 'ASAP',     recipient: 'Manisha Saini',  addr: '431 Mulvihill Ave, Redlands',      product: 'Dev & Waffles Melted Diamonds', qty: 1, cash: 64, placed: '7:22 PM', deadline: '8:12 PM', eta: '8:14 PM', risk: 0.63, late: 2 },
-  { id: 1004, txn: '1284410', region: 'RC5', driver: 'Fabian Romero',  speed: 'ASAP',     recipient: 'D. Alvarez',     addr: 'Oakmont Trail, Redlands',          product: 'Hyperwolf Live Resin 1g',       qty: 2, cash: 0,  placed: '7:16 PM', deadline: '8:04 PM', eta: '8:11 PM', risk: 0.54, late: 7 },
-  { id: 1010, txn: '1284182', region: 'RC3', driver: 'Uday Pathania',  speed: 'ASAP',     recipient: 'R. Okafor',      addr: 'Alessandro Blvd, Moreno Valley',   product: 'THE STUF Cart 1g',              qty: 1, cash: 40, placed: '7:20 PM', deadline: '8:18 PM', eta: '8:12 PM', risk: 0.74, late: null },
-  { id: 1009, txn: '1284181', region: 'RC3', driver: 'Uday Pathania',  speed: 'ASAP',     recipient: 'hyper hypertest',addr: 'Perris Blvd, Moreno Valley',       product: 'Hyperwolf Gummies 100mg',       qty: 3, cash: 0,  placed: '7:28 PM', deadline: '8:26 PM', eta: '8:19 PM', risk: 0.80, late: null },
-  { id: 1008, txn: '1284180', region: 'RC4', driver: 'Neha Gupta',     speed: 'ASAP',     recipient: 'M. Flores',      addr: 'Ontario Ave, Corona',              product: 'Preroll 5-pack',                qty: 1, cash: 55, placed: '7:31 PM', deadline: '8:29 PM', eta: '8:16 PM', risk: 0.83, late: null },
-  { id: 1007, txn: '1284179', region: 'RC4', driver: 'Francisco Guerra',speed: 'ASAP',    recipient: 'T. Nguyen',      addr: 'Magnolia Ave, Corona',             product: 'Hyperwolf Vape Box',            qty: 1, cash: 0,  placed: '7:38 PM', deadline: '8:36 PM', eta: '8:15 PM', risk: 0.90, late: null },
-  { id: 1006, txn: '1284178', region: 'RC1', driver: 'Armani Olivio',  speed: 'ASAP',     recipient: 'S. Park',        addr: 'Rancho California Rd, Temecula',    product: 'Melted Diamonds 1g',            qty: 1, cash: 50, placed: '7:35 PM', deadline: '8:33 PM', eta: '8:10 PM', risk: 0.88, late: null },
-  { id: 1005, txn: '1284177', region: 'RC2', driver: 'Diya Sharma',    speed: 'ASAP',     recipient: 'J. Rivera',      addr: 'Grand Ave, Lake Elsinore',         product: 'Live Rosin Gummies',            qty: 2, cash: 0,  placed: '7:41 PM', deadline: '8:39 PM', eta: '8:20 PM', risk: 0.93, late: null },
-  { id: 1003, txn: '1284176', region: 'SB1', driver: 'Vivek Chamyal',  speed: 'ASAP',     recipient: 'A. Cole',        addr: 'Sierra Ave, Fontana',              product: 'THE STUF Cart 1g',              qty: 1, cash: 38, placed: '7:33 PM', deadline: '8:31 PM', eta: '8:12 PM', risk: 0.86, late: null },
-  { id: 1002, txn: '1284175', region: 'SB2', driver: 'Eduardo Martinez',speed: 'Schedule',recipient: 'L. Grant',       addr: 'Foothill Blvd, Rancho Cucamonga',  product: 'Hyperwolf Gummies 100mg',       qty: 2, cash: 0,  placed: '6:50 PM', deadline: '8:30 PM', eta: '8:18 PM', risk: 0.89, late: null },
-  { id: 1001, txn: '1284174', region: 'SB3', driver: 'Dylan Johnson',  speed: 'ASAP',     recipient: 'K. Osei',        addr: 'Bonita Ave, San Dimas',            product: 'Preroll 5-pack',                qty: 1, cash: 45, placed: '7:37 PM', deadline: '8:35 PM', eta: '8:09 PM', risk: 0.91, late: null },
+  { id: 1012, txn: '1284420', region: 'RC5', driver: null,             speed: 'Schedule', recipient: 'Manisha Saini',  addr: '431 Mulvihill Ave, Redlands',      product: 'Dev & Waffles Melted Diamonds', qty: 1, cash: 64, placed: '7:40 PM', deadline: '7:58 PM', eta: null, risk: 0.38, late: null, noCand: true, noCandReason: 'All RC5 Redlands drivers are over SLA capacity — no in-zone driver can hit the 90-min window. Nearest idle driver (Derek Coleman) is just outside the region buffer.' },
+  { id: 1011, txn: '1284417', region: 'RC5', driver: 'Miles Anderson',  speed: 'ASAP',     recipient: 'Manisha Saini',  addr: '431 Mulvihill Ave, Redlands',      product: 'Dev & Waffles Melted Diamonds', qty: 1, cash: 64, placed: '7:22 PM', deadline: '8:12 PM', eta: '8:14 PM', risk: 0.63, late: 2 },
+  { id: 1004, txn: '1284410', region: 'RC5', driver: 'Miles Anderson',  speed: 'ASAP',     recipient: 'D. Alvarez',     addr: 'Oakmont Trail, Redlands',          product: 'Hyperwolf Live Resin 1g',       qty: 2, cash: 0,  placed: '7:16 PM', deadline: '8:04 PM', eta: '8:11 PM', risk: 0.54, late: 7 },
+  { id: 1010, txn: '1284182', region: 'RC3', driver: 'Arjun Malhotra',  speed: 'ASAP',     recipient: 'R. Okafor',      addr: 'Alessandro Blvd, Moreno Valley',   product: 'THE STUF Cart 1g',              qty: 1, cash: 40, placed: '7:20 PM', deadline: '8:18 PM', eta: '8:12 PM', risk: 0.74, late: null },
+  { id: 1009, txn: '1284181', region: 'RC3', driver: 'Arjun Malhotra',  speed: 'ASAP',     recipient: 'hyper hypertest',addr: 'Perris Blvd, Moreno Valley',       product: 'Hyperwolf Gummies 100mg',       qty: 3, cash: 0,  placed: '7:28 PM', deadline: '8:26 PM', eta: '8:19 PM', risk: 0.80, late: null },
+  { id: 1008, txn: '1284180', region: 'RC4', driver: 'Simran Kaur',     speed: 'ASAP',     recipient: 'M. Flores',      addr: 'Ontario Ave, Corona',              product: 'Preroll 5-pack',                qty: 1, cash: 55, placed: '7:31 PM', deadline: '8:29 PM', eta: '8:16 PM', risk: 0.83, late: null },
+  { id: 1007, txn: '1284179', region: 'RC4', driver: 'Emilio Vargas',speed: 'ASAP',    recipient: 'T. Nguyen',      addr: 'Magnolia Ave, Corona',             product: 'Hyperwolf Vape Box',            qty: 1, cash: 0,  placed: '7:38 PM', deadline: '8:36 PM', eta: '8:15 PM', risk: 0.90, late: null },
+  { id: 1006, txn: '1284178', region: 'RC1', driver: 'Damian Cruz',  speed: 'ASAP',     recipient: 'S. Park',        addr: 'Rancho California Rd, Temecula',    product: 'Melted Diamonds 1g',            qty: 1, cash: 50, placed: '7:35 PM', deadline: '8:33 PM', eta: '8:10 PM', risk: 0.88, late: null },
+  { id: 1005, txn: '1284177', region: 'RC2', driver: 'Ananya Rao',    speed: 'ASAP',     recipient: 'J. Rivera',      addr: 'Grand Ave, Lake Elsinore',         product: 'Live Rosin Gummies',            qty: 2, cash: 0,  placed: '7:41 PM', deadline: '8:39 PM', eta: '8:20 PM', risk: 0.93, late: null },
+  { id: 1003, txn: '1284176', region: 'SB1', driver: 'Rahul Deshmukh',  speed: 'ASAP',     recipient: 'A. Cole',        addr: 'Sierra Ave, Fontana',              product: 'THE STUF Cart 1g',              qty: 1, cash: 38, placed: '7:33 PM', deadline: '8:31 PM', eta: '8:12 PM', risk: 0.86, late: null },
+  { id: 1002, txn: '1284175', region: 'SB2', driver: 'Julian Delgado',speed: 'Schedule',recipient: 'L. Grant',       addr: 'Foothill Blvd, Rancho Cucamonga',  product: 'Hyperwolf Gummies 100mg',       qty: 2, cash: 0,  placed: '6:50 PM', deadline: '8:30 PM', eta: '8:18 PM', risk: 0.89, late: null },
+  { id: 1001, txn: '1284174', region: 'SB3', driver: 'Nathan Brooks',  speed: 'ASAP',     recipient: 'K. Osei',        addr: 'Bonita Ave, San Dimas',            product: 'Preroll 5-pack',                qty: 1, cash: 45, placed: '7:37 PM', deadline: '8:35 PM', eta: '8:09 PM', risk: 0.91, late: null },
   { id: 1000, txn: '1284173', region: 'RC4', driver: null,             speed: 'ASAP',     recipient: 'B. Iverson',     addr: 'Sixth St, Corona',                 product: 'Live Resin 1g',                 qty: 1, cash: 60, placed: '7:44 PM', deadline: '8:42 PM', eta: null, risk: 0.71, late: null, noCandReason: 'Both RC4 Corona drivers are mid-route and would breach SLA if diverted. Engine is holding for the next free driver.' },
   // Scheduled (pre-booked, not yet active) — future windows
-  { id: 1101, txn: '1284501', region: 'RC5', driver: 'Anthony Campbell', speed: 'Schedule', sched: true, recipient: 'Manisha Saini', addr: '431 Mulvihill Ave, Redlands', cash: 64, placed: '6:10 PM', win: 'Today 8:30\u20139:00 PM', deadline: '9:00 PM', eta: '8:44 PM', risk: 0.95, late: null },
+  { id: 1101, txn: '1284501', region: 'RC5', driver: 'Derek Coleman', speed: 'Schedule', sched: true, recipient: 'Manisha Saini', addr: '431 Mulvihill Ave, Redlands', cash: 64, placed: '6:10 PM', win: 'Today 8:30\u20139:00 PM', deadline: '9:00 PM', eta: '8:44 PM', risk: 0.95, late: null },
   { id: 1102, txn: '1284502', region: 'RC4', driver: null,             speed: 'Schedule', sched: true, recipient: 'Priya Nair',    addr: '2841 Mission Trail, Corona', cash: 0,  placed: '5:50 PM', win: 'Today 9:00\u20139:30 PM', deadline: '9:30 PM', eta: null, risk: 0.90, late: null, noCandReason: 'Scheduled window opens later tonight — auto-assign runs 30 min before the window.' },
-  { id: 1103, txn: '1284503', region: 'RC3', driver: 'Uday Pathania',   speed: 'Schedule', sched: true, future: true, recipient: 'Dev Anand',     addr: '905 Grand Ave, Moreno Valley', cash: 0, placed: '5:30 PM', win: 'Tomorrow 10:00\u201310:30 AM', deadline: '10:30 AM', eta: '10:12 AM', risk: 0.97, late: null },
+  { id: 1103, txn: '1284503', region: 'RC3', driver: 'Arjun Malhotra',   speed: 'Schedule', sched: true, future: true, recipient: 'Dev Anand',     addr: '905 Grand Ave, Moreno Valley', cash: 0, placed: '5:30 PM', win: 'Tomorrow 10:00\u201310:30 AM', deadline: '10:30 AM', eta: '10:12 AM', risk: 0.97, late: null },
   { id: 1104, txn: '1284504', region: 'SB1', driver: null,             speed: 'Schedule', sched: true, future: true, recipient: 'Nina Patel',    addr: '334 Riverside Dr, Fontana', cash: 50, placed: '4:40 PM', win: 'Tomorrow 5:00\u20136:00 PM', deadline: '6:00 PM', eta: null, risk: 0.95, late: null, noCandReason: 'Scheduled for tomorrow — auto-assign runs 30 min before the window opens.' },
 ];
 
@@ -88,11 +117,27 @@ DRIVERS.forEach((d) => {
   d.mx = Math.min(.95, Math.max(.05, c[0] + ((d.id * 29) % 100 / 100 - .5) * .1));
   d.my = Math.min(.92, Math.max(.06, c[1] + ((d.id * 61) % 100 / 100 - .5) * .1));
 });
+// The one place this module computes tax. window.HW.taxBreakdown (pos/data.jsx) is
+// the estate's real per-line breakdown (local + state excise + state sales); this
+// module's own flat 8.22% was a second, cruder copy of the same concern
+// (logistics/lorder.jsx:325 had it too — docs/BUILD-AGAINST-THE-SOURCE.md §3, "a
+// second copy of anything above"). Falls back to the flat rate only when pos/data.jsx
+// has not loaded on this page.
+function taxFor(sub) {
+  if (window.HW && typeof window.HW.taxBreakdown === 'function') return window.HW.taxBreakdown(sub).total;
+  return +(sub * 0.0822).toFixed(2);
+}
+// One money-formatter fallback for the module (logistics/lorder.jsx and lparts2.jsx
+// each declared their own identical copy — docs/BUILD-AGAINST-THE-SOURCE.md §3, "a
+// second copy of anything above"). NOT named `money` at top level here on purpose:
+// consumers alias it locally (`const money = L.money;`), and a second top-level
+// `money` declaration in this file would collide with theirs.
+function fmtMoneyFallback(n) { return window.HW ? window.HW.fmt.money(n) : '$' + Number(n).toFixed(2); }
 function orderTotals(items) {
   const cat = (window.HW && window.HW.PRODUCTS) || [];
   const line = (items || []).map((it) => { const p = cat.find((x) => x.sku === it.sku); return { ...it, p, ext: (p ? p.price : 0) * it.qty }; });
   const sub = line.reduce((a, l) => a + l.ext, 0);
-  const tax = +(sub * 0.0822).toFixed(2);
+  const tax = taxFor(sub);
   return { line, sub, tax, total: +(sub + tax).toFixed(2), count: (items || []).reduce((a, i) => a + i.qty, 0) };
 }
 
@@ -147,10 +192,10 @@ function candidatesFor(order, drivers) {
 const ALERTS = [
   { id: 'a1', sev: 'bad',  type: 'unassigned', icon: 'user-off', title: 'Order #1012 has no driver', body: 'HyperDrive found no eligible candidate · SLA in 6 min · Redlands', region: 'RC5', order: 1012, acts: ['assign', 'run'], at: '7:46 PM' },
   { id: 'a2', sev: 'bad',  type: 'capacity', icon: 'flag',     title: 'RC5 Redlands is surging', body: '4 active orders · 1 driver working, 1 idle unrouted · demand 2× capacity', region: 'RC5', acts: ['rebalance'], at: '7:49 PM' },
-  { id: 'a3', sev: 'bad',  type: 'sla', icon: 'clock',    title: 'Order #1004 projected 7 min late', body: 'Fabian Romero is carrying 3 stops · reassign to recover SLA', region: 'RC5', order: 1004, acts: ['reassign', 'bump'], at: '7:50 PM' },
-  { id: 'a4', sev: 'warn', type: 'driver', icon: 'clock',    title: 'Cory Krcilek over break', body: '14 min taken · 5 min planned · RC1 Temecula', region: 'RC1', driver: 'Cory Krcilek', acts: ['message', 'endbreak'], at: '7:51 PM' },
-  { id: 'a5', sev: 'warn', type: 'driver', icon: 'truck',    title: 'Jayant Grover out of service', body: 'Maintenance · RC3 Moreno Valley down a driver', region: 'RC3', driver: 'Jayant Grover', acts: ['message'], at: '7:38 PM' },
-  { id: 'a6', sev: 'info', type: 'capacity', icon: 'user-check',title: 'Arron Lemaster (Floater) available', body: 'Idle 8 min · can absorb a Redlands or Corona overflow', region: 'RC8', driver: 'Arron Lemaster', acts: ['rebalance'], at: '7:52 PM' },
+  { id: 'a3', sev: 'bad',  type: 'sla', icon: 'clock',    title: 'Order #1004 projected 7 min late', body: 'Miles Anderson is carrying 3 stops · reassign to recover SLA', region: 'RC5', order: 1004, acts: ['reassign', 'bump'], at: '7:50 PM' },
+  { id: 'a4', sev: 'warn', type: 'driver', icon: 'clock',    title: 'Wesley Novak over break', body: '14 min taken · 5 min planned · RC1 Temecula', region: 'RC1', driver: 'Wesley Novak', acts: ['message', 'endbreak'], at: '7:51 PM' },
+  { id: 'a5', sev: 'warn', type: 'driver', icon: 'truck',    title: 'Rohan Chatterjee out of service', body: 'Maintenance · RC3 Moreno Valley down a driver', region: 'RC3', driver: 'Rohan Chatterjee', acts: ['message'], at: '7:38 PM' },
+  { id: 'a6', sev: 'info', type: 'capacity', icon: 'user-check',title: 'Trevor Mayfield (Floater) available', body: 'Idle 8 min · can absorb a Redlands or Corona overflow', region: 'RC8', driver: 'Trevor Mayfield', acts: ['rebalance'], at: '7:52 PM' },
 ];
 
 const HERO = (orders, drivers) => {
@@ -230,13 +275,13 @@ window.RiskBar = function RiskBar({ score, width, height = 5 }) {
 window.RegionTag = function RegionTag({ code, size = 'md', showCity }) {
   const P = useP(); const c = regionColor(code); const r = REGION_BY_CODE[code] || {};
   const s = size === 'sm' ? { fs: 10, p: '2px 6px' } : { fs: 11.5, p: '3px 8px' };
-  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: P.fontMono, fontSize: s.fs, fontWeight: 700, color: '#fff', background: c, padding: s.p, borderRadius: 7, whiteSpace: 'nowrap' }}>{code}{showCity && <span style={{ fontWeight: 500, opacity: .85 }}>{r.city}</span>}</span>;
+  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: P.fontMono, fontSize: s.fs, fontWeight: 700, color: '#fff', background: c, padding: s.p, borderRadius: 7, whiteSpace: 'nowrap' }}>{regionId(code)}{showCity && <span style={{ fontWeight: 500, opacity: .85 }}>{r.city}</span>}</span>;
 };
 
 window.Money = function Money({ v }) {
   const P = useP();
   if (!v) return <span style={{ color: P.inkMute }}>—</span>;
-  return <span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>${v}<span style={{ fontSize: '.8em', color: P.inkDim, fontWeight: 500 }}> cash</span></span>;
+  return <span style={{ fontFamily: P.fontMono, fontWeight: 600 }}>{fmtMoneyFallback(v)}<span style={{ fontSize: '.8em', color: P.inkDim, fontWeight: 500 }}> cash</span></span>;
 };
 
 // floating confirmation toast (per-view)
@@ -248,10 +293,13 @@ window.LToast = function LToast({ msg }) {
 };
 
 window.LDATA = {
-  NOW, CFG, CC, REGIONS, REGION_BY_CODE, regionColor, regionLabel, RMAP,
+  NOW, CFG, CC, REGIONS, REGION_BY_CODE, regionColor, regionLabel, regionId, RMAP,
   DRIVERS, DRIVER_BY_NAME, ORDERS, ALERTS,
   riskBand, riskColor, riskLabel, ordersInRegion, regionStat, allRegionStats,
-  candidatesFor, HERO, orderTotals,
+  candidatesFor, HERO, orderTotals, taxFor, money: fmtMoneyFallback,
   catsOf, driverStock, stockCheck, CUSTOMERS, customerOf, TIER, PAY_TYPES, BOX_TYPE, boxOf, PROMOS, applyPromo,
   CANCEL_REASONS, hotNotesFor, addHotNote, activityFor,
+  // Contract-backed vocab — exported once here so other logistics/*.jsx files read
+  // the same values rather than each re-reading HWContracts.
+  DUTY_STATES, ST_DUTY, ST_IDLE, ST_BREAK, ST_MEAL, ST_OOS,
 };
