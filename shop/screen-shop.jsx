@@ -35,7 +35,7 @@ function SpotlightCard({ card, source }) {
   return (
     <div style={{ background: P.rail, borderRadius: P.r12, padding: 20, display: 'flex', flexDirection: 'column', gap: 10, minWidth: 260 }}>
       <div style={{ fontSize: P.type.micro, fontWeight: 700, letterSpacing: '.16em', textTransform: 'uppercase', color: P.accent, fontFamily: P.fontMono }}>
-        {merch ? 'Brand spotlight' : 'Hyperwolf'}
+        {merch ? 'Brand spotlight' : window.SHOPDATA.PLATFORM_LABEL}
       </div>
       <div style={{ fontSize: P.type.h2, fontWeight: 700, color: P.railBright, lineHeight: 1.15 }}>{card.title}</div>
       {card.offer &&

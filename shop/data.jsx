@@ -15,6 +15,36 @@
 const _SD_E = () => (typeof window !== 'undefined' && window.HWCommerce) || null;
 const _SD_SWAP = () => (typeof window !== 'undefined' && window.HWSwap) || null;
 
+// This storefront IS the 'hyperwolf' entry of contracts/index.js's Platform
+// enum (hyperwolf|hemp|stilo) — a retailer identity, never a catalogue brand.
+// Title-cased once, here, instead of the literal string 'Hyperwolf' recurring
+// at every call site that means "this is us," not "this is a vendor."
+const SHOP_PLATFORM_ID = 'hyperwolf';
+if (typeof window !== 'undefined' && window.HWContracts && !window.HWContracts.isEnum('Platform', SHOP_PLATFORM_ID)) {
+  throw new Error('shop/data.jsx: SHOP_PLATFORM_ID is not in the contract Platform enum');
+}
+const SHOP_PLATFORM_LABEL = { hyperwolf: 'Hyperwolf', hemp: 'Hemp', stilo: 'Stilo' }[SHOP_PLATFORM_ID];
+
+// contracts/index.js Lane enum (express|scheduled). ShopOrderSummary iterates
+// this instead of hand-listing both lanes, so a lane added to the contract
+// gets a fee row instead of silently not one. Individual `l.lane === 'express'`
+// branches elsewhere (tip eligibility, arrival copy) stay literal — those are
+// lane-specific BEHAVIOUR, not an enumeration that can silently drift.
+const SHOP_LANES = (typeof window !== 'undefined' && window.HWContracts && window.HWContracts.enumValues('Lane')) || ['express', 'scheduled'];
+const SHOP_LANE_LABEL = { express: 'Express delivery', scheduled: 'Scheduled delivery' };
+
+// contracts/index.js PaymentMethod is lower-case ('cash'|'card'|'split'|'cod'|
+// 'prepaid'); pos/data.jsx's own `pay` field is displayed verbatim as title
+// case (pos/screen-orders.jsx `<b>{o.pay}</b>`), so the stored shape stays
+// title case — but sourced from the enum id + a label map instead of writing
+// 'Card' as an island literal with no tie back to the vocabulary it names.
+const SHOP_PAYMENT_METHOD_ID = 'card';
+if (typeof window !== 'undefined' && window.HWContracts && !window.HWContracts.isEnum('PaymentMethod', SHOP_PAYMENT_METHOD_ID)) {
+  throw new Error('shop/data.jsx: SHOP_PAYMENT_METHOD_ID is not in the contract PaymentMethod enum');
+}
+const PAYMENT_METHOD_LABEL = { cash: 'Cash', card: 'Card', split: 'Split', cod: 'Cash on Delivery', prepaid: 'Prepaid' };
+const SHOP_PAYMENT_METHOD_LABEL = PAYMENT_METHOD_LABEL[SHOP_PAYMENT_METHOD_ID];
+
 // ── The signed-in customer ────────────────────────────────────────────────
 // Read off the web home frame (node 1912-39178): "Good afternoon, Marcus." and
 // "DELIVER TO / Long Beach · 90804".
@@ -986,6 +1016,12 @@ function shopScreenFor(tab) {
 
 window.SHOPDATA = {
   CUSTOMER: SHOP_CUSTOMER,
+  PLATFORM_ID: SHOP_PLATFORM_ID,
+  PLATFORM_LABEL: SHOP_PLATFORM_LABEL,
+  LANES: SHOP_LANES,
+  LANE_LABEL: SHOP_LANE_LABEL,
+  PAYMENT_METHOD_ID: SHOP_PAYMENT_METHOD_ID,
+  PAYMENT_METHOD_LABEL: SHOP_PAYMENT_METHOD_LABEL,
   RAILS: SHOP_RAILS,
   CAT_TOKEN: SHOP_CAT_TOKEN,
   CAT_ICON: SHOP_CAT_ICON,

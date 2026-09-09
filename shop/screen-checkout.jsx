@@ -210,49 +210,72 @@ function scoPlace() {
     const name = (D.CUSTOMER && D.CUSTOMER.name) || 'Web customer';
     const discReason = totals.discounts.map((d) => d.name).filter(Boolean).join(' + ') || 'Discount applied';
     const lines = SHOP.lines();
+    const HWC = window.HWContracts;
+    // Every dollar field below stays exactly as pos/screen-orders.jsx's
+    // priceOrderMoney() reads it (it is the authority on those and is not
+    // being touched) — these cents/HWContracts.money() fields are ADDITIVE.
+    const moneyOf = (cents, basis) => (HWC ? HWC.money(cents, basis) : undefined);
 
     const made = split.map((L) => {
       const meta = window.SHOPCART_UI.meta(L.lane);
       const laneLines = lines.filter((l) => l.lane === L.lane).map((l) => {
         const p = D.productBySku(l.sku) || {};
-        // Cents first, so a line total can never disagree with the engine's
-        // subtotal by a floating-point hair.
-        const priceCents = Math.round((+p.price || 0) * 100);
+        // Dollars → integer cents happens in the ADAPTER
+        // (shared/commerce-adapter.js toEngineProduct) and nowhere else — this
+        // screen used to do its own Math.round(price * 100), a second money
+        // authority shop/data.jsx's own header comment already forbids.
+        // HWContracts.centsFromDollars is the fallback for a page where the
+        // adapter itself has not loaded.
+        const ep = window.HWSwap && window.HWSwap.toEngineProduct(p);
+        const priceCents = ep ? ep.price : (HWC ? HWC.centsFromDollars(p.price || 0) : Math.round((+p.price || 0) * 100));
+        const totalCents = priceCents * l.qty;
         return {
           sku: l.sku, name: p.name || l.sku, brand: p.brand || '—',
           qty: l.qty, price: priceCents / 100,
           total: +((priceCents * l.qty) / 100).toFixed(2),
+          // Cents-first siblings of the dollar fields above.
+          priceCents, totalCents, totalMoney: moneyOf(totalCents, 'ex_tax_net'),
         };
       });
       const moneyLines = laneLines.slice();
       if (L.feeCents > 0) {
         moneyLines.push({ sku: 'DLV-' + String(L.lane).toUpperCase(), name: meta.label + ' delivery',
-          brand: 'Hyperwolf', qty: 1, price: L.feeCents / 100, total: L.feeCents / 100 });
+          brand: D.PLATFORM_LABEL, qty: 1, price: L.feeCents / 100, total: L.feeCents / 100,
+          priceCents: L.feeCents, totalCents: L.feeCents, totalMoney: moneyOf(L.feeCents, 'ex_tax_net') });
       }
       // The tip rides on the EXPRESS order only, and it is charged: the owner's
       // decision. It is added AFTER tax — a voluntary, separately-stated
       // gratuity is not taxable in California — which is why it is not a line.
       const laneTip = L.lane === 'express' ? tipCents : 0;
-      const total = +((L.totalCents + laneTip) / 100).toFixed(2);
+      const totalCentsWithTip = L.totalCents + laneTip;
+      const total = +(totalCentsWithTip / 100).toFixed(2);
       const rec = HW.addOrder({
-        name, total, items: L.itemCount, source: 'Hyperwolf', channel: 'Web',
-        pay: 'Card', stage: 'verify', badge: meta.label, lines: laneLines,
+        name, total, items: L.itemCount, source: D.PLATFORM_LABEL, channel: 'Web',
+        pay: D.PAYMENT_METHOD_LABEL, stage: 'verify', badge: meta.label, lines: laneLines,
+        // Cents-first siblings of `total` above — the order's quoted grand
+        // total, tax included (this is what the customer is charged).
+        totalCents: totalCentsWithTip, totalMoney: moneyOf(totalCentsWithTip, 'inc_tax'),
       });
       HW.updateOrder(rec.id, {
         total,
+        totalCents: totalCentsWithTip, totalMoney: moneyOf(totalCentsWithTip, 'inc_tax'),
         money: {
           seed: (rec.id ? rec.id.length : 5) + (rec.name || '').length + (rec.items || 1),
           lines: moneyLines,
           discReason, discAmt: +(L.discountCents / 100).toFixed(2),
+          discAmtCents: L.discountCents, discAmtMoney: moneyOf(L.discountCents, 'ex_tax_net'),
           promo: null, promoAmt: 0, referral: null, referralAmt: 0, credits: 0,
           lane: L.lane,
           deliveryFee: +(L.feeCents / 100).toFixed(2),
+          deliveryFeeCents: L.feeCents, deliveryFeeMoney: moneyOf(L.feeCents, 'ex_tax_net'),
           quotedTaxAmt: +(L.taxCents / 100).toFixed(2),
+          quotedTaxAmtCents: L.taxCents, quotedTaxAmtMoney: moneyOf(L.taxCents, 'ex_tax_net'),
           // `tip`, not `tipAmt`: this object IS the shape priceOrderMoney reads
           // (pos/screen-orders.jsx), and it reads `m.tip`. Filing it under a
           // different key was the storefront quoting one total and the order
           // panel pricing another — two money authorities across two surfaces.
           tip: +(laneTip / 100).toFixed(2),
+          tipCents: laneTip, tipMoney: moneyOf(laneTip, 'ex_tax_net'),
           // The joined line, kept as-is for anything that only displays it.
           deliverTo: SCO_STATE.address || null,
           // AND THE PARTS, so the split does not die at this boundary. Capturing

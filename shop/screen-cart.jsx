@@ -497,7 +497,7 @@ window.ShopOrderSummary = function ShopOrderSummary({ totals }) {
   const feeRow = (id, label) => {
     const l = laneOf(id);
     if (!l) return null;
-    return <ShopSumRow label={label} value={l.feeCents === 0 ? 'FREE' : SHOP.money(l.feeCents)} />;
+    return <ShopSumRow key={id} label={label} value={l.feeCents === 0 ? 'FREE' : SHOP.money(l.feeCents)} />;
   };
   // 🔴 A FEE WAIVER IS NOT A LINE IN THIS COLUMN. The engine reports it in
   // `discounts` so a surface can NAME it, but it never enters `discountCents` —
@@ -511,8 +511,7 @@ window.ShopOrderSummary = function ShopOrderSummary({ totals }) {
     <div style={{ marginTop: 8 }}>
       <ShopSumRow label="Subtotal" value={SHOP.money(totals.subtotalCents)} />
       {priceRows.map((d, i) => <ShopSumRow key={i} label={d.name} value={`−${SHOP.money(d.amountCents)}`} tone={P.good} />)}
-      {feeRow('express', 'Express delivery')}
-      {feeRow('scheduled', 'Scheduled delivery')}
+      {window.SHOPDATA.LANES.map((id) => feeRow(id, window.SHOPDATA.LANE_LABEL[id] || id))}
       <ShopSumRow label="Est. tax" hint value={SHOP.money(totals.taxCents)} />
       <div style={{ borderTop: `1px solid ${P.hairline2}`, marginTop: 6, paddingTop: 4 }}>
         <ShopSumRow strong label="Total" value={SHOP.money(totals.totalCents)} />
