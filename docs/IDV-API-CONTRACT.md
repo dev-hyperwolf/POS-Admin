@@ -781,3 +781,121 @@ Headers `X-Signature-V2` (hex HMAC-SHA256 over canonical JSON: floats shortened 
   and cannot be resolved to its entry, because the entry id does not survive `face.search`. No such
   entry exists today — the console's own path always uploads a face first — and the resolution
   falls back to `match_type: "list_entry"` with the list named but the entry not.
+
+- 2026-09-08 (calibration, backend rules pass — `wmdemo/idv_rules.py`, `wmdemo/idv_api.py`,
+  `wmdemo/idv_store.py`). Source for every number below:
+  `POS-Admin/scratch/idv-calibration-2026-09-08.md`, measured over 1,020 imported Didit sessions
+  carrying media. **Read that report's §8 before quoting any of these**: the corpus contains no
+  real capture-path selfie, so every face figure rests on the front-camera frame taken while the
+  guest photographed the card, and the face thresholds are provisional pending a re-derivation on
+  ≥ 300 real selfies.
+
+  **A. `proposed_status: "Not Finished"` is a PAUSE, and it is now in the engine contract.** The
+  engine may answer a job with `proposed_status: "Not Finished"`, `reasons` containing
+  `ENGINE_MEDIA_UNAVAILABLE` or `ENGINE_NO_EVIDENCE`, and **empty** decision-node arrays: it could
+  not fetch the media, or had nothing to judge. Two new reason codes, both in `REASONS_RETRYABLE`
+  and neither in `_GUIDED`.
+
+  `idv_rules.evaluate` handles them in **section 0, before any node block** — with empty nodes
+  every other rule reads "no signal" and starts asking for re-captures — and returns
+  `{ status: "In Progress", reasons: [<the code>], guidance: null, next_step: null,
+  score_cap: null, message: "Checking your ID is taking longer than usual — hang on." }`
+  (`idv_rules.PAUSED_MESSAGE_ENGINE_RETRY`). **No attempt is spent and no score cap is applied:** a
+  cap is a statement about the evidence and there is none. This sentence is deliberately *not*
+  `PAUSED_MESSAGE_ENGINE_DOWN`, which sends the guest to a store — the wrong answer to a
+  two-second blip.
+
+  `idv_api._engine_callback` then writes a session event `engine.retry_scheduled` and re-enqueues
+  the job on a backoff of **2 s, 10 s, 60 s** (`idv_api.ENGINE_RETRY_BACKOFF_S`). After the third,
+  it writes `engine.gave_up`, deletes the schedule and sets the session's `next_step` to
+  `in_store` for `hosted`/`embedded` and `none` for `pos` (the associate's recorded override is
+  the resolution there). **The session stays `In Progress` throughout** — nothing judged it, and a
+  decline is a statement about a person.
+
+  Each retry carries a **new `job_id` and a freshly minted `media_token`**. It cannot re-post the
+  original body: `_engine_callback` spends the old job's token in the same transaction as the
+  decision, so the engine would fail to fetch the media a second time for an entirely different
+  reason and the retry would read as confirmation of the original fault.
+
+  The due time is an `idv_kv` row (`engine_retry:<session_id>` → `{attempt, due_at, session_id,
+  reasons, last_job_id}`), fired by `GET /api/idv/capture/{token}/status` — the guest's own poll,
+  which is what actually delivers a 2-second retry — and by `idv_store.sweep`, the backstop for a
+  guest who closed the tab. No threads and no timers: a sleeping thread loses its queue on every
+  restart, and a restart is exactly when an engine outage is likely. `sweep()`'s return gains
+  `engine_retries: [...]`.
+
+  `/capture/{token}/status` accordingly gains one behaviour: `next_step` is now emitted whenever
+  the session carries one, not only on `Declined`. Before this, a give-up's path existed in the
+  database and on no screen.
+
+  **B. The barcode is the data source; OCR is a cross-check.** New reason code
+  `BARCODE_NOT_DETECTED` (retryable, guided, step `document_back`, sentence "We couldn't read the
+  barcode on the back — fill the frame with the card and hold still."). It replaces
+  `DOC_QUALITY_LOW` for a US `DL`/`ID` whose `id_verifications[0].barcode_fields` is empty. It is
+  capture-safe, so it reaches the guest's own status screen.
+
+  Why it is its own code: on the corpus the front image scores a **median 96/100** while the
+  PDF417 fails to decode on **58.4%** of sessions (§2.1, §2.4). `DOC_QUALITY_LOW`'s sentence is
+  "there's glare over the card — tilt it away from the light", which is both untrue and points at
+  the **front**. The old behaviour sent 58% of guests back to re-shoot a sharp front image, three
+  times, and then declined them. The score cap (`CAP_BARCODE_UNREADABLE`) and the retry budget
+  (`resubmission_max`, then `Declined` with `next_step: in_store`) are unchanged.
+
+  **When the barcode is absent, the printed fields may be DISPLAYED but may not satisfy — or
+  fail — the age, expiry or name checks.** §2.3 measures the OCR-only fallback at DOB **25.8%**,
+  surname **3.3%**, document number **5.0%** agreement with the vendor, against **97.6% / 96.9% /
+  98.3%** when the barcode decodes. So on such a session `idv_rules` does not raise `DOC_EXPIRED`
+  or `DOC_NEAR_EXPIRY` from the printed expiry, does not raise `UNDER_AGE` from the printed date
+  of birth (`age.pass` is `null`), and does not compare the medical recommendation's patient name
+  or DOB against the ID (`MED_REC_NAME_MISMATCH` / `MED_REC_DOB_MISMATCH` are skipped).
+  `explain` says so on every such session, in one sentence
+  (`idv_rules.OCR_ONLY_EXPLAIN`). The reason the checks are skipped rather than merely
+  un-passable: each of them is a **hard, unappealable decline**, and deciding one on a coin flip
+  turns away a guest holding a current card with no way back. `BARCODE_NOT_DETECTED` has already
+  re-opened the back of the card, which is the fix.
+
+  **Scope, stated because it narrows the instruction.** The rule fires only where a barcode was
+  *expected*: US `DL`/`ID` (`idv_rules.barcode_expected_but_absent`). Passports and residence
+  permits carry no AAMVA PDF417 **by design** — 0 of 50 and 0 of 7 in the corpus decoded, which is
+  correct behaviour, not a failure (§2.1) — so treating their missing barcode as "the data source
+  is gone" would make every passport holder unverifiable online. The §2.3 accuracy figures were
+  measured on exactly the population the rule fires for.
+
+  `BARCODE_OCR_MISMATCH` is unchanged: a cross-check disagreement still gets **one** retake and
+  then declines (`MAX_BARCODE_MISMATCH_ATTEMPTS = 2`).
+
+  **C. Workflow `config.thresholds` gains a fourth key, and two numbers change.**
+
+  | key | was | is | provenance |
+  |---|---|---|---|
+  | `face_match_min` | 75 | **60** | §1.5/§1.9. 75 is a Didit-era number carried across a model change: on the same image pairs Didit's score distribution has median 74 and SFace's has median 66.9 (§1.7). Measured over 582 genuine / 337,730 imposter pairs, **75 implies an 86.9% false-decline rate** (506 of 582), each after three wasted retries. **60 implies 26.1%** (TAR 0.739) at FMR 5.8 × 10⁻². The report's own recommendation was 55.0 (14.6% false decline, FMR 3.0 × 10⁻¹); 60 is the owner's call and buys roughly 5× less imposter acceptance for ~11 pp more false declines. |
+  | `face_search_min` | *(absent)* | **80** | §4.2, derived **separately** and used by `idv_rules` for `DUPLICATE_PERSON` and face-list hits instead of `face_match_min`. 1:N is a different problem: FPIR ≈ N × FMR, and selfie-vs-selfie imposters run ~3 points hotter than the selfie-vs-portrait pairs the 1:1 number comes from (mean 55.44, p95 64.36, max 89.32 over 143,781 blocked pairs). Re-running the corpus' duplicate search at the 1:1 operating point of 67.5 produced **1,881 different-identity hits from 144,991 comparisons** — 13× the FMR that threshold buys on the 1:1 problem. At 80 the same measurement expects **3**. |
+  | `liveness_min` | 70 | **70** (unchanged) | §3. The passive PAD model as wired returns a near-constant: **max observed 0.049 / 100 across 608 real selfies**, so *any* threshold ≥ 0.05 declines 100% of real guests. It is not load-bearing today because the live workflow pins `face_liveness_method: ACTIVE_3D`, which gates on the nonce-bound challenge. **This is an engine defect, not a threshold problem**, and moving the number would hide it. The wiring is being fixed in the engine; 70 is correct the moment it lands (§3.2 measures FNMR 5.3% there). |
+  | `doc_quality_min` | 60 | **60** (unchanged) | §2.4. On our own scale 60 rejects **0.39%** of documents (it would reject 12.4% on Didit's), so it is very nearly inert. Left alone deliberately: after (B) it is the barcode, not the quality score, that decides whether a document can be trusted, and raising this to ~80 would begin declining documents whose barcode decodes perfectly. |
+
+  **How they are applied.** `idv_store.calibrate_workflow_thresholds`, called from
+  `ensure_schema`, writes a **new workflow version** for every workflow whose config does not
+  carry `"thresholds_calibrated": "2026-09-08"`, setting `face_match_min` and `face_search_min`
+  and stamping that key. Never an in-place edit: `idv_sessions` pins `workflow_version`, so a
+  session judged under 75 must keep reading 75 when the console reopens it. The seeded "Cannabis
+  Verification + Selfie" workflow therefore keeps `face_match_min: 75` at **version 1** and gains
+  version 2 with the calibrated numbers; every **imported** Didit workflow is migrated the same
+  way, and its own `liveness_min` / `doc_quality_min` are left exactly as the vendor had them.
+  The Workflows screen reads `config`, so nothing else changes.
+
+  Idempotency is **by content**, not by a one-shot `idv_kv` flag: a flag would have to be set on
+  the first `ensure_schema`, which on a fresh database runs *before* `seed()` creates the default
+  workflow — the flag would be set with nothing migrated — and every workflow the Didit importer
+  creates later would be missed. `seed()` therefore calls `ensure_schema(migrate=False)` (it is
+  creating the rows the migration acts on) and `idv_api.handle` re-runs the migration immediately
+  after seeding, so a brand-new install is calibrated on its **first** request.
+
+  **D. `insert_decision` keeps `warnings`, and a missing barcode still reports its quality
+  score.** Verified rather than changed: with no explicit `warnings=`, `insert_decision` collects
+  `id_verifications[*].warnings` into the decision's own `warnings` column, and `decision_out`
+  returns `id_verifications` verbatim, so the document node keeps the engine's
+  `BARCODE_NOT_DETECTED` warning (595 of 1,020 imported sessions carry it) into both the decision
+  row and `GET /api/idv/sessions/{id}`. `scores.doc_quality` on the sessions row still shows the
+  real number — 96 on a session whose barcode did not decode. Without the warning beside it, that
+  row reads as a clean 96 and the reason the guest was sent to the **back** of the card appears on
+  no screen.
