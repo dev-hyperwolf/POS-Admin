@@ -3003,116 +3003,14 @@ function PackScanner({ items, packScan, onScanOne, onDone, onClose, nextLabel, s
 // the bottom of this block prices every seeded record and writes the total back
 // at LOAD, before a panel can be opened or edited. The board and the panel are
 // in agreement from the first paint, and nothing visibly jumps.
-const DEMO_BASKET = [
-{ name: 'Cake Crasher', brand: window.HW_BRANDS.name.jeeter, cat: 'Flower', qty: 4, price: 15 },
-{ name: 'Blueberry Pancakes', brand: window.HW_BRANDS.name.lowell, cat: 'Pre-Rolls', qty: 1, price: 17 },
-{ name: 'Doubleshot', brand: window.HW_BRANDS.name.wyld, cat: 'Edibles', qty: 2, price: 20 }];
-
-
-/**
- * What a line actually rings up.
- *
- * A rung-up sale carries its own `total` with any line-level discount already
- * taken off (screen-register builds it that way); a seeded line has only a unit
- * price. Pricing the first from price × qty hands that discount back at the
- * till, which is the same class of bug as re-rolling the cart discount.
- */
-function lineGross(l) {
-  return l && l.total != null ? +l.total : (+l.price || 0) * (+l.qty || 0);
-}
-
-/**
- * THE STABLE IDENTITY OF ONE ORDER LINE.
- *
- * 🔴 A previous attempt filed return claims against a line by PRODUCT NAME and
- * drained them back in line-index order. One product on two lines at different
- * per-unit gross meant a claim filed against the dearer line was paid out at
- * the cheaper line's rate, and — because nothing was written to the record —
- * closing and reopening the panel let the same purchase be credited a second
- * time. A wallet went 0 -> 18.48 -> 36.96 for ONE purchase.
- *
- * So the join is the line's POSITION plus what that position holds. The name is
- * in there for a human reading the audit row, but it is not what makes the key
- * unique: two lines of the same product differ by index and by price.
- *
- * A completed order is not editable in this panel, so its lines are frozen and
- * the position is stable. If a line ever does move under a filed return, the
- * key stops matching, and the panel REFUSES the whole claim flow out loud
- * rather than guessing which line the earlier return meant.
- */
-function lineKey(l, i) {
-  return [i, (l && l.name) || '', +((l && l.qty) || 0),
-  +(+((l && l.price) || 0)).toFixed(2), +lineGross(l).toFixed(2)].join('|');
-}
-
-/** Seed the money for an order that has never had any. Called once per order. */
-function seedOrderMoney(o) {
-  const seed = (o.id ? o.id.length : 5) + (o.name || '').length + (o.items || 1);
-  const pk = (arr) => arr[seed % arr.length];
-  // An order that ARRIVED with a basket was rung up by somebody, so its money is
-  // real. Inventing a "Veteran 10%" on a real receipt is this same bug pointed
-  // the other way — a real order only ever carries the discount it was sold with.
-  const real = !!(o.lines && o.lines.length);
-  const hasDisc = real ? +(o.discount || 0) > 0 : seed % 2 === 0;
-  const hasPromo = !real && seed % 3 !== 0;
-  return {
-    seed,
-    lines: (real ? o.lines : DEMO_BASKET.slice(0, Math.max(1, Math.min(3, o.items || 1)))).map((l) => ({ ...l })),
-    discReason: real ? (o.discounts && o.discounts[0] && o.discounts[0].label) || 'Discount applied' :
-    pk(['Veteran 10%', 'Daily deal · Edibles', 'Staff discount', 'Loyalty tier — Gold']),
-    discAmt: hasDisc ? real ? +(o.discount || 0) : pk([6, 8, 10, 12]) : 0,
-    promo: hasPromo ? pk(['WELCOME10', 'HW420', 'SUMMER15', 'FRIENDS']) : null,
-    promoAmt: hasPromo ? pk([5, 8, 10]) : 0,
-    referral: null,
-    referralAmt: 0,
-    // What the customer settled with wallet credit or rewards AT THE DRAWER.
-    // This is not a discount — the sale was for the full amount and part of it
-    // was paid another way — so it comes off the GRAND total, after tax, not
-    // off the taxable base.
-    credits: +(o.credits || 0),
-    /* The driver gratuity, in dollars. Charged, per the owner's decision, but
-     * NOT TAXED — a voluntary, separately-stated gratuity is not taxable in
-     * California, and folding it into a line would tax it.
-     *
-     * It is the exact mirror of `credits`: both sit OUTSIDE the taxed base and
-     * move the grand total after tax. A credit is money the customer already
-     * put in; a tip is money they are adding on top. Same slot, opposite sign. */
-    tip: +(o.tipAmt || 0) };
-
-}
-
-/**
- * Price a money record. THE one place an order total is computed — the header,
- * the totals block, the record in HW.ORDERS, the queue card and the engine's
- * `agreed` figures all come through here, so two views of one order cannot show
- * different money.
- */
-function priceOrderMoney(m) {
-  const lines = m && m.lines || [];
-  const sub = +lines.reduce((s, l) => s + lineGross(l), 0).toFixed(2);
-  // Clamped: an order edited down below the value of its own discounts prices at
-  // zero, never negative.
-  const cartDisc = Math.min(+((+m.discAmt || 0) + (+m.promoAmt || 0) + (+m.referralAmt || 0)).toFixed(2), sub);
-  const taxBase = +(sub - cartDisc).toFixed(2);
-  const tax = window.HW.taxBreakdown(taxBase);
-  // 🔴 CREDITS MUST BE SUBTRACTED HERE. The register files `total: collected`
-  // (gross minus credits) but no money record, so commitOrderMoney used to
-  // re-derive the total from the lines alone and quietly HAND THE CREDITS BACK
-  // — merely opening the order panel raised what the books said was collected.
-  // A recorded total that does not match what was taken is the bug this whole
-  // money authority exists to prevent, pointed the other way.
-  const credits = Math.max(0, +(m && m.credits || 0));
-  const tip = Math.max(0, +(m && m.tip || 0));
-  const gross = +(taxBase + tax.total).toFixed(2);
-  // The tip is added AFTER the clamp, deliberately: an order discounted to zero
-  // still owes the gratuity the customer chose to add. Clamping the two together
-  // would silently swallow it.
-  return { sub, cartDisc, taxBase, tax, rate: tax.rate, credits, tip, gross,
-    grand: +(Math.max(0, gross - credits) + tip).toFixed(2) };
-}
-
-/** The money record for an order — the stored one if there is one, never re-rolled. */
-function orderMoney(o) {return o && o.money || seedOrderMoney(o || {});}
+// DEMO_BASKET, lineGross, lineKey, seedOrderMoney, priceOrderMoney and
+// orderMoney used to be defined here, module scope, byte-for-byte what now
+// lives in pos/orders-pricing.js (loaded as a plain <script>, right after
+// pos/image-slot.js in Hyperwolf POS.html). Moved out — not rewritten — so
+// they can be tested headlessly under `vm` and, in a later step, converted to
+// integer cents; every call site below reaches them through `OP` instead of a
+// bare name.
+const OP = window.HW_ORDERS_PRICING;
 
 /**
  * Store the seeded money on the record and reconcile its total to it, once.
@@ -3137,8 +3035,8 @@ function commitOrderMoney(o) {
    * A live order's money belongs to whoever fetched it. We display it; we do not
    * price it. */
   if (o._live) return false;
-  const m = seedOrderMoney(o);
-  return !!window.HW.updateOrder(o.id, { money: m, total: priceOrderMoney(m).grand });
+  const m = OP.seedOrderMoney(o);
+  return !!window.HW.updateOrder(o.id, { money: m, total: OP.priceOrderMoney(m).grand });
 }
 
 // Migrate the board at load, before any panel can be opened.
@@ -3194,7 +3092,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   // it was seeded with, kept so the cosmetic picks below (associate, date, card
   // last-4) cannot drift under an edit either. `o.items` is deliberately no
   // longer an input to any of this — it is the field saveEdit writes.
-  const money = orderMoney(o);
+  const money = OP.orderMoney(o);
   const seed = money.seed;
   const pk = (arr) => arr[seed % arr.length];
   // An order created AFTER load — a rung-up sale, a HWSeed demo record — has no
@@ -3326,7 +3224,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   const referralAmt = money.referralAmt || 0;
   const hasPromo = !!promo;
   // Priced through the ONE pricer, against the lines actually being rendered.
-  const priced = priceOrderMoney({ ...money, lines: baseItems });
+  const priced = OP.priceOrderMoney({ ...money, lines: baseItems });
   const itemsSub = priced.sub;
   const cartDisc = priced.cartDisc; // total cart-level discount, clamped at the subtotal
 
@@ -3338,7 +3236,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   // live on the ORDER RECORD, keyed by lineKey(), and every bound below is read
   // from them.
   const filedReturns = Array.isArray(o.returns) ? o.returns : [];
-  const liveKeys = baseItems.map((l, i) => lineKey(l, i));
+  const liveKeys = baseItems.map((l, i) => OP.lineKey(l, i));
   const returnedBy = {};
   filedReturns.forEach((r) => ((r && r.lines) || []).forEach((rl) => {
     if (rl && rl.key) returnedBy[rl.key] = (returnedBy[rl.key] || 0) + (+rl.qty || 0);
@@ -3357,7 +3255,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
 
   // ── Proportional discount allocation across each item (comment 6) ──
   const items = baseItems.map((l, i) => {
-    const gross = lineGross(l);
+    const gross = OP.lineGross(l);
     const discShare = itemsSub > 0 ? +(cartDisc * gross / itemsSub).toFixed(2) : 0;
     const net = gross - discShare;
     const unitNet = l.qty ? net / l.qty : 0;
@@ -3486,17 +3384,15 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   };
   let payment;
   if (payKind === 'cash') {
-    const tendered = Math.ceil(grand / 5) * 5 + (seed % 2 === 0 ? 0 : 5); // rounded-up bill(s)
-    payment = { kind: 'cash', parts: [{ kind: 'cash', amount: grand, tendered, change: +(tendered - grand).toFixed(2) }] };
+    const t = OP.cashTender(grand, seed);
+    payment = { kind: 'cash', parts: [{ kind: 'cash', amount: t.amount, tendered: t.tendered, change: t.change }] };
   } else if (payKind === 'card') {
     payment = { kind: 'card', parts: [{ kind: 'card', amount: grand, ...mkCard(0) }] };
   } else {
-    const cardAmt = +(Math.round(grand * 0.6 * 100) / 100).toFixed(2);
-    const cashAmt = +(grand - cardAmt).toFixed(2);
-    const tendered = Math.ceil(cashAmt / 5) * 5;
+    const t = OP.splitTender(grand);
     payment = { kind: 'split', parts: [
-      { kind: 'card', amount: cardAmt, ...mkCard(0) },
-      { kind: 'cash', amount: cashAmt, tendered, change: +(tendered - cashAmt).toFixed(2) }]
+      { kind: 'card', amount: t.cardAmt, ...mkCard(0) },
+      { kind: 'cash', amount: t.cashAmt, tendered: t.tendered, change: t.change }]
     };
   }
   const payProcessor = 'Leisure Pay';
@@ -3518,9 +3414,9 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   .map(([i, q]) => ({ item: items[+i], q })).filter((e) => e.item);
   // The ceiling on the WHOLE order: everything ever handed back on it, across
   // every session, can never exceed what the order actually collected.
-  const refundCap = +Math.max(0, grand - refundedSoFar).toFixed(2);
+  const refundCap = OP.refundCap(grand, refundedSoFar);
   const rawRefund = +selEntries.reduce((s2, { item, q }) => s2 + item.unitRefund * q, 0).toFixed(2);
-  const refundAmt = +Math.min(rawRefund, refundCap).toFixed(2);
+  const refundAmt = OP.clampRefund(rawRefund, refundCap);
   const refundUnits = selEntries.reduce((s2, { q }) => s2 + q, 0);
 
   // ── WHOSE WALLET ──────────────────────────────────────────────────────────
@@ -3667,7 +3563,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
   // figures either side of balanceDiff are always comparable — an edit that
   // changes nothing is worth nothing, to the cent.
   const draftMoney = { ...money, lines: draft, promo: dPromo, promoAmt: dPromoAmt, referral: dReferral, referralAmt: dReferralAmt };
-  const draftPriced = priceOrderMoney(draftMoney);
+  const draftPriced = OP.priceOrderMoney(draftMoney);
   const draftSub = draftPriced.sub;
   const draftDisc = draftPriced.cartDisc;
   const draftTaxBase = draftPriced.taxBase;
@@ -3709,7 +3605,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
       return n;
     });
     const nextMoney = { ...money, lines, promo: dPromo, promoAmt: dPromoAmt, referral: dReferral, referralAmt: dReferralAmt };
-    const saved = window.HW.updateOrder(o.id, { money: nextMoney, lines, total: priceOrderMoney(nextMoney).grand, items: lines.length });
+    const saved = window.HW.updateOrder(o.id, { money: nextMoney, lines, total: OP.priceOrderMoney(nextMoney).grand, items: lines.length });
     if (!saved) {
       setSaveError(`Order ${o.id} is not in the order book, so nothing was saved. Close this and reopen it from the queue.`);
       return;
@@ -3914,7 +3810,7 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
                       <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{l.brand} · {fmt.money(l.price)} ea</div>
                     </div>
                     <Stepper value={l.qty} min={0} max={99} onChange={(q) => draftSetQty(i, q)} size="sm" />
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, width: 56, textAlign: 'right' }}>{fmt.money(lineGross(l))}</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, fontFamily: P.fontMono, width: 56, textAlign: 'right' }}>{fmt.money(OP.lineGross(l))}</span>
                     <IconBtn icon="swap" size={14} style={{ width: 28, height: 28 }} title="Swap for another product" onClick={() => {setSwapIdx((x) => x === i ? null : i);setShowAdd(false);}} />
                     <IconBtn icon="trash" size={14} style={{ width: 28, height: 28 }} onClick={() => draftRemove(i)} />
                   </div>
@@ -4184,4 +4080,4 @@ window.OrderDetails = function OrderDetails({ o, onClose }) {
 // rather than trusting its own render — would otherwise have to hand-roll a
 // second copy of this function, and a hand-rolled copy that drifts makes the
 // test agree with itself instead of with the screen.
-Object.assign(window, { CheckInStrip, orderLineKey: lineKey });
+Object.assign(window, { CheckInStrip, orderLineKey: OP.lineKey });
