@@ -1356,3 +1356,248 @@ untouched and still green: the API layer renders whatever the rules return and n
 cross-check itself. Both standalone runs passed on this tree: 333/333, 137/137.
 `qa/battery.py`'s `EXPECTED_CHECKS["idv_rules_probe"]` raised 321 → 333 and `TOTAL_CHECK_FLOOR`
 2144 → 2156, each with the justification inline at the point of change.
+
+---
+
+## Addendum — 2026-09-09: only evidence moves a session, and the challenge script is a setting
+
+Measured on the owner's own phone, session #7 (`vendor_data: "email:owner-iphone-7"`). Four separate
+faults, one screen. Everything below is the contract as of this date; the older text it narrows is
+superseded here rather than edited in place, per the append-only convention.
+
+### A. The stranding — `In Progress` for ever, with the answer already on the row
+
+The sequence, from the session's own event trail:
+
+| time | what happened |
+|---|---|
+| 18:32:50 | the engine answers `Awaiting User` — retake the challenge. `guidance` is written to the session. |
+| 18:32:51 | a best-effort `challenge_frame` the capture page had already begun uploading lands. |
+| 18:32:51 | `_capture_media` lifts the session back to `In Progress`. **No job is running.** |
+| thereafter | `/status` answers `In Progress` for ever. After 30 s the page shows *"This is taking longer than usual"* with the retake sentence underneath it, unreachable. |
+
+The frame was one second late and belonged to the attempt that had *just been judged*. It was not an
+answer to anything, and it cost a real guest their session.
+
+**Rule 1 — only evidence changes state.** `POST /capture/{token}/media` now splits its `kind`
+vocabulary in two:
+
+- **Evidence** — `document_front`, `document_back`, `medical_rec`, `selfie`, `liveness_video`.
+  Unchanged behaviour: may lift `Not Started` / `Awaiting User` / `Resubmitted` / `Abandoned` to
+  `In Progress`, may spend an attempt on the step it answers, and is what the engine judges.
+- **Best-effort** — `challenge_frame`, `selfie_frame`, and any kind added later that is not on the
+  evidence list. **Stored, and nothing else.** Never changes `status`, never advances an attempt
+  counter, never clears `guidance`. The response still returns `201` with the media row, its
+  `challenge_id` and its `client_metrics`; the `status` field in that response is the session's
+  status *unchanged*.
+
+The line is *what the guest submitted* versus *what the page volunteered*. The capture page fires
+these frames while the camera is open, whether or not the guest did anything.
+
+`liveness_video` stays on the evidence side and this is load-bearing: the clip **is** the answer to
+the prompts, and it must still spend the `attempts.challenge` try, or the retake loop that
+2026-09-09's challenge-taxonomy addendum introduced never ends. `challenge_frame` has been **removed
+from `_STEP_FOR_KIND`** — it no longer maps to a step at all.
+
+**Rule 2 — `/status` never strands.** `GET /capture/{token}/status` now repairs the shape rather than
+only the one route that produced it. When **all** of the following hold:
+
+- the session is `In Progress`; and
+- the newest `idv_decisions` row for it says `Awaiting User`; and
+- no engine job is pending,
+
+…then `/status` answers with **that decision's** status, guidance and `retry` block, and **writes the
+status back to the session row**. Repairing the row is not cosmetic: the console session list, the
+analyst screen and the sessions export all read `idv_sessions.status`, and an analyst seeing
+`In Progress` while the guest is being asked to retake is the same defect wearing a different hat.
+
+**"No job pending" is asked two ways, and both must say no.**
+
+1. `idv_sessions.engine_job_id` still equals the decision's `engine_job_id`. `POST …/submit` writes
+   the new job id onto the session **before** it posts, so this is true the instant a resubmit
+   begins — *including* the case where the POST then fails and an outage retry owns the session,
+   which writes no `engine.job_queued` event at all and which a timestamp scan alone would therefore
+   mistake for a strand.
+2. No `engine.job_queued` event is newer than the decision's `computed_at`. Timestamps are
+   one-second ISO text, so an event inside the decision's own second is ambiguous and is settled by
+   the job id: the same id is the job that produced this decision, a different one is a new job.
+
+**Ambiguity resolves towards *not* repairing.** A wrong repair is the worse failure: `Awaiting User`
+cannot become `Approved` under `can_transition`, so the genuine verdict would arrive afterwards and
+be silently ignored. A session that has already given up (`engine.gave_up`) is left alone — it is
+`In Progress` on purpose, its `guidance` was deliberately cleared, and it has a `next_step` the guest
+can actually take.
+
+### B. The challenge script is a workflow setting
+
+**New config key: `config.challenge_script`** — a list of step kinds drawn from
+`turn_left | turn_right | blink | flash`. **Default `["blink"]`.**
+
+It used to be a three-prompt literal inside the issuing route — turn left, blink, colour flash —
+identical for every session and chosen by nobody. Two of its three prompts are ones this estate
+cannot act on: `flash` is reported by the engine as *unknown*, never as satisfied or failed (iProov
+US 9,075,975, active to 2033), and a turn adds a second way to fail — "turned the other way", which
+the engine reports precisely because it happens — to a check whose only job is to show that a live
+human is present. A blink does that on its own.
+
+`POST /capture/{token}/challenge` now builds its `script` from the workflow's setting. The wire shape
+is unchanged and the response still carries `challenge_id`, `nonce`, `script`, `issued_at`,
+`valid_for_s`, all five persisted on the session. The **nonce is untouched** and still minted per
+call: the workflow settles *which prompts are asked*, never whether the answer is time-bound to the
+ask.
+
+| kind | issued as |
+|---|---|
+| `blink` | `{"kind": "blink", "ms": 2500}` |
+| `turn_left` / `turn_right` | `{"kind": "turn", "dir": "left"\|"right", "ms": 1500}` |
+| `flash` | `{"kind": "flash", "colors": ["accent","info","good","warn"], "ms": 250}` (`ms` is **per colour**) |
+
+An unrecognised kind is **dropped**, not issued, and a config that names nothing recognisable falls
+back to a single blink rather than an empty script. Empty is the dangerous answer: the engine scores
+a script it cannot read as `not_recorded`, which is a **retry**, so one typo in a workflow config
+would hand every guest an unlimited supply of fresh nonces.
+
+**Migration.** `idv_store.migrate_challenge_scripts` writes `challenge_script: ["blink"]` onto every
+workflow as a **new version row**, exactly as `calibrate_workflow_thresholds` does and for the
+identical reason: `idv_sessions` pins `workflow_version`, and the stored script is what an analyst
+needs to answer *"what were they actually asked to do"*. Rewriting it in place would answer that
+question wrongly for every session already decided. Idempotent **by content** via a
+`challenge_script_migrated: "2026-09-09"` stamp at config level — a stamp rather than the key's own
+presence, so an operator who deliberately clears the script to `[]` does not have `["blink"]` written
+back under them on the next request. Both migrations now run through one entry point,
+`idv_store.run_data_migrations`, called from `ensure_schema` and again from `idv_api.handle` after
+`seed()` (the seed rows are born unmigrated). **The seeded default workflow is therefore at version 3
+on a fresh install**: version 1 as seeded, version 2 calibrated, version 3 with the script.
+
+#### What a blink-only script requires to score `completed` — read out of `idv-engine/pipeline/liveness.py`
+
+Confirmed by reading the module (read-only; the engine was not modified). A single `blink` step is
+scored `completed` when **all** of the following hold:
+
+1. **The clip decodes and a face is found.** `landmark_error` is unset and
+   `capture_integrity.frames_with_face ≥ 1`; otherwise `not_recorded`.
+2. **The prompt is recognised.** `blink` is in `_STEP_ALIASES`, so `scorable` is non-empty. (A script
+   of *only* unrecognised prompts is `not_recorded`, never an accusation.)
+3. **A blink is detected.** `_blink_events` needs at least `EAR_BASELINE_MIN_FRAMES` (8) analysed
+   frames carrying an EAR to establish a baseline — the median of the upper half of the clip's own
+   EAR values — and then a run of at least `BLINK_MIN_CLOSED_FRAMES` (2) consecutive analysed frames
+   below `EAR_RELATIVE_DROP × baseline` (0.60 × baseline).
+4. **The blink lands in the prompt's window.** This is the part that a blink-only script makes
+   trivially true, and it is why blink-only is the safest script this engine can be given: with one
+   step, `_prompt_windows` returns exactly one window spanning the **whole clip** (a single duration
+   is scaled onto the clip's own span, and the last window is clamped to the clip's end), so *every*
+   blink in the clip is in-window. A multi-prompt script infers its sub-windows from a schedule no
+   client timestamps, which is the inference the owner's 2026-09-09 clip proved wrong.
+5. **Order is trivially satisfied.** `order_ok` is a pairwise comparison over the satisfied steps'
+   own events; with one step the comparison set is empty and it is always `True`.
+6. **Enough frames inside the window.** `_challenge_sample` samples to a frame *rate*
+   (`CHALLENGE_TARGET_FPS` 15, cap `CHALLENGE_MAX_FRAMES` 90) and tops each prompt window up to
+   `PROMPT_MIN_FRAMES` (12); a clip of `CHALLENGE_MIN_FRAMES` (30) frames or fewer is not thinned at
+   all. A blink is 100–400 ms, so the two closed frames need roughly ≥10 fps of analysed frames
+   through the closure.
+7. **No replay evidence.** `replay_suspected` outranks everything and is the only outcome wm-demo may
+   decline on. It fires on ≥5 consecutive byte-identical frames; on ≥50% byte-identical duplicates in
+   a clip of ≥8 frames; on a response arriving outside `valid_for_s` (90 s) of `issued_at`; and on
+   `clip_span + PROMPT_TIMING_TOLERANCE_S (0.75) < scripted_s`.
+
+On (7)'s last clause: `scripted_s` for the new blink-only script is **2.5 s**, so a clip shorter than
+**~1.75 s** is scored `replay_suspected`. **This is not a regression** — the old three-prompt script
+summed to exactly the same 2.5 s (1.5 s turn + 0 for a blink that carried no `ms` + 250 ms × 4
+colours = 1.0 s for the flash sweep), so the short-clip lower bound is unchanged. It is recorded here
+because it is now carried by a *single* prompt: shortening `CHALLENGE_BLINK_MS` moves that bound, and
+a capture page that stops the recording early would trip it.
+
+Two things that are **warnings, not failures**: a first response earlier than `RESPONSE_MIN_S` (0.30 s)
+raises `CHALLENGE_RESPONSE_IMPLAUSIBLY_FAST`, and later than `RESPONSE_MAX_S` (12.0 s) raises
+`CHALLENGE_RESPONSE_SLOW`. `nonce_ok` is a derived field with exactly one meaning: `result ==
+"completed"`.
+
+### C. A missing document portrait is not glare
+
+**New reason code: `DOC_PORTRAIT_NOT_FOUND`** — retryable, step `document_front`, guest-facing
+sentence:
+
+> We couldn't see the photo on your ID — hold the card flat and fill the frame.
+
+The engine reports the condition three ways at once and none of them is a reason code: a
+`PORTRAIT_IMAGE_NOT_DETECTED` warning on the document node, `engine_detail.portrait_face_found:
+false`, and — because there was no second face — no 1:1 face match at all. Its `reasons` list still
+carries the one word it has, `DOC_QUALITY_LOW`, whose sentence is *"There's glare over the card — tilt
+it away from the light"*. That was said to the owner about a front image scoring **96.8**. The card
+was not badly lit; the portrait was out of frame. The guest gets three tries, and one of them was
+spent on lighting advice for a photograph that was already sharp.
+
+Same precedent as `BARCODE_NOT_DETECTED` (2026-09-08): a coarse vendor code that sends a guest to fix
+the wrong thing gets its own code and its own sentence.
+
+**Two call sites, and both matter.**
+
+- `_document_block`: `FACE_MATCH` requested and `_document_portrait_present` is false → raises
+  `DOC_PORTRAIT_NOT_FOUND` (was `DOC_QUALITY_LOW`), with `CAP_NO_DOCUMENT_FACE` unchanged.
+- `_face_block`: the 1:1 match produced **no comparable score at all**. Which step to re-open now
+  depends on *why*. When the card carried a findable portrait, the comparison itself failed and the
+  **selfie** is the thing to take again — `FACE_MATCH_LOW`, unchanged. When it did not, the match
+  could not have run, and asking for another selfie spends a liveness try on a document problem and
+  then asks again, because nothing about the selfie was ever wrong. That case now raises
+  `DOC_PORTRAIT_NOT_FOUND`. The cap is applied in both branches: a session that was never matched
+  cannot be approved either way.
+
+**The engine's own opinion is suppressed by name.** `_engine_reason_block` re-raises a short list of
+engine-proposed reasons as findings, and `DOC_QUALITY_LOW` is on it. It is now dropped when these
+rules have already raised `BARCODE_NOT_DETECTED` **or** `DOC_PORTRAIT_NOT_FOUND` for the same fact,
+and the `explain` line **names which finding displaced it** rather than describing it — a dropped
+reason code that does not say what displaced it is an unexplained absence. Without this half the fix
+does nothing observable: `DOC_QUALITY_LOW` outranks `DOC_PORTRAIT_NOT_FOUND` in `_GUIDED` at the
+**same step**, so re-raising it hands the single guidance slot straight back to the glare sentence.
+Measured with the suppression removed and a decodable barcode: `['DOC_QUALITY_LOW',
+'DOC_PORTRAIT_NOT_FOUND']`, glare sentence, every other check still green.
+
+**Ordering inside `_GUIDED`:** `DOC_QUALITY_LOW` stays ahead of `DOC_PORTRAIT_NOT_FOUND`. Both belong
+to `document_front`, and the order settles only the case where both genuinely fire — a card that is
+washed out *and* has no findable portrait, where the glare is why the portrait was not found and
+fixing the lighting fixes both. In every case this reason code was added for, the image is sharp and
+`DOC_QUALITY_LOW` is not raised at all.
+
+### Coverage
+
+| suite | before | after | added |
+|---|---|---|---|
+| `qa/idv_rules_probe.py` | 333 | **338** | `IDV-J13`, `J13b`, `J13c`, `J13d`, `J13e` |
+| `qa/idv_api_probe.py` | 137 | **145** | `AP-135` … `AP-142` |
+| `qa/idv_store_probe.py` | 64 | **64** | — |
+| `qa/idv_import_probe.py` | 78 | **78** | — |
+
+`IDV-J13`..`J13c` run the **real** 2026-09-09 callback fixture with the one thing changed that the
+engine actually reported that day — no findable portrait, no face match, `PORTRAIT_IMAGE_NOT_DETECTED`
+in the document warnings — and assert the front-of-card retake, the framing sentence verbatim, and
+that neither the glare sentence nor `FACE_MATCH_LOW` survives. `J13d` is the boundary in the other
+direction: a card that *does* carry a portrait and still produces no comparable score stays
+`FACE_MATCH_LOW` on `selfie`. `J13e` is the one to keep hardest — it is the only check that can see
+the suppression half, because `J13c`'s fixture also raises `BARCODE_NOT_DETECTED`, which suppresses
+the engine's opinion by itself.
+
+`AP-135`/`AP-136` reproduce the stranding through the real routes: a `challenge_frame` uploaded after
+an `Awaiting User` verdict leaves status, guidance and every attempt counter untouched, and `/status`
+answers the retake sentence rather than *"taking longer than usual"*. `AP-137` is the boundary —
+`selfie_frame` inert on the same terms, `liveness_video` still lifting the session and still spending
+the challenge try. `AP-138` is the repair and `AP-139` its brake. `AP-140`..`AP-142` cover the
+challenge script: issued from the workflow, migrated as a new version row and idempotent by content,
+and the builder's drop-unknown / fall-back-to-blink vocabulary.
+
+**Three existing checks were edited, none deleted**, and each is named because an edited expectation
+is where a silent loosening hides: `IDV-A32` and `IDV-J11b` now expect `DOC_PORTRAIT_NOT_FOUND` where
+they expected `DOC_QUALITY_LOW` (`A32` also gained a `no_reasons` guard it did not have), and `AP-2b`
+expects workflow version **3** with three version rows rather than 2 and two.
+
+*Verified by mutation*, per Trap 17 — a safeguard that has never been exercised is a hypothesis. Each
+fix was reverted in turn and the suites re-run: forcing `evidence = True` fails `AP-135` and `AP-137`;
+removing the `/status` repair fails `AP-138`; dropping the `engine_job_id` guard fails `AP-139`;
+restoring the hard-coded three-prompt script fails `AP-140`; unwiring the migration fails `AP-2b`,
+`AP-140` and `AP-141`; restoring `DOC_QUALITY_LOW` on the portrait branch fails `IDV-A32`, `IDV-D05`,
+`IDV-J11b`, `IDV-J13b`, `IDV-J13c` and `IDV-J13e`; sending the no-score face-match branch back to
+`FACE_MATCH_LOW` unconditionally fails `IDV-J13c`; and removing the engine-opinion suppression fails
+`IDV-J13c` and `IDV-J13e`. Every mutation was applied singly, against an otherwise clean tree.
+
+Standalone runs on this tree: **338/338**, **145/145**, **64/64**, **78/78**.
+`qa/battery.py`'s `EXPECTED_CHECKS` raised for both suites and `TOTAL_CHECK_FLOOR` 2189 → **2202**,
+each with the arithmetic and its justification inline at the point of change.
