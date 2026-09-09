@@ -74,10 +74,10 @@ function Dashboard({ promos, onOpen, onNew, onAnalytics, onDuplicate }){
   const [tab,setTab]=useState('all');
   const [q,setQ]=useState('');
   const [groupBy,setGroupBy]=useState('none');
-  const counts=useMemo(()=>{ const c={all:promos.length,live:0,scheduled:0,ended:0,paused:0,draft:0}; promos.forEach(p=>c[p.status]++); return c; },[promos]);
+  const counts=useMemo(()=>{ const c={all:promos.length,active:0,scheduled:0,ended:0,paused:0,draft:0}; promos.forEach(p=>c[p.status]++); return c; },[promos]);
   const rows=promos.filter(p=>(tab==='all'||p.status===tab) && (!q || (p.name+p.code).toLowerCase().includes(q.toLowerCase())));
 
-  const live=promos.filter(p=>p.status==='live');
+  const live=promos.filter(p=>p.status==='active');
   const redempt=promos.reduce((a,p)=>a+(p.perf?.redemptions||0),0);
   const rev=promos.reduce((a,p)=>a+(p.perf?.revenue||0),0);
   const pts=promos.reduce((a,p)=>a+(p.perf?.pointsIssued||0),0);
@@ -98,7 +98,7 @@ function Dashboard({ promos, onOpen, onNew, onAnalytics, onDuplicate }){
     { label:'Surfaces', render:p=><SurfaceDots ids={p.surfaces}/> },
     { label:'Schedule', render:p=><span style={{ fontSize: 12.5, color:P.ink2, fontFamily:P.fontMono, whiteSpace:'nowrap' }}>{scheduleLabel(p)}</span> },
     { label:'Status', render:p=>{ const m=statusMeta(p.status); return <Pill kind={m.kind} dot>{m.label}</Pill>; } },
-    { label:'Weedmaps', render:p=> window.wmSyncPill(p.status==='live'?'synced':(p.status==='scheduled'||p.status==='draft')?'not_pushed':p.status==='paused'?'paused':'ended') },
+    { label:'Weedmaps', render:p=> window.wmSyncPill(p.status==='active'?'synced':(p.status==='scheduled'||p.status==='draft')?'not_pushed':p.status==='paused'?'paused':'ended') },
     { label:'30-day rev', align:'right', render:p=> p.perf ? (<div style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'flex-end' }}><Spark data={p.perf.spark} width={54} height={18} color={p.perf.aovLift>=0?P.good:P.bad}/><span style={{ fontFamily:P.fontMono, fontWeight:600, fontSize:12.5 }}>{kd(p.perf.revenue)}</span></div>) : <span style={{ color:P.inkFaint, fontSize: 12.5 }}>—</span> },
     { label:'', align:'right', width:'88px', render:p=>(<div style={{ display:'flex', gap:2, justifyContent:'flex-end' }}>
         {p.perf && <IconBtn icon="chart-line" size={15} title="Analytics" style={{ width:32, height:32 }} onClick={(e)=>{ e.stopPropagation(); onAnalytics(p.id); }}/>}
@@ -112,7 +112,7 @@ function Dashboard({ promos, onOpen, onNew, onAnalytics, onDuplicate }){
     <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:14, flexWrap:'wrap' }}>
       <Seg value={tab} onChange={setTab} options={[
         {value:'all', label:'All', count:counts.all},
-        {value:'live', label:'Live', count:counts.live},
+        {value:'active', label:'Live', count:counts.active},
         {value:'scheduled', label:'Scheduled', count:counts.scheduled},
         {value:'paused', label:'Paused', count:counts.paused},
         {value:'ended', label:'Ended', count:counts.ended},
@@ -189,7 +189,7 @@ function Builder({ promo, onSave, onCancel, onDelete }){
       <div style={{ flex:1 }}/>
       <span title="Draft = saved but not published (a rough-in you keep working on). Scheduled = finished, auto-goes live on its start date. Live = showing on the site now. Paused = temporarily hidden without deleting." style={{ display:'inline-flex', color:P.inkMute, cursor:'help' }}><Icon name="help" size={16} stroke={1.9}/></span>
       <Seg value={d.status} onChange={v=>up({status:v})} size="sm" options={[
-        {value:'draft',label:'Draft'},{value:'scheduled',label:'Scheduled'},{value:'live',label:'Live'},{value:'paused',label:'Paused'}]}/>
+        {value:'draft',label:'Draft'},{value:'scheduled',label:'Scheduled'},{value:'active',label:'Live'},{value:'paused',label:'Paused'}]}/>
       {!promo.__new && <PBtn variant="danger" icon="trash" size="md" onClick={()=>onDelete(promo.id)}>Delete</PBtn>}
       <PBtn variant="secondary" size="md" onClick={onCancel}>Cancel</PBtn>
       <PBtn variant="accent" icon="check" size="md" onClick={()=>onSave(d)}>Save promotion</PBtn>

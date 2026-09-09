@@ -43,6 +43,11 @@ const CAMPAIGNS = [
   { id:'loyalty',   label:'Loyalty',     icon:'star' },
   { id:'referral',  label:'Referral',    icon:'users' },
 ];
+// Ids here are the discount-kind vocabulary -- window.DISCOUNT_KINDS,
+// defined once in promo/pshared.jsx (loaded before this file — see
+// Promotions Suite.html). Kept as a local array (labels+icons the shared
+// list doesn't carry), with a load-time drift guard rather than a silent
+// second copy.
 const OFFERS = [
   { id:'percent', label:'% off',        icon:'percent' },
   { id:'dollar',  label:'$ off',        icon:'dollar' },
@@ -52,15 +57,30 @@ const OFFERS = [
   { id:'tiered',  label:'Spend & save', icon:'chart' },
   { id:'points',  label:'Points boost', icon:'star' },
 ];
+if (window.DISCOUNT_KINDS) {
+  const drift = OFFERS.map((o) => o.id).filter((id) => !window.DISCOUNT_KINDS.includes(id));
+  if (drift.length) console.warn('pweb/module.jsx: OFFERS has id(s) not in promo/pshared.jsx DISCOUNT_KINDS', drift);
+}
 const HOLIDAYS = ['None','4th of July','420','Labor Day','Halloween','Green Wednesday','Black Friday','New Year'];
 
+// Keys are contracts/index.js PromotionStatus values -- promo/pshared.jsx's
+// statusPill() is the same vocabulary for promo/'s own Pill component. 'live'
+// was this module's private spelling for the contract's 'active'; renamed
+// here (and in seedPromos()/screens.jsx/studio.jsx below) so both directories
+// agree on one status vocabulary. Label stays 'Live' -- that's UI wording,
+// not the enum value.
+if (window.HWContracts) {
+  const missing = window.HWContracts.enumValues('PromotionStatus').filter((s) => !['active','scheduled','ended','paused','draft','inactive'].includes(s));
+  if (missing.length) console.warn('pweb/module.jsx: statusMeta has no entry for contract PromotionStatus value(s)', missing);
+}
 function statusMeta(s){
   return ({
-    live:     {label:'Live',      kind:'good'},
+    active:   {label:'Live',      kind:'good'},
     scheduled:{label:'Scheduled', kind:'info'},
     ended:    {label:'Ended',     kind:'neutral'},
     paused:   {label:'Paused',    kind:'warn'},
     draft:    {label:'Draft',     kind:'ghost'},
+    inactive: {label:'Inactive',  kind:'ghost'},
   })[s] || {label:s, kind:'neutral'};
 }
 
@@ -93,7 +113,7 @@ const audienceLabel = (a)=> ({all:'Everyone', members:'Members', vip:'VIP tier',
 
 // ── The dataset — 13 distinct example promotions ────────────────────────────
 function seedPromos(){ return [
- { id:'p01', name:'Wax Wednesday', code:'', campaign:'weekly', status:'live',
+ { id:'p01', name:'Wax Wednesday', code:'', campaign:'weekly', status:'active',
    discount:{kind:'percent', value:30, scope:'category', items:['Concentrate']},
    audience:'all', regions:'all',
    schedule:{recurring:'weekly', days:[3]},
@@ -113,7 +133,7 @@ function seedPromos(){ return [
    creative:{headline:'Red, White & Baked', subhead:'Spend more, save more — up to 25% off through July 5.', cta:'Shop the sale', color:'#C0392B'},
    perf:{redemptions:2140, revenue:172500, aovLift:31, pointsIssued:214000, views:88200, rate:5.1, spark:[40,120,180,240,90], bySurface:{home_hero:72, home_banner:28}} },
 
- { id:'p03', name:'Stilo Supply — BOGO Carts', code:'', campaign:'brand', status:'live',
+ { id:'p03', name:'Stilo Supply — BOGO Carts', code:'', campaign:'brand', status:'active',
    discount:{kind:'bogo', value:50, scope:'brand', items:['stilo']},
    audience:'members', regions:'all',
    schedule:{start:'2026-06-28', end:'2026-07-31'},
@@ -123,7 +143,7 @@ function seedPromos(){ return [
    creative:{headline:'Two-for Stilo', subhead:'Buy any Stilo cart, get your second 50% off.', cta:'Shop Stilo', color:'#7E55C9'},
    perf:{redemptions:512, revenue:41800, aovLift:22, pointsIssued:20900, views:9800, rate:5.2, spark:[8,10,14,12,18,16,22], bySurface:{brand_takeover:58, shop_tile:42}} },
 
- { id:'p04', name:'VIP Double Points Weekend', code:'', campaign:'loyalty', status:'live',
+ { id:'p04', name:'VIP Double Points Weekend', code:'', campaign:'loyalty', status:'active',
    discount:{kind:'points', value:2, scope:'cart'},
    audience:'vip', regions:'all',
    schedule:{recurring:'weekly', days:[6,0]},
@@ -133,7 +153,7 @@ function seedPromos(){ return [
    creative:{headline:'Double Points, All Weekend', subhead:'VIP members earn 2× on everything, Sat & Sun.', cta:'View my points', color:'#FFD100'},
    perf:{redemptions:1180, revenue:96200, aovLift:9, pointsIssued:384000, views:15600, rate:7.6, spark:[30,26,34,40,44,50,58], bySurface:{loyalty:44, home_banner:56}} },
 
- { id:'p05', name:'Welcome — $20 Off First Order', code:'WELCOME20', campaign:'evergreen', status:'live',
+ { id:'p05', name:'Welcome — $20 Off First Order', code:'WELCOME20', campaign:'evergreen', status:'active',
    discount:{kind:'dollar', value:20, scope:'cart', min:60},
    audience:'new', regions:'all',
    schedule:{start:'2026-01-01'},
@@ -162,7 +182,7 @@ function seedPromos(){ return [
    creative:{headline:'420 is a whole season', subhead:'20% off the entire store, all week long.', cta:'Shop 420', color:'#3F9E72'},
    perf:{redemptions:3820, revenue:298000, aovLift:18, pointsIssued:596000, views:142000, rate:4.6, spark:[120,180,240,300,420,260,140], bySurface:{home_hero:64, home_banner:21, shop_tile:15}} },
 
- { id:'p08', name:'Weekend Flower Bundle', code:'', campaign:'weekly', status:'live',
+ { id:'p08', name:'Weekend Flower Bundle', code:'', campaign:'weekly', status:'active',
    discount:{kind:'bundle', scope:'category', items:['Flower'], text:'Buy 2 eighths, get a 3rd for half price'},
    audience:'all', regions:'all',
    schedule:{recurring:'weekly', days:[5,6,0]},
@@ -181,7 +201,7 @@ function seedPromos(){ return [
    surfaces:['home_banner','shop_tile'],
    creative:{headline:'A week for feeling good', subhead:'15% off all Pleasure Med wellness for members.', cta:'Shop wellness', color:'#2FA59B'} },
 
- { id:'p10', name:'Refer a Friend — $15 Wallet', code:'', campaign:'referral', status:'live',
+ { id:'p10', name:'Refer a Friend — $15 Wallet', code:'', campaign:'referral', status:'active',
    discount:{kind:'dollar', value:15, scope:'cart'},
    audience:'all', regions:'all',
    schedule:{start:'2026-03-01'},
@@ -201,7 +221,7 @@ function seedPromos(){ return [
    creative:{headline:'Your points go further', subhead:'Redeem points at 1.5× value at checkout.', cta:'Redeem points', color:'#FFD100'},
    perf:{redemptions:210, revenue:16800, aovLift:2, pointsIssued:0, views:5200, rate:4.0, spark:[8,10,9,7,6,5,4], bySurface:{checkout:66, loyalty:34}} },
 
- { id:'p12', name:'Corona Grand Opening', code:'', campaign:'evergreen', status:'live',
+ { id:'p12', name:'Corona Grand Opening', code:'', campaign:'evergreen', status:'active',
    discount:{kind:'percent', value:25, scope:'cart'},
    audience:'all', regions:['Corona'],
    schedule:{start:'2026-06-20', end:'2026-07-20'},

@@ -114,7 +114,7 @@ const CART_VARIANTS = [
 
 // choose a representative promo for a given surface from the live set
 function promoForSurface(promos, sid) {
-  const live = promos.filter((p) => p.status === 'live' && (p.surfaces || []).includes(sid));
+  const live = promos.filter((p) => p.status === 'active' && (p.surfaces || []).includes(sid));
   return live[0] || promos.find((p) => (p.surfaces || []).includes(sid)) || promos[0];
 }
 
