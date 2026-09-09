@@ -318,11 +318,27 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
     try {
       const a = window.HW.STATS.associate;
       if (window.HW_LIVE && a && a.id && a.storeId) {
+        // THE EX-TAX MONEY BASIS, FROM THE SAME CART THE LINES COME FROM.
+        // `rec.total` is the TENDER total — tax and card fee included — and
+        // Bounty scores every board on ex-tax net after discounts, so the
+        // backend now requires the pre-tax pair (docs/BOUNTY-API-CONTRACT.md,
+        // "Register → Bounty"). Both are summed from `saleLines` rather than
+        // recomputed from the cart a second time: the txn-grain figures and
+        // the line-grain ones then agree by construction, which is the whole
+        // property the fix exists to establish. A line the register cannot
+        // price contributes nothing rather than a fabricated 0 — and if NO
+        // line can be priced, both stay null and the server falls back to
+        // refusing the post rather than putting a taxed total on a board.
+        const saleLines = buildSaleLines();
+        const priced = saleLines.filter((l) => l.line_gross_cents != null);
+        const subtotalCents = priced.length ? priced.reduce((t, l) => t + l.line_gross_cents, 0) : null;
+        const discountCents = priced.length ? priced.reduce((t, l) => t + (l.discount_cents || 0), 0) : null;
         window.HW_LIVE.post('/api/pos/sale', {
           order_id: rec.id, store_id: a.storeId, associate_id: a.id,
           total_cents: Math.round(rec.total * 100), item_count: rec.items,
+          subtotal_cents: subtotalCents, discount_cents: discountCents,
           method: rec.method, customer_name: rec.name,
-          lines: buildSaleLines(),
+          lines: saleLines,
         }).then((r) => {
           if (!mountedRef.current || (r && r.ok)) return;
           setSale((prev) => (prev && prev.id === rec.id) ? { ...prev, aovFailed: true } : prev);

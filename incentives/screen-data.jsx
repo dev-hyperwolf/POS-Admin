@@ -241,7 +241,13 @@
           setProgress((seq + 1) / total);
         }
         setPhase('committing');
-        const commit = await HWInc.post('/api/incentives/ingest/upload/commit', { upload_id: uploadId });
+        // `size` at begin (above) and `final_seq` here are the server's two
+        // completeness signals -- it refuses the commit 409 unless the bytes
+        // it assembled match what we declared. Both are sent, not one: the
+        // size proves nothing was dropped, final_seq names the last chunk so
+        // a truncated tail is refused even if a future client streams a file
+        // whose length it cannot state up front.
+        const commit = await HWInc.post('/api/incentives/ingest/upload/commit', { upload_id: uploadId, final_seq: total - 1 });
         if (!commit.ok || !commit.body || !commit.body.run) { setPhase('error'); setErr(commit.error || 'The file could not be parsed.'); return; }
         setRun(commit.body.run);
         setPhase('done');

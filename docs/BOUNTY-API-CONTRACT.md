@@ -166,7 +166,16 @@ moment it is tendered.
   "store_id": "elsinore",          // string, required
   "associate_id": "manisha-saini", // string, required — the person who RANG the sale, never a
                                     // terminal id or a shared till login
-  "total_cents": 6120,             // int, required — the tender total, cents
+  "total_cents": 6120,             // int, required — the TENDER total, cents. Includes tax and
+                                    // fees, so it is NOT what a bounty is scored from — see
+                                    // subtotal_cents/discount_cents below.
+  "subtotal_cents": 5400,          // int, REQUIRED (2026-09-08) — ex-tax retail BEFORE discounts.
+  "discount_cents": 400,           // int, REQUIRED (2026-09-08) — the discount off that subtotal.
+                                    // Bounty net = subtotal_cents - discount_cents. Both may be
+                                    // OMITTED only when `lines[]` is present and every line
+                                    // carries `line_gross_cents`, in which case the server sums
+                                    // them (Σ line_gross_cents, Σ discount_cents) — the same two
+                                    // facts at finer grain. A post with neither → 400.
   "item_count": 3,                 // int, optional, default 1
   "method": "cash|card|split",     // string, optional
   "customer_name": "...",          // string, optional
@@ -206,6 +215,13 @@ moment it is tendered.
 **Refusal rules — the whole POST fails together, nothing partial is stored:**
 
 - Missing any of `order_id`, `store_id`, `associate_id`, `total_cents` → `400`.
+- **Missing the ex-tax money basis → `400`** (2026-09-08). The post must state it either as
+  `subtotal_cents` + `discount_cents`, or as a `lines[]` whose every entry carries
+  `line_gross_cents`. `total_cents` cannot stand in: it is the tender total, taxes and fees
+  included, and every Bounty board is scored on **ex-tax net sales after discounts**
+  (`money_basis: "ex_tax_net"`). Before this, an unfiltered board summed the tax-inclusive
+  receipt total while a filtered board summed ex-tax line nets — measured 34% apart on the same
+  real rows. Either of the two forms present but not a whole number of cents → `400` as well.
 - `associate_id` not on the roster, or not that store's own associate → `400`
   (`pos_sales.UnknownAssociate`).
 - `txn_type` present but not one of `sale|refund|void` → `400`.
@@ -236,6 +252,13 @@ refunds/voids are invisible there, exactly as `pos_sales` always was. `/api/ince
 `ref_txn_id` names the original sale, that sale is also dropped from the netted `txn_count`. See
 "`/api/aov/*` and `/api/incentives/*` disagree about refunds — on purpose" below for the full
 reasoning; the same divergence applies to hwpos rows as to Blaze/Meadow ones.
+
+**The money basis, on every board payload.** `GET /standings` and the contest detail payload both
+carry `scored_from: "txns"|"lines"` (which grain the board was scored from) and
+`money_basis: "ex_tax_net"` (what `net_cents`/`gross_cents` mean: ex-tax net after discounts and
+refunds, against ex-tax retail before discounts). Both grains have used that one basis since
+2026-09-08; a stored board without `money_basis` predates the fix and its unfiltered numbers are
+on the tax-inclusive receipt total.
 
 ## Settings
 
