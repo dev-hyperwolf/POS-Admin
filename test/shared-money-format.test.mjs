@@ -65,7 +65,7 @@ test('A. hw-live-lines.js money(v): the HD path and the no-HD fallback agree', (
     const n = Number(v);
     return '$' + n.toFixed(2);
   };
-  for (const v of [12.5, 37.99, 0]) {
+  for (const v of [12.5, 37.99, 0]) {  // the byte-identical range: 0 <= v < 1000
     assert.equal(HD.formatCents(Math.round(v * 100)), fallbackBody(v), `$${v} must format identically on both paths`);
   }
 });
@@ -97,4 +97,13 @@ test('D. demo-seed.js product() price: fmtDollars() routes through HD.formatCent
   for (const price of [42, 19.99, 60]) {
     assert.equal(HD.formatCents(Math.round(price * 100)), '$' + price.toFixed(2), `$${price} must format identically`);
   }
+});
+
+// ── E. Outside 0 <= v < 1000 the two paths DIFFER on purpose: HD.formatCents is the one formatter
+// (thousands separator, sign before the $), and that is what renders whenever hd-format.jsx is
+// loaded. Pinned so the difference is a documented decision, not a surprise in a Weedmaps order
+// over $1,000 or a negative adjustment.
+test('E. above $1,000 and below $0 the consolidated formatter wins, and its output is pinned', () => {
+  assert.equal(HD.formatCents(123456), '$1,234.56');
+  assert.equal(HD.formatCents(-500), '-$5.00');
 });

@@ -41,6 +41,10 @@
      and the plain-JS chrome mounts before any text/babel module has run. -->
 <script src="shared/hw-z.js"></script>
 <script src="shared/brands.js"></script>
+<!-- @hyper-tech/contracts: the estate's enums, ids, money, time, error and event rules as
+     window.HWContracts. Plain JS, IIFE, one global. Loads BEFORE commerce-adapter.js so its
+     cents() takes the mutation-proven contract path here too. See docs/BUILD-AGAINST-THE-SOURCE.md. -->
+<script src="contracts/index.js"></script>
 <!-- The swap/upsell engine + the one adapter from this estate's product shape to it.
      Plain JS, loads before React. commerce-engine.js is a BUILT artefact from
      dev-hyperwolf/hyperwolf-commerce-logic — regenerate, never hand-edit. -->

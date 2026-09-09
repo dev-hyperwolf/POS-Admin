@@ -21,7 +21,9 @@ const TAX_RATE = 0.0822;
 // display LABEL, which is the correct id → label direction (see mobile/store.jsx
 // matchesFilters, which used to guess the id FROM a label instead).
 const TASK_STATUS = window.HWContracts ? window.HWContracts.enumValues('TaskStatus') : ['not_started', 'unassigned', 'in_progress', 'completed', 'cancelled'];
-const [ST_NOT_STARTED, , ST_IN_PROGRESS, ST_COMPLETED, ST_CANCELLED] = TASK_STATUS;
+// By NAME, never by position: a reordered enum must not relabel every stop with no failing test.
+const _st = (id) => { if (TASK_STATUS.indexOf(id) === -1) console.error('mobile/data.jsx: TaskStatus lacks', id); return id; };
+const ST_NOT_STARTED = _st('not_started'), ST_IN_PROGRESS = _st('in_progress'), ST_COMPLETED = _st('completed'), ST_CANCELLED = _st('cancelled');
 
 // Delivery stops for "Today". A stop is a shop-at-home order the driver
 // fulfills at the door: it can be prepaid (collect nothing) or COD (collect).

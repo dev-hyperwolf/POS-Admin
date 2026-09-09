@@ -1,8 +1,8 @@
 // ── Generic Hyperdrive helpers for apps outside the pipeline ───────────────
 // Entities · hues · tones · UID formatting · number/date formatting.
 // Every color resolves from pos/tokens.jsx — no literals live here.
-// pipeline/domain.jsx loads on top of this file and supersets it with
-// batch-specific domain logic; it does not redefine anything below.
+// pipeline/domain.jsx publishes its batch-specific extensions as window.HD_PIPE and
+// leaves window.HD exactly as defined here (test/pipeline-hd-no-override.test.mjs proves it).
 ;(function () {
   const ENTITIES = [
     { id: 'thc', name: 'THC Flower Manufacturing', short: 'THC', hue: 'green' },

@@ -110,7 +110,9 @@ test('the board shows every surface x region, and an empty slot is a task rather
       const t = app.text();
       // Every surface label, and every region column, is on screen.
       for (const s of M.SURFACES) assert.ok(t.includes(s.label), `${s.label} is missing from the board`);
-      for (const c of ['All regions', 'Corona', 'Long Beach', 'West LA']) {
+      // 'west-la' reads 'West Hollywood' from pos/stores.jsx (window.HW_STORES), the one name per
+      // slug the AOV screen and the incentives card already used; 'West LA' was merch's own copy.
+      for (const c of ['All regions', 'Corona', 'Long Beach', 'West Hollywood']) {
         assert.ok(t.includes(c), `the ${c} column is missing`);
       }
 
