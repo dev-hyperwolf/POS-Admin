@@ -35,6 +35,7 @@ export type NotificationChannel = 'sms' | 'email' | 'push' | 'wallet';
 export type PromoRelation = 'mirrors' | 'supersedes' | 'conflict';
 export type BatchStage = 'incoming' | 'received' | 'labeling' | 'sealing' | 'shelf_ready' | 'merchandised' | 'approved' | 'quarantined' | 'recalled' | 'destroyed';
 export type LoyaltyTier = 'bronze' | 'silver' | 'gold' | 'platinum';
+export type LiveFeedStatus = 'off' | 'pending' | 'slow' | 'live' | 'unreachable' | 'no-write-path';
 export type PersonStatus = 'unverified' | 'active' | 'blocked' | 'deleted' | 'flagged';
 export type ErrorCode = 'bad_request' | 'unauthorized' | 'forbidden' | 'not_found' | 'conflict' | 'unprocessable' | 'rate_limited' | 'internal' | 'not_built';
 export type EventType = 'order.created' | 'order.completed' | 'order.refunded' | 'order.cancelled' | 'task.status_changed' | 'verification.decided' | 'points.earned' | 'points.redeemed' | 'promotion.consumed' | 'person.merged';

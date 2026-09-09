@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.2.1'; // 0.2.0: additive enums from docs/codebase-audit/MODULE-CONTRACT-GAPS.md §2; 0.2.1: PersonStatus
+  var VERSION = '0.2.2'; // 0.2.0: additive enums from docs/codebase-audit/MODULE-CONTRACT-GAPS.md §2; 0.2.1: PersonStatus; 0.2.2: LiveFeedStatus
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -112,6 +112,8 @@
     BatchStage: { values: ['incoming', 'received', 'labeling', 'sealing', 'shelf_ready', 'merchandised', 'approved', 'quarantined', 'recalled', 'destroyed'],
       source: 'pipeline/domain.jsx:24 BATCH_STATUS_ORDER (verbatim, in order)' },
     LoyaltyTier: { values: ['bronze', 'silver', 'gold', 'platinum'], source: 'athome/, crm.jsx (title-cased on screen)' },
+    LiveFeedStatus: { values: ['off', 'pending', 'slow', 'live', 'unreachable', 'no-write-path'],
+      source: 'shared/hw-live.js HW_LIVE_STATES (hw-live-history.js and hw-live-mapping.js read it)' },
     PersonStatus: { values: ['unverified', 'active', 'blocked', 'deleted', 'flagged'],
       source: 'wm-demo idv_people.status (Verify); `flagged` is legacy from the Didit import, accepted on read only, never written by our code' },
     ErrorCode: { values: ['bad_request', 'unauthorized', 'forbidden', 'not_found', 'conflict',

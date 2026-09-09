@@ -243,6 +243,9 @@ test('our estate: wm-demo enums still equal the contract (FAILS on drift)', { sk
   // The module boots from contracts.vocab("CheckinState", (<local literal>), …); the literal is the source.
   const all = /_ALL_STATES\s*=\s*(?:contracts\.vocab\("CheckinState",\s*)?\(([^)]*)\)/.exec(chk); assert.ok(all);
   assert.deepEqual([...all[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]), C.enumValues('CheckinState'), 'checkin_api.py _ALL_STATES');
+  const hwlive = fs.readFileSync(path.join(ROOT, 'shared/hw-live.js'), 'utf8');
+  const lfs = /HW_LIVE_STATES\s*=\s*(?:Object\.freeze\()?\[([^\]]*)\]/.exec(hwlive); assert.ok(lfs, 'shared/hw-live.js HW_LIVE_STATES');
+  assert.deepEqual([...lfs[1].matchAll(/'([a-z-]+)'/g)].map((m) => m[1]), C.enumValues('LiveFeedStatus'), 'HW_LIVE_STATES');
   const contract = fs.readFileSync(path.join(ROOT, 'docs/IDV-API-CONTRACT.md'), 'utf8');
   const reasons = [...contract.slice(contract.indexOf('// Reason'), contract.indexOf('// Score')).matchAll(/\b[A-Z][A-Z0-9_]{3,}\b/g)].map((m) => m[0]);
   assert.deepEqual([...new Set(reasons)], C.enumValues('VerificationReason'), 'IDV-API-CONTRACT Reason list');

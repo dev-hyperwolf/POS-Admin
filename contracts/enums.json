@@ -1,5 +1,5 @@
 {
-  "contract": "0.2.1",
+  "contract": "0.2.2",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -307,6 +307,14 @@
       "silver",
       "gold",
       "platinum"
+    ],
+    "LiveFeedStatus": [
+      "off",
+      "pending",
+      "slow",
+      "live",
+      "unreachable",
+      "no-write-path"
     ],
     "PersonStatus": [
       "unverified",
