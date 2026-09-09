@@ -1,6 +1,8 @@
 // ── /loyalty · /loyalty/[id] · /referrals(+programs, fraud) · /wallet ─────
 ;(function () {
   const useP = window.useP;
+  // contracts PointsKind display labels; `expired` is the one local extra (§ liability below).
+  const POINTS_KIND_LABEL = { earned: 'Accrued', redeemed: 'Redeemed', adjusted: 'Adjusted', expired: 'Expired' };
 
   // ── Loyalty list ────────────────────────────────────────────────────────
   window.ScreenLoyalty = function ScreenLoyalty({ navigate }) {
@@ -55,7 +57,10 @@
     const id = path.split('/')[2];
     const p = D.LOYALTY_PROGRAMS.find((x) => x.id === id) || D.LOYALTY_PROGRAMS[0];
     const wallets = [...D.CUSTOMERS].sort((a, b) => b.pointsBalance - a.pointsBalance).slice(0, 10);
-    const liability = { startingBalance: p.pointsOutstanding - 42000, accrued: 88400, redeemed: 41200, expired: 5100, adjusted: -100, endingBalance: p.pointsOutstanding, wowEndingDelta: 32800 };
+    // Keys match contracts PointsKind (earned/adjusted/redeemed) where a value exists;
+    // `expired` has no PointsKind entry yet — kept as a local extra (0.3.0 widening candidate).
+    // The on-screen label for `earned` stays "Accrued" via POINTS_KIND_LABEL below.
+    const liability = { startingBalance: p.pointsOutstanding - 42000, earned: 88400, redeemed: 41200, expired: 5100, adjusted: -100, endingBalance: p.pointsOutstanding, wowEndingDelta: 32800 };
     const events = [
       ['Credited', 'ok', '+250 pts · order 8841', D.ago(12)],
       ['Reward redeemed', 'info', '$15 off · 280 pts', D.ago(44)],
@@ -101,7 +106,7 @@
             <p style={{ margin: '2px 0 0', fontSize: 11.5, color: P.inkMute }}>Daily snapshot from <code style={{ fontFamily: P.fontMono, background: P.surface3, borderRadius: 3, padding: '1px 4px' }}>analytics.liability_rollup</code>; worker writes it nightly.</p>
           </header>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
-            {[['Starting', liability.startingBalance, null], ['Accrued', liability.accrued, 'ok'], ['Redeemed', -liability.redeemed, null], ['Expired', -liability.expired, 'warn'], ['Adjusted', liability.adjusted, null], ['Ending', liability.endingBalance, 'brand']].map(([label, value, tone], i) => (
+            {[['Starting', liability.startingBalance, null], [POINTS_KIND_LABEL.earned, liability.earned, 'ok'], [POINTS_KIND_LABEL.redeemed, -liability.redeemed, null], [POINTS_KIND_LABEL.expired, -liability.expired, 'warn'], [POINTS_KIND_LABEL.adjusted, liability.adjusted, null], ['Ending', liability.endingBalance, 'brand']].map(([label, value, tone], i) => (
               <div key={label} style={{ padding: '14px 20px', borderLeft: i === 0 ? 'none' : `1px solid ${P.hairline}` }}>
                 <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', color: P.inkMute }}>{label}</div>
                 <div style={{ marginTop: 4, fontSize: 21, fontWeight: 600, fontFamily: P.fontMono, color: tone ? HD.tone(P, tone).fg : P.ink }}>
