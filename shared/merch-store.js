@@ -46,6 +46,17 @@
     { id: 'cart_addon', label: 'Cart · Add-on', cap: 3, page: 'Cart' },
     { id: 'checkout_addon', label: 'Checkout · Add-on', cap: 1, page: 'Checkout' },
   ];
+  // This is the FOURTH store-slug list in the estate (pos/data.jsx STORE,
+  // pos/app.jsx USER.storeId, shared/demo-seed.js, shared/hw-live*.js — see
+  // docs/codebase-audit/gaps/pos-and-shared.md §"Second copies"). It is NOT
+  // wired to window.HW.REGIONS: that global exists (pos/data.jsx) but is a
+  // DIFFERENT vocabulary — delivery-zone city names ('Lake Elsinore',
+  // 'Wildomar', …), not these three store slugs — same name, unrelated
+  // meaning. Reading it here would silently swap this list for the wrong one
+  // on every page that loads pos/data.jsx. No stores registry with the right
+  // shape is exposed client-side today (BUILD-AGAINST-THE-SOURCE.md §3's
+  // `stores` registry is server-side, read by Bounty). Left as the literal;
+  // the registry decision is the orchestrator's.
   var REGIONS = ['corona', 'long-beach', 'west-la'];
   var MODES = ['carousel', 'weighted'];
   var STATES = ['draft', 'review', 'live'];
