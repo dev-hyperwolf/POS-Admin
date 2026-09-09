@@ -8,7 +8,7 @@ window.condDefaults = function condDefaults(eid, gid, cid) {const c = RULE.cond(
 window.rewardDefaults = function rewardDefaults(id) {const r = RULE.reward(id);const values = {};(r?.params || []).forEach((p) => values[p.key] = paramDefault(p));return { id, values };};
 
 // blank promo draft
-window.newDraft = function newDraft() {return { name: '', code: '', platform: 'Hyperwolf', status: 'active', auto: true, schedule: true, publishNow: false, expiry: true, publishDate: 'Jul 14, 2026 9:00 AM', expiryDate: 'Aug 14, 2026 9:00 AM', totalLimit: '', userLimit: '', rule: window.newRule() };};
+window.newDraft = function newDraft() {return { name: '', code: '', platform: PLATFORMS[0], status: 'active', auto: true, schedule: true, publishNow: false, expiry: true, publishDate: 'Jul 14, 2026 9:00 AM', expiryDate: 'Aug 14, 2026 9:00 AM', totalLimit: '', userLimit: '', rule: window.newRule() };};
 
 // ── PERSISTENT PLAIN-ENGLISH PREVIEW ────────────────────────────────────────
 // The heart of the redesign: a live, human sentence + a "so this means…" gloss.
@@ -68,7 +68,7 @@ function CodeGen({ draft, set }) {
 window.MetaFields = function MetaFields({ draft, set }) {
   const P = useP();
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr auto', gap: 14, alignItems: 'end' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto auto', gap: 14, alignItems: 'end' }}>
       <div>
         <Eyebrow style={{ marginBottom: 7 }}>Promotion name</Eyebrow>
         <Field placeholder="e.g. Green Wednesday BOGO" value={draft.name} onChange={(e) => set({ name: e.target.value })} />
@@ -77,6 +77,10 @@ window.MetaFields = function MetaFields({ draft, set }) {
         <Eyebrow style={{ marginBottom: 7 }}>Promo code</Eyebrow>
         <Field placeholder="AUTO or CODE" value={draft.code} onChange={(e) => set({ code: e.target.value.toUpperCase() })} mono suffix={<CodeGen draft={draft} set={set} />} />
         {draft.codeBatch ? <div style={{ fontSize: 11.5, fontWeight: 600, color: P.info, marginTop: 5, fontFamily: P.fontMono }}>{draft.codeBatch.toLocaleString()} unique codes queued</div> : null}
+      </div>
+      <div>
+        <Eyebrow style={{ marginBottom: 7 }}>Platform</Eyebrow>
+        <Seg value={draft.platform} onChange={(v) => set({ platform: v })} options={PLATFORMS.map((id) => ({ value: id, label: (window.PLATFORM_LABEL || {})[id] || id }))} />
       </div>
       <div>
         <Eyebrow style={{ marginBottom: 7 }}>Status</Eyebrow>

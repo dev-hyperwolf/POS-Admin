@@ -95,7 +95,7 @@ function ReviewStep({ draft, setStep }){
   const rows = [
     { label:'Name', value:draft.name||'Untitled', step:3 },
     { label:'Code', value:draft.auto?'Auto-applies (no code)':(draft.code||'—'), step:3 },
-    { label:'Platform', value:draft.platform, step:3 },
+    { label:'Platform', value:(window.PLATFORM_LABEL||{})[draft.platform]||draft.platform, step:3 },
     { label:'Live window', value:(draft.publishNow?'Now':draft.publishDate)+' → '+(draft.expiry?draft.expiryDate:'no expiry'), step:3 },
     { label:'Total limit', value:draft.totalLimit||'Unlimited', step:3 },
     { label:'Per customer', value:draft.userLimit||'Unlimited', step:3 },
