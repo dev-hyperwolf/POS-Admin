@@ -98,7 +98,14 @@ open "http://127.0.0.1:8793/Hyperwolf%20Verify.html"
 The dev database holds the real imported Didit history; keep it local.
 
 ## Open (known, not fixed tonight)
-- Real-camera capture on iPhone Safari and the `video/mp4` recorder branch are untested by me.
+- Capture round 3 (2026-09-09): in-browser PDF417 decode on every browser (vendored zxing-wasm,
+  MIT wrapper + Apache-2.0 core), document bounding-box framing, resume strictly from state, wake
+  lock, Persona-grade selfie/liveness, single-checkbox consent. The live camera path was only
+  exercised synthetically; the owner's iPhone run is the first real test.
+- Challenge pass (2026-09-09): prompts matched on the real wire shape, turn-left yaw sign fixed on
+  measured data, `challenge.result` taxonomy — a failed challenge is a guided retry, only
+  `replay_suspected` declines; the window is measured against upload time; the backend asks the
+  engine to redeliver a stuck verdict.
 - Barcode decode ladder: 52% on Didit's compressed images; needs real capture data to measure.
 - Passive liveness has no certification path; face thresholds are provisional (no capture-path
   selfies in the corpus yet).
@@ -114,10 +121,10 @@ The dev database holds the real imported Didit history; keep it local.
 ## Verification summary (final run, scratch databases)
 | Suite | Checks |
 |---|---|
-| `qa/idv_rules_probe.py` | 313 / 313 |
+| `qa/idv_rules_probe.py` | 321 / 321 |
 | `qa/idv_store_probe.py` | 64 / 64 |
-| `qa/idv_api_probe.py` | 122 / 122 |
+| `qa/idv_api_probe.py` | 137 / 137 |
 | `qa/idv_import_probe.py` | 78 / 78 |
-| `idv-engine` pytest | 257 passed, 2 skipped |
+| `idv-engine` pytest | 279 passed, 2 skipped |
 | `test/global-collisions.test.mjs` | green (16 pages) |
-| **Total probe checks** | **577 + 257 engine tests** |
+| **Total probe checks** | **600 + 279 engine tests** |
