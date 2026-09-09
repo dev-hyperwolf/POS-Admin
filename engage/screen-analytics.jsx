@@ -1,7 +1,7 @@
 // ── Analytics: overview · deliverability · campaigns · attribution ────────
 ;(function () {
   const useP = window.useP;
-  const CHANNELS = ['sms', 'email', 'push', 'wallet'];
+  const CHANNELS = window.ENGAGE_DATA.CHANNELS; // one list, engage/data.jsx (contract NotificationChannel)
   const CHANNEL_LABEL = { sms: 'SMS', email: 'Email', push: 'Push', wallet: 'Wallet' };
 
   // Deterministic analytics rollup derived once from the shared PRNG.
