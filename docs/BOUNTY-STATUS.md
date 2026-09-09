@@ -9,12 +9,12 @@ All four POS-connected stores rank real people from real sales, on the review se
 http://127.0.0.1:8791/Hyperwolf%20Bounty.html (August loaded via the real exports; September
 via the live APIs):
 
-| Store | POS | Live path | Backfill path | August board |
+| Store | POS | Live path | Backfill path | August (receipts per the trail · unattributed) |
 |---|---|---|---|---|
-| Corona | Blaze | API sync every 5 min | Completed Sales Detail / Total Sales Products exports | 17 ranked, $375,571 net, $0 unattributed |
-| Lake Elsinore | Blaze | API sync | All Sales export | 33 ranked, $698,451 net, $0 unattributed |
-| West Hollywood | Meadow | API sync (Analytics key) | Orders Report workbook | 6 ranked, $79,583 net, $4,548 anonymous API orders |
-| Long Beach | Treez | none (no client) | Products Report (tickets + money) and Inventory Log (units) | 8 ranked, $240,727 net, 6,909 tickets, $12,200 awaiting two identity binds |
+| Corona | Blaze | API sync every 5 min | Completed Sales Detail / Total Sales Products exports | 17 ranked · $375,571 · $0 |
+| Lake Elsinore | Blaze | API sync | All Sales export | 33 ranked · $698,451 · $0 |
+| West Hollywood | Meadow | API sync (Analytics key) | Orders Report workbook | 6 ranked · $79,583 · $3,368 anonymous API orders |
+| Long Beach | Treez | none (no client) | Products Report (tickets + money) and Inventory Log (units) | 8 ranked · $240,727 · 5,957 tickets · $8,930 awaiting two identity binds |
 | Register (demo POS) | in-house | every tender posts txn + cart lines | — | flows into the same ledger |
 
 ## What shipped today (on top of last night's module)
@@ -43,12 +43,16 @@ via the live APIs):
 
 ## Verification
 
-Twelve probe suites on scratch databases, **638 checks, all green** (`docs/SCOREBOARD.md`
-BT-1 … BT-11): scoring 38, ingest 34, identity 37, aov_compat 20, contests 35, classes 55,
-routes 161, safety 47, blaze_export 29, meadow_real 10, treez 55, meadow_sync 117 (plus
-blaze_sync 48 offline). POS-Admin `test/global-collisions.test.mjs` 16/16. Live: a real cash
+Twelve probe suites on scratch databases, **656 checks, all green** (`docs/SCOREBOARD.md`
+BT-1 … BT-11): scoring 40, ingest 34, identity 39, aov_compat 20, contests 35, classes 55,
+routes 168, safety 47, blaze_export 29, meadow_real 10, treez 60, meadow_sync 119 (plus
+blaze_sync 51 offline). POS-Admin `test/global-collisions.test.mjs` 16/16. Live: a real cash
 tender on the demo register reached a brand board; every store's August board recomputed by
-hand from the raw files matches to the cent (adversarial pass in progress at time of writing).
+hand from the raw files matches to the cent. A second adversarial pass found and the same
+evening fixed: two definitions of net (boards now score ex-tax net everywhere, and the payload
+says `scored_from` and `money_basis`; the trail still reconciles against tax-inclusive vendor
+receipts), Treez quantity-split double counting, refunds counted twice, truncated uploads
+accepted, and a same-name merge without a guard.
 
 ## Waiting on you
 
