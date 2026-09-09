@@ -8,6 +8,21 @@ const money = window.HW.fmt.money;
 function countyOf(id) {return D.COUNTY_BY_ID[id.slice(0, 2)];}
 function subById(id) {return D.SUBREGIONS.find((s) => s.id === id);}
 
+// FNV-1a 32-bit — used by WeedmapsPanel below to derive stable-but-varied wmid/pinId/
+// token/lat/lng values per region or pin key. NOT a char-code sum: a sum collides on
+// anagrams ('RC-01' and '1C-R0' would hash identically, and so would any two strings
+// using the same characters in a different order) — delivery/ddata.jsx's own
+// _stockHash comment documents this exact prior bug (mobile/data.jsx's boxOf still
+// has it). FNV-1a mixes character POSITION into the hash via multiplication, so it
+// does not have that collision. See test/delivery-weedmaps-hash.test.mjs.
+function fnv1aHash(s) {
+  let h = 0x811c9dc5;
+  const str = String(s);
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+window.fnv1aHash = fnv1aHash;
+
 // ── Page header ─────────────────────────────────────────────────────────────
 function PageHeader({ onAdd, mode, onToggleTheme }) {
   const P = useP();
@@ -15,7 +30,7 @@ function PageHeader({ onAdd, mode, onToggleTheme }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 9, fontSize: 11.5, fontFamily: P.fontMono, color: P.inkMute, letterSpacing: '.04em' }}><Icon name="truck" size={13} stroke={1.8} /> Operations <Icon name="chevron-right" size={12} /> <span style={{ color: P.ink2, fontWeight: 600 }}>Delivery</span></div>
       <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: P.ink }}>Delivery</h1>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, fontSize: 13.5, color: P.inkDim }}><span style={{ width: 7, height: 7, borderRadius: 99, background: P.good }} />4 counties · {D.SUBREGIONS.length} sub-regions · {D.SUBREGIONS.filter((s) => s.status === 'on').length} drivers on shift</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7, fontSize: 13.5, color: P.inkDim }}><span style={{ width: 7, height: 7, borderRadius: 99, background: P.good }} />4 counties · {D.SUBREGIONS.length} sub-regions · {D.SUBREGIONS.filter((s) => s.status === D.SHIFT_ON).length} drivers on shift</div>
     </div>
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <button onClick={onToggleTheme} title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`} style={{ width: 40, height: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r10, color: P.ink2, cursor: 'pointer' }}><Icon name={mode === 'light' ? 'moon' : 'sun'} size={18} stroke={1.9} /></button>
@@ -27,7 +42,7 @@ function PageHeader({ onAdd, mode, onToggleTheme }) {
 
 // ── Call-off card (via the call-off form) ───────────────────────────────────
 function CallOffCard({ c }) {
-  const P = useP();const open = c.status === 'open';const col = open ? P.bad : P.warn;const cty = countyOf(c.region);
+  const P = useP();const open = c.status === D.CALLOFF_OPEN;const col = open ? P.bad : P.warn;const cty = countyOf(c.region);
   return <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 15px', background: open ? P.badSoft : P.warnSoft, border: `1px solid ${open ? P.bad : P.hairline2}`, borderRadius: P.r12 }}>
     <span style={{ flex: '0 0 auto', width: 36, height: 36, borderRadius: 9, background: P.surface, color: col, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${col}` }}><Icon name="user-off" size={18} stroke={1.9} /></span>
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -50,7 +65,7 @@ function ScheduleWeek() {
   const list = D.SCHEDULE_WK[day];
   const working = list.filter((p) => !p.off);const off = list.filter((p) => p.off);
   const dayCalloffs = D.CALLOFFS.filter((c) => c.day === day);
-  const openCalloffs = dayCalloffs.filter((c) => c.status === 'open');
+  const openCalloffs = dayCalloffs.filter((c) => c.status === D.CALLOFF_OPEN);
   const calledOffNames = new Set(dayCalloffs.map((c) => c.driver));
   const meta = D.WEEK.find((d) => d.key === day);
   const startMin = (tm) => {const m = (tm || '').match(/^(\d+):(\d+)([ap])/);if (!m) return 9999;let h = +m[1] % 12;if (m[3] === 'p') h += 12;return h * 60 + +m[2];};
@@ -199,8 +214,8 @@ function WmPinRow({ pin, expanded, onToggle }) {
             <WmParam label="external_id" value={pin.ext} mono />
             <WmParam label={pin.kind === 'Pickup' ? 'Linked store' : 'Linked region'} value={pin.kind === 'Pickup' ? pin.store : pin.city} />
             <WmParam label="Hours" value={fmtHrs(pin.hours)} mono />
-            <WmParam label="Min order" value={pin.min ? '$' + pin.min : 'None'} mono />
-            {pin.kind !== 'Pickup' && <WmParam label="Delivery fee" value={pin.fee ? '$' + pin.fee : 'Free'} mono />}
+            <WmParam label="Min order" value={pin.min ? money(pin.min) : 'None'} mono />
+            {pin.kind !== 'Pickup' && <WmParam label="Delivery fee" value={pin.fee ? money(pin.fee) : 'Free'} mono />}
             <WmParam label={pin.kind === 'Pickup' ? 'Fulfilment' : 'Service radius'} value={pin.radius} mono />
             <WmParam label="Availability" value={pin.kind === 'Pickup' ? 'store on-hand' : 'on-shift kits'} />
           </div>
@@ -255,19 +270,26 @@ function WeedmapsPanel({ regions }) {
   const [open, setOpen] = React.useState(null);
   const [added, setAdded] = React.useState([]);
   const [adding, setAdding] = React.useState(false);
-  const hash = (s) => s.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const hash = fnv1aHash;
 
-  const deliveryPins = regions.map((r) => {const cty = countyOf(r.id);const h = hash(r.id);return {
+  // Weedmaps ids get a matching contract external_id ({source:'weedmaps', id}) alongside
+  // the bare `wmid` this page renders — docs/BUILD-AGAINST-THE-SOURCE.md §3: a vendor id
+  // is never JUST a bare string once a contract exists for it. `wmid` itself stays for
+  // display; external_ids is what a real integration would read.
+  const HC = window.HWContracts;
+  const wmExternalIds = (wmid) => HC ? [HC.externalId('weedmaps', wmid)] : undefined;
+
+  const deliveryPins = regions.map((r) => {const cty = countyOf(r.id);const h = hash(r.id);const wmid = String(342170000 + h % 9000);return {
       key: 'd-' + r.id, kind: 'Delivery', city: r.city || r.id, cty,
-      wmid: String(342170000 + h % 9000), ext: `HW-DEL-${r.id}`, menu: `menu_del_${r.id.toLowerCase()}`,
-      pinId: 'PIN-' + String(342170000 + h % 9000).slice(-5), lat: (33.7 + h % 45 / 100).toFixed(4), lng: (-118.35 + h % 100 / 100).toFixed(4), token: 'ptok_' + (h * 31 % 99999).toString(36) + 'x9', url: `weedmaps.com/deliveries/hw-${r.id.toLowerCase()}`,
+      wmid, external_ids: wmExternalIds(wmid), ext: `HW-DEL-${r.id}`, menu: `menu_del_${r.id.toLowerCase()}`,
+      pinId: 'PIN-' + wmid.slice(-5), lat: (33.7 + h % 45 / 100).toFixed(4), lng: (-118.35 + h % 100 / 100).toFixed(4), token: 'ptok_' + (h * 31 % 99999).toString(36) + 'x9', url: `weedmaps.com/deliveries/hw-${r.id.toLowerCase()}`,
       live: r.kml !== false, hours: `${8 + h % 3}:00a–${8 + h % 4}:00p`, min: [40, 50, 60][h % 3], fee: [0, 5, 8][h % 3],
       radius: `${4 + h % 5} mi`, sync: ['just now', '2m ago', '11m ago', '1h ago'][h % 4] };});
   const STORE_PINS = [{ key: 'lb', city: 'Long Beach', store: 'Stilo Supply' }, { key: 'cor', city: 'Corona', store: 'CHKN N WAFFLEZ' }, { key: 'weho', city: 'West Hollywood', store: 'Hyperwolf' }, { key: 'le', city: 'Lake Elsinore', store: 'Hyperwolf' }];
-  const pickupPins = STORE_PINS.map((s) => {const h = hash(s.key);return {
+  const pickupPins = STORE_PINS.map((s) => {const h = hash(s.key);const wmid = String(342180000 + h % 9000);return {
       key: 'p-' + s.key, kind: 'Pickup', city: s.city, store: s.store, cty: null,
-      wmid: String(342180000 + h % 9000), ext: `HW-PU-${s.key.toUpperCase()}`, menu: `menu_pu_${s.key}`,
-      pinId: 'PIN-' + String(342180000 + h % 9000).slice(-5), lat: (33.8 + h % 40 / 100).toFixed(4), lng: (-118.3 + h % 90 / 100).toFixed(4), token: 'ptok_' + (h * 17 % 99999).toString(36) + 'p4', url: `weedmaps.com/dispensaries/hw-${s.key}`,
+      wmid, external_ids: wmExternalIds(wmid), ext: `HW-PU-${s.key.toUpperCase()}`, menu: `menu_pu_${s.key}`,
+      pinId: 'PIN-' + wmid.slice(-5), lat: (33.8 + h % 40 / 100).toFixed(4), lng: (-118.3 + h % 90 / 100).toFixed(4), token: 'ptok_' + (h * 17 % 99999).toString(36) + 'p4', url: `weedmaps.com/dispensaries/hw-${s.key}`,
       live: true, hours: '9:00a–9:00p', min: 0, fee: 0, radius: 'in-store', sync: ['just now', '4m ago', '18m ago'][h % 3] };});
 
   const allDelivery = [...deliveryPins, ...added.filter((p) => p.kind === 'Delivery')];
@@ -275,8 +297,9 @@ function WeedmapsPanel({ regions }) {
   const pins = tab === 'delivery' ? allDelivery : allPickup;
   const addPin = ({ city, assoc }) => {
     const isPickup = tab === 'pickup';const slug = city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'pin';const h = hash(slug + Date.now());
+    const wmid = String((isPickup ? 342180000 : 342170000) + h % 9000);
     const np = { key: (isPickup ? 'p-' : 'd-') + slug + '-' + h % 999, kind: isPickup ? 'Pickup' : 'Delivery', city, store: isPickup ? assoc || 'Hyperwolf' : undefined, cty: isPickup ? null : { name: assoc || 'Unassigned county', color: P.info },
-      wmid: String((isPickup ? 342180000 : 342170000) + h % 9000), ext: `${isPickup ? 'HW-PU' : 'HW-DEL'}-${slug.toUpperCase().replace(/-/g, '').slice(0, 8)}`, menu: `menu_${isPickup ? 'pu' : 'del'}_${slug}`,
+      wmid, external_ids: wmExternalIds(wmid), ext: `${isPickup ? 'HW-PU' : 'HW-DEL'}-${slug.toUpperCase().replace(/-/g, '').slice(0, 8)}`, menu: `menu_${isPickup ? 'pu' : 'del'}_${slug}`,
       pinId: 'PIN-' + String(10000 + h % 89999), lat: (33.7 + h % 45 / 100).toFixed(4), lng: (-118.35 + h % 100 / 100).toFixed(4), token: 'ptok_' + (h * 31 % 99999).toString(36) + 'x9', url: `weedmaps.com/${isPickup ? 'dispensaries' : 'deliveries'}/hw-${slug}`,
       live: false, hours: '9:00a–9:00p', min: isPickup ? 0 : 50, fee: isPickup ? 0 : 5, radius: isPickup ? 'in-store' : '5 mi', sync: 'never' };
     setAdded((a) => [...a, np]);setAdding(false);setOpen(np.key);
@@ -376,7 +399,7 @@ function RegionsHome({ onOpen, regions }) {
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}><Avatar name={s.driver} size={24} /><span style={{ fontSize: 12.5, color: P.ink2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.driver}</span></span>
                 {cells.map((cell) => <SettingRow key={cell.label} {...cell} />)}
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>{s.status === 'on' ? <Pill kind="good" dot>On</Pill> : <Pill kind="neutral" dot>Off</Pill>}<Icon name="chevron-right" size={15} color={P.inkFaint} /></span>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>{s.status === D.SHIFT_ON ? <Pill kind="good" dot>On</Pill> : <Pill kind="neutral" dot>Off</Pill>}<Icon name="chevron-right" size={15} color={P.inkFaint} /></span>
               </div>;
             })}
           </Card>
@@ -452,7 +475,7 @@ function AddRegionModal({ regions, onClose, onSave }) {
       if (!D.COUNTY_BY_ID[countyId]) {const nc = { id: countyId, name: newCtyName.trim() || 'New county', color: cty.color, settings: cty.settings };D.COUNTIES.push(nc);D.COUNTY_BY_ID[countyId] = nc;}
     }
     const rid = newCty ? `${countyId}-01` : id;
-    onSave({ id: rid, county: countyId, city: city.trim() || rid, driver: 'Unassigned', status: 'on', kml: false, pts: hex, override: {}, kmls: [] });
+    onSave({ id: rid, county: countyId, city: city.trim() || rid, driver: 'Unassigned', status: D.SHIFT_ON, kml: false, pts: hex, override: {}, kmls: [] });
   };
   const inp = { width: '100%', height: 42, border: `1px solid ${P.hairline2}`, background: P.surface, borderRadius: P.r10, padding: '0 12px', fontSize: 13.5, color: P.ink, fontFamily: P.fontSans, outline: 'none' };
   const lbl = { fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim, marginBottom: 6, display: 'block' };
@@ -508,7 +531,7 @@ function RegionDetail({ region, onBack, onChange }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', background: P.surface, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, marginBottom: 16, boxShadow: P.shadowSm, flexWrap: 'wrap' }}>
       <span style={{ width: 46, height: 46, borderRadius: P.r10, background: c.color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: P.fontMono, fontWeight: 800, fontSize: 15 }}>{s.id}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{s.city}</span>{s.status === 'on' ? <Pill kind="good" dot>On shift</Pill> : <Pill kind="neutral" dot>Off</Pill>}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}><span style={{ fontSize: 21, fontWeight: 800, letterSpacing: '-.02em', color: P.ink }}>{s.city}</span>{s.status === D.SHIFT_ON ? <Pill kind="good" dot>On shift</Pill> : <Pill kind="neutral" dot>Off</Pill>}</div>
         <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{c.name}</div>
       </div>
       <PBtn variant="accent" size="md" icon="check">Save</PBtn>
