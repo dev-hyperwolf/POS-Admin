@@ -1725,3 +1725,103 @@ it would be a guest who has never presented anything. Running it twice creates n
 
 Returns `{sessions, skipped_no_decision, already_linked, linked, people_created, templates_linked,
 documents_linked, warnings, by_rule}`.
+
+## Addendum — 2026-09-09 (r2): the numbers decide, and a warning is not a verdict
+
+**The session that produced this ruling.** The owner's own phone, session **#9**
+(`vendor_data: "email:owner-iphone-9"`, session `9f26cc0a…`, workflow `cf8229dd…` v3). Three
+evaluations, three engine callback jobs — `job_762bd4fe…`, `job_0eaae810…`, `job_3622f1ae…`. Every
+one of them carried:
+
+| measurement | value | threshold |
+|---|---|---|
+| `front_image_quality_score` | **86.5** | `doc_quality_min` 60 |
+| `back_image_quality_score` | **96.2** | `doc_quality_min` 60 |
+| barcode | **`DECODED`**, 27 AAMVA elements, 0 anomalies | — |
+| `portrait_face_found` | **true** (0.904) | — |
+| passive liveness | **99.96 / 100.0 / 99.89**, challenge `completed` | `liveness_min` 70 |
+| 1:1 face match | **75.75 / 71.21 / 71.73** | `face_match_min` 60 |
+
+And the outcomes were **`Awaiting User [DOC_QUALITY_LOW]`**, **`Awaiting User [DOC_QUALITY_LOW]`**,
+**`Declined`** — *"There's glare over the card — tilt it away from the light and take the photo
+again"*, said three times to a guest whose card had already been read completely, and then refused.
+
+**Which door it came from, because it was not the obvious one.** `_document_block`'s quality rule
+never fired: it compares the weaker side against `doc_quality_min` and 86.5 clears 60. The finding
+came out of **`_engine_reason_block`**, which re-raised the engine's `reasons[0]` as a guided
+finding — and the engine derives `DOC_QUALITY_LOW` from **its own `warnings[]`**. This session
+carried two:
+
+```json
+"warnings": [
+  {"risk": "IMAGE_TOO_BRIGHT",   "additional_data": {"glare_fraction": 0.0724, "threshold": 0.035}},
+  {"risk": "DATA_INCONSISTENT",  "additional_data": {"confidence": 90.0,
+                                  "fields": {"first_name": {"barcode": "JACOB", "ocr": "NJACOB…"}}}}
+]
+```
+
+Neither is a reason to re-shoot anything. Glare over 7.2% of the card is a fact about the photograph
+that the quality score has **already priced in** — that is what the score is — and a printed first
+name our OCR mangled is the failure mode the 2026-09-09 barcode ruling exists to ignore.
+`BARCODE_OCR_MISMATCH` was correctly dropped on this session by that ruling; `DOC_QUALITY_LOW` came
+in through the door next to it, and it took the guidance slot because it outranks everything else in
+`_GUIDED`.
+
+### The rule now
+
+**The numeric per-side quality scores against `doc_quality_min` are the ONLY thing that can raise
+`DOC_QUALITY_LOW` off a finished document.** Two consequences, both enforced in `idv_rules`:
+
+1. **Engine warnings are `warnings[]` and nothing else.** `IMAGE_TOO_BRIGHT`, `IMAGE_TOO_DARK`,
+   `IMAGE_TOO_BLURRY`, `DATA_INCONSISTENT`, and `SCREEN_CAPTURE_DETECTED` reported *as suspected*,
+   are passed through to the decision for the console — **no reason code, no guided retake, no
+   decline, no score cap** — whenever the score clears the bar. The ruling moves them out of the
+   outcome, not out of the record: they are the only evidence that the photograph had glare on it,
+   and silencing them would be a different bug.
+2. **The engine's own `DOC_QUALITY_LOW` is dropped when our numeric read passes**, with the drop
+   written into `explain` naming the reason code, the measurement and the floor. This is the same
+   pattern the OCR-mismatch suppression already used one reason code along.
+
+**Generalised, on purpose.** The fix is not "stop believing `DOC_QUALITY_LOW`". Every reason the
+engine can propose is now classified, and `idv_rules.NUMERIC_REASONS` is the set we hold the same
+measurement for:
+
+| class | reasons | what happens to the engine's proposal |
+|---|---|---|
+| **numeric** | `DOC_QUALITY_LOW`, `LIVENESS_LOW`, `FACE_MATCH_LOW`, `BARCODE_OCR_MISMATCH` | re-derived by `idv_rules.own_numeric_read(reason, engine, cfg, features)`. Our read **passes** → dropped with an `explain` line. Our read **fails** → the owning block has already raised the finding, carrying *our* figures. |
+| **trusted** | `INJECTION_DETECTED`, `OVI_SHIFT_NOT_SEEN`, `CHALLENGE_NONCE_MISMATCH`, `LIVENESS_ATTEMPTS_EXHAUSTED_HARD`, the blocklist and `MED_REC_*` verdicts, `DOC_EXPIRED`, `UNDER_AGE`, … | taken at its word. We hold no local signal — the pixels, the counters and the list state are the engine's or an imported decision's. Refusing a signal you cannot check is not scepticism, it is fail-open. |
+| **inert** | `OUT_OF_STATE`, `IP_VPN`, `IP_HOSTING`, `BARCODE_NOT_DETECTED`, `DOC_PORTRAIT_NOT_FOUND`, `MED_REC_MISSING`, `MED_REC_UNREADABLE` | workflow policy answers it, or these rules raise it themselves off the evidence and never accept it second-hand. |
+
+**"No number" is not "a passing number."** `own_numeric_read` returns `absent` when the feature was
+not requested, the node never finished, or the score is null — and an `absent` read leaves the
+engine's reason **standing**. An imported Didit decision carries verdicts and no measurements, and
+treating a missing score as a clearing one would approve every one of them.
+
+**What did not change.** The cross-check still bites: a print read at ≥85 confidence contradicting
+the barcode on `date_of_birth` or `document_number` is still `BARCODE_OCR_MISMATCH`, one retake on
+`document_back`, then `Declined`. The rule is *"the numbers decide"*, not *"the engine's opinion
+loses"*.
+
+### Where it is held
+
+`qa/idv_rules_probe.py` **section L**, 59 checks (suite 338 → **397**). The fixture is the real
+`job_762bd4fe…` callback body with the identity scrubbed everywhere it appears —
+`warnings[].additional_data.fields`, `engine_detail.ocr_fields` and `engine_detail.crosscheck.fields`
+included — and every score, warning and `status: null` as the engine sent them:
+`qa/fixtures/idv/engine-callback-real-session9-2026-09-09.json`.
+
+- **L01–L03** — session #9 approves, both warnings still on the decision, the drop auditable.
+- **L04** — *which door*: `own_numeric_read` reads the document as a pass, and the identical body
+  with `reasons` emptied always approved. A fix aimed at `_document_block` would have changed nothing.
+- **L05** — the same session on attempts 1, 2 and 3, because the real refusal happened on the third.
+- **L06/L07** — all four numeric reasons, both directions, plus `absent` → still standing.
+- **L07b** — a score on a node the engine abandoned, or on a document this workflow never asked
+  for, is `absent` too: the gate is on the *read*, not on the presence of a number.
+- **L08** — the partition is **total**: asserted as set equality against `REASONS`, so a new reason
+  code cannot arrive unclassified, then each one walked on a clean baseline.
+- **L09** — each of the five warnings above, attached alone to a passing document: kept, decides
+  nothing.
+- **L10** — the tamper signal still fires.
+
+`qa/idv_api_probe.py` is unchanged at **155/155**: no route was touched — the API layer renders
+whatever the rules return.
