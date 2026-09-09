@@ -27,16 +27,23 @@
   const HWIdv = window.HWIdv;
   const IdvShared = window.IdvShared;
 
-  // ── fixed enums, verbatim from the contract's "Common fragments" ────────
-  const STATUS_LIST = ['Not Started', 'In Progress', 'Awaiting User', 'In Review', 'Approved',
+  // ── fixed enums, from the contract when it is loaded, else verbatim from
+  // the contract's "Common fragments" as a fallback (the hosted capture page
+  // and some older pages never load contracts/index.js).
+  const HWContracts = window.HWContracts;
+  const FALLBACK_STATUS_LIST = ['Not Started', 'In Progress', 'Awaiting User', 'In Review', 'Approved',
     'Declined', 'Resubmitted', 'Abandoned', 'Expired', 'Kyc Expired'];
-  const REASON_LIST = [
+  const FALLBACK_REASON_LIST = [
     'LIVENESS_LOW', 'LIVENESS_FAILED_3X', 'FACE_MATCH_LOW', 'DOC_QUALITY_LOW', 'BARCODE_OCR_MISMATCH',
     'NAME_MISMATCH_EXPECTED', 'DUPLICATE_PERSON', 'IP_HOSTING', 'IP_VPN', 'AGE_ESTIMATE_UNDER_MARGIN',
     'OUT_OF_STATE', 'DOC_NEAR_EXPIRY', 'ENGINE_UNAVAILABLE_MANUAL',
     'DOC_EXPIRED', 'UNDER_AGE', 'FACE_BLOCKLIST_HIT', 'DOCUMENT_BLOCKLIST_HIT', 'USER_BLOCKLIST_HIT',
     'IP_TOR', 'INJECTION_DETECTED', 'CHALLENGE_NONCE_MISMATCH', 'LIVENESS_ATTEMPTS_EXHAUSTED_HARD',
   ];
+  const STATUS_LIST = (HWContracts && typeof HWContracts.enumValues === 'function')
+    ? HWContracts.enumValues('VerificationStatus') : FALLBACK_STATUS_LIST;
+  const REASON_LIST = (HWContracts && typeof HWContracts.enumValues === 'function')
+    ? HWContracts.enumValues('VerificationReason') : FALLBACK_REASON_LIST;
   // Filter enum is fuller than the create-dialog's channel enum (below) —
   // "import" and "embedded" are things a session CAN be, never things this
   // console creates directly.

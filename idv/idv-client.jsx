@@ -58,9 +58,27 @@
   // associate is analyst. The client mapped "Floor Manager" to analyst while
   // the backend treated it as admin, so Save buttons were greyed for a user
   // the server would have accepted (found 2026-09-09).
+  // NOW ROUTED THROUGH window.HWContracts.roleFrom() (docs/BUILD-AGAINST-THE-
+  // SOURCE.md #3 — "Role strings" may never be a second hand-rolled mapping)
+  // when contracts/index.js is loaded, WITH THE SAME OUTCOME AS BEFORE: the
+  // contract's five-value Role ladder (viewer|associate|manager|admin|
+  // superadmin) collapses onto Verify's three exactly as the backend already
+  // treats a title — admin and superadmin are admin, and manager is ALSO
+  // admin here (the backend's "title contains manager" rule, not the
+  // contract's own manager->analyst-ish default), so a Floor Manager still
+  // saves workflows. Any other real role (roleFrom's "associate", or
+  // anything roleFrom could not place) is analyst; no role at all is viewer.
+  // The literal substring fallback below is UNCHANGED and used only when
+  // HWContracts never loaded (a page that does not include contracts/).
   var DISPLAY_ROLE_TO_IDV = { Admin: 'admin', Owner: 'admin', 'Floor Manager': 'admin' };
   function role() {
     var s = session();
+    var K = window.HWContracts;
+    if (K && typeof K.roleFrom === 'function') {
+      var r = K.roleFrom(s.role);
+      if (r === 'admin' || r === 'superadmin' || r === 'manager') return 'admin';
+      return s.role ? 'analyst' : 'viewer';
+    }
     var t = String(s.role || '').toLowerCase();
     if (DISPLAY_ROLE_TO_IDV[s.role]) return DISPLAY_ROLE_TO_IDV[s.role];
     if (t.indexOf('manager') >= 0 || t.indexOf('admin') >= 0) return 'admin';

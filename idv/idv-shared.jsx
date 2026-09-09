@@ -23,16 +23,45 @@
   // fragments"), case-sensitive, mapped onto the shared Pill kinds exactly as
   // specified: Approved good, Declined bad, In Review/Awaiting User warn,
   // In Progress/Resubmitted info, Not Started/Abandoned/Expired/Kyc Expired
-  // neutral.
-  const STATUS_TONE = {
+  // neutral. Tones themselves are not part of the contract (VerificationStatus
+  // is a closed list of strings, not a list of {value,tone} pairs), so the
+  // tone-per-status mapping stays hand-written here; only the KEY SET is
+  // derived from window.HWContracts.enumValues('VerificationStatus') when
+  // HWContracts is loaded, falling back to this same literal list otherwise
+  // (the hosted capture page and some older pages never load contracts/).
+  // A status the enum does not recognise still renders (as 'neutral', same
+  // as always) — it is never dropped, only flagged, per below.
+  const STATUS_TONE_BY_STATUS = {
     'Approved': 'good',
     'Declined': 'bad',
     'In Review': 'warn', 'Awaiting User': 'warn',
     'In Progress': 'info', 'Resubmitted': 'info',
     'Not Started': 'neutral', 'Abandoned': 'neutral', 'Expired': 'neutral', 'Kyc Expired': 'neutral',
   };
+  const FALLBACK_STATUS_ENUM = ['Not Started', 'In Progress', 'Awaiting User', 'In Review', 'Approved',
+    'Declined', 'Resubmitted', 'Abandoned', 'Expired', 'Kyc Expired'];
+  const HWC = window.HWContracts;
+  const STATUS_ENUM = (HWC && typeof HWC.enumValues === 'function')
+    ? HWC.enumValues('VerificationStatus') : FALLBACK_STATUS_ENUM;
+  const STATUS_TONE = {};
+  STATUS_ENUM.forEach((s) => { STATUS_TONE[s] = STATUS_TONE_BY_STATUS[s] || 'neutral'; });
   window.IdvShared.STATUS_TONE = STATUS_TONE;
+
+  // Dev-only, once-per-status: a status the API sends that is not in the
+  // enum (contract's, or the fallback list when contracts/ is not loaded)
+  // is a drift worth knowing about, never a reason to change what renders.
+  const IS_DEV = typeof location !== 'undefined'
+    && /^(127\.0\.0\.1|localhost)$/.test(location.hostname || '');
+  const _warnedStatuses = {};
+  function warnIfUnknownStatus(status) {
+    if (!IS_DEV || !status || Object.prototype.hasOwnProperty.call(STATUS_TONE, status)
+      || _warnedStatuses[status]) return;
+    _warnedStatuses[status] = true;
+    console.error('[IdvShared] status "' + status + '" from the API is not in the '
+      + 'VerificationStatus enum');
+  }
   window.IdvShared.StatusPill = function StatusPill({ status, size = 'sm' }) {
+    warnIfUnknownStatus(status);
     return <Pill kind={STATUS_TONE[status] || 'neutral'} size={size} dot>{status || 'Unknown'}</Pill>;
   };
 
