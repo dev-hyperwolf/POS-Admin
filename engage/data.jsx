@@ -34,10 +34,21 @@
   const TIERS = ['Seed', 'Sprout', 'Bloom', 'Diamond'];
   const FIRST = ['Jordan', 'Alexis', 'Priya', 'Marcus', 'Dana', 'Luis', 'Tomas', 'Renee', 'Kai', 'Nadia', 'Owen', 'Simone', 'Devon', 'Yara', 'Caleb', 'Imani', 'Felix', 'Rosa', 'Hugo', 'Mei', 'Silas', 'Talia', 'Bruno', 'Elena', 'Grant', 'Noor', 'Wesley', 'Camille', 'Ivan', 'Leah', 'Malik', 'Sofia', 'Trent', 'Uma', 'Vince', 'Willa', 'Xavier', 'Yusuf', 'Zoe', 'Aaron'];
   const LAST = ['Alvarez', 'Brooks', 'Chen', 'Duarte', 'Eriksen', 'Flores', 'Gupta', 'Hollis', 'Ibrahim', 'Jensen', 'Kowal', 'Lindqvist', 'Moreno', 'Nguyen', 'Okafor', 'Petrov', 'Quinn', 'Ramos', 'Silva', 'Tanaka', 'Ueda', 'Vargas', 'Whitfield', 'Xiong', 'Yates', 'Zamora'];
-  const CHANNELS = ['sms', 'email', 'push', 'wallet'];
+  // NotificationChannel: contracts/index.js ENUMS.NotificationChannel (source: this file's
+  // CHANNELS, per the entry's `source` string) — derive from the contract when it has loaded,
+  // literal fallback keeps this page usable if contracts/index.js failed to load.
+  const CHANNELS = (window.HWContracts && window.HWContracts.enumValues('NotificationChannel')) || ['sms', 'email', 'push', 'wallet'];
 
   function hex(n) { let s = ''; for (let i = 0; i < n; i++) s += '0123456789abcdef'[Math.floor(rng() * 16)]; return s; }
   function uuid() { return `${hex(8)}-${hex(4)}-4${hex(3)}-a${hex(3)}-${hex(12)}`; }
+
+  // {source, id} only for slugs the contract already recognises as an IdSource; every other
+  // vendor slug here (twilio, sendgrid, alpineiq, snowflake, hyperdrive) stays a plain string
+  // until IdSource is widened (reported alongside this wave).
+  function extIds(slug, id) {
+    const C = window.HWContracts;
+    return C && C.isEnum('IdSource', slug) ? [C.externalId(slug, id)] : [];
+  }
 
   const CUSTOMERS = Array.from({ length: 64 }, () => {
     const first = pick(FIRST), last = pick(LAST);
@@ -266,11 +277,11 @@
   // ── Integrations ────────────────────────────────────────────────────────
   const INTEGRATIONS = [
     { id: 'ig-1', name: 'Hyperdrive POS', slug: 'hyperdrive', kind: 'pos', status: 'connected', lastSyncAt: ago(4), rows24h: 18402, health: 'ok', direction: 'bidirectional' },
-    { id: 'ig-2', name: 'Blaze POS', slug: 'blaze', kind: 'pos', status: 'connected', lastSyncAt: ago(11), rows24h: 9120, health: 'ok', direction: 'inbound' },
+    { id: 'ig-2', name: 'Blaze POS', slug: 'blaze', kind: 'pos', status: 'connected', lastSyncAt: ago(11), rows24h: 9120, health: 'ok', direction: 'inbound', external_ids: extIds('blaze', 'ig-2') },
     { id: 'ig-3', name: 'Twilio SMS', slug: 'twilio', kind: 'channel', status: 'connected', lastSyncAt: ago(1), rows24h: 42800, health: 'ok', direction: 'outbound' },
     { id: 'ig-4', name: 'SendGrid', slug: 'sendgrid', kind: 'channel', status: 'connected', lastSyncAt: ago(2), rows24h: 61240, health: 'degraded', direction: 'outbound' },
     { id: 'ig-5', name: 'Alpine IQ', slug: 'alpineiq', kind: 'crm', status: 'migrating', lastSyncAt: ago(180), rows24h: 4210, health: 'warn', direction: 'inbound' },
-    { id: 'ig-6', name: 'Weedmaps', slug: 'weedmaps', kind: 'marketplace', status: 'pending', lastSyncAt: null, rows24h: 0, health: 'idle', direction: 'bidirectional' },
+    { id: 'ig-6', name: 'Weedmaps', slug: 'weedmaps', kind: 'marketplace', status: 'pending', lastSyncAt: null, rows24h: 0, health: 'idle', direction: 'bidirectional', external_ids: extIds('weedmaps', 'ig-6') },
     { id: 'ig-7', name: 'Snowflake export', slug: 'snowflake', kind: 'warehouse', status: 'connected', lastSyncAt: ago(60), rows24h: 220400, health: 'ok', direction: 'outbound' },
   ];
 
@@ -295,11 +306,38 @@
     };
   });
 
+  // ── Status vocabularies — one named list + tone map per domain ────────────
+  // Each `*_STATUSES` is the candidate value list for a future contract enum
+  // (CampaignStatus / FlowStatus / AudienceStatus, 0.3.0). `live` and `active`
+  // were two spellings of the same flow/audience state (identical tone,
+  // identical display label, and `active` was never produced by fixture data)
+  // — collapsed to `live` here; the display word "Active" is a label, not a
+  // second value, and is unaffected.
+  const CAMPAIGN_STATUSES = ['sent', 'sending', 'scheduled', 'queued', 'draft', 'paused'];
+  const CAMPAIGN_STATUS_TONE = { sent: 'ok', sending: 'info', scheduled: 'brand', queued: 'info', draft: 'neutral', paused: 'warn' };
+
+  const FLOW_STATUSES = ['draft', 'live', 'paused', 'archived'];
+  const FLOW_STATUS_TONE = { draft: 'neutral', live: 'ok', paused: 'warn', archived: 'neutral' };
+  const FLOW_STATUS_LABEL = { draft: 'Draft', live: 'Active', paused: 'Paused', archived: 'Archived' };
+
+  const AUDIENCE_STATUSES = ['draft', 'live', 'paused', 'archived', 'suggested'];
+  const AUDIENCE_STATUS_TONE = { draft: 'neutral', live: 'ok', paused: 'warn', archived: 'neutral', suggested: 'info' };
+  const AUDIENCE_STATUS_LABEL = { draft: 'draft', live: 'active', paused: 'paused', archived: 'archived', suggested: 'suggested' };
+
+  // Not a contract-enum candidate this wave (source.kind, not a status) — kept
+  // as one named list so `screen-ops.jsx` stops carrying its own copy.
+  const INTEGRATION_HEALTH = ['ok', 'degraded', 'warn', 'idle', 'failing'];
+  const INTEGRATION_HEALTH_META = { ok: ['Healthy', 'ok'], degraded: ['Degraded', 'warn'], warn: ['Needs review', 'warn'], idle: ['Idle', 'neutral'], failing: ['Failing', 'blocked'] };
+
   window.ENGAGE_DATA = {
     NOW, TENANT, TENANTS, rng, range, floatRange, pick, chance, ago, agoDays,
     RFM_SEGMENTS, RFM_TONE, TIERS, CHANNELS, CUSTOMERS,
     AUDIENCES, SUGGESTED_AUDIENCES, FLOWS, FLOW_STEPS, FLOW_TEMPLATES,
     CAMPAIGNS, TEMPLATES, MESSAGES, LOYALTY_PROGRAMS, WALLET_PASSES,
     REFERRAL_PROGRAMS, REFERRALS, INTERACTIVE, INTEGRATIONS, AUDIT, EVENT_TYPES,
+    CAMPAIGN_STATUSES, CAMPAIGN_STATUS_TONE,
+    FLOW_STATUSES, FLOW_STATUS_TONE, FLOW_STATUS_LABEL,
+    AUDIENCE_STATUSES, AUDIENCE_STATUS_TONE, AUDIENCE_STATUS_LABEL,
+    INTEGRATION_HEALTH, INTEGRATION_HEALTH_META,
   };
 })();
