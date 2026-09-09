@@ -2114,3 +2114,455 @@ hold what must stay open through it** — the guest's capture routes, the engine
 engine's job-scoped media and template fetches, and the gate-off state the other 155 run under. A
 gate that also stopped those would leave every console check green while no verification in the
 estate could finish.
+
+---
+
+## Addendum — 2026-09-09 (r5): the version a session was judged by, and five other things that only looked implemented
+
+**Adds two session columns, one field on `GET /sessions/{id}`, one field on the engine job body, one
+role gate, one refusal and one fallback. Changes no route's path or method.** Every item below is a
+feature that already had a column, a field or a comment saying it worked; none of them did.
+
+### 1. A session is judged by the workflow version it was created on
+
+`idv_sessions.workflow_version` has been written on every session since the table shipped, and
+`update_workflow` has written an `idv_workflow_versions` row on every PATCH. **Nothing read either.**
+Every decision path — `prepare_engine_job`, the callback's `rules.evaluate`, the capture page's step
+list, `/status` — loaded the **current** workflow row.
+
+So an operator who raised `face_match_min` at 14:00 re-judged every session still in flight from
+13:00, including the guest mid-retake who would then be told to redo a step they had already passed.
+`idv_store.calibrate_workflow_thresholds`' own docstring promises that a session judged under 75
+keeps reading 75; that promise was inert.
+
+**`idv_store.workflow_at_version(conn, workflow_id, version)`** returns the `get_workflow` shape with
+`version`, `features`, `unsupported_features` and `config` read out of `idv_workflow_versions`.
+`idv_api.session_workflow(conn, s)` is the one call every site now makes.
+
+| resolution | answer |
+|---|---|
+| the version row exists | that version's features and config |
+| the version row is absent (a Didit-imported workflow predates them; a hand-edited `workflow_version`) | **the current row** — refusing would make a verifiable session undecidable, and this is what happened before the function existed |
+| `version` is `None` or unparseable | the current row |
+| the **workflow** is gone | `None` — the callback still answers `409` |
+
+`name`, `kind` and `status` stay the current row's: `idv_workflow_versions` carries no name column and
+a rename is not a rule change. A version that genuinely recorded `features: []` keeps its empty list
+(`loads(text, default)`, never `loads(text) or default` — `[]` is falsy).
+
+**A known limit, stated rather than hidden.** `idv_import_didit.py:1311` writes **Didit's**
+`workflow_version` onto a **Verify** workflow id. For an imported session that number is not ours, so
+it either misses (→ the current row, as before) or *collides* with a Verify version number and
+resolves to a config the session was never judged by. The importer's own version numbering is the
+thing to fix; this function cannot tell the two apart from the column alone. **Native sessions are
+unaffected** — `_create_session_row` pins `wf["version"]` from the row it has just read.
+
+**`GET /api/idv/sessions/{id}`** now answers
+
+```
+"workflow": {"id": "...", "name": "...", "version": 2, "config": { ...that version's config... }}
+```
+
+resolved the same way. `version` is the value stored **on the session**, so when the resolution had to
+fall back the number on screen is still the number in the row.
+
+**Two more resolvers were still reading the current row**, both found by adversarial review after the
+first cut was green:
+
+- `idv_store.confirm_person_verified` took `expires_after_days` from the live workflow. That value
+  sets a date on a **person** which gates them out of the estate a year later, and it is called from
+  inside `_engine_callback` — three lines from the code that had just been taught to pin the
+  thresholds. It now resolves the session's own version.
+- `idv_store.resolve_person_for_session`'s `face_search_min` fallback did the same. `_face_search_min`
+  never passes `None`, so the only caller reaching that branch is `relink_people` — the one-shot
+  **backfill**, i.e. exactly the path that re-decides history and the last place a present-day
+  threshold belongs. The console previously printed the
+pinned version *number* beside the *current* version's thresholds, which reads as provenance and was
+not: an analyst asking why a 62 was declined saw `face_match_min: 60` next to it.
+
+**This closes the gap `idv/screen-session.jsx` names in its own header (gap #3).** That file works
+around the missing field by fetching `GET /api/idv/workflows/{id}/versions` and matching
+`session.workflow.version`, with the same fall-back-to-latest rule implemented here — so the console
+is correct today and the extra round trip is now redundant rather than load-bearing. Reading
+`session.workflow.config` directly is a follow-up, not a fix this addendum requires.
+
+### 2. The engine's replay fingerprint round-trips
+
+The liveness node now carries `replay_fingerprint: {clip_sha256, blink_hash, …}`. The engine has no
+database of its own, so a fingerprint it cannot compare against anything is a field in a response:
+the same recorded clip could be re-submitted under a new session for ever.
+
+- **New columns** (guarded `ALTER`, `idv_store._ADDED_COLUMNS`): `idv_sessions.clip_sha256`,
+  `idv_sessions.blink_hash`. Written by the callback when the liveness node carries a fingerprint,
+  and **never cleared** — a later job with no liveness node (a retry, or a resubmission whose
+  liveness step was not the one redone) leaves the stored value alone. Blanking it would silently
+  delete the one hash that makes the guest's next attempt checkable.
+- **The engine job body** carries `session_id` (as before) and now
+  `known_clips: [{session_id, clip_sha256, blink_hash}]`, most recent first, from
+  `idv_store.known_clip_fingerprints`: **this person's other sessions, uncapped**, plus the
+  **500 most recent globally** (`idv_store.KNOWN_CLIPS_LIMIT`). Two populations because they answer
+  two questions — "is this the clip that got them declined an hour ago" and "have we seen this clip
+  from somebody else".
+- **This session's own row is never in the list.** A resubmission re-posts a job for a session that
+  already holds a fingerprint from its first pass; handing it back makes the engine find a perfect
+  match against itself and report a replay for a guest who did nothing wrong. Same defect
+  `templates_url_for` documents for the 1:N face search.
+- Rows with neither fingerprint are skipped (nothing to compare, at the cost of a hash in every
+  body), and tombstoned sessions (`deleted_at`) are skipped — a deletion that leaves the clip hash
+  behind as evidence is not a deletion.
+- **`session.person_id` is `null` on every brand-new session** (`create_session` never sets it;
+  resolution runs in the callback, *after* the job is built), so the person-scoped half was inert on
+  the very case it exists for — the same guest returning with the clip that was declined an hour ago.
+  `idv_api._person_for_clips` therefore falls back to `get_person_by_vendor_data`, the site's own
+  stable handle, which **is** set at creation. It **links nothing**: it is a read used only to choose
+  which hashes to send. Guessing wrong there costs a few extra hashes in a request body; guessing
+  wrong in `resolve_person_for_session` would merge two guests.
+- The engine already tolerates the key and drops rows naming the current session on its own side
+  (`idv-engine/pipeline/liveness.py:_normalise_known_clips`), so the exclusion is belt **and** braces
+  — deliberately, since only one of the two ends is in this repo's release.
+
+### 3. `similar_faces` names and faces are analyst-only
+
+A 1:N hit is a claim that this face belongs to a **different named guest**, and the image beside it is
+that guest's biometric media. Neither is queue-monitoring information.
+
+On `GET /api/idv/sessions/{id}`, for role **< analyst**:
+
+| field | viewer sees |
+|---|---|
+| `person_name` | `null` |
+| `media_url` | `null` |
+| `label`, when it is another person's name | `"another guest on file"` |
+| `session_id`, `session_number`, `similarity`, `match_type`, `person_id`, and the array length | unchanged |
+
+`label` is redacted **as well**, and that is the half a field-by-field reading of the rule would have
+missed: it falls back to the person's name, so blanking only `person_name` leaks the same string
+through the phrase the screen actually prints. `"earlier attempt"` (this session's own person, or a
+person-less template) and a blocklist's `list_name` are **not** redacted — neither names a guest.
+
+**`person_id` goes too, and so does the rest of the response body.** Two adversarial reviews of the
+first cut of this addendum found the gate defeated three ways, none of them visible from the changed
+lines:
+
+- `GET /sessions/{id}` returns the same finding **twice** — as `similar_faces` *and*, verbatim, inside
+  `decision.face_searches[].matches[]`. The second copy carried the name, the `media_id` and the
+  `media_url` in the adjacent key of the same response. Both now go through one function,
+  `idv_api.redact_face_match`, because a redaction written out twice is a redaction applied once.
+- `media_id` is redacted as well as `media_url`: `_media_route`'s console branch requires only
+  **viewer**, so an id *is* a URL.
+- `person_id` is redacted (except when the match is the session's own person, already named on that
+  screen): `GET /api/idv/people/{id}` is viewer-readable and answers with the name, which would make
+  the whole redaction one HTTP call deep.
+- **A person id was also embedded in prose.** `idv_store.resolve_person_for_session` wrote
+  *"A face on this session matched person `<id>` at 96.8…"* into `decision.warnings[].short_description`
+  — which travels to the session screen, the PDF, the outbound webhook and `/v3`, none of which is
+  role-gated the way `similar_faces` is. The sentence now names no one; the identity lives only in the
+  structured places that **are** gated. The warning row's three keys (`risk`, `log_type`,
+  `short_description`) are unchanged.
+
+**Still open, and named rather than left implied:** the `AMBIGUOUS` warning in the same function lists
+`hw_identities` ids in its sentence, and the audit trail's `person.resolved` detail carries candidate
+person ids. Both are a different id space and a different route's role gate; neither is in this
+addendum's scope.
+
+### 4. No upload after a verdict
+
+`POST /api/idv/capture/{token}/media` and `POST /api/idv/media` (when it carries a `session_id`) now
+answer **`409 {"error": "This verification is already finished."}`** once the session's status is one
+of **`Approved`, `Declined`, `Expired`, `Kyc Expired`**.
+
+Refused **before the multipart is parsed**, so no media row and no file are written: bytes on a
+finished session with nothing in the audit trail explaining them is its own problem.
+
+Past the link's TTL the capture route still answers **`410`** first, for every write, which is
+unchanged: the link *was* valid and the guest needs to be told to ask for a new one. The `409` is
+therefore what a **live link on a finished session** gets — which is the case the late frame actually
+arrives in.
+
+`Abandoned` is deliberately **not** in that set. The capture page's beacon fires on any page-hide, so
+`Abandoned` routinely means "the guest rotated their phone", and lifting it back to `In Progress` is
+exactly what the media route is for — unchanged. A console upload with **no** `session_id` (the
+unattached bucket) is also unchanged.
+
+The measured shape is the 2026-09-09 stranding one step further on: the page fires the last frame of
+a step, the verdict lands first, the frame arrives afterwards. `_capture` deliberately keeps a
+finished session's link **readable** so the guest can reload the outcome screen, and the media route
+sat inside that with no check at all — a late `selfie` spent an attempt and moved an **Approved**
+session back to `In Progress`.
+
+### 5. The hosted link is never relative, and a missing capture page is a 503
+
+- **`GET /verify/{token}`** answers **`503 {"error": "Verification is unavailable on this deployment: the capture page (idv/capture.html) is missing."}`**
+  when neither `WM_DEMO_STATIC_DIR/idv/capture.html` nor `idv_api.CAPTURE_PAGE_FALLBACK` exists. It
+  previously answered **200 `text/plain`** with an apology, so a monitor saw a healthy page while the
+  site's iframe rendered the sentence "the capture page is not built yet" where the camera should be.
+  The session token is no longer echoed into the body — it is a bearer credential and an error body
+  ends up in proxy logs. The `frame-ancestors` header is still sent.
+- **`idv_api.public_base()`** falls back to the **request's own `Host`** when `IDV_PUBLIC_BASE` is
+  unset. Scheme: `X-Forwarded-Proto`'s first value when a proxy sent one, otherwise **`https`**, and
+  **`http` only for localhost / `127.*` / `[::1]`**. Unset, this returned `""`, so
+  `POST /v3/session/` answered `url: "/verify/<token>"` — a **relative path**, in a link whose every
+  consumer (the embedding site, the guest's SMS, the engine's `callback_url`) is off-origin by
+  construction. The host is held in a **thread-local**, set once at the top of `idv_api.handle`:
+  `server.py` serves on a `ThreadingHTTPServer`, and a module global would let one guest's request
+  mint the link for another guest's session on a different domain. Outside a request (the sweeper
+  thread) it is still `""`, which is the pre-existing behaviour and why the environment variable stays
+  the first thing consulted on a real deployment.
+- **`callback_url` never uses the fallback.** `Host` is written by whoever sent the request, and
+  `callback_url` is where our engine POSTs the decision — name, date of birth, document number,
+  signed. Borrowing the header there would let a guest submitting their own session name the host that
+  receives it. `prepare_engine_job` builds that one URL from `idv_api.configured_base()`
+  (`IDV_PUBLIC_BASE` alone): unset, it stays relative, exactly as before this addendum. The
+  asymmetry is deliberate — `media[].url` still borrows the host, because a forged host there costs
+  the attacker their **own** session's media fetch and gains them nothing they did not already
+  control. `IDV_PUBLIC_BASE` is `sync: false` in `render.yaml`, so setting it on the live service
+  remains the right thing to do, and this is why.
+
+### 6. `POST /api/idv/auth/pin` is reachable on a public deployment
+
+Addendum r4 documents the PIN gate. On a **public** deployment `server.py` refused every write with
+no `x-hw-write-token` — **including the PIN exchange itself**. The gate required a credential
+obtainable only through the route the gate was blocking, so the PIN card's Continue button answered
+`403` on the only kind of deployment the PIN gate exists for.
+
+`/api/idv/auth/` joins the self-authenticating exemptions in **both** public write-gate blocks
+(`_dispatch_POST` and `_idv_verb`) alongside `/api/idv/webhooks/engine`, `/api/idv/capture/`, `/v3/`
+and `/v2/`. It authenticates itself the same way the other four do: the PIN **is** the credential,
+compared with `hmac.compare_digest`, rate-limited at 5/min per client IP, and audited on every
+attempt with the PIN in no row. A wrong PIN is `403` **from the route**, not from the gate.
+
+**Nothing else moved.** `/api/idv/auth/` has exactly two routes (`GET status`, `POST pin`); every
+console write still needs `x-hw-write-token` **and** the token this route mints.
+
+### 7. `sessions_count` counts every status but not every row
+
+`idv_store.bump_person_sessions` now counts `deleted_at IS NULL` — the same clause `list_sessions`
+has carried since the table shipped. It still counts **every status**: `Declined`, `Abandoned`,
+`Expired`, `In Progress` and `Not Started` are all things this person did, and a counter that hides
+the failures is the screen the owner said was wrong.
+
+Counting tombstones made the customer file say "4 sessions" over a list of 3, and the one number a
+privacy erasure exists to change was the one number that still remembered. `execute_deletion` now
+re-bumps the owning person — reading the owner **before** the tombstones go down, because afterwards
+there is no way left to know whose counter to move, which is how this exclusion would have been
+invisible on the screen it was written for.
+
+**`merge_person` was a second, forgotten writer of the same column** and kept its own hand-written
+`SELECT COUNT(*)`, so a support merge after a privacy erasure silently restored the number the
+exclusion exists to kill — and `_person_duplicates` is precisely the screen that drives merges. It now
+calls `bump_person_sessions`, so there is one writer.
+
+### Where it is held
+
+| suite | checks | was → now |
+|---|---|---|
+| `qa/idv_api_probe.py` | **AP-163…AP-175** | 168 → **181** |
+| `qa/idv_store_probe.py` | **ST-73…ST-77** | 72 → **77** |
+| `qa/idv_import_probe.py` | — | 78 → **78** (unchanged; the importer writes sessions and workflows and reads neither the pin nor the fingerprints) |
+| `qa/battery.py` | `TOTAL_CHECK_FLOOR` | 2326 → **2344** |
+
+No existing check was edited or deleted. AP-172 is driven through the **real `server.Handler`** with
+only its socket removed, and it asserts on **both** gate blocks: the PATCH/PUT/DELETE gate was added
+separately for Verify and its prefix list has drifted from `_dispatch_POST`'s once already.
+AP-170 required lifting the capture page's fallback path out of `_capture_page` into the module
+constant `idv_api.CAPTURE_PAGE_FALLBACK` — a 503 no test can reach on a machine where the file
+happens to exist is a branch nobody knows the shape of.
+
+**AP-173…AP-175 and ST-76/ST-77 are the adversarial-review half.** They exist because two reviewers,
+run *after* the first ten checks were green, refuted three of the six fixes — and in every case the
+defect was a **second path to the same thing**, invisible from the changed lines. That is this
+estate's recurring failure shape, which is why each one got a check rather than a comment.
+
+`qa/idv_rules_probe.py` and `wmdemo/idv_rules.py` were being edited **concurrently by another agent**
+throughout this pass and are not part of these numbers. That suite printed **413/413** on the last run
+here while `qa/battery.py`'s `EXPECTED_CHECKS` still says 409 — so **+4 to its entry and to
+`TOTAL_CHECK_FLOOR` (2344 → 2348) is still owed by that agent**, deliberately left to them: raising a
+floor for checks somebody else wrote, whose justification you cannot give, is how that constant stops
+meaning anything.
+
+---
+
+## Addendum — 2026-09-09 (r6): the cross-check floor was read off the wrong number
+
+**Amends the r3 addendum above (`names rejoin the tamper set`). The 2026-09-09 barcode ruling and r3's
+name definition are otherwise unchanged. Numbering: this is the third revision of the *cross-check*
+rule, and its lineage reads r3 → r6 with a gap, because r4 (console PIN) and r5 (workflow versioning)
+are addenda to unrelated subsystems in the same global sequence.**
+
+### `barcode_vs_ocr.confidence` is not a read confidence. It is an agreement ratio.
+
+r3 gated the whole cross-check on `barcode_vs_ocr.confidence >= 85` and called it "a confidently-read
+print". Measured in `idv-engine/pipeline/document.py::_crosscheck` — not inferred from the name of the
+key — that number is a **weighted agreement ratio**:
+
+| field | weight |
+|---|---|
+| `date_of_birth` | 3 |
+| `expiration_date` | 2 |
+| `document_number` | 2 |
+| `last_name` | 2 |
+| `first_name` | 1 |
+| `date_of_issue` | 1 |
+
+```
+confidence = 100 × (weight of the AGREEING fields)
+                 ÷ (weight of the agreeing + the DISAGREEING fields)
+```
+
+A field the OCR never produced is `missing` and weighs on **neither** side. So the number says how
+*much* of the card the two surfaces agree on, says nothing about how well the recogniser read the
+print — and, being a ratio over the disagreement, **it falls as the disagreement it gates grows.**
+
+Put r3's name test beside that arithmetic, on a card where all six fields compared:
+
+| the disagreement | ratio | r3's 85 floor |
+|---|---|---|
+| **both names** — the strongest form of the forgery | 8/11 = **72.73** | **below** |
+| **surname only** | 9/11 = **81.82** | **below** |
+| first name only | 10/11 = 90.91 | above |
+
+**The name branch r3 added to catch a reprinted front over a genuine barcode could not fire for that
+forgery.** The stronger the attack, the further below the floor the gate that guarded it. Only a
+first-name-only reprint cleared it, which is why the branch looked alive rather than dead.
+
+It is worse than a name problem. Solving `w/(11−w) ≥ 85/15` for each field: **no** single-field
+disagreement in `OCR_IDENTITY_FIELDS` can reach 85 on this ratio either — `date_of_birth` needs an
+agreeing weight of 17 out of a possible 8, `document_number` 11.33 out of 9. On this engine only
+`first_name` and `date_of_issue` can clear it alone. r3's identity half was as unreachable as its name
+half; both were surviving on hand-typed fixtures.
+
+### How twelve green checks missed it
+
+Every name fixture in probe section K typed the confidence in by hand — `_name_session(90.0,
+first=…, last=…)` — and *both names disagreeing at 90.0* is a payload the engine cannot produce, since
+the confidence **is a function of** the disagree list beside it. A fixture that sets two dependent
+fields independently can assert a contradiction, and this one did, in the direction that looked green.
+
+`qa/idv_rules_probe.py` now **derives** the ratio (`engine_agreement`, mirroring
+`ENGINE_AGREEMENT_WEIGHTS`) from the very disagree list under assertion. `IDV-K27` pins that mirror
+against two **real captured payloads** — the owner's session comes out at exactly 40.0 and session #9
+at exactly 90.0, which is where their recorded `confidence` values came from — and then states the
+unreachability above as numbers. Had that row existed, r3's fixtures could not have been written.
+
+### The engine now reports the two measurements separately
+
+| key | meaning | status |
+|---|---|---|
+| `agreement` | the ratio above, unchanged | **new name for the old number** |
+| `confidence` | alias for `agreement` | **kept for one release**, then removed |
+| `ocr_confidence` | 0–100, mean recogniser confidence of the OCR lines the compared fields were read off | **new** |
+| `ocr_field_confidence` | `{field: 0–100}` where the engine has a per-field number | **new** |
+
+The engine also now compares the printed first name against **both** AAMVA given-name tokens
+(`DAC` *and* `DAD`), because a US front prints given and middle on one line while the barcode splits
+them.
+
+`ocr_confidence` is the same measurement `MED_REC_UNREADABLE` already gates on (`ocr_confidence` on
+the medical-recommendation node) — one meaning for the word across the module.
+
+### The rule now
+
+`BARCODE_OCR_MISMATCH` fires when, **for the disagreeing field itself**
+(`idv_rules.ocr_tamper_gate` — the one place this lives):
+
+1. the **OCR read confidence** is ≥ 85 (`OCR_CROSSCHECK_CONFIDENCE_MIN`, inclusive, unchanged value):
+   `ocr_field_confidence[field]` when the engine reports one, else `ocr_confidence`. The per-field
+   number **wins in both directions** — it promotes a sharp surname on a smeared card and demotes a
+   smeared surname on a sharp one (`IDV-K28`); **and**
+2. the field is `date_of_birth` / `document_number` (`OCR_IDENTITY_FIELDS`), or it is a name that is a
+   **different name** under r3's definition plus the three new clauses below.
+
+**The agreement ratio is never a tamper gate again.** Gating a disagreement on a ratio that falls with
+it is the same category error as gating a fire alarm on how little smoke there is.
+
+#### The fallback, and its one asymmetry
+
+An **older engine** and the **1,020 imported rows** carry no `ocr_confidence`. For those payloads the
+gate falls back to r3's behaviour on `confidence` — **but only for `date_of_birth` and
+`document_number`. A name is never a tamper signal on the agreement ratio alone.**
+
+That asymmetry is the point of the fallback, not a rough edge in it: the unconditional half of the rule
+keeps behaving exactly as it has on every payload ever recorded, and r3's false decline — the owner's
+session, refused on two garbled names — becomes unreachable on those payloads **by construction**
+rather than by a threshold that could be mis-set. `first_name` alone is the one name shape whose ratio
+clears 85 (90.91), so it is the only fixture that can tell the two halves of the fallback apart, and
+it is exactly the shape that declined under r3 (`IDV-K25`).
+
+The honest consequence, stated rather than buried: **on the older engine, and in an imported row, a
+reprinted-front forgery is not caught here.** It was not caught before this amendment either — the
+arithmetic above says so — so nothing regresses. What changes is that the reason is now a rule instead
+of an accident of arithmetic.
+
+#### Three more ways to be a misassigned read
+
+r3's clauses all ask *how far apart are these two strings*. A photograph of a licence has three ways to
+put a string in the wrong **slot**, and every one of them is maximally far from the truth by every
+distance this module owns — so r3 declined all three at 92 confidence (`IDV-K26`):
+
+| clause | fails ⇒ warning | why a distance cannot see it |
+|---|---|---|
+| **not a field label** (`OCR_NAME_LABEL_TOKENS` = `FN`, `LN`, `DOB`, `EXP`, `DL`, `ID`) | `LN` against `HOLLINGSWORTH` | printed beside the values on every US licence; an OCR that associates a line with its own caption returns the caption. Distance 1.00, 13 edits. |
+| **not a US jurisdiction** (`OCR_NAME_STATE_TOKENS`, names and two-letter codes) | `CALIFORNIA` against `HOLLINGSWORTH` | the state name is the largest print on the card and lands in a name field the same way |
+| **not the card's own given-name words** (`OCR_NAME_GIVEN_ELEMENTS` = `DAC`, `DAD`; token-subset test) | `ODETTE` where `MARISOL` belongs | the front prints given + middle on one line while the barcode splits them, so the OCR read the card *correctly* and filed it wrongly. Session #9's containment guard catches only the run-together form (`NMARISOLODETTE`) and cannot catch the clean swap. |
+
+**The honest cost, again stated rather than hidden:** a genuine forgery whose printed surname happens
+to *be* a US jurisdiction is waved through this branch — **WASHINGTON** is a common American surname,
+and VIRGINIA and MONTANA are given names. That is the same deliberate fail-*open* as
+`OCR_NAME_TAMPER_EDITS_MIN`, taken for the same reason: the alternative fails *closed* on real guests,
+`date_of_birth` and `document_number` still apply to exactly those sessions, and a forger reprinting a
+front does not reprint it with a state name where the surname goes.
+
+### Two smaller things the same pass found
+
+**Every sentence now names *which* confidence it is quoting** (`idv_rules._conf_phrase`). The whole
+defect was one number wearing another number's name; an audit trail that repeats the confusion is how
+the next reviewer re-derives the wrong conclusion. A guest record reads either
+`92.0 OCR read confidence`, `92.0 OCR read confidence for that field`, or
+`90.9 barcode/OCR agreement — this engine version reports no OCR read confidence, …`.
+
+**`printed_vs_barcode_name` no longer raises on a non-dict node.** Its contract is "`(None, None)` is
+always a safe answer", and it was guarding with `x or {}`, which catches `None` and passes a string, a
+list or a number straight into the caller's `.get`. An `engine_detail: ""`, a `crosscheck: []` or a
+`barcode_fields: "none"` — all shapes another process can send — raised `AttributeError` inside the one
+function whose job is to warn when it cannot see the strings. A rule that cannot see the strings must
+**warn**, and it cannot warn from a traceback: a traceback here is no decision at all for a guest
+standing at a counter. `idv_rules._as_dict` / `_seq` now guard every rung, and `_seq` deliberately
+treats a **string as not a sequence** — `disagree: "first_name"` would otherwise iterate as eleven
+single characters and match no field at all, silently.
+
+### Where it is held
+
+| suite | checks | was → now |
+|---|---|---|
+| `qa/idv_rules_probe.py` | **IDV-K25…K28** added; K05, K06, K08, K09, K13, K16, K18, K20, K21 rewritten | 409 → **413** |
+| `qa/idv_api_probe.py` | — | **178 → 178** (unchanged) |
+| `qa/battery.py` | `TOTAL_CHECK_FLOOR` | **+4** — owned by another pass, not edited here |
+
+No check was deleted. Nine K-section fixtures were rewritten because they asserted against payloads
+the engine cannot send; each rewritten row states what it now derives and why.
+
+**`IDV-K16` was re-pinned because it did not test the constant it named.** It claimed the 0.50 distance
+floor using `HOLLINGSWORTB` vs `HOLLINGSWORTH` — one edit, distance 0.08 — and with
+`OCR_NAME_TAMPER_DISTANCE_MIN` mutated to **0.0 the check stayed green**, because the 3-edit floor
+underneath it stopped the same fixture on its own. Both fixtures are kept now, pinning different
+clauses: the one-edit typo for the edits floor, and `HOLLINGSWQBIN` (4 edits, distance 0.31 — over the
+edits floor, under the distance floor) for the distance floor.
+
+Mutation results for the section, each run in its own process:
+
+| mutation | reddens |
+|---|---|
+| `OCR_NAME_TAMPER_DISTANCE_MIN` 0.50 → 0.0 | **K16** only |
+| `OCR_NAME_TAMPER_EDITS_MIN` 3 → 0 | **K24** only |
+| gate reads the agreement ratio first (revert to r3) | **14 rows**, including the flagship K18 |
+| names may tamper on the ratio (drop the r6 asymmetry) | **K25** only |
+| drop the three misassigned-read clauses | **K26** only |
+| `_as_dict` → the old `x or {}` guard | `AttributeError` in `printed_vs_barcode_name`; the suite aborts |
+| `OCR_CROSSCHECK_CONFIDENCE_MIN` 85 → 0 | **7 rows**, including K02/K13/K14 — the owner's own session |
+
+The three floors are now pinned by **disjoint** fixtures. Under r3, K16 and K24 both keyed on the edits
+floor and neither depended on the distance floor.
+
+**Correcting the r5 addendum's last paragraph:** the `IDV-K05` format-string failure it recorded in
+`qa/idv_rules_probe.py` was this pass's own transient edit, not a pre-existing bug. It is fixed; the
+suite is 413/413.
