@@ -665,3 +665,119 @@ Headers `X-Signature-V2` (hex HMAC-SHA256 over canonical JSON: floats shortened 
   included, because moving a SESSION into that state is what the ruling forbids, while a feature
   NODE on an imported row legitimately carries it. `imported_from` is written only by the importer
   and by no API create path, so the exemption is not caller-reachable.
+
+- 2026-09-08 (1:N face search and `/v3` scopes — `wmdemo/idv_api.py`, `wmdemo/idv_store.py`):
+
+  **A. `GET /api/idv/internal/templates` now exists.** It is referenced by the "Engine contract"
+  section above and had **never been implemented**: `submit_engine_job` handed the engine a
+  `templates_url` pointing at it, the engine fetched it, got a 404, caught the exception and wrote
+  an error node — so the 1:N face search (duplicate people, face blocklist) produced nothing on
+  every job and raised nothing anywhere. Everything else the feature needs was already built: the
+  engine can search, `idv_face_templates` exists, the console has a Face Blocklist, and
+  `idv_rules` has both `DUPLICATE_PERSON` and a face-list join. One missing route made all of it
+  inert.
+
+  `GET /api/idv/internal/templates?token=<media_token>&person_id=&dob=YYYY-MM-DD&last_initial=X`
+  → `200 { "model": "sface", "dim": 128, "templates": [{ "id", "person_id", "session_id",
+  "media_id", "model", "dim", "embedding_b64", "quality" }], "list_templates": [{ "id", "list_id",
+  "entry_id", "list_name", "media_id", "model", "dim", "embedding_b64" }], "list_media": [{
+  "entry_id", "list_id", "list_name", "media_id", "media_url" }], "n", "truncated" }`.
+  `n` is `len(templates) + len(list_templates)` — what the engine can actually **search** on this
+  answer. `list_media` is work the engine still has to do and is deliberately **not** folded into
+  `n`. The `templates[]` rows carry `model`/`dim`/`media_id` beyond the four fields a caller
+  strictly needs: `model` and `dim` are what `face.decode_embedding` and the model guard read, and
+  `media_id` is the only key a match carries back (see **C**).
+
+  **THE GATE IS THE JOB'S MEDIA TOKEN, and nothing else.** It sits **above** the console's
+  `require(act, "viewer")` line — the engine holds a token and no actor, so behind that gate the
+  route would answer 403 forever and the engine would fold that into the same silent error node as
+  the 404. It also refuses a console **admin**, in the other direction: these are raw face
+  embeddings and the only caller with a reason to read one is a job that is running right now. The
+  token is extended with a `templates: true` grant at mint time; a token minted before that grant
+  existed is refused rather than treated as a wildcard, the same fail-closed direction the
+  `media_ids` binding took in addendum **C** above. The token dies with its job, so a token
+  authorises the route for that job's lifetime and no longer.
+
+  **The blocking key is non-biometric** (plan §3.2): `dob` ± 2 years **and** `last_initial`. With
+  neither, every live template comes back, capped at 20,000 with `truncated: true` — and the cap
+  is a signal to send a blocking key, never a page size to raise, because FPIR ≈ N × FMR. Two
+  deliberate choices, stated because their opposites are invisible: (i) a template whose identity
+  is unknown from **both** the person row and the session's latest decision is **kept** under a
+  blocking key — blocking is an optimisation on N and must not become a recall loss; (ii) the DOB
+  window widens outwards on 29 February (28 Feb / 1 Mar) rather than clamping inwards.
+
+  **THE ENDPOINT MAY BE CALLED TWICE PER JOB.** `submit_engine_job` now composes `templates_url`
+  from the session's own `expected_details`: `?dob=…&last_initial=…` when they are present, and
+  **no query at all** when they are not. A session created with no `expected_details` therefore
+  gets the unblocked URL, and the engine may re-call the same endpoint with `dob` and
+  `last_initial` once the PDF417 barcode has given it a date of birth and a surname. Both calls
+  carry the same token.
+
+  **`?person_id=<this session's person>` is no longer what a job is sent.** That is what the
+  Engine-contract line above described and what shipped, and it is the wrong half of the
+  population: `idv_rules` skips any 1:N match whose `person_id` equals the session's own, so a
+  candidate set restricted to that person contained nothing the rules could use and
+  `DUPLICATE_PERSON` was unreachable by construction. The parameter is still **accepted** (the
+  console and QA both want an exact filter); it is simply not what a job asks for.
+
+  **Face lists reach the engine two ways.** An entry that already has an embedding is a
+  `list_templates[]` row. An entry that has only a **face** — an analyst's console upload, which is
+  the ordinary case — has no embedding for anyone to send, because the engine is the only thing in
+  this estate that can make one; those come back as `list_media[]`, a URL the engine fetches and
+  embeds itself. Authorised by extending the **same** token to exactly the media ids it disclosed
+  (`grant_list_media`), additively and idempotently so a second call cannot revoke the first call's
+  grant mid-fetch. It never widens to the session's own media: the `media_ids` binding of addendum
+  **C** still holds, and a file on another session is still 403.
+
+  **THE ENGINE HALF IS OWED AND IS NOT DONE.** `idv-engine/app.py:158-170` (`fetch_templates`)
+  returns `data.get("templates")` and **ignores `list_templates` and `list_media`**. Until that one
+  function is changed, duplicate-person detection works and the face **blocklist** half of 1:N
+  still does not reach the search. `idv-engine/` was read-only for this pass.
+
+  **B. `/v3` enforces scopes.** All seven gates now pass one, mirroring `/v2`: `sessions:write` on
+  `POST /v3/session/` and `PATCH /v3/session/{id}/update-status/`; `sessions:read` on
+  `GET /v3/session/{id}/decision/`, `GET /v3/session/{id}/generate-pdf/` and `GET /v3/sessions/`;
+  `lists:read` on `GET /v3/lists/` and `GET /v3/lists/{id}/entries/`; `users:read` on
+  `GET /v3/users/`. Before this they passed **none**, so a key issued read-only could mint sessions
+  and move statuses, and the scopes shown on the API Keys screen described a control that existed
+  on `/v2` alone.
+
+  **This is a live-integration change, and here is the migration sentence: a key used by the site
+  needs BOTH `sessions:read` AND `sessions:write`.** The site creates a session and later reads its
+  decision, and those are now two different scopes on `/v3` exactly as they already were on `/v2`.
+  An existing key carrying only `sessions:read` gets **403** on `POST /v3/session/` where it used
+  to get 201. Create it with `POST /api/idv/api-keys { "name": "hyperwolf-backend", "scopes":
+  ["sessions:read", "sessions:write"] }`, or tick both boxes in the Integrate screen's key modal.
+
+  **One gap named, not closed:** the console's key modal offers three scopes and `users:read` is
+  not among them (`POS-Admin/idv/screen-integrate.jsx:21` — `SCOPE_OPTIONS`), so a key created in
+  the UI cannot read `GET /v3/users/` today. `POST /api/idv/api-keys` accepts any scope list, which
+  is the workaround. Adding `'users:read'` to that array is a one-line UI change and is owed.
+
+  **C. A 1:N match resolves to a person or a list entry before anything reads it.** The engine's
+  `face.search` builds each match from exactly four candidate keys — `person_id`, `session_id`,
+  `media_id`, `list_id` (`idv-engine/pipeline/face.py:348-356`) — and **cannot** return a list
+  entry id at all. `idv_rules._face_matches_entry` joins on `list_entry_id` or
+  `face_template_id`, neither of which the engine can send, so an unresolved match joined to no
+  list entry and carried a null person: a face blocklist that matches nothing and a
+  `DUPLICATE_PERSON` that cannot fire, in exactly the shape of a working feature. The callback now
+  resolves every match **in place, before `match_lists` and `evaluate` read it**, off `media_id`:
+  it fills `person_id`, `session_id`, `face_template_id`, `person_name`, and for a list candidate
+  `entry_id` **and** `list_entry_id` (one value, both names — the first is the contract's, the
+  second is the one `idv_rules` joins on), `list_id`, `list_name` and `match_type`
+  (`person|list_entry`), plus a `media_url`. Mutated in place so the rules, the stored decision,
+  the stored event payload and the outbound webhook cannot disagree.
+
+  `GET /api/idv/sessions/{id}` `similar_faces[]` accordingly becomes `[{ "person_id",
+  "person_name", "session_id", "entry_id", "list_id", "list_name", "match_type", "similarity",
+  "media_url" }]`. It previously emitted a `media_url` key that nothing in the system ever set.
+
+  **`templates[]` on the callback was already persisted** — verified, not changed: the callback is
+  the only writer of `idv_face_templates` and it enrols each returned embedding against the
+  session's person. The one edit was hoisting the session re-read out of that loop.
+
+  **A limit that cannot be closed from this side:** a face-list entry that has a
+  `face_template_id` but **no** `media_id` comes back from the engine with only a `list_id` on it
+  and cannot be resolved to its entry, because the entry id does not survive `face.search`. No such
+  entry exists today — the console's own path always uploads a face first — and the resolution
+  falls back to `match_type: "list_entry"` with the list named but the entry not.
