@@ -30,16 +30,19 @@
 // header, which is fine for the Decision object's already-authorised inline
 // fetch, not for a role-gated console list.
 //
-// CONTRACT GAP — face-list "Add entry" has no way to create the `media_id`
-// the entries route requires. `POST /api/idv/lists/{id}/entries` takes
-// `media_id` for face lists (docs/IDV-API-CONTRACT.md line ~179), but the
-// only route that creates a Media row from an uploaded image is `POST
-// /api/idv/capture/{token}/media` — session-token bearer, not a console/
-// analyst route, and it attaches media to a capture session, not to an
-// arbitrary standalone upload. There is no `POST /api/idv/media` (or
-// equivalent) for the console to call. The upload UI below is fully built —
-// drop/pick, JPEG/PNG, ≤ 8 MB, local preview — so the shape is ready, but the
-// submit step is disabled with an explanation instead of pretending to work.
+// MEDIA UPLOAD — face-list "Add entry" now creates the `media_id` the
+// entries route requires. docs/IDV-API-CONTRACT.md addendum H added
+// `POST /api/idv/media` (analyst+, multipart `kind`/`file`/optional
+// `session_id`) precisely to fill the gap this file used to document here:
+// the only OTHER media-upload route, `POST /api/idv/capture/{token}/media`,
+// is session-token bearer, not a console/analyst route. `uploadMedia()`
+// below calls the new route directly with `fetch` + FormData rather than
+// through `window.HWIdv.post()`, because that helper always sends
+// `Content-Type: application/json` — adding a multipart path there is an
+// edit to a shared file this task is not scoped to touch. Same actor header
+// / same-origin write-token convention as idv-client.jsx's writeVerb(),
+// minus Content-Type, which the browser must set itself (with the
+// multipart boundary) rather than have it set manually.
 ;(function () {
   const useP = window.useP;
 
@@ -90,6 +93,39 @@
       return () => { alive = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
     }, [url]);
     return state;
+  }
+
+  // ── uploadMedia(kind, file, sessionId) — POST /api/idv/media (analyst+) ──
+  // Multipart, so it cannot go through window.HWIdv.post() (JSON-only — see
+  // this file's header comment). Mirrors idv-client.jsx's writeVerb(): same
+  // X-HW-Actor header, same same-origin write-token lookup off the
+  // `hw-live-token` localStorage key, never rejects. Resolves to
+  // { ok, code, body, error } — no `gated` flag, since a multipart upload has
+  // no read-only-mode probe to make sense of.
+  function uploadMedia(kind, file, sessionId) {
+    const L = window.HW_LIVE;
+    if (!L || typeof L.post !== 'function') {
+      return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-live-seam' });
+    }
+    const base = L.base || '';
+    const sameOrigin = !base || base === window.location.origin;
+    const session = window.HWIdv ? window.HWIdv.session() : null;
+    const headers = {};
+    if (session && session.id) headers['X-HW-Actor'] = session.id;
+    if (sameOrigin) {
+      let token = null;
+      try { token = (window.localStorage.getItem('hw-live-token') || '').trim() || null; } catch (e) { token = null; }
+      if (token) headers['x-hw-write-token'] = token;
+    }
+    const form = new FormData();
+    form.append('kind', kind);
+    form.append('file', file);
+    if (sessionId) form.append('session_id', sessionId);
+    return fetch(base + '/api/idv/media', { method: 'POST', credentials: 'omit', cache: 'no-store', headers, body: form })
+      .then((res) => res.json().then(
+        (j) => ({ ok: res.ok, code: res.status, body: j, error: (j && j.error) || (res.ok ? null : ('HTTP ' + res.status)) }),
+        () => ({ ok: res.ok, code: res.status, body: null, error: res.ok ? null : ('HTTP ' + res.status) })))
+      .catch((e) => ({ ok: false, code: 0, body: null, error: 'request failed: ' + (e && e.message ? e.message : 'unknown') }));
   }
 
   function FaceThumb({ mediaUrl, size = 44 }) {
@@ -248,10 +284,21 @@
       setErr(null);
       if (!reason.trim()) { setErr('Say why this is being added — it goes in the audit trail.'); return; }
       if (!isFace && !value.trim()) { setErr('Enter a value to add.'); return; }
+      if (isFace && !file) { setErr('Choose a photo first.'); return; }
       setBusy(true);
+      let mediaId = null;
+      if (isFace) {
+        const mr = await uploadMedia('face_list', file, sourceSessionId.trim() || null);
+        if (!mr.ok) {
+          setBusy(false);
+          setErr((mr.body && mr.body.error) || mr.error || `The photo wasn't uploaded (HTTP ${mr.code}).`);
+          return;
+        }
+        mediaId = mr.body && mr.body.media && mr.body.media.id;
+      }
       const r = await window.HWIdv.post(`/api/idv/lists/${encodeURIComponent(list.id)}/entries`, {
         value: isFace ? null : value.trim(),
-        media_id: null, // isFace path never reaches here — see the disabled-submit note below
+        media_id: isFace ? mediaId : null,
         reason: reason.trim(),
         expires_at: expiresAt || null,
         source_session_id: sourceSessionId.trim() || null,
@@ -300,17 +347,6 @@
                 </label>
                 {fileErr && <div style={{ fontSize: P.type.meta, color: P.bad }}>{fileErr}</div>}
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '10px 12px', background: P.warnSoft,
-                border: `1px solid ${P.warn}`, borderRadius: P.r10 }}>
-                <Icon name="alert" size={14} stroke={2} color={P.warnText} style={{ flex: '0 0 auto', marginTop: 1 }} />
-                <div style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.5 }}>
-                  This console has no route to turn an uploaded photo into a <code style={{ fontFamily: P.fontMono }}>media_id</code> yet
-                  — the entries API needs one for a face list, and the only media-upload route in the contract belongs to an active
-                  capture session, not the console. The photo above is captured for review, but "Add to blocklist" is disabled
-                  until that route exists.
-                </div>
-              </div>
             </React.Fragment>
           ) : (
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -339,8 +375,7 @@
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
             <PBtn variant="ghost" onClick={onClose} disabled={busy}>Cancel</PBtn>
-            <PBtn variant={list.list_type === 'blocklist' ? 'danger' : 'accent'} onClick={submit} busy={busy} disabled={isFace}
-              title={isFace ? 'Disabled — no console route creates a media_id yet' : undefined}>
+            <PBtn variant={list.list_type === 'blocklist' ? 'danger' : 'accent'} onClick={submit} busy={busy} disabled={busy || (isFace && !file)}>
               {list.list_type === 'blocklist' ? 'Add to blocklist' : 'Add entry'}
             </PBtn>
           </div>

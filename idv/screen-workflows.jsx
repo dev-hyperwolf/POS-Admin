@@ -210,7 +210,14 @@
       HWIdv.get(`/api/idv/workflows/${encodeURIComponent(workflowId)}/versions`).then((r) => {
         if (!alive) return;
         if (!r.ok) { setState({ loading: false, error: r.error || `HTTP ${r.code}`, rows: null }); return; }
-        setState({ loading: false, error: null, rows: Array.isArray(r.body) ? r.body : [] });
+        // docs/IDV-API-CONTRACT.md addendum J: the route's response changed
+        // shape from a bare array to `{ idv_version, rows: [...] }` (the
+        // counter needed somewhere to live). Accept both defensively — a
+        // bare array is still what an older/cached backend or a test fixture
+        // may hand back.
+        const body = r.body;
+        const rows = Array.isArray(body) ? body : (body && Array.isArray(body.rows) ? body.rows : []);
+        setState({ loading: false, error: null, rows: rows });
       });
       return () => { alive = false; };
     }, [workflowId]);
