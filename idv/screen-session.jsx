@@ -419,16 +419,31 @@
     const idn0 = decision && decision.id_verifications && decision.id_verifications[0];
 
     // ── thresholds — fetched once per workflow version (gap #3 above) ──────
+    // GET …/workflows/{id}/versions carries idv_version alongside the list now
+    // (contract addendum J: "a bare array has nowhere to put the counter"),
+    // so the response is `{ idv_version, rows: [...] }`, not a bare array —
+    // read defensively for either shape rather than assume the array form.
+    // When the session's own pinned version isn't in that list, this falls
+    // back to the latest version instead of showing nothing; thresholdsFrom
+    // records which version was actually used so the fallback can be labelled
+    // rather than presented as if it were the session's real thresholds.
     const [thresholds, setThresholds] = React.useState(null);
+    const [thresholdsFrom, setThresholdsFrom] = React.useState(null);
     const wfId = sess && sess.workflow && sess.workflow.id;
     const wfVersion = sess && sess.workflow && sess.workflow.version;
     React.useEffect(() => {
       if (!wfId || !HWIdv) return;
       let alive = true;
       HWIdv.get('/api/idv/workflows/' + encodeURIComponent(wfId) + '/versions').then((r) => {
-        if (!alive || !r.ok || !Array.isArray(r.body)) return;
-        const row = r.body.find((v) => v.version === wfVersion) || r.body[r.body.length - 1];
-        if (row && row.config && row.config.thresholds) setThresholds(row.config.thresholds);
+        if (!alive || !r.ok) return;
+        const versions = Array.isArray(r.body) ? r.body : (r.body && Array.isArray(r.body.rows) ? r.body.rows : null);
+        if (!versions || !versions.length) return;
+        const pinned = versions.find((v) => v.version === wfVersion);
+        const row = pinned || versions[versions.length - 1];
+        if (row && row.config && row.config.thresholds) {
+          setThresholds(row.config.thresholds);
+          setThresholdsFrom(pinned ? null : row.version);
+        }
       });
       return () => { alive = false; };
     }, [wfId, wfVersion]);
@@ -774,7 +789,12 @@
           {/* RIGHT — decision, cross-check, facts, lists, guidance, trail, events */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
             <Card padding={0}>
-              <CardHead icon="shield" title="Decision" right={decision && decision.engine ? <span style={{ fontSize: P.type.micro, color: P.inkMute, fontFamily: P.fontMono }}>{decision.engine.name}{decision.engine.version ? ` ${decision.engine.version}` : ''}</span> : null} />
+              <CardHead icon="shield" title="Decision" right={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {thresholdsFrom != null && (
+                    <Pill kind="warn" size="sm" dot>thresholds from v{thresholdsFrom} — this session's v{wfVersion} was not found</Pill>)}
+                  {decision && decision.engine ? <span style={{ fontSize: P.type.micro, color: P.inkMute, fontFamily: P.fontMono }}>{decision.engine.name}{decision.engine.version ? ` ${decision.engine.version}` : ''}</span> : null}
+                </div>} />
               {!decision
                 ? <div style={{ padding: 16 }}><EmptyState compact icon="shield" title="No decision yet" body="The engine hasn't scored this session — there's no media, or it hasn't finished." /></div>
                 : nodes.map((n) => <NodeRow key={n.key} {...n} />)}

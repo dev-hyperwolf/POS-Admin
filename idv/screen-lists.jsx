@@ -399,23 +399,25 @@
     return <IconBtn icon="trash" label="Remove entry" title="Remove entry" onClick={() => setConfirming(true)} />;
   }
 
-  // ── useListEntries — one-shot fetch + manual refresh ─────────────────────
-  // Not a `usePoll`: `GET /api/idv/lists/{id}/entries` carries no idv_version
-  // field (checked live and against the contract — see this file's
-  // contract-gaps note), so there is nothing to short-circuit on, and a
-  // detail view opened by a click does not need a standing interval. Writes
-  // (add/remove) call `refresh()` directly — "re-GET after writes".
+  // ── useListEntries — usePoll, same as every other Verify screen ──────────
+  // `GET /api/idv/lists/{id}/entries` now carries idv_version (contract
+  // addendum J: "Added to ... /lists/{id}/entries ..."), so this rides
+  // window.HWIdv.usePoll() like the rest of Verify instead of a hand-rolled
+  // one-shot fetch — same 20s interval, same idv_version short-circuit that
+  // skips a re-render when nothing on this list actually changed. Writes
+  // (add/remove) still call `refresh()` directly right after, same as
+  // before, so an edit is reflected immediately instead of waiting for the
+  // next poll tick.
   function useListEntries(listId) {
-    const [state, setState] = React.useState({ loading: true, error: null, rows: null });
-    const fetchIt = React.useCallback(() => {
-      if (!window.HWIdv) { setState({ loading: false, error: 'no-live-seam', rows: null }); return Promise.resolve(); }
-      return window.HWIdv.get(`/api/idv/lists/${encodeURIComponent(listId)}/entries`).then((r) => {
-        if (!r.ok) { setState((s) => ({ loading: false, error: r.error || `HTTP ${r.code}`, rows: s.rows })); return; }
-        setState({ loading: false, error: null, rows: (r.body && r.body.rows) || [] });
-      });
-    }, [listId]);
-    React.useEffect(() => { setState({ loading: true, error: null, rows: null }); fetchIt(); }, [listId, fetchIt]);
-    return { loading: state.loading, error: state.error, rows: state.rows, refresh: fetchIt };
+    const poll = window.HWIdv
+      ? window.HWIdv.usePoll(`/api/idv/lists/${encodeURIComponent(listId)}/entries`, 20000)
+      : { loading: false, error: 'no-live-seam', data: null, refresh: () => {} };
+    return {
+      loading: poll.loading,
+      error: poll.error,
+      rows: poll.data ? (poll.data.rows || []) : null,
+      refresh: poll.refresh,
+    };
   }
 
   // ── List detail ───────────────────────────────────────────────────────────

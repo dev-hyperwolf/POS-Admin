@@ -29,10 +29,11 @@
 //    field of three `/api/idv/sessions?status=...&from=<today>` calls (the
 //    same calls the exceptions list below needs anyway); only Verifications
 //    comes from the dashboard's own `volume.series` last day, as the brief
-//    specifies. "Today" for those three calls is this browser's current UTC
-//    date, computed independently of the dashboard's own day bucket — there
-//    is no store-local `local_day` field on either route to anchor both to
-//    the same boundary, so the two can disagree by up to a day at midnight.
+//    specifies. "Today" for those three calls is the store's Pacific calendar
+//    date (America/Los_Angeles), computed independently of the dashboard's own
+//    day bucket — there is no store-local `local_day` field on either route to
+//    anchor both to the same boundary, so the two can still disagree by up to a
+//    day at midnight even though this file no longer uses the browser's UTC day.
 //
 // 3. NO OVERRIDE FILTER. The brief's exceptions list wants "declined today,
 //    awaiting user > 10 min, overrides", built from `/api/idv/sessions?
@@ -50,8 +51,38 @@
   const useP = window.useP;
 
   // ── local helpers (nothing here leaks past this closure) ────────────────
-  function todayFromISO() {
-    return new Date().toISOString().slice(0, 10) + 'T00:00:00Z';
+  // todayFromISO() used to be `new Date().toISOString().slice(0,10)` — the
+  // BROWSER's UTC day, not the store's. The estate's store day is Pacific,
+  // so a session that closed at, say, 11pm Pacific on the 7th (07:00Z on the
+  // 8th) was counted as "today" a whole day early by a UTC boundary.
+  // Intl.DateTimeFormat with timeZone:'America/Los_Angeles' gives the
+  // correct LOCAL calendar date; the only remaining problem is turning that
+  // date back into a UTC instant, since Pacific's offset from UTC (-7 PDT /
+  // -8 PST) isn't knowable without asking the platform — there is no JS API
+  // for "the UTC instant that renders as this local midnight" so this tries
+  // both candidate offsets and keeps whichever one actually round-trips.
+  function pacificTodayStartISO() {
+    const dateParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(new Date());
+    const get = (t) => (dateParts.find((p) => p.type === t) || {}).value;
+    const y = get('year'), m = get('month'), d = get('day');
+    for (let i = 0; i < 2; i++) {
+      const offsetHours = i === 0 ? 7 : 8; // PDT then PST
+      const candidate = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), offsetHours, 0, 0));
+      const rendered = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', hourCycle: 'h23',
+      }).formatToParts(candidate);
+      const rget = (t) => (rendered.find((p) => p.type === t) || {}).value;
+      if (rget('year') === y && rget('month') === m && rget('day') === d && rget('hour') === '00') {
+        return candidate.toISOString();
+      }
+    }
+    // Both offsets checked above cover the only two Pacific ever uses
+    // (PDT/PST) — this is an in-case-the-platform-disagrees fallback, not an
+    // expected path, and it uses the same UTC-day boundary the old code did.
+    return `${y}-${m}-${d}T00:00:00Z`;
   }
   function shortDay(iso) {
     try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
@@ -127,7 +158,17 @@
   function TodayCounts({ dash, approved, declined, awaiting }) {
     const series = dash.data && dash.data.volume && dash.data.volume.series;
     const todayN = series && series.length ? series[series.length - 1].n : null;
-    const tileValue = (poll) => (poll.data ? (poll.data.count != null ? poll.data.count : poll.data.rows ? poll.data.rows.length : '—') : poll.loading ? '…' : '—');
+    // `count` on this route is this PAGE's row count (wmdemo/idv_api.py
+    // `_sessions`: `"count": len(out)`), capped by the `limit=200` these
+    // three calls send — not a total across every matching session. Hitting
+    // that cap means "at least 200", not "exactly 200", so it is shown as
+    // "200+" rather than a number that understates the real count.
+    const tileValue = (poll) => {
+      if (!poll.data) return poll.loading ? '…' : '—';
+      const n = poll.data.count != null ? poll.data.count : (poll.data.rows ? poll.data.rows.length : null);
+      if (n == null) return '—';
+      return n >= 200 ? '200+' : n;
+    };
     const tiles = [
       { label: 'Verifications', value: todayN != null ? todayN : '—', icon: 'shield' },
       { label: 'Approved', value: tileValue(approved), icon: 'check-circle' },
@@ -413,7 +454,7 @@
     const P = useP();
     const navigate = props.navigate;
     const [query, setQuery] = React.useState('');
-    const FROM = React.useMemo(function () { return todayFromISO(); }, []);
+    const FROM = React.useMemo(function () { return pacificTodayStartISO(); }, []);
 
     const dash = window.HWIdv.usePoll('/api/idv/dashboard?window=7d', 30000);
     const declined = window.HWIdv.usePoll(

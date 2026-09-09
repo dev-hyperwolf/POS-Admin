@@ -124,7 +124,9 @@
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', color: P.ink, lineHeight: 1.12 }}>Usage</h2>
           <div style={{ fontSize: 12.5, color: P.inkDim, marginTop: 6, maxWidth: 640, lineHeight: 1.45 }}>
             What ran, how often, and what it cost. "This window" is the run rate for the range below; "cumulative" is
-            the lifetime total, back through the imported Didit history. Nothing on this screen is an invented price.
+            every engine run since Verify went live — it does not reach back through the imported Didit history.
+            Didit's own lifetime counts are a separate figure, shown in the "Imported from Didit" card below. Nothing
+            on this screen is an invented price.
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

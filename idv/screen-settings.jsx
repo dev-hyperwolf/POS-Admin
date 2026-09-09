@@ -450,12 +450,91 @@
   const RUN_STATUS_TONE = { running: 'info', ok: 'good', partial: 'warn', failed: 'bad' };
   const DIDIT_KEY_NOTE = 'Needs DIDIT_API_KEY in wm-demo/.env — run tools/set_didit_key.sh';
 
+  // ── run detail drawer — GET /api/idv/import/runs/{id} -> { run, rejects:
+  // [{row_ref,reason}], conflicts:[{row_ref,field,ours,theirs}] } (contract
+  // line 202). A reject whose row_ref is prefixed "media:" is a media file
+  // that failed to store, not a rejected row (idv_import_didit.py's
+  // run.media_error()) — flagged with its own pill so a run that silently
+  // dropped media is visible instead of blending into the row-reject count.
+  function ImportRunDrawer({ run, onClose }) {
+    const P = useP();
+    const [state, setState] = React.useState({ loading: true, error: null, data: null });
+    React.useEffect(() => {
+      let alive = true;
+      setState({ loading: true, error: null, data: null });
+      HWIdv.get(`/api/idv/import/runs/${encodeURIComponent(run.id)}`).then((r) => {
+        if (!alive) return;
+        if (!r.ok) { setState({ loading: false, error: r.error || `HTTP ${r.code}`, data: null }); return; }
+        setState({ loading: false, error: null, data: r.body });
+      });
+      return () => { alive = false; };
+    }, [run.id]);
+
+    const rejects = ((state.data && state.data.rejects) || []).map((r, i) => ({ ...r, _k: i }));
+    const conflicts = ((state.data && state.data.conflicts) || []).map((r, i) => ({ ...r, _k: i }));
+    const mediaCount = rejects.filter((r) => /^media:/.test(r.row_ref || '')).length;
+
+    const rejectColumns = [
+      { label: 'Row', key: 'row_ref', render: (r) => {
+          const isMedia = /^media:/.test(r.row_ref || '');
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.ink }}>{(r.row_ref || '').replace(/^media:/, '')}</span>
+              {isMedia && <Pill kind="warn" size="sm">Media</Pill>}
+            </div>);
+        } },
+      { label: 'Reason', key: 'reason', render: (r) => <span style={{ fontSize: 12, color: P.ink2 }}>{r.reason}</span> },
+    ];
+    const conflictColumns = [
+      { label: 'Row', key: 'row_ref', render: (r) => <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.ink }}>{r.row_ref}</span> },
+      { label: 'Field', key: 'field', render: (r) => <span style={{ fontSize: 12, color: P.ink2 }}>{r.field}</span> },
+      { label: 'Ours', key: 'ours', render: (r) => <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim }}>{r.ours}</span> },
+      { label: 'Theirs', key: 'theirs', render: (r) => <span style={{ fontFamily: P.fontMono, fontSize: 11.5, color: P.inkDim }}>{r.theirs}</span> },
+    ];
+
+    return (
+      <Sheet open onClose={onClose} width={560}>
+        <div style={{ padding: 16, borderBottom: `1px solid ${P.hairline2}`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: P.type.title, fontWeight: 700, color: P.ink, textTransform: 'capitalize' }}>{run.kind} run #{run.id}</div>
+            <div style={{ fontSize: 11.5, color: P.inkDim, marginTop: 2 }}>
+              {rejects.length} reject{rejects.length === 1 ? '' : 's'}{mediaCount ? ` (${mediaCount} media)` : ''} · {conflicts.length} conflict{conflicts.length === 1 ? '' : 's'}
+            </div>
+          </div>
+          <IconBtn icon="x" onClick={onClose} label="Close" />
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {state.loading ? <IdvShared.SkeletonTable rows={4} /> :
+           state.error ? <ErrorState compact detail={state.error} onRetry={() => setState({ loading: true, error: null, data: null })} /> :
+            <React.Fragment>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: P.inkDim, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Rejects · {rejects.length}
+                </div>
+                {rejects.length === 0
+                  ? <div style={{ fontSize: 12.5, color: P.inkMute }}>No rejected rows on this run.</div>
+                  : <DataTable dense rowKey={(r) => r._k} columns={rejectColumns} rows={rejects} />}
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: P.inkDim, letterSpacing: '.06em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Conflicts · {conflicts.length}
+                </div>
+                {conflicts.length === 0
+                  ? <div style={{ fontSize: 12.5, color: P.inkMute }}>No field conflicts on this run.</div>
+                  : <DataTable dense rowKey={(r) => r._k} columns={conflictColumns} rows={conflicts} />}
+              </div>
+            </React.Fragment>}
+        </div>
+      </Sheet>);
+  }
+
   function ImportTab({ can }) {
     const P = useP();
     const [busyKind, setBusyKind] = React.useState(null);
     const [rows, setRows] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
+    const [drawerRun, setDrawerRun] = React.useState(null);
     const isAdmin = can('import'); // idv-client.jsx's ACTION_MIN_ROLE now has an explicit import: 'admin' entry (contract: admin)
 
     async function loadRuns() {
@@ -494,6 +573,16 @@
       { label: 'Status', key: 'status', render: (r) => <Pill kind={RUN_STATUS_TONE[r.status] || 'neutral'} size="sm" dot>{r.status}</Pill> },
       { label: 'Read', key: 'rows_read', align: 'right', render: (r) => <span style={{ fontFamily: P.fontMono }}>{r.rows_read ?? 0}</span> },
       { label: 'Invariant', key: 'inv', render: (r) => {
+          // A running import has not finished reading yet, so rows_read !=
+          // inserted+unchanged+conflicts+rejected is expected, not a defect —
+          // judging the invariant on an in-flight row painted every running
+          // import red. Only rows that have actually finished get judged.
+          if (r.status === 'running') {
+            return (
+              <span style={{ fontFamily: P.fontMono, fontSize: P.type.meta, color: P.inkDim }}>
+                In progress · {r.rows_read ?? 0} row{(r.rows_read ?? 0) === 1 ? '' : 's'} read so far
+              </span>);
+          }
           const ok = invariantHolds(r);
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: P.fontMono, fontSize: P.type.meta, color: ok ? P.inkDim : P.bad, fontWeight: ok ? 400 : 700 }}>
@@ -543,8 +632,13 @@
             : (loading && rows.length === 0) ? <IdvShared.SkeletonTable rows={4} />
             : rows.length === 0
               ? <EmptyState icon="database" title="No import runs yet" body="Trigger one above — even a failed run (e.g. missing DIDIT_API_KEY) is recorded here." />
-              : <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} dense />}
+              : <React.Fragment>
+                  <DataTable columns={columns} rows={rows} rowKey={(r) => r.id} dense onRowClick={(r) => setDrawerRun(r)} />
+                  <div style={{ marginTop: 8, fontSize: P.type.micro, color: P.inkFaint }}>Click a run to see its rejects and conflicts, including any media that failed to store.</div>
+                </React.Fragment>}
         </Card>
+
+        {drawerRun && <ImportRunDrawer run={drawerRun} onClose={() => setDrawerRun(null)} />}
       </div>);
   }
 
