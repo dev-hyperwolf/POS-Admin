@@ -183,9 +183,56 @@
       </nav>);
   }
 
+  // ── useConsoleGate ────────────────────────────────────────────────────
+  // Asks the backend once whether there is a PIN in front of the console
+  // (GET /api/idv/auth/status), and re-asks whenever any screen's request
+  // comes back 401 — window.HWIdv.auth publishes that, so a token that ran out
+  // of its 12 hours mid-shift turns into the PIN card rather than an error
+  // panel on a screen that will never load again.
+  //
+  // `unknown` IS NOT `gated`. When the backend cannot be reached the question
+  // has no answer, and the wrong answer here is expensive in both directions:
+  // guess "gated" and an operator is asked to fix a dead server by typing a
+  // PIN; guess "not gated" and every screen renders its own NotConnected,
+  // which is the truth. So unknown renders the app, exactly as it did before
+  // this gate existed.
+  function useConsoleGate() {
+    const [state, setState] = React.useState({ loading: true, gated: false, ok: true, unknown: true });
+    const aliveRef = React.useRef(true);
+    // ONE CHECK IN FLIGHT AT A TIME, and the reason is visible in the network
+    // log without it: eight screens on Home each fire their own poll, so ONE
+    // expiring token produces four or five simultaneous 401s, each of which
+    // asks "is there a gate now?" — four or five identical round trips to
+    // answer one question, at exactly the moment the backend is refusing
+    // everything. The in-flight promise is shared instead.
+    const inFlightRef = React.useRef(null);
+    const check = React.useCallback(() => {
+      if (inFlightRef.current) return inFlightRef.current;
+      const p = window.HWIdv.auth.status().then((r) => {
+        inFlightRef.current = null;
+        if (!aliveRef.current) return r;
+        setState({ loading: false, gated: !!r.gated, ok: !!r.ok, unknown: !!r.unknown });
+        return r;
+      }, (e) => { inFlightRef.current = null; throw e; });
+      inFlightRef.current = p;
+      return p;
+    }, []);
+    React.useEffect(() => {
+      aliveRef.current = true;
+      check();
+      // A 401 from ANY screen, not only from this hook's own fetch: the
+      // subscription is what makes one expiry re-gate the whole console
+      // instead of one panel.
+      const off = window.HWIdv.auth.subscribe(() => { check(); });
+      return () => { aliveRef.current = false; off(); };
+    }, [check]);
+    return { ...state, recheck: check };
+  }
+
   function App() {
     const P = useP();
     const [route, setRoute] = React.useState(() => location.hash || '#/');
+    const gate = useConsoleGate();
 
     React.useEffect(() => {
       const h = () => setRoute(location.hash || '#/');
@@ -216,20 +263,45 @@
       ? <CFrame name="Session detail" flow="This verification review">{screenSlot}</CFrame>
       : screenSlot;
 
+    // ── the PIN gate ────────────────────────────────────────────────────
+    // IN PLACE OF THE ROUTED FRAME, and not in place of the whole shell: the
+    // rail, the top bar and Verify's own nav stay on screen, so the operator
+    // can still see where they are and switch apps. What is behind the gate is
+    // the CONTENT — every screen in the frame reads sessions, people, media or
+    // the audit trail, and every one of those requests is 401 until a PIN is
+    // entered, so rendering them would produce eight simultaneous error
+    // panels saying the same thing.
+    //
+    // ONE EXCEPTION IS DELIBERATELY ABSENT: there is no "some screens are
+    // fine" carve-out. `version` and `engine/health` are open, which is why
+    // the EngineBadge in the top bar keeps working through the gate, and that
+    // is the whole extent of what a gated console can honestly show.
+    const locked = !gate.loading && gate.gated && !gate.ok && !gate.unknown;
+    const frameSlot = locked
+      ? <window.IdvShared.PinGate onUnlocked={gate.recheck} />
+      : (
+        // Keyed by path: a contained failure clears when the operator
+        // navigates away instead of following them to a route that
+        // would otherwise work.
+        <BFrame key={path} name={label} onReset={() => navigate('#/')} resetLabel="Back to Home">
+          {RoutedFrame}
+        </BFrame>);
+
     return (
       <div style={{ display: 'flex', height: '100%', background: P.bg, color: P.ink, fontFamily: P.fontSans }}>
         <BFrame name="The navigation rail"><window.HWRail active="idv" /></BFrame>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <BFrame name="The top bar"><Topbar /></BFrame>
           <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-            <BFrame name="Verify navigation"><IdvNav path={path} navigate={navigate} /></BFrame>
-            <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', padding: 20 }}>
-              {/* Keyed by path: a contained failure clears when the operator
-                  navigates away instead of following them to a route that
-                  would otherwise work. */}
-              <BFrame key={path} name={label} onReset={() => navigate('#/')} resetLabel="Back to Home">
-                {RoutedFrame}
-              </BFrame>
+            {/* No nav while locked: every one of its eight destinations is
+                behind the same PIN, so offering them is offering eight ways to
+                land on the same card. The cross-app rail on the far left
+                STAYS — leaving the operator no way out of Verify would be the
+                worse trade. */}
+            {locked ? null : <BFrame name="Verify navigation"><IdvNav path={path} navigate={navigate} /></BFrame>}
+            <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto',
+              padding: locked ? 0 : 20, display: locked ? 'flex' : 'block' }}>
+              {frameSlot}
             </main>
           </div>
         </div>

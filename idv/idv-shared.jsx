@@ -184,6 +184,119 @@
     return <Pill kind={tone} dot icon={icon} size={size} title={label}>{label}</Pill>;
   };
 
+  // ── PinGate ─────────────────────────────────────────────────────────────
+  // THE FULL-SCREEN CARD IN FRONT OF THE CONSOLE. Rendered by idv/app.jsx in
+  // place of the routed frame whenever the backend says `gated && !ok`
+  // (wmdemo/idv_api.py `require_console`, GET /api/idv/auth/status).
+  //
+  // WHAT IT SAYS AND WHAT IT DOES NOT. One sentence, no jargon, and no hex or
+  // token anywhere on screen: the person in front of this is an associate at a
+  // counter, and the only thing they can do about it is type six digits. It
+  // does not say WHY the console is gated, does not name the environment
+  // variable, does not print the token it just received, and does not offer a
+  // "forgot the PIN" path — there is nothing behind such a link (the PIN lives
+  // in the server's environment and only the owner can change it), and a
+  // dead-end link is worse than its absence.
+  //
+  // THE ERROR LINE RELAYS THE SERVER'S OWN SENTENCE. Three refusals reach it
+  // and they are genuinely different problems, so none of them is flattened
+  // into "that failed":
+  //   403 wrong PIN     -> "That PIN is not right." (the server's words)
+  //   429 too many      -> the server's wait-a-minute sentence
+  //   503 not set up    -> "Console PIN is not configured on this server."
+  //                        Typing harder cannot fix that one, so the field is
+  //                        left alone and the sentence stands as-is; it is
+  //                        addressed to whoever owns the deployment.
+  // The one sentence this file writes itself is for the write-token 403, which
+  // is not about the PIN at all (shared/hw-live.js gates every POST on a
+  // public deployment) and whose raw text names an HTTP header.
+  //
+  // NUMERIC AND MASKED. `type="password"` so it is not readable over a
+  // shoulder at the counter, `inputMode="numeric"` so a tablet shows the
+  // number pad rather than a full keyboard, and the value is filtered to
+  // digits — the PIN is digits, and silently accepting a stray letter from an
+  // autocorrect produces a refusal the operator cannot see the cause of.
+  window.IdvShared.PinGate = function PinGate({ onUnlocked, compact }) {
+    const P = useP();
+    const [pin, setPin] = React.useState('');
+    const [busy, setBusy] = React.useState(false);
+    const [err, setErr] = React.useState(null);
+    const aliveRef = React.useRef(true);
+    React.useEffect(() => () => { aliveRef.current = false; }, []);
+
+    const ready = pin.length >= 4 && !busy;
+
+    function submit() {
+      if (!ready) return;
+      setBusy(true); setErr(null);
+      window.HWIdv.auth.enter(pin).then((r) => {
+        if (!aliveRef.current) return;
+        setBusy(false);
+        if (r.ok) {
+          setPin('');
+          if (typeof onUnlocked === 'function') onUnlocked();
+          return;
+        }
+        setPin('');
+        setErr(r.gated
+          ? 'This device cannot sign in yet — it is missing the link the owner '
+            + 'sends out to unlock writes on this deployment. Ask for that link '
+            + 'and open Verify from it, then enter the PIN.'
+          : (r.error || 'That did not work.'));
+      });
+    }
+
+    return (
+      <div data-hw="idv-pin-gate" style={{ flex: 1, minHeight: 0, display: 'flex',
+        alignItems: 'center', justifyContent: 'center', padding: P.space.x5,
+        background: P.bg }}>
+        <Card elevation="raised" style={{ width: '100%', maxWidth: compact ? 320 : 380,
+          display: 'flex', flexDirection: 'column', gap: P.space.x4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: P.space.x3 }}>
+            <div style={{ width: 34, height: 34, borderRadius: P.r8, background: P.accent,
+              color: P.accentInk, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', flex: '0 0 auto' }}>
+              <Icon name="shield" size={17} stroke={2} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: P.type.title, fontWeight: 700, color: P.ink,
+                letterSpacing: '-.01em' }}>Verify</div>
+              <div style={{ fontSize: P.type.meta, color: P.inkDim }}>Enter the Verify PIN to continue.</div>
+            </div>
+          </div>
+
+          {/* A real <form>, so Enter submits and a tablet's keyboard shows a
+              Go key — not a div listening for keydown. */}
+          <form onSubmit={(e) => { e.preventDefault(); submit(); }}
+            style={{ display: 'flex', flexDirection: 'column', gap: P.space.x3 }}>
+            <Field size="lg" icon="lock" placeholder="PIN" value={pin} mono
+              type="password" inputMode="numeric" autoComplete="off"
+              autoFocus aria-label="Verify PIN"
+              onChange={(e) => { setErr(null); setPin(e.target.value.replace(/\D/g, '').slice(0, 24)); }} />
+            {err ? (
+              <div role="alert" style={{ display: 'flex', gap: P.space.x2, alignItems: 'flex-start' }}>
+                <Icon name="alert" size={14} stroke={2} color={P.bad}
+                  style={{ flex: '0 0 auto', marginTop: 2 }} />
+                <span style={{ fontSize: P.type.meta, color: P.ink2, lineHeight: 1.45 }}>{err}</span>
+              </div>) : null}
+            {/* ONE SUBMIT PATH, not two. `type="submit"` inside the form is
+                what makes Enter work in the field; adding `onClick={submit}`
+                on top of it would ALSO run the handler on the click, and a
+                double-fire here is not cosmetic — it spends two of the five
+                attempts the server allows per minute per IP, so a mistyped
+                PIN would lock the tablet out in three tries instead of six. */}
+            <PBtn variant="primary" size="lg" full busy={busy} disabled={!ready}
+              type="submit">Continue</PBtn>
+          </form>
+
+          <div style={{ fontSize: P.type.micro, color: P.inkFaint, lineHeight: 1.5 }}>
+            One PIN for this store, and this device remembers it for the rest of
+            the day.
+          </div>
+        </Card>
+      </div>);
+  };
+
   // ── ImportedTag ─────────────────────────────────────────────────────────
   // Session-level honesty label (plan §5.3): imported Didit history is marked
   // and never silently blends into engine-accuracy panels.

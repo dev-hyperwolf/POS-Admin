@@ -1825,3 +1825,292 @@ included — and every score, warning and `status: null` as the engine sent them
 
 `qa/idv_api_probe.py` is unchanged at **155/155**: no route was touched — the API layer renders
 whatever the rules return.
+
+---
+
+## Addendum — 2026-09-09 (r3): names rejoin the tamper set, and a garble is not a name
+
+**Amends the 2026-09-09 barcode addendum above. That ruling is otherwise unchanged.**
+
+### The hole the first ruling left
+
+The barcode ruling removed `first_name` and `last_name` from the tamper set **entirely** — the
+`disagree` set had to contain `date_of_birth` or `document_number` before anything could happen. That
+stopped the false decline it was written for, and it opened the attack the cross-check exists for.
+
+The cheapest forgery of a US licence is a **reprinted front over a genuine back**: the attacker's
+photo and the attacker's name printed on the front, the victim's untouched PDF417 on the back. Walk
+that session through the rules as they stood:
+
+| check | reads | verdict |
+|---|---|---|
+| age gate | barcode `DBB` | **passes** — it is the victim's real date of birth |
+| expiry | barcode `DBA` | **passes** |
+| `document_number` cross-check | barcode vs print | **agrees** — the attacker never touched it |
+| `date_of_birth` cross-check | barcode vs print | **agrees** — same |
+| 1:1 face match | selfie vs **front** portrait | **passes** — the front portrait *is* the attacker |
+| name cross-check | barcode vs print | **disagrees — and drew a warning** |
+
+The printed name was the only signal in the entire payload, and it had been demoted to
+`OCR_PRINT_DISAGREES`. `Approved`.
+
+### The rule now
+
+`BARCODE_OCR_MISMATCH` fires when `barcode_vs_ocr.confidence >= 85`
+(`idv_rules.OCR_CROSSCHECK_CONFIDENCE_MIN`, inclusive — **unchanged, and still evaluated first**)
+**and** either:
+
+1. the `disagree` set includes **`date_of_birth`** or **`document_number`**
+   (`idv_rules.OCR_IDENTITY_FIELDS`) — **unchanged**; or
+2. a name in `disagree` (`idv_rules.OCR_NAME_FIELDS` = `first_name`, `last_name`) is a
+   **different name**, not a bad read of the same one. Either name alone is enough; both is the
+   strongest form.
+
+A name disagreement is a **different name** only when *all* of these hold
+(`idv_rules.name_disagreement_is_tamper`):
+
+| test | fails ⇒ warning | why |
+|---|---|---|
+| both strings legible | a printed name we never read | absence is not contradiction |
+| **no shared token** | `LOPEZ GARCIA` vs `GARCIA-LOPEZ`, `JONES` vs `SMITH JONES` | compound, hyphenated and reordered surnames are the largest single source of name disagreement on real cards, and every one of them shares a word with the truth |
+| **neither contains the other** | `NMARISOLODETTE` vs `MARISOL` | the longer is the shorter plus noise: a run-together or truncated read |
+| **normalised edit distance ≥ 0.50** (`OCR_NAME_TAMPER_DISTANCE_MIN`) | `HOLLINGSWORTB` vs `HOLLINGSWORTH` (0.08) | half the characters of the longer name have to be wrong; a different surname measures 0.7–1.0 |
+| **≥ 3 absolute character edits** (`OCR_NAME_TAMPER_EDITS_MIN`) | `NA` vs `NG`, `LU` vs `LI`, `YO` vs `VO` — one substitution each | a normalised threshold alone fails at the short end: one wrong letter on a **two-letter surname** is normalised distance **exactly 0.50** and shares no token, so the other tests both call `NG`→`NA` a forgery |
+
+`OCR_NAME_TAMPER_EDITS_MIN` was **found by writing the probe, not before it** — every fixture in the
+section was a long anglophone surname, which is exactly how a threshold that fails at the short end
+stays invisible. The honest consequence, stated rather than hidden: **a surname of one or two letters
+can never trip the name test on its own**, and a three-letter one needs every character to differ
+(`LEE` vs `WON` still tampers). That is a deliberate fail-*open* on the narrowest slice of the name
+test, taken because the alternative fails *closed* on real guests — NG, LI and VO are among the most
+common surnames in California. The rest of the tamper set is untouched underneath it: `date_of_birth`,
+`document_number` and the *other* name still apply to exactly those sessions.
+
+Anything that fails any test stays `OCR_PRINT_DISAGREES` (or `OCR_LOW_CONFIDENCE` below the floor):
+recorded, no reason code, no cap, no retake. A name tamper walks the same **one retake on
+`document_back`, then `Declined` with `next_step: "in_store"`** path as the other two fields.
+
+`OCR_NAME_TAMPER_DISTANCE_MIN` (0.50) is deliberately **2.5× looser** than
+`MED_REC_NAME_MAX_DISTANCE` (0.20). They answer opposite questions: the medical one asks whether a
+receptionist's letterhead *matches* the card and errs toward calling a typo a mismatch; this one asks
+whether a photograph of print *proves a forgery* and must err the other way.
+
+### The containment guard is not decoration — it is session #9
+
+`MARISOL` (barcode) vs `NMARISOLODETTE` (print) is normalised edit distance **exactly 0.50** — at the
+floor, inclusive — and the two share **no token**. Both of the other tests call a real guest a forger
+at confidence 90.0. That is the owner's phone session #9 (`IDV-L01`), whose front-side OCR ran the
+`FN` label letter, the first name and the middle name together into one string. Without the
+containment guard this amendment declines that session and turns section L red.
+
+### What this still does not catch — stated, not discovered later
+
+Every guard is a deliberate fail-*open*, and each one has a forgery it lets through as a warning.
+Measured against `idv_rules.name_disagreement_is_tamper`:
+
+| pair (barcode → print) | verdict | the guard that let it through |
+|---|---|---|
+| `SMITH` → `SMITHSON`, `MARTINEZ` → `MARTIN`, `BROWN` → `BROWNE` | warning | containment |
+| `ALVAREZ-DIAZ` → `DIAZ-ORTEGA` | warning | shared token (`DIAZ`) |
+| `JOHNSON` → `JOHNSTON` | warning | distance 0.12 |
+| `NG` → `NA` (and any 1–2 letter surname) | warning | the 3-edit floor |
+
+This is the accepted cost, and it is **not a regression**: before this amendment *every* name
+disagreement was a warning, so the rule strictly narrows the hole rather than trading one for
+another. The attacker in each row still has to carry the victim's `date_of_birth` **and**
+`document_number` on the print, and the *other* name is tested independently. The alternative —
+tightening any of these — declines real guests, which is the outcome this module exists to avoid, and
+`MARISOL` → `NMARISOLODETTE` (a real session) is the proof that the containment guard in particular
+cannot be traded away.
+
+### Where the two strings come from
+
+`crosschecks.barcode_vs_ocr` carries field **names** and no values, so this test reads the per-field
+map the engine puts on the document node:
+
+```json
+"engine_detail": { "crosscheck": { "fields": {
+  "first_name": { "barcode": "MARISOL", "ocr": "NMARISOLODETTE",
+                  "distance": 0.5, "result": "disagree", "rule": "name:first" }
+}}}
+```
+
+Ladder, in order (`idv_rules.printed_vs_barcode_name`): the engine-level
+`crosschecks.barcode_vs_ocr.fields` if a future version ever publishes values there → the document
+node's `engine_detail.crosscheck.fields` → `engine_detail.ocr_fields` (`first_name`,
+`family_name`/`last_name`) against the AAMVA elements `DAC` / `DCS`.
+
+**The document node's own top-level `first_name` / `last_name` are NOT a source at any rung, and
+consumers must not use them for this either.** They are the *merged* values and their provenance
+flips by engine version — session #9 carries the **barcode** value there, the owner's earlier session
+carries the **OCR** value. A rule reading them would compare the barcode against itself on one engine
+and decline real guests on the next.
+
+When no rung yields a pair, the printed name is **unknown**, and an unknown value is never a
+different name: warning, never tamper. This is why `IDV-K07` (a confident name-only disagreement on a
+fixture with no per-field map) is still green and still asserts a warning.
+
+### Where it is held
+
+`qa/idv_rules_probe.py` **section K, checks K13–K24** — 12 checks, suite **397 → 409**. No existing
+check was edited or deleted; K01–K12 all still assert exactly what they asserted.
+
+- **K13/K14** — the half that must not move. The owner's original session still approves under the
+  rule that put names *back*; and a print naming a flagrantly different person at confidence **40**
+  is **still only a warning**, because the confidence floor is evaluated *before* the name test.
+  K13 alone would pass even with that ordering reversed.
+- **K15** — the attack: `OKONKWO` vs `HOLLINGSWORTH` at 90 → retake, then `Declined`, `in_store`.
+- **K16/K17** — the two ways to be a bad read: the one-letter typo (the distance test) and the
+  reordered compound surname, which measures **0.91** and would decline on distance alone — only the
+  shared-token test saves that guest.
+- **K18/K19** — both names different at exactly the floor (inclusive on the name path too), and a
+  different **first** name alone: a surname-only rule passes a front reprinted for another member of
+  the same household.
+- **K20** — the containment guard, on the real session #9 fixture.
+- **K24** — the short-name trap: `NA` for `NG` is a warning (distance exactly 0.50, no shared token —
+  both other tests call it a forgery), while `WON` for `LEE` still tampers, so the absolute floor is a
+  minimum and not a length exemption.
+- **K21** — the value ladder, three legs: neither string legible → warning; print absent, barcode
+  legible → warning; `ocr_fields` + `DCS` with no map → still tampers.
+- **K22/K23** — the ruling is auditable (the warning spells out *why* a name disagreement was not
+  tamper), the engine's own unfiltered `BARCODE_OCR_MISMATCH` still loses to our read in **both**
+  directions, and a confident `date_of_birth` disagreement beside a garbled surname still tampers on
+  the **DOB alone**, with the garbled name kept out of the guest's reason string.
+
+`qa/idv_api_probe.py` is unchanged at **168/168** — no route was touched; the API layer renders
+whatever the rules return, and no route reads the cross-check itself.
+
+---
+
+## Addendum — 2026-09-09 (r4): the console PIN
+
+**Adds a gate. Changes no existing route's shape, status or body.** Everything above this line is
+still true of an ungated deployment, and an ungated deployment is what local dev and the QA battery
+run — the gate is off unless `IDV_CONSOLE_PIN` is set.
+
+### What was wrong
+
+`X-HW-Actor` is a header the caller writes for itself. It is honest **attribution** — the audit trail
+needs it, and every row is stamped with it — and it is not authentication of any kind. So the role
+ladder (`viewer|analyst|admin`) documented above was a lock whose key was printed on the door: on a
+public URL, `curl -H 'X-HW-Actor: manisha-saini' …/api/idv/people` returned names, dates of birth,
+document numbers and the audit trail itself.
+
+### The gate
+
+One shared secret, `IDV_CONSOLE_PIN` (env, **≥ 6 characters**), exchanged once per device for a
+12-hour token.
+
+| `IDV_CONSOLE_PIN` | `WM_DEMO_PUBLIC` | behaviour |
+|---|---|---|
+| set (≥ 6 chars) | either | **on** — gated routes need `X-HW-Console-Token` |
+| unset / too short | public | **misconfigured** — every gated route is `503 {"error": "Console PIN is not configured on this server."}` |
+| unset / too short | not public | **off** — exactly as documented above this addendum |
+
+A too-short value is treated as unset on purpose: `1234` typed into a dashboard is not a gate, and
+accepting it would produce a console that *looks* gated.
+
+### Routes
+
+**`POST /api/idv/auth/pin`** — body `{"pin": "…"}`.
+
+- `201 {"token": "hwc.<issued_at>.<64 hex>", "expires_at": "<ISO-8601>"}` on a match. The token is
+  `hwc.<unix issued_at>.<hex HMAC-SHA256(key, issued_at)>`, where the key is
+  `SHA-256("hw-console-token-v1|" + IDV_CONSOLE_PIN)` — **derived, not the PIN itself**, so one
+  captured token does not hand an attacker key material a six-digit PIN would otherwise be.
+  Valid 12 hours; a token dated in the future (more than 60 s of clock slack) is refused as hard as
+  an expired one, or `hwc.9999999999.<sig>` would be a token that never expires.
+- `403 {"error": "That PIN is not right."}` on a mismatch, and on a missing `pin` key — the refusal
+  must not tell a guesser whether it got the shape right.
+- `429` after **5 attempts per minute per client IP**, counted in `idv_kv` (one row per IP, rewritten
+  when the window rolls). Every attempt counts, the correct one included. The IP is
+  `X-Forwarded-For`'s first hop, falling back to the socket peer — spoofable, and accepted as such:
+  it is a rate-limit bucket, not an authorisation, and the alternative (one global bucket behind
+  Render's proxy) turns one scanner into an outage for the counter.
+- `503` when the gate is not `on`.
+- **Every attempt writes an audit row** — `console.pin.ok` / `console.pin.failed` /
+  `console.pin.rate_limited`, with the status, the IP and the attempt's position in the window.
+  **The PIN is in none of them: not the value, not a prefix, not a length.**
+
+**`GET /api/idv/auth/status`** → `200 {"gated": bool, "ok": bool, "idv_version": n}`. `gated` is
+whether a gate exists at all; `ok` is whether *this* caller is through it. This is the **one** route
+that still answers `200` in the misconfigured state — without it the console would render "backend
+not connected" and send the operator hunting a dead server instead of a missing variable.
+
+### What the gate covers, and what it must not
+
+When the gate is on, **every `/api/idv/*` route requires `X-HW-Console-Token`**, and the token check
+runs **before** the actor/role check — so an unauthenticated caller is told `PIN required.` and never
+learns which roles exist or which actor ids resolve. Missing, expired, forged or PIN-changed:
+`401 {"error": "PIN required."}`.
+
+**401 here, not 403, and that is deliberate.** `/v3` and `/v2` answer 403 for every auth failure
+because the Didit contract says so, and that is unchanged. This is the **console**, which no
+Didit client speaks to, and 401 is the status whose meaning is "authenticate and retry" — which is
+exactly the instruction the client acts on.
+
+Exempt, and each for its own reason:
+
+| exempt | why |
+|---|---|
+| `POST /api/idv/auth/pin`, `GET /api/idv/auth/status` | how a device gets a token in the first place |
+| `GET /api/idv/version`, `GET /api/idv/engine/health` | the console header polls both before it knows who is looking, and neither says anything about a person |
+| `/api/idv/capture/*` | the guest's phone. It carries a per-session bearer token and its TTL; a customer has no PIN and must never be asked for one |
+| `POST /api/idv/webhooks/engine` | an HMAC only the engine can produce — and the only thing that can approve a session |
+| `GET /api/idv/media/{id}?token=…` | the **engine's** fetch of the front, the back, the selfie and granted face-list images. The console branch of the same route (no `?token=`) **is** gated |
+| `GET /api/idv/internal/templates?token=…` | the engine's 1:N candidate set, already gated on the job's media token |
+
+There is **no `?ctoken=` query form** of the console token. Every media fetch in `idv/idv-client.jsx`
+already goes through `fetch()` with headers, so a query-string copy would be a second way in, printed
+into `Referer` and every access log, bought for nothing.
+
+**Revocation is the PIN.** The signing key is derived from it, so changing `IDV_CONSOLE_PIN` kills
+every outstanding token at once. There is no per-token revocation list and no per-person credential:
+everybody on the counter shares the PIN, and `X-HW-Actor` remains the only thing that says *who*
+acted. That is the whole promise, written down so nobody reads more into it later.
+
+### One constraint this pass did not remove
+
+On a public deployment `POST /api/idv/auth/pin` **also sits behind the existing write-token gate** in
+`wmdemo/server.py` (`x-hw-write-token`, `WM_DEMO_WRITE_TOKEN`), because that gate covers every POST
+under `/api/idv/*` that is not self-authenticating, and `server.py` was out of scope here. So a
+device that has never been opened from an `?hwtoken=…` link is refused *before* the PIN is compared,
+with the write gate's own `403 read-only: …` body. `HWIdv.auth.enter()` relays that case as
+`gated: true` and `PinGate` prints a sentence about the owner's link rather than "That PIN is not
+right." **If the two gates are ever meant to be independent, exempting `/api/idv/auth/` in
+`server.py`'s two public-write blocks is the one-line change** — deliberately not made here.
+
+### The client
+
+- `HWIdv` keeps the token in `localStorage['hw-console-token']` and sends `X-HW-Console-Token` on
+  **every** request, including the exempt ones (a per-route allow-list in the client would be a
+  second copy of the table above, in a different file, and its drift shows up as a screen that 401s
+  for a reason nobody can find).
+- Every result from `get`/`post`/`patch`/`put`/`del`/`usePoll` carries **`needsPin`**, derived from
+  `code === 401` and never from the error text. `503` is deliberately **not** `needsPin`: a server
+  with no PIN configured cannot be fixed by typing one.
+- Any 401, from any verb, drops the stored token and notifies subscribers, so a token that expires
+  mid-shift raises the PIN card rather than an error panel on a screen that will never load again.
+- `HWIdv.auth` = `{ status, enter, clear, subscribe, token, onUnauthorized }`. `status()` never
+  rejects and answers `{gated, ok, unknown}` — **`unknown` is not `gated`**: when the backend cannot
+  be reached the question has no answer, and showing the PIN card then would ask an operator to fix
+  connectivity by typing a PIN. Unknown renders the app.
+- `IdvShared.PinGate` replaces the **routed frame** (rail, top bar and EngineBadge stay), built from
+  atoms, numeric and masked, no hex and no token on screen.
+- **`Hyperwolf POS.html` shares the same origin and the same key.** The check-in seam
+  (`pos/checkin-verify-seam.jsx`) uses two console routes — `GET /api/idv/workflows` and
+  `POST /api/idv/sessions` — so it is gated too; it does **not** ask for the PIN itself (a second
+  place the secret is typed, on the one screen this module may not complicate) and instead shows one
+  `ErrorState`: *"Enter the Verify PIN in the Verify app once on this device."* A verification
+  already under way is unaffected — the capture routes are exempt.
+
+### Where it is held
+
+`qa/idv_api_probe.py` **AP-150…AP-162** — 13 checks, suite **155 → 168**, `TOTAL_CHECK_FLOOR`
+**2301 → 2314**. No existing check was edited or deleted. Six hold the gate (401 with no token, 403
+on a wrong PIN, 429 after five a minute per IP, the token's shape and its 12 hours,
+expired/forged/future-dated, and the PIN change that revokes). Two hold the misconfiguration. **Five
+hold what must stay open through it** — the guest's capture routes, the engine's signed callback, the
+engine's job-scoped media and template fetches, and the gate-off state the other 155 run under. A
+gate that also stopped those would leave every console check green while no verification in the
+estate could finish.

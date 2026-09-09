@@ -114,10 +114,117 @@
     try { return (window.localStorage.getItem(TOKEN_KEY) || '').trim() || null; }
     catch (e) { return null; }
   }
+
+  // ── the console PIN token ────────────────────────────────────────────────
+  // ONE SHARED SECRET IN FRONT OF THE CONSOLE, exchanged once per device for a
+  // 12-hour token (wmdemo/idv_api.py `require_console`). `X-HW-Actor` is a
+  // header this file writes for itself — honest attribution, and no
+  // authentication at all — so on a public URL it was the whole gate in front
+  // of a guest's licence photo, date of birth and document number.
+  //
+  // WHY localStorage AND NOT sessionStorage. The counter tablet is the device
+  // this is for, and sessionStorage dies with the tab: an associate who closes
+  // Verify and reopens it would be asked for the PIN again, mid-shift, several
+  // times a day — which is the pressure that gets a PIN written on a sticky
+  // note beside the till. The token itself is bounded (12 hours, and changing
+  // the PIN on the server revokes every outstanding one), and it is the same
+  // trade shared/hw-live.js already makes for the write token two lines above.
+  //
+  // THIS KEY IS SHARED WITH Hyperwolf POS.html, deliberately: same origin,
+  // same localStorage, so entering the PIN once in Verify also unblocks the
+  // check-in seam's `POST /api/idv/sessions`, and vice versa. See
+  // pos/checkin-verify-seam.jsx's 401 branch.
+  var CONSOLE_KEY = 'hw-console-token';
+  var CONSOLE_HEADER = 'X-HW-Console-Token';
+  function consoleToken() {
+    try { return (window.localStorage.getItem(CONSOLE_KEY) || '').trim() || null; }
+    catch (e) { return null; }
+  }
+  function setConsoleToken(v) {
+    try {
+      if (v) window.localStorage.setItem(CONSOLE_KEY, String(v));
+      else window.localStorage.removeItem(CONSOLE_KEY);
+    } catch (e) {}
+  }
+  // ── auth — { status, enter, clear } ─────────────────────────────────────
+  // The console's whole authentication surface, in one object, for the same
+  // reason session() is one function: the estate has no login, and when it
+  // gets one this is the shape that gets swapped rather than a search for
+  // every place a PIN was mentioned.
+  //
+  // `status()` NEVER REJECTS and always answers three flags:
+  //   { gated, ok, unknown }
+  // `unknown` is the one that stops a bad screen: when the backend cannot be
+  // reached at all, "is there a gate?" has no answer, and showing the PIN card
+  // then would ask an operator to fix connectivity by typing a PIN. Unknown
+  // means "carry on and let the screens show their own NotConnected".
+  var auth = (function () {
+    var listeners = [];
+    function notify() {
+      listeners.slice().forEach(function (fn) { try { fn(); } catch (e) {} });
+    }
+    return {
+      // app.jsx subscribes so a 401 from ANY screen re-checks the gate.
+      subscribe: function (fn) {
+        listeners.push(fn);
+        return function () {
+          listeners = listeners.filter(function (f) { return f !== fn; });
+        };
+      },
+      // Called by get()/usePoll on any 401. THE STORED TOKEN IS DROPPED: the
+      // server has just said it does not accept it, so keeping it only means
+      // every subsequent request carries a header that will be refused again,
+      // and the PIN card would sit behind a token it cannot see is dead.
+      onUnauthorized: function () {
+        if (consoleToken()) setConsoleToken(null);
+        notify();
+      },
+      token: consoleToken,
+      status: function () {
+        return get('/api/idv/auth/status').then(function (r) {
+          if (!r.ok) {
+            return { gated: true, ok: false, unknown: true, code: r.code,
+              error: r.error || null };
+          }
+          var b = r.body || {};
+          return { gated: !!b.gated, ok: !!b.ok, unknown: false, code: r.code,
+            error: null };
+        });
+      },
+      // -> { ok, code, error, expiresAt, gated }. `gated` is the OTHER 403 on
+      // this route and it is not a wrong PIN: shared/hw-live.js's write-token
+      // gate sits in front of every POST on a public deployment, so a device
+      // with no `?hwtoken=` is refused before the PIN is ever compared. The
+      // two 403s need different sentences, so the flag is relayed rather than
+      // flattened into one "that failed".
+      enter: function (pin) {
+        return post('/api/idv/auth/pin',
+          { pin: String(pin == null ? '' : pin) }).then(function (r) {
+          if (r.ok && r.body && r.body.token) {
+            setConsoleToken(r.body.token);
+            notify();
+            return { ok: true, code: r.code, error: null, gated: false,
+              expiresAt: r.body.expires_at || null };
+          }
+          return { ok: false, code: r.code, gated: !!r.gated, expiresAt: null,
+            error: r.error || 'That did not work.' };
+        });
+      },
+      clear: function () { setConsoleToken(null); notify(); },
+    };
+  })();
+
   function actorHeaders(extra) {
     var h = Object.assign({}, extra || {});
     var s = session();
     if (s && s.id) h['X-HW-Actor'] = s.id;
+    // Sent on EVERY request, including the ones that do not need it (version,
+    // engine/health, auth/status). A per-route allow-list here would be a
+    // second copy of the backend's exempt list, kept in a different file, and
+    // the failure mode of the copy drifting is a screen that 401s for a reason
+    // nobody can find. The server ignores the header where it does not apply.
+    var ct = consoleToken();
+    if (ct) h[CONSOLE_HEADER] = ct;
     return h;
   }
   function settle(res, j) {
@@ -125,10 +232,29 @@
       ok: res.ok, code: res.status, body: j,
       error: (j && (j.error || j.why)) || (res.ok ? null : ('HTTP ' + res.status)),
       hint: (j && j.hint) || null,
+      // `needsPin` — 401 means "authenticate and retry", and it is the ONE
+      // status the console reacts to structurally rather than by printing a
+      // sentence. It is derived from the STATUS, never from the error text: an
+      // error string is copy, and copy gets reworded. 503 is deliberately NOT
+      // needsPin — a server with no PIN configured cannot be fixed by typing
+      // one, so that case must show its own sentence, not the PIN card.
+      needsPin: res.status === 401,
     };
   }
+  // EVERY 401, FROM EVERY VERB, IN ONE PLACE. `settle` is the single funnel
+  // for get/post/patch/put/del and usePoll, so hanging the re-check here is
+  // what makes "re-check on a 401 from any screen" true of a one-shot write
+  // as well as of a poll — a screen whose Save comes back 401 because the
+  // token expired mid-form must raise the PIN card, not print an error and
+  // leave the operator retyping into a dead console. It cannot recurse: the
+  // two auth routes answer 200/403/429/503 and never 401.
+  function settleAndWatch(res, j) {
+    var r = settle(res, j);
+    if (r.needsPin) auth.onUnauthorized();
+    return r;
+  }
   function networkError(e) {
-    return { ok: false, code: 0, body: null, hint: null,
+    return { ok: false, code: 0, body: null, hint: null, needsPin: false,
       error: 'request failed: ' + (e && e.message ? e.message : 'unknown') };
   }
 
@@ -139,12 +265,12 @@
   function get(path) {
     var L = live();
     if (!L || typeof L.get !== 'function') {
-      return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-live-seam', hint: null });
+      return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-live-seam', hint: null, needsPin: false });
     }
     var url = (L.base || '') + path;
     return fetch(url, { method: 'GET', credentials: 'omit', cache: 'no-store', headers: actorHeaders() })
       .then(function (res) {
-        return res.json().then(function (j) { return settle(res, j); }, function () { return settle(res, null); });
+        return res.json().then(function (j) { return settleAndWatch(res, j); }, function () { return settleAndWatch(res, null); });
       })
       .catch(networkError);
   }
@@ -162,7 +288,7 @@
   function writeVerb(method, path, body) {
     var L = live();
     if (!L || typeof L.post !== 'function') {
-      return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-live-seam', hint: null, gated: false });
+      return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-live-seam', hint: null, needsPin: false, gated: false });
     }
     var url = (L.base || '') + path;
     var sameOrigin = !L.base || L.base === window.location.origin;
@@ -173,10 +299,10 @@
       .then(function (res) {
         return res.json().then(function (j) { return finishPost(res, j, token); }, function () { return finishPost(res, null, token); });
       })
-      .catch(function (e) { var r = networkError(e); r.gated = false; return r; });
+      .catch(function (e) { var r = networkError(e); r.gated = false; return r; });  // needsPin already false
   }
   function finishPost(res, j, tokenSent) {
-    var r = settle(res, j);
+    var r = settleAndWatch(res, j);
     r.gated = res.status === 403 && !tokenSent && !!(j && typeof j.error === 'string' && j.error.indexOf('read-only') === 0);
     return r;
   }
@@ -192,7 +318,7 @@
   function usePoll(path, ms) {
     var intervalMs = ms || 15000;
     var React = window.React;
-    var stateHook = React.useState({ loading: true, error: null, data: null });
+    var stateHook = React.useState({ loading: true, error: null, data: null, needsPin: false });
     var s = stateHook[0], setS = stateHook[1];
     var versionRef = React.useRef(null);
     var timerRef = React.useRef(null);
@@ -207,23 +333,29 @@
           // "backend unreachable" (r.body == null) apart from "backend
           // reachable but the engine isn't" (r.body present, ok:false)
           // needs that body in `data`, not just the error string.
-          setS(function (prev) { return { loading: false, error: r.error || ('HTTP ' + r.code), data: r.body != null ? r.body : prev.data }; });
+          //
+          // A 401 ALSO TELLS app.jsx TO RE-CHECK, from `settleAndWatch`
+          // above — the poll is what notices a token that expired mid-shift:
+          // the operator was on a screen, the 12 hours ran out, and the next
+          // tick comes back 401. `needsPin` is carried on the state as well
+          // so a screen can say something of its own if it wants to.
+          setS(function (prev) { return { loading: false, error: r.error || ('HTTP ' + r.code), data: r.body != null ? r.body : prev.data, needsPin: !!r.needsPin }; });
           return;
         }
         var v = r.body && r.body.idv_version;
         if (v != null && v === versionRef.current) {
-          setS(function (prev) { return prev.loading ? { loading: false, error: null, data: prev.data != null ? prev.data : r.body } : prev; });
+          setS(function (prev) { return prev.loading ? { loading: false, error: null, data: prev.data != null ? prev.data : r.body, needsPin: false } : prev; });
           return;
         }
         versionRef.current = v;
-        setS({ loading: false, error: null, data: r.body });
+        setS({ loading: false, error: null, data: r.body, needsPin: false });
       });
     }, [path]);
 
     React.useEffect(function () {
       aliveRef.current = true;
       versionRef.current = null;
-      setS({ loading: true, error: null, data: null });
+      setS({ loading: true, error: null, data: null, needsPin: false });
       fetchOnce();
 
       function schedule() {
@@ -243,7 +375,7 @@
       // eslint-disable-next-line
     }, [path, intervalMs, fetchOnce]);
 
-    return { loading: s.loading, error: s.error, data: s.data, refresh: fetchOnce };
+    return { loading: s.loading, error: s.error, data: s.data, needsPin: s.needsPin, refresh: fetchOnce };
   }
 
   // ── fmt — dates via window.HD (shared/hd-format.jsx), plus a score
@@ -287,5 +419,5 @@
     },
     version: function () { return window.HWContracts ? window.HWContracts.VERSION : null; },
   };
-  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can, contract: contract };
+  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can, contract: contract, auth: auth };
 })();

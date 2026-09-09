@@ -96,7 +96,7 @@
   // in it changed.
   window.IdvCheckinSeam = function IdvCheckinSeam({ customer, onVerified, compact }) {
     const P = useP();
-    const [phase, setPhase] = React.useState('idle');   // idle | creating | live | failed
+    const [phase, setPhase] = React.useState('idle');   // idle | creating | live | failed | needs-pin
     const [session, setSession] = React.useState(null);
     const [err, setErr] = React.useState(null);
     const aliveRef = React.useRef(true);
@@ -120,11 +120,34 @@
             + '. The barcode scanner below is unaffected.'} />);
     }
 
+    // THE PIN GATE, AS THE COUNTER SEES IT (2026-09-09).
+    // wmdemo/idv_api.py `require_console` puts one shared PIN in front of every
+    // console route on a public deployment. Two of the calls below are console
+    // routes — `GET /api/idv/workflows` and `POST /api/idv/sessions` — so this
+    // seam is gated too, and it answers 401 until a PIN has been entered ONCE
+    // on this device.
+    //
+    // WHY THIS FILE DOES NOT ASK FOR THE PIN. A PIN field inside the check-in
+    // modal would be a second place the secret is typed and a second piece of
+    // auth UI to keep honest, on the one screen this module is forbidden to
+    // complicate. It is not needed: Hyperwolf Verify and Hyperwolf POS are the
+    // SAME ORIGIN and share `localStorage['hw-console-token']`, so the PIN
+    // entered once in the Verify app unlocks the counter as well. One sentence
+    // pointing there is the whole handling.
+    //
+    // NOT gated on the CAPTURE routes, and that is why this stays a one-liner
+    // rather than a blocker: once a session exists, the guest's own capture
+    // flow (window.IdvCapture) carries a per-session bearer token and never
+    // touches a console route, so a verification already under way is
+    // unaffected by an expiring console token.
+    const PIN_NOTE = 'Enter the Verify PIN in the Verify app once on this device.';
+
     function start() {
       setPhase('creating'); setErr(null);
       const s = window.HWIdv.session();
       window.HWIdv.get('/api/idv/workflows').then(function (r) {
         if (!aliveRef.current) return;
+        if (r.needsPin) { setPhase('needs-pin'); setErr(null); return; }
         if (!r.ok) { setPhase('failed'); setErr(r.error || 'Verify did not answer.'); return; }
         const wf = pickWorkflow(r.body && r.body.rows);
         if (!wf) { setPhase('failed'); setErr('No active Verify workflow is configured, so a session cannot be started.'); return; }
@@ -144,6 +167,7 @@
         if (idKey) body.vendor_data = 'pos:' + idKey;
         window.HWIdv.post('/api/idv/sessions', body).then(function (c) {
           if (!aliveRef.current) return;
+          if (c.needsPin) { setPhase('needs-pin'); setErr(null); return; }
           if (!c.ok || !c.body || !c.body.session_token) {
             setPhase('failed');
             setErr((c && c.error) || 'Verify would not open a session.');
@@ -163,6 +187,21 @@
     function onDone(result) {
       if (!result || result.status !== 'Approved') return;
       if (typeof onVerified === 'function') onVerified(verifyDoc(session || {}));
+    }
+
+    // ONE LINE, AND IT NAMES THE ONE ACTION THAT FIXES IT. Deliberately an
+    // ErrorState rather than the inline warn row below: the barcode scanner is
+    // still right there and still works, so this is a closed door with a
+    // labelled key, not a failure the associate has to work around blind.
+    // `onRetry` re-runs `start()`, which is exactly right — after the PIN has
+    // been entered in the Verify app the same button now succeeds.
+    if (phase === 'needs-pin') {
+      return (
+        <div data-hw="idv-checkin-seam" style={{ display: 'flex', flexDirection: 'column', gap: P.space.x2 }}>
+          <window.ErrorState compact title="Hyperwolf Verify needs a PIN on this device"
+            body={PIN_NOTE + ' The barcode scanner below is unaffected.'}
+            onRetry={function () { start(); }} />
+        </div>);
     }
 
     if (phase === 'idle' || phase === 'failed') {
