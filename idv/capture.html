@@ -30,6 +30,22 @@
   body { font-family:"Inter",-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
   #root { height:100%; }
   button, select, input, textarea { font-family:inherit; }
+
+  /* ── TWO RULES THAT EXIST BECAUSE THIS IS A PHONE, AND BECAUSE THE OWNER
+        LOST A SESSION TO A RELOAD (round-3 report, 2026-09-09) ────────────
+     `overscroll-behavior-y: contain` DISABLES PULL-TO-REFRESH. On the camera
+     screens the guest's thumb is on the glass for thirty seconds while they
+     line a card up; a stray downward drag at the top of the page is a full
+     Safari reload, and a reload mid-capture is the exact failure this round
+     was asked to make impossible. The router now survives one — but a reload
+     that never happens is better than a reload we recover from, and this is
+     one line.
+     `touch-action: manipulation` REMOVES THE 300 ms DOUBLE-TAP-TO-ZOOM DELAY.
+     Round 3 makes the whole viewfinder a shutter (tap anywhere to snap), and a
+     shutter that answers a third of a second late reads as a shutter that did
+     not answer — which is the "buggy" report, in miniature. */
+  html, body { overscroll-behavior-y: contain; }
+  body { touch-action: manipulation; }
   /* NO `a { color: ... }` RULE HERE, unlike every other entry page in this
      estate. Those pages hard-code the gold link colour as a hex literal, which
      the zero-hex rule forbids outside pos/tokens.jsx — and this page has no
