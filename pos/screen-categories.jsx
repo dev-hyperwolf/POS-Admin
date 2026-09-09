@@ -525,6 +525,17 @@ window.CategoriesScreen = function CategoriesScreen({ onBack }) {
 };
 
 // ── where the numbers came from ─────────────────────────────────────────────
+// Display only — never stored or compared — but routed through the one
+// contract epoch helper instead of an ad hoc `* 1000` (isoFromEpoch treats
+// anything under 1e11 as seconds, same rule every other epoch site in the
+// estate uses).
+function genAtLabel(epochSeconds) {
+  if (typeof epochSeconds !== 'number' || !isFinite(epochSeconds)) return null;
+  const K = window.HWContracts;
+  const d = K ? new Date(K.isoFromEpoch(epochSeconds)) : new Date(epochSeconds * 1000);
+  return isNaN(d.getTime()) ? null : d.toLocaleTimeString();
+}
+
 function SourceBanner({ src, tax }) {
   const P = useP();
   const kind = src.live ? 'good' : src.head === 'ASKING' || src.head === 'SLOW' ? 'info' : 'warn';
@@ -535,7 +546,7 @@ function SourceBanner({ src, tax }) {
     <div style={{ flex: 1, minWidth: 0 }}>
       <span style={{ fontSize: P.type.micro, fontWeight: 800, letterSpacing: '.08em', color: col, marginRight: 8 }}>{src.head}</span>
       <span style={{ fontSize: P.type.body, color: P.ink2, lineHeight: 1.5 }}>{src.body}</span>
-      {src.live && tax.board && <span style={{ fontSize: P.type.micro, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 8 }}>generated {new Date(tax.board.generated_at * 1000).toLocaleTimeString()}</span>}
+      {src.live && tax.board && genAtLabel(tax.board.generated_at) && <span style={{ fontSize: P.type.micro, color: P.inkMute, fontFamily: P.fontMono, marginLeft: 8 }}>generated {genAtLabel(tax.board.generated_at)}</span>}
     </div>
   </div>;
 }

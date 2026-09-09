@@ -804,7 +804,7 @@
               </div>}
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <PBtn variant="accent" disabled={!pick || cannotWrite} busy={!!(writeOut && writeOut.pending === 'approve')}
-                onClick={function () { write('/api/brands/approve', { brand: row.key, wm_brand_id: pick.id, reviewer: 'admin@hyperwolf.com' }, 'approve'); }}>
+                onClick={function () { write('/api/brands/approve', { brand: row.key, wm_brand_id: pick.id, external_ids: window.HWContracts ? [window.HWContracts.externalId('weedmaps', String(pick.id))] : [], reviewer: 'admin@hyperwolf.com' }, 'approve'); }}>
                 {cannotWrite ? 'Cannot bind — no product carries this brand'
                   : (pick ? 'Bind to ' + pick.name : 'Pick a brand to bind')}
               </PBtn>

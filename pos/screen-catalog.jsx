@@ -511,7 +511,12 @@ function batchRowsOf(p) {
 }
 function receivedLabel(epochSeconds) {
   if (!epochSeconds) return null;
-  const d = new Date(epochSeconds * 1000);
+  // Display only — the value is never stored or compared past this function —
+  // but the epoch->ms math goes through the one contract helper instead of an
+  // ad hoc `* 1000` so it agrees with every other seconds/ms decision in the
+  // estate (isoFromEpoch treats anything under 1e11 as seconds).
+  const K = window.HWContracts;
+  const d = K ? new Date(K.isoFromEpoch(epochSeconds)) : new Date(epochSeconds * 1000);
   return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 

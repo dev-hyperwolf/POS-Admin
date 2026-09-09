@@ -1,12 +1,21 @@
 // ── Orders screen — fulfillment queue (kanban) ─────────────────────────────
 const useP = window.useP;
 
-const STAGES = [
-{ id: 'verify', label: 'Incoming', color: (P) => P.neutral },  // stage ID stays 'verify': see data.jsx ORDER_STAGES
-{ id: 'pack', label: 'Need to Pack', color: (P) => '#C24EA8' },
-{ id: 'packing', label: 'Packing in Progress', color: (P) => P.info },
-{ id: 'ready', label: 'Ready for Pickup', color: (P) => P.good },
-{ id: 'done', label: 'Completed', color: (P) => P.inkMute }];
+// Label/color per stage id. The ids themselves come from window.HW.STAGES
+// (pos/data.jsx's ORDER_STAGES, itself derived from HWContracts's
+// FulfillmentStage enum) rather than being retyped here — this file used to
+// hardcode its own five ids, a second copy that had already caused a real
+// clobber bug (see data.jsx's ORDER_STAGES comment). Falls back to the literal
+// order only if window.HW has not run yet.
+const STAGE_META = {
+  verify: { label: 'Incoming', color: (P) => P.neutral },
+  pack: { label: 'Need to Pack', color: (P) => '#C24EA8' },
+  packing: { label: 'Packing in Progress', color: (P) => P.info },
+  ready: { label: 'Ready for Pickup', color: (P) => P.good },
+  done: { label: 'Completed', color: (P) => P.inkMute },
+};
+const STAGES = ((window.HW && window.HW.STAGES) || ['verify', 'pack', 'packing', 'ready', 'done'])
+  .map((id) => Object.assign({ id }, STAGE_META[id]));
 
 
 // ── ONE BAND TABLE FOR THIS FILE ────────────────────────────────────────────

@@ -22,12 +22,15 @@
   const useP = window.useP;
 
   function _live() { return window.HW_LIVE || null; }
-  function _money0(cents) { return window.HW.fmt.money0((cents || 0) / 100); }
+  // window.HD.formatCents (shared/hd-format.jsx) is the one cents-in money
+  // formatter now — this file and pos/screen-aov.jsx each held their own
+  // cents->dollars wrapper around window.HW.fmt.money0 before.
+  function _money0(cents) { return window.HD.formatCents(cents || 0); }
 
-  // Same 5 slugs as pos/screen-aov.jsx's AOV_STORE_NAMES — its own copy, not an import (no
-  // module system here; see the estate's global-collision rule). Display-only.
-  const STORE_NAMES = { elsinore: 'Lake Elsinore', 'west-la': 'West Hollywood', 'long-beach': 'Long Beach', corona: 'Corona', riverside: 'Riverside' };
-  const storeName = (id) => STORE_NAMES[id] || id;
+  // pos/stores.jsx (window.HW_STORES) is the one slug -> display name list now —
+  // this file used to hold its own copy (STORE_NAMES), same as pos/screen-aov.jsx's
+  // AOV_STORE_NAMES. Display-only.
+  const storeName = (id) => window.HW_STORES ? window.HW_STORES.name(id) : id;
 
   function useIncentivesMe(storeId, associateId) {
     const [state, setState] = React.useState({ loading: true, error: null, data: null });
@@ -93,7 +96,10 @@
     const P = useP();
     const a = window.HW.STATS.associate;
     const storeId = a.storeId, associateId = a.id;
-    const isManager = a.role === 'Floor Manager'; // same exact check pos/screen-aov.jsx uses
+    // HWContracts.roleAtLeast() is the contract's own rank check — the server
+    // applies the same rule. Falls back to the literal only if contracts/index.js
+    // has not loaded (it always has on this page; defensive only).
+    const isManager = window.HWContracts ? window.HWContracts.roleAtLeast(a.role, 'manager') : a.role === 'Floor Manager';
 
     const me = useIncentivesMe(storeId, associateId);
 

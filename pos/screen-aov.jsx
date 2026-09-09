@@ -94,21 +94,30 @@ function useAovLeaderboard(scope, storeId, active) {
   return state;
 }
 
-function _money0(cents) { return window.HW.fmt.money0((cents || 0) / 100); }
+// window.HD.formatCents (shared/hd-format.jsx) is the one cents-in money
+// formatter now — this file and pos/screen-incentives-card.jsx each held their
+// own cents->dollars wrapper around window.HW.fmt.money0 before. Note this is
+// a real (if small) display change: formatCents always shows 2dp ('$1,864.20'),
+// where the old wrapper's toLocaleString with no fixed digits sometimes dropped
+// a trailing zero ('$1,864.2').
+function _money0(cents) { return window.HD.formatCents(cents || 0); }
 
-// Same 5 slugs as wmdemo/associates.py's STORES — display-name lookup only,
-// never a second source of truth for which stores exist (the API responses
-// already carry store_name on every leaderboard row that needs one).
-const AOV_STORE_NAMES = { elsinore: 'Lake Elsinore', 'west-la': 'West Hollywood',
-  'long-beach': 'Long Beach', corona: 'Corona', riverside: 'Riverside' };
-function _storeName(id) { return AOV_STORE_NAMES[id] || id; }
+// pos/stores.jsx (window.HW_STORES) is the one slug -> display name list now —
+// this file used to hold its own copy (AOV_STORE_NAMES) and pos/screen-incentives-card.jsx
+// held a second one; display-name lookup only, never a second source of truth
+// for which stores exist (the API responses already carry store_name on every
+// leaderboard row that needs one).
+function _storeName(id) { return window.HW_STORES ? window.HW_STORES.name(id) : id; }
 
 // ── associate view ──────────────────────────────────────────────────────────
 window.AovDashboardCard = function AovDashboardCard() {
   const P = useP();
   const a = window.HW.STATS.associate;
   const storeId = a.storeId, associateId = a.id;
-  const isManager = a.role === 'Floor Manager';
+  // HWContracts.roleAtLeast() is the contract's own rank check — the server
+  // applies the same rule. Falls back to the literal only if contracts/index.js
+  // has not loaded (it always has on this page; defensive only).
+  const isManager = window.HWContracts ? window.HWContracts.roleAtLeast(a.role, 'manager') : a.role === 'Floor Manager';
 
   const stats = useAovStats(storeId, associateId);
   const [boardOpen, setBoardOpen] = React.useState(false);

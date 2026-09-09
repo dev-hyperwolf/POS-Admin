@@ -40,7 +40,7 @@ window.HomeScreen = function HomeScreen({ onNav }) {
     wmUnlisted > 0 && { icon: 'eye-off', c: P.inkDim, t: `${wmUnlisted} product${wmUnlisted > 1 ? 's' : ''} not published to Weedmaps`, cta: 'Catalog', go: 'catalog' },
   ].filter(Boolean);
 
-  const k = (n) => '$' + (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : Math.round(n));
+  const k = window.HW.fmt.moneyK;
 
   const Quick = ({ icon, label, sub, to, accent }) =>
     <button onClick={() => onNav(to)} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '16px 18px', background: accent ? P.accent : P.surface, border: `1px solid ${accent ? P.accent : P.hairline2}`, borderRadius: P.r14, cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans, boxShadow: P.shadowSm, transition: 'transform .12s, box-shadow .12s' }}

@@ -195,8 +195,12 @@
 
   /* ── small helpers ────────────────────────────────────────────────────── */
 
-  const REGION_LABEL = { all: 'All regions', corona: 'Corona', 'long-beach': 'Long Beach', 'west-la': 'West LA' };
-  const regionLabel = (r) => REGION_LABEL[r] || r;
+  // pos/stores.jsx (window.HW_STORES) is the one slug -> display name list now —
+  // this file used to hold its own copy (REGION_LABEL) that disagreed with
+  // pos/screen-aov.jsx's and pos/screen-incentives-card.jsx's ('West LA' here vs.
+  // 'West Hollywood' there, which is wmdemo/associates.py's own spelling).
+  // 'all' is this screen's own pseudo-region, not a store — kept local.
+  const regionLabel = (r) => r === 'all' ? 'All regions' : (window.HW_STORES ? window.HW_STORES.name(r) : r);
   const STATE_KIND = { draft: 'neutral', review: 'info', live: 'good' };
   const who = () => (window.USER && window.USER.name) || 'Manisha Saini';
   const shareSum = (items) => items.reduce((a, i) => a + (Number(i.share) || 0), 0);

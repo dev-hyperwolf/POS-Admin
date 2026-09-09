@@ -305,6 +305,23 @@ const WM_STATUS_MAP = {
   done:    { wm:'COMPLETE',             label:'Complete',    cust:'Order completed',                  tone:'neutral' },
   canceled:{ wm:'CANCELED_SELLER',      label:'Canceled',    cust:'Canceled by store',                tone:'bad' },
 };
+// Validated at load, once, against the contract — not a runtime guard on every
+// read, because a bad row here is a typo in this table, not bad input from a
+// caller. console.error (not a throw) so a mismatch is loud in every dev
+// console without taking the whole page down over a display label. IIFE (not a
+// top-level `if`) so it introduces no name this script's babel transform could
+// hoist onto window — see the ORDER_STAGES comment above for why that matters
+// on this page.
+(function validateWmStatusMap() {
+  if (!window.HWContracts) return;
+  const valid = window.HWContracts.enumValues('WeedmapsOrderStatus');
+  Object.keys(WM_STATUS_MAP).forEach((k) => {
+    const wm = WM_STATUS_MAP[k].wm;
+    if (valid.indexOf(wm) === -1) {
+      console.error('WM_STATUS_MAP[' + k + '].wm = ' + JSON.stringify(wm) + ' is not a valid WeedmapsOrderStatus (' + valid.join(', ') + ')');
+    }
+  });
+})();
 const WM_STATUS_ORDER = ['DRAFT','PENDING','IN_PROGRESS','READY_FOR_ATTAINMENT','COMPLETE'];
 
 // WM-sourced orders. Treated as pickup orders (channel 'Store') unless delivery.
@@ -424,7 +441,33 @@ function taxBreakdown(base) {
 const fmt = {
   money:(n)=> '$'+Number(n).toLocaleString('en-US',{ minimumFractionDigits:2, maximumFractionDigits:2 }),
   money0:(n)=> '$'+Number(n).toLocaleString('en-US'),
+  // The '$k' shorthand used by the two dashboard headers (shell.jsx TopBar,
+  // screen-home.jsx) — they each kept their own copy of this exact function
+  // before. Dollars in, e.g. moneyK(8420.55) -> '$8.4k', moneyK(142) -> '$142'.
+  moneyK:(n)=> '$' + (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : Math.round(n)),
 };
+
+// The one 2-decimal dollar rounder for anything outside the register/cart
+// (screen-cart.jsx and screen-register.jsx keep their own `round2` for now —
+// see wave 3b's hard exclusions; screen-register.jsx's is FROZEN, which is
+// also why this binding is named `hwRound2` rather than `round2` — the two
+// would clobber each other on Hyperwolf POS.html otherwise, see the
+// ORDER_STAGES/STAGES rename above for the same reasoning). Exported as
+// window.HW.round2, so no caller outside this file changes. Routes through
+// the same cents boundary as the swap engine (shared/commerce-adapter.js
+// HWSwap.cents -> HWContracts.centsFromDollars, which rounds half-away-from-zero
+// and corrects the float-imprecision edge a naive Math.round(n*100)/100 gets
+// wrong, e.g. 0.285 -> 0.29 not 0.28) instead of re-deriving its own rounding
+// here. Falls back to the naive form only if neither has loaded.
+function hwRound2(n) {
+  const v = +n || 0;
+  const W = window.HWSwap;
+  if (W && typeof W.cents === 'function') {
+    const c = W.cents(v);
+    if (typeof c === 'number' && isFinite(c)) return c / 100;
+  }
+  return Math.round(v * 100) / 100;
+}
 
 // ── Writes ─────────────────────────────────────────────────────────────────
 // Every screen renders straight off MEMBERS / CHECKINS, so a "create" that only
@@ -951,8 +994,20 @@ function setWmLink(id, linked) {
  * same commit; see test/global-collisions.test.mjs.
  *
  * Exported as `STAGES` on window.HW, so no caller changes.
+ *
+ * The five values themselves come from the contract now: HWContracts's
+ * `FulfillmentStage` enum is ['verify','pack','packing','ready','done','canceled']
+ * — one more than this list, because nothing in pos/ creates a canceled order
+ * today (see WM_STATUS_MAP below, which DOES have a 'canceled' row for the
+ * Weedmaps-visible status, independent of this kanban). Deriving here instead
+ * of retyping the five strings means a future FulfillmentStage change shows up
+ * as a failing test (test/pos-stages-contract.test.mjs) instead of a second
+ * enum silently drifting from the first. Falls back to the literal only if
+ * contracts/index.js has not loaded.
  */
-const ORDER_STAGES = ['verify', 'pack', 'packing', 'ready', 'done'];
+const ORDER_STAGES = (window.HWContracts
+  ? window.HWContracts.enumValues('FulfillmentStage').filter((s) => s !== 'canceled')
+  : ['verify', 'pack', 'packing', 'ready', 'done']);
 
 function orderById(id) { return ORDERS.find((o) => o.id === id) || null; }
 
@@ -1098,7 +1153,7 @@ function setLaneSettings(patch) {
     if (!(k in (patch || {}))) continue;
     const v = Number(patch[k]);
     if (!Number.isFinite(v) || v < 0) return null;      // refuse, do not coerce
-    next[k] = Math.round(v * 100) / 100;
+    next[k] = hwRound2(v);
   }
   _laneSettings = next;
   try { localStorage.setItem('hw-lane-settings', JSON.stringify(next)); } catch {}
@@ -1120,7 +1175,7 @@ let _pendingSale = null;
 function startSaleFor(customer, guests, items) { _pendingSale = customer ? { customer, guests: (guests || []).slice(), items: items && items.length ? items.slice() : null } : null; }
 function takePendingSale() { const p = _pendingSale; _pendingSale = null; return p; }
 
-window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, favCategoryBasis, fmt, visitLabel, visitOrdinal,
+window.HW = { PRODUCTS, MEMBERS, CHECKINS, GUEST_POOL, ORDERS, CATS, CAT_COLOR, STORE, DELIVERY, REGIONS, DRIVERS, FLEET_TOTAL, STATS, REWARDS, upsell, favCategory, favCategoryBasis, fmt, round2: hwRound2, visitLabel, visitOrdinal,
   WM_LISTINGS, WM_PRODUCT_SYNC, WM_STATUS_MAP, WM_STATUS_ORDER, WM_ORDER, IDV, TAX_RATES, taxBreakdown,
   ORDER_BIND, bindFor, MATCH_WEIGHT, SIGNAL_LABEL,
   addMember, updateMember, creditWallet, addCheckIn, removeCheckIn, wmLinked, setWmLink, startSaleFor, takePendingSale,

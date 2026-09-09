@@ -2,7 +2,7 @@
 //    cash-drawer pop, receipt reprint / email / print ───────────────────────
 const useP = window.useP;
 const _money = (n) => window.HW.fmt.money(n);
-const _c2 = (n) => Math.round(n * 100) / 100;
+const _c2 = (n) => window.HW.round2(n);
 
 // Merchant processing-fee structures applied to the CARD portion only
 const FEE_OPTS = [

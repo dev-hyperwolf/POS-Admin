@@ -71,7 +71,7 @@
       // unless a real cost has actually been written onto a member of the
       // family, and the row that renders it says which (see sharedRows).
       const costs = items.map((p) => p.cost).filter((c) => typeof c === 'number' && isFinite(c));
-      const avgCost = costs.length ? Math.round(costs.reduce((a, c) => a + c, 0) / costs.length * 100) / 100 : null;
+      const avgCost = costs.length ? window.HW.round2(costs.reduce((a, c) => a + c, 0) / costs.length) : null;
       const costsKnown = costs.length, costsTotal = items.length;
       // Base price = the price most of the family actually sells at, so the
       // shell reads as the family norm and only genuine outliers show OVERRIDE.

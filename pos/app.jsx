@@ -154,11 +154,18 @@ const POS_SCREEN_LABELS = {
   'identity-binding': 'Identity & binding', merch: 'Merch',
   settings: 'Settings' };
 
-// Kept in sync with window.HW.STATS.associate (pos/data.jsx) and
-// wmdemo/associates.py's roster row 'manisha-saini' — the same logged-in
-// person, one identity, three places it has to agree.
-const USER = { name: 'Manisha Saini', role: 'Floor Manager',
-  id: 'manisha-saini', storeId: 'elsinore' };
+// Derived from window.HW.STATS.associate (pos/data.jsx), not a second hand-typed
+// copy of it — this file loads after data.jsx (see 'Hyperwolf POS.html' script
+// order), so the object below and STATS.associate can no longer drift apart the
+// way two independently-maintained copies of "the logged-in person" did. Both
+// objects stay: shell.jsx's TopBar reads the `user` prop built from this one;
+// screen-aov.jsx and others read window.HW.STATS.associate directly for the
+// extra fields (aov, goal, ...) this shape doesn't carry. Still the same person
+// as wmdemo/associates.py's roster row 'manisha-saini'. The literal is only the
+// fallback for the case data.jsx has not run yet.
+const _assoc = (window.HW && window.HW.STATS && window.HW.STATS.associate) || {};
+const USER = { name: _assoc.name || 'Manisha Saini', role: _assoc.role || 'Floor Manager',
+  id: _assoc.id || 'manisha-saini', storeId: _assoc.storeId || 'elsinore' };
 
 function App() {
   const P = useP();

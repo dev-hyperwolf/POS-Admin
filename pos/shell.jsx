@@ -112,7 +112,7 @@ window.TopBar = function TopBar({ user, onMode, mode }) {
   const P = useP();
   const S = window.HW.STATS;const a = S.associate;
   const m0 = window.HW.fmt.money0;
-  const k = (n) => '$' + (n >= 1000 ? (n / 1000).toFixed(1) + 'k' : Math.round(n));
+  const k = window.HW.fmt.moneyK;
   const [hv, setHv] = React.useState(() => {try {const v = localStorage.getItem('hw-pos-hv');return ['cards', 'split', 'ticker'].includes(v) ? v : 'cards';} catch {return 'cards';}});
   React.useEffect(() => {try {localStorage.setItem('hw-pos-hv', hv);} catch {}}, [hv]);
 

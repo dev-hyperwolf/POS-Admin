@@ -10,7 +10,10 @@ const SALES_HELD = [
   { id: 'T-4820', name: 'Walk-in', phone: '', email: '', items: 1, total: 15.00, at: '18 min ago', by: 'Priya Nair' }];
 
 // Dates are ISO so the range filters are a plain comparison. `NOW` is pinned so
-// the demo reads consistently: Aug 1 2026.
+// the demo reads consistently: Aug 1 2026. DEMO PIN, not a bug and not a call
+// to Date.now() waiting to be made — the fixture data above (SALES_DONE) is
+// itself dated around this moment, so a real "now" would make "7 days" drift
+// out of sync with the rows it is supposed to be filtering.
 const SALES_NOW = new Date('2026-08-01T19:40:00');
 const SALES_DONE = [
   { id: '#2041', name: 'Harshil Gupta', phone: '(951) 555-0142', email: 'harshil@yopmail.com', items: 2, total: 62.40, date: '2026-08-01', time: '7:37 PM', by: 'Manisha Saini', tender: 'Card' },
@@ -42,15 +45,16 @@ const SALES_LINES = {
   '#1994': [['Papa\u2019s Herb Cart', 1, 32.00], ['Blueberry Pancakes', 1, 17.00]],
   '#1961': [['Neutron Cookies', 2, 124.00], ['Lunar Drift Indica', 1, 40.00], ['Doubleshot', 2, 40.00]] };
 
-// Same order the register uses: local cannabis → state excise → state sales.
-const SALES_TAX = [['Local cannabis tax (2.22%)', 0.0222], ['State excise tax (15%)', 0.15], ['State sales tax (6%)', 0.06]];
-const SALES_TAX_RATE = SALES_TAX.reduce((a, t) => a + t[1], 0);
 // The list total and the receipt total must be the same number, so both are
-// derived from the line items rather than stored separately.
+// derived from the line items rather than stored separately. Tax comes from
+// window.HW.taxBreakdown (pos/data.jsx's TAX_RATES) — this file used to keep
+// its own copy of the same three rates (local cannabis / state excise / state
+// sales) and re-derive the combined rate by hand.
 function saleTotal(s) {
   const lines = SALES_LINES[s.id];
   if (!lines) return s.total;
-  return +(lines.reduce((a, l) => a + l[2], 0) * (1 + SALES_TAX_RATE)).toFixed(2);
+  const sub = lines.reduce((a, l) => a + l[2], 0);
+  return +(sub + window.HW.taxBreakdown(sub).total).toFixed(2);
 }
 // Same reason as saleTotal: the count on the row is what staff read before
 // opening the receipt, so it has to come from the lines, not a stored literal.
@@ -110,12 +114,12 @@ function SaleDetail({ s, onClose, onFlash }) {
   const [ret, setRet] = React.useState({});
   const [reason, setReason] = React.useState('');
   const sub = lines.reduce((a, l) => a + l[2], 0);
-  const taxes = SALES_TAX.map(([label, rate]) => [label, +(sub * rate).toFixed(2)]);
+  const taxes = window.HW.taxBreakdown(sub).lines.map((l) => [l.k, l.v]);
   const total = +(sub + taxes.reduce((a, t) => a + t[1], 0)).toFixed(2);
   const retQty = (i) => ret[i] || 0;
   const setQ = (i, q) => setRet((r) => ({ ...r, [i]: Math.max(0, Math.min(lines[i][1], q)) }));
   const retSub = lines.reduce((a, l, i) => a + l[2] / l[1] * retQty(i), 0);
-  const retTotal = +(retSub * (1 + SALES_TAX.reduce((a, t) => a + t[1], 0))).toFixed(2);
+  const retTotal = +(retSub + window.HW.taxBreakdown(retSub).total).toFixed(2);
   const anyRet = Object.keys(ret).some((k) => ret[k] > 0);
   const REASONS = ['Defective product', 'Wrong item', 'Customer changed mind', 'Damaged packaging', 'Other'];
   const rowStyle = { display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: P.ink2 };

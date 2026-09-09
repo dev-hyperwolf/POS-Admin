@@ -100,7 +100,15 @@
 
   function fmtTs(ts) {
     if (ts == null) { return '—'; }
-    try { return new Date(ts * 1000).toLocaleString(); } catch (e) { return String(ts); }
+    // Display only — never stored or compared — but routed through the one
+    // contract epoch helper instead of an ad hoc `* 1000` (isoFromEpoch treats
+    // anything under 1e11 as seconds, same rule every other epoch site in the
+    // estate uses).
+    try {
+      const K = window.HWContracts;
+      const d = (K && typeof ts === 'number') ? new Date(K.isoFromEpoch(ts)) : new Date(ts * 1000);
+      return d.toLocaleString();
+    } catch (e) { return String(ts); }
   }
 
   const VERDICT_TONE = {
