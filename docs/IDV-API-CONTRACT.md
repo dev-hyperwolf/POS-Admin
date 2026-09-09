@@ -464,3 +464,114 @@ Headers `X-Signature-V2` (hex HMAC-SHA256 over canonical JSON: floats shortened 
   contract; neither exists yet. Note also that `wmdemo/idv_api.py:1631` passes the raw callback
   `body` to `evaluate()` while this contract nests the nodes under `body.decision` — so
   `medical_recommendations`, like every other node, is only read if that mismatch is resolved.
+- 2026-09-08 (backend consolidation, `wmdemo/idv_api.py` + `wmdemo/idv_store.py`, written while
+  reading this file's own addenda against the code):
+
+  **A. The engine callback envelope.** The callback body nests its nodes under `decision`, and
+  `idv_rules.evaluate()` reads them off the TOP LEVEL of its `engine` argument. The backend now
+  flattens one into the other — `engine = dict(body); engine.update(body["decision"])` — so the
+  rules see `id_verifications`, `liveness_checks`, `face_matches`, `face_searches`,
+  `age_estimations`, `ip_analyses`, `crosschecks` **and** `medical_recommendations` alongside the
+  envelope's own `proposed_status`/`reasons`. Storage still reads `body["decision"]` verbatim, so
+  what is stored is byte-comparable with Didit's. This is the mismatch the previous addendum
+  flagged at `idv_api.py:1631`; it is resolved, and it was not only the medical node that was
+  invisible — every node array read empty.
+
+  **B. The callback is transition-checked.** Before applying, the receiver asks
+  `can_transition(current, proposed, "engine")`. A callback that would move a session which has
+  since been decided (`Approved`, `Declined`) or closed (`Abandoned`, `Expired`) is **stored as an
+  event of type `callback.ignored`** and answered `200 { "received": true, "applied": false,
+  "reason": "<the refusal sentence>" }`. `reason` is new on this response and is present only on
+  an ignored callback. A callback whose proposed status EQUALS the current one is applied as
+  before (it is a re-evaluation, not a move). An analyst verdict is never overwritten by a job
+  that was queued before it.
+
+  **C. `idv_sessions.attempts` (JSON) and `idv_media.client_metrics` / `challenge_id`.** Three
+  columns added by `ALTER TABLE … ADD COLUMN` in `ensure_schema` (guarded by `PRAGMA table_info`;
+  `CREATE TABLE IF NOT EXISTS` does nothing to a table that already exists).
+  - `attempts` is `{step: n}` over `document_front | document_back | medical_rec | selfie |
+    challenge`, and is what `idv_rules._attempts_for` reads. It counts the capture that ANSWERS an
+    `Awaiting User` for that step, never the first capture of a step — so `guidance.attempt` reads
+    1 on the first judgement and reaches `max` on the last, and `LIVENESS_FAILED_3X` and the
+    medical exhaustion path are reachable at all. `liveness_attempts` and `resubmissions` are kept
+    in step with it and are never moved downwards, including by an engine node reporting the
+    attempts inside ONE job.
+  - `client_metrics` and `challenge_id` are persisted from the `POST /capture/{token}/media`
+    multipart form. `Media` therefore gains **`challenge_id`** (string or null) and
+    **`client_metrics`** (object or null), and the engine job body's `media[]` entries gain the
+    same two fields alongside `id`, `kind`, `url`, `sha256`. The engine cannot re-derive either.
+
+  **D. `expires_at` is enforced at the capture-token lookup.** `idv_store.parse_iso` used
+  `time.mktime(...) - time.timezone`, which reads the struct as local time and applies the host's
+  DST rule while `time.timezone` is the standard-time offset only: every timestamp inside DST
+  parsed an hour early on this host. It is now `calendar.timegm`. Every
+  `/api/idv/capture/{token}/*` route answers **`410 { "error": "This link has expired — ask for a
+  new one." }`** once `expires_at` has passed, rather than waiting for the sweeper's next pass.
+  The sweeper is unchanged.
+
+  **E. `POST /api/idv/capture/{token}/abandon` is a no-op unless the session is untouched.** The
+  beacon fires on any page-hide (rotation, the photo picker, a backgrounded tab), so it may only
+  act on a session whose status is `Not Started` or `In Progress` **and** which has zero media
+  rows. Response gains **`applied`** (boolean) and, when false, **`reason`**: `200 { "status":
+  "<unchanged>", "applied": false, "reason": "…" }`; a real abandon answers `200 { "status":
+  "Abandoned", "applied": true }`. `POST …/media` may lift `Abandoned` back to `In Progress`, and
+  only because the token is still inside its TTL (D).
+
+  **F. Reasons are de-duplicated, order-preserving**, on the session row, in `SessionSummary`
+  and in `/capture/{token}/status`.
+
+  **G. `In Review` is not writable.** `PATCH /api/idv/sessions/{id}/update-status` and
+  `PATCH /v3/session/{id}/update-status/` accept `Approved | Declined | Resubmitted`. `In Review`
+  is still PARSED, and refused with **409** carrying the r3 ruling, so the answer reads as a state
+  conflict rather than a typo; the refusal is checked AFTER the role gate, so a viewer still gets
+  403. Transitions OUT of `In Review` are unchanged for imported Didit rows. `enqueue_review` is
+  gone from the callback path entirely: the review queue holds imported `In Review` rows and
+  nothing else.
+
+  **H. `POST /api/idv/media` (analyst+), new.** Multipart `kind` ∈ `face_list | medical_rec |
+  document_front | document_back | selfie`, `file`, optional `session_id` → `201 { "media": Media
+  & { "session_id": "…" | null } }`. Same magic-byte admission as the capture route (413/415).
+  A row with no session is owned by the sentinel session id `"console"`, because the column is NOT
+  NULL and a media row with no owner is an orphan the purge can never find.
+  `POST /api/idv/lists/{id}/entries` already accepted `media_id`; it now answers **404** when that
+  id resolves to nothing, instead of creating a face-list entry that matches nobody.
+
+  **I. `GET /api/idv/capture/{token}/state`** gains `session_id`, `session_number`, and
+  `workflow.age_rule` / `workflow.manual_fallback_when_engine_down`. `steps[]` includes
+  `medical_rec` between `document_back` and `selfie` when the r3 §B rules put it in play, carrying
+  `optional: true` only for the 18–20 offer. The guest's age is read from the latest decision's
+  DOB and then from `expected_details.date_of_birth`; when neither is known the step is not
+  offered, which is the strict direction — the offer arrives once the card has been read.
+  `medical_rec` is admitted by `POST …/media` with the document kinds' purpose
+  (`verification_fraud`) and retention (`until_customer_deleted`), and every media row including
+  it is listed in the engine job.
+
+  **J. `idv_version` on every read.** Added to `/lists`, `/lists/{id}/entries`, `/team`,
+  `/retention`, `/deletion-requests`, `/questionnaires[/{id}]`, `/customization`, `/import/runs`
+  and `/import/runs/{id}`. **`GET /api/idv/workflows/{id}/versions` therefore changes shape** from
+  a bare array to `{ "idv_version", "rows": [ … ] }` — a bare array has nowhere to put the counter
+  the console polls.
+
+  **K. `SessionSummary` gains `imported_at` and `scores`.** `imported_at` is the `received_at` of
+  the session's own import event (never `created_at`, which is Didit's creation time and often a
+  year older) and is `null` for a native session. `scores` is
+  `{ "liveness", "face_match", "doc_quality" }`, read from the decision's own denormalised columns
+  so the row and the record cannot disagree; each member is `null` when there is no decision yet.
+
+  **L. Already true, now written down.** `GET /api/idv/sessions/{id}` returns `consents: [{ kind,
+  accepted_at }]` at the top level alongside `session`, `decision`, `media`, `person`,
+  `similar_faces` and `queue`; `session` carries `guidance` (object or null) and `next_step`
+  (string or null).
+
+  **M. `/api/idv/usage` `imported` is an ARRAY** of `{ feature, n, note }`, `[]` until an import
+  writes the counts (`idv_store.set_imported_usage`, stored in `idv_kv`). The single-object shape
+  could only ever carry one feature and shipped as `{"feature": null, "n": 0}`, which the Usage
+  screen renders as a feature called "null".
+
+  **Not done by this pass, and not silently assumed.** The engine still has no
+  `POST /engine/v1/medical/analyze`, so a `medical_recommendations` node is accepted and evaluated
+  but nothing produces one yet; the capture PAGE (`idv/capture.jsx`) does not render the
+  `medical_rec` step or send `client_metrics` — the backend accepts both and the page is a
+  separate file this pass did not touch. `wmdemo/server.py`'s PUBLIC-mode write gate still refuses
+  the engine callback and the capture API (the known deployment gap recorded above) — unchanged,
+  and still one line for the owner.
