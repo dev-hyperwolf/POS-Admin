@@ -312,6 +312,13 @@
   function probeWrites() { return post(PROBE_PATH, {}).then(function () { return _writes; }); }
 
 
+  // The one live-feed state vocabulary. hw-live.js loads first on every page
+  // that has one of these seams, so this is the single declaration —
+  // hw-live-history.js and hw-live-mapping.js each used to restate this list
+  // in a comment beside their own `_status` variable; both now point back here
+  // instead of carrying their own copy of the values.
+  W.HW_LIVE_STATES = ['off', 'pending', 'slow', 'live', 'unreachable', 'no-write-path'];
+
   // ── state ────────────────────────────────────────────────────────────────
   var _hw = undefined;        // the object pos/data.jsx assigns to window.HW
   var _payload = null;        // parsed /api/state, or null
@@ -319,7 +326,7 @@
   var _applied = false;
   var _root = null, _rootEl = null;
   var _report = null;
-  var _status = armed ? 'pending' : 'off';
+  var _status = armed ? 'pending' : 'off';   // one of window.HW_LIVE_STATES
   var _catHue = {};           // snapshotted from the mock rows, see hueFor()
   var _t0 = 0;
 
@@ -404,9 +411,18 @@
 
   function driverLabel(id) { return titleCase(String(id).replace(/^driver-/, '')); }
 
+  // The core of every "how long ago" computation in this seam family: whole
+  // seconds since an epoch-SECONDS timestamp, never negative. hw-live-mapping.js
+  // and hw-live-taxonomy.js each carried their own copy of this exact line in
+  // their own `ago()`; this is the one, exposed as window.HW_LIVE.ageS so a
+  // sibling reads it instead of recomputing it.
+  function ageS(epochSeconds) {
+    return Math.max(0, Math.floor(Date.now() / 1000 - epochSeconds));
+  }
+
   function ago(epochSeconds) {
     if (!epochSeconds) { return 'never'; }
-    var s = Math.max(0, Math.floor(Date.now() / 1000 - epochSeconds));
+    var s = ageS(epochSeconds);
     if (s < 60) { return 'just now'; }
     if (s < 3600) { return Math.floor(s / 60) + 'm ago'; }
     if (s < 86400) { return Math.floor(s / 3600) + 'h ago'; }
@@ -419,7 +435,7 @@
   // parseInt still sees a number >= 2 and the card still marks it aging.
   function ageLabel(epochSeconds) {
     if (!epochSeconds) { return '—'; }
-    var s = Math.max(0, Math.floor(Date.now() / 1000 - epochSeconds));
+    var s = ageS(epochSeconds);
     if (s < 172800) { return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm'; }
     return Math.floor(s / 86400) + 'd ' + Math.floor((s % 86400) / 3600) + 'h';
   }
@@ -1885,6 +1901,9 @@
     // The shared per-sku read path (GET /api/product/<sku> and friends) --
     // same one-seam reasoning as post(), for reads.
     get: get,
+    // The one age-since-epoch computation (see ageS above) -- siblings read
+    // this instead of keeping their own copy of the same line.
+    ageS: ageS,
     get writes() { return _writes; },
     hasToken: function () { return !!_token; },
     // Takes the token, stores it, re-probes. Returns the new write state --

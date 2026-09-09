@@ -138,7 +138,7 @@
   var armed = !disabled;
 
   // ── state ────────────────────────────────────────────────────────────────
-  var _status = armed ? 'pending' : 'off';  // off|pending|slow|live|unreachable
+  var _status = armed ? 'pending' : 'off';  // one of window.HW_LIVE_STATES (shared/hw-live.js)
   var _routeReason = null;
   var _hist = {};       // cacheKey -> the route's payload, verbatim
   var _err = {};        // cacheKey -> { kind, code, message } — why THIS one failed

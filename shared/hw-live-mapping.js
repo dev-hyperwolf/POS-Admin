@@ -260,7 +260,7 @@
   var armed = !disabled;
 
   // ── state ────────────────────────────────────────────────────────────────
-  var _status = armed ? 'pending' : 'off';   // off|pending|slow|live|unreachable|no-write-path
+  var _status = armed ? 'pending' : 'off';   // one of window.HW_LIVE_STATES (shared/hw-live.js)
   var _bulk = null, _bulkErr = null;         // POST /api/mapping/bulk
   var _menuBySku = null, _stateErr = null;   // GET  /api/state  -> menu + events
   var _verdicts = null, _evHorizon = null, _evCount = 0;
@@ -294,9 +294,14 @@
     });
   }
 
+  // The seconds-since-epoch line lives once now, in shared/hw-live.js (which
+  // loads first) as window.HW_LIVE.ageS -- fall back to the original
+  // computation on a page where hw-live.js is not loaded.
   function ago(sec) {
     if (!sec) { return 'never'; }
-    var s = Math.max(0, Math.floor(Date.now() / 1000 - sec));
+    var s = (W.HW_LIVE && typeof W.HW_LIVE.ageS === 'function')
+      ? W.HW_LIVE.ageS(sec)
+      : Math.max(0, Math.floor(Date.now() / 1000 - sec));
     if (s < 60) { return 'just now'; }
     if (s < 3600) { return Math.floor(s / 60) + 'm ago'; }
     if (s < 86400) { return Math.floor(s / 3600) + 'h ago'; }

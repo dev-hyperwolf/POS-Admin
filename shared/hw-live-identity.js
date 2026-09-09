@@ -384,8 +384,17 @@
     return (v === null || v === undefined || v === '') ? (word || 'none on file') : String(v);
   }
 
+  // contracts/index.js's isoFromEpoch() when it has loaded -- real ISO-8601,
+  // not this file's own pseudo-ISO 'YYYY-MM-DD HH:MMZ'. Checked first: every
+  // call site (below) only ever puts the result on screen through esc()/kv(),
+  // never parses it back, so there is nothing here that depends on the old
+  // shape. Falls back to the original computation when contracts has not
+  // loaded, or if a value it does not accept slips through.
   function ts(sec) {
     if (!sec) { return null; }
+    if (W.HWContracts && typeof W.HWContracts.isoFromEpoch === 'function') {
+      try { return W.HWContracts.isoFromEpoch(sec); } catch (e) {}
+    }
     try { return new Date(sec * 1000).toISOString().replace('T', ' ').slice(0, 16) + 'Z'; }
     catch (e) { return String(sec); }
   }
