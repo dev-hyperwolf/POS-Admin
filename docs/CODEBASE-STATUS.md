@@ -5,6 +5,19 @@ read-only for this work by the owner's decision**: findings go to the developer 
 `codebase-audit/TEAM-TODO.md`, and nothing under `/Users/jt/hyper-tech` has been modified.
 Nothing has been pushed anywhere; both our repos auto-deploy on push and the owner pushes.
 
+## Modules on the contract — status (2026-09-09, late)
+
+| Module | State | Evidence |
+|---|---|---|
+| Bounty | enum lists and the manager gate read the contract (client and server apply the same role rule); the demo register posts a contract Order to `/api/contracts/orders` with tender method and customer name, falling back to `/api/pos/sale` only when the server lacks the route | `incentives_routes_probe` 189, `contracts_probe` 42, `incentives_contests_probe` 35; live on 8801 |
+| Verify | statuses/reasons/roles from the contract with literal fallbacks; contract event envelope beside the legacy webhook body; contract error codes beside `/v2`/`/v3` sentences; signer unchanged by decision (engine channel keeps its own canonicalisation until 0.3.0) | done in JT's Verify session: `idv_api_probe` 155, `idv_rules_probe` 338, live on 8793 |
+| Promotions Suite (`promo/`, `pweb/`) | Platform ids, one promotion status vocabulary (`live` → `active`), one discount-kind list, Weedmaps ids as `external_ids`; the promo↔draft bridge no longer collapses status (a real bug) | 34 JS tests incl. `promo-builder-native-offer-roundtrip`; live on 8802 |
+| wm-demo backend | one dollars↔cents boundary (`pricing.py`), `order_lines`/`engine` route through it; fulfillment stages, check-in states, txn types and promo relations are local literals checked against the contract (never crash boot) | `contract_vocab_probe` 13, `fulfillment_probe` 27, `cycle1/2`, `pricing_probe` |
+| POS, shared, shop, athome, pipeline, delivery, logistics, driver, terminals, engage | inventoried, not started | `docs/codebase-audit/MODULE-CONTRACT-GAPS.md` (waves 3–6) |
+
+Contract is 0.2.1 (45 enums). Queued for 0.3.0: `DiscountKind` (percent|dollar|bogo|bundle|gift|tiered|points), the engine channel's move to the contract preimage.
+Three refuter lenses ran over the eleven wave commits: 1 blocker (Publish crash) and 8 warnings, all fixed the same evening; the only surviving caveat is that the register's demo order ids come from a pool of 40 values, so a colliding demo id is swallowed as a replay — a demo limit, not a contract defect.
+
 ## Phase 3 — compatibility (done, committed, not pushed)
 
 **What shipped**
