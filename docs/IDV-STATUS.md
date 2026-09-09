@@ -151,10 +151,25 @@ The dev database holds the real imported Didit history; keep it local.
 ## Verification summary (final run, scratch databases)
 | Suite | Checks |
 |---|---|
-| `qa/idv_rules_probe.py` | 397 / 397 |
-| `qa/idv_store_probe.py` | 72 / 72 |
-| `qa/idv_api_probe.py` | 155 / 155 |
+| `qa/idv_rules_probe.py` | 413 / 413 |
+| `qa/idv_store_probe.py` | 77 / 77 |
+| `qa/idv_api_probe.py` | 181 / 181 |
 | `qa/idv_import_probe.py` | 78 / 78 |
-| `idv-engine` pytest | 322 passed, 2 skipped |
+| `idv-engine` pytest | 342 passed, 2 skipped |
 | `test/global-collisions.test.mjs` | green (16 pages) |
-| **Total probe checks** | **702 + 322 engine tests** |
+| **Total probe checks** | **749 + 342 engine tests** |
+
+## Pushed to production — 2026-09-09 evening
+Pushed `POS-Admin` (`4a5c32c`) then `wm-demo` (`da547c2`) to `origin/main`; both pushes also carried
+other sessions' contracts/engage/incentives commits. Included since the last status: console PIN gate
+(r4), workflow version pinned per session, liveness clip fingerprints (`known_clips`), similar-faces
+PII analyst-only, 409 on uploads after a verdict, hosted-link 503 + Host fallback, tombstone-free
+`sessions_count` (r5), tamper gate on the recogniser's own `ocr_confidence` / `ocr_field_confidence`
+with field provenance and DAC+DAD given-name matching (r6). Render env still to be set by the owner:
+`IDV_CONSOLE_PIN`, `IDV_ENGINE_URL`, `IDV_ENGINE_SECRET`, `IDV_PUBLIC_BASE`.
+
+Open after this push (documented in the r5/r6 addenda): the importer writes Didit's
+`workflow_version` onto Verify workflow ids; resubmit links on Declined sessions dead-end with an
+honest 409; person ids still appear in the AMBIGUOUS warning and `person.resolved` audit detail;
+the engine surface ranker still prefers session 9's 51-line nav-screen frame (now yields nothing
+instead of a wrong name); `_read_dob` has no shape guard for a non-dict barcode.
