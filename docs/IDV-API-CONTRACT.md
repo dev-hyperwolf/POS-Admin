@@ -1178,3 +1178,68 @@ plus six tests in `tests/test_liveness_ip.py` rewritten onto the measured yaw si
 asserted the module's convention against itself). `qa/idv_rules_probe.py` 313 → **321**
 (`IDV-A10`, `IDV-A10b..A10i`); `qa/idv_api_probe.py` 122 → **135** (`AP-120..AP-132` — the watchdog, and the challenge retake loop driven through the real capture and callback routes; `AP-74` was also corrected, having asserted a third retake that `idv_rules` does not give);
 `qa/idv_store_probe.py` **64** and `qa/idv_import_probe.py` **78** untouched and both still green.
+
+### G. §E closed on wm-demo's side: `valid_for_s` persisted, `answered_at` wired to the media's server upload time — but the engine does not read it yet
+
+**wm-demo (`wmdemo/idv_store.py`, `wmdemo/idv_api.py`), 2026-09-09.** §E above described the gap
+and deliberately left it inert. This closes wm-demo's half of it:
+
+* **`POST /api/idv/capture/{token}/challenge`** now persists `valid_for_s` on the session's
+  `challenge` alongside `id`/`nonce`/`script`/`issued_at` (module constant
+  `idv_api.CHALLENGE_VALID_FOR_S = 90`, used for both the browser response and the persisted value,
+  so the two cannot drift). Previously only the browser saw it.
+* **`idv_media` gains `uploaded_at`** (guarded `ALTER TABLE`, additive, existing rows read back
+  `NULL`): the server clock at the instant `insert_media` writes the row. It is **not** a function
+  parameter — nothing can hand it a client-supplied or backdated value, unlike `captured_at`, which
+  takes an optional `captured_at=` argument that happens to be unused today but is not guaranteed to
+  stay that way.
+* **The engine job body's `challenge` block now carries six fields**, not five:
+  ```jsonc
+  "challenge": {
+    "id": "ch_…", "nonce": "…", "script": [ … ],
+    "issued_at": "2026-09-09T07:20:27Z",
+    "valid_for_s": 90,
+    "answered_at": "2026-09-09T07:20:41Z"   // NEW — see below
+  }
+  ```
+  `answered_at` is the `liveness_video` media row's `uploaded_at` for *this job's* media set — the
+  server-stamped moment the clip that answers the challenge reached wm-demo, not the moment the
+  engine's worker gets around to looking at it. A session with **no** challenge still sends
+  `"challenge": null`, exactly as before (`prepare_engine_job` in `wmdemo/idv_api.py`).
+
+**The exact field name the engine reads is `received_at`, not `challenge.answered_at` — read, not
+edited, per instruction.** `idv-engine/pipeline/liveness.py:analyze()` takes `received_at` as its
+own keyword argument, separate from the `challenge` dict entirely, and falls back to `time.time()`
+— wall clock at the moment `analyze()` runs — when it is `None`:
+
+```python
+now = received_at if received_at is not None else time.time()
+...
+elapsed = now - issued.timestamp()
+window_ok = bool(0 <= elapsed <= valid_for) if valid_for > 0 else None
+```
+
+`idv-engine/app.py:run_pipeline()` calls `live_mod.analyze(frames=frames, challenge=challenge,
+method=…, media_ids=…, attempts=…, video_meta=vmeta)` — it **never passes `received_at`**, so
+`window_ok` is, today, always measured against whenever the worker happened to dequeue the job. A
+repo-wide search of `idv-engine` for `answered_at` returns zero matches; the engine has no code path
+that reads it under any name.
+
+**So §E is only half closed.** wm-demo now hands the engine the field the fix needs
+(`challenge.answered_at`), and the contract now documents it, but nothing in `idv-engine` consumes
+it — `run_pipeline` would need to read `body["challenge"]["answered_at"]` and pass it as
+`received_at` to `analyze()` (or `analyze()` would need to prefer `challenge.get("answered_at")`
+over its own `received_at` argument when both are present) before `window_ok` actually reflects
+upload time instead of dequeue time. Until that engine-side change lands, a busy queue can still
+produce a spurious `window_ok: false` exactly as §E described — the wm-demo half removes the
+*silent* half of the gap (the field now exists and is correct), not the behavior itself. This is
+deliberately **not** made in this pass: the instruction that produced this addendum was explicit
+that `idv-engine/pipeline/liveness.py` is read-only here.
+
+*Coverage:* `qa/idv_api_probe.py` 135 → **137** (`AP-133`: `valid_for_s` persisted and all six
+challenge fields reach the job body, `answered_at` equal to the `liveness_video` row's
+`uploaded_at`; `AP-134`: no challenge still sends `challenge: null`). `qa/idv_store_probe.py`
+**64**, untouched and still green — the new `idv_media.uploaded_at` column is additive and no
+existing read depends on its absence. Both standalone runs passed on this tree: 137/137, 64/64.
+`qa/battery.py`'s `EXPECTED_CHECKS["idv_api_probe"]` raised 135 → 137 and `TOTAL_CHECK_FLOOR` raised
+2142 → 2144 to match, each with the justification inline as a comment at the point of change.
