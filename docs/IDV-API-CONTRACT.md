@@ -1601,3 +1601,127 @@ restoring the hard-coded three-prompt script fails `AP-140`; unwiring the migrat
 Standalone runs on this tree: **338/338**, **145/145**, **64/64**, **78/78**.
 `qa/battery.py`'s `EXPECTED_CHECKS` raised for both suites and `TOTAL_CHECK_FLOOR` 2189 → **2202**,
 each with the arithmetic and its justification inline at the point of change.
+
+## Addendum — 2026-09-09: a session belongs to somebody, whatever the verdict
+
+Measured on the owner's own phone (read-only copy taken 2026-09-09). Seven sessions, **ten face
+templates, zero rows in `idv_people`**, every `face_searches[].matches` empty, "Similar faces"
+reading 0 on all seven, and a customer file that could not group his own attempts.
+
+One condition caused all of it. `_link_person` was called only under `if new_status == "Approved"`,
+and none of his seven sessions passed. With no person row:
+
+* every template enrolled with `person_id NULL`, so a 1:N match had nothing to resolve to;
+* `idv_rules._duplicate_block` skips any match carrying no `person_id`, so `DUPLICATE_PERSON` was
+  unreachable **by construction**;
+* the customer file had nothing to group six attempts under.
+
+The whole 1:N feature answered *"no hit"* in exactly the shape of a working one, which is why a
+green probe suite never saw it. Everything below supersedes the older text rather than editing it.
+
+### A. A person is resolved on EVERY engine decision
+
+`POST /api/idv/webhooks/engine` resolves an identity **before the rules run**, on every applied
+callback — Declined, Awaiting User and Abandoned included. The resolution order, strongest key
+first (`idv_store.resolve_person_for_session`):
+
+| # | key | rule |
+|---|---|---|
+| a | `document_number_hash` | the PDF417 barcode's issuer + number (`verify.doc_hash`). The same card scanned tomorrow hashes the same and nobody can mistype it. Looked up on `idv_documents` first, then on `idv_decisions` joined through the session. |
+| b | `vendor_data` | the site told us who it thinks this is. |
+| c | face 1:N | any `face_searches[].matches` entry at or above the workflow's `face_search_min` whose template belongs to a person. Highest similarity first; the template's own `person_id`, else its **session's** person. |
+| d | `identity_match` | surname + DOB from the barcode, through `wmdemo/identity_match.py` — its tiers 2 (`name_dob_fp`) and 3 (exact DOB + exact surname + fuzzy given name), with its document veto and its ambiguity refusal. Reused, not restated. |
+| — | else | **create** a person, `status='unverified'`, `vendor_data` from the session (**may be null**), names and DOB from the barcode when it decoded. |
+
+The session, **its face templates and its documents** are all pointed at the resolved person in one
+step (`link_session_person`); templates and documents are claimed only where they are unowned, since
+re-pointing a row that already has a person is a merge and merges are an analyst's decision.
+`sessions_count` then counts **every** session of that person, whatever its status.
+
+Ordering is load-bearing: resolution runs **before** `idv_rules.evaluate`, because the duplicate
+block skips a match whose `person_id` equals the session's own. Resolved afterwards, a returning
+guest's second attempt would flag *himself* as a possible duplicate.
+
+Resolution runs in **its own transaction**, before the transition guard. A person is a fact about a
+guest, not part of a verdict, and must not be rolled back by a late callback whose status change is
+refused. A **replayed** callback (duplicate `event_id`) still writes nothing at all: the replay check
+runs first.
+
+### B. Two documents are never merged automatically
+
+Rules (c) and (d) both **refuse to cross a licence number**. If a candidate person's documents are
+known and this session's `document_number_hash` is not among them, the candidate is **dropped** and a
+warning is written to the decision:
+
+```json
+{"risk": "POSSIBLE_DUPLICATED_USER", "log_type": "warning",
+ "short_description": "A face on this session matched person p_… at 96.8, but that person's
+                       document is a different licence number. …"}
+```
+
+The session gets its **own** person, and the flagged person's `GET /api/idv/people/{id}` carries a
+`duplicates[]` row naming the other, with the `merge_url` on it. Support merges deliberately; the
+system never does. An automatic merge fuses two verification histories permanently and leaves nothing
+behind saying it happened.
+
+`identity_match` gives (d) the same rule for free (`doc_conflict`), plus one more: when a surname and
+DOB are carried by **two or more** people the verdict is `ambiguous`, no match is taken, a new person
+is created and the same warning is written.
+
+### C. `status` on `idv_people`
+
+`unverified | active | blocked | deleted` — a closed set, validated in `idv_store.update_person` and
+`upsert_person`, and a 400 on both `GET /api/idv/people?status=…` and `PATCH /api/idv/people/{id}`.
+
+* `unverified` — created by resolution; a person we have only ever seen fail, abandon, or still be in
+  progress.
+* `active` — set by `confirm_person_verified` the first time a session of theirs is Approved, which
+  also sets `last_verified_at` and `kyc_expires_at`.
+* `blocked` / `deleted` — **never overwritten by an approval.** An analyst blocked them on purpose;
+  the KYC clock still starts so the console can see the verification happened, and the status stays.
+
+### D. Face searches resolve to a session when they cannot resolve to a person
+
+`_resolve_face_searches` mutates each match in place, before the rules, the stored decision, the
+stored event payload and the outbound webhook all read the same object. A match whose template has
+**no** person now resolves to its session rather than to nothing:
+
+```json
+{"match_type": "session", "person_id": null,
+ "session_id": "…", "session_number": 4,
+ "media_id": "m_…", "media_url": "/api/idv/media/m_…", "similarity": 84.4}
+```
+
+`GET /api/idv/internal/templates` already returns such templates with `person_id: null` and their
+`session_id`, and that is now contractual: dropping them would make the searched population *"people
+we already approved"* — the wrong half, since the guests worth recognising are the ones who keep
+failing.
+
+### E. `similar_faces` on `GET /api/idv/sessions/{id}`
+
+Each row gains `session_number` and a `label`:
+
+| label | when |
+|---|---|
+| the list's name | the match is a face-list entry (`match_type: "list_entry"`) |
+| `earlier attempt` | the match belongs to **this session's own person**, or to no person at all |
+| the person's name | the match belongs to a **different** person — the real duplicate finding |
+
+**The session's own templates are excluded.** A resubmission matches the selfie it uploaded four
+minutes ago at ~99 and that is the same photograph, not a finding; it would head the list on every
+retry. It is still resolved and still stored on the decision — the record of what the engine found is
+not edited — and it is filtered at the panel.
+
+`GET /api/idv/people/{id}` likewise: `sessions[]` is every attempt of that person, `duplicates[]` is
+only ever **other** people whose face matched one of them.
+
+### F. The backfill
+
+`idv_store.relink_people(conn, session_id=None) -> counts` applies §A to sessions that already exist,
+oldest first so the first session to present a licence mints the person and every later one finds it.
+A session with **no engine decision** is `skipped_no_decision`, never linked: rule (a)–(d) resolve on
+a decision, and a `Not Started` session has no document, no face and no name, so a person minted for
+it would be a guest who has never presented anything. Running it twice creates nobody.
+
+Returns `{sessions, skipped_no_decision, already_linked, linked, people_created, templates_linked,
+documents_linked, warnings, by_rule}`.
