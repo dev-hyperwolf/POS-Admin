@@ -34,7 +34,10 @@ const PRODUCTS = [
 ];
 const MEMBER_GROUPS = ['Bronze','Silver','Gold','Platinum','Wolf Pack VIP'];
 const PRODUCT_TYPES = ['Indica','Sativa','Hybrid'];
-const PLATFORMS = ['Hyperwolf','Hemp','Stilo'];
+// Contract Platform enum, lower-case ids (contracts/index.js). Display labels
+// live in one place -- window.PLATFORM_LABEL in promo/pshared.jsx -- never a
+// second title-cased list here.
+const PLATFORMS = window.HWContracts ? window.HWContracts.enumValues('Platform') : ['hyperwolf','hemp','stilo'];
 
 // ── RULE TAXONOMY ───────────────────────────────────────────────────────────
 // entity → group → condition. Every condition carries a `tmpl` (plain-language
@@ -161,41 +164,46 @@ function ruleToPlain(rule){
 }
 
 // ── SAMPLE PROMOTIONS with rich metrics ─────────────────────────────────────
+// Trigger scope lives on `rule.entity` (bogo/user/cart/product, lower-case,
+// same casing family as contract RuleType) -- these rows used to also carry a
+// Title-cased `type` field duplicating that exact value ('BOGO'/'User'/'Cart'/
+// 'Product'), read by nothing. Removed rather than reconciled: a second copy
+// of an enum is exactly what BUILD-AGAINST-THE-SOURCE.md §3 prohibits.
 const spark = (n,base,amp)=> Array.from({length:n},(_,i)=> Math.max(0, base + Math.sin(i/1.7)*amp + (i*amp/n) + (i%3)*amp*0.3));
 const PROMOS = [
-  { id:'p1', name:'Green Wednesday BOGO', code:'GREENWED', platform:'Hyperwolf', type:'BOGO', status:'active', auto:false,
+  { id:'p1', name:'Green Wednesday BOGO', code:'GREENWED', platform:'hyperwolf', status:'active', auto:false,
     publish:'Jul 8, 2026', expiry:'Jul 31, 2026', desc:'Buy any 2 pre-rolls, get 30% off the pair.',
     rule:{ entity:'bogo', group:'bogo_deals', conditions:[{condId:'buy_any_product', values:{x:2, product:[{n:'Gludaz Pre-Roll',p:13},{n:'#lunchbreak Pre-Roll',p:5}]}}], combiner:'AND', reward:{id:'discount_self', values:{pct:30, cap:20}} },
     m:{ redemptions:1842, redemptionRate:34, limit:5000, uses:1842, uniqueCust:1610, revenue:48230, discountCost:12100, aovWith:41.2, aovBase:31.8, newCust:520, returning:1090, repeatRate:38, velocity:132, roi:3.99, margin:41, budget:60, series:spark(24,40,10) } },
-  { id:'p2', name:'First-Timer 20% Off', code:'WELCOME20', platform:'Hyperwolf', type:'User', status:'active', auto:true,
+  { id:'p2', name:'First-Timer 20% Off', code:'WELCOME20', platform:'hyperwolf', status:'active', auto:true,
     publish:'Jun 1, 2026', expiry:'—', desc:'20% off first order for brand-new customers.',
     rule:{ entity:'user', group:'activity', conditions:[{condId:'not_purchased', values:{days:9999}}], combiner:'AND', reward:{id:'discount_self', values:{pct:20, cap:30}} },
     m:{ redemptions:3120, redemptionRate:52, limit:null, uses:3120, uniqueCust:3120, revenue:96540, discountCost:24800, aovWith:34.1, aovBase:0, newCust:3120, returning:0, repeatRate:44, velocity:71, roi:3.89, margin:38, budget:null, series:spark(24,55,14) } },
-  { id:'p3', name:'$50 Spend · Free Pre-Roll', code:'FREEROLL', platform:'Hyperwolf', type:'Cart', status:'active', auto:true,
+  { id:'p3', name:'$50 Spend · Free Pre-Roll', code:'FREEROLL', platform:'hyperwolf', status:'active', auto:true,
     publish:'Jul 1, 2026', expiry:'Aug 1, 2026', desc:'Spend over $50, get a free house pre-roll.',
     rule:{ entity:'cart', group:'total_items', conditions:[{condId:'spend_more', values:{amount:50}}], combiner:'AND', reward:{id:'free_product', values:{product:[{n:'#lunchbreak Pre-Roll',p:5}]}} },
     m:{ redemptions:2405, redemptionRate:41, limit:8000, uses:2405, uniqueCust:2010, revenue:71200, discountCost:12025, aovWith:63.4, aovBase:47.1, newCust:410, returning:1600, repeatRate:51, velocity:98, roi:5.92, margin:47, budget:30, series:spark(24,60,12) } },
-  { id:'p4', name:'Wolf Pack VIP · Double Down', code:'VIPX2', platform:'Hyperwolf', type:'User', status:'active', auto:true,
+  { id:'p4', name:'Wolf Pack VIP · Double Down', code:'VIPX2', platform:'hyperwolf', status:'active', auto:true,
     publish:'May 15, 2026', expiry:'—', desc:'25% off for Wolf Pack VIP members.',
     rule:{ entity:'user', group:'loyalty', conditions:[{condId:'membership_group', values:{group:'Wolf Pack VIP'}}], combiner:'AND', reward:{id:'discount_self', values:{pct:25, cap:60}} },
     m:{ redemptions:940, redemptionRate:68, limit:null, uses:940, uniqueCust:610, revenue:52800, discountCost:11900, aovWith:86.5, aovBase:71.2, newCust:0, returning:610, repeatRate:72, velocity:22, roi:4.44, margin:44, budget:null, series:spark(24,20,5) } },
-  { id:'p5', name:'Winback · 30 Days Away', code:'MISSYOU', platform:'Hyperwolf', type:'User', status:'active', auto:true,
+  { id:'p5', name:'Winback · 30 Days Away', code:'MISSYOU', platform:'hyperwolf', status:'active', auto:true,
     publish:'Jul 5, 2026', expiry:'Aug 5, 2026', desc:'Reactivate customers gone 30+ days with 15% off.',
     rule:{ entity:'user', group:'activity', conditions:[{condId:'not_purchased', values:{days:30}}], combiner:'AND', reward:{id:'discount_self', values:{pct:15, cap:25}} },
     m:{ redemptions:612, redemptionRate:19, limit:4000, uses:612, uniqueCust:612, revenue:19100, discountCost:2860, aovWith:31.2, aovBase:0, newCust:0, returning:612, repeatRate:29, velocity:29, roi:6.68, margin:52, budget:14, series:spark(24,18,6) } },
-  { id:'p6', name:'High-THC Flower Flash', code:'LOUD25', platform:'Hyperwolf', type:'Product', status:'scheduled', auto:true,
+  { id:'p6', name:'High-THC Flower Flash', code:'LOUD25', platform:'hyperwolf', status:'scheduled', auto:true,
     publish:'Jul 20, 2026', expiry:'Jul 22, 2026', desc:'25% off flower testing 25%+ THC, this weekend only.',
     rule:{ entity:'product', group:'type_category', conditions:[{condId:'thc_gte', values:{thc:25}},{condId:'in_category', values:{category:['Flower']}}], combiner:'AND', reward:{id:'discount_self', values:{pct:25, cap:40}} },
     m:{ redemptions:0, redemptionRate:0, limit:2000, uses:0, uniqueCust:0, revenue:0, discountCost:0, aovWith:0, aovBase:0, newCust:0, returning:0, repeatRate:0, velocity:0, roi:0, margin:0, budget:0, series:spark(24,0,0) } },
-  { id:'p7', name:'Senior Appreciation', code:'SENIOR', platform:'Hyperwolf', type:'User', status:'active', auto:true,
+  { id:'p7', name:'Senior Appreciation', code:'SENIOR', platform:'hyperwolf', status:'active', auto:true,
     publish:'Jul 13, 2026', expiry:'—', desc:'10% off for customers 55 and older.',
     rule:{ entity:'user', group:'demographics', conditions:[{condId:'age_range', values:{min:55, max:120}}], combiner:'AND', reward:{id:'discount_self', values:{pct:10, cap:20}} },
     m:{ redemptions:388, redemptionRate:22, limit:null, uses:388, uniqueCust:301, revenue:11400, discountCost:1140, aovWith:38.4, aovBase:34.0, newCust:40, returning:261, repeatRate:47, velocity:12, roi:10.0, margin:58, budget:null, series:spark(24,10,4) } },
-  { id:'p8', name:'Dr. Norm\'s Baked Goods 30%', code:'DRNORM30', platform:'Hyperwolf', type:'Product', status:'paused', auto:true,
+  { id:'p8', name:'Dr. Norm\'s Baked Goods 30%', code:'DRNORM30', platform:'hyperwolf', status:'paused', auto:true,
     publish:'Jul 13, 2026', expiry:'Jul 15, 2026', desc:'30% off Dr. Norm\'s baked goods, up to $50.',
     rule:{ entity:'product', group:'type_category', conditions:[{condId:'belongs_to', values:{category:['Baked Goods'], brand:['Dr. Norm\'s']}}], combiner:'AND', reward:{id:'discount_self', values:{pct:30, cap:50}} },
     m:{ redemptions:274, redemptionRate:28, limit:1000, uses:274, uniqueCust:240, revenue:8200, discountCost:2460, aovWith:44.0, aovBase:39.5, newCust:30, returning:210, repeatRate:33, velocity:18, roi:3.33, margin:40, budget:27, series:spark(24,14,5) } },
-  { id:'p9', name:'Stock up · 3+ Cartridges', code:'CART3', platform:'Hemp', type:'Cart', status:'ended', auto:true,
+  { id:'p9', name:'Stock up · 3+ Cartridges', code:'CART3', platform:'hemp', status:'ended', auto:true,
     publish:'Jun 1, 2026', expiry:'Jun 30, 2026', desc:'Buy 3+ cartridges, save 20%.',
     rule:{ entity:'cart', group:'upsell', conditions:[{condId:'atleast_cat', values:{n:3, category:['Cartridges']}}], combiner:'AND', reward:{id:'discount_self', values:{pct:20, cap:35}} },
     m:{ redemptions:1560, redemptionRate:37, limit:2000, uses:1560, uniqueCust:1290, revenue:58900, discountCost:11780, aovWith:92.0, aovBase:61.0, newCust:180, returning:1110, repeatRate:41, velocity:52, roi:5.00, margin:45, budget:78, series:spark(24,45,9) } },
@@ -279,6 +287,17 @@ const PROMO_WM = {
   p8:{ state:'paused',     wm_id:'wm_promo_809' },
   p9:{ state:'ended',      wm_id:'wm_promo_803' },
 };
+// external_ids on the promo record itself (contracts/index.js externalId()):
+// PROMO_WM[id].wm_id stays as-is -- it's what wmSyncPill/screens already read
+// -- but it is now a DERIVED display field, not the only place the Weedmaps
+// link lives. A promo with no WM push (wm_id null) gets an empty array, never
+// a fabricated id.
+PROMOS.forEach((p) => {
+  const link = PROMO_WM[p.id];
+  p.external_ids = (link && link.wm_id) ?
+  [window.HWContracts ? window.HWContracts.externalId('weedmaps', link.wm_id) : { source: 'weedmaps', id: link.wm_id }] :
+  [];
+});
 // promos that live ONLY on Weedmaps — no internal counterpart controlling them.
 // WM_ONLY_PROMOS WAS DELETED, 2026-08-27. It held two hand-written promos
 // carrying `amount:'$10 off Flower'`, `apply`, `overlap` and
