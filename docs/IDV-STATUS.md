@@ -1,6 +1,6 @@
 # Hyperwolf Verify — build status
 
-Written 2026-09-09 (early morning), for JT. Nothing has been pushed: both repos auto-deploy on
+Updated 2026-09-09 (evening) after a day of live iPhone tests, for JT. First written the same morning. Nothing has been pushed: both repos auto-deploy on
 push and you push. wm-demo's unpushed history was rewritten tonight to drop a 115 MB weights file
 and vendored licensed code (largest object now 1.4 MB); it is safe to push.
 
@@ -45,6 +45,31 @@ and vendored licensed code (largest object now 1.4 MB); it is safe to push.
   `IDV-TERMS-CLAUSE-DRAFT-2026-09-08.md` (for counsel), `IDV-SITE-INTEGRATION.md` (for your devs),
   four concepts in `explorations/`, research and calibration digests in `scratch/idv-*.md`.
 
+## Today's live rounds (2026-09-09) — what real guests taught us
+Eleven real sessions on two iPhones (the owner and a colleague) over a temporary tunnel. Every
+decline of a real person was a Hyperwolf bug, never their ID. In order found and fixed:
+media token sent before commit (engine got 403 on every image) · feature-name vocabulary
+mismatch (every pipeline stage skipped) · template `quality` dict binding error (every callback
+500'd) · rules reading Score objects / null node status · auto-zoom magnifying hand shake ·
+optional 4K record upload blocking the step over a flaky tunnel · MediaPipe download failure with
+a black selfie in the fallback · print OCR (40% confidence garbage) out-voting a decoded barcode ·
+challenge prompts matched on the wrong wire shape + inverted yaw sign · late extras flipping a
+verdict back to "checking" · the portrait finder's size ceiling rejecting a 2400 px licence photo ·
+a 15 fps canvas clip flagged as injected video · OCR run on a squashed frame (0 lines) · the first
+front judged on every retake · exposure measured on the room, not the card.
+Result at close: owner Approved in 32 s (quality 92.9/96.9, barcode 27 fields, liveness 99.98,
+face 76.1); colleague Approved in 21 s (face 72.9 multi-frame; 57.5 single-frame before).
+Capture now: one-checkbox consent; PDF417 decoded on-device from native video on every browser
+(zxing-wasm; floor 1.6 px/module), no buttons on camera screens, blink-only challenge (workflow
+setting), ~200 KB liveness clip, evidence-only uploads block, resume strictly from the server,
+wake lock, Persona-style selfie. Engine now: portrait by detection with a card-relative ceiling,
+OCR on the card region trying every front, newest front judged, exposure on the card, replay
+needs two independent signals, face match over every selfie frame and the clip with mirrored
+templates, every uploaded back tried, blink judged in its own window, callback ladder + redeliver.
+Rules now: the numbers decide (an engine reason is dropped when our own read passes), barcode
+authoritative (print disagreement only counts when confident on DOB/licence number), engine
+outage pauses and re-enqueues, a session belongs to a person from its first decoded barcode.
+
 ## What was verified live (not just by probes)
 - Your own photos replayed through the real routes after the fixes: 3.0 s to a verdict; document
   quality 96.8 / 97.4, passive liveness 97.9, face match 84.3; barcode not decodable from that
@@ -76,8 +101,13 @@ and vendored licensed code (largest object now 1.4 MB); it is safe to push.
   prevention only; the returning-guest face check uses the selfie template under biometric consent.
 
 ## Waiting on you
-1. Push both repos when you want them deployed (wm-demo is safe now; POS-Admin carries 22 MB of
-   MediaPipe assets the hosted page needs).
+1. Push: the owner asked Claude to push both repos on 2026-09-09 after the final refuter pass
+   (wm-demo history is clean; POS-Admin carries 22 MB of MediaPipe + 1 MB zxing assets the hosted
+   page needs).
+1b. For the first feedback round the engine runs from this Mac through a tunnel; set in the Render
+   dashboard: `IDV_ENGINE_URL` (the engine tunnel URL), `IDV_ENGINE_SECRET` (the same value the
+   engine runs with), `IDV_PUBLIC_BASE` (the Render URL), `IDV_MEDIA_DIR=/var/data/idv_media`.
+   Then the proper engine service (Docker, x86-64) replaces the tunnel.
 2. Counsel sign-off on `IDV-TERMS-CLAUSE-DRAFT-2026-09-08.md`, then the production Terms page.
 3. Render: the engine needs its own service (Docker, ~600 MB image, x86-64) with
    `IDV_ENGINE_SECRET`, `IDV_ENGINE_URL`, `IDV_PUBLIC_BASE` set in the dashboard; and a decision on
@@ -121,10 +151,10 @@ The dev database holds the real imported Didit history; keep it local.
 ## Verification summary (final run, scratch databases)
 | Suite | Checks |
 |---|---|
-| `qa/idv_rules_probe.py` | 321 / 321 |
-| `qa/idv_store_probe.py` | 64 / 64 |
-| `qa/idv_api_probe.py` | 137 / 137 |
+| `qa/idv_rules_probe.py` | 397 / 397 |
+| `qa/idv_store_probe.py` | 72 / 72 |
+| `qa/idv_api_probe.py` | 155 / 155 |
 | `qa/idv_import_probe.py` | 78 / 78 |
-| `idv-engine` pytest | 279 passed, 2 skipped |
+| `idv-engine` pytest | 322 passed, 2 skipped |
 | `test/global-collisions.test.mjs` | green (16 pages) |
-| **Total probe checks** | **600 + 279 engine tests** |
+| **Total probe checks** | **702 + 322 engine tests** |
