@@ -70,6 +70,9 @@
 <script type="text/babel" src="shared/app-rail.jsx"></script>
 <script type="text/babel" src="shared/states.jsx"></script>
 <script type="text/babel" src="pos/data.jsx"></script>
+<!-- window.HD.formatCents — the one cents-aware money formatter. mobile/screen-task.jsx
+     uses it wherever it already holds cents, instead of hand-dividing by 100. -->
+<script type="text/babel" src="shared/hd-format.jsx"></script>
 <!-- Demo data seeder: HWSeed.weedmapsOrder() / .product() / .customer() -->
 <script src="shared/demo-seed.js" defer></script>
 <!-- region table: supplies the per-van kit for governed substitution -->

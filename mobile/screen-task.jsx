@@ -75,13 +75,21 @@ function mintRecordId(orderId, lineId) {
  * the session — as an earlier attempt did — and `checkActor` compares a value to
  * itself, `wrong_kit` can never fire, and the guarantee is decorative.
  */
+// shared/commerce-governance.js's own TASK_STATUS map is keyed by the LEGACY
+// hyphenated status strings ('not-started'|'in-progress'|'completed'|'cancelled')
+// and is not something this module owns or may edit. mobile/data.jsx's task.status
+// is now the contract's TaskStatus (underscored) — this is the one adapter at the
+// boundary where the two shapes meet, translating back to what governance still
+// expects without reintroducing the hyphenated form anywhere mobile itself reads.
+const GOVERN_STATUS_LEGACY = { not_started: 'not-started', in_progress: 'in-progress', completed: 'completed', cancelled: 'cancelled' };
 function governedFor(base, items) {
   const G = window.HWGovern;
   if (!G) return { G: null, order: null, actor: null, kit: null };
   const MD = window.MD;
+  const legacyStatus = GOVERN_STATUS_LEGACY[base.status] || base.status;
   return {
     G,
-    order: G.buildOrder(base, { kitId: base.kitId, lines: items }),
+    order: G.buildOrder(legacyStatus === base.status ? base : { ...base, status: legacyStatus }, { kitId: base.kitId, lines: items }),
     actor: G.buildActor({ id: MD.DRIVER.id, name: MD.DRIVER.name, role: 'driver', kitId: G.actorKitId(MD.DRIVER) }),
     kit: base.kitId ? VanLedger.applyTo(G.buildKit(base.kitId)) : null,
   };
@@ -333,7 +341,7 @@ function MGovernedSwapSheet({ base, items, lineIndex, onClose, onCommitted }) {
   const meta = (p, priceCents) => [
     p && p.thc != null ? p.thc + '% THC' : null,
     p && p.wt ? p.wt : null,
-    HW.fmt.money((priceCents != null ? priceCents / 100 : (p ? p.price : 0))),
+    priceCents != null ? window.HD.formatCents(priceCents) : HW.fmt.money(p ? p.price : 0),
   ].filter(Boolean).join(' · ');
 
   /* The current line, with its LANE and QUANTITY — the Figma's `SCHEDULED · ×1`.
@@ -370,7 +378,7 @@ function MGovernedSwapSheet({ base, items, lineIndex, onClose, onCommitted }) {
   if (picked) {
     const cod = base.pay === 'cod';
     const d = picked.settlement.amountCents;
-    const agreedLabel = HW.fmt.money(ctx.order.agreed.totalCents / 100);
+    const agreedLabel = window.HD.formatCents(ctx.order.agreed.totalCents);
     const commit = () => {
       if (committing.current) return;
       committing.current = true;
@@ -405,7 +413,7 @@ function MGovernedSwapSheet({ base, items, lineIndex, onClose, onCommitted }) {
         <div style={{ fontSize: 12, color: P.inkDim, lineHeight: 1.45 }}>{cod
           ? (d === 0
             ? 'Unchanged — still ' + agreedLabel + '. Nothing has been charged yet; this stop is COD.'
-            : HW.fmt.money(Math.abs(d) / 100) + (d > 0 ? ' more' : ' less') + ' than the ' + agreedLabel + ' agreed. Nothing has been charged yet; this stop is COD.')
+            : window.HD.formatCents(Math.abs(d)) + (d > 0 ? ' more' : ' less') + ' than the ' + agreedLabel + ' agreed. Nothing has been charged yet; this stop is COD.')
           : picked.settlement.label}</div>
       </div>
 
@@ -474,7 +482,7 @@ function MGovernedSwapSheet({ base, items, lineIndex, onClose, onCommitted }) {
         const c = row.candidate;
         const p = HW.PRODUCTS.find((x) => x.sku === row.productId) || null;
         const dl = c.priceDeltaCents === 0 ? null
-          : (c.priceDeltaCents < 0 ? '−' : '+') + HW.fmt.money(Math.abs(c.priceDeltaCents) / 100);
+          : (c.priceDeltaCents < 0 ? '−' : '+') + window.HD.formatCents(Math.abs(c.priceDeltaCents));
         return (
           <div key={row.productId + ':' + i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: `1px solid ${P.hairline}` }}>
             <Thumb item={p} size={40} />
@@ -559,7 +567,7 @@ window.TaskScreen = function TaskScreen({ taskId }) {
   const totals = window.MD.cartTotals(items);
   const done = M.isDone(taskId);
   const cod = base.pay === 'cod';
-  const st = window.MD.STATUS[done ? 'completed' : base.status || 'not-started'];
+  const st = window.MD.STATUS[done ? 'completed' : base.status || window.MD.ST_NOT_STARTED];
   const es = window.MD.etaStatus(base.slack);
   const v = window.MD.VISIT[base.visit];
   const lines = totals.line;

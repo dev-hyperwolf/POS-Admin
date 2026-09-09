@@ -13,6 +13,16 @@
 // than silently reintroducing the bug.
 const TAX_RATE = 0.0822;
 
+// TaskStatus — docs/BUILD-AGAINST-THE-SOURCE.md §3: this used to be
+// 'not-started'/'in-progress' (hyphenated), which never matched the contract's
+// (and hyperdrive-backend's) underscored 'not_started'/'in_progress' — a literal
+// comparison against a contract-shaped payload would always fail. The DATA layer
+// now stores the contract shape directly; STATUS (below) still maps an id to its
+// display LABEL, which is the correct id → label direction (see mobile/store.jsx
+// matchesFilters, which used to guess the id FROM a label instead).
+const TASK_STATUS = window.HWContracts ? window.HWContracts.enumValues('TaskStatus') : ['not_started', 'unassigned', 'in_progress', 'completed', 'cancelled'];
+const [ST_NOT_STARTED, , ST_IN_PROGRESS, ST_COMPLETED, ST_CANCELLED] = TASK_STATUS;
+
 // Delivery stops for "Today". A stop is a shop-at-home order the driver
 // fulfills at the door: it can be prepaid (collect nothing) or COD (collect).
 // x/y are normalized 0..1 positions on the route map.
@@ -21,21 +31,21 @@ function T_(id, order, name, phone, addr, city, zip, kind, win, eta, status, pri
 }
 
 const TASKS = [
-  T_('t1', 'ORD-00001', 'Corina McCoy', '(785) 555-0142', '605 Dog Hill Lane', 'Topeka, KS', '66603', 'dropoff', '11:00–11:30 AM', '11:24 AM', 'in-progress', 'critical', 'cod',
+  T_('t1', 'ORD-00001', 'Corina McCoy', '(785) 555-0142', '605 Dog Hill Lane', 'Topeka, KS', '66603', 'dropoff', '11:00–11:30 AM', '11:24 AM', ST_IN_PROGRESS, 'critical', 'cod',
     [{ sku: 'H480PRO1', qty: 1 }, { sku: 'GNJ1123', qty: 1 }, { sku: 'MMG100E', qty: 2 }], 0.52, 0.30, 2.1),
-  T_('t2', 'ORD-00002', 'Rodger Struck', '(765) 555-0177', '4093 Overlook Drive', 'Richmond, IN', '47374', 'dropoff', '12:00–12:30 PM', '12:10 PM', 'not-started', 'low', 'prepaid',
+  T_('t2', 'ORD-00002', 'Rodger Struck', '(765) 555-0177', '4093 Overlook Drive', 'Richmond, IN', '47374', 'dropoff', '12:00–12:30 PM', '12:10 PM', ST_NOT_STARTED, 'low', 'prepaid',
     [{ sku: 'FP94AIO', qty: 1 }, { sku: 'CHP1GPR', qty: 3 }], 0.30, 0.44, 3.6),
-  T_('t3', 'ORD-00003', 'Kathy Pacheco', '(312) 555-0188', '1341 Poplar Street', 'Chicago, IL', '60606', 'dropoff', '10:00–10:30 AM', '10:26 AM', 'in-progress', 'high', 'cod',
+  T_('t3', 'ORD-00003', 'Kathy Pacheco', '(312) 555-0188', '1341 Poplar Street', 'Chicago, IL', '60606', 'dropoff', '10:00–10:30 AM', '10:26 AM', ST_IN_PROGRESS, 'high', 'cod',
     [{ sku: 'NCO28SM', qty: 1 }, { sku: 'DBL78MG', qty: 2 }], 0.70, 0.52, 5.2),
-  T_('t4', 'ORD-00004', 'Marcus Hill', '(951) 555-0163', '882 Collier Ave', 'Lake Elsinore, CA', '92530', 'dropoff', '1:00–1:30 PM', '1:12 PM', 'not-started', 'medium', 'cod',
+  T_('t4', 'ORD-00004', 'Marcus Hill', '(951) 555-0163', '882 Collier Ave', 'Lake Elsinore, CA', '92530', 'dropoff', '1:00–1:30 PM', '1:12 PM', ST_NOT_STARTED, 'medium', 'cod',
     [{ sku: 'BRD35SM', qty: 2 }, { sku: 'FCF1LRS', qty: 1 }, { sku: 'ARCH001', qty: 1 }], 0.44, 0.66, 4.0),
-  T_('t5', 'ORD-00005', 'Lena Brooks', '(951) 555-0111', '118 Diamond Dr', 'Wildomar, CA', '92595', 'dropoff', '2:00–2:30 PM', '2:05 PM', 'not-started', 'high', 'prepaid',
+  T_('t5', 'ORD-00005', 'Lena Brooks', '(951) 555-0111', '118 Diamond Dr', 'Wildomar, CA', '92595', 'dropoff', '2:00–2:30 PM', '2:05 PM', ST_NOT_STARTED, 'high', 'prepaid',
     [{ sku: 'LDI4DRP', qty: 1 }, { sku: 'GBZ35RR', qty: 1 }], 0.62, 0.74, 6.4),
-  T_('t6', 'ORD-00006', 'Sam Oduya', '(714) 555-0199', '330 Folsom Street', 'Alton, IL', '62002', 'dropoff', '3:00–3:30 PM', '3:20 PM', 'not-started', 'low', 'cod',
+  T_('t6', 'ORD-00006', 'Sam Oduya', '(714) 555-0199', '330 Folsom Street', 'Alton, IL', '62002', 'dropoff', '3:00–3:30 PM', '3:20 PM', ST_NOT_STARTED, 'low', 'cod',
     [{ sku: 'FFF81Q98', qty: 1 }, { sku: 'STG1BAD', qty: 1 }], 0.36, 0.84, 8.1),
-  T_('t7', 'ORD-00007', 'Bianca Reyes', '(951) 555-0134', '77 Sycamore Ct', 'Menifee, CA', '92584', 'dropoff', '3:30–4:00 PM', '3:48 PM', 'not-started', 'medium', 'cod',
+  T_('t7', 'ORD-00007', 'Bianca Reyes', '(951) 555-0134', '77 Sycamore Ct', 'Menifee, CA', '92584', 'dropoff', '3:30–4:00 PM', '3:48 PM', ST_NOT_STARTED, 'medium', 'cod',
     [{ sku: 'CHP1GPR', qty: 3 }, { sku: 'GBZ35RR', qty: 2 }], 0.50, 0.90, 5.5),
-  T_('t8', 'ORD-00008', 'Andre Cole', '(951) 555-0120', '210 Lakeshore Dr', 'Canyon Lake, CA', '92587', 'dropoff', '4:00–4:30 PM', '4:15 PM', 'not-started', 'high', 'cod',
+  T_('t8', 'ORD-00008', 'Andre Cole', '(951) 555-0120', '210 Lakeshore Dr', 'Canyon Lake, CA', '92587', 'dropoff', '4:00–4:30 PM', '4:15 PM', ST_NOT_STARTED, 'high', 'cod',
     [{ sku: 'BRD35SM', qty: 2 }, { sku: 'DBL78MG', qty: 3 }, { sku: 'FP94AIO', qty: 1 }], 0.24, 0.72, 6.9),
 ];
 
@@ -83,13 +93,13 @@ function etaStatus(slack) {
 //  • Regular scheduled deliveries (appt:false) — normal pre-built orders.
 const AOV = { min: 150, target: 300 };
 const SCHEDULED = [
-  { id: 's1', order: 'ORD-00021', name: 'Priya Nair', phone: '(951) 555-0143', addr: '2841 Mission Trail', city: 'Wildomar, CA', zip: '92595', win: 'Today · 2:00–3:00 PM', eta: '2:10 PM', dist: 5.1, prio: 'medium', type: 'stop', kind: 'appt', appt: true, pay: 'cod', tender: 'card', status: 'not-started', visit: 'regular', verified: true, slack: 0, dwellSec: 900,
+  { id: 's1', order: 'ORD-00021', name: 'Priya Nair', phone: '(951) 555-0143', addr: '2841 Mission Trail', city: 'Wildomar, CA', zip: '92595', win: 'Today · 2:00–3:00 PM', eta: '2:10 PM', dist: 5.1, prio: 'medium', type: 'stop', kind: 'appt', appt: true, pay: 'cod', tender: 'card', status: ST_NOT_STARTED, visit: 'regular', verified: true, slack: 0, dwellSec: 900,
     brief: { interests: ['Flower', 'Vapes'], note: 'Prefers indica, mellow evening highs. Not into edibles.', last: 'Last shopped 3 weeks ago · $132' }, items: [] },
-  { id: 's2', order: 'ORD-00022', name: 'Dev Anand', phone: '(951) 555-0166', addr: '905 Grand Ave', city: 'Lakeland Vlg, CA', zip: '92530', win: 'Today · 3:30–4:30 PM', eta: '3:40 PM', dist: 3.8, prio: 'high', type: 'stop', kind: 'appt', appt: true, pay: 'cod', tender: 'cash', status: 'not-started', visit: 'vip', verified: true, slack: 0, dwellSec: 1100,
+  { id: 's2', order: 'ORD-00022', name: 'Dev Anand', phone: '(951) 555-0166', addr: '905 Grand Ave', city: 'Lakeland Vlg, CA', zip: '92530', win: 'Today · 3:30–4:30 PM', eta: '3:40 PM', dist: 3.8, prio: 'high', type: 'stop', kind: 'appt', appt: true, pay: 'cod', tender: 'cash', status: ST_NOT_STARTED, visit: 'vip', verified: true, slack: 0, dwellSec: 1100,
     brief: { interests: ['Concentrates', 'Pre-Rolls'], note: 'VIP — tips well, always wants the newest drops. Give standout service.', last: 'Regular · avg $280/visit' }, items: [] },
-  { id: 's4', order: 'ORD-00024', name: 'Marcus Webb', phone: '(951) 555-0155', addr: '512 Canyon Rd', city: 'Murrieta, CA', zip: '92562', win: 'Today · 4:00–5:00 PM', eta: '4:20 PM', dist: 6.0, prio: 'medium', type: 'stop', kind: 'dropoff', appt: false, pay: 'cod', tender: 'card', status: 'not-started', visit: 'regular', verified: true, slack: 0, dwellSec: 220,
+  { id: 's4', order: 'ORD-00024', name: 'Marcus Webb', phone: '(951) 555-0155', addr: '512 Canyon Rd', city: 'Murrieta, CA', zip: '92562', win: 'Today · 4:00–5:00 PM', eta: '4:20 PM', dist: 6.0, prio: 'medium', type: 'stop', kind: 'dropoff', appt: false, pay: 'cod', tender: 'card', status: ST_NOT_STARTED, visit: 'regular', verified: true, slack: 0, dwellSec: 220,
     items: [{ sku: 'NCO28SM', qty: 1 }, { sku: 'CHP1GPR', qty: 2 }] },
-  { id: 's3', order: 'ORD-00023', name: 'Nina Patel', phone: '(951) 555-0181', addr: '334 Riverside Dr', city: 'Temescal, CA', zip: '92883', win: 'Today · 5:00–6:00 PM', eta: '5:12 PM', dist: 7.2, prio: 'low', type: 'stop', kind: 'appt', appt: true, pay: 'cod', tender: 'card', status: 'not-started', visit: 'first', verified: false, slack: 0, dwellSec: 1400,
+  { id: 's3', order: 'ORD-00023', name: 'Nina Patel', phone: '(951) 555-0181', addr: '334 Riverside Dr', city: 'Temescal, CA', zip: '92883', win: 'Today · 5:00–6:00 PM', eta: '5:12 PM', dist: 7.2, prio: 'low', type: 'stop', kind: 'appt', appt: true, pay: 'cod', tender: 'card', status: ST_NOT_STARTED, visit: 'first', verified: false, slack: 0, dwellSec: 1400,
     brief: { interests: ['Edibles', 'Wellness'], note: 'New to cannabis — wants guidance and mild options. Walk her through dosing.', last: 'First appointment' }, items: [] },
 ];
 
@@ -236,10 +246,10 @@ const PRIO = {
   low:      { label: 'Low', bg: '#7E7E74', fg: '#fff' },
 };
 const STATUS = {
-  'not-started': { label: 'Not Started', color: 'inkDim' },
-  'in-progress': { label: 'In Progress', color: 'indica' },
-  'completed':   { label: 'Completed', color: 'good' },
-  'cancelled':   { label: 'Cancelled', color: 'bad' },
+  [ST_NOT_STARTED]: { label: 'Not Started', color: 'inkDim' },
+  [ST_IN_PROGRESS]: { label: 'In Progress', color: 'indica' },
+  [ST_COMPLETED]:   { label: 'Completed', color: 'good' },
+  [ST_CANCELLED]:   { label: 'Cancelled', color: 'bad' },
 };
 
 // Applied here rather than threaded through T_ so the table above stays the one
@@ -250,5 +260,8 @@ for (const t of SCHEDULED) { const v = TASK_VAN[t.id]; if (v) t.kitId = v; }
 
 window.MD = { TASKS, BREAKS, SCHEDULED, NOTIFS, ANNOUNCEMENTS, DRIVER, TAX_RATE, TASK_VAN, prod, cartTotals, PRIO, STATUS,
   SHIFT, SHIFT_COMPLETED, TASK_HISTORY, VISIT, etaStatus, latestArrival, UPSELL, BOXES, boxOf, batchOf, brandsFor,
-  MSG_PARAMS, MSG_TEMPLATES_DEFAULT, fillMsg, TIPS_SEED, INV_DISCREPANCY, AOV, packStatus };
+  MSG_PARAMS, MSG_TEMPLATES_DEFAULT, fillMsg, TIPS_SEED, INV_DISCREPANCY, AOV, packStatus,
+  // Contract-backed TaskStatus vocab — exported once here so other mobile/*.jsx
+  // files read the same values rather than each re-reading HWContracts.
+  TASK_STATUS, ST_NOT_STARTED, ST_IN_PROGRESS, ST_COMPLETED, ST_CANCELLED };
 Object.assign(window, {});

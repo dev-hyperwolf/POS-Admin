@@ -35,7 +35,7 @@ function PackChip({ task, size = 'sm' }) {
 function StopCard({ t }) {
   const P = useP();const M = window.useM();
   const done = M.isDone(t.id);
-  const st = window.MD.STATUS[done ? 'completed' : t.status] || window.MD.STATUS['not-started'];
+  const st = window.MD.STATUS[done ? 'completed' : t.status] || window.MD.STATUS[window.MD.ST_NOT_STARTED];
   const totals = window.MD.cartTotals(t.items);
   const es = window.MD.etaStatus(t.slack);
   const etaColor = P[es.color] || P.ink;

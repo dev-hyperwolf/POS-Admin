@@ -363,7 +363,12 @@ test('F4 — with no engine-shaped promotion on the order, the sheet says so rat
     const W = app.window;
     const open = mounter(app);
     try {
-      const order = W.HWGovern.buildOrder(task(W, 't3'), { kitId: 'RC-01', lines: task(W, 't3').items });
+      // shared/commerce-governance.js's TASK_STATUS map is keyed by the LEGACY
+      // hyphenated status ('in-progress'), not the contract's underscored
+      // TaskStatus mobile/data.jsx now stores; mobile/screen-task.jsx's own
+      // governedFor() adapts at that boundary before calling buildOrder, so this
+      // direct call (bypassing the screen) does the same one-field translation.
+      const order = W.HWGovern.buildOrder({ ...task(W, 't3'), status: 'in-progress' }, { kitId: 'RC-01', lines: task(W, 't3').items });
       assert.equal(order.appliedPromotionIds, undefined,
         'precondition: the estate attaches no promotion ids to an order');
 

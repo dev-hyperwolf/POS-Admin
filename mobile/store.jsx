@@ -140,9 +140,16 @@ window.M = {
     const f = window.M.filters();
     if (!f.status.length && !f.tags.length) return true;
     if (f.status.length) {
+      // The filter chips (mobile/screen-misc.jsx) carry LABELS ('Not Started', 'In
+      // Progress'...), not the TaskStatus id itself, and used to guess the id BACK
+      // from the label via string surgery (`.toLowerCase().replace(/ /g,'-')`) —
+      // which silently broke the moment the id's shape changed (hyphen → underscore
+      // for the contract). The correct direction is the one-line adapter below:
+      // build the LABEL from the id via the canonical STATUS map and compare labels,
+      // never re-derive an id from display text.
       const ok = f.status.some((label) => label === 'Completed'
         ? window.M.isDone(t.id)
-        : !window.M.isDone(t.id) && t.status === label.toLowerCase().replace(/ /g, '-'));
+        : !window.M.isDone(t.id) && (window.MD.STATUS[t.status] || {}).label === label);
       if (!ok) return false;
     }
     if (f.tags.length && !f.tags.some((label) => (t.prio || '') === label.toLowerCase())) return false;

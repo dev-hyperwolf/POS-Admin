@@ -44,7 +44,7 @@ window.ActivityScreen = function ActivityScreen() {
   const scaled = (n) => Math.round(n * mult);
   const scaledM = (n) => n * mult;
 
-  const routeCounts = window.MD.TASKS.reduce((a, t) => {const done = M.isDone(t.id);const k = done ? 'completed' : t.status === 'in-progress' ? 'inprogress' : 'notstarted';a[k]++;return a;}, { completed: 0, inprogress: 0, notstarted: 0 });
+  const routeCounts = window.MD.TASKS.reduce((a, t) => {const done = M.isDone(t.id);const k = done ? 'completed' : t.status === window.MD.ST_IN_PROGRESS ? 'inprogress' : 'notstarted';a[k]++;return a;}, { completed: 0, inprogress: 0, notstarted: 0 });
   const segs = [
   { key: 'completed', label: 'Completed', value: routeCounts.completed + window.MD.SHIFT_COMPLETED.length, color: P.good },
   { key: 'inprogress', label: 'In progress', value: routeCounts.inprogress, color: P.indica },

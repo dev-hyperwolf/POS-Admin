@@ -1,5 +1,6 @@
 // ── Profile — driver, settings, appearance, history links ──────────────────
 const useP = window.useP, useTheme = window.useTheme;
+const money = window.HW.fmt.money;
 
 // Grouped settings list + row
 function Group({ label, children }) {
@@ -120,7 +121,6 @@ function ReceiptEmailedNote() {
 
 window.OrderHistoryScreen = function OrderHistoryScreen() {
   const P = useP(); const M = window.useM();
-  const money = window.HW.fmt.money;
   const [open, setOpen] = React.useState(null);
   const live = (M.s.completed || []).map((s) => ({ ...s, when: 'Today' }));
   const shift = window.MD.SHIFT_COMPLETED.map((s) => ({ ...s, when: s.at, collected: (s.cash || 0) + (s.card || 0) }));
@@ -164,7 +164,6 @@ window.OrderHistoryScreen = function OrderHistoryScreen() {
 
 window.TaskHistoryScreen = function TaskHistoryScreen() {
   const P = useP();
-  const money = window.HW.fmt.money;
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <window.MTopBar title="Task history" sub="Past shifts" />
