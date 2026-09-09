@@ -21,7 +21,7 @@
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           <StatTile hue="teal" icon="users" label="Cohorts tracked" value={String(cohorts.length)} sub="monthly signup cohorts" />
           <StatTile hue="green" icon="trending-up" label="Best M1 retention" value="58%" sub="November cohort" />
-          <StatTile hue="pink" icon="dollar" label="Avg 6-mo LTV" value={HD.formatCurrency(cohorts.reduce((a, c) => a + c.ltv, 0) / cohorts.length / 100 * 100 / 100 * 100)} sub="attributed spend" />
+          <StatTile hue="pink" icon="dollar" label="Avg 6-mo LTV" value={HD.formatCurrency(cohorts.reduce((a, c) => a + c.ltv, 0) / cohorts.length)} sub="attributed spend" />
           <StatTile hue="violet" icon="activity" label="Blended M3" value="36%" sub="all cohorts" />
         </div>
 
