@@ -40,7 +40,7 @@ Not one bug but a stack. The three systemic ones:
 
 | Mechanism | Effect | Cite |
 |---|---|---|
-| "Sold" counts only Blaze transactions tagged **`asap`**; every other completed sale is invisible | Omission: a product that sold through a non-ASAP order is never refilled | `common-controllers.js:125` |
+| ~~"Sold" counts only Blaze transactions tagged `asap`~~ — **owner 2026-09-10: deliberate and correct.** ASAP orders are fulfilled from the kit; scheduled orders from the safe, so they must not drive refills (they do count for loss prevention at return) | not a defect for refill; scheduled sales must be included in the **return** baseline | `common-controllers.js:125` |
 | The refill log stores the quantity **actually handed out** as next cycle's cap; one short-stock day permanently lowers the ceiling, with no reset | Persistent under-refill | `kit-refill-controller.js:1307-1308` → `:1026-1035` |
 | `usedQty` is `max(existing, calculated)` and only falls when a refill consumes it | Over-refill against phantom demand after any miscount | `common-controllers.js:977-981` |
 
@@ -106,8 +106,9 @@ existing items.
 1. **Freshness is an input.** Received date (Blaze `purchasedDate`, already stored) ranks
    candidates in both build and refill; a product under N days old may be placed partially
    (waive the all-subregions gate) so a small premium tranche moves the day it lands.
-2. **Sold means sold.** All completed Blaze transactions count, joined on a stable product key
-   with a SKU fallback, in the business timezone, since the last refill.
+2. **Two demand streams.** Refill need counts **ASAP** sales only (fulfilled from the kit);
+   the return baseline counts ASAP **and scheduled** sales (both leave with the driver). Both
+   joined on a stable product key with a SKU fallback, batch-aware, in the business timezone.
 3. **Need is demand, not history.** Store `neededQty` and `refillQty` separately; next cap derives
    from the template or original distribution, never from what stock allowed last time.
 4. **One clock.** A single `businessDay(ts)` in one module, Pacific, used by build, refill and

@@ -122,3 +122,35 @@ pack-verify after build, pack-verify after each refill (per box), return-verify 
 Developer list additions: a `POST …/kits/:id/rfid-verify` (additive) that takes a batch read and
 writes a Discrepancy with reason codes; `tagId` on `productBatches[]` if tags are applied at
 receiving. Middleware additions: a RETURN session mode; batch-keyed plan input.
+
+## 2026-09-10 · answers to the three RFID questions (1 and 2)
+
+**Q1 — tag ↔ batch:** at receiving, **one tag per unit, recorded to the batch**. So the scanner
+can tell right product / wrong batch, and a return scan knows which unit came back.
+
+**Q2 — return baseline, in the owner's words:** "factor in all inventory that was dispatched to a
+driver: ASAP + Scheduled orders both. The refill logic shouldn't consider the refill template
+against scheduled orders as those are sourced from the safe vs the driver kit. Every single item
+must be accounted for and we should have a few checkpoints: we have the distribution list — we
+scan that in and verify each tag is there so we know what the driver gets; then we have what was
+sold — reference ASAP specifically for refill and loss prevention, scheduled orders for loss
+prevention only." Also ticked: dispatched − every completed sale + refills; ASAP-only for the
+refill (as today); unit-level accounting (every tag that left must be scanned back or sold).
+
+**Correction to our own findings.** The `asap`-only sold filter in the refill
+(`common-controllers.js:125`) is **deliberate and correct**: ASAP orders are fulfilled from the
+kit, scheduled orders from the safe. It is not a cause of under-refill. The remaining causes
+stand (cap ratchet, usedQty only rising, identity joins, IST day boundary, lagging batch data).
+`DISTRIBUTION-LOGIC-MAP.md`, `DESIGN-BRIEF.md` and `DEV-TEAM-CHANGE-LIST.md` are amended.
+
+**Engine model that follows.**
+- Two demand streams per driver: **ASAP sales** (from the kit → refill need + loss prevention)
+  and **scheduled sales** (from the safe → loss prevention only; they still leave with the driver
+  and must be accounted for at return).
+- Checkpoints, each a set of tags: (1) **dispatch list** = plan → scanned at the bench, every
+  planned unit's tag present (pack-verify); (2) **sold** = Blaze completed orders, ASAP and
+  scheduled, ideally by tag/batch on the order line; (3) **return scan** = tags read back.
+  Identity per unit: every dispatched tag is either sold or returned; anything else is a
+  discrepancy with a reason (missing, extra, wrong batch, sold-but-returned).
+- Refill need = ASAP sold since last refill per SKU (batch-aware), capped by demand, never by
+  what stock allowed last time.

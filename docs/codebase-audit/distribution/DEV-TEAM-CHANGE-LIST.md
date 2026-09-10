@@ -179,8 +179,8 @@ change that turns "we found out at the end of the day" into "we fixed it before 
 
 **Why.** The build silently drops any product whose total stock is below the number of
 subregions (`manageDistributions.repository.js:722, 745`), the refill skips subregions that lack
-a refill template, and the sold-quantity sync ignores orders without the `asap` tag
-(`common-controllers.js:125`). None of this reaches the screen: the HTTP client passes every
+a refill template, and the sold-quantity sync counts ASAP orders only (correct for refill, since scheduled orders
+are sourced from the safe). None of this reaches the screen: the HTTP client passes every
 200 through and no screen reads `skippedSubRegionIds`. The operator sees a green toast for a run
 that left three subregions untouched. With reasons in the response, the console can show a
 skips-and-shortfalls panel the team can act on the same morning.
@@ -255,7 +255,8 @@ product moved when it did not.
 ## Questions we would like answered alongside this list
 
 1. What calls `POST .../kit-refill/cron` and `POST .../manage-distributions/cron` today, and when?
-2. Was the `asap`-only sold filter deliberate? Which Blaze order tags count as a sale from a kit?
+2. Confirmed by the owner: the `asap`-only sold filter is deliberate for refills. Which Blaze order
+   tags identify scheduled orders, so the return baseline can include them?
 3. Where did the +5.5 hour offset come from, and what timezone should a business day use?
 4. Is `freeze` a required step between build and dispatch, or a leftover?
 5. Is `DistributionGlobalSettings` one row or two in production, and is
