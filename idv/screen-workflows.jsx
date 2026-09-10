@@ -294,6 +294,16 @@
     function toggleFeature(key) {
       setDraft((d) => ({ ...d, features: d.features.indexOf(key) !== -1 ? d.features.filter((f) => f !== key) : d.features.concat([key]) }));
     }
+    // "ID only — no selfie" preset: LIVENESS and FACE_MATCH off, OCR and
+    // IP_ANALYSIS on. Everything else the draft already had is left alone.
+    function applyIdOnlyPreset() {
+      setDraft((d) => {
+        const kept = d.features.filter((f) => f !== 'LIVENESS' && f !== 'FACE_MATCH');
+        const withRequired = kept.slice();
+        ['OCR', 'IP_ANALYSIS'].forEach((f) => { if (withRequired.indexOf(f) === -1) withRequired.push(f); });
+        return { ...d, features: withRequired };
+      });
+    }
 
     function handleSave() {
       if (!canWrite || saving) return;
@@ -350,7 +360,14 @@
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 14, alignItems: 'start' }}>
           {/* Features */}
           <Card elevation="flat">
-            <SectionHead level={3} eyebrow="What runs" title="Features" style={{ marginBottom: 10 }} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+              <SectionHead level={3} eyebrow="What runs" title="Features" style={{ marginBottom: 0 }} />
+              <PBtn variant="secondary" size="sm" disabled={locked}
+                title={locked ? 'Needs an admin role' : 'Turns LIVENESS and FACE_MATCH off, and turns OCR and IP_ANALYSIS on'}
+                onClick={applyIdOnlyPreset}>
+                ID only — no selfie
+              </PBtn>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {FEATURES.map((f) => (
                 <FeatureRow key={f.key} label={f.label} note={f.note} locked={locked}
@@ -362,6 +379,11 @@
               ))}
             </div>
             <div style={{ fontSize: P.type.meta, color: P.inkFaint, marginTop: 12, lineHeight: 1.5 }}>
+              The capture flow follows the features you turn on. With LIVENESS and FACE_MATCH both
+              off, a session verifies the ID alone and the guest never reaches a selfie step — the
+              preset above sets exactly that (OCR + IP_ANALYSIS stay on).
+            </div>
+            <div style={{ fontSize: P.type.meta, color: P.inkFaint, marginTop: 8, lineHeight: 1.5 }}>
               Four features are declared and stored but never run. They exist so an imported Didit
               workflow survives a round trip byte-for-byte. Turning one on would mean a third party,
               and there are none — from day one, by decision.
@@ -378,13 +400,13 @@
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <ThresholdSlider label="liveness_min" value={th.liveness_min ?? 0} disabled={locked}
                   onChange={(v) => patchThreshold('liveness_min', v)}
-                  consequence={`Below → the guest is asked to redo that step, up to ${cfg.liveness_attempts_max ?? 3} tries, then Declined.`} />
+                  consequence={`Below → the guest is asked to retake the selfie, up to ${cfg.liveness_attempts_max ?? 3} tries, then Declined (LIVENESS_FAILED_3X) with an in-store path.`} />
                 <ThresholdSlider label="face_match_min" value={th.face_match_min ?? 0} disabled={locked}
                   onChange={(v) => patchThreshold('face_match_min', v)}
-                  consequence="Below → In Review with FACE_MATCH_LOW. Never an automatic decline." />
+                  consequence={`Below → the guest is asked to retake the selfie, up to ${cfg.liveness_attempts_max ?? 3} tries (same counter as liveness), then Declined (FACE_MATCH_LOW) with an in-store path. There is no "In Review" outcome in Verify — every session ends Approved or Declined.`} />
                 <ThresholdSlider label="doc_quality_min" value={th.doc_quality_min ?? 0} disabled={locked}
                   onChange={(v) => patchThreshold('doc_quality_min', v)}
-                  consequence={`Below → ask for that image again, up to ${cfg.resubmission_max ?? 3} tries.`} />
+                  consequence={`Below → ask for that image again, up to ${cfg.resubmission_max ?? 3} tries, then Declined with an in-store path. Only the numeric per-side quality score can raise this — the engine's own brightness/blur/glare warnings are recorded but change nothing.`} />
               </div>
             </Card>
 
@@ -395,11 +417,10 @@
                   onClick={() => patchCfg({ age_rule: 'REC_21' })}
                   title="REC_21"
                   subtitle="Recreational. 21 and over, read from the barcode date of birth. Under → Declined with UNDER_AGE." />
-                <RadioCard selected={cfg.age_rule === 'MED_18_CARD'} disabled={locked}
-                  onClick={() => patchCfg({ age_rule: 'MED_18_CARD' })}
-                  title="MED_18_CARD"
-                  subtitle="Medical. 18 and over plus a valid medical card. The engine can verify the age; it cannot verify the card."
-                  warning={{ title: 'MED_18_CARD needs a ruling first', body: 'Which system says a customer is medical — a Blaze member flag passed in expected_details, or a photo of the card reviewed by an analyst? Until that’s answered, selecting it creates a rule with nothing behind it. Escalation §11.4.' }} />
+                <RadioCard selected={cfg.age_rule === 'MED_18_REC' || cfg.age_rule === 'MED_18_CARD'} disabled={locked}
+                  onClick={() => patchCfg({ age_rule: 'MED_18_REC' })}
+                  title="MED_18_REC"
+                  subtitle={`Medical. 18 and over from the barcode date of birth, plus a doctor's recommendation that Verify checks itself — not a Blaze flag, not an analyst's eyeball. Adds a capture step, "Doctor's recommendation," between the ID back and the selfie. Missing or unreadable → the guest is asked to redo it, up to ${cfg.resubmission_max ?? 3} tries, then Declined with an in-store path. Expired, or the name / date of birth / licence number doesn't match → Declined immediately, no retry. (Sent to the API as MED_18_REC — MED_18_CARD is kept only as an alias for older workflows.)`} />
               </div>
             </Card>
           </div>
