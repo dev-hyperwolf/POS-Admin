@@ -530,7 +530,7 @@
             <CapField label="session_ttl_minutes" value={cfg.session_ttl_minutes ?? 0} locked={locked} onChange={(v) => patchCfg({ session_ttl_minutes: v })} />
             <CapField label="expires_after_days" value={cfg.expires_after_days ?? 0} locked={locked} onChange={(v) => patchCfg({ expires_after_days: v })} />
           </div>
-          <div style={{ fontSize: 12.5, color: P.inkMuted, margin: '0 0 10px' }}>
+          <div style={{ fontSize: 12.5, color: P.inkMute, margin: '0 0 10px' }}>
             Every route ends in Approved or Declined. <b>Flag</b> approves the session and marks it with a
             warning you can filter on; nothing ever waits for a person. <b>Decline</b> declines with the in-store path.
           </div>
