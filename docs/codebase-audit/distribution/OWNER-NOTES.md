@@ -328,3 +328,18 @@ entered once; the engine and the pick slip carry it from `Batch.thc_pct`.
 **Build status (2026-09-10):** contracts 0.4.0 committed; `pos-provider/` committed-pending
 (31 tests green; hwpos gaps: terminals, transfers, member lookup, list-sales route, bulk product
 and batch list routes); engine and wm-demo storage in progress.
+
+## 2026-09-10 · next design rounds, paper-first, LP/HR dashboards, form generator, GAS migration
+
+**Said.** Pick and pack like paper; move them to an iPad, but keep a printed route while they
+train. Look at the **LP dashboard** (an Apps Script project we built together) and all its designs
+and forms. Build a **form generator** usable anywhere in the back end ("the ability to create a
+form anywhere we need one"). Dispatch agents at the **HR dashboard** too; goal: **migrate all
+Apps Script projects into the admin** so nobody bounces between URLs and apps. Rounds chosen:
+cycle counts, pack/return-verify, floor restock + register batch pick, weekly build + day close.
+
+**Decisions taken.** Paper and tablet are the same artifact: the engine's plan prints as the pick
+slip (box order, batches, THC, packaged date, LOUD flag, QR per kit) and shows identically on
+the iPad; the bench closes a paper kit by scanning the QR. Design brief for round 2:
+`DESIGN-ROUND-2-BRIEF.md` (16 concepts, 8 agents). Audits dispatched: LP dashboard, HR dashboard,
+the whole Apps Script estate (migration inventory), and a form-generator proposal.
