@@ -290,3 +290,8 @@ research + four concepts (`explorations/Batch Location - Concept A..D.html`).
 **Consequence.** The engine's batch record needs Metrc tag + packaged date (from Blaze now, from
 our POS later), THC from the COA/test result (source to confirm), and storage location from our
 own receiving flow, since no system holds it today.
+
+**Floor pars (in-store):** a manager sets a fixed min/max per SKU as the base, and a **smart
+system suggests modifications to the min/max from sales velocity**; **adopt the same engine for
+the delivery kits** (kit template min/max get velocity-driven suggestions too). Display case vs
+shelf: not chosen; treat as one floor location unless the team says otherwise.
