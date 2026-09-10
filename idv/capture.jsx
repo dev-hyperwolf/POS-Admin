@@ -844,7 +844,7 @@
   // PURE. `g` is a Float32Array of luma (0..255) in row-major w×h; `rect` is
   // the guide in frame-normalised coordinates; `prev` is the previous frame's
   // luma or null. Everything the gates read comes out of here.
-  function analysePixels(g, w, h, rect, prev, srcW, wantMrz) {
+  function analysePixels(g, w, h, rect, prev, srcW) {
     if (!g || !w || !h || !rect) return null;
     const rx0 = clamp(Math.round(rect.x * w), 1, w - 3);
     const ry0 = clamp(Math.round(rect.y * h), 1, h - 3);
@@ -900,20 +900,15 @@
     const density = edgeN ? edgeIn / edgeN : 0;
     const lapMean = lapN ? lapSum / lapN : 0;
 
-    // THE MRZ, ONLY WHEN ASKED — a passport `document_front` step, and
-    // nothing else, so a licence front or a medical-rec page pays zero cost
-    // for a check that could never apply to them. See the long note above
-    // `mrzProfile` for why this is the bottom `MRZ_ZONE_FRAC` of the GUIDE
-    // (`rx0..rx1, ry0..ry1`, already computed above) rather than of the
-    // detected document box.
-    let mrzOk = null, mrzLines = null;
-    if (wantMrz) {
-      const zy0 = clamp(Math.round(ry1 - rh * MRZ_ZONE_FRAC), ry0, ry1 - 2);
-      const m = mrzProfile(g, w, h, rx0, rx1, zy0, ry1, rw, rh);
-      mrzOk = !!(m && m.ok);
-      mrzLines = m ? m.lines : 0;
-    }
-
+    // THE MRZ IS NOT MEASURED HERE ANY MORE — ROUND 7, 2026-09-09. It used to
+    // run on this same 208px buffer (`wantMrz`, now gone); the owner's second
+    // real passport test ("it keeps telling me to fit the code within a box
+    // and I do") measured why that was never going to work: at 208px across a
+    // guide that is often 1500+ source pixels wide, OCR-B's own strokes are
+    // under a pixel apart and the row/column projections that make this whole
+    // file's barcode and MRZ gates work see noise, not text. See
+    // `makeMrzAnalyser` below — it is the barcode band reader's own answer
+    // (its own ≥640px canvas) applied to the same problem.
     return {
       sharpness: lapN ? Math.round(((lapSq / lapN) - lapMean * lapMean) * 100) / 100 : null,
       glare_fraction: n ? Math.round((hot / n) * 10000) / 10000 : null,
@@ -928,8 +923,6 @@
       // Source pixels per analysis pixel. The sharpness threshold is derived
       // from it — see sharpnessFloor.
       resample: srcW ? Math.round(((rect.w * srcW) / Math.max(1, rw)) * 100) / 100 : null,
-      mrz_ok: mrzOk,
-      mrz_lines: mrzLines,
     };
   }
 
@@ -940,7 +933,7 @@
     catch (e) { ctx = c.getContext('2d'); }
     let prev = null;
 
-    function read(video, rectNorm, wantMrz) {
+    function read(video, rectNorm) {
       if (!ctx || !video) return null;
       const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
       if (!vw || !vh || !rectNorm) return null;
@@ -954,7 +947,7 @@
       for (let i = 0, p = 0; i < g.length; i++, p += 4) {
         g[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
       }
-      const out = analysePixels(g, w, h, rectNorm, prev, vw, wantMrz);
+      const out = analysePixels(g, w, h, rectNorm, prev, vw);
       prev = g;
       return out;
     }
@@ -1156,58 +1149,116 @@
   // clock has a real "there is something here" answer instead of only
   // "something changed since last frame".
   //
+  // ── ROUND 7, 2026-09-09, THE OWNER'S SECOND REAL PASSPORT RUN ────────────
+  // "it keeps telling me to fit the code within a box and I do", and "the
+  // directions are literally overlaying where the text needs to be". Two
+  // separate defects, not one:
+  //
+  //  1. THE DETECTOR NEVER SAW THE MRZ EVEN WHEN IT WAS SQUARELY IN THE BOX.
+  //     Round 6 ran this on the SAME 208 px luma buffer `analysePixels` built
+  //     for sharpness/doc-box, on the theory that a presence gate this cheap
+  //     should not pay for a second `drawImage`+`getImageData`. Measured
+  //     against the owner's own frame (`frame1-mrz-visible.jpg`, both lines
+  //     plainly visible to a person): a real guide is 1200–2000+ source
+  //     pixels wide, so 208 px squeezes OCR-B's own stroke width under a
+  //     single analysis pixel — every character aliases into its neighbour
+  //     and the row/column projections that make `bandProfile` work on a
+  //     PDF417 see noise, not text. `makeMrzAnalyser` below is `bandProfile`'s
+  //     own answer to this: its own dedicated canvas, at least MRZ_EDGE_MIN
+  //     source pixels wide, exactly the way `makeBandAnalyser` already draws
+  //     its own BAND_EDGE-wide strip rather than reusing the 208 px one.
+  //
+  //  2. THE HINT PILL SAT WHERE THE GUEST WAS BEING ASKED TO PUT THE CODE.
+  //     `HintChip` drew at the BOTTOM of the viewfinder — see its own header
+  //     — which is exactly where the passport guide's MRZ band lives. Fixed
+  //     in `DocStep`'s render, not here: the pill now anchors to the TOP of
+  //     every document step's viewfinder, so the band stays visible under it
+  //     regardless of what the sentence says.
+  //
   // THE SAME QUESTION AS THE BARCODE, ASKED THE SAME WAY. `bandProfile` above
   // finds a PDF417 by looking for a ROW that crosses a vertical edge across
   // most of its own width — a texture no printed face or paragraph produces.
   // Two lines of OCR-B machine-readable text are the same signature, just
   // shorter and repeated twice with a gap the width of the line spacing
   // between them. So this reuses `bandProfile`'s own primitives — `smooth5`,
-  // `peakOf`, the edge-crossing test, a run finder over a smoothed profile —
-  // rather than a decode of any kind: this never has to read a character, it
-  // only has to tell "there is text-like density here, twice, evenly spaced"
-  // from "there is a blank photo-page margin here".
+  // `peakOf`, the edge-crossing test (a per-row DARK/LIGHT TRANSITION COUNT:
+  // OCR-B text crosses it dozens of times a row, a blank photo-page margin
+  // almost never), a run finder over a smoothed profile — rather than a
+  // decode of any kind: this never has to read a character, it only has to
+  // tell "there is text-like density here, twice, evenly spaced" from "there
+  // is a blank photo-page margin here".
   //
-  // NOT A SECOND CANVAS. `bandProfile` gets its own BAND_EDGE-wide draw
-  // because it has to report a width usable for zoom and crop math; this is a
-  // presence gate, never a decode, so it runs on the SAME 208 px luma buffer
-  // `analysePixels` already built for sharpness/doc-box this tick. A second
-  // `drawImage`+`getImageData` per tick for a gate this cheap would be the
-  // exact mistake `bandProfile`'s own header warns against, in the other
-  // direction — see `wantMrz` in `analysePixels` below.
-  //
-  // WHY THE BOTTOM ZONE OF THE GUIDE, NOT THE DETECTED DOCUMENT BOX.
+  // WHY THE LOWER ZONE OF THE GUIDE, NOT THE DETECTED DOCUMENT BOX.
   // `docBoxFrom` is tuned to find a rigid rectangle of print; a passport held
   // open lies across a gutter shadow and a curved page edge that a document
   // outline detector was never asked to cope with, and round 3's card-shaped
-  // guide already proved a shape-shaped guide beats a shape-guessed one. The
-  // guide itself is drawn thicker at the bottom to invite the guest to put the
-  // code there (see `drawGuide`), so the detector looks exactly where the
-  // guest was asked to put it.
+  // guide already proved a shape-shaped guide beats a shape-guessed one.
   //
-  // THE THRESHOLDS ARE THE BRIEF'S OWN NUMBERS, held here for one clock's
-  // worth of provenance rather than re-derived:
-  //   width    ≥ 70 % of the guide's width, per line — an MRZ line runs the
-  //            width of the page with only a small margin either side.
-  //   height   1.2–2.5 % of the guide's own height, per line — OCR-B at a
-  //            comfortable reading distance on a 1.42:1 guide.
-  //   gap      "a similar gap" between the two lines. A real TD3 page's line
-  //            PITCH (not height) is close to a line's own height — a
-  //            monospace font fixes that — so the window is the same order of
-  //            magnitude as a line, widened on both sides for the noise a
-  //            208 px canvas adds that a real MRZ reader would not have.
-  const MRZ_ZONE_FRAC = 0.32;         // bottom slice of the guide this looks at
+  // AND THE ZONE IS NOW 45 % OF THE GUIDE'S HEIGHT, NOT A THIN 32 % BOTTOM
+  // STRIP. A guest can hold a passport two ways: flat on a surface with the
+  // photo page filling only the lower part of the frame (the code sits hard
+  // against the bottom, which is what round 6 was tuned for), or picked up so
+  // the whole page fills the portrait guide (the owner's own
+  // `frame1-mrz-visible.jpg`: the book fills the frame width-to-width and the
+  // MRZ sits at ~58 % of the frame's height — inside a 45 % LOWER zone, not a
+  // 32 % one). Widening the search zone costs nothing this detector was not
+  // already paying for: a genuine stamp or signature row above the code still
+  // has to pass the width AND the paired-line-spacing test below, so a bigger
+  // haystack does not lower the bar for what counts as a needle.
+  //
+  // THE THRESHOLDS, ROUND 7:
+  //   width   ≥ 55 % of the guide's width, per candidate line. Down from the
+  //           brief's original 70 %: that number was tuned against a
+  //           synthetic frame with the MRZ already isolated, and the owner's
+  //           real frame — a passport held at a natural angle, not dead flat
+  //           — reads narrower even with both lines plainly in the box. 55 %
+  //           is still comfortably above ordinary printed text (see
+  //           `frame3-line-cut-off.jpg`'s single, incomplete line, which does
+  //           not have a partner and never reaches the pairing test below).
+  //   height  no longer an ABSOLUTE fraction of the guide's own height — a
+  //           guide-relative window (round 6's 1.2–2.5 %) is exactly the
+  //           number that a page filling the whole frame (frame 1) versus one
+  //           filling half of it makes wrong in opposite directions. Instead,
+  //           the two candidate lines are compared to EACH OTHER: within a
+  //           MRZ_HEIGHT_RATIO_MAX (2:1) ratio of one another, which a real
+  //           pair of OCR-B lines always is and a stray stamp paired with a
+  //           genuine MRZ line rarely is.
+  //   gap     0.3–2× A ROW'S OWN HEIGHT (the mean of the pair), not a fixed
+  //           fraction of the guide. A real TD3 page's line PITCH is close to
+  //           a line's own height regardless of how big the page reads in
+  //           frame, so a ratio survives the same either-way-of-holding-it
+  //           problem the height threshold had.
+  const MRZ_ZONE_FRAC = 0.45;         // lower slice of the guide this looks at
+  // NEVER NARROWER THAN THIS. This is the round-7 fix itself: the old path's
+  // 208 px canvas is what turned two OCR-B lines into noise. Sized like
+  // `makeBandAnalyser`'s own BAND_EDGE, but a FLOOR rather than a ceiling —
+  // text needs more resolution than a barcode's own bars do at the widths
+  // this actually sees in a hand.
+  const MRZ_EDGE_MIN = 640;
+  // ...AND NEVER WIDER THAN THIS. The CPU half of the same trade: a guide can
+  // be 2000+ source pixels wide, and drawing all of it every tick at native
+  // resolution is real work next to the 208 px canvas everything else on this
+  // step uses. Capped, not skipped — see the "every other tick" note on
+  // `makeMrzAnalyser` for the other half of keeping this affordable.
+  const MRZ_EDGE_MAX = 1024;
   // Text is sparser than a PDF417's bars — an OCR-B line has real gaps between
   // characters where a barcode has none — so the row threshold is a smaller
   // fraction of the strip's own peak than the barcode's BAND_MIN_ROW_FRAC
-  // (0.04). Set low deliberately: at 208 px a line of text is only a few
-  // analysis rows tall, and a strict threshold loses it to resampling before
-  // the width check below ever gets a look at it.
-  const MRZ_ROW_MIN_FRAC = 0.10;      // of the row profile's own peak
-  const MRZ_MIN_WIDTH_FRAC = 0.70;    // of the guide's width, per line
-  const MRZ_LINE_MIN_H_FRAC = 0.012;  // of the guide's height, per line
-  const MRZ_LINE_MAX_H_FRAC = 0.025;
-  const MRZ_GAP_MIN_FRAC = MRZ_LINE_MIN_H_FRAC * 0.4;
-  const MRZ_GAP_MAX_FRAC = MRZ_LINE_MAX_H_FRAC * 3.5;
+  // (0.04).
+  const MRZ_ROW_MIN_FRAC = 0.10;      // of the row transition profile's own peak
+  const MRZ_MIN_WIDTH_FRAC = 0.55;    // of the guide's width, per candidate line
+  const MRZ_HEIGHT_RATIO_MAX = 2;     // the taller candidate ÷ the shorter, at most
+  // 0.25, NOT THE BRIEF'S ROUND-NUMBER 0.3 — MEASURED, NOT GUESSED. The
+  // owner's own `frame1-mrz-visible.jpg` (both lines genuinely in the box)
+  // has a real gap/row-height ratio of 10/35 = 0.286: a monospace OCR-B TD3
+  // page's two lines sit closer together than a first-pass guess assumed.
+  // 0.3 rejected the owner's own passing frame by half a pixel of gap; 0.25
+  // still excludes a single dense row of ordinary body text mistaken for two
+  // (that has no partner at all, so `rows.length < 2` throws it out before
+  // this ratio is ever checked) and excludes a stray stamp/signature sitting
+  // much farther from the code than a line's own height.
+  const MRZ_GAP_MIN_MULT = 0.25;      // × a row's own height
+  const MRZ_GAP_MAX_MULT = 2.0;
 
   // Every run above `t`, tolerating gaps of up to `gap` — `longestRun` (above)
   // widened to return ALL qualifying runs instead of only the longest, because
@@ -1225,75 +1276,130 @@
     return runs;
   }
 
-  // PURE. `g`/`w`/`h` are `analysePixels`' own luma buffer; `zx0/zx1/zy0/zy1`
-  // is the bottom zone of the guide in that buffer's pixel coordinates, and
-  // `guideW`/`guideH` are the GUIDE's own pixel size in the same buffer (the
-  // denominator every fraction above is written against). Returns
-  // `{ ok, lines }`: `lines` is how many qualifying rows were found — carried
-  // through to `client_metrics` so a decline has a number attached instead of
-  // a guess — and `ok` is true only once two of them sit a line-height apart.
-  function mrzProfile(g, w, h, zx0, zx1, zy0, zy1, guideW, guideH) {
-    const zw = zx1 - zx0, zh = zy1 - zy0;
-    if (!guideW || !guideH || zw < 16 || zh < 4) return { ok: false, lines: 0 };
+  // PURE. `g`/`w`/`h` is the luma buffer `makeMrzAnalyser` built for THE ZONE
+  // ALONE — the lower `MRZ_ZONE_FRAC` of the guide, drawn at native
+  // resolution and at least `MRZ_EDGE_MIN` source pixels wide — so `w` IS the
+  // guide's own width in this buffer's pixel scale and every width fraction
+  // below is already "of the guide" with no separate guideW/guideH to carry
+  // in. Returns `{ ok, lines, rows }`: `rows` is every candidate that passed
+  // the width test, each `{ y0, y1, h, wFrac }` — carried through so a decline
+  // has numbers attached instead of a guess, and so this function is checkable
+  // from Node against a literal buffer with no camera in the room — `lines`
+  // is how many, and `ok` is true only once two of them are within
+  // `MRZ_HEIGHT_RATIO_MAX` of each other's height and a row-height-scaled gap
+  // apart.
+  function mrzZoneProfile(g, w, h) {
+    if (!g || w < 64 || h < 8) return { ok: false, lines: 0, rows: [] };
     function cross(x, y) {
       if (x <= 0 || x >= w - 1) return false;
       const i = y * w + x;
       return Math.abs(g[i + 1] - g[i - 1]) > EDGE_T;
     }
 
-    // 1. THE ROWS, exactly as `bandProfile` finds them, but only within the
-    // bottom zone — a dense row of legal print higher up the page must not
-    // read as a line of the code.
-    const row = new Float32Array(zh);
-    for (let y = 0; y < zh; y++) {
+    // 1. THE ROWS: a per-row dark/light transition count, exactly
+    // `bandProfile`'s own edge-crossing test, over the whole zone buffer.
+    const row = new Float32Array(h);
+    for (let y = 0; y < h; y++) {
       let n = 0;
-      const yy = zy0 + y;
-      for (let x = 1; x < zw - 1; x++) if (cross(zx0 + x, yy)) n++;
+      for (let x = 1; x < w - 1; x++) if (cross(x, y)) n++;
       row[y] = n;
     }
     const rS = smooth5(row);
     const rpeak = peakOf(rS);
-    if (rpeak < zw * MRZ_ROW_MIN_FRAC) return { ok: false, lines: 0 };
+    if (rpeak < w * MRZ_ROW_MIN_FRAC) return { ok: false, lines: 0, rows: [] };
 
     // 2. EVERY row-run dense enough to be a candidate line — there may be
     // two, three (a rarer TD1 strip), or a stray one from a stamp or a
-    // signature that the width/height checks below throw back out.
+    // signature that the width/pairing checks below throw back out.
     const runs = allRuns(rS, rpeak * MRZ_ROW_MIN_FRAC, 1);
-    const lines = [];
+    const rows = [];
     runs.forEach(function (run) {
       const y0 = run[0], y1 = run[1];
-      const hFrac = (y1 - y0 + 1) / guideH;
-      if (hFrac < MRZ_LINE_MIN_H_FRAC || hFrac > MRZ_LINE_MAX_H_FRAC) return;
       // 3. THIS candidate's own width — the same column projection
       // `bandProfile` uses, restricted to just these rows, because a run
-      // that is the right height but only a signature or a stamp is not the
-      // right WIDTH and must not count.
-      const col = new Float32Array(zw);
-      for (let y = Math.max(0, y0); y <= Math.min(zh - 1, y1); y++) {
-        for (let x = 1; x < zw - 1; x++) if (cross(zx0 + x, zy0 + y)) col[x] += 1;
+      // that is otherwise dense enough but only a signature or a stamp is
+      // not the right WIDTH and must not count.
+      const col = new Float32Array(w);
+      for (let y = Math.max(0, y0); y <= Math.min(h - 1, y1); y++) {
+        for (let x = 1; x < w - 1; x++) if (cross(x, y)) col[x] += 1;
       }
       const cS = smooth5(col);
       const cpeak = peakOf(cS);
       if (cpeak < 1) return;
-      const colRun = longestRun(cS, cpeak * BAND_PROFILE_FRAC, Math.max(2, Math.round(zw * 0.02)));
+      const colRun = longestRun(cS, cpeak * BAND_PROFILE_FRAC, Math.max(2, Math.round(w * 0.02)));
       if (!colRun) return;
-      const wFrac = (colRun[1] - colRun[0] + 1) / guideW;
+      const wFrac = (colRun[1] - colRun[0] + 1) / w;
       if (wFrac < MRZ_MIN_WIDTH_FRAC) return;
-      lines.push({ y0: y0, y1: y1 });
+      rows.push({ y0: y0, y1: y1, h: y1 - y0 + 1, wFrac: round3(wFrac) });
     });
-    if (lines.length < 2) return { ok: false, lines: lines.length };
+    if (rows.length < 2) return { ok: false, lines: rows.length, rows: rows };
 
-    // 4. TWO OF THEM A LINE-HEIGHT APART, not the whole page's worth. Checked
-    // on every adjacent pair rather than assumed to be the first two found —
-    // a stray dense row above the code (a stamp, a signature) must not stand
-    // in for line one just because it happened to come first.
-    for (let i = 0; i < lines.length - 1; i++) {
-      const gapFrac = (lines[i + 1].y0 - lines[i].y1 - 1) / guideH;
-      if (gapFrac >= MRZ_GAP_MIN_FRAC && gapFrac <= MRZ_GAP_MAX_FRAC) {
-        return { ok: true, lines: lines.length };
+    // 4. TWO OF THEM WITHIN RATIO OF EACH OTHER'S HEIGHT AND A GAP SCALED TO
+    // THAT HEIGHT — checked on every adjacent pair rather than assumed to be
+    // the first two found, because a stray dense row above the code (a stamp,
+    // a signature) must not stand in for line one just because it happened to
+    // come first.
+    for (let i = 0; i < rows.length - 1; i++) {
+      const a = rows[i], b = rows[i + 1];
+      const ratio = Math.max(a.h, b.h) / Math.max(1, Math.min(a.h, b.h));
+      if (ratio > MRZ_HEIGHT_RATIO_MAX) continue;
+      const rowH = (a.h + b.h) / 2;
+      const gap = b.y0 - a.y1 - 1;
+      if (gap >= rowH * MRZ_GAP_MIN_MULT && gap <= rowH * MRZ_GAP_MAX_MULT) {
+        return { ok: true, lines: rows.length, rows: rows };
       }
     }
-    return { ok: false, lines: lines.length };
+    return { ok: false, lines: rows.length, rows: rows };
+  }
+
+  // The canvas half, exactly `makeBandAnalyser`'s own shape: draws THE ZONE
+  // of the raw video (the lower `MRZ_ZONE_FRAC` of the guide) into its own
+  // strip, at least `MRZ_EDGE_MIN` px wide and at most `MRZ_EDGE_MAX`, and
+  // profiles it. Not the 208 px canvas — see the round-7 header above for why
+  // that was the actual defect.
+  function makeMrzAnalyser() {
+    const c = document.createElement('canvas');
+    let ctx = null;
+    try { ctx = c.getContext('2d', { willReadFrequently: true }); }
+    catch (e) { ctx = c.getContext('2d'); }
+    let tick = 0, last = null;
+
+    // EVERY OTHER TICK. A ≥640 px `getImageData` plus two projection passes
+    // is real work next to the 208 px canvas everything else on this step
+    // uses; a passport page held in a hand does not change fast enough to
+    // need a fresh answer every 80 ms, and reusing the previous tick's
+    // verdict for the skipped one costs nothing a guest can perceive. The
+    // very first call always measures — there is no `last` to reuse yet.
+    function read(video, rectNorm) {
+      tick++;
+      if (tick % 2 === 0 && last) return last;
+      if (!ctx || !video || !rectNorm) return last;
+      const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
+      if (!vw || !vh) return last;
+      const gx0 = clamp(Math.floor(rectNorm.x * vw), 0, vw - 2);
+      const gy0 = clamp(Math.floor(rectNorm.y * vh), 0, vh - 2);
+      const gw = clamp(Math.round(rectNorm.w * vw), 2, vw - gx0);
+      const gh = clamp(Math.round(rectNorm.h * vh), 2, vh - gy0);
+      // THE ZONE: the lower MRZ_ZONE_FRAC of the GUIDE, not a thin bottom
+      // strip — a page held so it fills the whole frame can carry its MRZ
+      // anywhere in this band, not only hard against the bottom edge.
+      const zh = clamp(Math.round(gh * MRZ_ZONE_FRAC), 4, gh);
+      const zy0 = gy0 + gh - zh;
+      const k = gw < MRZ_EDGE_MIN ? (MRZ_EDGE_MIN / gw) : gw > MRZ_EDGE_MAX ? (MRZ_EDGE_MAX / gw) : 1;
+      const w = Math.max(64, Math.round(gw * k)), h = Math.max(8, Math.round(zh * k));
+      c.width = w; c.height = h;
+      try { ctx.drawImage(video, gx0, zy0, gw, zh, 0, 0, w, h); } catch (e) { return last; }
+      let px;
+      try { px = ctx.getImageData(0, 0, w, h).data; } catch (e) { return last; }
+      const g = new Float32Array(w * h);
+      for (let i = 0, p = 0; i < g.length; i++, p += 4) {
+        g[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
+      }
+      const m = mrzZoneProfile(g, w, h);
+      last = { mrz_ok: m.ok, mrz_lines: m.lines };
+      return last;
+    }
+    return { read: read };
   }
 
   // The same two measurements over a whole CANVAS rather than a video's guide
@@ -1447,6 +1553,23 @@
   // the step's own ~8 s clock (not this gate's — a pure function has no
   // clock of its own) for swapping the generic ask for the specific one; see
   // `MRZ_STRUGGLE_MS` in `DocStep`.
+  //
+  // `opts.mrzTimedOut` — ROUND 7, 2026-09-09: A SECOND, EARLIER CLOCK (6 s,
+  // `MRZ_TIMEOUT_MS` in `DocStep`) THAT DOES NOT JUST CHANGE THE SENTENCE, IT
+  // LIFTS THE GATE. Round 6's `requireMrz` made `gates.mrz` a hard
+  // precondition of `pass` forever — correct for the first eight seconds
+  // (the owner's own frames prove the detector can be blind to a code that is
+  // genuinely in the box, e.g. `frame1-mrz-visible.jpg` at an angle the width
+  // test is stricter about than a human eye is), wrong as a permanent trap.
+  // "The engine scans the whole frame now" is the reason it is safe to lift:
+  // this file's job was never to DECODE the MRZ, only to gate the SHUTTER on
+  // "is there probably a code in the box" — the actual read happens
+  // server-side against the full uploaded frame, which sees more than a
+  // guide-cropped, 640 px client-side profile ever will. So once the guest
+  // has held a framed, lit, focused, still passport in front of the camera
+  // for 6 s with no band found, the honest move is to take the photograph and
+  // let the server decide, not to hold the guest hostage to a client-side
+  // heuristic that may simply be wrong about this one frame.
   function docGate(m, relax, opts) {
     if (!m) return { pass: false, hint: null, gates: {} };
     const o = opts || {};
@@ -1462,7 +1585,11 @@
       fill: framed,
       still: m.motion != null && m.motion <= GATE.MOTION_MAX * (relax == null ? 1 : (2 - relax)),
     };
-    if (o.requireMrz) gates.mrz = !!m.mrz_ok;
+    // `gates.mrz` is the thing `pass`/`forceOk` read; the RAW `m.mrz_ok` is
+    // still what goes to the server unchanged (see `clientMetrics`), so lifting
+    // this gate after the timeout never dresses up the telemetry — a decline
+    // downstream still sees the honest "we never found a band" number.
+    if (o.requireMrz) gates.mrz = !!m.mrz_ok || !!o.mrzTimedOut;
     let hint = null;
     if (!gates.light) hint = (m.exposure != null && m.exposure > GATE.EXPOSURE_MAX)
       ? 'Too bright — move out of the direct light'
@@ -1479,6 +1606,14 @@
       if (!known) hint = 'Lay the card inside the frame';
       else if (m.doc_outside != null && m.doc_outside > GATE.DOC_OUTSIDE_MAX) hint = 'Fit the whole card in the frame';
       else hint = 'Move closer';
+    } else if (o.requireMrz && !m.mrz_ok && o.mrzTimedOut) {
+      // THE HONEST SENTENCE FOR THE OVERRIDE. `gates.mrz` is true here (the
+      // timeout lifted it) so `pass` can go through, but the guest has not
+      // been shown a band and is about to be photographed anyway — saying
+      // "Hold still" as if nothing were unusual would be the same dishonesty
+      // brief §2 already ruled out for network errors, just about a camera
+      // gate instead of a request.
+      hint = "We'll check this photo — keep the two code lines inside the box if you can";
     } else if (o.requireMrz && !gates.mrz) {
       hint = o.mrzStruggling
         ? 'Move the passport so the two code lines at the bottom are inside the box'
@@ -1491,7 +1626,9 @@
     // anything but the ordinary settle — see the face gate's identical use of
     // it for "no face, no forced snap". Undefined (every non-passport call)
     // changes nothing: `mayForce` there treats "not exactly false" as
-    // permission, which is the gate this function has always given.
+    // permission, which is the gate this function has always given. Once the
+    // 6 s timeout lifts `gates.mrz` this is true too, belt and braces — the
+    // ordinary settle path above already fires on `pass` alone.
     return { pass: pass, hint: hint, gates: gates,
       forceOk: o.requireMrz ? !!gates.mrz : undefined };
   }
@@ -1657,10 +1794,10 @@
       torch: s.torch == null ? null : !!s.torch,
       face_fill: s.face_fill == null ? null : s.face_fill,
       // THE MRZ EQUIVALENT OF `band_frac`/`band_w_px` ABOVE. `null` on every
-      // upload but a passport `document_front` — see `wantMrz` in
-      // `analysePixels` — so a decline on that step carries a number
-      // (`mrz_lines`: 0, 1, 2, 3…) instead of a guess about why the code was
-      // never found.
+      // upload but a passport `document_front` — see `makeMrzAnalyser`,
+      // wired in only when `isPassportFront` — so a decline on that step
+      // carries a number (`mrz_lines`: 0, 1, 2, 3…) instead of a guess about
+      // why the code was never found.
       mrz_ok: s.mrz_ok == null ? null : !!s.mrz_ok,
       mrz_lines: s.mrz_lines == null ? null : s.mrz_lines,
       detector: s.detector || fallbackDetector || 'heuristic',
@@ -2764,15 +2901,20 @@
       // from these hints: a faint dashed rectangle where the portrait sits
       // (left third, so the guest does not centre the guide on their own
       // photo and clip the code), and — 2026-09-09 — a THICKER dashed band
-      // along the bottom for the machine-readable zone, sized to match the
-      // SAME `MRZ_ZONE_FRAC` the on-device detector actually scans (see
-      // `mrzProfile`), so the box drawn here is not a decoration that
-      // disagrees with what the guest is being graded on. The two thin
-      // guide-lines round 6 drew inside it are gone: this file's own barcode
-      // guide (`'band'`, above) is one closed rectangle, not a sketch of
-      // individual bars, and one obvious band reads clearer than two faint
-      // rules once the words "bring both lines of the code" are doing the
-      // rest of the explaining.
+      // for the machine-readable zone, sized to match the SAME
+      // `MRZ_ZONE_FRAC` the on-device detector actually scans (see
+      // `mrzZoneProfile`), so the box drawn here is not a decoration that
+      // disagrees with what the guest is being graded on. ROUND 7: this is
+      // now the LOWER 45 % of the guide, not a thin 32 % bottom strip — a
+      // page held so it fills the whole frame can carry its code anywhere in
+      // this band, not only hard against the bottom edge, and the box drawn
+      // here has to keep matching whatever the detector actually scans or it
+      // becomes exactly the kind of "directions overlaying the wrong place"
+      // the owner reported. The two thin guide-lines round 6 drew inside it
+      // are gone: this file's own barcode guide (`'band'`, above) is one
+      // closed rectangle, not a sketch of individual bars, and one obvious
+      // band reads clearer than two faint rules once the words "bring both
+      // lines of the code" are doing the rest of the explaining.
       strokeShape(s.neutral, 3, 1, 0);
       if (alpha > 0.01) strokeShape(s.tone, 3.5, alpha, 0);
 
@@ -2945,18 +3087,28 @@
   }
 
   // ── the live hint ────────────────────────────────────────────────────────
-  // ONE LINE, OVER THE VIEWFINDER, NOT UNDER IT. Veriff's placement, and the
-  // reason for it is eye-line: a guest lining a card up is looking at the
-  // preview, and a sentence 200 pixels below it is a sentence nobody reads.
+  // ONE LINE, OVER THE VIEWFINDER. Veriff's placement, and the reason for it
+  // is eye-line: a guest lining a card up is looking at the preview, and a
+  // sentence 200 pixels below it is a sentence nobody reads.
   // `imgScrim` is the token that exists for exactly this — legible ink over
   // unknown pixels.
-  function HintChip({ text, tone, bottom }) {
+  //
+  // `top` vs `bottom` — ROUND 7, 2026-09-09: this used to anchor to `bottom`
+  // unconditionally, which on every document step is exactly where the guide
+  // itself draws its own thickest edge (the barcode band, and — worse — the
+  // passport's MRZ band) to invite the guest to put the code there. The
+  // owner's own words: "the directions are literally overlaying where the
+  // text needs to be." `DocStep` now passes `top` instead for every document
+  // step, so the sentence sits clear of whatever the guide is asking the
+  // guest to fill at the BOTTOM of the frame. Selfie keeps `bottom` — the
+  // oval has no edge-hugging content to cover.
+  function HintChip({ text, tone, bottom, top }) {
     const P = useP();
     if (!text) return null;
+    const edge = top != null ? { top: top } : { bottom: bottom == null ? P.space.x5 : bottom };
     return (
-      <div aria-live="polite" style={{ position: 'absolute', left: 0, right: 0,
-        bottom: bottom == null ? P.space.x5 : bottom,
-        display: 'flex', justifyContent: 'center', pointerEvents: 'none', padding: `0 ${P.space.x3}px` }}>
+      <div aria-live="polite" style={Object.assign({ position: 'absolute', left: 0, right: 0,
+        display: 'flex', justifyContent: 'center', pointerEvents: 'none', padding: `0 ${P.space.x3}px` }, edge)}>
         <span style={{ maxWidth: '94%', textAlign: 'center', background: P.imgScrim, color: P.railBright,
           borderRadius: P.r20, padding: `${P.space.x2}px ${P.space.x5}px`, fontSize: P.type.h2,
           fontWeight: P.weight.emph, lineHeight: 1.3, transition: 'border-color .2s ease',
@@ -4907,6 +5059,21 @@
   // (see `docGate`'s `forceOk`), so this clock's only job is which sentence
   // to show while the guest keeps looking, never when to snap.
   const MRZ_STRUGGLE_MS = 8000;
+  // ── ROUND 7, 2026-09-09: THE GATE MUST NOT TRAP ──────────────────────────
+  // `MRZ_STRUGGLE_MS` only ever changed the SENTENCE; `requireMrz` still made
+  // `gates.mrz` a precondition of `pass` with no way out, so a detector that
+  // is wrong about one genuinely-framed frame (see the round-7 header on
+  // `docGate`) could hold a guest in front of the camera forever. This is the
+  // clock that actually lifts the gate: 6 s of a CONTINUOUSLY framed, lit,
+  // focused, still passport with no band found is the signal that the client
+  // heuristic — not the guest — is the thing that is wrong, and the honest
+  // move is to take the photo and let the server's own read of the full frame
+  // decide, not to keep asking. Shorter than `MRZ_STRUGGLE_MS` on purpose: by
+  // the time the specific "move the passport" sentence would show, a
+  // genuinely well-framed guest has usually already been snapped by this
+  // clock instead — which is the point, not a bug two numbers happen to
+  // expose. See `gate` in `DocStep` for where the two clocks combine.
+  const MRZ_TIMEOUT_MS = 6000;
 
   function DocStep({ step, token, base, accent, copy, shell, onUploaded, onSkip, onNotice, notice,
     fix, pickerPhotos, setPickerPhotos, medicalRecOffered, reduced, onGiveUp, documentType }) {
@@ -4940,6 +5107,13 @@
     // The overlay reads this at 60 Hz and the analyser writes it at 12; it is a
     // ref rather than state so a moving rectangle does not re-render a screen.
     const bandRef = React.useRef(null);
+    // ── ROUND 7 state, all of it about the MRZ ── `shape` is not known this
+    // early in the file (it is computed just below), so this is re-derived
+    // from `step`/`documentType` directly rather than depending on `shape` —
+    // the same guard `isPassportFront` uses once it exists.
+    const mrzAnalyser = React.useMemo(function () {
+      return (!isBack && documentType === 'passport') ? makeMrzAnalyser() : null;
+    }, [isBack, documentType]);
     const [stalled, setStalled] = React.useState(false);
     const [givingUp, setGivingUp] = React.useState(false);
     // The zoom the page applied, and the zoom it found. `base` is restored on
@@ -5020,7 +5194,15 @@
       const v = cam.videoRef.current;
       const g = measureGuide(boxRef.current, v, shape);
       if (!v || !g) return null;
-      const base2 = analyser.read(v, g.rect, isPassportFront);
+      const base2 = analyser.read(v, g.rect);
+      // ROUND 7: THE MRZ IS ITS OWN ANALYSER NOW, NOT A FLAG ON THE 208 PX
+      // ONE. See `makeMrzAnalyser`'s own header for why a dedicated,
+      // ≥640 px-wide canvas replaced the `wantMrz` path this used to take
+      // through `analyser.read`.
+      if (isPassportFront && mrzAnalyser) {
+        const mz = mrzAnalyser.read(v, g.rect);
+        return Object.assign({}, base2 || {}, mz || {});
+      }
       if (!isBack || !bandAnalyser) return base2;
       const b = bandAnalyser.read(v, g.rect);
       const merged = Object.assign({}, base2 || {}, b || {});
@@ -5083,7 +5265,7 @@
       merged.torch = torchOn || torchAutoRef.current;
       return merged;
       // eslint-disable-next-line
-    }, [analyser, bandAnalyser, cam.videoRef, cam.stream, shape, isBack, torchable, torchOn]);
+    }, [analyser, bandAnalyser, mrzAnalyser, cam.videoRef, cam.stream, shape, isBack, isPassportFront, torchable, torchOn]);
 
     // ── the decode loop ──
     // Its own clock, its own in-flight guard. A scan that has not answered must
@@ -5115,6 +5297,15 @@
       const id = setTimeout(function () { setMrzStruggling(true); }, MRZ_STRUGGLE_MS);
       return function () { clearTimeout(id); };
     }, [isPassportFront, cam.status, gen]);
+
+    // THE 6 s "FRAMED, STILL, NO BAND" CLOCK — see `MRZ_TIMEOUT_MS` above and
+    // `gate` below. A REF, not state: it is read and written on every tick
+    // inside `gate`, and a ref is what avoids re-rendering the step twice a
+    // second for a number nothing on screen displays directly. Zeroed by
+    // `gen` for the same reason `mrzStruggling` is — a re-armed attempt must
+    // not inherit the previous one's clock.
+    const mrzTimedRef = React.useRef(0);
+    React.useEffect(function () { mrzTimedRef.current = 0; }, [gen]);
 
     const hitRef = React.useRef(null);      // { bytes, quad, canvas, plan } once, then sticky
     const emaRef = React.useRef(null);      // decode latency, ms
@@ -5244,7 +5435,23 @@
           gates: { barcode: false },
         };
       }
-      return docGate(m, relax, { requireMrz: isPassportFront, mrzStruggling: mrzStruggling });
+      if (!isPassportFront) return docGate(m, relax, {});
+      // ── ROUND 7: THE 6 s "FRAMED, STILL, NO BAND" CLOCK ───────────────────
+      // A PROBE CALL FIRST, WITH NO TIMEOUT APPLIED, so the OTHER gates —
+      // light/glare/focus/fill/still — can be read off its own `gates` object
+      // rather than reimplemented here. `docGate` stays the only place those
+      // thresholds live; this only decides how long they have ALL held true
+      // at once with `gates.mrz` the one holdout.
+      const probe = docGate(m, relax, { requireMrz: true, mrzStruggling: mrzStruggling });
+      const framedStillNoBand = !!(probe.gates.light && probe.gates.glare && probe.gates.focus
+        && probe.gates.fill && probe.gates.still && !m.mrz_ok);
+      const now = Date.now();
+      if (!framedStillNoBand) mrzTimedRef.current = 0;
+      else if (!mrzTimedRef.current) mrzTimedRef.current = now;
+      const timedOut = !!(mrzTimedRef.current && (now - mrzTimedRef.current) >= MRZ_TIMEOUT_MS);
+      return timedOut
+        ? docGate(m, relax, { requireMrz: true, mrzStruggling: mrzStruggling, mrzTimedOut: true })
+        : probe;
     }, [isBack, readerKind, isPassportFront, mrzStruggling]);
 
     // Degraded means "there is no PDF417 decoder on this device at all", which
@@ -5580,7 +5787,8 @@
           <CaptureOverlay shape={shape} tone={accent} ready={auto.ready && !snapped} dim={P.imgScrim}
             progress={snapped ? 0 : auto.progress} locked={snapped} reduced={reduced}
             bandRef={isBack && !snapped ? bandRef : null} />
-          <HintChip text={standing} tone={auto.ready ? P.good : null} />
+          {/* ROUND 7: TOP, NOT BOTTOM — every document guide (band, passport MRZ) draws its own busiest edge at the bottom, exactly where this pill used to sit. See HintChip's own header. */}
+          <HintChip text={standing} tone={auto.ready ? P.good : null} top={P.space.x3} />
           {torchable && live && !snapped ? <TorchButton on={torchOn} onToggle={toggleTorch} /> : null}
           <Shutter on={shutter} done={snapped && !tilt} />
         </div>
@@ -6665,6 +6873,19 @@
     // against the brief's three seconds instead of recomputed by hand.
     DISAGREE_FRONT_MS: DISAGREE_FRONT_MS, FORCE_WINDOW_MS: FORCE_WINDOW_MS,
     FORCE_MIN_SAMPLES: FORCE_MIN_SAMPLES,
+    // ── ROUND 7's OWN STATICS, THE PASSPORT MRZ ──────────────────────────
+    // `mrzZoneProfile` is pure and takes a literal luma buffer, so "does
+    // frame 1's MRZ band detect, and do frames 2/3 correctly not" is
+    // answerable from Node against a real photo's pixels rather than by
+    // trusting a phone. `mrzAnalyser` is exported too, the same way
+    // `bandAnalyser` is below, for a harness that wants the actual
+    // canvas-drawing half exercised as well as the pure math.
+    mrzZoneProfile: mrzZoneProfile, mrzAnalyser: makeMrzAnalyser,
+    MRZ_ZONE_FRAC: MRZ_ZONE_FRAC, MRZ_EDGE_MIN: MRZ_EDGE_MIN, MRZ_EDGE_MAX: MRZ_EDGE_MAX,
+    MRZ_ROW_MIN_FRAC: MRZ_ROW_MIN_FRAC, MRZ_MIN_WIDTH_FRAC: MRZ_MIN_WIDTH_FRAC,
+    MRZ_HEIGHT_RATIO_MAX: MRZ_HEIGHT_RATIO_MAX,
+    MRZ_GAP_MIN_MULT: MRZ_GAP_MIN_MULT, MRZ_GAP_MAX_MULT: MRZ_GAP_MAX_MULT,
+    MRZ_STRUGGLE_MS: MRZ_STRUGGLE_MS, MRZ_TIMEOUT_MS: MRZ_TIMEOUT_MS,
   };
   // ── ROUND 4's OWN STATICS ────────────────────────────────────────────────
   // EVERY ONE OF THESE IS THE ANSWER TO A QUESTION THAT COST A SESSION ON A
