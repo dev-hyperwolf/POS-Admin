@@ -69,3 +69,29 @@ amber with "short stock"; a legend strip of box types plus shortfall/skipped row
 **Keep, verbatim, in every later round:** the kit column composition (timeline + driver card +
 box card stack), the box-type colour legend, the row schema and the tinted shortfall/skipped rows.
 Concept B's file: `explorations/Distribution Refill - Concept B - Box Cards.html`.
+
+## 2026-09-10 · keeper from Concept D (Tablet Packing) + RFID requirement
+
+**Said.** Likes the box panel: box breadcrumb across the top (Flower Box 1 ✓ ▸ Flower Box 2 ▸
+Pre-Roll Box 1 ▸ …), "Manage box types", large product rows with SOLD · NEED · CAP and a big
+− qty + stepper, the shortfall row tinted amber with "Reason: Short stock" and a Fix button, and
+the full-width green "Box packed" button. **Keep.**
+
+**RFID.** Once the team assembles a kit they scan every item in it with an RFID scanner, and that
+must immediately flag any discrepancy against the refill plan or the initial build. Kits are
+also scanned when the driver returns them, to verify quickly what came back. The RFID project in
+our estate must be considered in the next round; no redesign yet.
+
+**Implications.**
+- Two new verification moments in the flow: **pack verify** (after build or refill, scan vs plan
+  per box) and **return verify** (scan vs dispatched − sold). Both produce discrepancies with a
+  reason, and both belong on the timeline (Built → Frozen → Synced → Dispatched → **Pack-verified**
+  → Refilled → **Returned/verified** → Closed).
+- The plan the engine emits must be **tag-resolvable**: each planned unit maps to a batch, and the
+  RFID tag must map to a batch (tag → product batch → SKU); a batch-level mismatch (right SKU,
+  wrong batch) is exactly the mixed-batch case from the previous note and must show as such.
+- Box-level truth: the RFID screen in our estate already assigns each tag to the box it read
+  strongest in; the pack verify can therefore say "GMO 7g: planned 6 in Flower Box 1, read 5 in
+  Flower Box 1 and 1 in Flower Box 2".
+- Return verify feeds closure: expected back = dispatched − sold (Blaze) ± refills; read back =
+  RFID; difference = discrepancy, pre-filled for Loss Prevention.
