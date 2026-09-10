@@ -30,6 +30,7 @@ Actor header on console routes: `X-HW-Actor: <associate id>`; the backend resolv
 //         OUT_OF_STATE DOC_NEAR_EXPIRY ENGINE_UNAVAILABLE_MANUAL
 // decline: DOC_EXPIRED UNDER_AGE FACE_BLOCKLIST_HIT DOCUMENT_BLOCKLIST_HIT USER_BLOCKLIST_HIT
 //          IP_TOR INJECTION_DETECTED CHALLENGE_NONCE_MISMATCH LIVENESS_ATTEMPTS_EXHAUSTED_HARD
+//          MED_REC_JURISDICTION_UNCONFIGURED
 
 // Score — every model output carries provenance; the UI prints caption verbatim
 { "score": 87.4, "status": "Approved", "model": "minifasnet-v2", "model_version": "2.0",
