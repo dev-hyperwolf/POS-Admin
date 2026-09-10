@@ -35,6 +35,63 @@
 ;(function () {
   const useP = window.useP;
 
+  // ── the proof image, fetched with the seam's own auth ────────────────────
+  // Addendum 2 (2026-09-09): an Approved session's payload can carry
+  // `proof_url`, the selfie-over-ID composite the engine built. A bare
+  // `<img src>` cannot carry the header this route needs, so this fetches
+  // the bytes itself and hands back a blob: URL — the same pattern
+  // idv/screen-session.jsx's `useBlobUrl`/`fetchBytes` already uses for
+  // every other piece of session media, and the same auth (actor header +
+  // console PIN token) this seam already sends on `/api/idv/workflows` and
+  // `POST /api/idv/sessions` above.
+  function liveBase() { return (window.HW_LIVE && window.HW_LIVE.base) || ''; }
+  function proofUrlFor(path) {
+    return /^https?:\/\//.test(path) ? path : (liveBase() + path);
+  }
+  function fetchProofBlob(path) {
+    const headers = (window.HWIdv && typeof window.HWIdv.actorHeaders === 'function')
+      ? window.HWIdv.actorHeaders() : {};
+    return fetch(proofUrlFor(path), { method: 'GET', credentials: 'omit', cache: 'no-store', headers: headers })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.blob(); });
+  }
+  function useProofBlobUrl(path) {
+    const [url, setUrl] = React.useState(null);
+    React.useEffect(function () {
+      let alive = true, objUrl = null;
+      if (!path) { setUrl(null); return undefined; }
+      fetchProofBlob(path).then(function (blob) {
+        if (!alive) return;
+        objUrl = URL.createObjectURL(blob);
+        setUrl(objUrl);
+      }).catch(function () { if (alive) setUrl(null); });
+      return function () { alive = false; if (objUrl) URL.revokeObjectURL(objUrl); };
+    }, [path]);
+    return url;
+  }
+
+  // ── the result card ───────────────────────────────────────────────────────
+  // Nothing stamped on it but the image and the one caption — the reasons,
+  // the workflow name, the session id are all elsewhere (the console, the
+  // register's own document line). This card exists to answer one question
+  // at the counter: was a photo actually collected.
+  function ProofCard({ path }) {
+    const P = useP();
+    const url = useProofBlobUrl(path);
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: P.space.x2 }}>
+        <div style={{ width: '100%', maxWidth: 320, borderRadius: P.r8, overflow: 'hidden',
+          border: `1px solid ${P.hairline}`, background: P.canvas2, display: 'flex',
+          alignItems: 'center', justifyContent: 'center' }}>
+          {url
+            ? <img src={url} alt="Proof of ID collected" style={{ width: '100%', display: 'block' }} />
+            : <div style={{ width: '100%', aspectRatio: '3/4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <window.Skeleton w={120} h={11} />
+              </div>}
+        </div>
+        <span style={{ fontSize: P.type.meta, color: P.inkDim }}>Proof of ID collected</span>
+      </div>);
+  }
+
   // ── the workflow this counter uses ───────────────────────────────────────
   // NOTHING IN THE ESTATE SAYS WHICH WORKFLOW A STORE'S COUNTER SHOULD RUN.
   // There is no per-store or per-channel workflow setting in the contract, so
@@ -112,9 +169,10 @@
   // KYC+OCR one — see pickWorkflow above. Omitted, behaviour is unchanged.
   window.IdvCheckinSeam = function IdvCheckinSeam({ customer, onVerified, compact, medical }) {
     const P = useP();
-    const [phase, setPhase] = React.useState('idle');   // idle | creating | live | failed | needs-pin
+    const [phase, setPhase] = React.useState('idle');   // idle | creating | live | approved | failed | needs-pin
     const [session, setSession] = React.useState(null);
     const [err, setErr] = React.useState(null);
+    const [proofPath, setProofPath] = React.useState(null);
     const aliveRef = React.useRef(true);
 
     React.useEffect(function () {
@@ -203,6 +261,13 @@
     function onDone(result) {
       if (!result || result.status !== 'Approved') return;
       if (typeof onVerified === 'function') onVerified(verifyDoc(session || {}));
+      // Addendum 2: only Approved-with-a-proof-image gets a result card. No
+      // `proof_url` is exactly today's behaviour — the live capture area (and
+      // whatever it renders for its own outcome) stays untouched.
+      if (result.proof_url) {
+        setProofPath(result.proof_url);
+        setPhase('approved');
+      }
     }
 
     // ONE LINE, AND IT NAMES THE ONE ACTION THAT FIXES IT. Deliberately an
@@ -247,6 +312,17 @@
         <div data-hw="idv-checkin-seam" style={{ display: 'flex', alignItems: 'center', gap: P.space.x2 }}>
           <window.Skeleton w={160} h={11} />
           <span style={{ fontSize: P.type.meta, color: P.inkDim }}>Opening a Verify session…</span>
+        </div>);
+    }
+
+    // Approved, with a proof image on the callback. `onVerified` already
+    // fired above the moment `onDone` learned this — the check-in flow does
+    // not wait on this card. This is only the counter's own confirmation
+    // that a photo was actually collected.
+    if (phase === 'approved') {
+      return (
+        <div data-hw="idv-checkin-seam" style={{ display: 'flex', flexDirection: 'column', gap: P.space.x2 }}>
+          <ProofCard path={proofPath} />
         </div>);
     }
 

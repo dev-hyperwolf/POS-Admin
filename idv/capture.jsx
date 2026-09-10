@@ -643,6 +643,11 @@
   // the guest fills.
   const GUIDE_PAD = 0.045;
   const BAND_ASPECT = 4;          // the barcode guide, width : height
+  // The passport photo page, held open and photographed landscape: a real
+  // TD3 bio page runs about 125 x 88 mm, which is 1.42 : 1 — closer to
+  // square than a card's 1.586, and its own shape (see 'passport' below),
+  // not a re-use of 'card'.
+  const PASSPORT_ASPECT = 1.42;
   function guideBox(shape, w, h) {
     if (shape === 'oval') {
       const rx = Math.min(w * 0.34, h * 0.30), ry = rx * 1.32;
@@ -651,10 +656,12 @@
     }
     const pad = Math.min(w, h) * GUIDE_PAD;
     let bw = w - pad * 2;
-    let bh = shape === 'page' ? bw * 1.294 : shape === 'band' ? bw / BAND_ASPECT : bw / 1.586;
+    let bh = shape === 'page' ? bw * 1.294 : shape === 'band' ? bw / BAND_ASPECT
+      : shape === 'passport' ? bw / PASSPORT_ASPECT : bw / 1.586;
     if (bh > h - pad * 2) {
       bh = h - pad * 2;
-      bw = shape === 'page' ? bh / 1.294 : shape === 'band' ? bh * BAND_ASPECT : bh * 1.586;
+      bw = shape === 'page' ? bh / 1.294 : shape === 'band' ? bh * BAND_ASPECT
+        : shape === 'passport' ? bh * PASSPORT_ASPECT : bh * 1.586;
     }
     return { oval: false, x: (w - bw) / 2, y: (h - bh) / 2, w: bw, h: bh,
       cx: w / 2, cy: h / 2, rx: bw / 2, ry: bh / 2 };
@@ -2134,6 +2141,18 @@
   const TERMINAL = ['Approved', 'Declined', 'In Review', 'Abandoned', 'Expired', 'Kyc Expired'];
   function isTerminal(status) { return TERMINAL.indexOf(status) >= 0; }
 
+  // ── passport / MRZ contract (2026-09-09) ─────────────────────────────────
+  // THE DEFENSIVE FALLBACK, USED ONLY WHEN `GET state` CARRIES NO `steps` AT
+  // ALL — a live-but-behind-schedule backend, or the seam this page is
+  // pointed at while the backend agent is still shipping the field. The
+  // contract's own wording: licence -> front/back/selfie, passport ->
+  // front/selfie. The instant the server sends a real `steps` array (with or
+  // without medical_rec/challenge) that array wins outright — see `stepIds`
+  // below — so this pair only ever describes a session this page cannot yet
+  // ask the server about.
+  const LICENCE_FALLBACK_STEPS = ['document_front', 'document_back', 'selfie'];
+  const PASSPORT_FALLBACK_STEPS = ['document_front', 'selfie'];
+
   // What the guest reads at each step. `branding.copy` (Customization) wins
   // where the owner has set a sentence, because that is the whole point of the
   // white-label screen; the BIG WORD is not in the customization schema.
@@ -2160,6 +2179,23 @@
     consent: 'Get started', document_front: 'Front of ID', document_back: 'Back of ID',
     medical_rec: 'Recommendation', selfie: 'Selfie', challenge: 'Liveness check',
   };
+
+  // PASSPORT OVERRIDES. Only `document_front` differs — there is no
+  // `document_back` step on a passport session at all (it never appears in
+  // `stepIds`, so its own copy is never read), and selfie/challenge are the
+  // same camera pass either way.
+  const PASSPORT_STEP_COPY = {
+    document_front: { big: 'Photo page', say: 'Open your passport to the photo page.' },
+  };
+  const PASSPORT_STEP_TITLE = { document_front: 'Photo page' };
+  function stepCopyFor(step, documentType) {
+    if (documentType === 'passport' && PASSPORT_STEP_COPY[step]) return PASSPORT_STEP_COPY[step];
+    return STEP_COPY[step] || { big: 'One more photo', say: '' };
+  }
+  function stepTitleFor(step, documentType) {
+    if (documentType === 'passport' && PASSPORT_STEP_TITLE[step]) return PASSPORT_STEP_TITLE[step];
+    return STEP_TITLE[step] || 'Photo';
+  }
 
   // THE OFFERED (optional) ENTRY COPY — an 18–20-year-old on a REC_21 workflow
   // with offer_medical_path on (contract round-3 addendum §B).
@@ -2517,6 +2553,49 @@
       // can see all of is a boundary you can fit something inside.
       strokeShape(s.neutral, 3, 1, 0);
       if (alpha > 0.01) strokeShape(s.tone, 3.5, alpha, 0);
+    } else if (s.shape === 'passport') {
+      // A CLOSED BOX, LIKE THE BAND — a passport's photo page has printed
+      // edges of its own, not a card's free corners floating in a hand, so
+      // the boundary-fitting instruction ('band's reasoning above) applies
+      // here too. Two things are drawn ON TOP that the ordinary front-of-
+      // document gates never measure and the engine reads server-side from
+      // the whole frame, not from these hints: a faint dashed rectangle
+      // where the portrait sits (left third, so the guest does not centre
+      // the guide on their own photo and clip the MRZ), and two dashed
+      // lines along the bottom for the machine-readable zone. Neither is
+      // fed to `bandRef` — there is no on-device MRZ reader, no worker, and
+      // nothing here gates the shutter on either shape being filled.
+      strokeShape(s.neutral, 3, 1, 0);
+      if (alpha > 0.01) strokeShape(s.tone, 3.5, alpha, 0);
+
+      const pw = box.w * 0.30, ph = box.h * 0.62;
+      const px = box.x + box.w * 0.06, py = box.y + (box.h - ph) / 2 - box.h * 0.04;
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = s.neutral;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 5]);
+      ctx.beginPath();
+      roundRectPath(ctx, px, py, pw, ph, 6);
+      ctx.stroke();
+      ctx.restore();
+
+      const mrzH = box.h * 0.16;
+      const mrzY = box.y + box.h - mrzH - box.h * 0.05;
+      const lineGap = mrzH * 0.55;
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.strokeStyle = s.neutral;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      [0, 1].forEach(function (i) {
+        const ly = mrzY + i * lineGap;
+        ctx.beginPath();
+        ctx.moveTo(box.x + box.w * 0.05, ly);
+        ctx.lineTo(box.x + box.w * 0.95, ly);
+        ctx.stroke();
+      });
+      ctx.restore();
     } else {
       // Corner brackets, not a closed rectangle: the Concept D document frame,
       // and the shape Onfido uses for the same reason — a closed box invites a
@@ -2907,6 +2986,36 @@
       lineHeight: 1.55, color: mute ? P.inkMute : P.ink2 }}>{children}</p>;
   }
 
+  // ── document-type choice, "Get ready" screen only ───────────────────────
+  // Two large selectable cards, not a segmented control or a dropdown — the
+  // brief's own words. Pressable, keyboard-reachable (a real <button>), and
+  // the selected one is the only visual state that matters here: there is no
+  // "confirm" step of its own, "I'm ready" below IS the confirm.
+  function DocTypeCard({ active, icon, title, sub, onClick }) {
+    const P = useP();
+    return (
+      <button type="button" data-hw-i onClick={onClick} aria-pressed={active}
+        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          padding: `${P.space.x4}px ${P.space.x3}px`, borderRadius: P.r16, cursor: 'pointer',
+          background: active ? P.accentSoft : P.surface2,
+          border: `2px solid ${active ? P.accentBorder : P.hairline2}`,
+          transition: 'background .15s ease, border-color .15s ease' }}>
+        <window.Icon name={icon} size={26} stroke={1.8} color={active ? P.accentInk : P.inkDim} />
+        <span style={{ fontSize: P.type.body, fontWeight: P.weight.emph, color: P.ink, textAlign: 'center' }}>{title}</span>
+        {sub ? <span style={{ fontSize: P.type.micro, color: P.inkMute, textAlign: 'center' }}>{sub}</span> : null}
+      </button>);
+  }
+  function DocTypeChoice({ value, onChange }) {
+    const P = useP();
+    return (
+      <div style={{ display: 'flex', gap: P.space.x3, width: '100%', maxWidth: 460 }}>
+        <DocTypeCard active={value === 'drivers_license'} icon="card" title="Driver&rsquo;s licence or state ID"
+          onClick={function () { onChange('drivers_license'); }} />
+        <DocTypeCard active={value === 'passport'} icon="scroll" title="Passport"
+          onClick={function () { onChange('passport'); }} />
+      </div>);
+  }
+
   // ── the associate bar (pos mode only) ────────────────────────────────────
   // Concept D's rule, verbatim: "The associate bar never shows a score. A
   // number an associate cannot act on becomes a number they argue with the
@@ -3082,15 +3191,47 @@
       return !!(entry && entry.optional && entry.state === 'todo');
     }, [state]);
 
+    // ── document type (passport / MRZ contract, 2026-09-09) ────────────────
+    // THE SERVER'S ANSWER, NOT LOCAL STORAGE. `serverDocType` is whatever the
+    // last `GET state` (or a successful `document-type` POST, which rewrites
+    // `state` from its own response below) said; `docTypeChoice` is this
+    // page's own in-memory, pre-confirmation pick on the "Get ready" screen —
+    // React state that a fresh mount (a reload) starts at `null`, never a
+    // remembered value from a previous load. `documentType` is what the rest
+    // of this component reads, and it is the server's word the instant one
+    // exists.
+    const serverDocType = (state && state.document_type) || 'drivers_license';
+    const [docTypeChoice, setDocTypeChoice] = React.useState(null);
+    const documentType = docTypeChoice || serverDocType;
+
+    // EVIDENCE ALREADY EXISTS. A guest who reloads mid-flow, or is dropped
+    // back onto this screen by a guided retake, must never be asked the
+    // document-type question again — the server already has photographs of
+    // one kind of document, and the choice would be a lie the moment it
+    // rendered. "Evidence" is anything the server has accepted (`done`) or
+    // is asking to see again (`retry`), or anything this page itself has
+    // uploaded this load.
+    const hasEvidenceMedia = ((state && state.steps) || []).some(function (s) {
+      return s.state === 'done' || s.state === 'retry';
+    }) || Object.keys(done).length > 0;
+
     // The step list, with consent prepended while the terms row is missing.
+    // THE FALLBACK IS DOCUMENT-TYPE-AWARE (contract §Session): when `GET
+    // state` carries no `steps` at all, this derives them from `document_type`
+    // instead of always assuming a licence's five-step shape — a passport
+    // session with a backend not yet shipping `steps` would otherwise be
+    // routed straight into a `document_back` barcode step no passport has.
+    // The moment the server DOES send `steps`, that array wins outright,
+    // medical_rec/challenge included, regardless of document type.
     const stepIds = React.useMemo(function () {
       const server = ((state && state.steps) || []).map(function (s) { return s.id; })
         .filter(function (id) { return CAPTURE_STEPS.indexOf(id) >= 0; });
-      const list = server.length ? server : CAPTURE_STEPS.slice();
+      const list = server.length ? server
+        : (documentType === 'passport' ? PASSPORT_FALLBACK_STEPS.slice() : LICENCE_FALLBACK_STEPS.slice());
       const consents = (state && state.consents) || [];
       const hasTerms = consents.some(function (c) { return c.kind === 'terms'; });
       return hasTerms ? list : ['consent'].concat(list);
-    }, [state]);
+    }, [state, documentType]);
 
     // WHAT STILL HAS TO HAPPEN. `state.steps[].state` is the server's answer
     // ('todo' | 'done' | 'retry'); `done` is what this page has uploaded since
@@ -3156,10 +3297,34 @@
       setPhase(phaseFor(step));
     }
 
+    // "I'M READY" IS THE ONLY GESTURE ALLOWED TO CHANGE WHAT THE SERVER
+    // THINKS THIS SESSION IS. The camera permission prime still fires
+    // synchronously on the tap (unchanged); the document-type POST only goes
+    // out when the guest's choice actually differs from what the server
+    // already has on file — a licence session that never touched the choice
+    // (or a cold resume where the choice was never shown at all) posts
+    // nothing and opens the camera exactly as before. `state` is replaced
+    // with the POST's own response body, which the contract says carries the
+    // same shape as `state` — that keeps `stepIds`/`document_type` in sync
+    // with the server on the one call that changes them.
     function confirmReady() {
       const step = pendingStepRef.current || cursor;
       readyShownRef.current = true;
       primeCameraPermission(facingFor(step));
+      if (documentType !== serverDocType) {
+        withRetry(function () { return capPost(token, 'document-type', { document_type: documentType }, base); })
+          .then(function (r) {
+            if (!aliveRef.current) return;
+            // CODE DEFENSIVELY: a 404 here means this deployment's backend
+            // does not have the passport feature yet. Say so, plainly, and
+            // hand the guest an in-store path — never a broken camera.
+            if (!r.ok && r.code === 404) { setPhase('doc_unavailable'); return; }
+            if (r.ok && r.body) setState(r.body);
+            setCursor(step);
+            setPhase(phaseFor(step));
+          });
+        return;
+      }
       setCursor(step);
       setPhase(phaseFor(step));
     }
@@ -3495,7 +3660,12 @@
       if (typeof onDone === 'function') {
         onDone({ status: s, sessionId: sessionId, sessionRef: sessionRef,
           reasons: (poll && poll.reasons) || [], next_step: (poll && poll.next_step) || null,
-          message: (poll && poll.message) || null });
+          message: (poll && poll.message) || null,
+          // Addendum 2: the selfie-over-ID composite, when the callback built
+          // one and `GET status` is carrying it forward. Passed through
+          // untouched — this file never fetches the bytes itself, only hands
+          // the pointer to whoever asked for `onDone`.
+          proof_url: (poll && poll.proof_url) || null });
       }
       // eslint-disable-next-line
     }, [phase, status]);
@@ -3549,6 +3719,36 @@
       // `readyShownRef` is already true by the time this ever runs, so the
       // gate in `routeToStep` is a no-op here — it never re-shows mid-flow.
       routeToStep(nxt);
+    }
+
+    // ── ADDENDUM 2, GAP B: "I don't have one" now tells the server ─────────
+    // A local-only `advance()` here froze `attempts.medical_rec` at zero
+    // forever — every decline recomputed the same first attempt — so the
+    // rules' 3-try `MED_REC_MISSING`/`UNDER_AGE` exhaustion could never fire.
+    // `POST skip` records the attempt server-side (audited, no media) and
+    // hands back a body shaped exactly like `state`. This never draws its own
+    // conclusion about what screen comes next: it replaces `state` and lets
+    // the ONE router above — the `routeSig` effect, which already reads
+    // terminal / Awaiting User / `nextOutstanding` off `state` — decide,
+    // precisely as every other state-changing call in this file does.
+    function skipStep(step) {
+      setNotice(null);
+      withRetry(function () { return capPost(token, 'skip', { step: step }, base); },
+        { onAttempt: function (n) { setNotice(n >= 3 ? NET_COPY.still : NET_COPY.retrying); } })
+        .then(function (r) {
+          if (!aliveRef.current) return;
+          setNotice(null);
+          // CODE DEFENSIVELY: a 404 means this deployment's backend does not
+          // have the skip endpoint yet. Fall back to today's behaviour —
+          // advance locally — rather than strand the guest on a choice screen
+          // no live backend will ever answer.
+          if (!r.ok && r.code === 404) { advance(step); return; }
+          if (!r.ok) {
+            setNotice(r.code === 0 ? NET_COPY.dead : (r.error || 'That did not go through. Try again.'));
+            return;
+          }
+          if (r.body) setState(r.body);
+        });
     }
 
     function submitNow() {
@@ -3839,17 +4039,28 @@
     // put every cold path (post-consent, and a reload that resumes into a
     // camera step) through this exact same gate, once per page load.
     if (phase === 'get_ready') {
+      // THE CHOICE IS SKIPPED ON A COLD RESUME WITH EVIDENCE ALREADY ON FILE
+      // (owner rule). `documentType` still reflects whatever the server
+      // already has, the checklist below still adapts to it — it is only the
+      // two cards that disappear, because offering a choice a retake cannot
+      // honestly act on is worse than not offering one.
+      const showChoice = !hasEvidenceMedia;
+      const isPassport = documentType === 'passport';
+      const checklist = isPassport
+        ? ['Open your passport to the photo page.',
+          'Find a bright spot, no glare.',
+          'Both lines of the code at the bottom must be in the frame.']
+        : ['Have your physical ID out of your wallet — a photo of your ID will not work.',
+          'Find a bright spot, no glare.',
+          'You’ll photograph the front, then the back barcode, then take a quick selfie and blink.'];
       return shell('Get ready', (
         <React.Fragment>
           <Plate tone="neutral" icon="camera" />
-          <Big>Get your ID ready</Big>
+          <Big>{isPassport ? 'Get your passport ready' : 'Get your ID ready'}</Big>
+          {showChoice ? <DocTypeChoice value={documentType} onChange={setDocTypeChoice} /> : null}
           <ol style={{ margin: 0, padding: 0, listStyle: 'none', width: '100%', maxWidth: 460,
             display: 'flex', flexDirection: 'column', gap: P.space.x3, textAlign: 'left' }}>
-            {[
-              'Have your physical ID out of your wallet — a photo of your ID will not work.',
-              'Find a bright spot, no glare.',
-              'You’ll photograph the front, then the back barcode, then take a quick selfie and blink.',
-            ].map(function (line, i) {
+            {checklist.map(function (line, i) {
               return (
                 <li key={i} style={{ display: 'flex', gap: P.space.x3, alignItems: 'flex-start' }}>
                   <span style={{ flex: '0 0 auto', width: 26, height: 26, borderRadius: '50%',
@@ -3867,12 +4078,31 @@
         'Camera opens on the next tap · nothing is captured yet', null);
     }
 
+    // ── passport not available on this deployment yet ──────────────────────
+    // The one guarded outcome of the document-type POST: a 404 means this
+    // backend has not shipped the passport feature. One plain sentence and an
+    // honest way back to the choice — never a broken camera.
+    if (phase === 'doc_unavailable') {
+      return shell('Passport', (
+        <React.Fragment>
+          <Plate tone="info" icon="card" />
+          <Big>Passports aren&rsquo;t available yet</Big>
+          <Say>Bring your ID to any Hyperwolf store.</Say>
+          <window.PBtn size="lg" variant="accent"
+            onClick={function () { setDocTypeChoice('drivers_license'); setPhase('get_ready'); }}>
+            Use a driver&rsquo;s licence or state ID instead
+          </window.PBtn>
+        </React.Fragment>),
+        null, null);
+    }
+
     // ── capture (document front / back / medical rec) ─────────────────────
     if (phase === 'capture') {
       return (
         <DocStep key={cursor} step={cursor} token={token} base={base} accent={accent}
-          copy={copy} shell={shell} reduced={reduced}
+          copy={copy} shell={shell} reduced={reduced} documentType={documentType}
           onUploaded={function (s) { advance(s); }}
+          onSkip={skipStep}
           onNotice={setNotice} notice={notice}
           fix={fixRef.current}
           pickerPhotos={pickerPhotos} setPickerPhotos={setPickerPhotos}
@@ -4395,8 +4625,8 @@
   // path that waits for a button.
   const DISAGREE_FRONT_MS = 2500;
 
-  function DocStep({ step, token, base, accent, copy, shell, onUploaded, onNotice, notice,
-    fix, pickerPhotos, setPickerPhotos, medicalRecOffered, reduced, onGiveUp }) {
+  function DocStep({ step, token, base, accent, copy, shell, onUploaded, onSkip, onNotice, notice,
+    fix, pickerPhotos, setPickerPhotos, medicalRecOffered, reduced, onGiveUp, documentType }) {
     const P = useP();
     // THE CHOICE COMES BEFORE THE CAMERA. An 18–20-year-old on a REC_21
     // workflow is OFFERED this step, not made to sit through it — so while that
@@ -4436,9 +4666,13 @@
     const torchAutoRef = React.useRef(false);
     const torchTriedRef = React.useRef(0);
 
-    const c = STEP_COPY[step] || { big: 'One more photo', say: '' };
-    // THE BACK GETS THE BAND GUIDE. Everything else is unchanged.
-    const shape = step === 'medical_rec' ? 'page' : isBack ? 'band' : 'card';
+    const c = stepCopyFor(step, documentType);
+    // THE BACK GETS THE BAND GUIDE. A PASSPORT FRONT GETS THE PAGE GUIDE.
+    // Everything else is unchanged. There is no `document_back` on a
+    // passport session (it never appears in `stepIds`), so `isBack` and this
+    // file's whole barcode/PDF417 machinery are simply never reached for one.
+    const shape = step === 'medical_rec' ? 'page' : isBack ? 'band'
+      : (documentType === 'passport' ? 'passport' : 'card');
     const boxAspect = step === 'medical_rec' ? '3 / 4' : '3 / 2';
 
     React.useEffect(function () {
@@ -4961,9 +5195,10 @@
 
 
     // ── the offer (18–20 on a REC_21 workflow, offer_medical_path on) ──────
-    // A CHOICE, NOT A DECLINE. "I don't have one" continues the flow exactly as
-    // if this step were not there — no local verdict is drawn, and the backend
-    // still decides.
+    // A CHOICE, NOT A DECLINE. "I don't have one" tells the SERVER — `POST
+    // skip`, addendum 2 gap B — so the attempt is audited and counted; no
+    // local verdict is drawn, and the backend still decides where this goes
+    // next. This is not a camera screen, so it keeps its buttons.
     if (showMedOffer) {
       return shell(STEP_TITLE.medical_rec, (
         <React.Fragment>
@@ -4973,14 +5208,14 @@
           {notice ? <Say>{notice}</Say> : null}
           <div style={{ display: 'flex', flexDirection: 'column', gap: P.space.x2, width: '100%', maxWidth: 340 }}>
             <window.PBtn size="xl" variant="accent" onClick={function () { setMedChoice('add'); }}>Add my recommendation</window.PBtn>
-            <window.PBtn size="lg" variant="ghost" onClick={function () { onUploaded(step); }}>I don&rsquo;t have one</window.PBtn>
+            <window.PBtn size="lg" variant="ghost" onClick={function () { onSkip(step); }}>I don&rsquo;t have one</window.PBtn>
           </div>
         </React.Fragment>),
         'Offered, not required · a decline here is not a local verdict — the backend decides', null);
     }
 
     if (cam.status === 'denied' || cam.status === 'failed') {
-      return shell(STEP_TITLE[step] || 'Photo', (
+      return shell(stepTitleFor(step, documentType), (
         <React.Fragment>
           <Plate tone="warn" icon="camera" />
           <Big>{cam.status === 'denied' ? 'The camera is blocked' : 'The camera stopped'}</Big>
@@ -4999,7 +5234,7 @@
       return (
         <PickerFallback step={step} token={token} base={base} shell={shell}
           copy={copy} onUploaded={onUploaded} onNotice={onNotice} notice={notice}
-          fix={fix}
+          fix={fix} documentType={documentType}
           detail={cam.detail} photos={pickerPhotos} setPhotos={setPickerPhotos} />);
     }
 
@@ -5020,7 +5255,7 @@
     // an honest one rather than a photograph that will not work.
     const tapToSnap = live && !snapped && !isBack;
 
-    return shell(STEP_TITLE[step] || 'Photo', (
+    return shell(stepTitleFor(step, documentType), (
       <React.Fragment>
         {/* TAP ANYWHERE ON THE PREVIEW TO SNAP. Brief §3, and the single
             cheapest answer to "I could not get it to register": the whole
@@ -5112,10 +5347,10 @@
   }
 
   // ── the picker fallback ─────────────────────────────────────────────────
-  function PickerFallback({ step, token, base, shell, copy, onUploaded, onNotice, notice, fix, detail, photos, setPhotos }) {
+  function PickerFallback({ step, token, base, shell, copy, onUploaded, onNotice, notice, fix, detail, photos, setPhotos, documentType }) {
     const P = useP();
     const [busy, setBusy] = React.useState(false);
-    const c = STEP_COPY[step] || { big: 'One more photo', say: '' };
+    const c = stepCopyFor(step, documentType);
     const ready = photos && photos.length ? photos[photos.length - 1] : null;
 
     function send() {
@@ -5145,7 +5380,7 @@
       }).catch(function () { setBusy(false); onNotice('That photo could not be read. Try another.'); });
     }
 
-    return shell(STEP_TITLE[step] || 'Photo', (
+    return shell(stepTitleFor(step, documentType), (
       <React.Fragment>
         <Plate tone="neutral" icon="camera" />
         <Big>{c.big}</Big>

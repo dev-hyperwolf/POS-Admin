@@ -66,6 +66,14 @@
       workflow_id: list('workflow_id'),
       reason: list('reason'),
       channel: list('channel'),
+      // CLIENT-SIDE ONLY (2026-09-09 passport/MRZ contract): the documented
+      // query line for GET /api/idv/sessions (`?status&workflow_id&q&from&to
+      // &channel&origin&reason&imported&limit&cursor`) has no `doc_type`
+      // param, so this is never sent to the server — it filters whatever
+      // page of rows is already loaded, same as `sort` below. Still lives in
+      // the URL (this file's own rule: "filters live in the URL"), it just
+      // never reaches `buildApiQuery`.
+      doc_type: list('doc_type'),
       origin: usp.get('origin') || '',
       imported: usp.get('imported') === 'true',
       from: usp.get('from') || '',
@@ -92,7 +100,15 @@
     return p.toString();
   }
   function hasAnyFilter(f) {
-    return !!(f.q || f.status.length || f.workflow_id.length || f.reason.length || f.channel.length || f.origin || f.imported || f.from || f.to);
+    return !!(f.q || f.status.length || f.workflow_id.length || f.reason.length || f.channel.length
+      || f.doc_type.length || f.origin || f.imported || f.from || f.to);
+  }
+  // The client-side doc_type filter, applied after the server page loads —
+  // see the comment on `doc_type` in parseHashQuery above for why this never
+  // reaches the API.
+  function applyDocTypeFilter(rows, docType) {
+    if (!docType.length) return rows;
+    return rows.filter((r) => docType.includes((r.document && r.document.type) || ''));
   }
   function isoDayRange(daysAgo) {
     const now = new Date();
@@ -348,7 +364,7 @@
     function clearFilters() { navigate('#' + path); }
 
     const loadedRows = (poll.data ? poll.data.rows || [] : []).concat(extraPages.flatMap((p) => p.rows || []));
-    const rows = sortRows(loadedRows, sort);
+    const rows = sortRows(applyDocTypeFilter(loadedRows, filters.doc_type), sort);
     const count = poll.data && typeof poll.data.count === 'number' ? poll.data.count : null;
     const headerTitle = count != null ? count.toLocaleString() + ' verifications' : 'Verifications';
 
@@ -356,6 +372,7 @@
     const statusOptions = STATUS_LIST.map(opt);
     const reasonOptions = REASON_LIST.map(opt);
     const channelOptions = CHANNEL_FILTER_LIST.map((c) => ({ id: c, label: chLabel(c) }));
+    const docTypeOptions = Object.keys(DOC_TYPE_LABEL).map((k) => ({ id: k, label: DOC_TYPE_LABEL[k] }));
 
     const needsActionOn = filters.status.length === 1 && filters.status[0] === 'Awaiting User';
     const declinedTodayRange = todayUtcRange();
@@ -398,6 +415,7 @@
         <MultiSelectFilter label="Workflow" options={workflowOptions} value={filters.workflow_id} onChange={(v) => setFilters({ workflow_id: v })} />
         <MultiSelectFilter label="Reason" options={reasonOptions} value={filters.reason} onChange={(v) => setFilters({ reason: v })} />
         <MultiSelectFilter label="Channel" options={channelOptions} value={filters.channel} onChange={(v) => setFilters({ channel: v })} />
+        <MultiSelectFilter label="Document" options={docTypeOptions} value={filters.doc_type} onChange={(v) => setFilters({ doc_type: v })} />
         <Seg size="sm" value={datePreset} onChange={applyPreset} options={[{ value: '1d', label: '24h' }, { value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: 'all', label: 'All' }]} />
         {hasAnyFilter(filters) && <PBtn variant="ghost" size="sm" onClick={clearFilters}>Clear</PBtn>}
       </div>);
