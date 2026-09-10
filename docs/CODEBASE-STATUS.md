@@ -3,7 +3,7 @@
 Updated 2026-09-09 (late). Phases 1, 2, 3 and 4 (Hyperwolf Docs) are complete. **The Hyper-Tech repos are
 read-only for this work by the owner's decision**: findings go to the developer team as
 `codebase-audit/TEAM-TODO.md`, and nothing under `/Users/jt/hyper-tech` has been modified.
-Nothing has been pushed anywhere; both our repos auto-deploy on push and the owner pushes.
+Both repos were pushed on 2026-09-10 (owner's word, Verify session's push); both auto-deploy on push.
 
 ## Modules on the contract — status (2026-09-09, night)
 
@@ -28,7 +28,7 @@ Attribution note: `e6ef263` (terminals) also carries wave 4's pipeline files, sw
 Contract is 0.3.0 (52 enums), every enum drift-tested against the file that owns its values. Still queued: the Verify engine channel's move to the contract preimage (both sides together).
 Three refuter lenses ran over the eleven wave commits: 1 blocker (Publish crash) and 8 warnings, all fixed the same evening; the only surviving caveat is that the register's demo order ids come from a pool of 40 values, so a colliding demo id is swallowed as a replay — a demo limit, not a contract defect.
 
-## Phase 4 — Hyperwolf Docs (built, verified on a fresh port, committed, not pushed)
+## Phase 4 — Hyperwolf Docs (live on Render since 2026-09-10; contracts 0.3.2)
 
 A new POS-Admin app served by wm-demo exactly like Bounty: rail item, app-switcher entry, hub
 card, IIFE files, and **every route (reads included) behind the write token**. Three screens:
