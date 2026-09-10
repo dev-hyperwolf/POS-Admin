@@ -2566,3 +2566,279 @@ floor and neither depended on the distance floor.
 **Correcting the r5 addendum's last paragraph:** the `IDV-K05` format-string failure it recorded in
 `qa/idv_rules_probe.py` was this pass's own transient edit, not a pre-existing bug. It is fixed; the
 suite is 413/413.
+
+- 2026-09-09 (r7 — passport / MRZ support, `wmdemo/idv_store.py` + `idv_api.py` + `idv_rules.py`,
+  built to `mrz-contract.md`'s "Session", "Engine job input" and "Rules (autonomous), passports"
+  sections):
+
+  **A. Store.** `idv_sessions.document_type TEXT NOT NULL DEFAULT 'drivers_license'`, added by the
+  same guarded `ALTER TABLE ... ADD COLUMN` mechanism as `attempts` before it (`_ADDED_COLUMNS` /
+  `_add_missing_columns`, `PRAGMA table_info`-checked — a no-op on a database that already has the
+  column, so every request after the first runs no DDL). `st.DOCUMENT_TYPES = ("drivers_license",
+  "passport")`; `create_session(..., document_type=...)` falls back to the licence default for
+  anything not in that set rather than storing an unrecognised value verbatim — a third capture flow
+  must be a deliberate code change, not a typo in a request body. `document_type` is writable via
+  `update_session` (`_SESSION_WRITABLE`), filterable on `list_sessions(document_type=...)`
+  (additive — not one of this file's documented `/api/idv/sessions` query params, so an unset
+  filter changes nothing for an existing caller), and exposed on every session row for free (`SELECT
+  *`), on `GET /api/idv/sessions/{id}`'s `session.document_type` (distinct from
+  `session.document.type`, which is the DECISION's own denormalised `id_verifications[0].
+  document_type` — the Didit literal, `"Passport"`, and null until a decision exists), and on
+  `GET /api/idv/capture/{token}/state`'s `document_type`. `idv_documents.mrz` already existed
+  (anticipated by an earlier pass) and `insert_document` was already writing it verbatim; nothing
+  there needed to change.
+
+  **B. Capture flow.** A passport session has no `document_back` step: `_capture_state`'s step-list
+  loop and `_capture_media`'s `next_step` computation both skip it when `session.document_type ==
+  "passport"` (the same `_STEP_FOR_FEATURE` iteration, one added guard each — mirrored, not forked).
+  Before this pass a passport guest who had just shot `document_front` would have been told
+  `next_step: "document_back"` for a side that does not exist and could never satisfy it — the
+  concrete shape of the contract's "evidence-required logic" instruction. `_stranded_decision` /
+  `_repair_stranded` needed no change: both operate purely on status/decision/job-id timestamps and
+  carry no capture-step logic at all. New route **`POST /api/idv/capture/{token}/document-type`**
+  body `{"document_type": "passport"|"drivers_license"}` → `200` with the exact same body as `state`
+  (so the capture page can render the new step list with no second round trip); `400` on an
+  unrecognised value; `409` once the session is past `Not Started`/`In Progress` OR once any
+  `_EVIDENCE_KINDS` media row exists (switching type after a licence back has been photographed
+  would orphan that upload against a step list with no slot for it); audited as
+  `session.document_type_set`.
+
+  **C. Engine job input.** `prepare_engine_job`'s body gained a top-level `document_type` field
+  (`session.document_type`, defaulted to `'drivers_license'`) — "same literals", per the contract.
+  Everything else in the job body is unchanged.
+
+  **D. Console detail and the PDF.** `GET /api/idv/sessions/{id}` and the outbound `data.updated`
+  webhook / `/v3/session/{id}/decision/` already pass `decision.id_verifications[0].mrz` through
+  **untouched** — `decision_out` reads the column verbatim off the stored JSON blob with no
+  whitelist, exactly like every other `id_verifications` field, and storage (`insert_decision`)
+  already stores the callback's node array byte-for-byte. Verified by reading the actual code paths
+  end to end (not assumed): zero lines changed for this half of the requirement, confirmed by
+  `AP-184`. The compliance PDF had no such passthrough (`idv_decisions` denormalises scalar identity
+  columns and has no column for a whole sub-object) — `idv_pdf.compliance_pdf` gained an optional
+  `mrz=` argument and a "Machine-readable zone (MRZ)" section printed only when present; both `/pdf`
+  call sites in `idv_api.py` now read `id_verifications[0].mrz` off the decision row and pass it
+  through.
+
+  **E. Rules — identity source.** "MRZ (valid) → nothing else": `_mrz_identity(doc)` (the passport
+  analogue of `_read_dob`, deliberately not the same function) returns a date of birth ONLY when
+  `mrz.valid` is `True`, and `_document_block`'s expiry check reads `mrz.expiration_date` the same
+  way for a passport document — never the top-level OCR fields, which are a tamper check on the MRZ
+  here, not a fallback identity source the way a licence's printed line at least is. `barcode_
+  expected_but_absent` gained an explicit early return for `document_type == "PASSPORT"` (was already
+  structurally true; now stated rather than merely implied) so `BARCODE_NOT_DETECTED` and the
+  barcode/OCR crosscheck can never fire on a passport — "no barcode on a passport is never a
+  mismatch."
+
+  **F. Rules — MRZ warnings, new `_mrz_block`.** `MRZ_NOT_FOUND` / `MRZ_LOW_CONFIDENCE` are two new
+  reason codes (`REASONS_RETRYABLE`, `_GUIDED`) with the contract's verbatim guidance sentence
+  ("Open to the photo page and hold it flat so both lines of the code at the bottom are inside the
+  frame."), re-opening `document_front` for the standard 3 tries before declining with a path — the
+  same mechanic every other document-step finding already uses. Raised off `mrz.valid` DIRECTLY
+  (`_mrz_block` computes it itself rather than trusting only the engine's warning string), so an
+  engine that forgets to name the specific warning still asks for a retake instead of silently
+  approving an identity nobody read — the same fail-closed discipline `own_numeric_read` applies to
+  the numeric thresholds, and `CAP_BARCODE_UNREADABLE` closes the score-ceiling side of that same
+  door.
+
+  **`MRZ_INVALID` is deliberately NOT its own reason code.** Chosen reason: **`BARCODE_OCR_MISMATCH`**
+  — reused verbatim, not invented. Rationale: "check digits fail on a confidently read band" is the
+  same shape as a confidently read AAMVA barcode contradicting the print, which is exactly what
+  `BARCODE_OCR_MISMATCH` already means and already carries the right mechanic for
+  (`MAX_BARCODE_MISMATCH_ATTEMPTS = 2` — one retake, then Declined under that same reason, which is
+  precisely "one retake, then Declined" as specified). Its default `GUIDANCE` names `document_back`,
+  a step a passport session does not have, so the `fix=` override points at `document_front` with
+  the contract's MRZ sentence (`_FIX_MRZ_RETAKE`) — the same override pattern `_document_block`
+  already uses for `worst_side == "document_back"`. The `mrz_vs_ocr` crosscheck reuses this
+  mechanism too: `mrz_ocr_verdict(engine)` is `barcode_ocr_verdict(engine, bvo=_mrz_vs_ocr(engine))`
+  — a thin wrapper, not a fork — and `barcode_ocr_name_reads` gained an optional `bvo=` parameter for
+  the same reason, both defaulting to their old behaviour so every existing licence call site is
+  byte-for-byte unaffected.
+
+  **G. Licences are unchanged, mutation-checked.** The full rules probe was run before this pass's
+  probe edits (410/413, 3 failures — see below) and after (420/420, 0 failures), on the same tree,
+  with every failure attributed to a fixture that used `"PASSPORT"` as an incidental placeholder
+  value rather than a real defect: `IDV-A39`/`IDV-A40` (document-type/country policy warnings) were
+  repointed to `"RESIDENCE_PERMIT"`, since `PASSPORT` is no longer just another `document_type`
+  string — it now switches the whole session onto the MRZ-only identity path — and `IDV-A103` (which
+  asserted a barcode-less passport approves off its OCR fields, the pre-MRZ shape) was rewritten to
+  carry a valid `mrz` node; the pre-MRZ shape is kept as new fixture `IDV-A103b`, asserting the
+  contract-correct behaviour instead (a retake, not a silent approval). No other licence-path check
+  changed answer.
+
+  **Probes: before → after.** `idv_rules_probe` 413 → 420 (+7: `IDV-A103` rewritten, `IDV-A103c`
+  MRZ_LOW_CONFIDENCE, `IDV-A103d` the 3-try retake ladder, `IDV-A103e`/`IDV-A103f` MRZ_INVALID's
+  one-retake-then-decline, plus two auto-generated `IDV-L08` classification rows for the new reason
+  codes). `idv_store_probe` 77 → 78 (+1: `ST-78`, the `document_type` column/migration/filter).
+  `idv_api_probe` 181 → 190 (+9: `AP-176`..`AP-182` the capture-flow step list and the
+  `document-type` route's two 409s, `AP-183` the engine job body, `AP-184` the console-detail +
+  PDF-input MRZ passthrough). `idv_import_probe` unchanged at 78/78 (not touched this pass). All
+  four run green, standalone, on this tree. `qa/battery.py`'s `EXPECTED_CHECKS` and
+  `TOTAL_CHECK_FLOOR` (2359 → 2376) were updated to match, each with a dated comment.
+
+  **Not done by this pass, and not silently assumed.** The engine half (actually reading the MRZ off
+  the photo page, populating `id_verifications[0].mrz` and the top-level identity fields, and the
+  `mrz_vs_ocr` crosscheck block) and the capture-page half (offering the document-type choice,
+  sending `POST .../document-type`, and rendering the passport step list) are separate agents'
+  work against this same contract and were not touched here.
+
+## Addendum — 2026-09-09 (r8): middle name, the proof image, and the medical-rec skip
+
+Built to `mrz-contract.md`'s "Addendum 2" section (middle name, proof image, medical-rec skip) and
+`med18-brief.md` gap B (the "I don't have one" request that never got made). `wmdemo/idv_store.py` +
+`idv_api.py` + `idv_pdf.py`; `idv_rules.py` untouched — every reason code, the attempt ladder and the
+3-try exhaustion this pass exercises already existed and needed no change, only a caller that finally
+drives them correctly.
+
+**A. Middle name.** `id_verifications[0].middle_name` — licences: AAMVA DAD; passports: MRZ given
+names beyond the first token; `first_name` stays the first given name (DAC). Backend consumption
+only: no engine change here, and the field is `None` on every existing fixture and every imported
+Didit row (unaffected, exactly as specified). `idv_people.middle_name` and `idv_decisions.
+middle_name` TEXT columns, added by the same guarded `ALTER TABLE ... ADD COLUMN` mechanism as
+`document_type` before them (`_ADDED_COLUMNS`/`_add_missing_columns`, `PRAGMA table_info`-checked).
+`st.barcode_identity(doc)` reads `doc.get("middle_name")` (trimmed, `None` when absent or blank) —
+no AAMVA fallback of its own, unlike `first_name`/`last_name`'s DAC/DCS: `middle_name` is the
+engine's field to fill or leave null. `st.upsert_person`/`update_person`/`_fill_person_blanks` all
+gained a `middle_name` parameter on the same fill-blanks-only rule the other name fields already
+carry (never overwrite a non-null column). **`st.full_name(first, middle, last)` is the one new
+function this pass adds** — a single join (blanks dropped, `None` if nothing survives) that every
+first_name/last_name display string in the codebase now threads middle_name through instead of
+repeating its own `' '.join(...)`, which is exactly how the middle name went missing the first time
+("we aren't including the middle name anymore? fix that"): `session_summary`'s `person.display_name`
+(the console title/list), `person_out` (`middle_name` + a computed `full_name`), the three
+person-name joins in the 1:N/duplicate-detection code, the `_update_data` analyst-correction path
+(`middle_name` added to `_DATA_FIELDS`, threaded through `update_decision_fields`'s existing
+`**scalars`), the compliance PDF's Name line (`idv_pdf.py`), and the `/v2` (and, by the same
+function, `/v3`) `kyc.full_name` field — which is now **always** `st.full_name(...)`, never the
+engine's own `full_name` verbatim, because a stale or pre-middle-name `full_name` on the node would
+silently reintroduce the exact gap this addendum closes (caught by the probe's own first run: a
+fixture carrying `full_name: "Jane Roe"` alongside a newly-added `middle_name: "Quinn"` produced
+`"Jane Roe"` in `/v2`'s kyc block until the fallback was made unconditional). `id_verifications[0].
+middle_name` itself needs no passthrough code at all — `decision_out` and the outbound webhook both
+already read the node array verbatim off the stored JSON blob, with no per-field whitelist.
+
+**B. Proof image.** The engine builds a composite JPEG (selfie stacked over the document-front crop)
+whenever both exist, on **any** verdict, and emits it in the **callback body**, not inside `decision`:
+`"proof_image": {"jpeg_b64": "<base64>", "width": W, "height": H}`. `idv_api._store_proof_image`
+(called from inside `_engine_callback`'s own transaction, after `insert_document`, before the media
+token is spent) decodes it and validates the BYTES, never the claim — the same "the type is read from
+the file, not the header" rule `idv_media.sniff` enforces everywhere else: JPEG magic
+(`idv_media.sniff(raw) == "image/jpeg"`), a 2 MB cap (tighter than `idv_media.MAX_IMAGE_BYTES`'s 8 MB
+— a server-built composite from two already-admitted photos claiming more than a couple of megabytes
+is suspicious, not merely generous), and sane decoded dimensions (16–8000 px each side, read off the
+actual JPEG SOF marker via `idv_media.dimensions`, not the callback's own `width`/`height` metadata).
+A missing, malformed, oversized or non-JPEG field is audited (`proof.rejected`) and dropped — it never
+fails the callback that carries the actual verdict. On success it replaces any earlier `proof` row
+for the session (`idv_media.purge_file` + `st.mark_media_deleted` called directly rather than through
+`idv_media.purge`, which opens its own transaction — nesting a second `BEGIN IMMEDIATE` inside the
+callback's would error) and is stored via `idv_media.store_upload` with kind **`proof`**, `mime
+image/jpeg`, `purpose verification_biometric`, `retention until_customer_deleted`, `source "engine"`,
+audited as `proof.stored`.
+
+`proof` is **not** an evidence kind and deliberately touches none of the mechanisms that gate
+evidence: absent from `_MEDIA_KINDS` (no capture route ever accepts an upload of this kind — it is
+engine output, never guest input) and from `_DOCUMENT_KINDS`/`_CONSOLE_MEDIA_KINDS` (no analyst
+manual-upload path either), and therefore also absent from `_EVIDENCE_KINDS` — it can never spend an
+attempt (`_count_attempt` never runs on it) or move a session's status. `prepare_engine_job` (the one
+function every submit path funnels through — `_capture_submit`, the engine-outage retry, and
+`submit_engine_job`) drops any `proof`-kind row from `media_rows` before building a job body: a
+resubmission's `st.list_media(...)` call would otherwise include a `proof` row a previous callback
+wrote and hand the engine back the very image it produced, which is not evidence, it is the engine's
+own output. Deletion/tombstoning needed **zero** changes: `execute_deletion` iterates every row
+`list_media` returns for a session with no kind filter, so a `proof` row is unlinked and tombstoned
+by the existing privacy-erasure path exactly like any other media kind, and `_session_detail`'s
+`media[]` already includes it (same `st.list_media` call, same `media_out` shape) with no code
+change either.
+
+Exposed two ways, both auditable and both gated identically: `_session_detail` now computes
+`session.proof_url` (`"/api/idv/sessions/{id}/proof"` when a `proof` row exists, else `null`), and
+the new route **`GET /api/idv/sessions/{id}/proof`** (added to `_sessions`'s tail dispatch, so it
+inherits the exact `require_console` + `require(act, "viewer")` gate every other `/api/idv/sessions/*`
+route gets from `_console`'s dispatcher before routing reaches `_sessions` — no separate gate was
+written) serves the bytes with a forced mime off the row, `x-content-type-options: nosniff`,
+`cache-control: private, no-store`, and an audit row (`media.fetched`), same as `_media_route`. **The
+POS path needed no new route or auth mechanism at all.** Traced through `pos/checkin-verify-seam.jsx`:
+the check-in seam already authenticates as a console actor — it calls `GET /api/idv/workflows` and
+`POST /api/idv/sessions` under the same shared console PIN/token every analyst screen uses
+(`localStorage['hw-console-token']`, one PIN entered once in the Verify app unlocks the counter too,
+per the seam's own "THE PIN GATE, AS THE COUNTER SEES IT" comment). There is no `/api/idv/pos/*`
+namespace anywhere in this codebase — `checkin_api.py`'s `/api/identity/verify` age-gate module is a
+separate system entirely. So `session.proof_url` on the same console-gated `GET /api/idv/sessions/
+{id}` the seam is already positioned to call, fetched with the same console credential it already
+holds for the two calls above, **is** "a route the POS can fetch with that same auth" — no second
+endpoint, no second auth path, no `POS-Admin` file touched.
+
+**C. Medical-rec skip (gap B).** New route **`POST /api/idv/capture/{token}/skip`** body
+`{"step": "medical_rec"}` — only `medical_rec` is skippable (`_SKIPPABLE_STEPS`); every other step's
+only honest answer is a photograph. Runs through the **exact same** `_count_attempt` machinery
+`_capture_media` uses for a real upload: the counter advances only while the session is actually
+`Awaiting User`/`Resubmitted` **and** waiting on `medical_rec` specifically (`_awaiting_step`) — a
+skip sent before anything asked to redo the step, or for a step nobody is waiting on, records nothing,
+the same rule an unsolicited upload would follow. When it does advance, it lifts the session back to
+`In Progress` the same way an evidence upload does (this IS the guest's answer to the step), is
+audited (`capture.skipped`) and evented, and is refused **409** on a finished session
+(`_refuse_if_finished`, the same guard `_capture_media` and `_update_data` already carry). It never
+touches `idv_media` — no bytes, no sniff, no storage. This closes the exact gap measured in
+`med18-brief.md`: before this route existed, `POS-Admin/idv/capture.jsx`'s "I don't have one" choice
+called `onUploaded(step)` locally and advanced with **no request at all**, so `attempts.medical_rec`
+never moved and a guest with no recommendation recomputed `attempt=1` on every submission forever —
+`idv_rules.py`'s 3-try `MED_REC_MISSING` → `UNDER_AGE` exhaustion (`idv_rules.py:4022-4041`) was
+unreachable through this path. No change to `idv_rules.py` was needed or made: the exhaustion logic
+already existed and was already correct — it simply never received a third attempt to exhaust.
+
+**D. `qa/idv_med18_replay.py` — proved end to end, not just at the API layer.** `qa/idv_api_probe.py`
+pins `idv_rules` with a reference stub (see its own docstring), so it cannot prove the skip's actual
+effect on the 3-try exhaustion — only that the route's own mechanics (attempt counting, status
+lifting, gating) behave correctly against a stubbed rules interface (`AP-189a`..`AP-189d`). This new
+script is a standalone replay, over **real HTTP** on a spare local port (`127.0.0.1:8798`, a minimal
+`http.server.HTTPServer` wrapping `idv_api.handle` directly — not `wmdemo/server.py`, which wires
+unrelated POS/incentives/check-in machinery this test has no use for), against the **real, unstubbed**
+`idv_rules.py`, using a real-shaped fixture built from `qa/fixtures/idv/
+engine-callback-real-session9-2026-09-09.json` (a genuine captured hw-engine callback) with its two
+unrelated findings neutralised (a glare warning, a `barcode_vs_ocr` name mismatch) and the identity
+retargeted to a synthetic AAMVA barcode DOB of `2006-05-01`. Three sessions, three real workflows,
+real `/capture/{token}/skip`, `/submit` and signed `/webhooks/engine` calls:
+
+  - **(a)** `REC_21`, `offer_medical_path: false` → **one** submission, `Declined`, reasons
+    `["UNDER_AGE"]`, `next_step: "in_store"` (hosted channel) — no medical offer at all, confirming
+    the age gate still declines outright when the medical path is not open.
+  - **(b)** `MED_18_REC` (required regardless of actual age) with a valid, matching recommendation
+    node (CA-licensed, name/DOB matching the ID, current) → **one** submission, `Approved`, empty
+    `review_reasons`, the stored decision carrying the `2006-05-01` identity the age gate actually
+    judged.
+  - **(c)** `MED_18_REC`, the guest calling `skip` before each of three submissions and never
+    uploading a recommendation (the `medical_recommendations` key is **absent** from the decision
+    entirely on every round — the real engine never sends an empty array, per
+    `idv-engine/app.py:875-881`, "looked for, not found" is a different claim than "not looked for")
+    → rounds 1–2 pause `Awaiting User` on `medical_rec` with the guidance `attempt` field reading 1,
+    then 2; round 3 exhausts the 3-try cap and declines `Declined` with reasons
+    `["UNDER_AGE", "MED_REC_MISSING"]` — `UNDER_AGE` leading, `MED_REC_MISSING` kept as the detail,
+    exactly as `idv_rules.py:4022-4041` specifies. `attempts.medical_rec` reads `2` at the final round
+    (the counter advances on the SKIP that answers an open `Awaiting User`, not on the submission
+    that opens one — `attempt = _attempts_for(...) + 1` is what reaches 3), which is the concrete,
+    end-to-end proof that gap B is closed: before the skip route existed this same sequence would sit
+    at `attempt=1` on every one of the three rounds and never decline.
+
+All four assertions (`MED18-A`, `MED18-B`, `MED18-C`, `MED18-C.guidance`) pass on a clean run,
+verified twice for flakiness. Not registered in `qa/battery.py`'s `EXPECTED_CHECKS` — it is a
+standalone replay against a real HTTP server on its own port, not an in-process battery-style suite —
+run it directly: `python3 qa/idv_med18_replay.py`.
+
+**Probes: before → after.** `idv_store_probe` 78 → 80 (+2: `ST-79a` `st.full_name` +
+`barcode_identity`'s `middle_name` extraction, `ST-79b` `upsert_person`'s fill-blanks-only rule for
+it). `idv_api_probe` 190 → 201 (+11: `AP-185`/`AP-185b`/`AP-185c` middle name end to end — console
+display name, `person_out`, the `/v2` kyc block's corrected `full_name`, the PDF, an analyst
+correction; `AP-186`/`AP-186b`/`AP-187`/`AP-188` the proof image — stored, served, gated, validated,
+excluded from every evidence/engine-job mechanism; `AP-189a`..`AP-189d` the skip endpoint). Existing
+`AP-57` (the `/v2` kyc key set) updated in place to include `middle_name` rather than left to drift
+into a false failure. `idv_rules_probe` unchanged at 420/420 and `idv_import_probe` unchanged at
+78/78 — neither file was touched this pass. All four run green, standalone, on this tree, plus the
+new `qa/idv_med18_replay.py` (4/4). `qa/battery.py`'s `EXPECTED_CHECKS` and `TOTAL_CHECK_FLOOR`
+(2376 → 2389) were updated to match, each with a dated comment.
+
+**Not done by this pass, and not silently assumed.** The engine half (splitting a licence's DAD or a
+passport's MRZ given-names-beyond-the-first into `middle_name` — today's fixtures still carry it as
+`None`, and `AVERY QUINN` still arrives crammed into a single `first_name` on the one real fixture
+this pass inspected for shape; correctly splitting that is the engine's field to fill, not the
+backend's to guess at) and the capture-page half (the `POS-Admin/idv/capture.jsx` "I don't have one"
+choice actually calling `POST .../skip` instead of only advancing locally) are separate agents' work
+against this same contract and were not touched here.
