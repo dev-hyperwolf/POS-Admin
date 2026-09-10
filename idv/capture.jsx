@@ -3322,12 +3322,18 @@
         beaconedRef.current = true;
         capBeacon(token, 'abandon', base);
       }
-      function onVis() { if (document.visibilityState === 'hidden') bail(); }
-      window.addEventListener('pagehide', bail);
-      document.addEventListener('visibilitychange', onVis);
+      // 2026-09-09, owner's production test #4: the guest opened the link from
+      // Messages, the phone went back to Messages / locked before the first
+      // photo, `visibilitychange` -> hidden fired, and the beacon wrote
+      // `Not Started -> Abandoned`. The link was dead before the guest had done
+      // anything wrong. A phone locking, a notification, or a switch to the
+      // wallet app to get the ID out (the new "Get ready" screen invites
+      // exactly that) must never end a session. Abandoned is now decided ONLY
+      // by the server-side sweeper on the session's own TTL; no client event
+      // fires it. `bail` is kept so the guards above stay documented and
+      // testable, but nothing is wired to it.
+      void bail;
       return function () {
-        window.removeEventListener('pagehide', bail);
-        document.removeEventListener('visibilitychange', onVis);
       };
     }, [token, base, status, started]);
 
