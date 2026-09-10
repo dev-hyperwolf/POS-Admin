@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Batch Location — Concept B — The Map</title>
+<style>
+/* ============================================================================
+   Batch Location — Concept B — The Map
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); rail,
+   header and banner shape copied from Hyperwolf Bounty.html + the Distribution
+   Refill explorations so this reads like the same estate. No build step, no
+   external scripts or fonts. Every rack, batch, product and time on this
+   screen is EXAMPLE DATA — see the banner below the header.
+   ========================================================================= */
+:root{
+  --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  --fontMono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:18px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --cat-flower:#3F9E72; --cat-vape:#3F73D6; --cat-preroll:#D45A3C; --cat-edible:#E0477C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+  --cat-flower:#4FBE8A; --cat-vape:#6B93E8; --cat-preroll:#E27158; --cat-edible:#EE6E9C;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --cat-flower:#4FBE8A; --cat-vape:#6B93E8; --cat-preroll:#E27158; --cat-edible:#EE6E9C;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;font-family:var(--fontSans);}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+.content{padding:20px 24px 40px;display:flex;flex-direction:column;gap:16px;max-width:1500px;width:100%;margin:0 auto;}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+.example-banner svg{flex:0 0 auto;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-sm{height:30px;padding:0 11px;font-size:var(--f-meta);border-radius:var(--r8);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
+.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
+.card-body{padding:0 16px 16px;}
+
+/* ---- view tabs ---- */
+.viewtabs{display:flex;gap:6px;border-bottom:1px solid var(--hairline2);padding:0 2px;}
+.vtab{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 6px;border:none;background:transparent;color:var(--inkDim);font-size:var(--f-title);font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.vtab:hover{color:var(--ink);}
+.vtab.active{color:var(--ink);border-bottom-color:var(--accentBorder);}
+.view{display:none;flex-direction:column;gap:16px;}
+.view.active{display:flex;}
+
+/* ---- search row ---- */
+.search-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:0 16px 14px;}
+.search-row input{flex:1;min-width:200px;height:40px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 13px;font-size:var(--f-body);}
+.chip-try{height:28px;padding:0 10px;border-radius:99px;border:1px dashed var(--hairline3);background:transparent;color:var(--inkDim);font-size:var(--f-meta);cursor:pointer;}
+.chip-try:hover{color:var(--ink);border-color:var(--inkMute);}
+
+/* ---- floor map ---- */
+.floor{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:6px 16px 16px;}
+.zone{border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:10px 12px 12px;}
+.zone-head{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.zone-head .zn{font-size:var(--f-strong);font-weight:700;}
+.zone-head .zdot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
+.rack-row{display:flex;gap:10px;flex-wrap:wrap;}
+.rack{display:flex;flex-direction:column;gap:3px;align-items:stretch;}
+.rack-lbl{font-size:9.5px;color:var(--inkMute);text-align:center;font-family:var(--fontMono);margin-top:2px;}
+.shelf{width:74px;height:28px;border-radius:6px;border:1px solid var(--hairline3);background:var(--surface);color:var(--inkDim);font-family:var(--fontMono);font-size:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;position:relative;}
+.shelf:hover{border-color:var(--inkMute);}
+.shelf.occupied{background:var(--surface3);color:var(--ink);}
+.shelf .sdot{width:6px;height:6px;border-radius:50%;background:var(--info);}
+.shelf.selected{outline:2px solid var(--info);outline-offset:1px;}
+.shelf.lit{animation:shelfpulse 1.4s ease-in-out infinite;border-color:var(--accentBorder);background:var(--accentSoft);color:var(--accentText);}
+.shelf.older-glow{animation:olderpulse 1.4s ease-in-out infinite;border-color:var(--info);background:var(--infoSoft);color:var(--info);}
+@keyframes shelfpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,209,0,.55);}50%{box-shadow:0 0 0 6px rgba(255,209,0,0);}}
+@keyframes olderpulse{0%,100%{box-shadow:0 0 0 0 rgba(44,91,184,.5);}50%{box-shadow:0 0 0 6px rgba(44,91,184,0);}}
+.shelf.route .stopnum{position:absolute;top:-7px;left:-7px;width:17px;height:17px;border-radius:50%;background:var(--ink);color:var(--surface);font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.shelf.editable{border-style:dashed;}
+.addrack-btn{width:74px;height:28px;border-radius:6px;border:1px dashed var(--hairline3);background:transparent;color:var(--inkMute);font-size:16px;cursor:pointer;align-self:flex-start;}
+.addrack-btn:hover{color:var(--ink);border-color:var(--inkMute);}
+
+/* ---- shelf / result detail panel ---- */
+.detail{border-top:1px solid var(--hairline2);padding:14px 16px;}
+.detail-empty{color:var(--inkMute);font-size:var(--f-body);}
+.detail-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.detail-head .dtitle{font-size:var(--f-strong);font-weight:700;font-family:var(--fontMono);}
+.batchrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.batchrow:last-child{border-bottom:none;}
+.batchrow .bname{font-weight:700;font-size:var(--f-body);flex:1 1 160px;}
+.batchrow .bmeta{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);}
+.age-chip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:700;background:var(--neutralSoft);color:var(--neutral);}
+.age-chip.oldest{background:var(--warnSoft);color:var(--warnText);}
+.age-chip.newest{background:var(--goodSoft);color:var(--good);}
+
+/* ---- results list (search) ---- */
+.result-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--hairline);cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;width:100%;text-align:left;}
+.result-item:last-child{border-bottom:none;}
+.result-item:hover{background:var(--surface2);}
+.result-item .rloc{font-family:var(--fontMono);font-weight:700;font-size:var(--f-body);width:96px;flex:0 0 auto;}
+.result-item .rqty{margin-left:auto;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);}
+
+/* ---- editor toolbar ---- */
+.editor-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--accentSoft);border-bottom:1px solid var(--accentBorder);flex-wrap:wrap;}
+.editor-bar .etxt{font-size:var(--f-meta);font-weight:600;color:var(--accentText);}
+.editor-bar select{height:32px;border-radius:var(--r8);border:1px solid var(--accentBorder);background:var(--surface);color:var(--ink);padding:0 8px;font-size:var(--f-meta);}
+
+/* ---- receive list ---- */
+.receive-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--hairline);cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;width:100%;text-align:left;}
+.receive-item:last-child{border-bottom:none;}
+.receive-item:hover{background:var(--surface2);}
+.receive-item.selected{background:var(--surface3);}
+.receive-item.done{opacity:.55;}
+.kind-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;flex:0 0 auto;}
+.kind-newsku{background:var(--info);color:#fff;}
+.kind-restock{background:var(--neutralSoft);color:var(--neutral);}
+.kind-newbatch{background:var(--warn);color:#fff;}
+.receive-item .rname{font-weight:700;font-size:var(--f-body);flex:1 1 160px;}
+.receive-item .rqty2{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);}
+.receive-item .rdone{color:var(--good);flex:0 0 auto;}
+
+.confirm-panel{border-top:1px solid var(--hairline2);padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.confirm-panel .ctitle{font-size:var(--f-strong);font-weight:700;}
+.confirm-panel .csub{font-size:var(--f-body);color:var(--inkDim);}
+.confirm-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ---- refill / pick slip ---- */
+.pickline{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;margin:0 16px 10px;}
+.pickline.mixed{background:var(--badSoft);border-color:var(--bad);}
+.pickline .pname{flex:1 1 160px;font-weight:700;font-size:var(--f-body);}
+.pickline .pname .sub{font-size:var(--f-meta);color:var(--inkMute);font-weight:500;display:block;}
+.stat3{display:flex;gap:14px;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);flex:0 0 auto;}
+.stat3 div{text-align:center;}
+.stat3 .k{font-size:9.5px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
+.mixed-badge{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:99px;background:var(--bad);color:#fff;font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;flex:0 0 auto;}
+
+.pickslip{margin:4px 16px 16px;border:1px dashed var(--hairline3);border-radius:var(--r12);background:var(--surface2);padding:14px 16px;font-family:var(--fontMono);}
+.pickslip-head{display:flex;justify-content:space-between;align-items:center;font-size:var(--f-meta);color:var(--inkMute);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;border-bottom:1px dashed var(--hairline3);padding-bottom:8px;}
+.pickslip-stop{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--hairline);}
+.pickslip-stop:last-child{border-bottom:none;}
+.stopdot{width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--surface);font-size:10.5px;display:flex;align-items:center;justify-content:center;font-weight:700;flex:0 0 auto;}
+.pickslip-stop .sloc{font-weight:700;font-size:var(--f-body);width:100px;flex:0 0 auto;}
+.pickslip-stop .sprod{flex:1 1 140px;font-size:var(--f-body);}
+.pickslip-stop .sflag{color:var(--bad);font-weight:700;font-size:10px;text-transform:uppercase;}
+.pickslip-stop .sqty{margin-left:auto;font-weight:700;font-size:var(--f-body);}
+
+.mini-wrap{padding:0 16px;}
+.mini-wrap .floor{grid-template-columns:1fr 1fr;padding:6px 0 0;}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:10px 0 0;}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+  .content{padding:14px 14px 40px;}
+  .floor{grid-template-columns:1fr;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item" title="Kit templates"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+      <button class="rail-item active" title="Distribution"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Distribution</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Batch Location · Concept B</span></div>
+        <h1 class="h1">The Map</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">7:42 AM PT</div>
+        <div class="clock-sub">Vault floor · Thu Sep 10, 2026</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="content">
+      <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Design mockup — every rack, shelf, batch and time on this screen is example data, not a live vault layout.</div>
+
+      <div class="card">
+        <div class="viewtabs" id="viewTabs">
+          <button class="vtab active" data-view="map">Map</button>
+          <button class="vtab" data-view="receive">Receive</button>
+          <button class="vtab" data-view="refill">Refill row + pick slip</button>
+        </div>
+
+        <!-- ============ MAP VIEW (find) ============ -->
+        <div class="view active" id="view-map">
+          <div class="card-head" style="padding-bottom:0;">
+            <h2>Find a batch</h2>
+            <span class="hint">Type or scan a SKU — every shelf holding it lights up, oldest batch first</span>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto;" id="editorToggle">Map editor</button>
+          </div>
+          <div class="search-row">
+            <input type="text" id="skuSearch" placeholder="Search SKU… e.g. GMO 3.5g" autocomplete="off"/>
+            <button class="btn btn-ghost btn-sm" id="scanBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4a1 1 0 011-1h3M17 3h3a1 1 0 011 1v3M21 17v3a1 1 0 01-1 1h-3M7 21H4a1 1 0 01-1-1v-3"/><path d="M4 12h16"/></svg>Scan SKU tag</button>
+            <button class="chip-try" data-try="GMO 3.5g">Try: GMO 3.5g (2 batches)</button>
+            <button class="chip-try" data-try="Blue Dream 3.5g">Try: Blue Dream 3.5g</button>
+            <button class="btn btn-ghost btn-sm" id="clearSearch" style="margin-left:auto;">Clear</button>
+          </div>
+          <div class="editor-bar" id="editorBar" style="display:none;">
+            <span class="etxt">Map editor — drag racks onto the grid once; shelf labels print from here.</span>
+            <select id="editorZone"></select>
+            <button class="btn btn-ghost btn-sm" id="addRackBtn">+ Add rack</button>
+            <button class="btn btn-ghost btn-sm" id="printLabelsBtn">Print shelf labels</button>
+            <span class="etxt" style="margin-left:auto;">Tap a shelf to rename it</span>
+          </div>
+          <div class="floor" id="floorMap"></div>
+          <div class="detail" id="mapDetail"><div class="detail-empty">Tap a shelf, or search a SKU above, to see what's stored there.</div></div>
+        </div>
+
+        <!-- ============ RECEIVE VIEW (put-away) ============ -->
+        <div class="view" id="view-receive">
+          <div class="card-head" style="padding-bottom:0;">
+            <h2>Today's receiving — 4 lines</h2>
+            <span class="hint">Tap a delivery line: the map proposes a shelf, the clerk confirms or scans it</span>
+          </div>
+          <div id="receiveList"></div>
+          <div class="floor" id="receiveFloor" style="border-top:1px solid var(--hairline2);"></div>
+          <div class="confirm-panel" id="confirmPanel"><div class="csub">Select a delivery line above to place it on the map.</div></div>
+        </div>
+
+        <!-- ============ REFILL VIEW (mini-map + pick slip) ============ -->
+        <div class="view" id="view-refill">
+          <div class="card-head" style="padding-bottom:0;">
+            <h2>Refill row — Route 3, Flower Box 1</h2>
+            <span class="hint">A kit line spanning two batches is flagged loud, here and on the printed pick slip</span>
+          </div>
+          <div class="pickline mixed">
+            <span class="mixed-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>2 batches</span>
+            <div class="pname">GMO 3.5g<span class="sub">Batch #4471 (older, 41d) + Batch #5108 (newer, 6d) — take oldest first</span></div>
+            <div class="stat3"><div><div class="k">Sold</div>15</div><div><div class="k">Need</div>20</div><div><div class="k">Cap</div>20</div></div>
+          </div>
+          <div class="pickline">
+            <div class="pname">Blue Dream 3.5g<span class="sub">Batch #4820 — single batch, no flag</span></div>
+            <div class="stat3"><div><div class="k">Sold</div>9</div><div><div class="k">Need</div>10</div><div><div class="k">Cap</div>12</div></div>
+          </div>
+          <div class="mini-wrap">
+            <div class="card-head" style="padding:6px 0;"><h2 style="font-size:var(--f-strong);">Route through the racks</h2></div>
+            <div class="floor" id="refillFloor"></div>
+          </div>
+          <div class="pickslip">
+            <div class="pickslip-head"><span>Pick slip — Route 3 · Flower Box 1</span><span>Printed 7:41 AM PT</span></div>
+            <div class="pickslip-stop"><span class="stopdot">1</span><span class="sloc">A-R1-S2</span><span class="sprod">GMO 3.5g — Batch #4471 <span class="sflag">older · take first</span></span><span class="sqty">12 u</span></div>
+            <div class="pickslip-stop"><span class="stopdot">2</span><span class="sloc">A-R2-S1</span><span class="sprod">GMO 3.5g — Batch #5108 <span class="sflag">newer · mixed batch</span></span><span class="sqty">8 u</span></div>
+            <div class="pickslip-stop"><span class="stopdot">3</span><span class="sloc">A-R1-S1</span><span class="sprod">Blue Dream 3.5g — Batch #4820</span><span class="sqty">10 u</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footerline">Batch Location — Concept B of 4 — The Map</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- theme toggle ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('batchloc-mapb-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('batchloc-mapb-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  /* ---------------- toast host ---------------- */
+  var toastHost = document.createElement('div');
+  toastHost.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:400;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;';
+  document.body.appendChild(toastHost);
+  var styleTag = document.createElement('style');
+  styleTag.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}';
+  document.head.appendChild(styleTag);
+  function toast(title, body){
+    var el = document.createElement('div');
+    el.style.cssText = 'pointer-events:auto;min-width:260px;max-width:380px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:10px;box-shadow:var(--shadowMd);padding:10px 12px;font-family:var(--fontSans);animation:fadeIn .16s ease;';
+    el.innerHTML = '<div style="font-size:13.5px;font-weight:700;color:var(--ink);">'+title+'</div><div style="font-size:12.5px;color:var(--inkDim);margin-top:2px;">'+body+'</div>';
+    toastHost.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4200);
+  }
+
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+
+  /* ---------------- data: EXAMPLE ONLY ---------------- */
+  var ZONECOLOR = { A:'var(--cat-flower)', B:'var(--cat-vape)', C:'var(--cat-preroll)', D:'var(--cat-edible)' };
+  var ZONES = [
+    { id:'A', name:'Zone A — Flower', racks:[
+      { id:'R1', shelves:['S1','S2','S3'] }, { id:'R2', shelves:['S1','S2','S3'] }, { id:'R3', shelves:['S1','S2','S3'] } ]},
+    { id:'B', name:'Zone B — Vape &amp; Concentrate', racks:[
+      { id:'R1', shelves:['S1','S2','S3'] }, { id:'R2', shelves:['S1','S2'] }, { id:'R3', shelves:['S1','S2'] } ]},
+    { id:'C', name:'Zone C — Pre-Roll', racks:[
+      { id:'R1', shelves:['S1','S2'] }, { id:'R2', shelves:['S1','S2'] } ]},
+    { id:'D', name:'Zone D — Edible &amp; Cooler', racks:[
+      { id:'R1', shelves:['S1','S2'] }, { id:'R2', shelves:['S1','S2'] } ]}
+  ];
+
+  function shelfId(z,r,s){ return z+'-'+r+'-'+s; }
+
+  // shelfId -> array of batches
+  var BATCHES = {};
+  function addBatch(sid, sku, batchNo, qty, ageDays, thc, pkgDate){
+    (BATCHES[sid] = BATCHES[sid] || []).push({ sku:sku, batchNo:batchNo, qty:qty, age:ageDays, thc:thc, pkg:pkgDate, loc:sid });
+  }
+  addBatch('A-R1-S1', 'Blue Dream 3.5g', '#4820', 60, 18, '22.4%', 'Aug 23');
+  addBatch('A-R1-S2', 'GMO 3.5g', '#4471', 12, 41, '24.1%', 'Jul 31');
+  addBatch('A-R2-S1', 'GMO 3.5g', '#5108', 60, 6, '31.6%', 'Sep 4');
+  addBatch('A-R3-S1', 'OG Kush 3.5g', '#4390', 44, 52, '19.8%', 'Jul 20');
+  addBatch('A-R2-S3', 'Wedding Cake 3.5g', '#5001', 10, 9, '27.0%', 'Sep 1');
+  addBatch('B-R1-S1', 'Live Resin Cart 1g', '#3310', 8, 63, null, null);
+  addBatch('B-R1-S2', 'Live Resin Cart 1g', '#3612', 50, 6, null, null);
+  addBatch('B-R2-S2', 'Rosin 1g', '#2290', 22, 15, null, null);
+  addBatch('C-R1-S1', 'Indica PR 5-pack', '#1180', 34, 12, null, null);
+  addBatch('C-R1-S2', 'Cereal Milk Pre-Roll 5-pack', '#1201', 180, 0, null, null);
+  addBatch('D-R1-S2', 'Chocolate Bar 100mg', '#900', 18, 22, null, null);
+
+  var RECEIVE = [
+    { id:'rc1', name:'Papaya Punch 3.5g', kind:'new', kindLabel:'New SKU', qty:240, proposed:'A-R3-S3', older:null, done:false },
+    { id:'rc2', name:'Cereal Milk Pre-Roll 5-pack', kind:'restock', kindLabel:'Restock', qty:180, proposed:'C-R1-S2', older:null, done:false },
+    { id:'rc3', name:'GMO 3.5g', kind:'newbatch', kindLabel:'New batch', qty:90, proposed:'A-R2-S2', older:'A-R1-S2', done:false, batchNo:'#5188' },
+    { id:'rc4', name:'Live Resin Cart 1g', kind:'newbatch', kindLabel:'New batch', qty:50, proposed:'B-R1-S3', older:'B-R1-S1', done:false, batchNo:'#3714' }
+  ];
+  var selectedReceive = null;
+  var editorOn = false, editorSelectedZone = 'A';
+
+  /* ---------------- floor map rendering ---------------- */
+  function ageLabel(days){ return days === 0 ? 'today' : days + 'd old'; }
+
+  function renderFloor(hostId, opts){
+    opts = opts || {};
+    var host = document.getElementById(hostId);
+    if (!host) return;
+    host.innerHTML = ZONES.map(function(zone){
+      var racks = zone.racks.map(function(rack){
+        var shelves = rack.shelves.map(function(s){
+          var sid = shelfId(zone.id, rack.id, s);
+          var occ = !!(BATCHES[sid] && BATCHES[sid].length);
+          var cls = 'shelf' + (occ ? ' occupied' : '') + (editorOn ? ' editable' : '');
+          var stopIdx = opts.route ? opts.route.indexOf(sid) : -1;
+          if (opts.lit && opts.lit.indexOf(sid) !== -1) cls += ' lit';
+          if (opts.older && opts.older.indexOf(sid) !== -1) cls += ' older-glow';
+          if (opts.selected === sid) cls += ' selected';
+          if (stopIdx !== -1) cls += ' route';
+          var stopBadge = stopIdx !== -1 ? '<span class="stopnum">'+(stopIdx+1)+'</span>' : '';
+          return '<button type="button" class="'+cls+'" data-shelf="'+sid+'" data-host="'+hostId+'" title="'+sid+(occ?' — occupied':' — empty')+'">'+stopBadge+sid+(occ?'<span class="sdot"></span>':'')+'</button>';
+        }).join('');
+        return '<div class="rack"><div style="display:flex;flex-direction:column;gap:3px;">'+shelves+'</div><div class="rack-lbl">'+zone.id+'-'+rack.id+'</div></div>';
+      }).join('');
+      var addBtn = editorOn ? '<div class="rack"><button type="button" class="addrack-btn" data-zone="'+zone.id+'" data-host="'+hostId+'">+</button><div class="rack-lbl">add</div></div>' : '';
+      return '<div class="zone"><div class="zone-head"><span class="zdot" style="background:'+ZONECOLOR[zone.id]+'"></span><span class="zn">'+zone.name+'</span></div><div class="rack-row">'+racks+addBtn+'</div></div>';
+    }).join('');
+  }
+
+  function shelfBatchesHtml(sid){
+    var list = BATCHES[sid] || [];
+    if (!list.length) return '<div class="detail-empty">Nothing stored at '+sid+' yet.</div>';
+    var sorted = list.slice().sort(function(a,b){ return b.age - a.age; });
+    return '<div class="detail-head"><span class="dtitle">'+sid+'</span></div>' + sorted.map(function(b, i){
+      var chipClass = i === 0 && sorted.length > 1 ? 'age-chip oldest' : (i === sorted.length-1 && sorted.length > 1 ? 'age-chip newest' : 'age-chip');
+      return '<div class="batchrow"><span class="bname">'+esc(b.sku)+'</span><span class="bmeta">Batch '+b.batchNo+' · '+b.qty+' u'+(b.thc?' · THC '+b.thc:'')+(b.pkg?' · pkg '+b.pkg:'')+'</span><span class="'+chipClass+'">'+ageLabel(b.age)+'</span></div>';
+    }).join('');
+  }
+
+  function showShelfDetail(sid){
+    document.getElementById('mapDetail').innerHTML = shelfBatchesHtml(sid);
+  }
+
+  /* ---------------- map view: click delegation ---------------- */
+  document.addEventListener('click', function(e){
+    var addBtn = e.target.closest('.addrack-btn');
+    if (addBtn){
+      var zid = addBtn.getAttribute('data-zone');
+      var zone = ZONES.find(function(z){ return z.id === zid; });
+      var n = zone.racks.length + 1;
+      zone.racks.push({ id:'R'+n, shelves:['S1','S2','S3'] });
+      toast('Rack added', 'Zone '+zid+' now has '+n+' racks — drag it into place, then print labels.');
+      renderFloor('floorMap', {});
+      return;
+    }
+    var sh = e.target.closest('.shelf');
+    if (sh && sh.closest('#floorMap')){
+      var sid = sh.getAttribute('data-shelf');
+      if (editorOn){
+        var name = prompt('Rename shelf '+sid+' (label shown on printed racks &amp; the pick slip):', sid);
+        if (name && name.trim()) toast('Label updated', sid+' would print as "'+esc(name.trim())+'".');
+        return;
+      }
+      document.querySelectorAll('#floorMap .shelf').forEach(function(el){ el.classList.remove('selected','lit','older-glow'); });
+      sh.classList.add('selected');
+      showShelfDetail(sid);
+    }
+  });
+
+  /* ---------------- editor toggle ---------------- */
+  var editorZoneSel = document.getElementById('editorZone');
+  editorZoneSel.innerHTML = ZONES.map(function(z){ return '<option value="'+z.id+'">'+z.name.replace('&amp;','&')+'</option>'; }).join('');
+  document.getElementById('editorToggle').addEventListener('click', function(){
+    editorOn = !editorOn;
+    this.classList.toggle('btn-primary', editorOn);
+    document.getElementById('editorBar').style.display = editorOn ? 'flex' : 'none';
+    renderFloor('floorMap', {});
+  });
+  document.getElementById('addRackBtn').addEventListener('click', function(){
+    var zid = editorZoneSel.value;
+    var zone = ZONES.find(function(z){ return z.id === zid; });
+    var n = zone.racks.length + 1;
+    zone.racks.push({ id:'R'+n, shelves:['S1','S2','S3'] });
+    toast('Rack added', 'Zone '+zid+' now has '+n+' racks.');
+    renderFloor('floorMap', {});
+  });
+  document.getElementById('printLabelsBtn').addEventListener('click', function(){
+    var count = 0; ZONES.forEach(function(z){ z.racks.forEach(function(r){ count += r.shelves.length; }); });
+    toast('Labels sent to print', count+' shelf labels across '+ZONES.length+' zones — QR per shelf, scannable at receiving.');
+  });
+
+  /* ---------------- search ---------------- */
+  function findShelvesForSku(term){
+    term = term.trim().toLowerCase();
+    if (!term) return [];
+    var hits = [];
+    Object.keys(BATCHES).forEach(function(sid){
+      BATCHES[sid].forEach(function(b){
+        if (b.sku.toLowerCase().indexOf(term) !== -1) hits.push(b);
+      });
+    });
+    hits.sort(function(a,b){ return b.age - a.age; });
+    return hits;
+  }
+  function runSearch(term){
+    var hits = findShelvesForSku(term);
+    var lit = hits.map(function(h){ return h.loc; });
+    renderFloor('floorMap', { lit: lit });
+    if (!term.trim()){
+      document.getElementById('mapDetail').innerHTML = '<div class="detail-empty">Tap a shelf, or search a SKU above, to see what\'s stored there.</div>';
+      return;
+    }
+    if (!hits.length){
+      document.getElementById('mapDetail').innerHTML = '<div class="detail-empty">No shelf holds "'+esc(term)+'" today.</div>';
+      return;
+    }
+    document.getElementById('mapDetail').innerHTML = '<div class="detail-head"><span class="dtitle">'+hits.length+' '+(hits.length>1?'shelves':'shelf')+' lit — oldest batch first</span></div>' +
+      hits.map(function(h, i){
+        var chip = i === 0 && hits.length > 1 ? 'age-chip oldest' : (i === hits.length-1 && hits.length > 1 ? 'age-chip newest' : 'age-chip');
+        return '<button type="button" class="result-item" data-jump="'+h.loc+'"><span class="rloc">'+h.loc+'</span><span class="bname" style="flex:1;">'+esc(h.sku)+' — Batch '+h.batchNo+'</span><span class="'+chip+'">'+ageLabel(h.age)+'</span><span class="rqty">'+h.qty+' u</span></button>';
+      }).join('');
+  }
+  document.getElementById('skuSearch').addEventListener('input', function(){ runSearch(this.value); });
+  document.getElementById('clearSearch').addEventListener('click', function(){ document.getElementById('skuSearch').value=''; runSearch(''); });
+  document.querySelectorAll('.chip-try').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var v = btn.getAttribute('data-try');
+      document.getElementById('skuSearch').value = v;
+      runSearch(v);
+    });
+  });
+  document.getElementById('scanBtn').addEventListener('click', function(){
+    document.getElementById('skuSearch').value = 'GMO 3.5g';
+    runSearch('GMO 3.5g');
+    toast('Tag scanned', 'Simulated handheld scan resolved to SKU "GMO 3.5g" — every shelf holding it is now lit.');
+  });
+  document.addEventListener('click', function(e){
+    var r = e.target.closest('.result-item');
+    if (r && r.closest('#mapDetail')){
+      var sid = r.getAttribute('data-jump');
+      var shEl = document.querySelector('#floorMap [data-shelf="'+sid+'"]');
+      if (shEl) shEl.scrollIntoView({ behavior:'smooth', block:'center' });
+      showShelfDetail(sid);
+    }
+  });
+
+  /* ---------------- receive view ---------------- */
+  function renderReceiveList(){
+    var host = document.getElementById('receiveList');
+    host.innerHTML = RECEIVE.map(function(r){
+      var cls = 'receive-item' + (r.id===selectedReceive?' selected':'') + (r.done?' done':'');
+      return '<button type="button" class="'+cls+'" data-rc="'+r.id+'">'
+        + '<span class="kind-tag kind-'+r.kind+'">'+r.kindLabel+'</span>'
+        + '<span class="rname">'+esc(r.name)+'</span>'
+        + '<span class="rqty2">'+r.qty+' u'+(r.older?' · older batch on hand':'')+'</span>'
+        + (r.done ? '<span class="rdone"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>' : '')
+        + '</button>';
+    }).join('');
+  }
+  function selectReceive(id){
+    selectedReceive = id;
+    renderReceiveList();
+    var r = RECEIVE.find(function(x){ return x.id === id; });
+    var lit = r.done ? [] : [r.proposed];
+    var older = r.older ? [r.older] : [];
+    renderFloor('receiveFloor', { lit: lit, older: older, selected: r.proposed });
+    var panel = document.getElementById('confirmPanel');
+    if (r.done){
+      panel.innerHTML = '<div class="csub">Confirmed at '+r.proposed+'.</div>';
+      return;
+    }
+    var olderNote = r.older ? '<div class="csub">Older batch of this SKU is already on hand at <b style="font-family:var(--fontMono);">'+r.older+'</b> (glowing blue) — the proposed shelf sits beside it so the refill team finds both without asking.</div>' : '';
+    panel.innerHTML = '<div class="ctitle">Confirm shelf '+r.proposed+' for '+esc(r.name)+(r.batchNo?' — Batch '+r.batchNo:'')+'</div>' + olderNote
+      + '<div class="confirm-actions"><button class="btn btn-primary" id="confirmShelfBtn">Confirm '+r.proposed+'</button><button class="btn btn-ghost" id="scanShelfBtn">Scan shelf QR instead</button></div>';
+    document.getElementById('confirmShelfBtn').addEventListener('click', function(){ confirmReceive(r); });
+    document.getElementById('scanShelfBtn').addEventListener('click', function(){
+      toast('Shelf scanned', 'Handheld read the QR at '+r.proposed+' — matches the proposed shelf.');
+      confirmReceive(r);
+    });
+  }
+  function confirmReceive(r){
+    r.done = true;
+    addBatch(r.proposed, r.name, r.batchNo || ('#'+(4000+Math.floor(Math.random()*999))), r.qty, 0, null, null);
+    toast('Location set', esc(r.name)+' recorded to '+r.proposed+' — findable from the Map tab immediately.');
+    selectReceive(r.id);
+  }
+  document.addEventListener('click', function(e){
+    var it = e.target.closest('.receive-item');
+    if (it && it.closest('#receiveList')) selectReceive(it.getAttribute('data-rc'));
+  });
+
+  /* ---------------- view tabs ---------------- */
+  document.getElementById('viewTabs').addEventListener('click', function(e){
+    var t = e.target.closest('.vtab'); if (!t) return;
+    var v = t.getAttribute('data-view');
+    document.querySelectorAll('.vtab').forEach(function(b){ b.classList.toggle('active', b===t); });
+    document.querySelectorAll('.view').forEach(function(b){ b.classList.toggle('active', b.id==='view-'+v); });
+  });
+
+  /* ---------------- boot ---------------- */
+  renderFloor('floorMap', {});
+  renderReceiveList();
+  renderFloor('receiveFloor', {});
+  renderFloor('refillFloor', { route:['A-R1-S2','A-R2-S1','A-R1-S1'] });
+})();
+</script>
+</body>
+</html>

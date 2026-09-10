@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Batch Location — Concept D — Ask the Vault</title>
+<style>
+/* ============================================================================
+   Concept D — Ask the Vault. Search-first, conversational batch location.
+   Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); table/pill/button
+   shapes from shared/hd-ui.jsx; rail + topbar shell reproduced from
+   Hyperwolf Bounty.html; box-card row schema (Sold/Need/Cap/Give/Reason) and
+   amber shortfall rows kept verbatim from Concept B; large steppers and the
+   full-width packed button kept from Concept D — Tablet Packing. No build
+   step, no external requests. All product names, batch numbers, THC values,
+   racks and quantities below are EXAMPLE DATA.
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:11px; --f-meta:12.5px; --f-body:14px; --f-strong:16px; --f-title:18px; --f-h2:22px; --f-h1:28px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.22);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:72px;flex:0 0 72px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;color:var(--accentInk);flex:0 0 auto;}
+.rail-item{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:600;white-space:nowrap;}
+.rail-spacer{flex:1;}
+.rail-bottom{width:100%;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap;}
+.topbar .titleblock{margin-right:auto;min-width:160px;}
+.h1{font-size:var(--f-h1);font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.1;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-sm{height:36px;padding:0 13px;font-size:var(--f-meta);}
+.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:99px;font-size:var(--f-meta);font-weight:700;border:1px solid transparent;white-space:nowrap;}
+.pill-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-info{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+
+.example-banner{display:flex;align-items:center;gap:8px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 14px;font-size:var(--f-meta);font-weight:600;margin:12px 18px 0;}
+
+/* ---- mode tabs ---- */
+.modetabs{display:flex;gap:6px;padding:12px 18px 0;flex-wrap:wrap;}
+.modetab{background:var(--surface);border:1px solid var(--hairline2);border-bottom:none;color:var(--inkDim);font-weight:700;font-size:var(--f-body);padding:10px 16px;border-radius:var(--r12) var(--r12) 0 0;cursor:pointer;display:flex;align-items:center;gap:7px;}
+.modetab.active{color:var(--ink);background:var(--bg2);}
+.view{display:none;padding:0 18px 20px;}
+.view.active{display:block;}
+.viewband{background:var(--bg2);border:1px solid var(--hairline2);border-radius:0 var(--r16) var(--r16) var(--r16);padding:18px;}
+
+/* ---- Ask: hero search ---- */
+.searchhero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:20px 8px 8px;}
+.searchhero h2{margin:0 0 4px;font-size:var(--f-h2);}
+.searchhero .sub{color:var(--inkMute);font-size:var(--f-body);margin-bottom:16px;}
+.searchbox{width:100%;max-width:640px;display:flex;align-items:center;gap:8px;background:var(--field);border:1.5px solid var(--fieldBorder);border-radius:99px;padding:6px 6px 6px 20px;box-shadow:var(--shadowSm);}
+.searchbox:focus-within{border-color:var(--accentBorder);box-shadow:0 0 0 3px var(--accentSoft);}
+.searchbox input{flex:1;border:none;background:transparent;outline:none;font-size:17px;color:var(--ink);height:40px;}
+.searchbox input::placeholder{color:var(--inkFaint);}
+.roundbtn{width:44px;height:44px;border-radius:50%;border:1px solid var(--hairline3);background:var(--surface3);color:var(--inkDim);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.roundbtn:hover{background:var(--hairline2);color:var(--ink);}
+.roundbtn.listening{background:var(--bad);border-color:var(--bad);color:#fff;animation:mic-pulse 1.1s ease-in-out infinite;}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.45);}50%{box-shadow:0 0 0 7px rgba(192,57,43,0);}}
+.roundbtn.go{background:var(--accent);border-color:var(--accentBorder);color:var(--accentInk);}
+.voicehint{margin-top:8px;font-size:var(--f-meta);color:var(--inkMute);min-height:16px;}
+.quickq{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;}
+.chip{background:var(--surface);border:1px solid var(--hairline2);border-radius:99px;padding:8px 14px;font-size:var(--f-meta);font-weight:600;color:var(--inkDim);cursor:pointer;}
+.chip:hover{border-color:var(--accentBorder);color:var(--ink);background:var(--surface2);}
+
+/* ---- answer area ---- */
+.answers{margin-top:20px;display:flex;flex-direction:column;gap:14px;}
+.emptyanswer{text-align:center;color:var(--inkMute);padding:30px 10px;font-size:var(--f-body);}
+.pcard{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);overflow:hidden;}
+.pcard-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--hairline);}
+.pcard-head .catdot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
+.pcard-head .pname{font-size:var(--f-title);font-weight:800;flex:1;}
+.pcard-head .ptotal{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);}
+.loudflag{margin:0 18px 12px;display:flex;align-items:flex-start;gap:9px;background:var(--warnSoft);border:1.5px solid var(--warn);border-radius:var(--r10);padding:11px 13px;color:var(--warnText);font-weight:700;font-size:var(--f-meta);}
+.loudflag svg{flex:0 0 auto;margin-top:1px;}
+.batchrow{display:flex;gap:16px;align-items:center;padding:14px 18px;border-top:1px solid var(--hairline);flex-wrap:wrap;}
+.batchrow:first-of-type{border-top:none;}
+.batchrow .oldest{background:var(--good);color:#fff;}
+.rackphoto{flex:0 0 auto;}
+.batch-meta{flex:1 1 220px;min-width:180px;}
+.batch-meta .bno{font-family:var(--fontMono);font-weight:800;font-size:var(--f-body);}
+.batch-meta .bsub{font-size:var(--f-meta);color:var(--inkMute);margin-top:2px;}
+.batch-stat3{display:flex;gap:16px;font-family:var(--fontMono);flex:0 0 auto;}
+.batch-stat3 div{text-align:center;}
+.batch-stat3 .k{font-size:9.5px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
+.batch-stat3 .v{font-size:var(--f-body);font-weight:700;}
+.loclabel{flex:0 0 auto;text-align:center;}
+.loclabel .big{font-family:var(--fontMono);font-size:22px;font-weight:800;background:var(--surface3);border:1px solid var(--hairline3);border-radius:var(--r10);padding:6px 12px;letter-spacing:.02em;}
+.loclabel .cap{font-size:9.5px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;margin-top:4px;}
+
+/* ---- new-since cards ---- */
+.newsince{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
+.nsgroup{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px 14px;}
+.nsgroup h4{margin:0 0 8px;font-size:var(--f-meta);text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.nsitem{padding:8px 0;border-top:1px solid var(--hairline);}
+.nsitem:first-of-type{border-top:none;}
+.nsitem .n{font-weight:700;font-size:var(--f-body);}
+.nsitem .m{font-size:var(--f-meta);color:var(--inkDim);}
+.nsitem .loc{font-family:var(--fontMono);font-weight:700;font-size:var(--f-meta);color:var(--info);}
+.nsitem.loud{background:var(--warnSoft);margin:0 -14px;padding:8px 14px;border-top:1px solid var(--warn);}
+.nsitem.loud .loc{color:var(--warnText);}
+
+/* ---- Receive: where do I put this ---- */
+.recv-grid{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start;}
+.recv-form{flex:1 1 320px;min-width:280px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px;}
+.recv-form label{display:block;font-size:var(--f-meta);text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);margin:12px 0 5px;}
+.recv-form label:first-of-type{margin-top:0;}
+.field{width:100%;height:44px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 12px;font-size:var(--f-body);}
+.field:focus-visible{outline:none;box-shadow:var(--focusRing);}
+.kindrow{display:flex;gap:8px;margin-top:4px;}
+.kindbtn{flex:1;height:38px;border-radius:var(--r8);border:1px solid var(--hairline3);background:var(--surface3);font-size:var(--f-meta);font-weight:700;color:var(--inkDim);cursor:pointer;}
+.kindbtn.active{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.recv-answer{flex:1 1 340px;min-width:300px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);padding:18px;text-align:center;}
+.recv-answer .askedfor{font-size:var(--f-meta);color:var(--inkMute);}
+.recv-answer .slot{font-family:var(--fontMono);font-size:44px;font-weight:800;margin:8px 0 4px;color:var(--ink);}
+.recv-answer .reason{font-size:var(--f-body);color:var(--inkDim);max-width:340px;margin:0 auto 14px;}
+.confirmed-box{margin-top:14px;background:var(--goodSoft);border:1px solid var(--good);color:var(--good);border-radius:var(--r10);padding:10px 14px;font-weight:700;font-size:var(--f-meta);display:none;align-items:center;justify-content:center;gap:7px;}
+.confirmed-box.show{display:flex;}
+
+/* ---- Refill row + pick slip ---- */
+.refill-note{font-size:var(--f-meta);color:var(--inkMute);margin-bottom:10px;}
+table.boxtbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);overflow:hidden;}
+table.boxtbl th{text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:8px 10px;border-bottom:1px solid var(--hairline2);background:var(--surface2);}
+table.boxtbl th:first-child,table.boxtbl th:last-child{text-align:left;}
+table.boxtbl td{padding:10px;border-bottom:1px solid var(--hairline);vertical-align:top;color:var(--ink);}
+table.boxtbl tr:last-child td{border-bottom:none;}
+.boxtbl .num{font-family:var(--fontMono);text-align:right;white-space:nowrap;}
+.boxtbl tr.row-loud{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.boxtbl .pn{font-weight:700;}
+.boxtbl .reasoncell{max-width:230px;font-size:11.5px;}
+.boxtbl .reasoncell.r-warn{color:var(--warnText);font-weight:700;}
+.batchloc-mini{display:inline-flex;align-items:center;gap:4px;font-family:var(--fontMono);font-size:11px;background:var(--surface3);border-radius:6px;padding:1px 6px;margin:2px 3px 0 0;}
+
+.pickslip-head{display:flex;align-items:center;gap:10px;margin:22px 0 10px;}
+.pickslip-head h3{margin:0;font-size:var(--f-strong);}
+.pickslip-strip{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;}
+.rackstop{flex:0 0 220px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px;box-shadow:var(--shadowSm);}
+.rackstop .stopno{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--surface);font-size:11px;font-weight:800;font-family:var(--fontMono);}
+.rackstop .rname{font-family:var(--fontMono);font-weight:800;font-size:var(--f-body);margin-left:8px;}
+.rackstop .rline{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;padding:6px 0;border-top:1px solid var(--hairline);}
+.rackstop .rline:first-of-type{border-top:none;margin-top:8px;}
+.rackstop .rline .q{font-family:var(--fontMono);font-weight:700;}
+
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;padding:14px 20px 6px;font-size:var(--f-meta);color:var(--inkDim);}
+.legend .li{display:flex;align-items:center;gap:6px;}
+.footer{padding:10px 20px;font-size:var(--f-meta);color:var(--inkMute);border-top:1px solid var(--hairline2);}
+
+@media (max-width:760px){
+  .rail{width:58px;flex-basis:58px;}
+  .rail-item .lbl{display:none;}
+  .h1{font-size:22px;}
+  .batch-stat3{gap:10px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <button class="rail-item" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+    <button class="rail-item" title="Kit templates"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+    <button class="rail-item active" title="Distribution"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+    <button class="rail-item" title="Driver kits"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom"><button class="rail-item" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82"/></svg><span class="lbl">Settings</span></button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Distribution</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Batch Location · Concept D</span></div>
+        <h1 class="h1">Ask the Vault</h1>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle theme">
+        <svg id="themeIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="example-banner">Design mockup — every SKU, batch number, rack, THC value and quantity on this screen is example data, not a live inventory feed.</div>
+
+    <div class="modetabs" id="modeTabs">
+      <button class="modetab active" data-mode="ask">Ask</button>
+      <button class="modetab" data-mode="receive">Receive · "Where do I put this?"</button>
+      <button class="modetab" data-mode="refill">Refill row + pick slip</button>
+    </div>
+
+    <!-- ============ ASK ============ -->
+    <div class="view active" id="view-ask"><div class="viewband">
+      <div class="searchhero">
+        <h2>Ask the vault anything.</h2>
+        <div class="sub">A SKU, a batch number, a rack — or scan a tag or a rack QR code.</div>
+        <div class="searchbox">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--inkFaint);flex:0 0 auto;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="searchInput" type="text" placeholder="GMO 3.5g, B-2291, Rack A…" autocomplete="off"/>
+          <button class="roundbtn" id="voiceBtn" title="Ask by voice (UI only)" aria-label="Ask by voice">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0014 0"/><path d="M12 19v3"/></svg>
+          </button>
+          <button class="roundbtn go" id="scanBtn" title="Scan a tag or rack QR (example)" aria-label="Scan">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 011-1h2M4 17v2a1 1 0 001 1h2M20 7V5a1 1 0 00-1-1h-2M20 17v2a1 1 0 01-1 1h-2"/><path d="M4 12h16"/></svg>
+          </button>
+        </div>
+        <div class="voicehint" id="voiceHint"></div>
+        <div class="quickq">
+          <button class="chip" data-q="__new_since__">What's new since my last refill?</button>
+          <button class="chip" data-q="GMO 3.5g">GMO 3.5g</button>
+          <button class="chip" data-q="Rack A">Rack A</button>
+          <button class="chip" data-q="B-2338">B-2338</button>
+        </div>
+      </div>
+      <div class="answers" id="answers"></div>
+    </div></div>
+
+    <!-- ============ RECEIVE ============ -->
+    <div class="view" id="view-receive"><div class="viewband">
+      <div class="recv-grid">
+        <div class="recv-form">
+          <div style="font-weight:800;font-size:var(--f-title);margin-bottom:2px;">Where do I put this?</div>
+          <div style="font-size:var(--f-meta);color:var(--inkMute);">Set at receiving, on the handheld — before the unit's tag is put away anywhere.</div>
+          <label>What kind of arrival is this?</label>
+          <div class="kindrow" id="kindRow">
+            <button class="kindbtn active" data-kind="new">New SKU</button>
+            <button class="kindbtn" data-kind="restock">Restock</button>
+            <button class="kindbtn" data-kind="batch">New batch</button>
+          </div>
+          <label>SKU</label>
+          <input class="field" id="recvSku" value="GMO 3.5g" />
+          <label>New batch number (tag already scanned to it)</label>
+          <input class="field" id="recvBatch" value="B-2402" />
+          <button class="btn btn-ghost btn-sm" id="fillArrivalBtn" style="margin-top:12px;">Fill from example arrival ▸</button>
+          <button class="btn btn-primary" id="askSlotBtn" style="width:100%;margin-top:14px;">Where do I put this?</button>
+        </div>
+        <div class="recv-answer" id="recvAnswer">
+          <div class="askedfor">No question asked yet.</div>
+          <div class="slot">—</div>
+          <div class="reason">Fill in a SKU and batch, then ask.</div>
+          <div class="confirmed-box" id="confirmedBox"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Location recorded.</div>
+        </div>
+      </div>
+    </div></div>
+
+    <!-- ============ REFILL ROW + PICK SLIP ============ -->
+    <div class="view" id="view-refill"><div class="viewband">
+      <div style="font-weight:800;font-size:var(--f-title);">Flower Box 2 · Orange County · Driver: M. Alvarez</div>
+      <div class="refill-note">Same row schema as Box Cards (Concept B) — Sold · Need · Cap · Give · Reason — with the mixed-batch flag now naming both locations, so the refill person never has to guess where the second batch lives.</div>
+      <table class="boxtbl" id="refillTable"></table>
+
+      <div class="pickslip-head">
+        <h3>Pick slip — grouped by rack, walking order</h3>
+        <span class="pill pill-info">4 stops</span>
+      </div>
+      <div class="pickslip-strip" id="pickStrip"></div>
+    </div></div>
+
+    <div class="legend">
+      <span class="li"><span class="pill pill-warn">amber</span> Two batches in one line — loud, never quiet</span>
+      <span class="li"><span class="pill pill-good">green</span> Pick this batch first — oldest in stock</span>
+      <span class="li"><span class="pill pill-info">blue</span> New since your last refill</span>
+    </div>
+    <div class="footer">Batch Location — Concept D of 4 — Ask the Vault</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+
+/* ---------- theme ---------- */
+var root=document.documentElement;
+try{var saved=localStorage.getItem('hw-vault-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+function paintThemeIcon(){
+  var dark=root.getAttribute('data-theme')==='dark' || (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  $('#themeIcon').innerHTML = dark
+    ? '<path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/>'
+    : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+}
+paintThemeIcon();
+$('#themeToggle').addEventListener('click',function(){
+  var cur=root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  var next= cur==='dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme',next);
+  try{localStorage.setItem('hw-vault-theme',next);}catch(e){}
+  paintThemeIcon();
+});
+
+/* ---------- example data ---------- */
+var CAT={flower:'#3F9E72',vape:'#3F73D6',edibles:'#E0477C'};
+var BATCHES=[
+  {sku:'GMO 3.5g',cat:'flower',batch:'B-2291',thc:24.1,packaged:'2026-07-02',qty:42,rack:'A',pos:'03',shelf:'2',ageDays:70},
+  {sku:'GMO 3.5g',cat:'flower',batch:'B-2338',thc:31.6,packaged:'2026-08-20',qty:18,rack:'A',pos:'04',shelf:'1',ageDays:21},
+  {sku:'Blue Dream Cart 1g',cat:'vape',batch:'V-1187',thc:88.4,packaged:'2026-06-14',qty:60,rack:'B',pos:'02',shelf:'2',ageDays:88},
+  {sku:'Wana Gummies 100mg',cat:'edibles',batch:'E-0552',thc:0,packaged:'2026-08-01',qty:96,rack:'B',pos:'02',shelf:'3',ageDays:40},
+];
+function loc(b){ return 'Rack '+b.rack+' — '+b.rack+'-'+b.pos+'-'+b.shelf; }
+function locShort(b){ return b.rack+'-'+b.pos+'-'+b.shelf; }
+
+function rackSVG(rack,pos,shelf){
+  var col=parseInt(pos,10), row=parseInt(shelf,10), cols=6, rows=3;
+  var w=170,h=76,pad=6, cw=(w-2*pad)/cols, rh=(h-2*pad)/rows;
+  var cells='';
+  for(var r=0;r<rows;r++){
+    for(var c=0;c<cols;c++){
+      var isTarget=(r===(rows-row)) && ((c+1)===col);
+      cells+='<rect x="'+(pad+c*cw+1)+'" y="'+(pad+r*rh+1)+'" width="'+(cw-2)+'" height="'+(rh-2)+'" rx="2" fill="'+(isTarget?'var(--accent)':'var(--surface3)')+'" stroke="'+(isTarget?'var(--accentBorder)':'var(--hairline2)')+'"/>';
+    }
+  }
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Rack '+rack+' photo, slot '+pos+'-'+shelf+' highlighted"><rect x="0.5" y="0.5" width="'+(w-1)+'" height="'+(h-1)+'" rx="8" fill="var(--surface2)" stroke="var(--hairline2)"/>'+cells+'</svg>';
+}
+
+/* ---------- Ask: search + render ---------- */
+var searchInput=$('#searchInput'), answers=$('#answers');
+function matches(b,q){
+  q=q.toLowerCase();
+  return b.sku.toLowerCase().indexOf(q)>-1 || b.batch.toLowerCase().indexOf(q)>-1 || ('rack '+b.rack).toLowerCase().indexOf(q)>-1 || b.rack.toLowerCase()===q;
+}
+function renderProductCard(sku){
+  var rows=BATCHES.filter(function(b){return b.sku===sku;}).sort(function(a,b2){return b2.ageDays-a.ageDays;});
+  var loud=rows.length>1;
+  var html='<div class="pcard"><div class="pcard-head"><span class="catdot" style="background:'+CAT[rows[0].cat]+'"></span><span class="pname">'+sku+'</span><span class="ptotal">'+rows.reduce(function(s,b){return s+b.qty;},0)+' units on hand · '+rows.length+' batch'+(rows.length>1?'es':'')+'</span></div>';
+  if(loud){
+    html+='<div class="loudflag"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.6" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Two batches in stock — not interchangeable. A kit line pulls from one batch only; finish '+rows[0].batch+' before opening '+rows[rows.length-1].batch+'.</div>';
+  }
+  rows.forEach(function(b,i){
+    html+='<div class="batchrow"><span class="rackphoto">'+rackSVG(b.rack,b.pos,b.shelf)+'</span>'
+      +'<div class="batch-meta"><div class="bno">'+b.batch+(i===0?' <span class="pill oldest" style="height:19px;">Pick first — oldest</span>':'')+'</div><div class="bsub">Packaged '+b.packaged+' · '+b.ageDays+' days on hand</div></div>'
+      +'<div class="batch-stat3"><div><div class="k">THC</div><div class="v">'+(b.thc?b.thc+'%':'—')+'</div></div><div><div class="k">Qty</div><div class="v">'+b.qty+'</div></div></div>'
+      +'<div class="loclabel"><div class="big">'+locShort(b)+'</div><div class="cap">'+loc(b)+'</div></div></div>';
+  });
+  html+='</div>';
+  return html;
+}
+function renderNewSince(){
+  return '<div class="pcard"><div class="pcard-head"><span class="pname">New since your last refill</span><span class="ptotal">6:12 AM PT → now</span></div>'
+    +'<div style="padding:14px 18px;"><div class="newsince">'
+    +'<div class="nsgroup"><h4>New SKU</h4><div class="nsitem"><div class="n">Rove Live Resin Cart 0.5g</div><div class="m">First arrival, 24 units</div><div class="loc">C-01-4</div></div></div>'
+    +'<div class="nsgroup"><h4>Restock</h4><div class="nsitem"><div class="n">Wana Gummies 100mg</div><div class="m">+60 units, sold out since Tue</div><div class="loc">B-02-2</div></div></div>'
+    +'<div class="nsgroup"><h4>New batch, in-stock SKU</h4><div class="nsitem loud"><div class="n">GMO 3.5g — batch B-2402</div><div class="m">B-2291 already in kits — loud flag applied</div><div class="loc">A-04-3</div></div></div>'
+    +'</div></div></div>';
+}
+function renderRackList(rack){
+  var rows=BATCHES.filter(function(b){return b.rack.toLowerCase()===rack.toLowerCase();});
+  if(!rows.length) return '';
+  var html='<div class="pcard"><div class="pcard-head"><span class="pname">Rack '+rack.toUpperCase()+'</span><span class="ptotal">'+rows.length+' batch'+(rows.length>1?'es':'')+' stored here</span></div>';
+  rows.forEach(function(b){
+    html+='<div class="batchrow"><span class="rackphoto">'+rackSVG(b.rack,b.pos,b.shelf)+'</span><div class="batch-meta"><div class="bno">'+b.sku+'</div><div class="bsub">Batch '+b.batch+' · Qty '+b.qty+'</div></div><div class="loclabel"><div class="big">'+locShort(b)+'</div></div></div>';
+  });
+  return html+'</div>';
+}
+function runSearch(q){
+  q=(q||'').trim();
+  if(!q){ answers.innerHTML='<div class="emptyanswer">Search a SKU, a batch number, or a rack — the answer always leads with location.</div>'; return; }
+  if(q==='__new_since__'){ answers.innerHTML=renderNewSince(); return; }
+  var lower=q.toLowerCase();
+  if(/^rack\s|^[a-z]$/i.test(lower) || (lower.length<=1)){
+    var rackChar=lower.replace('rack','').trim().toUpperCase();
+    var html=renderRackList(rackChar);
+    if(html){ answers.innerHTML=html; return; }
+  }
+  var direct=BATCHES.filter(function(b){return b.batch.toLowerCase()===lower;});
+  if(direct.length){ answers.innerHTML=renderProductCard(direct[0].sku); return; }
+  var skus=[]; BATCHES.forEach(function(b){ if(matches(b,q) && skus.indexOf(b.sku)===-1) skus.push(b.sku); });
+  if(!skus.length){ answers.innerHTML='<div class="emptyanswer">Nothing in the vault matches "'+q.replace(/</g,'&lt;')+'" — example data covers GMO 3.5g, Blue Dream Cart 1g, Wana Gummies 100mg, Rack A/B.</div>'; return; }
+  answers.innerHTML = skus.map(renderProductCard).join('');
+}
+searchInput.addEventListener('input',function(){ runSearch(this.value); });
+$$('.chip').forEach(function(c){ c.addEventListener('click',function(){ var q=c.getAttribute('data-q'); if(q!=='__new_since__'){ searchInput.value=q; } else { searchInput.value=''; } runSearch(q); }); });
+runSearch('');
+
+/* voice + scan — UI only, per owner's optional ask */
+var voiceOn=false;
+$('#voiceBtn').addEventListener('click',function(){
+  voiceOn=!voiceOn;
+  this.classList.toggle('listening',voiceOn);
+  $('#voiceHint').textContent = voiceOn ? 'Listening… (voice input is UI-only in this mockup)' : '';
+  if(voiceOn){
+    setTimeout(function(){
+      voiceOn=false; $('#voiceBtn').classList.remove('listening');
+      searchInput.value='GMO 3.5g'; runSearch('GMO 3.5g');
+      $('#voiceHint').textContent='Heard: "Where is the GMO three-five"';
+    },1400);
+  }
+});
+$('#scanBtn').addEventListener('click',function(){
+  searchInput.value='B-2338'; runSearch('B-2338');
+  $('#voiceHint').textContent='Scanned tag → batch B-2338.';
+});
+
+/* ---------- mode tabs ---------- */
+$$('.modetab').forEach(function(t){
+  t.addEventListener('click',function(){
+    $$('.modetab').forEach(function(x){x.classList.remove('active');});
+    $$('.view').forEach(function(v){v.classList.remove('active');});
+    t.classList.add('active');
+    $('#view-'+t.getAttribute('data-mode')).classList.add('active');
+  });
+});
+
+/* ---------- Receive: where do I put this ---------- */
+var kind='new';
+$$('.kindbtn').forEach(function(k){
+  k.addEventListener('click',function(){ $$('.kindbtn').forEach(function(x){x.classList.remove('active');}); k.classList.add('active'); kind=k.getAttribute('data-kind'); });
+});
+$('#fillArrivalBtn').addEventListener('click',function(){
+  $('#recvSku').value='GMO 3.5g'; $('#recvBatch').value='B-2402';
+  $$('.kindbtn').forEach(function(x){x.classList.remove('active');});
+  $('.kindbtn[data-kind="batch"]').classList.add('active'); kind='batch';
+});
+var SLOT_ANSWERS={
+  new:{slot:'C-01-4', reason:'No existing stock of this SKU — nearest empty slot in the receiving-adjacent zone.'},
+  restock:{slot:'B-02-2', reason:'Same slot the SKU already occupies — restocks return to their existing home.'},
+  batch:{slot:'A-04-3', reason:'Existing GMO 3.5g batch (B-2291) lives on Rack A — keeps the SKU together and keeps the older batch reachable first. Flagged: a second batch of this SKU is now on hand.'}
+};
+$('#askSlotBtn').addEventListener('click',function(){
+  var ans=SLOT_ANSWERS[kind];
+  var sku=$('#recvSku').value||'this item', batch=$('#recvBatch').value||'';
+  $('#recvAnswer').querySelector('.askedfor').textContent='Where do I put '+sku+(batch?' · batch '+batch:'')+'?';
+  $('#recvAnswer').querySelector('.slot').textContent=ans.slot;
+  $('#recvAnswer').querySelector('.reason').textContent=ans.reason;
+  $('#confirmedBox').classList.remove('show');
+  if(!$('#confirmScanBtn')){
+    var b=document.createElement('button');
+    b.className='btn btn-primary'; b.id='confirmScanBtn'; b.style.width='100%'; b.style.marginTop='14px';
+    b.textContent='Scan rack '+ans.slot+' to confirm';
+    b.addEventListener('click',function(){
+      $('#confirmedBox').classList.add('show');
+      $('#confirmedBox').innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'+batch+' → '+ans.slot+' recorded. Refill and pick-slip screens will show this location immediately.';
+    });
+    $('#recvAnswer').appendChild(b);
+  } else {
+    $('#confirmScanBtn').textContent='Scan rack '+ans.slot+' to confirm';
+  }
+});
+
+/* ---------- Refill row (Box Cards schema, loud flag with both locations) ---------- */
+var REFILL_ROWS=[
+  {name:'GMO 3.5g', loud:true, sold:14, need:14, cap:20, give:14,
+    batches:[{b:'B-2291',loc:'A-03-2',given:10},{b:'B-2338',loc:'A-04-1',given:4}],
+    reason:'Two batches in this line — B-2291 @ A-03-2 (10) + B-2338 @ A-04-1 (4).'},
+  {name:'Blue Dream Cart 1g', loud:false, sold:6, need:6, cap:12, give:6, batches:[{b:'V-1187',loc:'B-02-2',given:6}], reason:'—'},
+  {name:'Wana Gummies 100mg', loud:false, sold:9, need:9, cap:10, give:9, batches:[{b:'E-0552',loc:'B-02-3',given:9}], reason:'—'}
+];
+(function(){
+  var rowsHtml=REFILL_ROWS.map(function(r){
+    var chips=r.batches.map(function(x){return '<span class="batchloc-mini">'+x.b+' @ '+x.loc+' · '+x.given+'</span>';}).join('');
+    return '<tr class="'+(r.loud?'row-loud':'')+'"><td class="pn">'+r.name+chips+'</td><td class="num">'+r.sold+'</td><td class="num">'+r.need+'</td><td class="num">'+r.cap+'</td><td class="num">'+r.give+'</td>'
+      +'<td class="reasoncell'+(r.loud?' r-warn':'')+'">'+r.reason+'</td></tr>';
+  }).join('');
+  $('#refillTable').innerHTML='<thead><tr><th>Product · batches given</th><th>Sold</th><th>Need</th><th>Cap</th><th>Give</th><th>Reason</th></tr></thead><tbody>'+rowsHtml+'</tbody>';
+})();
+
+var PICK_STOPS=[
+  {rack:'Rack A', items:[{n:'GMO 3.5g — B-2291',loc:'A-03-2',q:10},{n:'GMO 3.5g — B-2338',loc:'A-04-1',q:4}]},
+  {rack:'Rack B', items:[{n:'Blue Dream Cart 1g',loc:'B-02-2',q:6},{n:'Wana Gummies 100mg',loc:'B-02-3',q:9}]},
+  {rack:'Rack C', items:[{n:'Rove Live Resin Cart 0.5g',loc:'C-01-4',q:5}]},
+];
+(function(){
+  $('#pickStrip').innerHTML = PICK_STOPS.map(function(s,i){
+    var lines=s.items.map(function(it){return '<div class="rline"><span>'+it.n+' <span style="color:var(--inkMute);font-family:var(--fontMono);">'+it.loc+'</span></span><span class="q">'+it.q+'</span></div>';}).join('');
+    return '<div class="rackstop"><span class="stopno">'+(i+1)+'</span><span class="rname">'+s.rack+'</span>'+lines+'</div>';
+  }).join('');
+  $('#pickslip-count') && ($('#pickslip-count').textContent=PICK_STOPS.length);
+})();
+
+})();
+</script>
+</body>
+</html>

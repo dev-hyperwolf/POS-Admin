@@ -300,3 +300,7 @@ shelf: not chosen; treat as one floor location unless the team says otherwise.
 inventory (batches, locations, transfers, terminals), customer accounts and loyalty, and Metrc
 reporting in our own code using Stilo's pattern; **Stilo's code merges into our POS.** Payments:
 **Leisurepay**, already integrated (by us and by the developers), behind an adapter.
+
+**Cutover:** module by module with both providers running until each is proven; a pilot store
+moves entirely first; a hard switch date closes out whatever remains. (Read-only shadow not
+chosen as a separate step; the dual-run per module covers it.)
