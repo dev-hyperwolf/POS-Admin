@@ -2842,3 +2842,174 @@ this pass inspected for shape; correctly splitting that is the engine's field to
 backend's to guess at) and the capture-page half (the `POS-Admin/idv/capture.jsx` "I don't have one"
 choice actually calling `POST .../skip` instead of only advancing locally) are separate agents' work
 against this same contract and were not touched here.
+
+## Addendum — 2026-09-10 (r9): verification timing, the aggregate view, and the ID-only workflow
+
+Built to `mrz-contract.md`'s "Addendum 3" section (link-opened → decision timing, per-step and
+retake-loop breakdown, the `GET /stats/timing` aggregate, and the "Cannabis Verification — ID only"
+workflow). `wmdemo/idv_store.py` + `idv_api.py`; `idv_rules.py` untouched except by proof — the
+feature-gating (`"LIVENESS" in features`, `"FACE_MATCH" in features`) that makes an ID-only session
+approve on front+back alone already existed and needed no change, only a workflow that actually
+declares the narrower feature set. Field names below are **frozen** — the console agent building the
+timing screens works against these in parallel and did not see this pass's code.
+
+**A. `opened_at`/`device_os`/`device_browser`, stamped once.** Three new `idv_sessions` columns
+(`TEXT`, all nullable, added by the same guarded `ALTER TABLE ... ADD COLUMN` mechanism as
+`document_type` before them — `_ADDED_COLUMNS`/`_add_missing_columns`, `PRAGMA table_info`-checked).
+`opened_at` is written **only** inside `idv_api._capture`'s `action == "state" and method == "GET"`
+branch, and only when the column is still null on that session's row — "the first capture `GET state`
+this session ever answers", never overwritten by a reload, a poll, or the guest coming back later.
+`device_os`/`device_browser` are parsed off that **same request's** `User-Agent` header in the same
+write and never touched again either. A `session.opened` audit row is written alongside (`via:
+"system"`, `detail: {device_os, device_browser}`) — once, not once per poll, proved by `AP-193`
+calling `state` twice with two completely different User-Agents and asserting the second call changed
+nothing.
+
+`idv_store.parse_user_agent(ua) -> (os, browser)` is a small, pure, stdlib-only parser (`re` only —
+the owner rule "zero third parties at runtime" applies to a backend helper as hard as it does to the
+capture page). Recognises iOS/Android/macOS/Windows for the OS half (`"iOS 18"`, `"Android 14"`,
+`"macOS 14"` — real newer macOS, or `"macOS 10.15"` for a browser still under Apple's
+backward-compatibility version freeze, `"Windows 10"` — NT 10.0 covers both Windows 10 and 11, the
+platform stopped bumping the NT number, and no UA string can tell them apart) and
+Safari/Chrome/Firefox/Edge/Samsung Internet for the browser half, in an order that matters: Samsung
+Internet and Chromium Edge both carry a `Chrome/` token, and **every** WebKit-based browser (Chrome
+and Firefox on iOS included, since Apple requires them to embed WebKit there) carries a `Safari/`
+token — the specific markers (`SamsungBrowser/`, `Edg/`/`EdgA/`/`EdgiOS/`, `CriOS/`, `FxiOS/`) are
+checked first and `Safari` is the fallback of last resort, taken only when nothing more specific
+matched **and** the UA carries `Version/`, which a browser merely embedding WebKit does not. Returns
+`(None, None)` for empty, missing or unrecognisable input rather than guessing. 12 fixtures in
+`qa/idv_store_probe.py` `ST-80`, one per platform/browser pairing plus three "answers nothing" cases.
+
+**B. `st.session_timing(conn, session_id)` — one function, computed from timestamps that already
+exist.** Reads `idv_sessions` (`created_at`, `opened_at`, `completed_at`, `attempts`), `idv_media`
+(`kind`, `captured_at`) and `idv_decisions` (`version`, `status`, `computed_at`); a `capture.skipped`
+audit row closes a step exactly like a media capture would (the contract's "media captured_at / skip
+audit rows" together — `ST-83`). Returns
+`{opened_at, decided_at, total_s, before_open_s, steps: [{step, first_s, last_s, attempts}], base_s,
+retake_s, retakes}`. `decided_at` is the session's own `completed_at` when `status` is
+`Approved`/`Declined`, else `None` — an Abandoned or Expired session has no engine decision to time.
+`total_s`/`before_open_s`/`base_s` and every step's `first_s`/`last_s` are seconds **since**
+`opened_at` (or, for `before_open_s`, `created_at` → `opened_at`) and are honestly `None` whenever
+`opened_at` itself is unknown — a session decided before this column existed, or one whose link was
+never opened at all. **`retake_s`/`retakes` need no absolute reference point** and are computed even
+without `opened_at`: for every decision in the chain whose `status` is `Awaiting User`, find the
+**next** capture/skip event after its `computed_at` and sum `(that event − the decision)`; this is
+what let `ST-87a` validate the real owner passport session
+(`22530969820a411e872b508584ec1dc0`, frozen into `qa/fixtures/idv/
+session-timing-real-2026-09-10.json` rather than read live from `scratch/idv-phone/
+wmdemo-idv-phone.sqlite3` — same reason `qa/idv_rules_probe.py` freezes its own real callback into a
+fixture instead of reading a live file) against real data with **no** `opened_at` on the row at all:
+two `MRZ_NOT_FOUND` retake loops, 6s then 4s, `retakes: 2`, `retake_s: 10` — computed from nothing but
+the real decision and media timestamps. A step's `attempts` prefers the session's own per-step
+counter (`idv_sessions.attempts`) over the raw capture count when the session has one — the real
+passport session shows `document_front: 2` on its counter against **three** physical captures, and
+`session_timing` reports 2, trusting the counter the rules engine itself advances rather than
+re-deriving a different number from the media table (`ST-87b`).
+
+`timing_json` (a fourth new `idv_sessions` column) is `session_timing`'s own output, **cached at the
+terminal decision** (`idv_api._engine_callback`, immediately after the `Approved`/`Declined` fields
+are written) so `GET /sessions` does not recompute the full breakdown for every row in a list.
+`idv_store.timing_for_session(conn, session_row)` is the read-side pair: the cached JSON verbatim when
+one is on the row, a live `session_timing` call otherwise — "recomputed on read for older rows", the
+fallback path a session decided before this cache existed (or not yet decided at all) takes
+(`ST-84`).
+
+**C. `GET /api/idv/sessions/{id}` and list rows.** `session_summary` (shared by every list call and
+overridden by `_session_detail` for the single-session read, same pattern `workflow` already uses —
+a two-key stub in the list, the full resolved object in the detail) now carries
+`"timing": {"total_s": ...}` in every row; `_session_detail` replaces it with the full
+`timing_for_session(...)` object. `AP-194` proves the two numbers agree because both read the same
+cached `timing_json`.
+
+**D. `GET /api/idv/stats/timing`** (console gate + viewer role — the standard `require_console` +
+`require(act, "viewer")` every other `/api/idv/*` console read already sits behind, no separate gate
+written). Query params exactly as specified: `from`/`to` (ISO, `to` widened to end-of-day the same way
+every other windowed read in this codebase is — `day_upper_bound`), `preset` (`24h|7d|30d|90d`,
+400 on anything else), `bucket` (`day|week`, 400 on anything else), `age_band`/`sex`/`state`/`os`/
+`browser` (all optional, all narrow the population before anything is aggregated), `include_open=1`.
+Population: `idv_store.sessions_for_timing` — decided (`Approved`/`Declined`) sessions whose
+`completed_at` falls in the window, **plus**, only when `include_open` asks for it, undecided
+sessions whose `opened_at` falls in the same window (there is no `completed_at` to have filtered an
+undecided session by). Demographics for the `age_band`/`sex`/`state` filters and breakdown come off
+the session's own latest decision exactly as specified — age band from `date_of_birth` at
+`decided_at` (a new `_age_band_at` helper in `idv_api.py`, distinct from the older, coarser
+`_age_band` the dashboard already has — different bucket scheme, not reused), sex from
+`gender` (already denormalised onto `idv_decisions` from barcode DBC/MRZ, no new column), state from
+`issuing_state`. `os`/`browser` come off the session's own `device_os`/`device_browser` (§A), not off
+anything in the decision. `median`/`mean`/`p90` are computed in **pure Python** — linear
+interpolation, no numpy, no third party — over `total_s`/`base_s`/`retake_s`/`before_open_s` for the
+decided population, and per-step over each step's `last_s` for the `steps` breakdown; validated
+against a five-value fixture (`total_s = 10/20/30/40/50`) whose p90 (46, interpolated 40% of the way
+from the 4th to the 5th value) is not any single sample — proof the interpolation actually ran and did
+not just return the max (`AP-196a`). `buckets` groups by `decided_at`'s calendar day, or the Monday
+that starts its ISO week for `bucket=week`. `breakdown` groups the same decided population by each of
+the five dimensions, `{count, median_s}` per value — the shape the contract's own example response
+shows.
+
+**E. A real defect this pass found and fixed while seeding a features-diminished workflow for the
+first time.** `idv_api._capture_state`'s `challenge` step was gated on `cfg.get("face_liveness_method")
+in ("ACTIVE_3D", "FLASHING")` **alone** — not on `"LIVENESS" in features`, unlike every other step in
+that function. Every workflow before this pass either had LIVENESS on with `face_liveness_method` set,
+or LIVENESS off with `face_liveness_method` never populated in practice, so the gap was latent. The
+ID-only workflow (§F) is seeded from `DEFAULT_WORKFLOW_CONFIG` verbatim except for `features` — there
+is no ID-only-specific config to invent, and the contract does not ask for one — so it still carries
+`face_liveness_method: "ACTIVE_3D"`, and without this fix its capture page would have been told to
+record a blink clip that `idv_rules._liveness_block` (correctly gated on `"LIVENESS" in features`
+already) would never have looked at. Fixed by adding the same `"LIVENESS" in (wf["features"] or [])`
+guard the `selfie` step already carries a few lines up. Caught by `AP-195` before it reached a
+fixture, not discovered later.
+
+**F. The ID-only workflow.** `idv_store.seed_id_only_workflow(conn)` — idempotent **by name**
+(`ID_ONLY_WORKFLOW_NAME = "Cannabis Verification — ID only"`, exact string including the em dash),
+wired into `run_data_migrations` (so an already-running install gets it on its next request, the same
+way `calibrate_workflow_thresholds`/`migrate_challenge_scripts` reach an existing database) rather
+than into `seed()` (which only ever creates the rows a fresh install needs before the migrations that
+act on them run). Features `["OCR", "IP_ANALYSIS"]` — no LIVENESS, no FACE_MATCH, no AGE_ESTIMATION —
+`config` is `DEFAULT_WORKFLOW_CONFIG` verbatim (so it rides the exact same calibrated thresholds
+(§r6/r7) the default workflow does; there is nothing ID-only-specific to calibrate). "Front + back
+only, no selfie" needed **zero new gating logic**: `idv_api._STEP_FOR_FEATURE` already only offers
+`document_front`/`document_back` (from `OCR`) and `selfie` (from `LIVENESS`), so a workflow missing
+LIVENESS already listed just the two document steps once §E's fix landed (`AP-195`), and
+`idv_rules._liveness_block`/`_face_block` already no-op without their features (proved two ways in
+`qa/idv_rules_probe.py`: `IDV-N01` a clean front+back approves with no liveness/face/face_search node
+in the engine body at all, and `IDV-N02` — the one that cannot be faked by an engine that forgot to
+leave those nodes out of its own response — the **same** workflow still Approves when the engine body
+carries FAILING liveness/face/face_search nodes, because it is the workflow's declared `features` that
+disables those blocks, not merely their absence. `IDV-N03` confirms OCR and IP_ANALYSIS still decide
+normally — an undecoded barcode is still `BARCODE_NOT_DETECTED`, a Tor exit is still `IP_TOR`;
+dropping the selfie step never dropped the checks that remain switched on).
+
+**Probes: before → after.** `idv_store_probe` 80 → 90 (+10: `ST-80` the User-Agent parser, `ST-81`/
+`ST-82`/`ST-83` `session_timing` on hand-built fixtures — one clean pass, two `Awaiting User` retake
+loops, a `medical_rec` skip — `ST-84` `timing_for_session`'s cache-or-live fallback, `ST-85`
+`sessions_for_timing`'s decided-by-`completed_at` vs. undecided-by-`opened_at`-with-`include_open`
+population, `ST-86` `seed_id_only_workflow`'s idempotent-by-name creation, `ST-87a`/`ST-87b`/`ST-87c`
+the real-data validation against the frozen passport + two licence sessions). `idv_api_probe` 204 →
+210 (+6: `AP-193` `opened_at`/`device_os`/`device_browser` stamped once off the first `state` call,
+`AP-194` the full timing object on `GET /sessions/{id}` vs. `total_s`-only on a list row, `AP-195` the
+ID-only workflow's two-step capture state (this is also what caught §E), `AP-196a`/`AP-196b` the
+stats aggregate's percentile math and its filters, `AP-197` preset/bucket validation). `AP-2`
+(previously asserting exactly one seeded workflow at index 0) updated in place to find the default
+workflow **by name** rather than by list position, because `seed_id_only_workflow` now seeds a second
+row that sorts ahead of it by `created_at` — the same "updated in place rather than left to drift into
+a false failure" treatment r8 gave `AP-57`. `idv_rules_probe` 427 → 430 (+3: `IDV-N01`/`IDV-N02`/
+`IDV-N03`, §F). `idv_import_probe` unchanged at 78/78 — not touched this pass. All four run green,
+standalone, on this tree: 430/430, 90/90, 210/210, 78/78. **`qa/battery.py` was not touched by this
+pass** (another session held uncommitted hunks there at the time) — its `EXPECTED_CHECKS` needs
+`"idv_rules_probe": 427` → `430`, `"idv_store_probe": 80` → `90`, `"idv_api_probe": 204` → `210`
+(lines 2774/2811/3061 on the tree this pass read), and `TOTAL_CHECK_FLOOR` needs `2707` → `2726`
+(+19, matching the three deltas above), each with a dated comment in the style every prior pass's
+entry there already uses.
+
+**Not done by this pass, and not silently assumed.** No console/UI work: the timing screens
+(`POS-Admin/idv/*` reading `session.timing`, a new dashboard tile for `GET /stats/timing`) are the
+console agent's own work against these frozen field names, built in parallel, and this pass never
+touched a `.jsx` file. The `steps` breakdown in `GET /stats/timing` reports median/p90 of each step's
+`last_s` (when a step is captured more than once, the LAST capture — its final, accepted answer) —
+the contract does not say which of `first_s`/`last_s` the aggregate should read, and `last_s` was
+picked as the one that answers "how long until this step was actually settled"; `first_s` is still
+available per-session for whoever wants "how long until the guest first attempted it" instead. No
+backfill: `timing_json` is populated only going forward, at each session's own terminal decision — an
+already-Approved/Declined session from before this pass reads its timing live via `timing_for_session`
+(computed correctly, including `retake_s`/`retakes` with no `opened_at` at all — §B, `ST-87a`) rather
+than from a one-time migration that back-populates the cache column for every historical row.
