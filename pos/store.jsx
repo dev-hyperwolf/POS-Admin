@@ -4,6 +4,14 @@
 const _posListeners = new Set();
 const _posState = {
   lastSale: null,                       // { id, at, method, total, collected, cash, cardCharged, fee, feeLabel, credits, change, email, name, items }
+  // The active ticket's priced cart lines ({ sku, qty, disc, p, missing, total }
+  // — screen-register.jsx's own `lines` shape), republished on every render by
+  // CartPane (pos/screen-cart.jsx). This is the ONLY way payment.jsx's
+  // finalize() can see the cart: PaymentModal is mounted by screen-register.jsx
+  // (owner rule: never modify that file) with total/sub/tax/count/customer only,
+  // no cart. A bridge through window.POS — the estate's one existing
+  // cross-screen store — is the seam that does not touch the forbidden file.
+  cartLines: [],
   drawer: { open: false, reason: null, at: 0 },
   payVariant: (() => { try { return localStorage.getItem('hw-pos-payvariant') || 'flow'; } catch { return 'flow'; } })(),
   // Store-level policy: every drawer in THIS store opens with the same amount.
@@ -23,6 +31,12 @@ window.POS = {
     _emit();
   },
   getLastSale() { return _posState.lastSale; },
+  // No _emit() here on purpose: nothing subscribes to cartLines through
+  // usePOS/React re-render — payment.jsx's finalize() reads it synchronously,
+  // once, at tender time. Emitting on every keystroke-driven cart change would
+  // re-render every usePOS() consumer in the app for no reader.
+  setCartLines(lines) { _posState.cartLines = Array.isArray(lines) ? lines : []; },
+  getCartLines() { return _posState.cartLines; },
   popDrawer(reason) {
     _posState.drawer = { open: true, reason: reason || 'Manual open', at: Date.now() };
     _emit();

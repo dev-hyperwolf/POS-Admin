@@ -404,6 +404,18 @@ window.HWSuggestBasis = (function () {
 window.CartPane = function CartPane({ P, lines, merch, discountOff = 0, sub, tax, total, count, pay, setPay, setQty, remove, pendingRemoval, onUndoRemove, onClearCart, customer, cartSkus, onAdd, discMode, setDiscMode, discounts, onApplyDiscount, onRemoveDiscount, tab, setTab, onPay, tabs, footNote }) {
   const walletAmt = customer?.wallet || 0;
   const [taxOpen, setTaxOpen] = React.useState(false);
+
+  // Republish the active ticket's cart lines to window.POS on every change —
+  // see pos/store.jsx's cartLines comment. This is CartPane's ONE reason to
+  // hold this effect: it is the only place in the tree that already receives
+  // screen-register.jsx's `lines` (product + qty + per-line discount) as a
+  // prop, and screen-register.jsx itself cannot be touched to hand the same
+  // array to PaymentModal directly. Never throws: a store write failing must
+  // not be able to take the cart screen down with it.
+  React.useEffect(() => {
+    try { window.POS && window.POS.setCartLines && window.POS.setCartLines(lines); }
+    catch (e) {}
+  }, [lines]);
   const goal = window.HW.STATS.associate.goal;
   const gap = Math.max(0, goal - total);
   const goalPct = goal > 0 ? Math.min(1, total / goal) : 0;
