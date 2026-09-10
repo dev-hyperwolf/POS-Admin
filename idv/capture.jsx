@@ -844,7 +844,7 @@
   // PURE. `g` is a Float32Array of luma (0..255) in row-major w×h; `rect` is
   // the guide in frame-normalised coordinates; `prev` is the previous frame's
   // luma or null. Everything the gates read comes out of here.
-  function analysePixels(g, w, h, rect, prev, srcW) {
+  function analysePixels(g, w, h, rect, prev, srcW, wantMrz) {
     if (!g || !w || !h || !rect) return null;
     const rx0 = clamp(Math.round(rect.x * w), 1, w - 3);
     const ry0 = clamp(Math.round(rect.y * h), 1, h - 3);
@@ -899,6 +899,21 @@
 
     const density = edgeN ? edgeIn / edgeN : 0;
     const lapMean = lapN ? lapSum / lapN : 0;
+
+    // THE MRZ, ONLY WHEN ASKED — a passport `document_front` step, and
+    // nothing else, so a licence front or a medical-rec page pays zero cost
+    // for a check that could never apply to them. See the long note above
+    // `mrzProfile` for why this is the bottom `MRZ_ZONE_FRAC` of the GUIDE
+    // (`rx0..rx1, ry0..ry1`, already computed above) rather than of the
+    // detected document box.
+    let mrzOk = null, mrzLines = null;
+    if (wantMrz) {
+      const zy0 = clamp(Math.round(ry1 - rh * MRZ_ZONE_FRAC), ry0, ry1 - 2);
+      const m = mrzProfile(g, w, h, rx0, rx1, zy0, ry1, rw, rh);
+      mrzOk = !!(m && m.ok);
+      mrzLines = m ? m.lines : 0;
+    }
+
     return {
       sharpness: lapN ? Math.round(((lapSq / lapN) - lapMean * lapMean) * 100) / 100 : null,
       glare_fraction: n ? Math.round((hot / n) * 10000) / 10000 : null,
@@ -913,6 +928,8 @@
       // Source pixels per analysis pixel. The sharpness threshold is derived
       // from it — see sharpnessFloor.
       resample: srcW ? Math.round(((rect.w * srcW) / Math.max(1, rw)) * 100) / 100 : null,
+      mrz_ok: mrzOk,
+      mrz_lines: mrzLines,
     };
   }
 
@@ -923,7 +940,7 @@
     catch (e) { ctx = c.getContext('2d'); }
     let prev = null;
 
-    function read(video, rectNorm) {
+    function read(video, rectNorm, wantMrz) {
       if (!ctx || !video) return null;
       const vw = video.videoWidth || 0, vh = video.videoHeight || 0;
       if (!vw || !vh || !rectNorm) return null;
@@ -937,7 +954,7 @@
       for (let i = 0, p = 0; i < g.length; i++, p += 4) {
         g[i] = 0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2];
       }
-      const out = analysePixels(g, w, h, rectNorm, prev, vw);
+      const out = analysePixels(g, w, h, rectNorm, prev, vw, wantMrz);
       prev = g;
       return out;
     }
@@ -1126,6 +1143,159 @@
     return { read: read };
   }
 
+  // ── the passport MRZ band ────────────────────────────────────────────────
+  // 2026-09-09, THE OWNER'S FIRST REAL PASSPORT RUN: "the photo page was
+  // snapped by the escape clock with the two-line code cut off at the bottom
+  // of the frame on all three tries." The escape clock (`useAutoCapture`'s
+  // disagreement window, brief §3) exists so a guest is never trapped in
+  // front of a camera that will not fire — and it did its job, it fired — but
+  // firing on a passport page with no machine-readable zone in frame is a
+  // photograph the engine was always going to decline, on a three-second
+  // clock the guest cannot see or stop. The fix is not to remove the clock;
+  // it is to give the front-of-passport gate something to check for so the
+  // clock has a real "there is something here" answer instead of only
+  // "something changed since last frame".
+  //
+  // THE SAME QUESTION AS THE BARCODE, ASKED THE SAME WAY. `bandProfile` above
+  // finds a PDF417 by looking for a ROW that crosses a vertical edge across
+  // most of its own width — a texture no printed face or paragraph produces.
+  // Two lines of OCR-B machine-readable text are the same signature, just
+  // shorter and repeated twice with a gap the width of the line spacing
+  // between them. So this reuses `bandProfile`'s own primitives — `smooth5`,
+  // `peakOf`, the edge-crossing test, a run finder over a smoothed profile —
+  // rather than a decode of any kind: this never has to read a character, it
+  // only has to tell "there is text-like density here, twice, evenly spaced"
+  // from "there is a blank photo-page margin here".
+  //
+  // NOT A SECOND CANVAS. `bandProfile` gets its own BAND_EDGE-wide draw
+  // because it has to report a width usable for zoom and crop math; this is a
+  // presence gate, never a decode, so it runs on the SAME 208 px luma buffer
+  // `analysePixels` already built for sharpness/doc-box this tick. A second
+  // `drawImage`+`getImageData` per tick for a gate this cheap would be the
+  // exact mistake `bandProfile`'s own header warns against, in the other
+  // direction — see `wantMrz` in `analysePixels` below.
+  //
+  // WHY THE BOTTOM ZONE OF THE GUIDE, NOT THE DETECTED DOCUMENT BOX.
+  // `docBoxFrom` is tuned to find a rigid rectangle of print; a passport held
+  // open lies across a gutter shadow and a curved page edge that a document
+  // outline detector was never asked to cope with, and round 3's card-shaped
+  // guide already proved a shape-shaped guide beats a shape-guessed one. The
+  // guide itself is drawn thicker at the bottom to invite the guest to put the
+  // code there (see `drawGuide`), so the detector looks exactly where the
+  // guest was asked to put it.
+  //
+  // THE THRESHOLDS ARE THE BRIEF'S OWN NUMBERS, held here for one clock's
+  // worth of provenance rather than re-derived:
+  //   width    ≥ 70 % of the guide's width, per line — an MRZ line runs the
+  //            width of the page with only a small margin either side.
+  //   height   1.2–2.5 % of the guide's own height, per line — OCR-B at a
+  //            comfortable reading distance on a 1.42:1 guide.
+  //   gap      "a similar gap" between the two lines. A real TD3 page's line
+  //            PITCH (not height) is close to a line's own height — a
+  //            monospace font fixes that — so the window is the same order of
+  //            magnitude as a line, widened on both sides for the noise a
+  //            208 px canvas adds that a real MRZ reader would not have.
+  const MRZ_ZONE_FRAC = 0.32;         // bottom slice of the guide this looks at
+  // Text is sparser than a PDF417's bars — an OCR-B line has real gaps between
+  // characters where a barcode has none — so the row threshold is a smaller
+  // fraction of the strip's own peak than the barcode's BAND_MIN_ROW_FRAC
+  // (0.04). Set low deliberately: at 208 px a line of text is only a few
+  // analysis rows tall, and a strict threshold loses it to resampling before
+  // the width check below ever gets a look at it.
+  const MRZ_ROW_MIN_FRAC = 0.10;      // of the row profile's own peak
+  const MRZ_MIN_WIDTH_FRAC = 0.70;    // of the guide's width, per line
+  const MRZ_LINE_MIN_H_FRAC = 0.012;  // of the guide's height, per line
+  const MRZ_LINE_MAX_H_FRAC = 0.025;
+  const MRZ_GAP_MIN_FRAC = MRZ_LINE_MIN_H_FRAC * 0.4;
+  const MRZ_GAP_MAX_FRAC = MRZ_LINE_MAX_H_FRAC * 3.5;
+
+  // Every run above `t`, tolerating gaps of up to `gap` — `longestRun` (above)
+  // widened to return ALL qualifying runs instead of only the longest, because
+  // finding two lines is the whole point here and `longestRun` alone can only
+  // ever answer with one of them.
+  function allRuns(a, t, gap) {
+    const runs = [];
+    let start = -1, lastOn = -1;
+    function close() { if (start >= 0) runs.push([start, lastOn]); start = -1; }
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] >= t) { if (start < 0) start = i; lastOn = i; }
+      else if (start >= 0 && (i - lastOn) > gap) close();
+    }
+    close();
+    return runs;
+  }
+
+  // PURE. `g`/`w`/`h` are `analysePixels`' own luma buffer; `zx0/zx1/zy0/zy1`
+  // is the bottom zone of the guide in that buffer's pixel coordinates, and
+  // `guideW`/`guideH` are the GUIDE's own pixel size in the same buffer (the
+  // denominator every fraction above is written against). Returns
+  // `{ ok, lines }`: `lines` is how many qualifying rows were found — carried
+  // through to `client_metrics` so a decline has a number attached instead of
+  // a guess — and `ok` is true only once two of them sit a line-height apart.
+  function mrzProfile(g, w, h, zx0, zx1, zy0, zy1, guideW, guideH) {
+    const zw = zx1 - zx0, zh = zy1 - zy0;
+    if (!guideW || !guideH || zw < 16 || zh < 4) return { ok: false, lines: 0 };
+    function cross(x, y) {
+      if (x <= 0 || x >= w - 1) return false;
+      const i = y * w + x;
+      return Math.abs(g[i + 1] - g[i - 1]) > EDGE_T;
+    }
+
+    // 1. THE ROWS, exactly as `bandProfile` finds them, but only within the
+    // bottom zone — a dense row of legal print higher up the page must not
+    // read as a line of the code.
+    const row = new Float32Array(zh);
+    for (let y = 0; y < zh; y++) {
+      let n = 0;
+      const yy = zy0 + y;
+      for (let x = 1; x < zw - 1; x++) if (cross(zx0 + x, yy)) n++;
+      row[y] = n;
+    }
+    const rS = smooth5(row);
+    const rpeak = peakOf(rS);
+    if (rpeak < zw * MRZ_ROW_MIN_FRAC) return { ok: false, lines: 0 };
+
+    // 2. EVERY row-run dense enough to be a candidate line — there may be
+    // two, three (a rarer TD1 strip), or a stray one from a stamp or a
+    // signature that the width/height checks below throw back out.
+    const runs = allRuns(rS, rpeak * MRZ_ROW_MIN_FRAC, 1);
+    const lines = [];
+    runs.forEach(function (run) {
+      const y0 = run[0], y1 = run[1];
+      const hFrac = (y1 - y0 + 1) / guideH;
+      if (hFrac < MRZ_LINE_MIN_H_FRAC || hFrac > MRZ_LINE_MAX_H_FRAC) return;
+      // 3. THIS candidate's own width — the same column projection
+      // `bandProfile` uses, restricted to just these rows, because a run
+      // that is the right height but only a signature or a stamp is not the
+      // right WIDTH and must not count.
+      const col = new Float32Array(zw);
+      for (let y = Math.max(0, y0); y <= Math.min(zh - 1, y1); y++) {
+        for (let x = 1; x < zw - 1; x++) if (cross(zx0 + x, zy0 + y)) col[x] += 1;
+      }
+      const cS = smooth5(col);
+      const cpeak = peakOf(cS);
+      if (cpeak < 1) return;
+      const colRun = longestRun(cS, cpeak * BAND_PROFILE_FRAC, Math.max(2, Math.round(zw * 0.02)));
+      if (!colRun) return;
+      const wFrac = (colRun[1] - colRun[0] + 1) / guideW;
+      if (wFrac < MRZ_MIN_WIDTH_FRAC) return;
+      lines.push({ y0: y0, y1: y1 });
+    });
+    if (lines.length < 2) return { ok: false, lines: lines.length };
+
+    // 4. TWO OF THEM A LINE-HEIGHT APART, not the whole page's worth. Checked
+    // on every adjacent pair rather than assumed to be the first two found —
+    // a stray dense row above the code (a stamp, a signature) must not stand
+    // in for line one just because it happened to come first.
+    for (let i = 0; i < lines.length - 1; i++) {
+      const gapFrac = (lines[i + 1].y0 - lines[i].y1 - 1) / guideH;
+      if (gapFrac >= MRZ_GAP_MIN_FRAC && gapFrac <= MRZ_GAP_MAX_FRAC) {
+        return { ok: true, lines: lines.length };
+      }
+    }
+    return { ok: false, lines: lines.length };
+  }
+
   // The same two measurements over a whole CANVAS rather than a video's guide
   // region. The tilt burst needs them: those frames are grabbed from an already
   // scaled canvas, they have no guide of their own (the card is moving, that is
@@ -1265,6 +1435,18 @@
   // `fill` then passes on edge density alone and NO framing sentence is
   // produced. That is the round-2 defect, inverted: the old code guessed, this
   // one declines to.
+  //
+  // `opts.requireMrz` — PASSPORT `document_front` ONLY. 2026-09-09: the escape
+  // clock fired on a passport with the code cut off the frame, on all three
+  // tries, because nothing in this gate had ever heard of an MRZ — light,
+  // glare, focus and framing can all be perfect on a photo page with the
+  // bottom two lines outside the box. Slotted in AFTER `fill` and BEFORE
+  // `still`: framing has to be right before "is the code even in frame" means
+  // anything, and once the code is found the guest still has to hold still
+  // for the settle window like every other document. `opts.mrzStruggling` is
+  // the step's own ~8 s clock (not this gate's — a pure function has no
+  // clock of its own) for swapping the generic ask for the specific one; see
+  // `MRZ_STRUGGLE_MS` in `DocStep`.
   function docGate(m, relax, opts) {
     if (!m) return { pass: false, hint: null, gates: {} };
     const o = opts || {};
@@ -1280,6 +1462,7 @@
       fill: framed,
       still: m.motion != null && m.motion <= GATE.MOTION_MAX * (relax == null ? 1 : (2 - relax)),
     };
+    if (o.requireMrz) gates.mrz = !!m.mrz_ok;
     let hint = null;
     if (!gates.light) hint = (m.exposure != null && m.exposure > GATE.EXPOSURE_MAX)
       ? 'Too bright — move out of the direct light'
@@ -1296,9 +1479,21 @@
       if (!known) hint = 'Lay the card inside the frame';
       else if (m.doc_outside != null && m.doc_outside > GATE.DOC_OUTSIDE_MAX) hint = 'Fit the whole card in the frame';
       else hint = 'Move closer';
+    } else if (o.requireMrz && !gates.mrz) {
+      hint = o.mrzStruggling
+        ? 'Move the passport so the two code lines at the bottom are inside the box'
+        : 'Bring both lines of the code into the box';
     } else if (!gates.still) hint = 'Hold still';
-    return { pass: gates.light && gates.glare && gates.focus && gates.fill && gates.still,
-      hint: hint, gates: gates };
+    const pass = gates.light && gates.glare && gates.focus && gates.fill
+      && (!o.requireMrz || gates.mrz) && gates.still;
+    // THE ESCAPE CLOCK'S OWN VETO. `forceOk === false` is what
+    // `useAutoCapture`'s disagreement escape reads before it will fire on
+    // anything but the ordinary settle — see the face gate's identical use of
+    // it for "no face, no forced snap". Undefined (every non-passport call)
+    // changes nothing: `mayForce` there treats "not exactly false" as
+    // permission, which is the gate this function has always given.
+    return { pass: pass, hint: hint, gates: gates,
+      forceOk: o.requireMrz ? !!gates.mrz : undefined };
   }
 
   // THE BACK OF A LICENCE IS A DIFFERENT QUESTION AND GETS DIFFERENT WORDS.
@@ -1461,6 +1656,13 @@
       zoom: s.zoom == null ? null : s.zoom,
       torch: s.torch == null ? null : !!s.torch,
       face_fill: s.face_fill == null ? null : s.face_fill,
+      // THE MRZ EQUIVALENT OF `band_frac`/`band_w_px` ABOVE. `null` on every
+      // upload but a passport `document_front` — see `wantMrz` in
+      // `analysePixels` — so a decline on that step carries a number
+      // (`mrz_lines`: 0, 1, 2, 3…) instead of a guess about why the code was
+      // never found.
+      mrz_ok: s.mrz_ok == null ? null : !!s.mrz_ok,
+      mrz_lines: s.mrz_lines == null ? null : s.mrz_lines,
       detector: s.detector || fallbackDetector || 'heuristic',
       // THE DECODE, AND NEVER THE PAYLOAD. `barcode_bytes` is the LENGTH of the
       // decoded byte string. The string itself carries the guest's name,
@@ -2558,13 +2760,19 @@
       // edges of its own, not a card's free corners floating in a hand, so
       // the boundary-fitting instruction ('band's reasoning above) applies
       // here too. Two things are drawn ON TOP that the ordinary front-of-
-      // document gates never measure and the engine reads server-side from
-      // the whole frame, not from these hints: a faint dashed rectangle
-      // where the portrait sits (left third, so the guest does not centre
-      // the guide on their own photo and clip the MRZ), and two dashed
-      // lines along the bottom for the machine-readable zone. Neither is
-      // fed to `bandRef` — there is no on-device MRZ reader, no worker, and
-      // nothing here gates the shutter on either shape being filled.
+      // document gates never measure server-side from the whole frame, not
+      // from these hints: a faint dashed rectangle where the portrait sits
+      // (left third, so the guest does not centre the guide on their own
+      // photo and clip the code), and — 2026-09-09 — a THICKER dashed band
+      // along the bottom for the machine-readable zone, sized to match the
+      // SAME `MRZ_ZONE_FRAC` the on-device detector actually scans (see
+      // `mrzProfile`), so the box drawn here is not a decoration that
+      // disagrees with what the guest is being graded on. The two thin
+      // guide-lines round 6 drew inside it are gone: this file's own barcode
+      // guide (`'band'`, above) is one closed rectangle, not a sketch of
+      // individual bars, and one obvious band reads clearer than two faint
+      // rules once the words "bring both lines of the code" are doing the
+      // rest of the explaining.
       strokeShape(s.neutral, 3, 1, 0);
       if (alpha > 0.01) strokeShape(s.tone, 3.5, alpha, 0);
 
@@ -2580,21 +2788,15 @@
       ctx.stroke();
       ctx.restore();
 
-      const mrzH = box.h * 0.16;
-      const mrzY = box.y + box.h - mrzH - box.h * 0.05;
-      const lineGap = mrzH * 0.55;
+      const mrzH = box.h * MRZ_ZONE_FRAC;
+      const mrzY = box.y + box.h - mrzH;
       ctx.save();
-      ctx.globalAlpha = 0.6;
-      ctx.strokeStyle = s.neutral;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 4]);
-      [0, 1].forEach(function (i) {
-        const ly = mrzY + i * lineGap;
-        ctx.beginPath();
-        ctx.moveTo(box.x + box.w * 0.05, ly);
-        ctx.lineTo(box.x + box.w * 0.95, ly);
-        ctx.stroke();
-      });
+      ctx.globalAlpha = Math.max(0.55, alpha);
+      ctx.strokeStyle = alpha > 0.5 ? s.tone : s.neutral;
+      ctx.lineWidth = 4;
+      ctx.setLineDash([11, 7]);
+      roundRectPath(ctx, box.x + box.w * 0.04, mrzY, box.w * 0.92, mrzH, 6);
+      ctx.stroke();
       ctx.restore();
     } else {
       // Corner brackets, not a closed rectangle: the Concept D document frame,
@@ -3331,6 +3533,19 @@
       setPhase(phaseFor(step));
     }
 
+    // "I'M READY" ON A RETAKE. Same tap, same permission-prime-on-the-tap
+    // trick as `confirmReady`, but a retake never changes what document this
+    // session is about — that was already decided the first time through —
+    // so there is no document-type POST to make and no branch that waits on
+    // one. See `openGuidedStep` for why this screen exists at all.
+    function confirmRetakeReady() {
+      const step = pendingStepRef.current || cursor;
+      readyShownRef.current = true;
+      primeCameraPermission(facingFor(step));
+      setCursor(step);
+      setPhase(phaseFor(step));
+    }
+
     // ── load state ─────────────────────────────────────────────────────────
     const loadState = React.useCallback(function () {
       setLoading(true);
@@ -3510,10 +3725,6 @@
     // one of them drifts. `body` is a `GET status` payload.
     //
     // WHAT IT RESETS AND WHY EACH ONE MATTERS:
-    //   submittedRef   the router refuses to re-route while this page is
-    //                  driving; a guided retake means the server is driving
-    //                  again, so this has to come down or a later `GET state`
-    //                  could not move us.
     //   reportedRef    `onDone` fires once per ending. This is not an ending.
     //   resumeSubmitRef  the twelve-second unstick is per wait, not per session.
     //   done           what THIS page uploaded is no longer what is outstanding;
@@ -3521,6 +3732,32 @@
     // `fixRef` is the sentence itself, held across the phase change and
     // rendered as the standing line above the live hint — which is the only
     // place in this flow guidance is ever shown.
+    //
+    // ── ROUND 7, OWNER'S PASSPORT TEST #2, 2026-09-09 ──────────────────────
+    // "On an Awaiting User retake the page jumped straight into the camera
+    // before the guest had the document ready, snapped whatever was in view,
+    // then went on to redo the selfie and liveness." Two separate bugs, one
+    // cause: the poller's call used to pass `gate:false` — mid-session, "the
+    // camera is already up" — and route STRAIGHT to the lens with zero screen
+    // in between, and it did so off `state.steps` as they stood at page load,
+    // before this session had captured anything, so every step still read
+    // 'todo' and `nextOutstanding` (fired once the retake itself uploads)
+    // had nothing to skip past.
+    //
+    // Both are fixed the same way `routeToStep`'s own "Get ready" gate fixed
+    // the cold camera-opens-before-you-are-ready defect: no camera without a
+    // screen first. EVERY guided retake — cold or warm — now lands on
+    // `retake_ready`, never straight on a lens; `submittedRef` stays TRUE
+    // (blocking the router below from re-entering while this runs) until
+    // `go()` actually routes.
+    //
+    // WARM (the poller) additionally refreshes `state` from a real `GET
+    // state` before routing — cold already has a fresh one, since a fresh
+    // `GET state` is what got that branch to run at all. The backend is being
+    // fixed in parallel to report selfie/liveness as 'done' after a
+    // document-only retake; this is the client half of trusting that the
+    // moment it ships, and it degrades to today's behaviour (redo whatever
+    // `state.steps` does not yet mark done) if the server never sends one.
     function openGuidedStep(body, cold) {
       const g = (body && body.guidance) || null;
       const fromState = ((((state && state.steps) || []).filter(
@@ -3528,15 +3765,17 @@
       const step = (g && g.step) || (body && body.retry && body.retry.step)
         || fromState || 'document_front';
       fixRef.current = (g && g.fix) || (body && body.message) || null;
-      submittedRef.current = false;
       reportedRef.current = false;
       resumeSubmitRef.current = false;
       setNotice(null);
       setDone({});
-      // `cold` — true only from the page-load router (a reload). The
-      // poller's own call (mid-session, camera already in use moments ago)
-      // passes nothing, so `gate:false` skips the "Get ready" screen there.
-      routeToStep(step, { gate: !!cold });
+      function go() {
+        submittedRef.current = false;
+        pendingStepRef.current = step;
+        setPhase('retake_ready');
+      }
+      if (cold) go();
+      else loadState().then(go);
     }
 
     // ── status polling ────────────────────────────────────────────────────
@@ -3584,9 +3823,10 @@
             // screen had already rendered that sentence under "This is taking
             // longer than usual", which is where the owner read it.
             //
-            // The guidance is the STEP's, so it goes to the step. No
-            // intermediate screen, no timer. This is the same route the cold-
-            // load router takes for the same status, which is the point: one
+            // The guidance is the STEP's, so it goes to the step — by way of
+            // `openGuidedStep`'s own `retake_ready` gate (ROUND 7), never
+            // straight into a live lens. This is the same route the cold-load
+            // router takes for the same status, which is the point: one
             // status, one destination.
             if (s === 'Awaiting User') {
               stopped = true;
@@ -3933,7 +4173,8 @@
               the initial value, which would light pip one under a screen that
               means "all of them are done". Better to show nothing than to show
               a wrong thing confidently. */}
-          {phase !== 'outcome' && phase !== 'resuming' && phase !== 'processing' && phase !== 'get_ready' && !loadErr
+          {phase !== 'outcome' && phase !== 'resuming' && phase !== 'processing' && phase !== 'get_ready'
+            && phase !== 'retake_ready' && !loadErr
             ? <Pips steps={stepIds} current={cursor} /> : null}
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             <div style={{ margin: 'auto', width: '100%', maxWidth: flush ? 720 : 640, display: 'flex',
@@ -4076,6 +4317,35 @@
           </ol>
           <Say mute>About 30 seconds.</Say>
           <window.PBtn size="xl" variant="accent" onClick={confirmReady}>I&rsquo;m ready</window.PBtn>
+        </React.Fragment>),
+        'Camera opens on the next tap · nothing is captured yet', null);
+    }
+
+    // ── retake ready ─────────────────────────────────────────────────────
+    // ROUND 7: the non-camera screen `openGuidedStep` now sends every guided
+    // retake through, cold or warm — see the long note there. Not the same
+    // screen as "Get ready" above: this one already knows WHY (the server
+    // said so), so it shows that sentence verbatim instead of the generic
+    // checklist, plus one short line on what to have ready for the specific
+    // step being retaken. Zero buttons on the CAMERA that follows still
+    // stands — this screen is not that camera.
+    if (phase === 'retake_ready') {
+      const rStep = pendingStepRef.current || cursor;
+      const rIsPassport = documentType === 'passport';
+      const prep = rStep === 'selfie' || rStep === 'challenge'
+        ? 'Look at the camera and be ready to blink when asked.'
+        : rStep === 'document_back'
+          ? 'Have the back of your ID ready, barcode facing up.'
+          : rIsPassport
+            ? 'Open your passport to the photo page.'
+            : 'Have your physical ID out and ready.';
+      return shell('One more try', (
+        <React.Fragment>
+          <Plate tone="warn" icon="refresh" />
+          <Big>Let&rsquo;s try that again</Big>
+          <Say>{fixRef.current || 'We need another photo.'}</Say>
+          <Say mute>{prep}</Say>
+          <window.PBtn size="xl" variant="accent" onClick={confirmRetakeReady}>I&rsquo;m ready</window.PBtn>
         </React.Fragment>),
         'Camera opens on the next tap · nothing is captured yet', null);
     }
@@ -4626,6 +4896,17 @@
   // on the row so a decline can be explained. There is no third outcome and no
   // path that waits for a button.
   const DISAGREE_FRONT_MS = 2500;
+  // ── THE PASSPORT MRZ ESCALATION, 2026-09-09 ──────────────────────────────
+  // The generic ask ("Bring both lines of the code into the box") is what the
+  // guest sees the moment framing/light/focus pass and the MRZ has not shown
+  // up yet — normally a beat, while a hand finishes settling the page. ~8 s
+  // of that with still no band found means the code is very likely just
+  // outside the box rather than about to appear, and the more specific
+  // sentence says so. This is independent of `DISAGREE_FRONT_MS`/
+  // `FORCE_WINDOW_MS`: those never fire a passport without a band at all now
+  // (see `docGate`'s `forceOk`), so this clock's only job is which sentence
+  // to show while the guest keeps looking, never when to snap.
+  const MRZ_STRUGGLE_MS = 8000;
 
   function DocStep({ step, token, base, accent, copy, shell, onUploaded, onSkip, onNotice, notice,
     fix, pickerPhotos, setPickerPhotos, medicalRecOffered, reduced, onGiveUp, documentType }) {
@@ -4676,6 +4957,10 @@
     const shape = step === 'medical_rec' ? 'page' : isBack ? 'band'
       : (documentType === 'passport' ? 'passport' : 'card');
     const boxAspect = step === 'medical_rec' ? '3 / 4' : '3 / 2';
+    // THE ONLY STEP THAT EVER ASKS FOR AN MRZ. `isBack` already owns the
+    // barcode; a passport has no `document_back` at all (never in `stepIds`),
+    // so this and `isBack` are never both true.
+    const isPassportFront = !isBack && shape === 'passport';
 
     React.useEffect(function () {
       if (!reader) { setReaderKind(null); return undefined; }
@@ -4735,7 +5020,7 @@
       const v = cam.videoRef.current;
       const g = measureGuide(boxRef.current, v, shape);
       if (!v || !g) return null;
-      const base2 = analyser.read(v, g.rect);
+      const base2 = analyser.read(v, g.rect, isPassportFront);
       if (!isBack || !bandAnalyser) return base2;
       const b = bandAnalyser.read(v, g.rect);
       const merged = Object.assign({}, base2 || {}, b || {});
@@ -4815,6 +5100,21 @@
     // before its own declaration is a temporal-dead-zone ReferenceError, not a
     // stale value. See the note at the end of that effect for why it needs it.
     const [gen, setGen] = React.useState(0);
+
+    // THE PASSPORT MRZ ESCALATION CLOCK. Its own effect, its own state,
+    // because `docGate` is a pure function with no clock of its own — see
+    // `MRZ_STRUGGLE_MS` above. Re-armed by `gen`, the same signal that
+    // re-arms `useAutoCapture` after a recoverable failure, so a guest whose
+    // upload was refused and is trying again does not inherit the previous
+    // attempt's clock. Declared down here, after `gen`, for the same
+    // temporal-dead-zone reason the comment above just gave.
+    const [mrzStruggling, setMrzStruggling] = React.useState(false);
+    React.useEffect(function () {
+      if (!isPassportFront || cam.status !== 'live') return undefined;
+      setMrzStruggling(false);
+      const id = setTimeout(function () { setMrzStruggling(true); }, MRZ_STRUGGLE_MS);
+      return function () { clearTimeout(id); };
+    }, [isPassportFront, cam.status, gen]);
 
     const hitRef = React.useRef(null);      // { bytes, quad, canvas, plan } once, then sticky
     const emaRef = React.useRef(null);      // decode latency, ms
@@ -4916,7 +5216,11 @@
     //          The advice is the barcode's own — box, width, light, stillness —
     //          and if it never decodes the screen says so at 25 s and offers a
     //          way out that does not pretend.
-    //   FRONT / medical rec   the ordinary document gate, untouched.
+    //   FRONT / medical rec   the ordinary document gate — plus, on a
+    //          passport, `requireMrz` (see `docGate`), because framing/light/
+    //          focus can all be perfect on a photo page with the two code
+    //          lines sitting outside the box, and that is exactly the frame
+    //          the escape clock fired on 2026-09-09.
     //
     // AND `gates` IS DELIBERATELY A SINGLE KEY ON THE BACK. `useAutoCapture`'s
     // disagreement escape fires when SOME gates pass and others fail; with one
@@ -4940,8 +5244,8 @@
           gates: { barcode: false },
         };
       }
-      return docGate(m, relax);
-    }, [isBack, readerKind]);
+      return docGate(m, relax, { requireMrz: isPassportFront, mrzStruggling: mrzStruggling });
+    }, [isBack, readerKind, isPassportFront, mrzStruggling]);
 
     // Degraded means "there is no PDF417 decoder on this device at all", which
     // is now a genuinely rare state (it needs no Worker, no BarcodeDetector and
