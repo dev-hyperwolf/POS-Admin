@@ -31,6 +31,10 @@ Actor header on console routes: `X-HW-Actor: <associate id>`; the backend resolv
 // decline: DOC_EXPIRED UNDER_AGE FACE_BLOCKLIST_HIT DOCUMENT_BLOCKLIST_HIT USER_BLOCKLIST_HIT
 //          IP_TOR INJECTION_DETECTED CHALLENGE_NONCE_MISMATCH LIVENESS_ATTEMPTS_EXHAUSTED_HARD
 //          MED_REC_JURISDICTION_UNCONFIGURED
+// (contracts 0.3.2, appended in this order): BARCODE_NOT_DETECTED DOC_PORTRAIT_NOT_FOUND
+//          ENGINE_MEDIA_UNAVAILABLE ENGINE_NO_EVIDENCE MED_REC_DOB_MISMATCH MED_REC_EXPIRED
+//          MED_REC_INVALID_LICENSE MED_REC_MISSING MED_REC_NAME_MISMATCH MED_REC_OUT_OF_STATE
+//          MED_REC_UNREADABLE MRZ_LOW_CONFIDENCE MRZ_NOT_FOUND OVI_SHIFT_NOT_SEEN SCREEN_REPLAY_SUSPECTED
 
 // Score — every model output carries provenance; the UI prints caption verbatim
 { "score": 87.4, "status": "Approved", "model": "minifasnet-v2", "model_version": "2.0",
