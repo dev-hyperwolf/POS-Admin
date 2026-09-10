@@ -530,22 +530,26 @@
             <CapField label="session_ttl_minutes" value={cfg.session_ttl_minutes ?? 0} locked={locked} onChange={(v) => patchCfg({ session_ttl_minutes: v })} />
             <CapField label="expires_after_days" value={cfg.expires_after_days ?? 0} locked={locked} onChange={(v) => patchCfg({ expires_after_days: v })} />
           </div>
+          <div style={{ fontSize: 12.5, color: P.inkMuted, margin: '0 0 10px' }}>
+            Every route ends in Approved or Declined. <b>Flag</b> approves the session and marks it with a
+            warning you can filter on; nothing ever waits for a person. <b>Decline</b> declines with the in-store path.
+          </div>
           <div>
             <ChoiceRow label="Out-of-state licence" value={cfg.out_of_state} locked={locked}
               onChange={(v) => patchCfg({ out_of_state: v })}
-              options={[{ value: 'review', label: 'Review' }, { value: 'allow', label: 'Allow' }]} />
+              options={[{ value: 'review', label: 'Flag' }, { value: 'allow', label: 'Allow' }]} />
             <ChoiceRow label="Duplicate person" value={cfg.duplicate_person} locked={locked}
               onChange={(v) => patchCfg({ duplicate_person: v })}
-              options={[{ value: 'review', label: 'Review' }, { value: 'decline', label: 'Decline' }]} />
+              options={[{ value: 'review', label: 'Flag' }, { value: 'decline', label: 'Decline' }]} />
             <ChoiceRow label="IP · Tor" value={(cfg.ip || {}).tor} locked={locked}
               onChange={(v) => patchIp('tor', v)}
-              options={[{ value: 'decline', label: 'Decline' }, { value: 'review', label: 'Review' }, { value: 'allow', label: 'Allow' }]} />
+              options={[{ value: 'decline', label: 'Decline' }, { value: 'review', label: 'Flag' }, { value: 'allow', label: 'Allow' }]} />
             <ChoiceRow label="IP · hosting range" value={(cfg.ip || {}).hosting} locked={locked}
               onChange={(v) => patchIp('hosting', v)}
-              options={[{ value: 'decline', label: 'Decline' }, { value: 'review', label: 'Review' }, { value: 'allow', label: 'Allow' }]} />
+              options={[{ value: 'decline', label: 'Decline' }, { value: 'review', label: 'Flag' }, { value: 'allow', label: 'Allow' }]} />
             <ChoiceRow label="IP · VPN" value={(cfg.ip || {}).vpn} locked={locked}
               onChange={(v) => patchIp('vpn', v)}
-              options={[{ value: 'decline', label: 'Decline' }, { value: 'review', label: 'Review' }, { value: 'allow', label: 'Allow' }]} />
+              options={[{ value: 'decline', label: 'Decline' }, { value: 'review', label: 'Flag' }, { value: 'allow', label: 'Allow' }]} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderTop: `1px solid ${P.hairline}` }}>
               <div style={{ fontSize: P.type.body, color: P.ink2, fontWeight: 600 }}>Engine unavailable <span style={{ fontWeight: 400, color: P.inkFaint }}>· the register fails closed</span></div>
               <Lockable locked={locked}><Switch on={!!cfg.manual_fallback_when_engine_down} onChange={(v) => patchCfg({ manual_fallback_when_engine_down: v })} /></Lockable>
