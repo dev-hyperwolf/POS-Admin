@@ -304,3 +304,13 @@ reporting in our own code using Stilo's pattern; **Stilo's code merges into our 
 **Cutover:** module by module with both providers running until each is proven; a pilot store
 moves entirely first; a hard switch date closes out whatever remains. (Read-only shadow not
 chosen as a separate step; the dual-run per module covers it.)
+
+**Data work approved (2026-09-10):** start now, in parallel with the team's design review — (1)
+contract shapes Batch, Location, Movement, ReceivedItem, Plan; (2) the decision engine with
+synthetic fixtures; (3) the PosProvider port with a Blaze provider; (4) wm-demo storage for
+locations, movements and the received ledger (extending `inventory.py`'s `inventory_locations` /
+`location_stock` / `batch_meta`).
+
+**Count variance:** above a threshold, a **blind recount by a second person**; and **no
+adjustment is ever posted without a manager's approval** (every difference is a proposed
+correction). RFID reads propose, never write.
