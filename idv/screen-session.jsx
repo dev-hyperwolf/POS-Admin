@@ -90,6 +90,9 @@
     expiration_date: 'Expiration date', personal_number: 'Personal number', composite: 'Composite' };
   const MRZ_CHECK_ORDER = ['document_number', 'date_of_birth', 'expiration_date', 'personal_number', 'composite'];
   const MEDIA_ORDER = ['document_front', 'document_back', 'medical_rec', 'selfie', 'proof', 'selfie_frame', 'portrait_crop', 'liveness_video', 'challenge_frame', 'import_pdf'];
+  // Timing step order/labels (2026-09-10 Addendum 3) live in idv-shared.jsx's
+  // IdvShared.TIMING_STEPS — see that file for why (needed by both this
+  // screen and screen-usage.jsx's aggregate step table).
   const MEDIA_LABEL = { document_front: 'Front', document_back: 'Back', medical_rec: "Doctor's recommendation", selfie: 'Selfie', proof: 'Proof (selfie + ID)', selfie_frame: 'Selfie frame', liveness_video: 'Liveness clip', portrait_crop: 'Portrait crop', challenge_frame: 'Challenge frame', import_pdf: 'Imported PDF' };
   // ── medical_rec (MED_18_REC, 2026-09-09 gap C) — MED_REC_* in plain words,
   // per idv_rules.py's _medical_block ordering (:2454-2463) and GUIDANCE
@@ -232,6 +235,36 @@
         {icon && <Icon name={icon} size={14} stroke={1.8} color={P.inkDim} />}
         <span style={{ flex: 1, minWidth: 0, fontSize: P.type.strong, fontWeight: 700, color: P.ink }}>{title}</span>
         {right}
+      </div>);
+  }
+
+  // ── per-step timing bar (Timing card, 2026-09-10 Addendum 3) ─────────────
+  // `row` is one entry of `timing.steps` — {step, first_s, last_s, attempts}
+  // — seconds since opened_at, per the contract. The segment's position and
+  // width are both scaled against the SESSION's total_s (not the step's own
+  // range), so a step that happened early and a step that happened late line
+  // up against one shared timeline instead of each stretching to fill its own
+  // row — that comparison ("did this session spend its time on step 2 or on
+  // retaking step 4?") is the reason the brief calls for a strip and not five
+  // independent meters. Renders a flat "—" row, never omits the label, when
+  // there is no data for that step (no capture, or `timing` itself absent).
+  function TimingBarStep({ label, row, totalS }) {
+    const P = useP();
+    const has = row && row.first_s != null;
+    const denom = totalS != null && totalS > 0 ? totalS : (has && row.last_s != null ? Math.max(row.last_s, 1) : 1);
+    const leftPct = has ? Math.max(0, Math.min(100, (row.first_s / denom) * 100)) : 0;
+    const rawLast = has && row.last_s != null ? row.last_s : (has ? row.first_s : 0);
+    const widthPct = has ? Math.max(1.5, Math.min(100 - leftPct, ((rawLast - row.first_s) / denom) * 100)) : 0;
+    const attempts = has && row.attempts > 1 ? row.attempts : null;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ width: 52, flex: '0 0 auto', fontSize: P.type.meta, fontWeight: 600, color: P.inkDim }}>{label}</span>
+        <div style={{ flex: 1, position: 'relative', height: 7, background: P.surface3, borderRadius: 99, overflow: 'hidden' }}>
+          {has && <div style={{ position: 'absolute', left: leftPct + '%', width: widthPct + '%', top: 0, bottom: 0, background: attempts ? P.warn : P.accent, borderRadius: 99 }} />}
+        </div>
+        <span style={{ width: 108, flex: '0 0 auto', textAlign: 'right', fontSize: P.type.micro, fontFamily: P.fontMono, color: P.inkMute, whiteSpace: 'nowrap' }}>
+          {has ? `${S.fmtDuration(row.first_s)}–${S.fmtDuration(rawLast)}` : '—'}{attempts ? ` · ${attempts}x` : ''}
+        </span>
       </div>);
   }
 
@@ -921,6 +954,14 @@
                   <Kv label="Document type" value={DOC_TYPE_LABEL_LONG[documentType] || documentType} mono />
                   <Kv label="Reasons" value={(sess.reasons || []).join(', ') || 'none'} mono />
                   <Kv label="Channel · origin" value={channelLabel} mono />
+                  {/* Device (2026-09-10 Addendum 3): parsed server-side from the
+                      UA of the first capture `state` request, so it is null for
+                      any session opened before that column existed, or one that
+                      never got past the link (never opened). Rendered as one
+                      "os · browser" line, never split into two Kv rows — that
+                      matches how channelLabel above already joins two facts
+                      with " · " rather than doubling the row count. */}
+                  <Kv label="Device" value={[sess.device_os, sess.device_browser].filter(Boolean).join(' · ') || null} mono />
                   <Kv label="Workflow" value={workflowLabel} mono />
                   <Kv label="Liveness attempts" value={sess.liveness_attempts} mono />
                   <Kv label="Resubmissions" value={sess.resubmissions} mono />
@@ -931,6 +972,38 @@
                 <div style={{ height: 12 }} />
               </Card>
             </div>
+
+            {/* ── Timing (2026-09-10 Addendum 3) ──────────────────────────────
+                Always rendered, never conditioned on `sess.timing` existing —
+                the addendum's own instruction ("code defensively, render '—'
+                when timing is absent") means an empty card full of dashes is
+                the correct state for a session opened before the backend
+                shipped this, not a hidden card. `st.session_timing` computes
+                this server-side from timestamps this screen otherwise has no
+                access to (media captured_at, decision computed_at, audit
+                rows) — there is nothing to derive client-side as a fallback. */}
+            {(() => {
+              const timing = sess.timing || null;
+              const stepsByKey = {};
+              (timing && timing.steps || []).forEach((r) => { if (r && r.step) stepsByKey[r.step] = r; });
+              const retakes = timing && timing.retakes;
+              return (
+                <Card padding={0}>
+                  <CardHead icon="clock" title="Timing" right={
+                    timing && timing.total_s == null ? <Pill kind="info" size="sm">still open</Pill> : null} />
+                  <div style={{ padding: '0 14px' }}>
+                    <Kv label="Total (opened → decision)" value={timing ? S.fmtDuration(timing.total_s) : '—'} mono />
+                    <Kv label="Before opening" value={timing ? S.fmtDuration(timing.before_open_s) : '—'} mono />
+                    <Kv label="Base (first pass)" value={timing ? S.fmtDuration(timing.base_s) : '—'} mono />
+                    <Kv label="Retakes" value={timing ? `${S.fmtDuration(timing.retake_s)}${retakes ? ` · ${retakes} retake${retakes === 1 ? '' : 's'}` : (retakes === 0 ? ' · none' : '')}` : '—'} mono />
+                  </div>
+                  <div style={{ padding: '10px 14px', borderTop: `1px solid ${P.hairline}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {(S.TIMING_STEPS || []).map((st) => (
+                      <TimingBarStep key={st.key} label={st.label} row={stepsByKey[st.key]} totalS={timing && timing.total_s} />
+                    ))}
+                  </div>
+                </Card>);
+            })()}
 
             {/* ── MRZ (passports only, 2026-09-09 contract) ──────────────────
                 Format, the identity fields the MRZ itself carries, and the

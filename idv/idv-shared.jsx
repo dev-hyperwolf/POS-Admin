@@ -306,6 +306,44 @@
     return <Pill kind="neutral" size={size} icon="download">{label}</Pill>;
   };
 
+  // ── fmtDuration ─────────────────────────────────────────────────────────
+  // Seconds -> "m:ss", or "h:mm:ss" once an hour is crossed (a stalled
+  // Awaiting User session can sit for a while, and the aggregate stats on
+  // #/usage can span a whole percentile distribution — this must not wrap
+  // or truncate silently past 59:59). null/undefined/NaN -> "—": the timing
+  // addendum (2026-09-10, Addendum 3) is a field every screen that reads it
+  // must render defensively until the backend ships `timing`/`stats/timing`.
+  // Shared here (not duplicated per-screen) because screen-sessions.jsx,
+  // screen-session.jsx and screen-usage.jsx all format the same seconds.
+  window.IdvShared.fmtDuration = function fmtDuration(s) {
+    if (s == null || typeof s !== 'number' || isNaN(s)) return '—';
+    const total = Math.max(0, Math.round(s));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
+    const ss = String(sec).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
+
+  // ── TIMING_STEPS ────────────────────────────────────────────────────────
+  // The five capture steps the timing addendum's per-step views show (Session
+  // screen's bar strip, Usage's aggregate step table) — "front, back, rec,
+  // selfie, liveness" per the brief, in that display order. `key` matches
+  // `timing.steps[].step` / `stats/timing.steps` object keys; an unrecognised
+  // key from either endpoint is simply not one of these five and never
+  // rendered, rather than crashing on a label lookup miss. Promoted here (not
+  // duplicated per screen) the moment a second screen needed it, per the "if
+  // one does, this is the seam to promote into idv-shared.jsx" rule
+  // screen-home.jsx's own BarRows comment states for exactly this situation.
+  window.IdvShared.TIMING_STEPS = [
+    { key: 'document_front', label: 'Front' },
+    { key: 'document_back', label: 'Back' },
+    { key: 'medical_rec', label: 'Rec' },
+    { key: 'selfie', label: 'Selfie' },
+    { key: 'liveness', label: 'Liveness' },
+  ];
+
   // ── Skeleton wrappers ───────────────────────────────────────────────────
   // Shaped placeholders built on shared/states.jsx's Skeleton/SkeletonRows,
   // for the two container shapes Verify screens repeat most: a detail Card

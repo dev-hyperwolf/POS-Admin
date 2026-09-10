@@ -158,6 +158,12 @@
       let av, bv;
       if (sort.key === 'session_number') { av = a.session_number || 0; bv = b.session_number || 0; }
       else if (sort.key === 'created_at') { av = a.created_at || ''; bv = b.created_at || ''; }
+      // 2026-09-10 timing addendum: `timing` is row-level, may be entirely
+      // absent (backend not yet shipped) or present with total_s null (still
+      // in progress) — either sorts as "no value", below every real number,
+      // rather than before it (which -Infinity would do) or crashing (which
+      // comparing against null/undefined would not, but silently miscompare).
+      else if (sort.key === 'timing_total_s') { av = (a.timing && a.timing.total_s != null) ? a.timing.total_s : -1; bv = (b.timing && b.timing.total_s != null) ? b.timing.total_s : -1; }
       else { av = a.status || ''; bv = b.status || ''; }
       if (av < bv) return -1 * mul;
       if (av > bv) return 1 * mul;
@@ -454,6 +460,10 @@
                   <SortableTH label="Status" k="status" sort={sort || { key: '', dir: 'desc' }} onSort={onSort} />
                   <TH>Reasons</TH>
                   <SortableTH label="Created" k="created_at" sort={sort || { key: '', dir: 'desc' }} onSort={onSort} align="right" />
+                  {/* 2026-09-10 timing addendum: timing.total_s, opened -> decision.
+                      Client-side sort only, same as every other column here — no
+                      `sort` param exists on GET /api/idv/sessions. */}
+                  <SortableTH label="Time" k="timing_total_s" sort={sort || { key: '', dir: 'desc' }} onSort={onSort} align="right" />
                 </tr>
               </thead>
               <tbody>
@@ -492,6 +502,16 @@
                     </TD>
                     <TD><IdvShared.ReasonChips reasons={row.reasons} /></TD>
                     <TD align="right" mono>{HWIdv.fmt.date(row.created_at)}</TD>
+                    {/* `timing` absent entirely (contract not live for this row
+                        yet) renders "—"; present but total_s null (session still
+                        In Progress / Awaiting User) renders blank, per the
+                        addendum — those are two different facts and must not
+                        look the same. */}
+                    <TD align="right" mono>
+                      {row.timing
+                        ? (row.timing.total_s != null ? IdvShared.fmtDuration(row.timing.total_s) : '')
+                        : <span style={{ color: P.inkFaint }}>—</span>}
+                    </TD>
                   </TR>))}
               </tbody>
             </HDTable>
