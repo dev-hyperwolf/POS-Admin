@@ -256,3 +256,13 @@ daily refill of ~450–870 units, zero scan verification, zero closure, zero dis
 recorded. The loss-prevention half of the module is unused, so today's "every unit accounted
 for" is a spreadsheet or nobody. The console's pack-verify and return-verify replace a step
 nobody performs, not one they do badly.
+
+## 2026-09-10 · answers: batch mixing, batch location
+
+**Batch mixing:** never quiet. Any two batches of one SKU in a kit line must be **loud on the UI
+and on the pick slips** for the person doing the refill. (No THC/date band; the flag is the rule.)
+
+**Batch location:** must exist; nothing exists today. Set at receiving on the handheld. The
+warehouse has many racks that can be labelled, given QR codes, etc. Owner: "design the perfect
+solution for it… keep this simple, smart, intuitive and automated." Swarm dispatched: location
+research + four concepts (`explorations/Batch Location - Concept A..D.html`).
