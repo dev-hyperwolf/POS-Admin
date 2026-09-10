@@ -168,3 +168,41 @@ receiving-time tag commissioning happens at receiving (per Q1) with whichever ha
   − ASAP sold − scheduled sold) vs read, per batch, with the driver's closeout beside it.
 - The RFID middleware needs a RETURN session mode and batch-keyed plan input; the developer list
   needs the additive verify endpoint. Both recorded in `RFID-FOR-DISTRIBUTION.md` and the change list.
+
+## 2026-09-10 · in-store flow, Blaze exit, refill clarification, oldest-first
+
+**Said.**
+- **In-store** has been missing from the discussion. Stores have **back of house** (usually the
+  safe) and **front of house** (the sales floor, ready to sell). The sales floor is restocked
+  several times a day — the same concept as a refill. The store must be flagged when new products
+  arrive or things need moving to the front — the same as the delivery refill. Stores also need a
+  **full cycle count of the entire inventory by location**, and many other filtered approaches.
+  Research how large-scale inventory management software does this and borrow the best
+  concepts. Goal: automated, easy, stress-free, incredibly smart; the less it relies on a person
+  the better. There are more edge and use cases for stores; agents are to put them together for
+  **both delivery and in-store**.
+- **Blaze exit.** "We will be leaving Blaze soon." Map our POS code so the migration lands
+  cleanly; **every module we build must work with or without Blaze.**
+- **Refill clarification.** "Refill need = ASAP sales since last refill, batch-aware, capped by
+  demand" is correct, **and** the refill must also send any newly received product, of all three
+  kinds: a completely new product, a new batch of a sold-out product, a new batch of a product
+  that already has batches in kits.
+- **Oldest first.** Use logic that clears out older batches first; solid automated inventory
+  management across the board.
+
+**Implications.**
+- One inventory model for both channels: **locations** (safe / sales floor / kit box / vehicle /
+  loss-prevention bench / returns), **units with a tag and a batch**, **movements** between
+  locations, and **replenishment rules** per destination (a kit box, a sales-floor shelf). A
+  store restock is a refill whose destination is a shelf; a delivery refill is a restock whose
+  destination is a box.
+- Engine inputs per destination: sales since last replenishment from the channel that draws on
+  it (ASAP for kits, register sales for the floor), min/max per SKU, and the **received ledger**
+  (new SKU / restock / new batch); outputs: a plan with reasons, oldest batch first (FEFO by
+  expiry, then received date), never mixing batches silently.
+- Cycle counts: RFID-driven counts by location, ABC/velocity-driven scheduling, blind counts,
+  variance thresholds, count-while-open rules.
+- **POS adapter**: a `PosProvider` port (products, batches, inventory by location, sales,
+  transfers, terminals) with `BlazeProvider` today and `HyperwolfPosProvider` (our own POS in
+  POS-Admin/wm-demo) next; Metrc/track-and-trace obligations that Blaze handles today must be
+  identified before the exit.
