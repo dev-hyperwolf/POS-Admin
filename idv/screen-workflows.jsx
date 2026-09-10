@@ -69,9 +69,11 @@
   function defaultWorkflow() {
     // Day-one default per plan §11 Escalation 1 (Cannabis Verification +
     // Selfie: OCR, IP, passive liveness, face match, age rule REC_21) — the
-    // shape a fresh admin-created workflow starts from.
+    // shape a fresh admin-created workflow starts from. Name defaults to
+    // "Untitled workflow" — the editor requires a non-empty name on save, so
+    // this has to already be one.
     return {
-      name: 'New workflow',
+      name: 'Untitled workflow',
       kind: 'KYC',
       status: 'active',
       features: ['OCR', 'LIVENESS', 'FACE_MATCH', 'IP_ANALYSIS'],
@@ -260,7 +262,7 @@
   }
 
   // ── Detail / editor ───────────────────────────────────────────────────────
-  function WorkflowDetail({ workflow, canWrite, onBack, onSaved, refreshing }) {
+  function WorkflowDetail({ workflow, canWrite, onBack, onSaved, refreshing, otherNames, onDuplicate, duplicating }) {
     const P = useP();
     const [draft, setDraft] = React.useState(() => ({
       name: workflow.name,
@@ -271,6 +273,8 @@
     const [showVersions, setShowVersions] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [saveError, setSaveError] = React.useState(null);
+    const [renaming, setRenaming] = React.useState(false);
+    const [renameError, setRenameError] = React.useState(null);
 
     // A newly-opened workflow (different id) resets the draft to its own data.
     React.useEffect(() => {
@@ -281,11 +285,44 @@
         config: JSON.parse(JSON.stringify(workflow.config || {})),
       });
       setSaveError(null);
+      setRenameError(null);
     }, [workflow.id]);
 
     const locked = !canWrite;
     const cfg = draft.config || {};
     const th = cfg.thresholds || {};
+    const nameTrim = (draft.name || '').trim();
+    const nameEmpty = !nameTrim;
+    // Unique-ish, not unique: a matching name only WARNS (below), never
+    // blocks save or rename — two workflows named the same thing is legal,
+    // just probably a mistake worth flagging.
+    const nameDup = !nameEmpty && (otherNames || []).some(
+      (n) => (n || '').trim().toLowerCase() === nameTrim.toLowerCase());
+    // The standalone "Rename" action only makes sense once there's an actual
+    // edit pending — otherwise it would PATCH the name onto itself.
+    const canRenameNow = canWrite && !nameEmpty && nameTrim !== workflow.name;
+
+    function handleRenameOnly() {
+      if (!canRenameNow || renaming) return;
+      setRenaming(true); setRenameError(null);
+      // METADATA-ONLY rename: `PATCH .../workflows/{id}/name`, never the
+      // full `PATCH .../workflows/{id}` — that route always writes a new
+      // version (see idv_api.py's comment on the split), and a bare rename
+      // has no rule change to pin. `idv_store.workflow_at_version` already
+      // treats `name` this way: it carries no column on
+      // `idv_workflow_versions`, so every version a session was ever judged
+      // under reads the CURRENT name regardless of when it was last renamed.
+      HWIdv.patch(`/api/idv/workflows/${encodeURIComponent(workflow.id)}/name`, { name: nameTrim }).then((r) => {
+        setRenaming(false);
+        if (!r.ok) {
+          setRenameError(r.error || `HTTP ${r.code}`);
+          window.hdToast && window.hdToast({ title: 'Rename failed', description: r.error || `HTTP ${r.code}`, tone: 'bad' });
+          return;
+        }
+        window.hdToast && window.hdToast({ title: 'Renamed', tone: 'good' });
+        onSaved(r.body);
+      });
+    }
 
     function patchCfg(partial) { setDraft((d) => ({ ...d, config: { ...d.config, ...partial } })); }
     function patchThreshold(key, value) { patchCfg({ thresholds: { ...th, [key]: value } }); }
@@ -307,9 +344,13 @@
 
     function handleSave() {
       if (!canWrite || saving) return;
+      if (nameEmpty) { setSaveError('A workflow needs a name.'); return; }
       setSaving(true); setSaveError(null);
       const body = {
-        name: draft.name, kind: workflow.kind, status: draft.status,
+        // Saved WITH the version, same as every other field here — the name
+        // field in the header is part of this draft, not a separate thing,
+        // unless the admin uses "Rename" instead (see handleRenameOnly).
+        name: nameTrim, kind: workflow.kind, status: draft.status,
         features: draft.features, unsupported_features: workflow.unsupported_features,
         config: draft.config,
       };
@@ -334,14 +375,37 @@
           <IconBtn icon="chevron-left" label="Back to Workflows" onClick={onBack} style={{ marginTop: 2 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <Eyebrow>{`Back office · workflow · version ${workflow.version}${JSON.stringify(draft) !== JSON.stringify({ name: workflow.name, status: workflow.status, features: workflow.features, config: workflow.config }) ? ', editing' : ''}`}</Eyebrow>
-            <h2 style={{ margin: '4px 0 0', fontSize: P.type.h2, fontWeight: 700, color: P.ink, letterSpacing: '-.01em' }}>{draft.name}</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5, flexWrap: 'wrap' }}>
+              <Field size="lg" full={false} mono={false} value={draft.name} disabled={locked}
+                placeholder="Untitled workflow" aria-label="Workflow name"
+                style={{ minWidth: 240, maxWidth: 440, fontWeight: 700 }}
+                onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
+              {canRenameNow && (
+                <PBtn variant="secondary" size="sm" icon="pencil" busy={renaming} disabled={saving}
+                  onClick={handleRenameOnly} title="Rename without saving a new version">
+                  Rename
+                </PBtn>
+              )}
+            </div>
+            {nameEmpty && <div style={{ fontSize: P.type.meta, color: P.bad, marginTop: 6 }}>A workflow needs a name.</div>}
+            {!nameEmpty && nameDup && (
+              <div style={{ fontSize: P.type.meta, color: P.warnText, marginTop: 6 }}>
+                {`Another workflow is already named "${nameTrim}" — allowed, just flagging it.`}
+              </div>
+            )}
+            {renameError && <div style={{ fontSize: P.type.meta, color: P.bad, marginTop: 6 }}>{`That didn't rename: ${renameError}`}</div>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <Pill kind={draft.status === 'active' ? 'good' : 'neutral'} size="sm">{draft.status}</Pill>
             <Pill kind="neutral" size="sm" style={{ fontFamily: P.fontMono }}>{shortId(workflow.id)}</Pill>
+            <PBtn variant="secondary" size="sm" icon="copy" busy={duplicating} disabled={!canWrite}
+              title={!canWrite ? 'Needs an admin role' : 'Copy every setting into a brand-new workflow'}
+              onClick={() => onDuplicate(workflow.id)}>
+              Duplicate
+            </PBtn>
             <PBtn variant="secondary" size="sm" icon="clock" onClick={() => setShowVersions((v) => !v)}>Version history</PBtn>
-            <PBtn variant="accent" size="sm" icon="check" busy={saving} disabled={locked}
-              title={locked ? 'Needs an admin role' : undefined} onClick={handleSave}>
+            <PBtn variant="accent" size="sm" icon="check" busy={saving} disabled={locked || nameEmpty || renaming}
+              title={locked ? 'Needs an admin role' : (nameEmpty ? 'A workflow needs a name' : undefined)} onClick={handleSave}>
               {`Save as v${nextVersion}`}
             </PBtn>
           </div>
@@ -498,7 +562,12 @@
   }
 
   // ── List ───────────────────────────────────────────────────────────────
-  function WorkflowsTable({ rows, onOpen }) {
+  // `onDuplicate`/`duplicatingId`/`canWrite` back a per-row "options" action
+  // rather than a dropdown menu — the atom set (pos/atoms.jsx) has no
+  // menu/popover primitive to build one on, so this stays a single visible
+  // IconBtn, the same "local composite over existing atoms" approach the
+  // rest of this file already uses (ThresholdSlider, RadioCard, …).
+  function WorkflowsTable({ rows, onOpen, onDuplicate, duplicatingId, canWrite }) {
     const P = useP();
     return (
       <DataTable
@@ -520,6 +589,11 @@
             </div>) },
           { label: 'Sessions', key: 'sessions_count', align: 'right', render: (r) => HWIdv.fmt.number(r.sessions_count) },
           { label: 'Updated', key: 'updated_at', render: (r) => HWIdv.fmt.relative(r.updated_at) },
+          { label: '', key: 'actions', align: 'right', render: (r) => (
+            <IconBtn icon="copy" size={14} tone="ghost" label={`Duplicate ${r.name}`} style={{ width: 28, height: 28 }}
+              title={canWrite ? 'Duplicate' : 'Needs an admin role'}
+              disabled={!canWrite || duplicatingId === r.id}
+              onClick={(e) => { e.stopPropagation(); onDuplicate(r.id); }} />) },
         ]}
         rows={rows}
       />);
@@ -538,6 +612,7 @@
     const detailMatch = WORKFLOW_ID_RE.exec(path || '');
     const [openId, setOpenId] = React.useState(detailMatch ? detailMatch[1] : null);
     const [creating, setCreating] = React.useState(false);
+    const [duplicatingId, setDuplicatingId] = React.useState(null);
 
     const openWorkflow = rows.find((r) => r.id === openId) || null;
 
@@ -558,6 +633,25 @@
     function handleSaved(saved) {
       poll.refresh();
       if (saved && saved.id) setOpenId(saved.id);
+    }
+
+    // Shared by the row action AND the editor's "Duplicate" button.
+    // `POST /api/idv/workflows/{id}/duplicate` copies features, thresholds,
+    // age rule and every other config key into a brand-new workflow at v1
+    // (idv_store.duplicate_workflow) and opens the copy in the editor —
+    // same "create, then jump to it" shape as handleCreate above.
+    function handleDuplicate(id) {
+      if (!canWrite || duplicatingId) return;
+      setDuplicatingId(id);
+      HWIdv.post(`/api/idv/workflows/${encodeURIComponent(id)}/duplicate`, {}).then((r) => {
+        setDuplicatingId(null);
+        if (!r.ok) {
+          window.hdToast && window.hdToast({ title: 'Could not duplicate workflow', description: r.error || `HTTP ${r.code}`, tone: 'bad' });
+          return;
+        }
+        window.hdToast && window.hdToast({ title: 'Workflow duplicated', tone: 'good' });
+        poll.refresh().then(() => { if (r.body && r.body.id) setOpenId(r.body.id); });
+      });
     }
 
     const header = (
@@ -594,7 +688,9 @@
       }
       return (
         <WorkflowDetail workflow={openWorkflow} canWrite={canWrite}
-          onBack={() => setOpenId(null)} onSaved={handleSaved} refreshing={poll.loading} />
+          onBack={() => setOpenId(null)} onSaved={handleSaved} refreshing={poll.loading}
+          otherNames={rows.filter((r) => r.id !== openWorkflow.id).map((r) => r.name)}
+          onDuplicate={handleDuplicate} duplicating={duplicatingId === openWorkflow.id} />
       );
     }
 
@@ -621,7 +717,8 @@
     return (
       <div>
         {header}
-        <WorkflowsTable rows={rows} onOpen={(id) => setOpenId(id)} />
+        <WorkflowsTable rows={rows} onOpen={(id) => setOpenId(id)}
+          onDuplicate={handleDuplicate} duplicatingId={duplicatingId} canWrite={canWrite} />
       </div>);
   };
 })();
