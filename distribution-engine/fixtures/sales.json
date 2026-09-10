@@ -1,0 +1,22 @@
+{
+  "synthetic": true,
+  "note": "Sale shape: {product_id, batch_id?, quantity, channel, at, location_id} per the task's provider-agnostic input shape -- never a Blaze transaction object. location_id is the kit box or shelf a Blaze terminal maps to (terminalId -> subregion/kit, per DISTRIBUTION-LOGIC-MAP.md and OWNER-NOTES's 'sellerTerminalId is the terminal -> subregion map the refill uses'), so 'keyed by terminal -> kit' is expressed here as one sale per destination location rather than a separate terminal-id layer. Two business days, Pacific: day1 = 2026-09-08, day2 = 2026-09-09. channel 'asap' drives kit refill need; 'scheduled' only ever counts toward the return/loss-prevention baseline; 'register' drives floor restock.",
+  "day1": [
+    { "product_id": "prod-01", "batch_id": "batch-01-a", "quantity": 2, "channel": "asap", "at": "2026-09-08T17:00:00Z", "location_id": "kit-d1-flower1" },
+    { "product_id": "prod-01", "batch_id": "batch-01-a", "quantity": 1, "channel": "scheduled", "at": "2026-09-08T19:00:00Z", "location_id": "kit-d1-flower1" },
+    { "product_id": "prod-02", "batch_id": "batch-02-a", "quantity": 1, "channel": "asap", "at": "2026-09-08T18:00:00Z", "location_id": "kit-d1-flower1" },
+    { "product_id": "prod-07", "batch_id": "batch-07-a", "quantity": 3, "channel": "asap", "at": "2026-09-08T17:30:00Z", "location_id": "kit-d2-preroll1" },
+    { "product_id": "prod-12", "batch_id": "batch-12-a", "quantity": 2, "channel": "asap", "at": "2026-09-08T20:00:00Z", "location_id": "kit-d3-vape1" },
+    { "product_id": "prod-01", "batch_id": "batch-01-st", "quantity": 2, "channel": "register", "at": "2026-09-08T18:00:00Z", "location_id": "store-1-shelf-flower" },
+    { "product_id": "prod-10", "batch_id": "batch-10-st", "quantity": 1, "channel": "register", "at": "2026-09-08T19:00:00Z", "location_id": "store-1-shelf-vape" }
+  ],
+  "day2": [
+    { "product_id": "prod-01", "batch_id": "batch-01-a", "quantity": 3, "channel": "asap", "at": "2026-09-09T17:00:00Z", "location_id": "kit-d1-flower1" },
+    { "product_id": "prod-01", "batch_id": "batch-01-a", "quantity": 2, "channel": "scheduled", "at": "2026-09-09T19:30:00Z", "location_id": "kit-d1-flower1" },
+    { "product_id": "prod-02", "batch_id": "batch-02-a", "quantity": 2, "channel": "asap", "at": "2026-09-09T18:00:00Z", "location_id": "kit-d1-flower1" },
+    { "product_id": "prod-07", "batch_id": "batch-07-a", "quantity": 4, "channel": "asap", "at": "2026-09-09T17:30:00Z", "location_id": "kit-d2-preroll1" },
+    { "product_id": "prod-12", "batch_id": "batch-12-a", "quantity": 1, "channel": "asap", "at": "2026-09-09T20:00:00Z", "location_id": "kit-d3-vape1" },
+    { "product_id": "prod-01", "batch_id": "batch-01-st", "quantity": 3, "channel": "register", "at": "2026-09-09T18:00:00Z", "location_id": "store-1-shelf-flower" },
+    { "product_id": "prod-10", "batch_id": "batch-10-st", "quantity": 2, "channel": "register", "at": "2026-09-09T19:00:00Z", "location_id": "store-1-shelf-vape" }
+  ]
+}

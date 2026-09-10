@@ -1,0 +1,52 @@
+{
+  "synthetic": true,
+  "note": "Mirrors distribution-backend's KitTemplateSku.products[] (min/max per SKU) joined through Boxes -> Products, and the floor-side equivalent for shelf pars (OWNER-NOTES 2026-09-10: 'adopt the same engine for the delivery kits' -> shared shape here). Keyed by box_type / shelf_type as carried on each Location in locations.json.",
+  "kit_templates": {
+    "Flower Box 1": [
+      { "product_id": "prod-01", "min": 1, "max": 6 },
+      { "product_id": "prod-02", "min": 1, "max": 8 },
+      { "product_id": "prod-03", "min": 1, "max": 8 },
+      { "product_id": "prod-04", "min": 1, "max": 8 },
+      { "product_id": "prod-21", "min": 1, "max": 4 }
+    ],
+    "Pre-Roll Box 1": [
+      { "product_id": "prod-06", "min": 2, "max": 10 },
+      { "product_id": "prod-07", "min": 2, "max": 10 },
+      { "product_id": "prod-08", "min": 1, "max": 6 },
+      { "product_id": "prod-09", "min": 1, "max": 6 },
+      { "product_id": "prod-24", "min": 1, "max": 4 }
+    ],
+    "Vape Box 1": [
+      { "product_id": "prod-10", "min": 1, "max": 6 },
+      { "product_id": "prod-11", "min": 1, "max": 4 },
+      { "product_id": "prod-12", "min": 1, "max": 6 },
+      { "product_id": "prod-13", "min": 1, "max": 4 },
+      { "product_id": "prod-22", "min": 1, "max": 6 }
+    ],
+    "Edible Bin": [
+      { "product_id": "prod-14", "min": 2, "max": 10 },
+      { "product_id": "prod-15", "min": 2, "max": 10 },
+      { "product_id": "prod-16", "min": 1, "max": 6 },
+      { "product_id": "prod-23", "min": 1, "max": 6 }
+    ],
+    "Concentrate Bin": [
+      { "product_id": "prod-17", "min": 1, "max": 4 },
+      { "product_id": "prod-18", "min": 1, "max": 4 }
+    ]
+  },
+  "shelf_templates": {
+    "Flower Shelf": [
+      { "product_id": "prod-01", "min": 2, "max": 10 },
+      { "product_id": "prod-02", "min": 2, "max": 12 },
+      { "product_id": "prod-25", "min": 2, "max": 8 }
+    ],
+    "Vape Shelf": [
+      { "product_id": "prod-10", "min": 2, "max": 10 },
+      { "product_id": "prod-11", "min": 1, "max": 6 }
+    ],
+    "Accessories Shelf": [
+      { "product_id": "prod-19", "min": 5, "max": 30 },
+      { "product_id": "prod-20", "min": 5, "max": 30 }
+    ]
+  }
+}

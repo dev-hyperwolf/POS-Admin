@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Store — Concept C — Register Batch Pick</title>
+<style>
+/* ============================================================================
+   Store — Concept C — Register Batch Pick. The register always defaults to
+   the oldest batch (FEFO); an associate can name a specific batch for a
+   customer who asks, but must give a reason; a sale that would ship two
+   batches on one line is never quiet — it turns LOUD (red) before the sale
+   completes. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); row/card
+   shapes echo pos/screen-cart.jsx and pos/sales-panel.jsx (surface2 rows,
+   hairline borders, r10 radius, JetBrains Mono for money) so this reads like
+   the same register. Rail/header shape from Hyperwolf Bounty.html. No build
+   step, no external requests. Every name, product, quantity and time below
+   is EXAMPLE DATA — see the banner under the header.
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:19px; --f-h1:27px; --f-numRow:15px; --f-numTotal:21px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --cat-flower:#3F9E72; --cat-preroll:#D45A3C; --cat-vape:#3F73D6; --cat-concentrate:#C2841D; --cat-edible:#E0477C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+  --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;font-family:var(--fontSans);}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;margin:14px 24px 0;}
+.example-banner svg{flex:0 0 auto;}
+
+.register{flex:1;display:flex;min-height:0;padding:14px 24px 0;gap:16px;}
+.catalog{flex:1 1 58%;min-width:0;display:flex;flex-direction:column;gap:12px;}
+.search{display:flex;gap:8px;}
+.search input{flex:1;height:42px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 14px;font-size:var(--f-body);}
+.catfilter{display:flex;gap:6px;flex-wrap:wrap;}
+.catchip{height:28px;padding:0 12px;border-radius:99px;border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);font-size:var(--f-meta);font-weight:600;cursor:pointer;}
+.catchip.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;overflow-y:auto;padding-bottom:16px;align-content:start;}
+.tile{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);padding:12px;text-align:left;cursor:pointer;border-top:3px solid var(--tc,var(--neutral));display:flex;flex-direction:column;gap:6px;}
+.tile:hover{border-color:var(--hairline3);}
+.tile .tname{font-size:var(--f-strong);font-weight:700;line-height:1.25;}
+.tile .tmeta{font-size:var(--f-meta);color:var(--inkMute);}
+.tile .tprice{font-family:var(--fontMono);font-size:var(--f-numRow);font-weight:800;margin-top:auto;}
+.tile .tbatches{font-size:var(--f-micro);color:var(--inkFaint);}
+
+.cartpane{flex:1 1 42%;min-width:340px;max-width:460px;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);overflow:hidden;}
+.cart-head{padding:14px 16px 10px;border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:10px;}
+.cart-head h2{margin:0;font-size:var(--f-h2);font-weight:700;}
+.cart-head .cust{margin-left:auto;font-size:var(--f-meta);color:var(--inkMute);}
+.cart-lines{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.empty-cart{flex:1;display:flex;align-items:center;justify-content:center;color:var(--inkMute);font-size:var(--f-body);text-align:center;padding:30px;}
+
+.line{background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r10);padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.line.mixed{background:var(--badSoft);border:1.5px solid var(--bad);}
+.line-top{display:flex;align-items:flex-start;gap:10px;}
+.line-dot{width:9px;height:9px;border-radius:50%;background:var(--lc,var(--neutral));margin-top:5px;flex:0 0 auto;}
+.line-name{flex:1;min-width:0;}
+.line-name b{font-size:var(--f-body);font-weight:700;}
+.line-name .lprice{display:block;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);margin-top:1px;}
+.line-remove{background:none;border:none;color:var(--inkMute);cursor:pointer;padding:2px;}
+.line-remove:hover{color:var(--bad);}
+.qty-stepper{display:flex;align-items:center;gap:6px;flex:0 0 auto;}
+.qbtn{width:26px;height:26px;border-radius:7px;border:1px solid var(--hairline3);background:var(--surface);font-size:15px;font-weight:700;cursor:pointer;color:var(--ink);}
+.qbtn:hover{background:var(--surface3);}
+.qval{width:22px;text-align:center;font-family:var(--fontMono);font-weight:700;font-size:var(--f-body);}
+.linetot{font-family:var(--fontMono);font-weight:800;font-size:var(--f-numRow);}
+
+.batchchip{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:var(--f-meta);color:var(--inkDim);background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r8);padding:6px 9px;}
+.batchchip b{font-family:var(--fontMono);color:var(--ink);}
+.batchchip .oldest-tag{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;background:var(--goodSoft);color:var(--good);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
+.batchchip .override-tag{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;background:var(--infoSoft);color:var(--info);font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;}
+.changebatch-link{background:none;border:none;color:var(--info);font-size:var(--f-meta);font-weight:600;cursor:pointer;padding:0;margin-left:auto;}
+.changebatch-link:hover{text-decoration:underline;}
+
+.mixedbox{background:var(--surface);border:1px solid var(--bad);border-radius:var(--r10);padding:9px 10px;display:flex;flex-direction:column;gap:6px;}
+.mixedbox .mtitle{font-size:var(--f-meta);font-weight:800;color:var(--bad);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px;}
+.mixedrow{display:flex;justify-content:space-between;gap:8px;font-size:var(--f-meta);color:var(--ink2);font-family:var(--fontMono);}
+.mixedrow span:first-child{font-family:var(--fontSans);color:var(--inkDim);font-weight:600;}
+.mixedbox .reasonline{font-size:var(--f-meta);color:var(--inkDim);font-family:var(--fontSans);}
+
+.reasonpicked{font-size:var(--f-meta);color:var(--inkDim);font-style:italic;}
+
+.cart-summary{border-top:1px solid var(--hairline2);padding:12px 16px;display:flex;flex-direction:column;gap:6px;}
+.sumrow{display:flex;justify-content:space-between;font-size:var(--f-body);color:var(--inkDim);}
+.sumrow.total{font-size:var(--f-title);font-weight:800;color:var(--ink);border-top:1px solid var(--hairline2);padding-top:8px;margin-top:2px;}
+.sumrow .v{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 16px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;width:100%;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-bad{background:var(--bad);color:#fff;}
+.btn-bad:hover{opacity:.9;}
+.btn-sm{height:34px;font-size:var(--f-meta);}
+
+.checkout-warn{margin:0 16px 12px;background:var(--badSoft);border:1px solid var(--bad);border-radius:var(--r10);padding:10px 12px;font-size:var(--f-meta);color:var(--bad);display:flex;flex-direction:column;gap:8px;}
+.checkout-warn .cw-title{font-weight:800;text-transform:uppercase;letter-spacing:.03em;font-size:10.5px;}
+.checkout-warn .cw-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.checkout-warn select{flex:1;min-width:140px;height:32px;border-radius:7px;border:1px solid var(--bad);background:var(--field);color:var(--ink);font-size:var(--f-meta);padding:0 8px;}
+
+/* batch popover */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.42);display:flex;align-items:center;justify-content:center;z-index:80;}
+.popover{background:var(--surface);border-radius:var(--r16);width:100%;max-width:420px;max-height:82vh;overflow-y:auto;padding:18px;box-shadow:var(--shadowLg);}
+.popover h3{margin:0 0 3px;font-size:var(--f-title);}
+.popover .phint{font-size:var(--f-meta);color:var(--inkMute);margin-bottom:12px;}
+.batchopt{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--hairline2);border-radius:var(--r10);margin-bottom:8px;cursor:pointer;}
+.batchopt.sel{border-color:var(--info);background:var(--infoSoft);}
+.batchopt input{margin-top:3px;}
+.batchopt .bo-body{flex:1;}
+.batchopt .bo-title{font-weight:700;font-size:var(--f-body);display:flex;gap:8px;align-items:center;}
+.batchopt .bo-meta{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);margin-top:2px;}
+.popover label.flabel{font-size:var(--f-meta);font-weight:700;color:var(--inkDim);display:block;margin:12px 0 5px;}
+.popover select{width:100%;height:40px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 10px;font-size:var(--f-body);}
+.popover-actions{display:flex;gap:10px;margin-top:16px;}
+.popover-actions .btn{flex:1;}
+
+/* receipt view */
+.receipt-view{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.receipt-view .rline{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--hairline2);font-size:var(--f-body);}
+.receipt-view .rline .rname{font-weight:700;}
+.receipt-view .rline .rbatch{display:block;font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);margin-top:2px;}
+.receipt-view .rline .rbatch.mixed{color:var(--bad);font-weight:700;}
+.receipt-view .rprice{font-family:var(--fontMono);font-weight:700;white-space:nowrap;}
+.receipt-badge{display:flex;align-items:center;gap:8px;background:var(--goodSoft);color:var(--good);border-radius:var(--r10);padding:10px 12px;font-weight:700;font-size:var(--f-body);}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:10px 0 14px;}
+.toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;animation:fadeIn .16s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+@media (max-width: 980px){
+  .register{flex-direction:column;}
+  .cartpane{max-width:none;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+  .example-banner{margin:14px 12px 0;}
+  .register{padding:12px 12px 0;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item active" title="Store"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l2-5h14l2 5"/><path d="M9 21v-6h6v6"/></svg><span class="lbl">Store</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Store · Corona</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Register · Concept C</span></div>
+        <h1 class="h1">Register Batch Pick</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">2:14 PM PT</div>
+        <div class="clock-sub">Terminal 2 · Priya S.</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+      Design mockup — every product, customer name, quantity and batch number on this screen is example data, not live inventory or a real sale.</div>
+
+    <div class="register">
+      <div class="catalog">
+        <div class="search"><input id="searchBox" type="text" placeholder="Search products…" /></div>
+        <div class="catfilter" id="catFilter"></div>
+        <div class="grid" id="productGrid"></div>
+      </div>
+
+      <div class="cartpane">
+        <div class="cart-head">
+          <h2>Current sale</h2>
+          <span class="cust" id="custName">Walk-in</span>
+        </div>
+        <div id="cartBody"></div>
+        <div id="warnBody"></div>
+        <div class="cart-summary" id="cartSummary" style="display:none;">
+          <div class="sumrow"><span>Subtotal</span><span class="v" id="sumSub">$0.00</span></div>
+          <div class="sumrow"><span>Tax</span><span class="v" id="sumTax">$0.00</span></div>
+          <div class="sumrow total"><span>Total</span><span class="v" id="sumTotal">$0.00</span></div>
+        </div>
+        <div style="padding:0 16px 16px;" id="checkoutBtnWrap"></div>
+      </div>
+    </div>
+
+    <div class="footerline">Store — Concept C of 4 — Register Batch Pick</div>
+  </div>
+</div>
+
+<div id="overlayHost"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- theme toggle ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('store-batchpick-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('store-batchpick-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  function toast(title, body){
+    var host = document.getElementById('overlayHost');
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<div style="font-weight:700;">'+title+'</div><div style="color:var(--inkDim);margin-top:2px;">'+body+'</div>';
+    host.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4200);
+  }
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function money(n){ return '$'+n.toFixed(2); }
+
+  /* ---------------- catalog: EXAMPLE ONLY, batches oldest-first ---------------- */
+  var CATCOLOR = { flower:'var(--cat-flower)', preroll:'var(--cat-preroll)', vape:'var(--cat-vape)', concentrate:'var(--cat-concentrate)', edible:'var(--cat-edible)' };
+  var PRODUCTS = [
+    { sku:'BD35', name:'Blue Dream 3.5g', cat:'flower', price:38, batches:[
+      { no:'B-2291', thc:22.4, packaged:'Jun 28', qty:14 },
+      { no:'B-2350', thc:24.9, packaged:'Aug 02', qty:40 } ] },
+    { sku:'LRC1', name:'Live Resin Cart 1g', cat:'vape', price:44, batches:[
+      { no:'B-1042', thc:84.2, packaged:'Jul 10', qty:3 },
+      { no:'B-1090', thc:88.1, packaged:'Aug 20', qty:22 } ] },
+    { sku:'GMOPR5', name:'GMO Pre-Roll 5-pack', cat:'preroll', price:32, batches:[
+      { no:'B-3311', thc:26.0, packaged:'Jul 01', qty:6 } ] },
+    { sku:'GUM10', name:'Gummies 10mg 10-pack', cat:'edible', price:20, batches:[
+      { no:'B-4410', thc:null, packaged:'May 15', qty:30 } ] },
+    { sku:'ROS1', name:'Rosin 1g', cat:'concentrate', price:55, batches:[
+      { no:'B-5501', thc:71.3, packaged:'Jun 02', qty:2 },
+      { no:'B-5540', thc:74.0, packaged:'Jul 28', qty:18 } ] },
+    { sku:'WCK35', name:'Wedding Cake 3.5g', cat:'flower', price:40, batches:[
+      { no:'B-2402', thc:27.6, packaged:'Aug 12', qty:26 } ] }
+  ];
+  var CATS = [['all','All'],['flower','Flower'],['vape','Vape'],['preroll','Pre-Roll'],['concentrate','Concentrate'],['edible','Edible']];
+  var activeCat = 'all', searchQ = '';
+  var REASONS = ['Customer requested this batch', 'Requested higher THC', 'Requested most recent package', 'Other (see notes)'];
+
+  var cart = []; // { sku, name, cat, price, qty, batchNo (override or null), reason }
+  var checkoutAck = null; // 'continue' | 'substitute' | 'hold'
+  var sold = false;
+
+  function findProduct(sku){ for (var i=0;i<PRODUCTS.length;i++) if (PRODUCTS[i].sku===sku) return PRODUCTS[i]; }
+
+  // Oldest-first allocation across a product's batches for a given quantity.
+  // Returns [{no, thc, packaged, take}] using as many batches as required.
+  function allocateFEFO(product, qty){
+    var sorted = product.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); });
+    var remaining = qty, out = [];
+    for (var i=0;i<sorted.length && remaining>0;i++){
+      var take = Math.min(sorted[i].qty, remaining);
+      if (take <= 0) continue;
+      out.push({ no:sorted[i].no, thc:sorted[i].thc, packaged:sorted[i].packaged, take:take });
+      remaining -= take;
+    }
+    return out;
+  }
+  // Allocation when the associate has pinned a specific batch: fill from that
+  // batch first, then spill into the next oldest if it still runs short.
+  function allocatePinned(product, qty, pinnedNo){
+    var sorted = product.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); });
+    var pinned = sorted.filter(function(b){ return b.no === pinnedNo; });
+    var rest = sorted.filter(function(b){ return b.no !== pinnedNo; });
+    var ordered = pinned.concat(rest);
+    var remaining = qty, out = [];
+    for (var i=0;i<ordered.length && remaining>0;i++){
+      var take = Math.min(ordered[i].qty, remaining);
+      if (take <= 0) continue;
+      out.push({ no:ordered[i].no, thc:ordered[i].thc, packaged:ordered[i].packaged, take:take });
+      remaining -= take;
+    }
+    return out;
+  }
+  function lineAllocation(line){
+    var product = findProduct(line.sku);
+    return line.batchNo ? allocatePinned(product, line.qty, line.batchNo) : allocateFEFO(product, line.qty);
+  }
+  function hasMixedLine(){
+    return cart.some(function(l){ return lineAllocation(l).length > 1; });
+  }
+
+  /* ---------------- catalog rendering ---------------- */
+  function renderCatFilter(){
+    document.getElementById('catFilter').innerHTML = CATS.map(function(c){
+      return '<button class="catchip'+(c[0]===activeCat?' active':'')+'" data-cat="'+c[0]+'">'+c[1]+'</button>';
+    }).join('');
+    document.querySelectorAll('.catchip').forEach(function(btn){
+      btn.addEventListener('click', function(){ activeCat = btn.getAttribute('data-cat'); renderCatFilter(); renderGrid(); });
+    });
+  }
+  function renderGrid(){
+    var list = PRODUCTS.filter(function(p){
+      if (activeCat !== 'all' && p.cat !== activeCat) return false;
+      if (searchQ && p.name.toLowerCase().indexOf(searchQ) < 0) return false;
+      return true;
+    });
+    document.getElementById('productGrid').innerHTML = list.map(function(p){
+      var oldest = p.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); })[0];
+      return '<button class="tile" data-sku="'+p.sku+'" style="--tc:'+CATCOLOR[p.cat]+'">'
+        + '<div class="tname">'+esc(p.name)+'</div>'
+        + '<div class="tmeta">'+p.cat.charAt(0).toUpperCase()+p.cat.slice(1)+'</div>'
+        + '<div class="tbatches">'+(p.batches.length>1 ? p.batches.length+' batches on hand · oldest '+oldest.packaged : '1 batch · '+oldest.packaged)+'</div>'
+        + '<div class="tprice">'+money(p.price)+'</div>'
+        + '</button>';
+    }).join('') || '<div style="color:var(--inkMute);padding:20px;">No products match.</div>';
+    document.querySelectorAll('.tile').forEach(function(t){
+      t.addEventListener('click', function(){ addToCart(t.getAttribute('data-sku')); });
+    });
+  }
+  document.getElementById('searchBox').addEventListener('input', function(e){ searchQ = e.target.value.toLowerCase(); renderGrid(); });
+
+  /* ---------------- cart ---------------- */
+  function addToCart(sku){
+    if (sold) return;
+    var existing = cart.filter(function(l){ return l.sku===sku; })[0];
+    if (existing) existing.qty += 1;
+    else { var p = findProduct(sku); cart.push({ sku:sku, name:p.name, cat:p.cat, price:p.price, qty:1, batchNo:null, reason:null }); }
+    checkoutAck = null;
+    renderCart();
+  }
+  function setQty(sku, qty){
+    var line = cart.filter(function(l){ return l.sku===sku; })[0];
+    if (!line) return;
+    if (qty <= 0) { cart = cart.filter(function(l){ return l.sku!==sku; }); }
+    else line.qty = qty;
+    checkoutAck = null;
+    renderCart();
+  }
+
+  function renderCart(){
+    var body = document.getElementById('cartBody');
+    if (!cart.length){
+      body.innerHTML = '<div class="empty-cart">Tap a product to start a sale.</div>';
+      document.getElementById('cartSummary').style.display = 'none';
+      document.getElementById('checkoutBtnWrap').innerHTML = '';
+      document.getElementById('warnBody').innerHTML = '';
+      return;
+    }
+    var linesHtml = cart.map(function(line){
+      var alloc = lineAllocation(line);
+      var mixed = alloc.length > 1;
+      var html = '<div class="line'+(mixed?' mixed':'')+'" data-sku="'+line.sku+'">';
+      html += '<div class="line-top"><span class="line-dot" style="--lc:'+CATCOLOR[line.cat]+'"></span>';
+      html += '<div class="line-name"><b>'+esc(line.name)+'</b><span class="lprice">'+money(line.price)+' ea</span></div>';
+      html += '<button class="line-remove" data-remove="'+line.sku+'" title="Remove line" aria-label="Remove '+esc(line.name)+'"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+      html += '</div>';
+      html += '<div class="line-top" style="align-items:center;">';
+      html += '<div class="qty-stepper"><button class="qbtn" data-dec="'+line.sku+'">−</button><span class="qval">'+line.qty+'</span><button class="qbtn" data-inc="'+line.sku+'">+</button></div>';
+      html += '<span style="flex:1"></span><span class="linetot">'+money(line.price*line.qty)+'</span>';
+      html += '</div>';
+
+      if (!mixed){
+        var b = alloc[0];
+        var isOldest = !line.batchNo;
+        html += '<div class="batchchip"><b>'+b.no+'</b><span>THC '+(b.thc!=null?b.thc+'%':'n/a')+'</span><span>Packaged '+b.packaged+'</span>'
+          + (isOldest ? '<span class="oldest-tag">Oldest</span>' : '<span class="override-tag">Requested</span>')
+          + (findProduct(line.sku).batches.length>1 ? '<button class="changebatch-link" data-changebatch="'+line.sku+'">Change batch</button>' : '')
+          + '</div>';
+        if (line.reason) html += '<div class="reasonpicked">Reason: '+esc(line.reason)+'</div>';
+      } else {
+        html += '<div class="mixedbox"><div class="mtitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Mixed batch — this line ships from two batches</div>';
+        alloc.forEach(function(a){
+          html += '<div class="mixedrow"><span>'+a.no+' × '+a.take+'</span><span>THC '+(a.thc!=null?a.thc+'%':'n/a')+' · '+a.packaged+'</span></div>';
+        });
+        html += '<div class="reasonline">Not enough of the oldest batch alone — the newer batch fills the rest. Flagged for the register and the receipt.</div>';
+        html += (findProduct(line.sku).batches.length>1 ? '<button class="changebatch-link" data-changebatch="'+line.sku+'" style="margin-left:0;">Pin one batch instead</button>' : '');
+        html += '</div>';
+      }
+      html += '</div>';
+      return html;
+    }).join('');
+    body.innerHTML = linesHtml;
+
+    body.querySelectorAll('[data-inc]').forEach(function(b){ b.addEventListener('click', function(){ var l=cart.filter(function(x){return x.sku===b.getAttribute('data-inc');})[0]; setQty(l.sku, l.qty+1); }); });
+    body.querySelectorAll('[data-dec]').forEach(function(b){ b.addEventListener('click', function(){ var l=cart.filter(function(x){return x.sku===b.getAttribute('data-dec');})[0]; setQty(l.sku, l.qty-1); }); });
+    body.querySelectorAll('[data-remove]').forEach(function(b){ b.addEventListener('click', function(){ setQty(b.getAttribute('data-remove'), 0); }); });
+    body.querySelectorAll('[data-changebatch]').forEach(function(b){ b.addEventListener('click', function(){ openBatchPopover(b.getAttribute('data-changebatch')); }); });
+
+    var sub = cart.reduce(function(s,l){ return s + l.price*l.qty; }, 0);
+    var tax = sub * 0.221;
+    document.getElementById('cartSummary').style.display = 'flex';
+    document.getElementById('sumSub').textContent = money(sub);
+    document.getElementById('sumTax').textContent = money(tax);
+    document.getElementById('sumTotal').textContent = money(sub+tax);
+
+    renderWarnAndCheckout(sub+tax);
+  }
+
+  function renderWarnAndCheckout(total){
+    var warnHost = document.getElementById('warnBody');
+    var wrap = document.getElementById('checkoutBtnWrap');
+    if (hasMixedLine() && checkoutAck !== 'continue'){
+      warnHost.innerHTML = '<div class="checkout-warn">'
+        + '<div class="cw-title">Mixed-batch order — confirm before selling</div>'
+        + '<div>One or more lines will hand the customer product from two batches. Choose how to proceed.</div>'
+        + '<div class="cw-actions">'
+        + '<select id="mixedAction"><option value="">Choose an action…</option><option value="continue">Continue anyway — tell the customer</option><option value="substitute">Substitute a single-batch item instead</option><option value="hold">Hold this line, sell the rest</option></select>'
+        + '</div></div>';
+      wrap.innerHTML = '<button class="btn btn-primary" disabled>Complete sale — resolve the mixed batch</button>';
+      var sel = document.getElementById('mixedAction');
+      sel.addEventListener('change', function(){
+        if (sel.value === 'continue'){ checkoutAck = 'continue'; toast('Noted', 'Customer will be told the order mixes two batches.'); renderCart(); }
+        else if (sel.value === 'substitute'){ toast('Substitute', 'Pick a single-batch item from the catalog to replace the mixed line.'); }
+        else if (sel.value === 'hold'){ toast('Held', 'That line is set aside; the rest of the sale can still complete (demo does not remove it).'); }
+      });
+    } else {
+      warnHost.innerHTML = '';
+      wrap.innerHTML = '<button class="btn btn-primary" id="completeSaleBtn">Complete sale — '+money(total)+'</button>';
+      document.getElementById('completeSaleBtn').addEventListener('click', completeSale);
+    }
+  }
+
+  /* ---------------- batch popover ---------------- */
+  function openBatchPopover(sku){
+    var product = findProduct(sku);
+    var line = cart.filter(function(l){ return l.sku===sku; })[0];
+    var sorted = product.batches.slice().sort(function(a,b){ return new Date('2026 '+a.packaged) - new Date('2026 '+b.packaged); });
+    var host = document.getElementById('overlayHost');
+    var pending = line.batchNo || sorted[0].no;
+    function draw(){
+      host.innerHTML = '<div class="overlay" id="batchOverlay"><div class="popover">'
+        + '<h3>Choose a batch</h3><div class="phint">'+esc(product.name)+' — oldest batch is picked automatically. Naming a different one needs a reason.</div>'
+        + sorted.map(function(b,i){
+            var sel = b.no === pending;
+            return '<label class="batchopt'+(sel?' sel':'')+'" data-opt="'+b.no+'">'
+              + '<input type="radio" name="batchopt" value="'+b.no+'" '+(sel?'checked':'')+' />'
+              + '<div class="bo-body"><div class="bo-title">'+b.no+(i===0?' <span class="oldest-tag">Oldest</span>':'')+'</div>'
+              + '<div class="bo-meta">THC '+(b.thc!=null?b.thc+'%':'n/a')+' · Packaged '+b.packaged+' · '+b.qty+' on hand</div></div>'
+              + '</label>';
+          }).join('')
+        + '<label class="flabel">Reason for the customer’s request</label>'
+        + '<select id="reasonSelect">'+REASONS.map(function(r){ return '<option'+(line.reason===r?' selected':'')+'>'+r+'</option>'; }).join('')+'</select>'
+        + '<div class="popover-actions"><button class="btn btn-ghost" id="popCancel">Cancel</button><button class="btn btn-primary" id="popApply">Use this batch</button></div>'
+        + '</div></div>';
+      host.querySelectorAll('.batchopt').forEach(function(o){
+        o.addEventListener('click', function(){ pending = o.getAttribute('data-opt'); draw(); });
+      });
+      document.getElementById('popCancel').addEventListener('click', function(){ host.innerHTML=''; });
+      document.getElementById('popApply').addEventListener('click', function(){
+        var reason = document.getElementById('reasonSelect').value;
+        var isOldest = pending === sorted[0].no;
+        line.batchNo = isOldest ? null : pending;
+        line.reason = isOldest ? null : reason;
+        checkoutAck = null;
+        host.innerHTML = '';
+        renderCart();
+        toast('Batch set', isOldest ? 'Back to the default oldest batch.' : pending+' pinned — reason recorded on the line.');
+      });
+    }
+    draw();
+  }
+
+  /* ---------------- complete sale / receipt ---------------- */
+  function completeSale(){
+    sold = true;
+    var sub = cart.reduce(function(s,l){ return s + l.price*l.qty; }, 0);
+    var tax = sub * 0.221;
+    var host = document.getElementById('cartBody');
+    var lines = cart.map(function(line){
+      var alloc = lineAllocation(line);
+      var mixed = alloc.length > 1;
+      var batchText = mixed
+        ? alloc.map(function(a){ return a.no+' ('+a.take+', THC '+(a.thc!=null?a.thc+'%':'n/a')+', '+a.packaged+')'; }).join(' + ')
+        : alloc[0].no+' · THC '+(alloc[0].thc!=null?alloc[0].thc+'%':'n/a')+' · Packaged '+alloc[0].packaged;
+      return '<div class="rline"><span><span class="rname">'+line.qty+'× '+esc(line.name)+'</span><span class="rbatch'+(mixed?' mixed':'')+'">'+(mixed?'MIXED BATCH — ':'')+batchText+'</span></span><span class="rprice">'+money(line.price*line.qty)+'</span></div>';
+    }).join('');
+    host.innerHTML = '<div class="receipt-view">'
+      + '<div class="receipt-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Sale complete — receipt shows batch and THC per line</div>'
+      + lines
+      + '<div class="rline" style="border-bottom:none;"><span class="rname">Tax (21.1%)</span><span class="rprice">'+money(tax)+'</span></div>'
+      + '<div class="rline" style="border-bottom:none;font-size:16px;"><span class="rname">Total</span><span class="rprice">'+money(sub+tax)+'</span></div>'
+      + '</div>';
+    document.getElementById('warnBody').innerHTML = '';
+    document.getElementById('cartSummary').style.display = 'none';
+    document.getElementById('checkoutBtnWrap').innerHTML = '<button class="btn btn-ghost" id="newSaleBtn">Start new sale</button>';
+    document.getElementById('newSaleBtn').addEventListener('click', function(){
+      cart = []; sold = false; checkoutAck = null; renderCart();
+    });
+  }
+
+  /* ---------------- boot ---------------- */
+  renderCatFilter();
+  renderGrid();
+  renderCart();
+})();
+</script>
+</body>
+</html>

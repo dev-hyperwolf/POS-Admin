@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "note": "One receiving day (business day 2026-09-10), all three ArrivalKind values represented, per OWNER-NOTES.md 2026-09-10: 'A receiving day can bring 50-60 items... of three kinds'. context_batches are the Batch records those arrivals become (what a caller would merge into the stock pool passed to planRefill) -- included here, not just in batches.json, because receivedLedger and the mixed-batch note need to look them up by id. batch-11-a is the OLD batch already sitting in Driver Two's Vape Box 1 (fully distributed, zero left in the warehouse) so the new_batch arrival of the same product is a same-SKU-different-batch case.",
+  "received_items": [
+    {
+      "id": "recv-2026-09-10-01",
+      "kind": "new_sku",
+      "product_id": "prod-21",
+      "batch_id": "batch-21-a",
+      "quantity": 2,
+      "location_id": "safe-warehouse",
+      "received_at": "2026-09-10T15:00:00Z",
+      "premium": true
+    },
+    {
+      "id": "recv-2026-09-10-02",
+      "kind": "restock",
+      "product_id": "prod-06",
+      "batch_id": "batch-06-b",
+      "quantity": 10,
+      "location_id": "safe-warehouse",
+      "received_at": "2026-09-10T15:30:00Z",
+      "premium": false
+    },
+    {
+      "id": "recv-2026-09-10-03",
+      "kind": "new_batch",
+      "product_id": "prod-11",
+      "batch_id": "batch-11-b",
+      "quantity": 6,
+      "location_id": "safe-warehouse",
+      "received_at": "2026-09-10T16:00:00Z",
+      "premium": false
+    }
+  ],
+  "context_batches": [
+    { "id": "batch-21-a", "product_id": "prod-21", "sku": "SKU-FL-06", "batch_no": "FL06-A", "quantity": 2, "location_id": "safe-warehouse", "received_at": "2026-09-10T15:00:00Z", "packaged_at": "2026-09-08T00:00:00Z", "expires_at": "2027-03-08T00:00:00Z", "thc_pct": 28.9 },
+    { "id": "batch-06-b", "product_id": "prod-06", "sku": "SKU-PR-01", "batch_no": "PR01-B", "quantity": 10, "location_id": "safe-warehouse", "received_at": "2026-09-10T15:30:00Z", "packaged_at": "2026-09-05T00:00:00Z", "expires_at": "2027-03-05T00:00:00Z", "thc_pct": 22.1 },
+    { "id": "batch-11-a", "product_id": "prod-11", "sku": "SKU-VP-02", "batch_no": "VP02-A", "quantity": 0, "location_id": "kit-d2-vape1", "received_at": "2026-08-05T15:00:00Z", "packaged_at": "2026-08-01T00:00:00Z", "expires_at": "2027-08-01T00:00:00Z", "thc_pct": 79.5 },
+    { "id": "batch-11-b", "product_id": "prod-11", "sku": "SKU-VP-02", "batch_no": "VP02-B", "quantity": 6, "location_id": "safe-warehouse", "received_at": "2026-09-10T16:00:00Z", "packaged_at": "2026-09-08T00:00:00Z", "expires_at": "2027-09-08T00:00:00Z", "thc_pct": 83.2 }
+  ]
+}

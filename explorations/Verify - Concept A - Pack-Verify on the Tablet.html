@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Verify — Concept A — Pack-Verify on the Tablet</title>
+<style>
+/* ============================================================================
+   Verify — Concept A — Pack-Verify on the Tablet
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); rail
+   shell copied from Hyperwolf Bounty.html; the box panel below (breadcrumb,
+   steppers, amber reason + Fix, green "Box packed") is the Concept D keeper,
+   reproduced verbatim and extended with the "Scan box" RFID step this round
+   adds. No build step, no external requests. All names/qty/times are EXAMPLE.
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:11px; --f-meta:12.5px; --f-body:14px; --f-strong:16px; --f-title:18px; --f-h2:22px; --f-h1:28px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.22);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:72px;flex:0 0 72px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;color:var(--accentInk);flex:0 0 auto;}
+.rail-item{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:600;white-space:nowrap;}
+.rail-spacer{flex:1;}
+.rail-bottom{width:100%;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap;}
+.topbar .titleblock{margin-right:auto;min-width:160px;}
+.h1{font-size:var(--f-h1);font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.1;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+.clock{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);text-align:right;line-height:1.35;}
+.clock b{color:var(--ink);font-size:var(--f-body);display:block;}
+
+.daytl{display:flex;align-items:center;gap:0;padding:9px 18px;background:var(--surface2);border-bottom:1px solid var(--hairline2);overflow-x:auto;}
+.dtl-step{display:flex;align-items:center;gap:6px;flex:0 0 auto;padding:0 10px;position:relative;font-size:11.5px;color:var(--inkMute);white-space:nowrap;}
+.dtl-step::after{content:"—";margin-left:10px;color:var(--hairline3);}
+.dtl-step:last-child::after{content:"";}
+.dtl-dot{width:9px;height:9px;border-radius:50%;background:var(--hairline3);flex:0 0 auto;}
+.dtl-step.done{color:var(--ink);}
+.dtl-step.done .dtl-dot{background:var(--good);}
+.dtl-step.active{color:var(--ink);font-weight:700;}
+.dtl-step.active .dtl-dot{background:var(--accent);box-shadow:0 0 0 3px var(--accentSoft);}
+
+.banner{display:flex;align-items:flex-start;gap:10px;border-radius:var(--r12);padding:12px 16px;font-size:var(--f-body);margin:12px 18px 0;border:1px solid var(--hairline2);background:var(--surface2);}
+.banner.warn{background:var(--warnSoft);border-color:var(--warn);color:var(--warnText);}
+.banner .b-title{font-weight:700;margin-bottom:2px;}
+.banner .b-x{margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;}
+.example-banner{display:flex;align-items:center;gap:8px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 14px;font-size:var(--f-meta);font-weight:600;margin:12px 18px 0;}
+.modenote{display:flex;align-items:center;gap:10px;margin:8px 18px 0;font-size:var(--f-meta);color:var(--inkMute);flex-wrap:wrap;}
+.modepill{display:inline-flex;gap:2px;background:var(--surface3);border-radius:99px;padding:2px;}
+.modepill button{border:none;background:transparent;border-radius:99px;padding:6px 12px;font-size:11.5px;font-weight:700;cursor:pointer;color:var(--inkDim);}
+.modepill button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-sm{height:38px;padding:0 13px;font-size:var(--f-meta);}
+.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:99px;font-size:var(--f-meta);font-weight:700;border:1px solid transparent;white-space:nowrap;}
+.pill-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.pill-neutral{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+.dot-red{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:0 0 auto;box-shadow:0 0 0 2px var(--surface);}
+
+.packing{flex:1;display:flex;min-height:0;overflow:hidden;}
+.pane-regions{width:340px;flex:0 0 340px;border-right:1px solid var(--hairline2);overflow-y:auto;background:var(--surface2);}
+.pane-kit{flex:1;min-width:0;overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);}
+.regions-head{display:flex;align-items:center;gap:10px;padding:14px 16px 8px;}
+.regions-head h2{font-size:var(--f-title);margin:0;}
+.region-block{padding:6px 12px 14px;}
+.region-head{display:flex;align-items:center;gap:8px;padding:10px 6px 8px;font-weight:700;font-size:var(--f-strong);}
+.region-head .cnt{margin-left:auto;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);font-weight:500;}
+.kit-chip{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:12px 12px;margin-bottom:8px;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);cursor:pointer;min-height:64px;}
+.kit-chip:hover{border-color:var(--hairline3);}
+.kit-chip.selected{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft) inset;}
+.kit-chip .kc-av{width:38px;height:38px;border-radius:10px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--ink2);flex:0 0 auto;}
+.kit-chip .kc-mid{flex:1;min-width:0;}
+.kit-chip .kc-name{font-weight:700;font-size:var(--f-body);}
+.kit-chip .kc-route{font-size:var(--f-meta);color:var(--inkMute);}
+.kit-chip .kc-prog{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);margin-top:2px;}
+
+.empty-kit{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--inkMute);padding:40px;text-align:center;}
+.kit-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;}
+.kit-head .kh-name{font-size:var(--f-title);font-weight:700;}
+.kit-head .kh-route{font-size:var(--f-meta);color:var(--inkMute);}
+.kit-head .slip-btn{margin-left:auto;}
+
+.pager-head{display:flex;align-items:center;gap:6px;padding:10px 20px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);background:var(--surface);}
+.pager-tab{background:none;border:none;font-size:var(--f-meta);color:var(--inkMute);cursor:pointer;padding:8px 4px;font-weight:600;white-space:nowrap;}
+.pager-tab.active{color:var(--ink);font-weight:800;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--accentBorder);text-decoration-thickness:2px;}
+.pager-tab.issue{color:var(--bad);}
+.pager-sep{color:var(--hairline3);}
+.manage-boxtypes{margin-left:auto;background:none;border:1px dashed var(--hairline3);border-radius:99px;color:var(--inkMute);font-size:var(--f-meta);cursor:pointer;padding:6px 12px;}
+.manage-boxtypes:hover{color:var(--ink);border-color:var(--inkMute);}
+.arrows{display:flex;gap:6px;padding:8px 20px;}
+.arrowbtn{width:52px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);font-size:18px;cursor:pointer;}
+.arrowbtn:disabled{opacity:.35;cursor:not-allowed;}
+
+.box-scroller{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;}
+.box-panel{flex:0 0 100%;scroll-snap-align:start;padding:14px 20px 8px;min-width:100%;}
+.box-title{font-size:var(--f-title);font-weight:800;margin:0 0 10px;display:flex;align-items:center;gap:10px;}
+.prow{display:flex;align-items:center;gap:14px;padding:12px 8px;border-radius:var(--r12);margin-bottom:8px;border:1px solid var(--hairline);background:var(--surface);flex-wrap:wrap;}
+.prow .pname{flex:1 1 180px;min-width:140px;}
+.prow .pname b{font-size:var(--f-body);font-weight:700;display:block;}
+.prow .pname .sub{font-size:var(--f-meta);color:var(--inkMute);}
+.prow .stat3{display:flex;gap:14px;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);flex:0 0 auto;}
+.prow .stat3 div{text-align:center;}
+.prow .stat3 .k{font-size:10px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
+.stepper{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.stepbtn{width:44px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline3);background:var(--surface3);font-size:22px;font-weight:700;cursor:pointer;color:var(--ink);}
+.stepbtn:hover{background:var(--hairline2);}
+.stepbtn:disabled{opacity:.35;cursor:not-allowed;}
+.stepval{width:52px;text-align:center;font-family:var(--fontMono);font-size:20px;font-weight:800;}
+
+/* LOUD mixed-batch flag — always red, never quiet */
+.loud{flex-basis:100%;margin-top:8px;border:1.5px solid var(--bad);background:var(--badSoft);border-radius:var(--r10);padding:8px 10px;font-size:12px;color:var(--bad);}
+.loud b{text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;}
+.loud .batches{margin-top:4px;display:flex;flex-wrap:wrap;gap:10px;font-family:var(--fontMono);color:var(--bad);font-weight:700;}
+.loud .batches span small{display:block;font-family:var(--fontSans);font-weight:600;color:var(--bad);opacity:.85;}
+
+/* scan section */
+.scanbar{margin-top:16px;padding-top:14px;border-top:1px dashed var(--hairline3);}
+.scanbar-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.scanbar-head h4{margin:0;font-size:var(--f-body);font-weight:700;flex:1 1 auto;}
+.scan-btn{height:48px;padding:0 20px;border-radius:var(--r12);border:1px solid var(--info);background:var(--infoSoft);color:var(--info);font-weight:800;font-size:var(--f-body);cursor:pointer;display:inline-flex;align-items:center;gap:9px;}
+.scan-btn:hover{filter:brightness(0.97);}
+.scan-btn:disabled{opacity:.5;cursor:not-allowed;}
+.scan-fallback{background:none;border:none;color:var(--inkMute);font-size:12px;text-decoration:underline;cursor:pointer;padding:6px 2px;}
+.scanning{display:flex;align-items:center;gap:10px;padding:14px;color:var(--inkDim);font-size:var(--f-body);}
+.spinner{width:20px;height:20px;border-radius:50%;border:3px solid var(--hairline2);border-top-color:var(--info);animation:spin .8s linear infinite;flex:0 0 auto;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.manual-flag{display:flex;gap:8px;align-items:center;background:var(--warnSoft);color:var(--warnText);border:1px solid var(--warn);border-radius:var(--r10);padding:9px 12px;font-size:12.5px;margin-bottom:10px;}
+
+table.verifytbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;margin-top:8px;}
+table.verifytbl th{text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px 8px;border-bottom:1px solid var(--hairline);}
+table.verifytbl th:first-child,table.verifytbl th:nth-child(2){text-align:left;}
+table.verifytbl td{padding:8px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.verifytbl tr:last-child td{border-bottom:none;}
+.verifytbl .pn{font-weight:700;}
+.verifytbl .bn{font-family:var(--fontMono);font-size:11.5px;color:var(--inkDim);}
+.verifytbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.verifytbl tr.st-missing{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+.verifytbl tr.st-extra{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+.verifytbl tr.st-wrongbox{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.verifytbl tr.st-match td:first-child{color:var(--ink);}
+.statuspill{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+.sp-match{background:var(--goodSoft);color:var(--good);}
+.sp-missing{background:var(--badSoft);color:var(--bad);}
+.sp-extra{background:var(--badSoft);color:var(--bad);}
+.sp-wrongbox{background:var(--warnSoft);color:var(--warnText);}
+.reasonwrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.reasonsel{height:30px;border-radius:7px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:11.5px;padding:0 6px;}
+.fixbtn{height:30px;padding:0 11px;border-radius:99px;border:1px solid var(--warn);background:var(--surface);color:var(--warnText);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.donereason{font-size:11.5px;color:var(--inkDim);font-style:italic;}
+
+.pack-blocked{font-size:12.5px;color:var(--warnText);margin-top:8px;text-align:center;}
+.pack-btn{width:100%;height:48px;margin-top:10px;border-radius:var(--r12);border:1px solid var(--good);background:var(--goodSoft);color:var(--good);font-weight:800;font-size:var(--f-body);cursor:pointer;}
+.pack-btn.done{background:var(--good);color:#fff;}
+.pack-btn:disabled{opacity:.45;cursor:not-allowed;background:var(--surface3);color:var(--inkMute);border-color:var(--hairline3);}
+
+.kitbar{position:sticky;bottom:0;display:flex;align-items:center;gap:20px;padding:12px 20px;border-top:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;}
+.kitbar .sum{display:flex;gap:20px;flex-wrap:wrap;}
+.kitbar .sumitem .k{font-size:10px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
+.kitbar .sumitem .v{font-family:var(--fontMono);font-weight:800;font-size:var(--f-strong);}
+.kitbar .btn{margin-left:auto;}
+
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:20px;}
+.modal{background:var(--surface);border-radius:var(--r20);width:100%;max-width:480px;max-height:86vh;overflow-y:auto;padding:22px;box-shadow:var(--shadowLg);}
+.modal h2{margin:0 0 4px;font-size:var(--f-title);}
+.slip{border:1px dashed var(--hairline3);border-radius:var(--r12);padding:14px;margin-top:12px;font-family:var(--fontMono);font-size:12px;background:var(--surface2);}
+.slip .sline{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dotted var(--hairline2);}
+.slip .sline.loudline{color:var(--bad);font-weight:700;}
+.qr{width:96px;height:96px;margin:12px auto 0;background:
+  repeating-linear-gradient(0deg, var(--ink) 0 4px, transparent 4px 8px),
+  repeating-linear-gradient(90deg, var(--ink) 0 4px, transparent 4px 8px);
+  background-blend-mode:multiply; border:6px solid var(--surface); box-shadow:0 0 0 2px var(--ink);}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.modal-actions .btn{flex:1;}
+
+.toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;}
+.footer{padding:10px 20px;font-size:var(--f-meta);color:var(--inkMute);border-top:1px solid var(--hairline2);}
+
+@media (max-width: 900px){
+  .rail{width:58px;flex-basis:58px;}
+  .rail-item .lbl{display:none;}
+  .h1{font-size:22px;}
+  .pane-regions{width:100%;flex-basis:100%;border-right:none;}
+  .packing.showing-kit .pane-regions{display:none;}
+  .packing:not(.showing-kit) .pane-kit{display:none;}
+  .back-btn{display:inline-flex !important;}
+}
+.back-btn{display:none;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <button class="rail-item" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+    <button class="rail-item" title="Kit templates"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+    <button class="rail-item active" title="Distribution"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+    <button class="rail-item" title="Driver kits"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom"><button class="rail-item" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82"/></svg><span class="lbl">Settings</span></button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb">Distribution · Verify</div>
+        <h1 class="h1">Pack-Verify on the Tablet</h1>
+      </div>
+      <div class="clock"><b id="clockNow">2:14 PM PT</b>Business day Thu Sep 10 · rolls 12:00 AM PT</div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle theme">
+        <svg id="themeIcon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="daytl" id="dayTimeline"></div>
+    <div class="example-banner">Design mockup — every product, batch number, driver name and time on this screen is example data.</div>
+    <div class="modenote">Verifying:
+      <span class="modepill"><button class="active" id="modeBuild">Morning build</button><button id="modeRefill">2:15 PM refill (today)</button></span>
+      A box's plan is keyed by <b>box × SKU × batch</b> — the scan reads the same way, so "right SKU, wrong batch" is never invisible.
+    </div>
+
+    <div class="packing" id="packing">
+      <section class="pane-regions" id="paneRegions"></section>
+      <section class="pane-kit" id="paneKit">
+        <div class="empty-kit">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/></svg>
+          <div>Tap a kit on the left to start packing.</div>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">Verify — Concept A of 4 — Pack-Verify on the Tablet</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(s,r){ return (r||document).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+/* ---------- theme ---------- */
+var root = document.documentElement;
+try{ var saved = localStorage.getItem('hw-packverify-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+$('#themeToggle').addEventListener('click', function(){
+  var cur = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  try{ localStorage.setItem('hw-packverify-theme', next); }catch(e){}
+});
+function tickClock(){
+  var d = new Date(); var h = d.getHours()%12; if(h===0) h=12;
+  var m = String(d.getMinutes()).padStart(2,'0');
+  $('#clockNow').textContent = h+':'+m+' '+(d.getHours()<12?'AM':'PM')+' PT';
+}
+tickClock(); setInterval(tickClock, 30000);
+
+/* ---------- day timeline: 8 stages, the estate's own sequence ---------- */
+var DAY_STAGES = [
+  {label:'Built', done:true}, {label:'Frozen', done:true}, {label:'Synced to Blaze', done:true},
+  {label:'Dispatched', done:true}, {label:'Pack-Verified', active:true}, {label:'Refilled', done:false},
+  {label:'Return-Verified', done:false}, {label:'Closed', done:false}
+];
+function renderDayTL(){
+  $('#dayTimeline').innerHTML = DAY_STAGES.map(function(s){
+    var cls = s.done ? 'done' : (s.active ? 'active' : '');
+    return '<div class="dtl-step '+cls+'"><span class="dtl-dot"></span><span>'+s.label+'</span></div>';
+  }).join('');
+}
+renderDayTL();
+$('#modeBuild').addEventListener('click', function(){ setMode('build'); });
+$('#modeRefill').addEventListener('click', function(){ setMode('refill'); });
+var mode = 'refill';
+function setMode(m){ mode = m; $('#modeBuild').classList.toggle('active', m==='build'); $('#modeRefill').classList.toggle('active', m==='refill'); }
+setMode('refill');
+
+/* ---------- data: EXAMPLE ONLY. plan is keyed box × SKU × batch. ---------- */
+var REASONS_MISSING = ['Recount this box','Search the bench','Mis-tag — flag receiving'];
+var REASONS_EXTRA = ['Misrouted from another kit','Stray unit — flag LP','Miscount at pack'];
+var uid = 0;
+function P(o){ o.id = 'p'+(++uid); o.reason = o.reason || null; return o; }
+function Box(name, products){ return { name:name, packed:false, scanState:'unscanned', products:products }; }
+function Kit(driver, route, boxes){ return { id:'k'+(++uid), driver:driver, route:route, boxes:boxes }; }
+
+var REGIONS = [
+  { name:'West LA', kits:[
+    Kit('Marcus R.','Route 3', [
+      Box('Flower Box 1', [
+        P({name:'Sunset OG 3.5g', plan:20, batches:[{no:'B-2291',qty:20,thc:24.8,pack:'08/22/26'}],
+          reads:[{no:'B-2291',qty:20}]}),
+        P({name:'Blue Dream 3.5g', plan:10, mixed:true,
+          batches:[{no:'B-1187',qty:6,thc:22.4,pack:'06/12/26'},{no:'B-2205',qty:4,thc:27.9,pack:'08/02/26'}],
+          reads:[{no:'B-1187',qty:6},{no:'B-2205',qty:4}]}),
+        P({name:'GMO 7g', plan:6, batches:[{no:'B-2299',qty:6,thc:31.2,pack:'08/28/26'}],
+          reads:[{no:'B-2299',qty:5},{no:'B-2299',qty:1,box:'Flower Box 2'}]})
+      ]),
+      Box('Flower Box 2', [
+        P({name:'Wedding Cake 1g', plan:24, batches:[{no:'B-2100',qty:24,thc:26.1,pack:'08/18/26'}], reads:[{no:'B-2100',qty:24}]}),
+        P({name:'Runtz 3.5g', plan:3, batches:[{no:'B-2044',qty:3,thc:23.0,pack:'07/30/26'}], reads:[{no:'B-2044',qty:3}]})
+      ]),
+      Box('Pre-Roll Box 1', [
+        P({name:'Indica 5-pack', plan:14, batches:[{no:'B-1900',qty:14,thc:null,pack:'08/10/26'}], reads:[{no:'B-1900',qty:14}]}),
+        P({name:'Hybrid Singles', plan:0, batches:[], reads:[{no:'B-1955',qty:2}]})
+      ]),
+      Box('Vape Box 1', [
+        P({name:'Live Resin Cart 1g', plan:16, batches:[{no:'B-2077',qty:16,thc:82.4,pack:'08/05/26'}], reads:[{no:'B-2077',qty:16}]}),
+        P({name:'Rosin Cart 0.5g', plan:8, batches:[{no:'B-1500',qty:8,thc:78.1,pack:'07/12/26'}], reads:[{no:'B-1500',qty:6}]})
+      ]),
+      Box('Cooler', [
+        P({name:'THC Seltzer 4-pack', plan:12, batches:[{no:'B-1800',qty:12,thc:null,pack:'08/01/26'}], reads:[{no:'B-1800',qty:12}]}),
+        P({name:'Cold Brew 100mg', plan:0, batches:[], reads:[{no:'B-1900',qty:2}]})
+      ]),
+      Box('Edible Bin', [
+        P({name:'Gummies 100mg', plan:22, batches:[{no:'B-1700',qty:22,thc:null,pack:'07/22/26'}], reads:[{no:'B-1700',qty:22}]}),
+        P({name:'Chocolate Bar 100mg', plan:8, batches:[{no:'B-1650',qty:8,thc:null,pack:'07/15/26'}], reads:[{no:'B-1650',qty:8}]})
+      ])
+    ]),
+    Kit('Priya K.','Route 5', [
+      Box('Flower Box 1', [ P({name:'Sunset OG 3.5g', plan:12, batches:[{no:'B-2291',qty:12,thc:24.8,pack:'08/22/26'}], reads:[{no:'B-2291',qty:12}]}) ]),
+      Box('Pre-Roll Box 1', [ P({name:'Sativa Singles', plan:10, batches:[{no:'B-1955',qty:10,thc:null,pack:'08/09/26'}], reads:[{no:'B-1955',qty:10}]}) ])
+    ])
+  ]},
+  { name:'Inland Empire', kits:[
+    Kit('DeShawn T.','Route 1', [
+      Box('Flower Box 1', [ P({name:'OG Kush 3.5g', plan:18, batches:[{no:'B-2033',qty:18,thc:25.6,pack:'08/14/26'}], reads:[{no:'B-2033',qty:18}]}) ]),
+      Box('Vape Box 2', [ P({name:'Live Resin Cart 0.5g', plan:6, batches:[{no:'B-2077',qty:6,thc:82.4,pack:'08/05/26'}], reads:[{no:'B-2077',qty:4}]}) ])
+    ])
+  ]},
+  { name:'Orange County', kits:[
+    Kit('Tommy V.','Route 4', [
+      Box('Flower Box 1', [ P({name:'Wedding Cake 3.5g', plan:22, batches:[{no:'B-2100',qty:22,thc:26.1,pack:'08/18/26'}], reads:[{no:'B-2100',qty:22}]}) ])
+    ])
+  ]}
+];
+
+/* ---------- derive verification status per product ---------- */
+function verify(p){
+  var totalRead = p.reads.reduce(function(s,r){ return s + r.qty; }, 0);
+  var hereRead = p.reads.filter(function(r){ return !r.box; }).reduce(function(s,r){ return s + r.qty; }, 0);
+  var elsewhere = p.reads.filter(function(r){ return r.box; });
+  if (p.plan === 0 && totalRead > 0) return 'extra';
+  if (elsewhere.length && hereRead < p.plan) return 'wrongbox';
+  if (hereRead < p.plan) return 'missing';
+  if (hereRead > p.plan) return 'extra';
+  return 'match';
+}
+function resolved(p){
+  var st = verify(p);
+  if (st === 'match') return true;
+  if (st === 'wrongbox') return !!p.moveConfirmed;
+  return !!p.reason;
+}
+function boxResolved(box){
+  if (box.scanState !== 'scanned') return false;
+  return box.products.every(resolved);
+}
+function boxIssueCount(box){
+  if (box.scanState !== 'scanned') return 0;
+  return box.products.filter(function(p){ return !resolved(p); }).length;
+}
+
+/* ---------- state ---------- */
+var selectedKitId = null, selectedBoxIdx = 0;
+function findKit(id){ for (var r=0;r<REGIONS.length;r++) for (var k=0;k<REGIONS[r].kits.length;k++) if (REGIONS[r].kits[k].id===id) return REGIONS[r].kits[k]; return null; }
+function kitTotals(k){
+  var packed=0, issues=0;
+  k.boxes.forEach(function(b){ if (b.packed) packed++; issues += boxIssueCount(b); });
+  return { packed:packed, total:k.boxes.length, issues:issues };
+}
+
+function renderRegions(){
+  var html = '<div class="regions-head"><h2>Kits to verify</h2></div>';
+  REGIONS.forEach(function(region){
+    html += '<div class="region-block"><div class="region-head">'+region.name+'<span class="cnt">'+region.kits.length+' kit'+(region.kits.length===1?'':'s')+'</span></div>';
+    region.kits.forEach(function(k){
+      var t = kitTotals(k);
+      var initials = k.driver.split(' ').map(function(w){return w[0];}).join('').slice(0,2);
+      html += '<button class="kit-chip'+(k.id===selectedKitId?' selected':'')+'" data-kit="'+k.id+'">'+
+        '<span class="kc-av">'+initials+'</span>'+
+        '<span class="kc-mid"><span class="kc-name">'+k.driver+'</span><span class="kc-route">'+k.route+'</span>'+
+        '<div class="kc-prog">'+t.packed+' / '+t.total+' boxes packed</div></span>'+
+        (t.issues>0 ? '<span class="dot-red" title="'+t.issues+' item(s) need attention"></span>' : '')+
+        '</button>';
+    });
+    html += '</div>';
+  });
+  $('#paneRegions').innerHTML = html;
+  $$('.kit-chip', $('#paneRegions')).forEach(function(el){ el.addEventListener('click', function(){ selectKit(el.getAttribute('data-kit'), 0); }); });
+}
+
+function selectKit(id, boxIdx){
+  selectedKitId = id; selectedBoxIdx = boxIdx || 0;
+  $('#packing').classList.add('showing-kit');
+  renderRegions(); renderKit();
+}
+function backToRegions(){ $('#packing').classList.remove('showing-kit'); }
+
+function esc(s){ return String(s); }
+
+function renderProductRow(p){
+  var loud = p.mixed ? '<div class="loud"><b>Mixed batch — loud, never quiet</b><div class="batches">'+
+    p.batches.map(function(b){ return '<span>'+b.no+' × '+b.qty+'<small>'+(b.thc!=null?('THC '+b.thc+'%'):'THC —')+' · packaged '+b.pack+'</small></span>'; }).join('')+
+    '</div></div>' : '';
+  return '<div class="prow" data-p="'+p.id+'">'+
+    '<div class="pname"><b>'+esc(p.name)+'</b><span class="sub">'+p.batches.map(function(b){return b.no;}).join(' + ')+'</span></div>'+
+    '<div class="stat3"><div><div class="k">Plan</div>'+p.plan+'</div></div>'+
+    loud+
+    '</div>';
+}
+
+function statusLabel(st){
+  return st==='match'?'Match':st==='missing'?'Missing':st==='extra'?'Extra':'Wrong box';
+}
+function renderVerifyTable(box){
+  var rows = box.products.map(function(p){
+    var st = verify(p);
+    var totalRead = p.reads.reduce(function(s,r){ return s + r.qty; }, 0);
+    var readDesc = p.reads.map(function(r){ return r.qty + (r.box? (' in '+r.box) : ''); }).join(' + ');
+    var action = '';
+    if (st === 'match') {
+      action = '<span class="donereason">—</span>';
+    } else if (st === 'wrongbox') {
+      var away = p.reads.filter(function(r){return r.box;})[0];
+      action = p.moveConfirmed
+        ? '<span class="donereason">Confirmed: moved from '+away.box+'</span>'
+        : '<button class="fixbtn" data-move="'+p.id+'">Confirm move from '+away.box+'</button>';
+    } else if (st === 'missing' || st === 'extra') {
+      var opts = st==='missing' ? REASONS_MISSING : REASONS_EXTRA;
+      action = p.reason
+        ? '<span class="donereason">'+p.reason+'</span>'
+        : '<div class="reasonwrap"><select class="reasonsel" data-reason="'+p.id+'"><option value="">Record a reason…</option>'+
+          opts.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('')+'</select></div>';
+    }
+    return '<tr class="st-'+st+'" data-p="'+p.id+'">'+
+      '<td class="pn">'+esc(p.name)+'</td>'+
+      '<td class="bn">'+p.batches.map(function(b){return b.no;}).join(' + ')+'</td>'+
+      '<td class="num">'+p.plan+'</td>'+
+      '<td class="num">'+readDesc+'</td>'+
+      '<td><span class="statuspill sp-'+st+'">'+statusLabel(st)+'</span></td>'+
+      '<td>'+action+'</td>'+
+      '</tr>';
+  }).join('');
+  return '<table class="verifytbl"><thead><tr><th>Product</th><th>Batch</th><th>Plan</th><th>Read</th><th>Status</th><th>Reason / fix</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+
+function renderKit(){
+  var k = findKit(selectedKitId);
+  var pane = $('#paneKit');
+  if (!k){ pane.innerHTML = '<div class="empty-kit">Tap a kit on the left to start packing.</div>'; return; }
+  var t = kitTotals(k);
+  var boxNamesHtml = k.boxes.map(function(b,i){
+    var issue = boxIssueCount(b) > 0;
+    return (i>0?'<span class="pager-sep">▸</span>':'')+'<button class="pager-tab'+(i===selectedBoxIdx?' active':'')+(issue?' issue':'')+'" data-i="'+i+'">'+b.name+(b.packed?' ✓':(issue?' !':''))+'</button>';
+  }).join('');
+
+  var b = k.boxes[selectedBoxIdx];
+  var rowsHtml = b.products.map(renderProductRow).join('');
+  var issues = boxIssueCount(b);
+  var canPack = b.scanState === 'scanned' && boxResolved(b);
+
+  var scanSection;
+  if (b.scanState === 'unscanned') {
+    scanSection = '<div class="scanbar"><div class="scanbar-head"><h4>Scan box</h4></div>'+
+      '<button class="scan-btn" id="scanBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M20 8V5a1 1 0 00-1-1h-3M4 16v3a1 1 0 001 1h3M20 16v3a1 1 0 01-1 1h-3"/><path d="M2 12h20"/></svg>Scan box with handheld</button>'+
+      '<div><button class="scan-fallback" id="scanFallback">RFID reader not responding? Fall back to manual count</button></div></div>';
+  } else if (b.scanState === 'scanning') {
+    scanSection = '<div class="scanbar"><div class="scanning"><span class="spinner"></span>Reading tags in '+esc(b.name)+'…</div></div>';
+  } else if (b.scanState === 'manual') {
+    scanSection = '<div class="scanbar"><div class="manual-flag">Manual count in effect — RFID reader offline (logged '+nowStr()+'). Counts below are hand-entered, not scanned.</div>'+renderVerifyTable(b)+
+      (canPack ? '' : '<div class="pack-blocked">Resolve '+issues+' item'+(issues===1?'':'s')+' before this box can be marked packed.</div>')+
+      '<button class="pack-btn'+(b.packed?' done':'')+'" id="packBoxBtn" '+(canPack?'':'disabled')+'>'+(b.packed?'✓ Box packed':'Box packed')+'</button></div>';
+  } else {
+    scanSection = '<div class="scanbar"><div class="scanbar-head"><h4>Batch verification — read vs plan</h4>'+
+      '<span class="pill '+(issues>0?'pill-bad':'pill-good')+'">'+(issues>0? (issues+' issue'+(issues===1?'':'s')) : 'All matched')+'</span></div>'+
+      renderVerifyTable(b)+
+      (canPack ? '' : '<div class="pack-blocked">Resolve '+issues+' item'+(issues===1?'':'s')+' before this box can be marked packed.</div>')+
+      '<button class="pack-btn'+(b.packed?' done':'')+'" id="packBoxBtn" '+(canPack?'':'disabled')+'>'+(b.packed?'✓ Box packed':'Box packed')+'</button></div>';
+  }
+
+  pane.innerHTML =
+    '<div class="kit-head"><button class="btn btn-ghost btn-sm back-btn" id="backBtn">‹ Kits</button>'+
+      '<div><div class="kh-name">'+k.driver+'</div><div class="kh-route">'+k.route+' · '+t.packed+'/'+t.total+' boxes packed'+(t.issues?(' · '+t.issues+' open item'+(t.issues===1?'':'s')):'')+'</div></div>'+
+      '<button class="btn btn-ghost btn-sm slip-btn" id="slipBtn">View printed pick slip</button>'+
+    '</div>'+
+    '<div class="pager-head">'+boxNamesHtml+'<button class="manage-boxtypes" id="manageBoxTypes">⚙ Manage box types</button></div>'+
+    '<div class="arrows"><button class="arrowbtn" id="prevBox" '+(selectedBoxIdx===0?'disabled':'')+'>‹</button><button class="arrowbtn" id="nextBox" '+(selectedBoxIdx===k.boxes.length-1?'disabled':'')+'>›</button></div>'+
+    '<div class="box-scroller"><div class="box-panel"><h4 class="box-title">'+b.name+(b.packed?' — Packed':'')+'</h4>'+rowsHtml+scanSection+'</div></div>'+
+    '<div class="kitbar"><div class="sum">'+
+      '<div class="sumitem"><div class="k">Boxes packed</div><div class="v">'+t.packed+'/'+t.total+'</div></div>'+
+      (t.issues>0?'<div class="sumitem"><div class="k">Open items</div><div class="v" style="color:var(--warnText)">'+t.issues+'</div></div>':'')+
+      '</div><button class="btn btn-primary" id="dispatchBtn" '+(t.packed<t.total?'disabled':'')+'>Dispatch verified refill</button></div>';
+
+  wireKitPane(k, b);
+}
+function nowStr(){ var d=new Date(); var h=d.getHours()%12; if(h===0)h=12; return h+':'+String(d.getMinutes()).padStart(2,'0')+(d.getHours()<12?' AM':' PM')+' PT'; }
+
+function wireKitPane(k, b){
+  var backBtn = $('#backBtn'); if (backBtn) backBtn.addEventListener('click', backToRegions);
+  $('#prevBox').addEventListener('click', function(){ if (selectedBoxIdx>0){ selectedBoxIdx--; renderKit(); } });
+  $('#nextBox').addEventListener('click', function(){ if (selectedBoxIdx<k.boxes.length-1){ selectedBoxIdx++; renderKit(); } });
+  $$('.pager-tab').forEach(function(el){ el.addEventListener('click', function(){ selectedBoxIdx = parseInt(el.getAttribute('data-i'),10); renderKit(); }); });
+  var manageBtn = $('#manageBoxTypes'); if (manageBtn) manageBtn.addEventListener('click', function(){ toast('Manage box types','Box sets vary by kit and change over time — opens the box-type editor (not built in this mockup).'); });
+  var slipBtn = $('#slipBtn'); if (slipBtn) slipBtn.addEventListener('click', function(){ openSlip(k, b); });
+
+  var scanBtn = $('#scanBtn');
+  if (scanBtn) scanBtn.addEventListener('click', function(){
+    b.scanState = 'scanning'; renderKit();
+    setTimeout(function(){ b.scanState = 'scanned'; renderKit(); }, 900);
+  });
+  var fallback = $('#scanFallback');
+  if (fallback) fallback.addEventListener('click', function(){ b.scanState = 'manual'; toast('Manual count', 'RFID fallback logged for '+b.name+'. Enter counts by hand; nothing blocks indefinitely.'); renderKit(); });
+
+  $$('.reasonsel').forEach(function(sel){
+    sel.addEventListener('change', function(){
+      var pid = sel.getAttribute('data-reason');
+      var p = b.products.find(function(x){ return x.id===pid; });
+      if (!p || !sel.value) return;
+      p.reason = sel.value;
+      renderKit();
+    });
+  });
+  $$('[data-move]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var pid = btn.getAttribute('data-move');
+      var p = b.products.find(function(x){ return x.id===pid; });
+      if (!p) return;
+      p.moveConfirmed = true;
+      toast('Move confirmed', p.name+' recorded as a location correction, not a shortfall.');
+      renderKit();
+    });
+  });
+  var packBtn = $('#packBoxBtn');
+  if (packBtn && !packBtn.disabled) packBtn.addEventListener('click', function(){ b.packed = !b.packed; renderKit(); renderRegions(); });
+
+  var dispatchBtn = $('#dispatchBtn');
+  if (dispatchBtn && !dispatchBtn.disabled) dispatchBtn.addEventListener('click', function(){
+    toast('Refill dispatched', k.driver+' ('+k.route+') — all boxes pack-verified and packed. Moves to Refilled on the timeline.');
+  });
+}
+
+function openSlip(k, b){
+  var lines = b.products.map(function(p){
+    var mixed = p.mixed ? ' class="loudline"' : '';
+    return '<div class="sline"'+mixed+'><span>'+p.name+' × '+p.plan+'</span><span>'+p.batches.map(function(x){return x.no;}).join(' + ')+(p.mixed?' — MIXED BATCH, LOUD':'')+'</span></div>';
+  }).join('');
+  var overlay = document.createElement('div'); overlay.className = 'overlay';
+  overlay.innerHTML = '<div class="modal"><h2>Printed pick slip</h2><div class="crumb">'+k.driver+' · '+k.route+' · '+b.name+'</div>'+
+    '<div class="slip">'+lines+'</div>'+
+    '<div style="text-align:center;"><div class="qr" title="QR to close this box by scan"></div>'+
+    '<div style="font-size:11px;color:var(--inkMute);margin-top:6px;">Scan this QR at the bench to close the box — same lines, same flags, whether printed or on the tablet.</div></div>'+
+    '<div class="modal-actions"><button class="btn btn-ghost" id="closeSlip">Close</button></div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
+  $('#closeSlip', overlay).addEventListener('click', function(){ overlay.remove(); });
+}
+
+var toastTimer;
+function toast(title, body){
+  var el = $('.toast'); if (el) el.remove();
+  el = document.createElement('div'); el.className='toast';
+  el.innerHTML = '<b style="display:block;">'+title+'</b>'+body;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.remove(); }, 4600);
+}
+
+renderRegions();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "synthetic": true,
+  "note": "Shape-true but entirely made up. Mirrors distribution-backend Products (models/Products.js) fields: productId -> id, adminProductName -> name, productBatchSKU -> sku, plus a category taken from Blaze's category list per distribution-backend.datamodel.md.",
+  "products": [
+    { "id": "prod-01", "sku": "SKU-FL-01", "name": "Blue Dream 3.5g HW Jar", "category": "Flower" },
+    { "id": "prod-02", "sku": "SKU-FL-02", "name": "OG Kush 3.5g Bag", "category": "Flower" },
+    { "id": "prod-03", "sku": "SKU-FL-03", "name": "Gelato 3.5g Bag", "category": "Flower" },
+    { "id": "prod-04", "sku": "SKU-FL-04", "name": "Wedding Cake 3.5g Boxed", "category": "Flower" },
+    { "id": "prod-05", "sku": "SKU-FL-05", "name": "Sour Diesel Bulk 1oz", "category": "Flower" },
+    { "id": "prod-06", "sku": "SKU-PR-01", "name": "Indica Single 1g", "category": "Pre-Roll" },
+    { "id": "prod-07", "sku": "SKU-PR-02", "name": "Sativa Single 1g", "category": "Pre-Roll" },
+    { "id": "prod-08", "sku": "SKU-PR-03", "name": "Hybrid Pack 5x0.5g", "category": "Pre-Roll" },
+    { "id": "prod-09", "sku": "SKU-PR-04", "name": "Infused Preroll 1g", "category": "Pre-Roll" },
+    { "id": "prod-10", "sku": "SKU-VP-01", "name": "510 Cart Blue Dream 1g", "category": "Vape" },
+    { "id": "prod-11", "sku": "SKU-VP-02", "name": "510 Cart OG Kush 0.5g", "category": "Vape" },
+    { "id": "prod-12", "sku": "SKU-VP-03", "name": "All-In-One Gelato 1g", "category": "Vape" },
+    { "id": "prod-13", "sku": "SKU-VP-04", "name": "Box Vape Wedding Cake 1g", "category": "Vape" },
+    { "id": "prod-14", "sku": "SKU-ED-01", "name": "Gummies 10pk 100mg", "category": "Edible" },
+    { "id": "prod-15", "sku": "SKU-ED-02", "name": "Chocolate Bar 100mg", "category": "Edible" },
+    { "id": "prod-16", "sku": "SKU-ED-03", "name": "Beverage 10mg", "category": "Edible" },
+    { "id": "prod-17", "sku": "SKU-CN-01", "name": "Live Resin 1g", "category": "Concentrate" },
+    { "id": "prod-18", "sku": "SKU-CN-02", "name": "Shatter 1g", "category": "Concentrate" },
+    { "id": "prod-19", "sku": "SKU-AC-01", "name": "Rolling Papers", "category": "Accessories" },
+    { "id": "prod-20", "sku": "SKU-AC-02", "name": "Lighter", "category": "Accessories" },
+    { "id": "prod-21", "sku": "SKU-FL-06", "name": "Girl Scout Cookies 3.5g Jar", "category": "Flower" },
+    { "id": "prod-22", "sku": "SKU-VP-05", "name": "Disposable Pen 1g", "category": "Vape" },
+    { "id": "prod-23", "sku": "SKU-ED-04", "name": "Mints 20pk", "category": "Edible" },
+    { "id": "prod-24", "sku": "SKU-PR-05", "name": "Moonrock Single 1g", "category": "Pre-Roll" },
+    { "id": "prod-25", "sku": "SKU-FL-07", "name": "Purple Punch Bulk 1oz", "category": "Flower" }
+  ]
+}

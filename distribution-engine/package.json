@@ -1,0 +1,12 @@
+{
+  "name": "@hyper-tech/distribution-engine",
+  "version": "0.1.0",
+  "description": "Pure decision engine for kit build/refill/restock/handoff plans. No database, no HTTP, zero dependencies.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

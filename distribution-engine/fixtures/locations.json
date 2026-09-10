@@ -1,0 +1,37 @@
+{
+  "synthetic": true,
+  "note": "Location shapes match contracts Location (0.4.0). kit_box locations carry box_type, joined against box-templates.json at test time, the same way distribution-backend joins KitDistributed.regionData[].items against Boxes -> KitTemplateSku. Two regions (RC, SB), three drivers, one warehouse safe, one floor store.",
+  "regions": [
+    { "id": "region-rc", "name": "RC" },
+    { "id": "region-sb", "name": "SB" }
+  ],
+  "drivers": [
+    { "id": "driver-1", "name": "Driver One", "region_id": "region-rc" },
+    { "id": "driver-2", "name": "Driver Two", "region_id": "region-rc" },
+    { "id": "driver-3", "name": "Driver Three", "region_id": "region-sb" }
+  ],
+  "locations": [
+    { "id": "safe-warehouse", "kind": "safe", "name": "Warehouse Safe", "active": true },
+
+    { "id": "kit-d1-flower1", "kind": "kit_box", "name": "Driver One / Flower Box 1", "box_type": "Flower Box 1", "parent_id": "driver-1", "region_id": "region-rc", "active": true },
+    { "id": "kit-d1-preroll1", "kind": "kit_box", "name": "Driver One / Pre-Roll Box 1", "box_type": "Pre-Roll Box 1", "parent_id": "driver-1", "region_id": "region-rc", "active": true },
+    { "id": "kit-d1-vape1", "kind": "kit_box", "name": "Driver One / Vape Box 1", "box_type": "Vape Box 1", "parent_id": "driver-1", "region_id": "region-rc", "active": true },
+    { "id": "kit-d1-ediblebin", "kind": "kit_box", "name": "Driver One / Edible Bin", "box_type": "Edible Bin", "parent_id": "driver-1", "region_id": "region-rc", "active": true },
+
+    { "id": "kit-d2-flower1", "kind": "kit_box", "name": "Driver Two / Flower Box 1", "box_type": "Flower Box 1", "parent_id": "driver-2", "region_id": "region-rc", "active": true },
+    { "id": "kit-d2-preroll1", "kind": "kit_box", "name": "Driver Two / Pre-Roll Box 1", "box_type": "Pre-Roll Box 1", "parent_id": "driver-2", "region_id": "region-rc", "active": true },
+    { "id": "kit-d2-vape1", "kind": "kit_box", "name": "Driver Two / Vape Box 1", "box_type": "Vape Box 1", "parent_id": "driver-2", "region_id": "region-rc", "active": true },
+    { "id": "kit-d2-ediblebin", "kind": "kit_box", "name": "Driver Two / Edible Bin", "box_type": "Edible Bin", "parent_id": "driver-2", "region_id": "region-rc", "active": true },
+
+    { "id": "kit-d3-flower1", "kind": "kit_box", "name": "Driver Three / Flower Box 1", "box_type": "Flower Box 1", "parent_id": "driver-3", "region_id": "region-sb", "active": true },
+    { "id": "kit-d3-preroll1", "kind": "kit_box", "name": "Driver Three / Pre-Roll Box 1", "box_type": "Pre-Roll Box 1", "parent_id": "driver-3", "region_id": "region-sb", "active": true },
+    { "id": "kit-d3-vape1", "kind": "kit_box", "name": "Driver Three / Vape Box 1", "box_type": "Vape Box 1", "parent_id": "driver-3", "region_id": "region-sb", "active": true },
+    { "id": "kit-d3-ediblebin", "kind": "kit_box", "name": "Driver Three / Edible Bin", "box_type": "Edible Bin", "parent_id": "driver-3", "region_id": "region-sb", "active": true },
+    { "id": "kit-d3-concentratebin", "kind": "kit_box", "name": "Driver Three / Concentrate Bin", "box_type": "Concentrate Bin", "parent_id": "driver-3", "region_id": "region-sb", "active": true },
+
+    { "id": "store-1-safe", "kind": "safe", "name": "Store 1 BOH Safe", "store_id": "store-1", "active": true },
+    { "id": "store-1-shelf-flower", "kind": "shelf", "name": "Store 1 Flower Shelf", "shelf_type": "Flower Shelf", "store_id": "store-1", "active": true },
+    { "id": "store-1-shelf-vape", "kind": "shelf", "name": "Store 1 Vape Shelf", "shelf_type": "Vape Shelf", "store_id": "store-1", "active": true },
+    { "id": "store-1-shelf-accessories", "kind": "shelf", "name": "Store 1 Accessories Shelf", "shelf_type": "Accessories Shelf", "store_id": "store-1", "active": true }
+  ]
+}
