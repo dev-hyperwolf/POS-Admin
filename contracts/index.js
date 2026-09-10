@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.3.2'; // 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
+  var VERSION = '0.4.0'; // 0.4.0: inventory — LocationKind, ArrivalKind, MovementReason, PlanReason, ChannelKind, CountState; Location, Batch, Movement, ReceivedItem, PlanLine, Plan. 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -140,6 +140,22 @@
     EventType: { values: ['order.created', 'order.completed', 'order.refunded', 'order.cancelled', 'task.status_changed',
       'verification.decided', 'points.earned', 'points.redeemed', 'promotion.consumed', 'person.merged'],
       source: 'CANONICAL-DATA-MODEL.md §7.7' },
+    // 0.4.0 — inventory (distribution/OWNER-NOTES.md 2026-09-10: one location model for kits and stores)
+    LocationKind: { values: ['receiving', 'safe', 'floor', 'shelf', 'display', 'kit_box', 'vehicle', 'packing_bench', 'lp_bench',
+      'quarantine', 'returns', 'waste', 'transfer_out'],
+      source: 'distribution/USE-CASES.md §1 actors and locations; wm-demo inventory.py kinds safe|kit|counter widened' },
+    ArrivalKind: { values: ['new_sku', 'restock', 'new_batch'],
+      source: 'OWNER-NOTES.md 2026-09-10 — three kinds of receiving' },
+    MovementReason: { values: ['receive', 'put_away', 'build', 'refill', 'restock', 'dispatch', 'return', 'sale', 'transfer',
+      'handoff', 'count_adjust', 'quarantine', 'waste', 'sample', 'correction'],
+      source: 'distribution/USE-CASES.md §2 flows' },
+    PlanReason: { values: ['sold', 'new_arrival', 'oldest_first', 'partial_placement', 'short_stock', 'below_subregion_count',
+      'not_in_template', 'no_sales_counted', 'capped', 'mixed_batch', 'reserved', 'expiring', 'held', 'manual'],
+      source: 'distribution/DESIGN-BRIEF.md item 3; OWNER-NOTES.md (mixed batch always loud)' },
+    ChannelKind: { values: ['asap', 'scheduled', 'register', 'pickup', 'express'],
+      source: 'OWNER-NOTES.md — ASAP from the kit drives refill; scheduled from the safe counts for loss prevention only' },
+    CountState: { values: ['proposed', 'recount_required', 'awaiting_approval', 'approved', 'rejected'],
+      source: 'OWNER-NOTES.md — second-person recount above threshold; manager approves every adjustment' },
   };
   var HTTP_STATUS = { bad_request: 400, unauthorized: 401, forbidden: 403, not_found: 404,
     conflict: 409, unprocessable: 422, rate_limited: 429, internal: 500, not_built: 501 };
@@ -303,7 +319,7 @@
 
   // ── Schemas (JSON Schema subset) ───────────────────────────────────────────
   // Deliberately a subset: type, required, properties, additionalProperties, items, enum (by
-  // name via $enum), pattern, minimum, nullable, $ref to another schema. Enough to fail on
+  // name via $enum), pattern, minimum, maximum, nullable, $ref to another schema. Enough to fail on
   // drift, small enough to run in a browser and to re-implement in 120 lines of Python.
   var EXT = { type: 'object', required: ['source', 'id'], additionalProperties: false,
     properties: { source: { type: 'string', $enum: 'IdSource' }, id: { type: 'string', minLength: 1 } } };
@@ -373,6 +389,41 @@
         properties: { code: { type: 'string', $enum: 'ErrorCode' }, message: { type: 'string' }, details: { nullable: true } } } } },
     Event: { type: 'object', required: ['event_id', 'type', 'contract', 'at', 'source', 'data'], additionalProperties: false,
       properties: { event_id: ID, type: { type: 'string', $enum: 'EventType' }, contract: { type: 'string' }, at: ISO, source: { type: 'string' }, data: { type: 'object' } } },
+    // 0.4.0 — inventory. A Batch is the unit of identity a customer cares about (THC, package date);
+    // a Location is anywhere product can be (a kit box and a shelf are both locations); a Movement is
+    // the only way quantity changes; a ReceivedItem is one arrival of one of three kinds; a Plan is
+    // what the engine decided and why, line by line.
+    Location: { type: 'object', required: ['id', 'kind', 'name'], additionalProperties: true,
+      properties: { id: ID, kind: { type: 'string', $enum: 'LocationKind' }, name: { type: 'string' },
+        address: { type: 'string', nullable: true }, store_id: { type: 'string', nullable: true }, region_id: { type: 'string', nullable: true },
+        parent_id: { type: 'string', nullable: true }, active: { type: 'boolean' }, capacity: { type: 'integer', nullable: true } } },
+    Batch: { type: 'object', required: ['id', 'product_id', 'batch_no', 'received_at'], additionalProperties: true,
+      properties: { id: ID, product_id: ID, sku: { type: 'string', nullable: true }, batch_no: { type: 'string' },
+        metrc_tag: { type: 'string', nullable: true }, packaged_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        expires_at: { type: 'string', pattern: ISO_UTC.source, nullable: true }, received_at: ISO,
+        thc_pct: { type: 'number', minimum: 0, maximum: 100, nullable: true }, unit_cost: { $ref: 'Money', nullable: true },
+        quantity: { type: 'integer', minimum: 0 }, location_id: { type: 'string', nullable: true },
+        external_ids: { type: 'array', items: { $ref: 'ExternalId' } } } },
+    Movement: { type: 'object', required: ['id', 'at', 'reason', 'product_id', 'batch_id', 'quantity', 'to_location_id'], additionalProperties: true,
+      properties: { id: ID, at: ISO, reason: { type: 'string', $enum: 'MovementReason' }, product_id: ID, batch_id: ID,
+        quantity: { type: 'integer', minimum: 1 }, from_location_id: { type: 'string', nullable: true }, to_location_id: ID,
+        tag_ids: { type: 'array', items: { type: 'string' } }, actor_id: { type: 'string', nullable: true },
+        ref: { type: 'string', nullable: true }, note: { type: 'string', nullable: true } } },
+    ReceivedItem: { type: 'object', required: ['id', 'received_at', 'kind', 'product_id', 'batch_id', 'quantity'], additionalProperties: true,
+      properties: { id: ID, received_at: ISO, kind: { type: 'string', $enum: 'ArrivalKind' }, product_id: ID, batch_id: ID,
+        quantity: { type: 'integer', minimum: 1 }, location_id: { type: 'string', nullable: true },
+        included_in: { type: 'array', items: { type: 'string' } }, reason: { type: 'string', $enum: 'PlanReason', nullable: true },
+        premium: { type: 'boolean' } } },
+    PlanLine: { type: 'object', required: ['product_id', 'batch_id', 'to_location_id', 'sold', 'need', 'cap', 'give', 'reasons'], additionalProperties: true,
+      properties: { product_id: ID, batch_id: ID, from_location_id: { type: 'string', nullable: true }, to_location_id: ID,
+        sold: { type: 'integer', minimum: 0 }, need: { type: 'integer', minimum: 0 }, cap: { type: 'integer', minimum: 0 },
+        give: { type: 'integer', minimum: 0 }, reasons: { type: 'array', items: { type: 'string', $enum: 'PlanReason' } },
+        mixed_batch: { type: 'boolean' }, note: { type: 'string', nullable: true } } },
+    Plan: { type: 'object', required: ['id', 'kind', 'business_day', 'generated_at', 'channel', 'lines'], additionalProperties: true,
+      properties: { id: ID, kind: { type: 'string', enum: ['build', 'refill', 'restock', 'handoff'] }, business_day: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+        generated_at: ISO, channel: { type: 'string', $enum: 'ChannelKind' }, store_id: { type: 'string', nullable: true },
+        lines: { type: 'array', items: { $ref: 'PlanLine' } }, skipped: { type: 'array', items: { $ref: 'PlanLine' } },
+        warnings: { type: 'array', items: { type: 'string' } }, inputs: { type: 'object', nullable: true } } },
   };
 
   function typeOf(v) {
@@ -405,6 +456,7 @@
     if (s.pattern && typeof v === 'string' && !new RegExp(s.pattern).test(v)) errors.push(path + ': ' + JSON.stringify(v) + ' does not match ' + s.pattern);
     if (s.minLength !== undefined && typeof v === 'string' && v.length < s.minLength) errors.push(path + ': shorter than ' + s.minLength);
     if (s.minimum !== undefined && typeof v === 'number' && v < s.minimum) errors.push(path + ': below minimum ' + s.minimum);
+    if (s.maximum !== undefined && typeof v === 'number' && v > s.maximum) errors.push(path + ': above maximum ' + s.maximum);
     if (s.type === 'object') {
       var req = s.required || [];
       for (var i = 0; i < req.length; i++) if (!(req[i] in v)) errors.push(path + ': missing required ' + req[i]);

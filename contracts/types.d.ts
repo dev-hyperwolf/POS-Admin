@@ -19,6 +19,12 @@ export type PromotionStatus = 'draft' | 'scheduled' | 'active' | 'paused' | 'end
 export type RuleType = 'cart' | 'product' | 'user' | 'bogo' | 'time' | 'payment';
 export type ProductSource = 'blaze' | 'meadow' | 'treez' | 'first-party';
 export type PosVendor = 'blaze' | 'meadow' | 'treez' | 'hwpos' | 'none';
+export type LocationKind = 'receiving' | 'safe' | 'floor' | 'shelf' | 'display' | 'kit_box' | 'vehicle' | 'packing_bench' | 'lp_bench' | 'quarantine' | 'returns' | 'waste' | 'transfer_out';
+export type ArrivalKind = 'new_sku' | 'restock' | 'new_batch';
+export type MovementReason = 'receive' | 'put_away' | 'build' | 'refill' | 'restock' | 'dispatch' | 'return' | 'sale' | 'transfer' | 'handoff' | 'count_adjust' | 'quarantine' | 'waste' | 'sample' | 'correction';
+export type PlanReason = 'sold' | 'new_arrival' | 'oldest_first' | 'partial_placement' | 'short_stock' | 'below_subregion_count' | 'not_in_template' | 'no_sales_counted' | 'capped' | 'mixed_batch' | 'reserved' | 'expiring' | 'held' | 'manual';
+export type ChannelKind = 'asap' | 'scheduled' | 'register' | 'pickup' | 'express';
+export type CountState = 'proposed' | 'recount_required' | 'awaiting_approval' | 'approved' | 'rejected';
 export type IdSource = 'blaze' | 'meadow' | 'treez' | 'weedmaps' | 'didit' | 'hwpos' | 'connecteam' | 'airtable' | 'hyperwolf' | 'metrc' | 'onfleet' | 'twilio' | 'sendgrid' | 'alpineiq' | 'hyperdrive';
 export type FulfillmentStage = 'verify' | 'pack' | 'packing' | 'ready' | 'done' | 'canceled';
 export type WeedmapsOrderStatus = 'DRAFT' | 'PENDING' | 'IN_PROGRESS' | 'READY_FOR_ATTAINMENT' | 'COMPLETE' | 'CANCELED_SELLER';
@@ -53,6 +59,12 @@ export interface Person { id: string; kind: PersonKind; display_name: string; ro
 export interface Product { id: string; platform: Platform; source: ProductSource; name: string; sku?: string | null; brand?: string | null; category?: string | null; price: Money; sale_price?: Money | null; quantity_on_hand?: number | null; external_ids?: ExternalId[] }
 export interface OrderLine { product_id: string; name: string; brand?: string | null; category?: string | null; quantity: number; unit_price: Money; line_gross: Money; discount: Money }
 export interface Order { id: string; platform: Platform; store_id: string; status: OrderStatus; txn_type: TxnType; ref_order_id?: string | null; customer_id?: string | null; associate_id?: string | null; created_at: string; completed_at?: string | null; subtotal: Money; discount: Money; tax?: Money | null; total: Money; lines?: OrderLine[]; external_ids?: ExternalId[] }
+export interface Location { id: string; kind: LocationKind; name: string; address?: string | null; store_id?: string | null; region_id?: string | null; parent_id?: string | null; active?: boolean; capacity?: number | null }
+export interface Batch { id: string; product_id: string; sku?: string | null; batch_no: string; metrc_tag?: string | null; packaged_at?: string | null; expires_at?: string | null; received_at: string; thc_pct?: number | null; unit_cost?: Money | null; quantity: number; location_id?: string | null; external_ids?: ExternalId[] }
+export interface Movement { id: string; at: string; reason: MovementReason; product_id: string; batch_id: string; quantity: number; from_location_id?: string | null; to_location_id: string; tag_ids?: string[]; actor_id?: string | null; ref?: string | null; note?: string | null }
+export interface ReceivedItem { id: string; received_at: string; kind: ArrivalKind; product_id: string; batch_id: string; quantity: number; location_id?: string | null; included_in?: string[]; reason?: PlanReason | null; premium?: boolean }
+export interface PlanLine { product_id: string; batch_id: string; from_location_id?: string | null; to_location_id: string; sold: number; need: number; cap: number; give: number; reasons: PlanReason[]; mixed_batch?: boolean; note?: string | null }
+export interface Plan { id: string; kind: 'build' | 'refill' | 'restock' | 'handoff'; business_day: string; generated_at: string; channel: ChannelKind; store_id?: string | null; lines: PlanLine[]; skipped?: PlanLine[]; warnings?: string[]; inputs?: Record<string, unknown> | null }
 export interface Standing { person: Person; metric: Metric; value: number; rank: number; tied?: boolean; earned?: Money | null; progress?: number | null }
 export interface Contest { id: string; name: string; kind: ContestKind; status: ContestStatus; metric: Metric; audience: Classification[]; store_ids: string[]; starts_at?: string | null; ends_at?: string | null; prize?: Money | null }
 export interface PointsEntry { id: string; person_id: string; kind: PointsKind; amount: Money; at: string; contest_id?: string | null; note?: string | null }

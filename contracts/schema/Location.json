@@ -1,13 +1,11 @@
 {
-  "$id": "Product",
+  "$id": "Location",
   "contract": "0.4.0",
   "type": "object",
   "required": [
     "id",
-    "platform",
-    "source",
-    "name",
-    "price"
+    "kind",
+    "name"
   ],
   "additionalProperties": true,
   "properties": {
@@ -15,45 +13,35 @@
       "type": "string",
       "minLength": 1
     },
-    "platform": {
+    "kind": {
       "type": "string",
-      "$enum": "Platform"
-    },
-    "source": {
-      "type": "string",
-      "$enum": "ProductSource"
+      "$enum": "LocationKind"
     },
     "name": {
       "type": "string"
     },
-    "sku": {
+    "address": {
       "type": "string",
       "nullable": true
     },
-    "brand": {
+    "store_id": {
       "type": "string",
       "nullable": true
     },
-    "category": {
+    "region_id": {
       "type": "string",
       "nullable": true
     },
-    "price": {
-      "$ref": "Money"
-    },
-    "sale_price": {
-      "$ref": "Money",
+    "parent_id": {
+      "type": "string",
       "nullable": true
     },
-    "quantity_on_hand": {
+    "active": {
+      "type": "boolean"
+    },
+    "capacity": {
       "type": "integer",
       "nullable": true
-    },
-    "external_ids": {
-      "type": "array",
-      "items": {
-        "$ref": "ExternalId"
-      }
     }
   }
 }

@@ -1,5 +1,5 @@
 {
-  "contract": "0.3.2",
+  "contract": "0.4.0",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -410,6 +410,73 @@
       "points.redeemed",
       "promotion.consumed",
       "person.merged"
+    ],
+    "LocationKind": [
+      "receiving",
+      "safe",
+      "floor",
+      "shelf",
+      "display",
+      "kit_box",
+      "vehicle",
+      "packing_bench",
+      "lp_bench",
+      "quarantine",
+      "returns",
+      "waste",
+      "transfer_out"
+    ],
+    "ArrivalKind": [
+      "new_sku",
+      "restock",
+      "new_batch"
+    ],
+    "MovementReason": [
+      "receive",
+      "put_away",
+      "build",
+      "refill",
+      "restock",
+      "dispatch",
+      "return",
+      "sale",
+      "transfer",
+      "handoff",
+      "count_adjust",
+      "quarantine",
+      "waste",
+      "sample",
+      "correction"
+    ],
+    "PlanReason": [
+      "sold",
+      "new_arrival",
+      "oldest_first",
+      "partial_placement",
+      "short_stock",
+      "below_subregion_count",
+      "not_in_template",
+      "no_sales_counted",
+      "capped",
+      "mixed_batch",
+      "reserved",
+      "expiring",
+      "held",
+      "manual"
+    ],
+    "ChannelKind": [
+      "asap",
+      "scheduled",
+      "register",
+      "pickup",
+      "express"
+    ],
+    "CountState": [
+      "proposed",
+      "recount_required",
+      "awaiting_approval",
+      "approved",
+      "rejected"
     ]
   }
 }

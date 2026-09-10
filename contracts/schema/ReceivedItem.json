@@ -1,0 +1,58 @@
+{
+  "$id": "ReceivedItem",
+  "contract": "0.4.0",
+  "type": "object",
+  "required": [
+    "id",
+    "received_at",
+    "kind",
+    "product_id",
+    "batch_id",
+    "quantity"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "received_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "kind": {
+      "type": "string",
+      "$enum": "ArrivalKind"
+    },
+    "product_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "location_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "included_in": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reason": {
+      "type": "string",
+      "$enum": "PlanReason",
+      "nullable": true
+    },
+    "premium": {
+      "type": "boolean"
+    }
+  }
+}

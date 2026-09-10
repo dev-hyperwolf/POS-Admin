@@ -1,0 +1,64 @@
+{
+  "$id": "PlanLine",
+  "contract": "0.4.0",
+  "type": "object",
+  "required": [
+    "product_id",
+    "batch_id",
+    "to_location_id",
+    "sold",
+    "need",
+    "cap",
+    "give",
+    "reasons"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "from_location_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "to_location_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sold": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "need": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cap": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "give": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "$enum": "PlanReason"
+      }
+    },
+    "mixed_batch": {
+      "type": "boolean"
+    },
+    "note": {
+      "type": "string",
+      "nullable": true
+    }
+  }
+}

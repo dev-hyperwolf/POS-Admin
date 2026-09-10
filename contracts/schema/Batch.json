@@ -1,0 +1,71 @@
+{
+  "$id": "Batch",
+  "contract": "0.4.0",
+  "type": "object",
+  "required": [
+    "id",
+    "product_id",
+    "batch_no",
+    "received_at"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "product_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sku": {
+      "type": "string",
+      "nullable": true
+    },
+    "batch_no": {
+      "type": "string"
+    },
+    "metrc_tag": {
+      "type": "string",
+      "nullable": true
+    },
+    "packaged_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "expires_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$",
+      "nullable": true
+    },
+    "received_at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$"
+    },
+    "thc_pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "nullable": true
+    },
+    "unit_cost": {
+      "$ref": "Money",
+      "nullable": true
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "location_id": {
+      "type": "string",
+      "nullable": true
+    },
+    "external_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "ExternalId"
+      }
+    }
+  }
+}
