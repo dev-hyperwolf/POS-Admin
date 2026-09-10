@@ -271,8 +271,8 @@
                 <Field placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
               </div>
               <div>
-                {label('Date of birth')}
-                <Field type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                {label('Date of birth (optional)')}
+                <Field type="date" placeholder="YYYY-MM-DD" value={dob} onChange={(e) => setDob(e.target.value)} />
               </div>
               {error && <div style={{ fontSize: 12.5, color: P.bad, background: P.badSoft, borderRadius: P.r8, padding: '8px 11px' }}>{error}</div>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
