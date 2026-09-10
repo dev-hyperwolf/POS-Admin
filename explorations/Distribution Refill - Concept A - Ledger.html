@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Distribution Refill — Concept A — Ledger</title>
+<style>
+/* ============================================================================
+   Distribution Refill — Concept A: "The Ledger"
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK) and the
+   table/pill/button patterns of shared/hd-ui.jsx, so this reads as the same
+   visual system as Bounty and Verify. No build step, no external scripts or
+   fonts (system font stack stands in for Inter / JetBrains Mono — this file
+   must render offline from file://). Every product, driver, and quantity on
+   this screen is EXAMPLE DATA — see the banner below.
+   ========================================================================= */
+:root{
+  --fontSans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --fontMono:ui-monospace,"SF Mono","Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:19px; --f-h1:26px; --f-numRow:14px; --f-numTotal:19px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --transit:#137A6C; --transitSoft:#E2F2EE;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --transit:#4FC4B0; --transitSoft:rgba(79,196,176,.16);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --transit:#4FC4B0; --transitSoft:rgba(79,196,176,.16);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:2;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:70px;flex:0 0 70px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:32px;height:32px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:9.5px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:11px 22px;flex-wrap:wrap;}
+.topbar .titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+
+/* compact status stepper — lives directly under the header, per the brief */
+.stepstrip{position:sticky;top:60px;z-index:29;background:var(--surface2);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:0;padding:9px 22px;overflow-x:auto;}
+.step{display:flex;align-items:center;gap:7px;flex:0 0 auto;padding:0 14px 0 0;position:relative;}
+.step:not(:last-child)::after{content:"";width:26px;height:2px;background:var(--hairline3);margin:0 4px;}
+.step.done:not(:last-child)::after{background:var(--good);}
+.step .dot{width:19px;height:19px;border-radius:50%;border:2px solid var(--hairline3);background:var(--surface);color:var(--inkMute);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.step.done .dot{background:var(--good);border-color:var(--good);color:#fff;}
+.step.active .dot{background:var(--accent);border-color:var(--accentBorder);color:var(--accentInk);}
+.step .stxt{display:flex;flex-direction:column;line-height:1.15;}
+.step .slabel{font-size:11px;font-weight:700;}
+.step .smeta{font-size:9.5px;color:var(--inkMute);font-family:var(--fontMono);}
+
+.content{padding:16px 22px 90px;display:flex;flex-direction:column;gap:16px;max-width:1520px;width:100%;margin:0 auto;}
+.example-banner{display:flex;align-items:center;gap:9px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 13px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+.example-banner svg{flex:0 0 auto;}
+.banner{display:flex;align-items:flex-start;gap:11px;border-radius:var(--r12);padding:12px 15px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
+.banner.warn{background:var(--warnSoft);border-color:var(--warn);color:var(--warnText);}
+.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;}
+.banner .b-body{color:var(--inkDim);}
+.banner.warn .b-body{color:var(--warnText);opacity:.92;}
+.banner .b-actions{margin-left:auto;display:flex;gap:8px;flex:0 0 auto;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:10px;padding:13px 16px 10px;flex-wrap:wrap;}
+.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
+.card-head .spacer{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 13px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-quiet{background:var(--surface3);color:var(--ink);}
+.btn-quiet:hover{background:var(--hairline2);}
+.btn-sm{height:29px;padding:0 10px;font-size:var(--f-meta);border-radius:var(--r8);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* received lane — slim strip */
+.lane{display:flex;gap:9px;overflow-x:auto;padding:0 16px 13px;}
+.chip{scroll-snap-align:start;flex:0 0 250px;border:1px solid var(--hairline2);border-radius:var(--r10);background:var(--surface2);padding:9px 11px;display:flex;flex-direction:column;gap:5px;}
+.chip.sent{opacity:.55;}
+.chip .row1{display:flex;align-items:center;gap:6px;justify-content:space-between;}
+.tag{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:5px;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.tag-new{background:var(--info);color:#fff;}
+.tag-premium{background:var(--accent);color:var(--accentInk);}
+.chip .cmeta{font-size:10px;color:var(--inkMute);font-family:var(--fontMono);}
+.chip .cname{font-size:var(--f-strong);font-weight:700;line-height:1.2;}
+.chip .cbrand{font-size:var(--f-meta);color:var(--inkMute);}
+.covbar{height:5px;border-radius:99px;background:var(--hairline2);overflow:hidden;}
+.covbar>span{display:block;height:100%;border-radius:99px;}
+.covtext{font-size:10px;color:var(--inkDim);display:flex;justify-content:space-between;}
+.chip .cfoot{margin-top:2px;display:flex;align-items:center;}
+.sent-flag{display:flex;align-items:center;gap:5px;font-size:var(--f-meta);color:var(--good);font-weight:700;}
+
+/* ledger layout: table + docked skip panel */
+.ledger-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;}
+.ledger-scroll{max-height:64vh;overflow:auto;border-top:1px solid var(--hairline2);}
+table.ledger{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--f-body);min-width:820px;}
+table.ledger thead th{position:sticky;top:0;z-index:4;background:var(--surface3);text-align:left;font-size:var(--f-meta);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);padding:9px 12px;border-bottom:1px solid var(--hairline3);white-space:nowrap;}
+table.ledger td{padding:8px 12px;border-bottom:1px solid var(--hairline);vertical-align:middle;}
+table.ledger tr.prow:hover{background:var(--surface2);}
+.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;}
+.tree-cell{display:flex;align-items:center;gap:8px;}
+.toggle-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1px solid var(--hairline3);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.toggle-btn:hover{background:var(--surface3);}
+.toggle-btn svg{transition:transform .12s;}
+.toggle-btn[aria-expanded="false"] svg{transform:rotate(-90deg);}
+tr.lvl-region td{position:sticky;top:37px;z-index:3;background:var(--ink);color:var(--bg);font-weight:700;padding:9px 12px;border-bottom:1px solid var(--hairline3);}
+tr.lvl-region .toggle-btn{background:transparent;border-color:rgba(255,255,255,.3);color:var(--bg);}
+tr.lvl-region .region-name{font-size:var(--f-strong);}
+tr.lvl-region .region-meta{font-size:10px;opacity:.7;font-weight:500;margin-left:6px;}
+tr.lvl-kit td{position:sticky;top:74px;z-index:2;background:var(--surface3);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--hairline2);}
+tr.lvl-kit .kit-name{font-size:var(--f-strong);}
+tr.lvl-kit .kit-meta{font-size:10.5px;color:var(--inkMute);font-weight:500;margin-left:6px;}
+tr.lvl-box td{background:var(--surface2);font-weight:600;padding:7px 12px 7px 34px;border-bottom:1px solid var(--hairline);}
+tr.lvl-box .box-meta{font-size:10.5px;color:var(--inkMute);font-weight:500;margin-left:6px;}
+tr.prow td.pname-cell{padding-left:56px;}
+.pn{font-weight:600;font-size:var(--f-strong);}
+.psku{font-size:10.5px;color:var(--inkMute);font-family:var(--fontMono);}
+.willgive-input{width:58px;height:30px;text-align:right;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:var(--f-numRow);font-weight:600;padding:0 7px;}
+.willgive-input:disabled{background:var(--surface3);color:var(--inkFaint);}
+.willgive-input.at-cap{border-color:var(--warn);}
+.willgive-input.short{border-color:var(--bad);}
+.reason{font-size:var(--f-meta);color:var(--inkMute);max-width:230px;}
+.reason.reason-short{color:var(--bad);font-weight:600;}
+.reason.reason-skip{color:var(--inkMute);}
+tr.row-short{background:var(--badSoft);}
+tr.row-skip td{color:var(--inkMute);}
+tr[style*="display: none"]{display:none;}
+
+.skippanel{position:sticky;top:104px;}
+.skiplist{display:flex;flex-direction:column;max-height:64vh;overflow:auto;}
+.skipitem{display:flex;gap:9px;padding:11px 15px;border-bottom:1px solid var(--hairline);align-items:flex-start;}
+.skipitem:last-child{border-bottom:none;}
+.sk-icon{width:26px;height:26px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.skipitem.short .sk-icon{background:var(--badSoft);color:var(--bad);}
+.skipitem.skip .sk-icon{background:var(--neutralSoft);color:var(--neutral);}
+.skipitem.notpl .sk-icon{background:var(--warnSoft);color:var(--warnText);}
+.skipitem.held .sk-icon{background:var(--neutralSoft);color:var(--neutral);}
+.skipitem.atcap .sk-icon{background:var(--infoSoft);color:var(--info);}
+.sk-body{flex:1;min-width:0;}
+.sk-title{font-size:var(--f-body);font-weight:700;}
+.sk-loc{font-size:10px;color:var(--inkMute);margin-top:1px;}
+.sk-text{font-size:11.5px;color:var(--inkDim);margin-top:3px;}
+.sk-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;}
+
+.pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;border:1px solid transparent;}
+.pill-short{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.pill-skip{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+.pill-notpl{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-atcap{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+
+.commitbar{position:fixed;left:70px;right:0;bottom:0;z-index:40;display:flex;align-items:center;gap:16px;padding:11px 22px;border-top:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowLg);flex-wrap:wrap;}
+.commitbar .sumitem{display:flex;flex-direction:column;gap:0;}
+.commitbar .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.commitbar .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
+.commitbar .btn-primary{margin-left:auto;}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 16px;font-size:var(--f-meta);color:var(--inkDim);}
+.legend b{color:var(--ink);}
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkMute);padding:6px 0 20px;}
+
+.modal-scrim{position:fixed;inset:0;background:rgba(20,18,12,.5);z-index:60;display:none;align-items:center;justify-content:center;}
+.modal-scrim.open{display:flex;}
+.modal{width:440px;max-width:92vw;max-height:80vh;overflow:auto;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowLg);padding:18px;}
+.modal h3{margin:0 0 4px;font-size:var(--f-h2);}
+.modal p{font-size:var(--f-body);color:var(--inkDim);}
+.modal .btype{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:var(--f-body);}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+
+@media (max-width:1180px){ .ledger-layout{grid-template-columns:1fr;} .skippanel{position:static;} }
+@media (max-width:760px){
+  .rail{width:58px;flex-basis:58px;} .rail-item .lbl{display:none;}
+  .commitbar{left:58px;}
+  .topbar{padding:9px 12px;} .content{padding:12px 12px 90px;}
+  .stepstrip{padding:9px 12px;}
+}
+@media print{
+  .rail,.topbar .iconbtn,.stepstrip,.example-banner .btn,.commitbar,.card-head .spacer,.sk-actions,.chip .cfoot{display:none !important;}
+  .ledger-scroll{max-height:none;overflow:visible;}
+  tr[style*="display: none"]{display:table-row !important;}
+  tr.lvl-region td,tr.lvl-kit td{position:static;}
+  body{background:#fff;color:#000;}
+  .card{box-shadow:none;border-color:#999;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item" title="Kit templates"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+      <button class="rail-item active" title="Distribution"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Distribution</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>All regions</span></div>
+        <h1 class="h1">Refill Ledger — Today</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">7:42 AM PT</div>
+        <div class="clock-sub">Business day: Thu Sep 10, 2026 (Pacific) · rolls at 12:00 AM PT</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+      <button class="iconbtn" title="Print this ledger" aria-label="Print" onclick="window.print()"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="8" rx="1.5"/><path d="M6 17h12v5H6z"/></svg></button>
+    </header>
+
+    <!-- compact status stepper, in the header per brief item 3 -->
+    <div class="stepstrip" id="stepstrip"></div>
+
+    <div class="content">
+
+      <div class="example-banner">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Design mockup — every region, driver, kit, box and quantity below is example data, not a live refill.
+      </div>
+
+      <div class="banner warn" id="alreadyRanBanner">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <div>
+          <div class="b-title">Refill already ran today for West LA</div>
+          <div class="b-body">Completed 6:12 AM PT by System (auto). Business day is Thu Sep 10, 2026 (Pacific) — committing West LA again below supersedes that run, it does not add to it. Inland Empire and Orange County have not run yet.</div>
+        </div>
+        <div class="b-actions"><button class="btn btn-ghost btn-sm" onclick="document.getElementById('alreadyRanBanner').style.display='none'">Dismiss</button></div>
+      </div>
+
+      <!-- received lane — slim strip -->
+      <section class="card">
+        <div class="card-head"><h2 style="font-size:15px;">Received in the last 7 days</h2><span class="hint">New / premium SKUs — send today before they queue behind the rest of the catalog</span></div>
+        <div class="lane" id="receiptLane"></div>
+      </section>
+
+      <!-- the ledger + docked skip panel -->
+      <div class="ledger-layout">
+        <section class="card">
+          <div class="card-head">
+            <h2>Refill preview — all regions</h2>
+            <span class="hint">Region → Kit → Box. Edit "Will give" — nothing leaves the warehouse until you commit.</span>
+            <div class="spacer">
+              <button class="btn btn-ghost btn-sm" id="expandAllBtn">Expand all boxes</button>
+              <button class="btn btn-ghost btn-sm" id="collapseAllBtn">Collapse all boxes</button>
+              <button class="btn btn-ghost btn-sm" id="manageBoxTypesBtn">Manage box types</button>
+            </div>
+          </div>
+          <div class="ledger-scroll">
+            <table class="ledger">
+              <thead><tr>
+                <th style="min-width:260px;">Region / Kit / Box / Product</th>
+                <th class="num">Sold since last refill</th>
+                <th class="num">Need</th>
+                <th class="num">Cap</th>
+                <th class="num">Will give</th>
+                <th class="num">Value</th>
+                <th>Reason</th>
+              </tr></thead>
+              <tbody id="ledgerBody"></tbody>
+              <tfoot><tr>
+                <td style="font-weight:700;">Grand total — all regions</td><td></td><td></td><td></td>
+                <td class="num" style="font-weight:700;" id="grandUnits">—</td>
+                <td class="num" style="font-weight:700;font-size:var(--f-numTotal);" id="grandValue">—</td>
+                <td></td>
+              </tr></tfoot>
+            </table>
+          </div>
+          <div class="legend">
+            <span><b>Keyboard:</b> every toggle and input is a native button/field — Tab, Enter and arrow keys work with no custom trap.</span>
+            <span><b>Print:</b> the Print icon above expands every row and drops chrome for a paper ledger.</span>
+          </div>
+        </section>
+
+        <!-- skips & shortfalls, docked right -->
+        <aside class="card skippanel">
+          <div class="card-head"><h2 style="font-size:15px;">Skips &amp; shortfalls today</h2></div>
+          <span class="hint" style="padding:0 15px 8px;display:block;">5 items across 3 regions · 2 need a decision</span>
+          <div class="skiplist" id="skipList"></div>
+        </aside>
+      </div>
+
+      <section class="card">
+        <div class="card-head"><h2 style="font-size:15px;">Legend</h2></div>
+        <div class="legend">
+          <span><span class="pill pill-short">Short</span> cap is below what sold</span>
+          <span><span class="pill pill-skip">Skipped</span> no sales counted since last refill</span>
+          <span><span class="pill pill-notpl">Not in template</span> sold, but no box template row</span>
+          <span><span class="pill pill-atcap">At cap</span> filled to the box cap exactly</span>
+          <span>Color is never the only signal — every state pairs an icon and a label.</span>
+        </div>
+      </section>
+
+      <div class="footerline">Concept A of 4 — Ledger</div>
+    </div>
+  </div>
+</div>
+
+<div class="commitbar">
+  <div class="sumitem"><span class="k">Units</span><span class="v" id="commitUnits">—</span></div>
+  <div class="sumitem"><span class="k">Wholesale value</span><span class="v" id="commitValue">—</span></div>
+  <div class="sumitem"><span class="k">Regions / kits / boxes</span><span class="v" id="commitScope">—</span></div>
+  <div class="sumitem"><span class="k">Skips / shortfalls</span><span class="v" style="color:var(--bad);">5</span></div>
+  <button class="btn btn-ghost" id="saveDraftBtn">Save draft</button>
+  <button class="btn btn-primary" id="commitBtn">Commit refill — all regions</button>
+</div>
+
+<div class="modal-scrim" id="commitModal">
+  <div class="modal">
+    <h3>Commit today's refill?</h3>
+    <p>This sends the current "Will give" quantities to Blaze for dispatch across every region, kit and box shown in the ledger. Products marked skipped, short, or not-in-template are excluded automatically.</p>
+    <div class="btype"><span>Units going out</span><span id="modalUnits" style="font-family:var(--fontMono);font-weight:700;"></span></div>
+    <div class="btype"><span>Wholesale value</span><span id="modalValue" style="font-family:var(--fontMono);font-weight:700;"></span></div>
+    <div class="btype" style="border-bottom:none;"><span>Skips / shortfalls left open</span><span style="font-weight:700;color:var(--bad);">5</span></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="commitCancel">Cancel</button>
+      <button class="btn btn-primary" id="commitConfirm">Commit refill</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-scrim" id="boxTypesModal">
+  <div class="modal">
+    <h3>Box types</h3>
+    <p>The set of boxes varies by kit and changes over time — this is today's list, for reference only. Boxes are named, never coded.</p>
+    <div id="boxTypesBody"></div>
+    <div class="modal-foot"><button class="btn btn-ghost" id="boxTypesClose">Close</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- theme ---------------- */
+var root = document.documentElement;
+try { var stored = localStorage.getItem('refill-ledger-theme'); if (stored==='light'||stored==='dark') root.setAttribute('data-theme', stored); } catch(e){}
+function paintIcon(){
+  var mode = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
+  var icon = document.getElementById('themeIcon'); if(!icon) return;
+  icon.innerHTML = mode==='dark'
+    ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+    : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+}
+paintIcon();
+document.getElementById('themeToggle').addEventListener('click', function(){
+  var cur = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+  var next = cur==='dark' ? 'light':'dark';
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem('refill-ledger-theme', next); } catch(e){}
+  paintIcon();
+});
+function tickClock(){
+  var el=document.getElementById('clockNow'); if(!el) return;
+  try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date())+' PT'; } catch(e){}
+}
+tickClock(); setInterval(tickClock, 30000);
+
+/* ---------------- toast ---------------- */
+var toastHost=document.createElement('div');
+toastHost.style.cssText='position:fixed;right:16px;bottom:74px;z-index:400;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;';
+document.body.appendChild(toastHost);
+function toast(title, body){
+  var el=document.createElement('div');
+  el.style.cssText='pointer-events:auto;min-width:260px;max-width:380px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:10px;box-shadow:var(--shadowMd);padding:10px 12px;';
+  el.innerHTML='<div style="font-size:13.5px;font-weight:700;">'+title+'</div><div style="font-size:12.5px;color:var(--inkDim);margin-top:2px;">'+body+'</div>';
+  toastHost.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 4200);
+}
+
+/* ---------------- domain data (EXAMPLE DATA) ---------------- */
+var TODAY = [
+  {label:'Built', st:'done', t:'5:58 AM PT', who:'System (auto-build)'},
+  {label:'Frozen', st:'done', t:'6:00 AM PT', who:'System'},
+  {label:'Synced to Blaze', st:'done', t:'6:04 AM PT', who:'System'},
+  {label:'Dispatched', st:'active', t:'In progress', who:'3 of 6 kits'},
+  {label:'Refilled', st:'pending', t:'Pending', who:'End of route'},
+  {label:'Closed', st:'pending', t:'Pending', who:'End of day'}
+];
+
+var RECEIPTS = [
+  {tag:'premium', name:'Blue Dream Pre-Rolls 5pk', brand:'Jeeter', qty:18, days:'3 days ago', cov:25, covtext:'Covers 2 of 6 kits'},
+  {tag:'premium', name:'Sundae Driver 3.5g', brand:'Alien Labs', qty:48, days:'2 days ago', cov:50, covtext:'Covers 3 of 6 kits'},
+  {tag:'new', name:'Wedding Cake Live Resin 1g', brand:'Raw Garden', qty:96, days:'yesterday', cov:100, covtext:'Covers all 6 kits'},
+  {tag:'new', name:'Gelato Gummies 100mg', brand:'Kiva', qty:60, days:'today', cov:83, covtext:'Covers 5 of 6 kits'}
+];
+
+function P(n,sku,sold,need,cap,price,flag,extra){ return Object.assign({n:n,sku:sku,sold:sold,need:need,cap:cap,price:price,flag:flag||null}, extra||{}); }
+
+var REGIONS = [
+  {n:'West LA', kits:[
+    {d:'Marcus R.', r:'Route 3', boxes:[
+      {t:'Flower Box 1', items:[ P('OG Kush 3.5g','FL-2201',5,5,8,22), P('Wedding Cake 3.5g','FL-2214',6,6,6,24,'atcap') ]},
+      {t:'Pre-Roll Box 1', items:[ P('Runtz Pre-Roll 5pk','PR-3310',5,5,3,20,'short'), P('Blue Dream Pre-Rolls 5pk','PR-3302',0,0,5,20,'skip') ]},
+      {t:'Vape Box 1', items:[ P('OG Kush Vape Cart 1g','VP-4410',2,2,6,18,'held',{holder:'Marcus R.', note:'flavor complaint under QA review'}), P('Sundae Driver Vape Cart 1g','VP-4422',4,4,6,26) ]},
+      {t:'Cooler', items:[ P('Sparkling THC Seltzer 4pk','CL-5501',3,3,4,16), P('CBD Recovery Drink','CL-5509',0,0,6,14,'new') ]}
+    ]},
+    {d:'Dana K.', r:'Route 7', boxes:[
+      {t:'Flower Box 1', items:[ P('Sundae Driver 3.5g','FL-2205',4,4,6,24), P('Runtz 3.5g','FL-2219',3,3,5,22) ]},
+      {t:'Flower Box 2', items:[ P('Gelato 41 3.5g','FL-2230',2,2,4,23), P('Ice Cream Cake 3.5g','FL-2241',3,3,5,22) ]},
+      {t:'Concentrate Bin 1', items:[ P('Diamond Sauce 1g','CN-6601',3,3,0,30,'notpl') ]},
+      {t:'Edible Bin', items:[ P('Watermelon Gummies 100mg','ED-7701',5,5,8,12) ]}
+    ]}
+  ]},
+  {n:'Inland Empire', kits:[
+    {d:'Priya S.', r:'Route 12', boxes:[
+      {t:'Flower Box 1', items:[ P('Blue Dream 3.5g','FL-2203',4,4,7,21) ]},
+      {t:'Vape Box 1', items:[ P('Gelato Live Resin Cart .5g','VP-4430',3,3,5,20) ]},
+      {t:'Vape Box 2', items:[ P('Sundae Driver Vape Cart 1g','VP-4423',2,2,4,26) ]}
+    ]},
+    {d:'Jamal O.', r:'Route 5', boxes:[
+      {t:'Pre-Roll Box 1', items:[ P('Gelato Pre-Roll Single','PR-3320',6,6,10,6) ]},
+      {t:'Pre-Roll Box 2', items:[ P('OG Kush Pre-Rolls 5pk','PR-3315',4,4,6,20) ]},
+      {t:'Cooler', items:[ P('Infused Lemonade 10mg','CL-5515',2,2,4,10) ]},
+      {t:'Edible Bin', items:[ P('Chocolate Bar 100mg','ED-7710',3,3,6,14) ]}
+    ]}
+  ]},
+  {n:'Orange County', kits:[
+    {d:'Wes T.', r:'Route 9', boxes:[
+      {t:'Flower Box 1', items:[ P('OG Kush 3.5g','FL-2201',3,3,6,22) ]},
+      {t:'Concentrate Bin 1', items:[ P('Rosin Badder 1g','CN-6610',2,2,4,32) ]},
+      {t:'Concentrate Bin 2', items:[ P('Live Resin Sauce 1g','CN-6620',2,2,3,30) ]}
+    ]},
+    {d:'Alicia N.', r:'Route 14', boxes:[
+      {t:'Flower Box 2', items:[ P('Ice Cream Cake 3.5g','FL-2241',4,4,6,22) ]},
+      {t:'Vape Box 1', items:[ P('OG Kush Vape Cart 1g','VP-4410',3,3,5,18) ]},
+      {t:'Edible Bin', items:[ P('Gelato Gummies 100mg','ED-7705',4,4,8,12) ]},
+      {t:'Cooler', items:[ P('Sparkling THC Seltzer 4pk','CL-5501',2,2,4,16) ]}
+    ]}
+  ]}
+];
+
+function calc(p){
+  switch(p.flag){
+    case 'atcap':  return {will:p.cap, reason:'At cap — raise the box cap to send more', cls:'atcap'};
+    case 'short':  return {will:p.cap, reason:'Short by '+(p.need-p.cap)+' — the box cap ('+p.cap+') is below what sold ('+p.need+')', cls:'short'};
+    case 'skip':   return {will:0, reason:'No sales counted since the last refill', cls:'skip'};
+    case 'held':   return {will:0, reason:'Held by '+p.holder+' — '+p.note, cls:'held'};
+    case 'new':    return {will:p.cap, reason:'No sales counted yet — new arrival, quantity set by hand', cls:'new'};
+    case 'notpl':  return {will:0, reason:'Not in template for this box — add it to carry it here', cls:'notpl'};
+    default:       return {will:Math.min(p.need,p.cap), reason:'—', cls:''};
+  }
+}
+
+/* ---------------- render: step strip ---------------- */
+(function renderSteps(){
+  var html = TODAY.map(function(s){
+    var icon = s.st==='done' ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'
+      : s.st==='active' ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/></svg>'
+      : '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/></svg>';
+    return '<div class="step '+s.st+'"><div class="dot">'+icon+'</div><div class="stxt"><span class="slabel">'+s.label+'</span><span class="smeta">'+s.t+' · '+s.who+'</span></div></div>';
+  }).join('');
+  document.getElementById('stepstrip').innerHTML = html;
+})();
+
+/* ---------------- render: receipt lane ---------------- */
+(function renderLane(){
+  var host = document.getElementById('receiptLane');
+  host.innerHTML = RECEIPTS.map(function(r, i){
+    var color = r.cov>=90?'var(--good)':r.cov>=50?'var(--warn)':'var(--bad)';
+    var tag = r.tag==='new' ? '<span class="tag tag-new">New</span>' : '<span class="tag tag-premium">Premium</span>';
+    return '<div class="chip" id="chip'+i+'">'+
+      '<div class="row1">'+tag+'<span class="cmeta">Received '+r.days+'</span></div>'+
+      '<div class="cname">'+r.name+'</div><div class="cbrand">'+r.brand+' · '+r.qty+' units received</div>'+
+      '<div class="covbar"><span style="width:'+r.cov+'%;background:'+color+';"></span></div>'+
+      '<div class="covtext"><span>'+r.covtext+'</span><span>'+r.cov+'%</span></div>'+
+      '<div class="cfoot"><button class="btn btn-primary btn-sm" data-send="'+i+'">Send today</button></div>'+
+    '</div>';
+  }).join('');
+  host.querySelectorAll('[data-send]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var i = btn.getAttribute('data-send'); var r = RECEIPTS[i];
+      var chip = document.getElementById('chip'+i);
+      chip.classList.add('sent');
+      chip.querySelector('.cfoot').innerHTML = '<span class="sent-flag"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Sent today</span>';
+      var msg = r.cov<100 ? 'Placed in the kits currently covered — the rest catch up on the next tranche instead of waiting for full stock.' : 'Placed across every kit today.';
+      toast('Sent today', msg);
+    });
+  });
+})();
+
+/* ---------------- render: ledger tree ---------------- */
+var collapsedBoxes = new Set(); // default: all boxes collapsed
+var allBoxIds = [];
+
+function renderLedger(){
+  var rows = [];
+  var boxTypeSet = {};
+  REGIONS.forEach(function(region, ri){
+    var rid = 'r'+ri;
+    rows.push('<tr class="lvl-region" data-id="'+rid+'"><td colspan="4"><div class="tree-cell"><button class="toggle-btn" data-toggle="region" data-id="'+rid+'" aria-expanded="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span class="region-name">'+region.n+'</span><span class="region-meta">'+region.kits.length+' kits</span></div></td><td class="num" id="units-'+rid+'">—</td><td class="num" id="value-'+rid+'">—</td><td></td></tr>');
+    region.kits.forEach(function(kit, ki){
+      var kid = rid+'k'+ki;
+      rows.push('<tr class="lvl-kit" data-id="'+kid+'" data-region="'+rid+'"><td colspan="4"><div class="tree-cell" style="padding-left:18px;"><button class="toggle-btn" data-toggle="kit" data-id="'+kid+'" aria-expanded="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span class="kit-name">'+kit.d+' · '+kit.r+'</span><span class="kit-meta">'+kit.boxes.length+' boxes</span></div></td><td class="num" id="units-'+kid+'">—</td><td class="num" id="value-'+kid+'">—</td><td></td></tr>');
+      kit.boxes.forEach(function(box, bi){
+        var bid = kid+'b'+bi;
+        allBoxIds.push(bid);
+        collapsedBoxes.add(bid);
+        boxTypeSet[box.t] = (boxTypeSet[box.t]||0)+1;
+        rows.push('<tr class="lvl-box" data-id="'+bid+'" data-region="'+rid+'" data-kit="'+kid+'"><td colspan="4"><div class="tree-cell"><button class="toggle-btn" data-toggle="box" data-id="'+bid+'" aria-expanded="false"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button><span>'+box.t+'</span><span class="box-meta">'+box.items.length+' products</span></div></td><td class="num" id="units-'+bid+'">—</td><td class="num" id="value-'+bid+'">—</td><td></td></tr>');
+        box.items.forEach(function(p){
+          var c = calc(p);
+          var rowCls = c.cls==='short' ? 'row-short' : (c.cls==='skip'||c.cls==='held'||c.cls==='notpl') ? 'row-skip' : '';
+          var reasonCls = c.cls==='short' ? 'reason-short' : (c.cls==='skip'||c.cls==='held'||c.cls==='notpl') ? 'reason-skip' : '';
+          var inputCls = c.cls==='short'?'short':(c.cls==='atcap'?'at-cap':'');
+          var disabled = c.cls==='notpl' ? 'disabled' : '';
+          var newTag = p.flag==='new' ? ' <span class="tag tag-new">New</span>' : '';
+          var soldTxt = p.flag==='new' ? '—' : p.sold;
+          var needTxt = p.flag==='new' ? '—' : p.need;
+          var capTxt = c.cls==='notpl' ? '—' : p.cap;
+          rows.push('<tr class="prow '+rowCls+'" data-region="'+rid+'" data-kit="'+kid+'" data-box="'+bid+'">'+
+            '<td class="pname-cell"><div class="pn">'+p.n+newTag+'</div><div class="psku">'+p.sku+'</div></td>'+
+            '<td class="num">'+soldTxt+'</td><td class="num">'+needTxt+'</td><td class="num">'+capTxt+'</td>'+
+            '<td class="num"><input class="willgive-input '+inputCls+'" type="number" min="0" value="'+c.will+'" data-price="'+p.price+'" '+disabled+'/></td>'+
+            '<td class="num value-cell">$'+(c.will*p.price)+'</td>'+
+            '<td class="reason '+reasonCls+'">'+c.reason+'</td>'+
+          '</tr>');
+        });
+      });
+    });
+  });
+  document.getElementById('ledgerBody').innerHTML = rows.join('');
+  window.__boxTypeSet = boxTypeSet;
+}
+renderLedger();
+
+/* ---------------- visibility (collapse state) ---------------- */
+var collapsedRegions = new Set(), collapsedKits = new Set();
+function applyVisibility(){
+  document.querySelectorAll('.lvl-kit,.lvl-box,.prow').forEach(function(tr){
+    var rid = tr.getAttribute('data-region'), kid = tr.getAttribute('data-kit'), bid = tr.getAttribute('data-box');
+    var hidden = collapsedRegions.has(rid);
+    if(!hidden && kid) hidden = collapsedKits.has(kid);
+    if(!hidden && bid) hidden = collapsedBoxes.has(bid);
+    tr.style.display = hidden ? 'none' : '';
+  });
+}
+applyVisibility();
+
+document.getElementById('ledgerBody').addEventListener('click', function(e){
+  var btn = e.target.closest('.toggle-btn'); if(!btn) return;
+  var level = btn.getAttribute('data-toggle'), id = btn.getAttribute('data-id');
+  var set = level==='region' ? collapsedRegions : level==='kit' ? collapsedKits : collapsedBoxes;
+  var expanded = btn.getAttribute('aria-expanded') === 'true';
+  if (expanded) { set.add(id); btn.setAttribute('aria-expanded','false'); }
+  else { set.delete(id); btn.setAttribute('aria-expanded','true'); }
+  applyVisibility();
+});
+
+document.getElementById('expandAllBtn').addEventListener('click', function(){
+  collapsedBoxes.clear();
+  document.querySelectorAll('[data-toggle="box"]').forEach(function(b){ b.setAttribute('aria-expanded','true'); });
+  applyVisibility();
+});
+document.getElementById('collapseAllBtn').addEventListener('click', function(){
+  allBoxIds.forEach(function(id){ collapsedBoxes.add(id); });
+  document.querySelectorAll('[data-toggle="box"]').forEach(function(b){ b.setAttribute('aria-expanded','false'); });
+  applyVisibility();
+});
+
+/* ---------------- totals recompute ---------------- */
+function setText(id, v){ var el=document.getElementById(id); if(el) el.textContent=v; }
+function recalc(){
+  var boxAgg={}, kitAgg={}, regionAgg={};
+  document.querySelectorAll('.prow').forEach(function(tr){
+    var rid=tr.getAttribute('data-region'), kid=tr.getAttribute('data-kit'), bid=tr.getAttribute('data-box');
+    var inp = tr.querySelector('.willgive-input');
+    var qty = inp.disabled ? 0 : (parseInt(inp.value,10)||0);
+    var price = parseFloat(inp.getAttribute('data-price'))||0;
+    var val = qty*price;
+    tr.querySelector('.value-cell').textContent = '$'+val;
+    boxAgg[bid]=boxAgg[bid]||{u:0,v:0}; boxAgg[bid].u+=qty; boxAgg[bid].v+=val;
+    kitAgg[kid]=kitAgg[kid]||{u:0,v:0}; kitAgg[kid].u+=qty; kitAgg[kid].v+=val;
+    regionAgg[rid]=regionAgg[rid]||{u:0,v:0}; regionAgg[rid].u+=qty; regionAgg[rid].v+=val;
+  });
+  var gu=0, gv=0, kitCount=0, boxCount=allBoxIds.length;
+  Object.keys(boxAgg).forEach(function(id){ setText('units-'+id, boxAgg[id].u); setText('value-'+id, '$'+boxAgg[id].v); });
+  Object.keys(kitAgg).forEach(function(id){ setText('units-'+id, kitAgg[id].u); setText('value-'+id, '$'+kitAgg[id].v); kitCount++; });
+  Object.keys(regionAgg).forEach(function(id){ setText('units-'+id, regionAgg[id].u); setText('value-'+id, '$'+regionAgg[id].v); gu+=regionAgg[id].u; gv+=regionAgg[id].v; });
+  setText('grandUnits', gu); setText('grandValue', '$'+gv);
+  setText('commitUnits', gu); setText('commitValue', '$'+gv);
+  setText('commitScope', REGIONS.length+' / '+kitCount+' / '+boxCount);
+  setText('modalUnits', gu+' units'); setText('modalValue', '$'+gv);
+}
+document.getElementById('ledgerBody').addEventListener('input', function(e){
+  if (e.target.classList.contains('willgive-input')) recalc();
+});
+recalc();
+
+/* ---------------- skip panel (curated: the 5 flagged rows above) ---------------- */
+var SKIPS = [
+  {cls:'short', pill:'pill-short', label:'Short', loc:'West LA · Marcus R. · Pre-Roll Box 1', title:'Runtz Pre-Roll 5pk', text:'Sold 5 since last refill, but the box cap is 3. Raise the cap or approve sending it short today.', actions:['Raise cap','Approve short']},
+  {cls:'skip', pill:'pill-skip', label:'Skipped', loc:'West LA · Marcus R. · Pre-Roll Box 1', title:'Blue Dream Pre-Rolls 5pk', text:'Nothing sold from this box since the last refill. Also carrying 9 units unplaced from the receiving lane above.', actions:[]},
+  {cls:'held', pill:'pill-skip', label:'Held', loc:'West LA · Marcus R. · Vape Box 1', title:'OG Kush Vape Cart 1g', text:'Set to 0 today — flavor complaint from a store is under QA review. Sold quantity (2) is tracked but withheld.', actions:['View note']},
+  {cls:'notpl', pill:'pill-notpl', label:'Not in template', loc:'West LA · Dana K. · Concentrate Bin 1', title:'Diamond Sauce 1g', text:'Sold 3 units, but this box has no template row for it, so there is no cap to refill against.', actions:['Add to template']},
+  {cls:'atcap', pill:'pill-atcap', label:'At cap', loc:'West LA · Marcus R. · Flower Box 1', title:'Wedding Cake 3.5g', text:'Filled to the box cap of 6 — demand may be higher; raise the cap if this keeps happening.', actions:['Raise cap']}
+];
+(function renderSkips(){
+  document.getElementById('skipList').innerHTML = SKIPS.map(function(s){
+    var acts = s.actions.map(function(a){ return '<button class="btn btn-quiet btn-sm" data-act="'+a+'">'+a+'</button>'; }).join('');
+    return '<div class="skipitem '+s.cls+'"><div class="sk-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg></div>'+
+      '<div class="sk-body"><div class="sk-title">'+s.title+' <span class="pill '+s.pill+'">'+s.label+'</span></div><div class="sk-loc">'+s.loc+'</div><div class="sk-text">'+s.text+'</div>'+
+      (acts ? '<div class="sk-actions">'+acts+'</div>' : '') + '</div></div>';
+  }).join('');
+  document.querySelectorAll('#skipList [data-act]').forEach(function(b){
+    b.addEventListener('click', function(){ toast(b.getAttribute('data-act'), 'Recorded on this mockup only — no live change made.'); });
+  });
+})();
+
+/* ---------------- manage box types modal ---------------- */
+document.getElementById('manageBoxTypesBtn').addEventListener('click', function(){
+  var body = document.getElementById('boxTypesBody');
+  var types = window.__boxTypeSet || {};
+  body.innerHTML = Object.keys(types).sort().map(function(t){ return '<div class="btype"><span>'+t+'</span><span>'+types[t]+' kit(s) carry it today</span></div>'; }).join('');
+  document.getElementById('boxTypesModal').classList.add('open');
+});
+document.getElementById('boxTypesClose').addEventListener('click', function(){ document.getElementById('boxTypesModal').classList.remove('open'); });
+
+/* ---------------- commit flow ---------------- */
+document.getElementById('saveDraftBtn').addEventListener('click', function(){ toast('Draft saved', 'Your "Will give" edits are kept — nothing has shipped yet.'); });
+document.getElementById('commitBtn').addEventListener('click', function(){ document.getElementById('commitModal').classList.add('open'); });
+document.getElementById('commitCancel').addEventListener('click', function(){ document.getElementById('commitModal').classList.remove('open'); });
+document.getElementById('commitConfirm').addEventListener('click', function(){
+  document.getElementById('commitModal').classList.remove('open');
+  document.querySelectorAll('.willgive-input').forEach(function(inp){ inp.disabled = true; });
+  var btn = document.getElementById('commitBtn'); btn.textContent = 'Committed ✓'; btn.disabled = true;
+  toast('Refill committed — all regions', document.getElementById('commitUnits').textContent+' units · '+document.getElementById('commitValue').textContent+' wholesale sent to dispatch.');
+});
+[document.getElementById('commitModal'), document.getElementById('boxTypesModal')].forEach(function(scrim){
+  scrim.addEventListener('click', function(e){ if (e.target===scrim) scrim.classList.remove('open'); });
+});
+document.addEventListener('keydown', function(e){
+  if (e.key==='Escape') { document.getElementById('commitModal').classList.remove('open'); document.getElementById('boxTypesModal').classList.remove('open'); }
+});
+
+})();
+</script>
+</body>
+</html>
