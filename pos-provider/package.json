@@ -1,0 +1,12 @@
+{
+  "name": "@hyper-tech/pos-provider",
+  "version": "0.1.0",
+  "description": "PosProvider adapter boundary — BlazeProvider, HwposProvider, MemoryProvider behind one port. Zero dependencies.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

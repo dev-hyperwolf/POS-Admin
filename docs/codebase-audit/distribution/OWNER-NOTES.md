@@ -320,3 +320,11 @@ different driver to the region, or the **second wave of drivers starting at 3:30
 as primary for the empty driver's region; kit-to-kit handoff (a movement between two kit
 locations, both scanned) and scheduled orders from the safe cover the rest. Engine: support a
 partial refill for named SKUs and a kit-to-kit transfer; no automatic mid-day run.
+
+**THC source:** typed at receiving **from the batch label applied to the product itself** (the
+compliance label), or scanned from the COA. So the receiving screen has a THC field per batch,
+entered once; the engine and the pick slip carry it from `Batch.thc_pct`.
+
+**Build status (2026-09-10):** contracts 0.4.0 committed; `pos-provider/` committed-pending
+(31 tests green; hwpos gaps: terminals, transfers, member lookup, list-sales route, bulk product
+and batch list routes); engine and wm-demo storage in progress.
