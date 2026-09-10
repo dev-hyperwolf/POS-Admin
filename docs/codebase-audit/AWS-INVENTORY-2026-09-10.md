@@ -76,9 +76,14 @@ template instance; that is the deploy line A2 must produce.
 
 About $340 for ten days, roughly $1,000 a month.
 
+**Budgets** (2026-09-10): an older "Monthly Cost Budget" of $700 already existed, alerting an
+Admin@ address at 85% and 100% — spend passes $700 every month now, so those mails have been
+arriving and being ignored. Added `hyperwolf-monthly-1200`: emails to admin@hyperwolf.com at 80%
+and 100% actual, and at a 120% forecast.
+
 ## What to do with this (owner)
 
-1. **Now, safe**: MFA on root; your own admin IAM user with MFA; billing alert.
+1. **Now, safe**: MFA on root (done 2026-09-10); your own admin IAM user with MFA; billing alert (done 2026-09-10).
 2. **After A2 is written**: disable `dev_access` (admin, no MFA, idle five months); delete the
    three dead users; rotate the `backend` key (758 days) and the backups key (462 days).
 3. **A2 for the developers is now specific**: how code reaches the ASG (launch template AMI or a
