@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.4.0'; // 0.4.0: inventory — LocationKind, ArrivalKind, MovementReason, PlanReason, ChannelKind, CountState; Location, Batch, Movement, ReceivedItem, PlanLine, Plan. 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
+  var VERSION = '0.4.1'; // 0.4.1: attribution on Plan (planned_by, engine_version, approved_by/at) and PlanLine (picked/packed/verified by+at, overridden_by). 0.4.0: inventory — LocationKind, ArrivalKind, MovementReason, PlanReason, ChannelKind, CountState; Location, Batch, Movement, ReceivedItem, PlanLine, Plan. 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -418,12 +418,20 @@
       properties: { product_id: ID, batch_id: ID, from_location_id: { type: 'string', nullable: true }, to_location_id: ID,
         sold: { type: 'integer', minimum: 0 }, need: { type: 'integer', minimum: 0 }, cap: { type: 'integer', minimum: 0 },
         give: { type: 'integer', minimum: 0 }, reasons: { type: 'array', items: { type: 'string', $enum: 'PlanReason' } },
-        mixed_batch: { type: 'boolean' }, note: { type: 'string', nullable: true } } },
+        mixed_batch: { type: 'boolean' }, note: { type: 'string', nullable: true },
+        // 0.4.1 attribution — who picked, packed and verified this line (person ids), with times
+        picked_by: { type: 'string', nullable: true }, picked_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        packed_by: { type: 'string', nullable: true }, packed_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        verified_by: { type: 'string', nullable: true }, verified_at: { type: 'string', pattern: ISO_UTC.source, nullable: true },
+        overridden_by: { type: 'string', nullable: true } } },
     Plan: { type: 'object', required: ['id', 'kind', 'business_day', 'generated_at', 'channel', 'lines'], additionalProperties: true,
       properties: { id: ID, kind: { type: 'string', enum: ['build', 'refill', 'restock', 'handoff'] }, business_day: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
         generated_at: ISO, channel: { type: 'string', $enum: 'ChannelKind' }, store_id: { type: 'string', nullable: true },
         lines: { type: 'array', items: { $ref: 'PlanLine' } }, skipped: { type: 'array', items: { $ref: 'PlanLine' } },
-        warnings: { type: 'array', items: { type: 'string' } }, inputs: { type: 'object', nullable: true } } },
+        warnings: { type: 'array', items: { type: 'string' } }, inputs: { type: 'object', nullable: true },
+        // 0.4.1 attribution — 'system' or a person id; the engine version that produced it
+        planned_by: { type: 'string', nullable: true }, engine_version: { type: 'string', nullable: true },
+        approved_by: { type: 'string', nullable: true }, approved_at: { type: 'string', pattern: ISO_UTC.source, nullable: true } } },
   };
 
   function typeOf(v) {

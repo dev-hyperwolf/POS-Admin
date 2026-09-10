@@ -343,3 +343,15 @@ slip (box order, batches, THC, packaged date, LOUD flag, QR per kit) and shows i
 the iPad; the bench closes a paper kit by scanning the QR. Design brief for round 2:
 `DESIGN-ROUND-2-BRIEF.md` (16 concepts, 8 agents). Audits dispatched: LP dashboard, HR dashboard,
 the whole Apps Script estate (migration inventory), and a form-generator proposal.
+
+## 2026-09-10 · usage restored (use the most efficient model always); attribution
+
+**Said.** Usage raised for a few days; use the most efficient model at all times. Keep track of
+who does what: who picked the inventory for the build, who picked for the refill, who refilled
+which kits and boxes — to trace mistakes and see what is happening and who is doing it.
+
+**Decision.** Attribution is a field on every step, not a separate system: Plan carries
+`planned_by` / `approved_by`; PlanLine carries `picked_by`, `packed_by`, `verified_by` with
+times; every Movement already carries `actor_id`; count lines carry counter and approver. Chain of
+custody per unit tag; sign-in at the station by PIN or staff badge; overrides attributed with the
+reason; an accuracy view per person/team (later feeds Bounty); shift handoff recorded.

@@ -1,6 +1,6 @@
 {
   "name": "@hyper-tech/contracts",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Types, enums, ids, money, time, error and event shapes shared by every Hyper-Tech backend, frontend and the POS-Admin/wm-demo estate. Zero dependencies. UMD: require() in Node, <script> in the browser, JSON exports for Python.",
   "main": "index.js",
   "types": "types.d.ts",

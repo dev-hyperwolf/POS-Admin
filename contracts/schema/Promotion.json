@@ -1,6 +1,6 @@
 {
   "$id": "Promotion",
-  "contract": "0.4.0",
+  "contract": "0.4.1",
   "type": "object",
   "required": [
     "id",
