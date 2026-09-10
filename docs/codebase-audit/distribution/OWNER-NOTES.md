@@ -314,3 +314,9 @@ locations, movements and the received ledger (extending `inventory.py`'s `invent
 **Count variance:** above a threshold, a **blind recount by a second person**; and **no
 adjustment is ever posted without a manager's approval** (every difference is a proposed
 correction). RFID reads propose, never write.
+
+**Mid-day refill:** very rare, but the function must remain possible. Usual practice: dispatch a
+different driver to the region, or the **second wave of drivers starting at 3:30 pm** takes over
+as primary for the empty driver's region; kit-to-kit handoff (a movement between two kit
+locations, both scanned) and scheduled orders from the safe cover the rest. Engine: support a
+partial refill for named SKUs and a kit-to-kit transfer; no automatic mid-day run.
