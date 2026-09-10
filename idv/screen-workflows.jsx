@@ -422,6 +422,15 @@
                   title="MED_18_REC"
                   subtitle={`Medical. 18 and over from the barcode date of birth, plus a doctor's recommendation that Verify checks itself — not a Blaze flag, not an analyst's eyeball. Adds a capture step, "Doctor's recommendation," between the ID back and the selfie. Missing or unreadable → the guest is asked to redo it, up to ${cfg.resubmission_max ?? 3} tries, then Declined with an in-store path. Expired, or the name / date of birth / licence number doesn't match → Declined immediately, no retry. (Sent to the API as MED_18_REC — MED_18_CARD is kept only as an alias for older workflows.)`} />
               </div>
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderTop: `1px solid ${P.hairline}` }}>
+                <div style={{ fontSize: P.type.body, color: P.ink2, fontWeight: 600 }}>
+                  Offer the medical path to 18–20 <span style={{ fontWeight: 400, color: P.inkFaint }}>· only changes REC_21</span>
+                </div>
+                <Lockable locked={locked}><Switch on={cfg.offer_medical_path !== false} onChange={(v) => patchCfg({ offer_medical_path: v })} /></Lockable>
+              </div>
+              <div style={{ fontSize: P.type.meta, color: P.inkFaint, marginTop: 6, lineHeight: 1.5 }}>
+                On a REC_21 workflow, a guest reading 18–20 off the barcode is offered — never required — the doctor's-recommendation path instead of an immediate age decline; a MED_18_REC workflow always requires the recommendation regardless of this setting. Defaults on.
+              </div>
             </Card>
           </div>
         </div>

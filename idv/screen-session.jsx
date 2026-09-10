@@ -89,8 +89,21 @@
   const MRZ_CHECK_LABEL = { document_number: 'Document number', date_of_birth: 'Date of birth',
     expiration_date: 'Expiration date', personal_number: 'Personal number', composite: 'Composite' };
   const MRZ_CHECK_ORDER = ['document_number', 'date_of_birth', 'expiration_date', 'personal_number', 'composite'];
-  const MEDIA_ORDER = ['document_front', 'document_back', 'selfie', 'selfie_frame', 'portrait_crop', 'liveness_video', 'challenge_frame', 'import_pdf'];
-  const MEDIA_LABEL = { document_front: 'Front', document_back: 'Back', selfie: 'Selfie', selfie_frame: 'Selfie frame', liveness_video: 'Liveness clip', portrait_crop: 'Portrait crop', challenge_frame: 'Challenge frame', import_pdf: 'Imported PDF' };
+  const MEDIA_ORDER = ['document_front', 'document_back', 'medical_rec', 'selfie', 'proof', 'selfie_frame', 'portrait_crop', 'liveness_video', 'challenge_frame', 'import_pdf'];
+  const MEDIA_LABEL = { document_front: 'Front', document_back: 'Back', medical_rec: "Doctor's recommendation", selfie: 'Selfie', proof: 'Proof (selfie + ID)', selfie_frame: 'Selfie frame', liveness_video: 'Liveness clip', portrait_crop: 'Portrait crop', challenge_frame: 'Challenge frame', import_pdf: 'Imported PDF' };
+  // ── medical_rec (MED_18_REC, 2026-09-09 gap C) — MED_REC_* in plain words,
+  // per idv_rules.py's _medical_block ordering (:2454-2463) and GUIDANCE
+  // (:339-345, 431-448). Analyst-facing, not the guest-facing GUIDANCE copy.
+  const MED_REC_REASON_TEXT = {
+    MED_REC_MISSING: 'No recommendation has been submitted.',
+    MED_REC_UNREADABLE: 'The recommendation could not be read well enough to confirm — too few core fields, or OCR confidence below the floor.',
+    MED_REC_OUT_OF_STATE: 'The physician licence state is not California.',
+    MED_REC_INVALID_LICENSE: "The physician licence number doesn't match a valid California pattern.",
+    MED_REC_NAME_MISMATCH: "The patient name on the recommendation doesn't match the ID.",
+    MED_REC_DOB_MISMATCH: "The patient date of birth on the recommendation doesn't match the ID.",
+    MED_REC_EXPIRED: 'The recommendation is expired, or dated in the future.',
+  };
+  const MED_REC_STATUS_TONE = { Approved: 'good', Declined: 'bad', 'Not Finished': 'warn' };
   const REVIEW_ACTION_LABEL = { approve: 'Approved', decline: 'Declined', request_resubmission: 'Requested resubmission', note: 'Added a note', assign: 'Assigned', escalate: 'Escalated', override_feature: 'Overrode a feature', edit_data: 'Edited data', merge_person: 'Merged people', add_to_list: 'Added to a list' };
   const TERMINAL_STATUS = { Approved: 1, Declined: 1, Abandoned: 1, Expired: 1, 'Kyc Expired': 1 };
 
@@ -444,6 +457,11 @@
     const documentType = (sess && sess.document_type)
       || (idn0 && idn0.document_type === 'Passport' ? 'passport' : 'drivers_license');
     const isPassport = documentType === 'passport';
+    // ── doctor's recommendation (medical_rec, 2026-09-09 — MED_18_REC gap C) ─
+    // `decision.medical_recommendations` only exists on the payload at all
+    // when a medical_rec image was uploaded (idv-engine app.py:882-886 never
+    // sends an empty array), so `medRec` here doubles as "was one submitted".
+    const medRec = decision && decision.medical_recommendations && decision.medical_recommendations[0];
 
     // ── thresholds — fetched once per workflow version (gap #3 above) ──────
     // GET …/workflows/{id}/versions carries idv_version alongside the list now
@@ -950,6 +968,53 @@
                     Read at {Math.round(idn0.mrz.ocr_confidence)}% confidence
                   </div>)}
               </Card>)}
+
+            {/* ── doctor's recommendation (medical_rec, MED_18_REC gap C) ────
+                Only rendered when the engine sent a node at all — the same
+                "was one submitted" test as `medRec` above. Reasons combine
+                `engine_detail.status_reason` (the engine's own opinion) with
+                any MED_REC_* code already in `sess.reasons` (the rules'
+                verdict), deduped — either can be present without the other
+                depending on where in the flow the session currently sits. */}
+            {medRec && (() => {
+              const medReasons = Array.from(new Set([
+                medRec.engine_detail && medRec.engine_detail.status_reason,
+                ...((sess && sess.reasons) || []).filter((r) => String(r).indexOf('MED_REC_') === 0),
+              ].filter(Boolean)));
+              const cross = medRec.crosscheck || {};
+              const agreePill = (v) => (
+                <Pill kind={v === 'match' ? 'good' : v === 'mismatch' ? 'bad' : 'neutral'} size="sm">
+                  {v === 'match' ? 'agrees' : v === 'mismatch' ? 'disagrees' : 'not read'}
+                </Pill>);
+              return (
+                <Card padding={0}>
+                  <CardHead icon="leaf" title="Doctor's recommendation" right={
+                    <Pill kind={MED_REC_STATUS_TONE[medRec.status] || 'neutral'} size="sm" dot>{medRec.status || 'Unknown'}</Pill>} />
+                  <div style={{ padding: '0 14px' }}>
+                    <Kv label="Physician name" value={medRec.physician_name} />
+                    <Kv label="Licence number" value={medRec.physician_license} mono />
+                    <Kv label="Licence state" value={medRec.license_state} mono />
+                    <Kv label="Patient name" value={medRec.patient_name} />
+                    <Kv label="Issue date" value={medRec.issue_date} mono />
+                    <Kv label="Expiration date" value={medRec.expiration_date} mono />
+                  </div>
+                  <div style={{ padding: '10px 14px', borderTop: `1px solid ${P.hairline}`, display: 'flex', flexWrap: 'wrap', gap: 14 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: P.type.meta, color: P.inkDim }}>Name vs ID {agreePill(cross.name_vs_document)}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: P.type.meta, color: P.inkDim }}>DOB vs ID {agreePill(cross.dob_vs_document)}</span>
+                  </div>
+                  {medRec.ocr_confidence != null && (
+                    <div style={{ padding: '0 14px 10px', fontSize: P.type.micro, color: P.inkMute }}>
+                      Read at {Math.round(medRec.ocr_confidence)}% confidence
+                    </div>)}
+                  {medReasons.length > 0 && (
+                    <div style={{ padding: '10px 14px', borderTop: `1px solid ${P.hairline}`, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {medReasons.map((code) => (
+                        <div key={code} style={{ fontSize: P.type.meta, color: P.ink }}>
+                          <span style={{ fontFamily: P.fontMono, color: P.inkDim }}>{code}</span> — {MED_REC_REASON_TEXT[code] || 'See the reason code.'}
+                        </div>))}
+                    </div>)}
+                </Card>);
+            })()}
 
             <Card padding={0}>
               <CardHead icon="ban" title="List hits" right={<Pill kind={decision && decision.list_hits && decision.list_hits.length ? 'bad' : 'good'} size="sm">{decision && decision.list_hits ? decision.list_hits.length : 0}</Pill>} />

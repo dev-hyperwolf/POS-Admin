@@ -42,11 +42,24 @@
   // is the only defensible reading of "the counter's workflow" available today.
   // Recorded as a contract gap rather than hard-coding an id: a hard-coded id
   // would silently stop matching the moment a workflow is versioned or archived.
-  function pickWorkflow(rows) {
+  // `opts.medical` (2026-09-09, gap E): when the seam is started with
+  // `{ medical: true }` on <IdvCheckinSeam>, prefer an active KYC+OCR workflow
+  // whose config.age_rule is MED_18_REC (or the MED_18_CARD alias) over the
+  // first one found — still falling through to the old pick if none exists.
+  // Unset/false is byte-identical to the prior behaviour: first active
+  // KYC+OCR workflow, medical or not.
+  function pickWorkflow(rows, opts) {
     const active = (rows || []).filter(function (w) { return w && w.status === 'active'; });
     const kyc = active.filter(function (w) {
       return w.kind === 'KYC' && (w.features || []).indexOf('OCR') >= 0;
     });
+    if (opts && opts.medical) {
+      const medicalKyc = kyc.filter(function (w) {
+        const rule = String((w.config || {}).age_rule || '').toUpperCase();
+        return rule === 'MED_18_REC' || rule === 'MED_18_CARD';
+      });
+      if (medicalKyc[0]) return medicalKyc[0];
+    }
     return (kyc[0] || active[0] || null);
   }
 
@@ -94,7 +107,10 @@
   // Handing it a doc is the whole integration: from that call onwards the Register
   // screen's own logic runs exactly as it does after a barcode scan, with nothing
   // in it changed.
-  window.IdvCheckinSeam = function IdvCheckinSeam({ customer, onVerified, compact }) {
+  // `medical` (opt-in, default false/undefined): pass `{ medical: true }` to
+  // route this session to a MED_18_REC workflow instead of the first active
+  // KYC+OCR one — see pickWorkflow above. Omitted, behaviour is unchanged.
+  window.IdvCheckinSeam = function IdvCheckinSeam({ customer, onVerified, compact, medical }) {
     const P = useP();
     const [phase, setPhase] = React.useState('idle');   // idle | creating | live | failed | needs-pin
     const [session, setSession] = React.useState(null);
@@ -149,7 +165,7 @@
         if (!aliveRef.current) return;
         if (r.needsPin) { setPhase('needs-pin'); setErr(null); return; }
         if (!r.ok) { setPhase('failed'); setErr(r.error || 'Verify did not answer.'); return; }
-        const wf = pickWorkflow(r.body && r.body.rows);
+        const wf = pickWorkflow(r.body && r.body.rows, { medical: medical });
         if (!wf) { setPhase('failed'); setErr('No active Verify workflow is configured, so a session cannot be started.'); return; }
         // vendor_data is the customer key that travels with the session and
         // makes an imported or exported session traceable back to a person
