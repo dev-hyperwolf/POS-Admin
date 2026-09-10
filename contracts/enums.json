@@ -1,5 +1,5 @@
 {
-  "contract": "0.3.0",
+  "contract": "0.3.1",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -136,7 +136,8 @@
       "IP_TOR",
       "INJECTION_DETECTED",
       "CHALLENGE_NONCE_MISMATCH",
-      "LIVENESS_ATTEMPTS_EXHAUSTED_HARD"
+      "LIVENESS_ATTEMPTS_EXHAUSTED_HARD",
+      "MED_REC_JURISDICTION_UNCONFIGURED"
     ],
     "OrderStatus": [
       "pending",

@@ -1,6 +1,6 @@
 {
   "$id": "Person",
-  "contract": "0.3.0",
+  "contract": "0.3.1",
   "type": "object",
   "required": [
     "id",

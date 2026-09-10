@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.3.0'; // 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
+  var VERSION = '0.3.1'; // 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -68,8 +68,9 @@
       'BARCODE_OCR_MISMATCH', 'NAME_MISMATCH_EXPECTED', 'DUPLICATE_PERSON', 'IP_HOSTING', 'IP_VPN',
       'AGE_ESTIMATE_UNDER_MARGIN', 'OUT_OF_STATE', 'DOC_NEAR_EXPIRY', 'ENGINE_UNAVAILABLE_MANUAL',
       'DOC_EXPIRED', 'UNDER_AGE', 'FACE_BLOCKLIST_HIT', 'DOCUMENT_BLOCKLIST_HIT', 'USER_BLOCKLIST_HIT',
-      'IP_TOR', 'INJECTION_DETECTED', 'CHALLENGE_NONCE_MISMATCH', 'LIVENESS_ATTEMPTS_EXHAUSTED_HARD'],
-      source: 'docs/IDV-API-CONTRACT.md Reason (review + decline sets)' },
+      'IP_TOR', 'INJECTION_DETECTED', 'CHALLENGE_NONCE_MISMATCH', 'LIVENESS_ATTEMPTS_EXHAUSTED_HARD',
+      'MED_REC_JURISDICTION_UNCONFIGURED'],
+      source: 'docs/IDV-API-CONTRACT.md Reason (review + decline sets; r10 adds MED_REC_JURISDICTION_UNCONFIGURED)' },
     OrderStatus: { values: ['pending', 'confirmed', 'packed', 'out_for_delivery', 'completed', 'cancelled', 'refunded'],
       source: 'hyperwolf/distribution Order Joi (pending|completed|cancelled) widened with the POS stages' },
     TaskStatus: { values: ['not_started', 'unassigned', 'in_progress', 'completed', 'cancelled'],
