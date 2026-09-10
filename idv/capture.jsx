@@ -2536,11 +2536,82 @@
     return STEP_TITLE[step] || 'Photo';
   }
 
+  // ── STEP-DERIVED COPY ────────────────────────────────────────────────────
+  // THE BUG THIS SECTION FIXES (owner finding, 2026-09-10): an ID-only +
+  // doctor's-recommendation workflow — steps document_front, document_back,
+  // medical_rec, and deliberately NO selfie — still showed "Checking your
+  // selfie…" on the processing screen and "then take a quick selfie and
+  // blink" on the Get ready checklist. Both sentences were hardcoded to the
+  // licence five-step shape instead of reading `stepIds`. Every sentence
+  // below is derived from the session's real steps at call time, so a
+  // workflow missing selfie/liveness (or missing document_back, or carrying
+  // medical_rec) reads correctly with no per-workflow branch anywhere else.
+  function hasStep(stepIds, id) { return stepIds.indexOf(id) >= 0; }
+  function hasFaceStep(stepIds) { return hasStep(stepIds, 'selfie') || hasStep(stepIds, 'challenge'); }
+
+  // Get ready checklist's step-sequence line (the third bullet).
+  function getReadyStepsLine(stepIds, isPassport) {
+    const selfie = hasFaceStep(stepIds);
+    if (isPassport) {
+      let line = 'Both lines of the code at the bottom must be in the frame';
+      if (hasStep(stepIds, 'medical_rec')) line += ', then a doctor’s recommendation';
+      if (selfie) line += ', then take a quick selfie and blink';
+      return line + '.';
+    }
+    const parts = [];
+    if (hasStep(stepIds, 'document_front')) parts.push('the front');
+    if (hasStep(stepIds, 'document_back')) parts.push('the back barcode');
+    if (hasStep(stepIds, 'medical_rec')) parts.push('a doctor’s recommendation');
+    let line = parts.length ? ('You’ll photograph ' + parts.join(', then ')) : 'You’ll photograph your ID';
+    if (selfie) line += ', then take a quick selfie and blink';
+    return line + '.';
+  }
+
+  // Consent-screen intro sentence. For the ordinary licence flow (front, back,
+  // selfie) this reproduces STEP_COPY.consent.say word for word, so the
+  // common case reads exactly as before.
+  function consentIntroFor(stepIds) {
+    const docCount = (hasStep(stepIds, 'document_front') ? 1 : 0) + (hasStep(stepIds, 'document_back') ? 1 : 0);
+    const items = [docCount >= 2 ? 'Two photos of your ID' : 'A photo of your ID'];
+    if (hasStep(stepIds, 'medical_rec')) items.push('your doctor’s recommendation');
+    if (hasFaceStep(stepIds)) items.push('a quick look at the camera');
+    if (items.length === 1) return items[0] + '.';
+    if (items.length === 2) return items[0] + ' and ' + items[1] + '.';
+    return items.slice(0, -1).join(', ') + ', and ' + items[items.length - 1] + '.';
+  }
+
+  // Processing-screen status lines. Same cadence as the original licence-flow
+  // stages (Reading your ID… at 2.5 s, +6.5 s per stage after that, Checking
+  // your selfie… holds the screen the longest at +9 s) but which stages
+  // appear — and whether "selfie" is mentioned at all — depends on `stepIds`.
+  function procStagesFor(stepIds) {
+    const stages = [{ at: 0, line: 'Sending your photos…' }];
+    let t = 2500;
+    if (hasStep(stepIds, 'document_front') || hasStep(stepIds, 'document_back')) {
+      stages.push({ at: t, line: 'Reading your ID…' });
+      t += 6500;
+    }
+    if (hasStep(stepIds, 'medical_rec')) {
+      stages.push({ at: t, line: 'Checking your recommendation…' });
+      t += 6500;
+    }
+    if (hasFaceStep(stepIds)) {
+      stages.push({ at: t, line: 'Checking your selfie…' });
+      t += 9000;
+    }
+    stages.push({ at: t, line: 'Finishing the checks…' });
+    return stages;
+  }
+
   // THE OFFERED (optional) ENTRY COPY — an 18–20-year-old on a REC_21 workflow
   // with offer_medical_path on (contract round-3 addendum §B).
   const MED_REC_OFFER = {
     big: 'Under 21?',
     say: "Recreational purchases need you to be 21. If you have a doctor's recommendation, add it now.",
+    // "Doctor's recommendation" is a term of art a lot of guests will not
+    // recognise on sight — the owner's ask, 2026-09-10 — so the choice screen
+    // spells out what it actually means to photograph, in plain words.
+    detail: "Your doctor's recommendation letter (the whole page, flat).",
   };
 
   // ── the consent words ────────────────────────────────────────────────────
@@ -3401,12 +3472,11 @@
   // `Math.max` against the highest index reached, held in a ref — so it can
   // never walk backwards when a poll is slow, which is the one thing a
   // progress line must never do. None of these sentences claims a duration.
-  const PROC_STAGES = [
-    { at: 0, line: 'Sending your photos…' },
-    { at: 2500, line: 'Reading your ID…' },
-    { at: 9000, line: 'Checking your selfie…' },
-    { at: 18000, line: 'Finishing the checks…' },
-  ];
+  //
+  // THE STAGES THEMSELVES ARE DERIVED FROM `stepIds` (see `procStagesFor`
+  // above) — a session with no selfie/liveness step never sees "Checking
+  // your selfie…", and one with a doctor's recommendation sees a stage that
+  // says so.
   const PROC_SLOW_MS = 45000;
 
   // ── ROUND 6, BRIEF §4: THE SCREEN SHOWS THE LIVE STATUS AND NOTHING ELSE ──
@@ -3435,11 +3505,15 @@
     if (s < 60) return s + 's';
     return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
   }
-  function ProcessingScreen({ shell, elapsed, status, onRetry, retrying }) {
+  function ProcessingScreen({ shell, elapsed, status, onRetry, retrying, stepIds }) {
     const P = useP();
     const floorRef = React.useRef(0);
+    // Derived from the session's real steps every render — cheap (a handful
+    // of indexOf calls over a short array) and `stepIds` only changes when
+    // `state` does, so this never fights `floorRef`'s monotonic floor.
+    const stages = procStagesFor(stepIds || []);
     let idx = 0;
-    for (let i = 0; i < PROC_STAGES.length; i++) if (elapsed >= PROC_STAGES[i].at) idx = i;
+    for (let i = 0; i < stages.length; i++) if (elapsed >= stages[i].at) idx = i;
     idx = Math.max(floorRef.current, idx);
     floorRef.current = idx;
     // WHAT COUNTS AS "STILL WORKING", AND WHY IT IS NOT THE LITERAL
@@ -3465,7 +3539,7 @@
       <React.Fragment>
         <Plate tone="info" icon="clock" />
         <Big>{slow ? 'This is taking longer than usual' : 'Checking your ID'}</Big>
-        <Say>{slow ? 'Keep this page open — nothing is lost and we are still working on it.' : PROC_STAGES[idx].line}</Say>
+        <Say>{slow ? 'Keep this page open — nothing is lost and we are still working on it.' : stages[idx].line}</Say>
         {/* THE ELAPSED LINE. Mono, quiet, and true. */}
         <span style={{ fontSize: P.type.meta, fontFamily: P.fontMono, color: P.inkMute }}>
           {procElapsedLine(elapsed)}
@@ -4422,7 +4496,7 @@
         <ConsentScreen shell={shell} brandName={brandName} copy={copy}
           agreed={terms} onAgree={setTerms}
           busy={busy} notice={notice} onContinue={acceptTerms}
-          workflowName={workflowName} />);
+          workflowName={workflowName} stepIds={stepIds} />);
     }
 
     // ── get ready ────────────────────────────────────────────────────────
@@ -4441,13 +4515,17 @@
       // honestly act on is worse than not offering one.
       const showChoice = !hasEvidenceMedia;
       const isPassport = documentType === 'passport';
+      // THE THIRD LINE IS DERIVED FROM `stepIds`, NEVER HARDCODED TO THE
+      // LICENCE FIVE-STEP SHAPE. See `getReadyStepsLine` — an ID-only +
+      // doctor's-recommendation session (no selfie) must not tell the guest
+      // to "take a quick selfie and blink" when there is no selfie step.
       const checklist = isPassport
         ? ['Open your passport to the photo page.',
           'Find a bright spot, no glare.',
-          'Both lines of the code at the bottom must be in the frame.']
+          getReadyStepsLine(stepIds, true)]
         : ['Have your physical ID out of your wallet — a photo of your ID will not work.',
           'Find a bright spot, no glare.',
-          'You’ll photograph the front, then the back barcode, then take a quick selfie and blink.'];
+          getReadyStepsLine(stepIds, false)];
       return shell('Get ready', (
         <React.Fragment>
           <Plate tone="neutral" icon="camera" />
@@ -4553,7 +4631,7 @@
     if (phase === 'processing') {
       return (
         <ProcessingScreen shell={shell} elapsed={procElapsed} retrying={retrying}
-          status={status}
+          status={status} stepIds={stepIds}
           onRetry={function () { setRetrying(true); if (pollNowRef.current) pollNowRef.current(); }} />);
     }
 
@@ -4578,7 +4656,14 @@
         <React.Fragment>
           <Plate tone="warn" icon="refresh" />
           <Big>One more try</Big>
-          <Say>{(guidance && guidance.fix) || (poll && poll.message) || 'Move somewhere a bit brighter and look straight at the camera.'}</Say>
+          {/* THE FALLBACK IS ALSO STEP-AWARE. This screen retries whatever step
+              the server pointed at (`retryStep`), which is just as often a
+              document or recommendation photo as a selfie — "look straight at
+              the camera" is wrong advice for a photo of a card lying flat. */}
+          <Say>{(guidance && guidance.fix) || (poll && poll.message) ||
+            (retryStep === 'selfie' || retryStep === 'challenge'
+              ? 'Move somewhere a bit brighter and look straight at the camera.'
+              : 'Move somewhere a bit brighter and make sure the whole thing is inside the frame.')}</Say>
           <Say mute>{'Attempt ' + attempt + ' of ' + max + ' · re-opening the camera'}</Say>
           <window.PBtn size="lg" variant="accent" onClick={tryAgain}>Go now</window.PBtn>
         </React.Fragment>),
@@ -4683,13 +4768,27 @@
   //     at a counter is not its audience. It still shows, pinned, at the top of
   //     the Terms modal, which is where a developer opening the document will
   //     be looking.
-  function ConsentScreen({ shell, brandName, copy, agreed, onAgree, busy, notice, onContinue, workflowName }) {
+  function ConsentScreen({ shell, brandName, copy, agreed, onAgree, busy, notice, onContinue, workflowName, stepIds }) {
     const P = useP();
+    // THE SERVER'S SENTENCE WINS — EXCEPT WHEN IT IS THE OLD DEFAULT AND THIS
+    // SESSION HAS NO SELFIE STEP. `branding.copy.intro` is Customization's
+    // white-label override and normally wins outright. But
+    // `STEP_COPY.consent.say` ("...and a quick look at the camera.") is also
+    // the literal fallback a backend sends when it has not customized this
+    // sentence at all — and for an ID-only + doctor's-recommendation session
+    // that fallback is simply wrong (there is no camera look to promise). In
+    // that one case only, prefer the sentence derived from the session's real
+    // steps; any other server sentence — customized, or the default on a
+    // session that DOES have a selfie step — is shown verbatim.
+    const introIsUncustomizedDefault = copy.intro === STEP_COPY.consent.say;
+    const intro = (copy.intro && !(introIsUncustomizedDefault && !hasFaceStep(stepIds || [])))
+      ? copy.intro
+      : consentIntroFor(stepIds || []);
     return shell(STEP_TITLE.consent, (
       <React.Fragment>
         <Plate tone="neutral" icon="card" />
         <Big>{STEP_COPY.consent.big}</Big>
-        <Say>{copy.intro || STEP_COPY.consent.say}</Say>
+        <Say>{intro}</Say>
 
         <div data-hw-i role="presentation" onClick={function () { onAgree(!agreed); }}
           style={{ width: '100%', maxWidth: 460, textAlign: 'left', display: 'flex', gap: P.space.x3,
@@ -5718,6 +5817,7 @@
           <Plate tone="info" icon="help" />
           <Big>{MED_REC_OFFER.big}</Big>
           <Say>{MED_REC_OFFER.say}</Say>
+          <Say mute>{MED_REC_OFFER.detail}</Say>
           {notice ? <Say>{notice}</Say> : null}
           <div style={{ display: 'flex', flexDirection: 'column', gap: P.space.x2, width: '100%', maxWidth: 340 }}>
             <window.PBtn size="xl" variant="accent" onClick={function () { setMedChoice('add'); }}>Add my recommendation</window.PBtn>
@@ -6849,7 +6949,10 @@
     // The budget this file promises, so a check can assert the arithmetic
     // rather than restate it: bytes ≈ BPS / 8 × seconds.
     expectedBytes: function (seconds) { return Math.round((LIVENESS_BPS / 8) * (seconds || 0)); } };
-  window.IdvCapture.processing = { STAGES: PROC_STAGES, SLOW_MS: PROC_SLOW_MS,
+  // `STAGES` used to be a static array; it is now derived per-session from
+  // `stepIds` (see `procStagesFor`), so the exported name is a function, not
+  // a value — `stagesFor(stepIds)` is what a test or console calls now.
+  window.IdvCapture.processing = { stagesFor: procStagesFor, SLOW_MS: PROC_SLOW_MS,
     elapsedLine: procElapsedLine };
   window.IdvCapture.grab = { drawScaled: drawScaled, toJpeg: canvasToJpeg, MAX_EDGE: MAX_EDGE, JPEG_Q: JPEG_Q,
     // ── THE BLACK-FRAME GUARD, EXPORTED PURE ─────────────────────────────
