@@ -295,3 +295,8 @@ own receiving flow, since no system holds it today.
 system suggests modifications to the min/max from sales velocity**; **adopt the same engine for
 the delivery kits** (kit template min/max get velocity-driven suggestions too). Display case vs
 shelf: not chosen; treat as one floor location unless the team says otherwise.
+
+**Blaze exit scope (owner):** everything moves into **our POS** — register, carts, orders,
+inventory (batches, locations, transfers, terminals), customer accounts and loyalty, and Metrc
+reporting in our own code using Stilo's pattern; **Stilo's code merges into our POS.** Payments:
+**Leisurepay**, already integrated (by us and by the developers), behind an adapter.
