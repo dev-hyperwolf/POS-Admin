@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Build &amp; Close — Concept D — Quarantine, Waste &amp; Recall</title>
+<style>
+/* ============================================================================
+   Round "Build & Close" — Concept D — Quarantine, Waste & Recall.
+   A batch on hold: where every unit of it is, pull tasks per location, waste
+   with reason + manager approval, recall by batch with the Metrc tag shown.
+   Every pull task and waste mark carries who did it and who approved it.
+   Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); table/pill/banner
+   shapes from shared/hd-ui.jsx; rail + header shape from Hyperwolf Bounty.html
+   (rail active "Distribution"). No build step, no external requests.
+   Every name, product, quantity and time on this screen is EXAMPLE DATA.
+   ========================================================================= */
+:root{
+  --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  --fontMono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:18px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:220px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+.content{padding:20px 24px 60px;display:flex;flex-direction:column;gap:16px;max-width:1400px;width:100%;margin:0 auto;}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+.example-banner svg{flex:0 0 auto;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
+.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
+.card-body{padding:0 16px 16px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.btn-good:hover{background:var(--good);color:#fff;}
+.btn-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.btn-bad:hover{background:var(--bad);color:#fff;}
+.btn-sm{height:29px;padding:0 11px;font-size:var(--f-meta);border-radius:var(--r8);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;border:1px solid transparent;text-transform:uppercase;letter-spacing:.03em;}
+.pill-recall{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.pill-quarantine{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+.pill-info{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+
+/* ---- batch strip ---- */
+.batchstrip{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 14px;}
+.battab{flex:0 0 260px;text-align:left;border:1.5px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px;}
+.battab:hover{background:var(--surface3);}
+.battab.active{border-color:var(--accentBorder);background:var(--surface);box-shadow:var(--shadowMd);}
+.battab .bt-name{font-size:var(--f-strong);font-weight:700;}
+.battab .bt-meta{font-size:var(--f-meta);color:var(--inkMute);font-family:var(--fontMono);}
+
+/* ---- batch detail header ---- */
+.bdhead{display:flex;flex-wrap:wrap;gap:14px 26px;padding:14px 16px;align-items:flex-start;border-bottom:1px solid var(--hairline2);}
+.bdhead .bd-main{display:flex;flex-direction:column;gap:4px;min-width:220px;}
+.bdhead .bd-name{font-size:var(--f-title);font-weight:700;}
+.bdhead .bd-sku{font-size:var(--f-meta);color:var(--inkMute);}
+.bdstat{display:flex;flex-direction:column;gap:2px;min-width:110px;}
+.bdstat .k{font-size:var(--f-micro);text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.bdstat .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
+.haltflag{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--badSoft);color:var(--bad);border:1px solid var(--bad);border-radius:var(--r10);padding:8px 12px;font-size:var(--f-body);font-weight:700;}
+.reasonrow{padding:10px 16px;font-size:var(--f-body);color:var(--inkDim);background:var(--surface2);border-bottom:1px solid var(--hairline2);}
+.reasonrow b{color:var(--ink);}
+.attrib{display:flex;flex-direction:column;gap:1px;font-size:var(--f-meta);}
+.attrib .who{font-weight:700;color:var(--ink2);}
+.attrib .when{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;}
+.attrib.empty{color:var(--inkFaint);font-style:italic;}
+
+/* ---- location ledger table ---- */
+table.ledger{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
+table.ledger th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:7px 8px;border-bottom:1px solid var(--hairline);}
+table.ledger td{padding:9px 8px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.ledger tr:last-child td{border-bottom:none;}
+table.ledger .locname{font-weight:700;display:flex;align-items:center;gap:7px;}
+table.ledger .locicon{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;background:var(--surface3);color:var(--inkDim);}
+table.ledger .locsub{font-size:var(--f-meta);color:var(--inkMute);margin-left:29px;}
+table.ledger .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+table.ledger .taskbtns{display:flex;gap:6px;flex-wrap:wrap;}
+
+/* ---- waste panel ---- */
+.wastecard{border:1px solid var(--hairline2);border-radius:var(--r12);padding:11px 13px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:9px;background:var(--surface2);}
+.wastecard:last-child{margin-bottom:0;}
+.wastecard.approved{background:var(--goodSoft);border-color:var(--good);}
+.wastecard.rejected{background:var(--surface3);opacity:.7;}
+.wastecard .wc-main{display:flex;flex-direction:column;gap:2px;min-width:200px;flex:1 1 200px;}
+.wastecard .wc-title{font-weight:700;font-size:var(--f-strong);}
+.wastecard .wc-sub{font-size:var(--f-meta);color:var(--inkMute);}
+.wastecard .wc-reason{font-size:var(--f-body);color:var(--warnText);font-weight:600;}
+.wastecard .wc-actions{display:flex;gap:8px;margin-left:auto;flex:0 0 auto;}
+.empty-state{padding:22px 16px;text-align:center;color:var(--inkMute);font-size:var(--f-body);}
+.etaline{font-size:var(--f-meta);color:var(--inkMute);padding:0 16px 10px;}
+.etaline b{color:var(--ink2);font-family:var(--fontMono);}
+
+/* ---- recall retrieval table ---- */
+table.retrieval{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
+table.retrieval th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:7px 8px;border-bottom:1px solid var(--hairline);}
+table.retrieval td{padding:8px;border-bottom:1px solid var(--hairline);color:var(--ink);}
+table.retrieval tr:last-child td{border-bottom:none;}
+table.retrieval tr.contact td{background:var(--badSoft);}
+table.retrieval .tagid{font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+  .content{padding:14px 14px 60px;}
+  table.ledger .locsub{margin-left:0;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+  table.ledger, table.retrieval{font-size:11px;}
+}
+@media print{
+  .rail,.topbar,.example-banner,.batchstrip,.wastewrap,.card-head .btn,.taskbtns,.wc-actions{display:none !important;}
+  .card{box-shadow:none;border:1px solid #000;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item" title="Kit templates"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+      <button class="rail-item active" title="Distribution"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Distribution</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Build &amp; Close · Concept D</span></div>
+        <h1 class="h1">Quarantine, Waste &amp; Recall</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">7:42 AM PT</div>
+        <div class="clock-sub">Business day: Thu Sep 10, 2026 · rolls at 12:00 AM PT</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="content">
+      <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Design mockup — every batch, name, quantity and timestamp on this screen is example data, not a live recall or real inventory.</div>
+
+      <div class="card">
+        <div class="card-head"><h2>Batches on hold</h2><span class="hint">Recall, quarantine (expiry ladder) and quality holds — select one to see every unit</span></div>
+        <div class="batchstrip" id="batchStrip"></div>
+      </div>
+
+      <div class="card" id="detailCard">
+        <div class="bdhead" id="bdHead"></div>
+        <div class="reasonrow" id="reasonRow"></div>
+
+        <div class="card-head" style="padding-top:14px;"><h2>Where every unit is</h2><span class="hint">Pull task per location — assign it, mark it pulled, a manager approves the disposition</span></div>
+        <div class="card-body" style="overflow-x:auto;">
+          <table class="ledger">
+            <thead><tr><th>Location</th><th class="num">Units</th><th>Pull task</th><th>Picked by</th><th>Approved by</th><th></th></tr></thead>
+            <tbody id="ledgerBody"></tbody>
+          </table>
+        </div>
+
+        <div class="card-head"><h2>Waste — pending manager approval</h2><span class="hint">Nothing adjusts stock until a manager approves; rejected marks return to quarantine</span></div>
+        <div class="etaline">Discrepancy Resolution ETA: <b>48h</b> from hold — overdue waste marks surface here, not a silent empty list.</div>
+        <div class="card-body wastewrap" id="wasteBody"></div>
+
+        <div class="card-head"><h2>Recall retrieval — per unit</h2><span class="hint">Metrc tag <span id="metrcTag" style="font-family:var(--fontMono);color:var(--ink2);"></span> · full list, outcome per unit, nothing dropped because it left inventory</span></div>
+        <div class="card-body" style="overflow-x:auto;">
+          <table class="retrieval">
+            <thead><tr><th>Tag</th><th>Found at</th><th>Outcome</th><th>Confirmed by</th></tr></thead>
+            <tbody id="retrievalBody"></tbody>
+          </table>
+        </div>
+        <div class="card-body" style="display:flex;gap:10px;padding-top:4px;">
+          <button class="btn btn-ghost btn-sm" id="printBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print pull sheet (QR to close by scan)</button>
+        </div>
+      </div>
+
+      <div class="footerline">Build &amp; Close — Concept D of 4 — Quarantine, Waste &amp; Recall</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- theme toggle ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('qwr-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('qwr-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+
+  var LOCICON = {
+    safe:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/></svg>',
+    floor:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-6 9 6v11H3z"/><path d="M9 20v-7h6v7"/></svg>',
+    kit:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/></svg>',
+    vehicle:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/></svg>'
+  };
+
+  /* ---------------- data: EXAMPLE ONLY ---------------- */
+  var BATCHES = [
+    { id:'b1', name:'Zkittlez 3.5g', batchNo:'B-2291', metrcTag:'1A4030000012A7B0000291', thc:24.1, packaged:'2026-08-02',
+      status:'recall', reasonTitle:'Metrc recall — supplier retest failed',
+      reasonBody:'DCC recall notice for lot 2291-C, potency retest below label claim. Halted from every allocation the moment the notice landed.',
+      initiatedBy:'Dana K. (LP)', initiatedAt:'Sep 10, 7:12 AM',
+      locations:[
+        { loc:'Safe · F2-B-03', type:'safe', units:18, task:'pulled', pickedBy:'Marcus R.', pickedAt:'7:40 AM', approvedBy:'Dana K.', approvedAt:'7:52 AM' },
+        { loc:'Sales Floor · West LA', type:'floor', units:4, task:'open', pickedBy:null, approvedBy:null },
+        { loc:'Kit · Priya S. · Route 5', type:'kit', units:6, task:'assigned', pickedBy:'Priya S.', pickedAt:null, approvedBy:null },
+        { loc:'Vehicle · Van 12', type:'vehicle', units:2, task:'open', pickedBy:null, approvedBy:null }
+      ],
+      waste:[
+        { loc:'Safe · F2-B-03', qty:18, reason:'Recall disposal', markedBy:'Marcus R.', markedAt:'7:55 AM', status:'approved', approvedBy:'Dana K.', approvedAt:'8:01 AM' },
+        { loc:'Sales Floor · West LA', qty:4, reason:'Recall disposal', markedBy:'—', markedAt:null, status:'unmarked' }
+      ],
+      retrieval:[
+        { tag:'E28011...291-01', loc:'Safe F2-B-03', outcome:'quarantined', by:'Marcus R.' },
+        { tag:'E28011...291-02', loc:'Safe F2-B-03', outcome:'quarantined', by:'Marcus R.' },
+        { tag:'E28011...291-07', loc:'Sold — Order #40213', outcome:'sold', by:'—', contact:true },
+        { tag:'E28011...291-11', loc:'Kit · Priya S.', outcome:'pending pull', by:'—' },
+        { tag:'E28011...291-14', loc:'Sold — Order #40098', outcome:'sold', by:'—', contact:true }
+      ]},
+    { id:'b2', name:'GMO 3.5g', batchNo:'B-2087', metrcTag:'1A4030000012A7B0000087', thc:27.8, packaged:'2026-07-11',
+      status:'quarantine', reasonTitle:'Expiry ladder — quarantine step',
+      reasonBody:'Aging rule (Flower: expiring ≤10 days) promoted this batch to front of FEFO on Sep 3; no allocation cleared it in time, so it moved to quarantine on Sep 9. Next step is destroy at expiry (Sep 14) unless a manager promotes it again.',
+      initiatedBy:'System (aging rule)', initiatedAt:'Sep 9, 12:00 AM',
+      locations:[
+        { loc:'Safe · F1-A-07', type:'safe', units:9, task:'pulled', pickedBy:'Whitney L.', pickedAt:'9:10 AM', approvedBy:'Tomás G.', approvedAt:'9:20 AM' },
+        { loc:'Kit · Dana K. · Route 1', type:'kit', units:3, task:'open', pickedBy:null, approvedBy:null }
+      ],
+      waste:[],
+      retrieval:[
+        { tag:'E28011...087-02', loc:'Safe F1-A-07', outcome:'quarantined', by:'Whitney L.' },
+        { tag:'E28011...087-05', loc:'Kit · Dana K.', outcome:'pending pull', by:'—' }
+      ]},
+    { id:'b3', name:'Live Resin Disposable 1g', batchNo:'B-2310', metrcTag:'1A4030000012A7B0000310', thc:81.4, packaged:'2026-08-28',
+      status:'quality', reasonTitle:'Quality hold — damaged in transit',
+      reasonBody:'A case arrived with cracked cartridges. Held from sale pending Loss Prevention inspection (edge case: damaged/opened product moves to quarantine immediately, chargeable status TBD).',
+      initiatedBy:'Priya S. (driver)', initiatedAt:'Sep 10, 6:05 AM',
+      locations:[
+        { loc:'Safe · F2-B-11', type:'safe', units:5, task:'assigned', pickedBy:'Dana K.', pickedAt:null, approvedBy:null }
+      ],
+      waste:[
+        { loc:'Safe · F2-B-11', qty:5, reason:'Damaged in transit', markedBy:'Dana K.', markedAt:'8:10 AM', status:'pending' }
+      ],
+      retrieval:[
+        { tag:'E28011...310-03', loc:'Safe F2-B-11', outcome:'quarantined', by:'Dana K.' }
+      ]}
+  ];
+  var STATUS_LABEL = { recall:'Recall', quarantine:'Quarantine', quality:'Quality hold' };
+  var STATUS_PILL = { recall:'pill-recall', quarantine:'pill-quarantine', quality:'pill-quarantine' };
+  var TASK_LABEL = { open:'Not started', assigned:'Assigned', pulled:'Pulled' };
+  var TASK_PILL = { open:'pill-pending', assigned:'pill-info', pulled:'pill-good' };
+  var activeId = 'b1';
+
+  function findBatch(id){ for (var i=0;i<BATCHES.length;i++) if (BATCHES[i].id===id) return BATCHES[i]; }
+
+  function renderStrip(){
+    var host = document.getElementById('batchStrip');
+    host.innerHTML = BATCHES.map(function(b){
+      var totalUnits = b.locations.reduce(function(s,l){ return s + l.units; }, 0);
+      return '<button type="button" class="battab'+(b.id===activeId?' active':'')+'" data-id="'+b.id+'">'
+        + '<span class="pill '+STATUS_PILL[b.status]+'">'+STATUS_LABEL[b.status]+'</span>'
+        + '<span class="bt-name">'+esc(b.name)+'</span>'
+        + '<span class="bt-meta">Batch '+esc(b.batchNo)+' · '+totalUnits+' units across '+b.locations.length+' locations</span>'
+        + '</button>';
+    }).join('');
+    host.querySelectorAll('.battab').forEach(function(btn){
+      btn.addEventListener('click', function(){ selectBatch(btn.getAttribute('data-id')); });
+    });
+  }
+
+  function attrib(who, when, verb){
+    if (!who || who==='—') return '<span class="attrib empty">Awaiting '+verb+'</span>';
+    return '<span class="attrib"><span class="who">'+esc(who)+'</span>'+(when?'<span class="when">'+esc(when)+'</span>':'')+'</span>';
+  }
+
+  function renderDetail(){
+    var b = findBatch(activeId);
+    var totalUnits = b.locations.reduce(function(s,l){ return s + l.units; }, 0);
+    var pulled = b.locations.filter(function(l){ return l.task==='pulled'; }).length;
+
+    document.getElementById('bdHead').innerHTML =
+      '<div class="bd-main"><div class="bd-name">'+esc(b.name)+' <span class="pill '+STATUS_PILL[b.status]+'">'+STATUS_LABEL[b.status]+'</span></div>'
+      + '<div class="bd-sku">Batch '+esc(b.batchNo)+' · Metrc '+esc(b.metrcTag)+'</div></div>'
+      + '<div class="bdstat"><div class="k">THC</div><div class="v">'+b.thc+'%</div></div>'
+      + '<div class="bdstat"><div class="k">Packaged</div><div class="v">'+b.packaged+'</div></div>'
+      + '<div class="bdstat"><div class="k">Units held</div><div class="v">'+totalUnits+'</div></div>'
+      + '<div class="bdstat"><div class="k">Locations pulled</div><div class="v">'+pulled+' / '+b.locations.length+'</div></div>'
+      + '<div class="haltflag"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M4.9 4.9l14.2 14.2"/></svg>Allocation halted</div>';
+
+    document.getElementById('reasonRow').innerHTML =
+      '<b>'+esc(b.reasonTitle)+'.</b> '+esc(b.reasonBody)+' <span style="color:var(--inkMute);">— opened by '+esc(b.initiatedBy)+', '+esc(b.initiatedAt)+'.</span>';
+
+    document.getElementById('ledgerBody').innerHTML = b.locations.map(function(l, i){
+      var icon = LOCICON[l.type] || LOCICON.safe;
+      var btns = '';
+      if (l.task === 'open') btns = '<button class="btn btn-ghost btn-sm" data-act="assign" data-i="'+i+'">Assign</button>';
+      else if (l.task === 'assigned') btns = '<button class="btn btn-good btn-sm" data-act="pull" data-i="'+i+'">Mark pulled</button>';
+      return '<tr>'
+        + '<td><div class="locname"><span class="locicon">'+icon+'</span>'+esc(l.loc)+'</div></td>'
+        + '<td class="num">'+l.units+'</td>'
+        + '<td><span class="pill '+TASK_PILL[l.task]+'">'+TASK_LABEL[l.task]+'</span></td>'
+        + '<td>'+attrib(l.pickedBy, l.pickedAt, 'a picker')+'</td>'
+        + '<td>'+attrib(l.approvedBy, l.approvedAt, 'manager approval')+'</td>'
+        + '<td><div class="taskbtns">'+btns+'</div></td>'
+        + '</tr>';
+    }).join('');
+
+    renderWaste(b);
+
+    document.getElementById('metrcTag').textContent = b.metrcTag;
+    document.getElementById('retrievalBody').innerHTML = b.retrieval.map(function(r){
+      return '<tr class="'+(r.contact?'contact':'')+'"><td class="tagid">'+esc(r.tag)+'</td><td>'+esc(r.loc)+'</td>'
+        + '<td>'+(r.contact ? '<span class="pill pill-recall">Sold — contact required</span>' : '<span class="pill '+(r.outcome==='quarantined'?'pill-quarantine':'pill-pending')+'">'+esc(r.outcome)+'</span>')+'</td>'
+        + '<td>'+esc(r.by)+'</td></tr>';
+    }).join('');
+  }
+
+  function renderWaste(b){
+    var host = document.getElementById('wasteBody');
+    if (!b.waste.length){ host.innerHTML = '<div class="empty-state">No waste marked yet for this batch — the pull tasks above come first. This is a real empty state, not a hidden setting.</div>'; return; }
+    host.innerHTML = b.waste.map(function(w, i){
+      var cls = w.status==='approved' ? 'approved' : (w.status==='rejected' ? 'rejected' : '');
+      var actions = '';
+      if (w.status==='pending') actions = '<button class="btn btn-good btn-sm" data-wact="approve" data-wi="'+i+'">Approve</button><button class="btn btn-bad btn-sm" data-wact="reject" data-wi="'+i+'">Reject</button>';
+      else if (w.status==='unmarked') actions = '<span class="pill pill-pending">Awaiting pull</span>';
+      else if (w.status==='approved') actions = '<span class="pill pill-good">Posted to waste</span>';
+      else actions = '<span class="pill pill-pending">Returned to quarantine</span>';
+      return '<div class="wastecard '+cls+'">'
+        + '<div class="wc-main"><div class="wc-title">'+esc(w.loc)+' · '+w.qty+' units</div>'
+        + '<div class="wc-reason">Reason: '+esc(w.reason)+'</div>'
+        + '<div class="wc-sub">'+attrib(w.markedBy, w.markedAt, 'a pull')+'</div>'
+        + '<div class="wc-sub">Approval: '+attrib(w.approvedBy, w.approvedAt, 'manager approval')+'</div></div>'
+        + '<div class="wc-actions">'+actions+'</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  function selectBatch(id){
+    activeId = id;
+    document.querySelectorAll('.battab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-id')===id); });
+    renderDetail();
+  }
+
+  /* ---------------- events ---------------- */
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('[data-act]');
+    if (t){
+      var b = findBatch(activeId), i = +t.getAttribute('data-i'), loc = b.locations[i];
+      var act = t.getAttribute('data-act');
+      var now = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
+      if (act==='assign'){ loc.task='assigned'; loc.pickedBy='You'; loc.pickedAt=null; }
+      else if (act==='pull'){ loc.task='pulled'; loc.pickedAt=now; loc.approvedBy=null; }
+      renderDetail();
+      return;
+    }
+    var w = e.target.closest('[data-wact]');
+    if (w){
+      var bb = findBatch(activeId), wi = +w.getAttribute('data-wi'), item = bb.waste[wi];
+      var act2 = w.getAttribute('data-wact');
+      var now2 = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit'}).format(new Date());
+      item.status = act2==='approve' ? 'approved' : 'rejected';
+      item.approvedBy = 'You (manager)'; item.approvedAt = now2;
+      renderWaste(bb);
+      return;
+    }
+  });
+
+  document.getElementById('printBtn').addEventListener('click', function(){ window.print(); });
+
+  /* ---------------- boot ---------------- */
+  renderStrip();
+  renderDetail();
+})();
+</script>
+</body>
+</html>

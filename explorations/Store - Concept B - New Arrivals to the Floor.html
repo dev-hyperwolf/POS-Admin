@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Store — Concept B — New Arrivals to the Floor</title>
+<style>
+/* ============================================================================
+   Store — Concept B — New Arrivals to the Floor. The store's received ledger:
+   every arrival today in three kinds (new SKU, restock, new batch of a SKU
+   already carried), each with a plain-words disposition, never a bare skip.
+   One-tap "Put out now"; premium ages visibly the longer it sits in the safe.
+   The ledger shows who received it and who put it away — the attribution
+   rule added this round. Row/tone language borrows the keeper vocabulary
+   from Distribution Refill Concept B (Box Cards): tinted rows, never silent.
+   Tokens copied inline from pos/tokens.jsx; rail/header shape from Hyperwolf
+   Bounty.html. No build step, no external requests. Every name, product,
+   quantity and time below is EXAMPLE DATA.
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:19px; --f-h1:27px; --f-numRow:15px; --f-numTotal:21px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --cat-flower:#3F9E72; --cat-preroll:#D45A3C; --cat-vape:#3F73D6; --cat-concentrate:#C2841D; --cat-edible:#E0477C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+  --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;font-family:var(--fontSans);}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;margin:14px 24px 0;}
+
+.content{flex:1;padding:14px 24px 30px;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);margin-bottom:14px;overflow:hidden;}
+.card-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hairline2);flex-wrap:wrap;}
+.card-head h2{margin:0;font-size:var(--f-h2);font-weight:700;}
+.card-head .hint{font-size:var(--f-meta);color:var(--inkMute);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 14px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-sm{height:30px;font-size:var(--f-meta);padding:0 11px;}
+
+/* stat tiles */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:14px;}
+.stat{position:relative;overflow:hidden;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface);box-shadow:var(--shadowSm);padding:12px;}
+.stat::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--sc,var(--neutral));}
+.stat .slabel{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);}
+.stat .sval{margin-top:6px;font-family:var(--fontMono);font-size:26px;font-weight:600;color:var(--ink);}
+.stat .ssub{margin-top:3px;font-size:11.5px;color:var(--inkDim);}
+
+/* filter chips */
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:0 14px 14px;}
+.fchip{height:30px;padding:0 13px;border-radius:99px;border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);font-size:var(--f-meta);font-weight:600;cursor:pointer;}
+.fchip.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+
+/* arrival rows */
+.arrival-list{display:flex;flex-direction:column;}
+.arow{display:flex;gap:14px;padding:14px 16px;border-bottom:1px solid var(--hairline);align-items:flex-start;flex-wrap:wrap;}
+.arow:last-child{border-bottom:none;}
+.arow.done{opacity:.72;}
+.cat-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:0 0 auto;background:var(--cd,var(--neutral));}
+.arow-main{flex:1 1 260px;min-width:220px;}
+.arow-main .aname{font-size:var(--f-strong);font-weight:700;}
+.arow-main .ameta{font-size:var(--f-meta);color:var(--inkMute);margin-top:2px;}
+.kindpill{display:inline-flex;align-items:center;height:19px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-right:6px;}
+.kindpill.new{background:var(--accentSoft);color:var(--accentText);}
+.kindpill.restock{background:var(--infoSoft);color:var(--info);}
+.kindpill.newbatch{background:var(--warnSoft);color:var(--warnText);}
+
+.batchchip{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:var(--f-meta);color:var(--inkDim);background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r8);padding:5px 9px;margin-top:7px;}
+.batchchip b{font-family:var(--fontMono);color:var(--ink);}
+.existingnote{display:flex;align-items:center;gap:6px;font-size:var(--f-meta);color:var(--warnText);background:var(--warnSoft);border-radius:var(--r8);padding:5px 9px;margin-top:6px;width:fit-content;}
+.agechip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:800;margin-top:6px;letter-spacing:.02em;}
+.agechip.age0{background:var(--goodSoft);color:var(--good);}
+.agechip.age1{background:var(--warnSoft);color:var(--warnText);}
+.agechip.age2{background:var(--badSoft);color:var(--bad);}
+.attrline{font-size:var(--f-meta);color:var(--inkMute);margin-top:7px;}
+.attrline b{color:var(--ink2);font-weight:700;}
+.attrline.putaway b{color:var(--good);}
+
+.arow-action{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:170px;}
+.disp-onfloor{display:inline-flex;align-items:center;gap:6px;color:var(--good);font-weight:700;font-size:var(--f-body);}
+.holdreason{width:190px;height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:var(--f-meta);padding:0 8px;}
+.heldtext{font-size:var(--f-meta);color:var(--warnText);text-align:right;max-width:190px;}
+.holdlink{background:none;border:none;color:var(--inkMute);font-size:var(--f-meta);cursor:pointer;text-decoration:underline;padding:0;}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 16px;align-items:center;}
+.legend .li{display:flex;align-items:center;gap:7px;font-size:var(--f-meta);color:var(--inkDim);}
+.legend .swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:10px 0 14px;}
+.toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;animation:fadeIn .16s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+  .example-banner{margin:14px 12px 0;}
+  .content{padding:12px;}
+  .arow{flex-direction:column;}
+  .arow-action{align-items:flex-start;width:100%;}
+  .holdreason,.heldtext{width:100%;max-width:none;text-align:left;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item active" title="Store"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l2-5h14l2 5"/><path d="M9 21v-6h6v6"/></svg><span class="lbl">Store</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Store · Corona</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>New Arrivals · Concept B</span></div>
+        <h1 class="h1">New Arrivals to the Floor</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">2:14 PM PT</div>
+        <div class="clock-sub">Receiving · Dana R.</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+      Design mockup — every product, name, quantity and time on this screen is example data, not a live receiving log.</div>
+
+    <div class="content">
+      <div class="card">
+        <div class="card-head"><h2>Received today</h2><span class="hint">Every arrival, three kinds, 100% accounted for — never a bare skip</span></div>
+        <div class="stats" id="statTiles"></div>
+        <div class="filters" id="filterChips"></div>
+        <div class="arrival-list" id="arrivalList"></div>
+      </div>
+
+      <div class="card">
+        <div class="legend">
+          <span class="li"><span class="kindpill new">New SKU</span></span>
+          <span class="li"><span class="kindpill restock">Restock</span></span>
+          <span class="li"><span class="kindpill newbatch">New Batch</span></span>
+          <span class="li"><span class="agechip age2" style="padding:0 8px;">2+ days, premium</span>Ages visibly the longer premium sits in the safe</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footerline">Store — Concept B of 4 — New Arrivals to the Floor</div>
+  </div>
+</div>
+
+<div id="overlayHost"></div>
+
+<script>
+(function(){
+  "use strict";
+  var ACTOR = 'Marcus D.';
+  var REASONS = ['Below par — not needed yet', 'Needs price tag / labeling', 'QA hold', 'Quarantine — held batch', 'Other'];
+
+  /* ---------------- theme + clock ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('store-arrivals-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('store-arrivals-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function toast(title, body){
+    var host = document.getElementById('overlayHost');
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<div style="font-weight:700;">'+title+'</div><div style="color:var(--inkDim);margin-top:2px;">'+body+'</div>';
+    host.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4400);
+  }
+
+  /* ---------------- EXAMPLE DATA: today's received ledger ---------------- */
+  var CATCOLOR = { flower:'var(--cat-flower)', vape:'var(--cat-vape)', preroll:'var(--cat-preroll)', edible:'var(--cat-edible)', concentrate:'var(--cat-concentrate)' };
+  var ARRIVALS = [
+    { id:'a1', kind:'new', name:'Rainbow Belts 3.5g', cat:'flower', qty:24, receivedAt:'6:05 AM', receivedBy:'Dana R.',
+      batch:{no:'B-8801', thc:26.8, packaged:'Sep 08'}, premium:true, ageDays:0, disp:'pending' },
+    { id:'a2', kind:'restock', name:'GG4 Pre-Roll 5-pack', cat:'preroll', qty:60, receivedAt:'6:10 AM', receivedBy:'Dana R.',
+      batch:{no:'B-8820', thc:24.1, packaged:'Sep 06'}, premium:false, disp:'floor', putAwayBy:'Marcus D.', putAwayAt:'7:02 AM' },
+    { id:'a3', kind:'newbatch', name:'Live Resin Cart 1g', cat:'vape', qty:22, receivedAt:'6:14 AM', receivedBy:'Dana R.',
+      batch:{no:'B-1090', thc:88.1, packaged:'Aug 20'}, existing:[{no:'B-1042', where:'510 + Pods shelf'}], premium:false, disp:'pending' },
+    { id:'a4', kind:'new', name:'Sungrown Rosin 1g', cat:'concentrate', qty:8, receivedAt:'6:20 AM', receivedBy:'Dana R.',
+      batch:{no:'B-8830', thc:76.4, packaged:'Sep 09'}, premium:true, ageDays:1, disp:'safe', holdReason:'Needs price tag / labeling', heldBy:'Dana R.' },
+    { id:'a5', kind:'restock', name:'Gummies 10mg 10-pack', cat:'edible', qty:36, receivedAt:'6:25 AM', receivedBy:'Whitney L.',
+      batch:{no:'B-4450', thc:null, packaged:'Sep 01'}, premium:false, disp:'pending' },
+    { id:'a6', kind:'newbatch', name:'Wedding Cake 3.5g', cat:'flower', qty:26, receivedAt:'6:31 AM', receivedBy:'Whitney L.',
+      batch:{no:'B-2455', thc:29.0, packaged:'Sep 08'}, existing:[{no:'B-2402', where:'Top Shelf Flower'}], premium:true, ageDays:0, disp:'pending' },
+    { id:'a7', kind:'new', name:'Single-Source Hash Rosin 0.5g', cat:'concentrate', qty:5, receivedAt:'6:38 AM', receivedBy:'Dana R.',
+      batch:{no:'B-8840', thc:81.2, packaged:'Sep 07'}, premium:true, ageDays:2, disp:'pending' }
+  ];
+  var activeFilter = 'all';
+
+  function statCounts(){
+    var c = { new:0, restock:0, newbatch:0, units:0 };
+    ARRIVALS.forEach(function(a){ c[a.kind]++; c.units += a.qty; });
+    return c;
+  }
+  function renderStats(){
+    var c = statCounts();
+    var tiles = [
+      { label:'New SKU', val:c.new, sub:'Never carried before', color:'var(--accentBorder)' },
+      { label:'Restock', val:c.restock, sub:'Was sold out, same batch line', color:'var(--info)' },
+      { label:'New Batch', val:c.newbatch, sub:'More of a SKU already on hand', color:'var(--warn)' },
+      { label:'Total units', val:c.units, sub:ARRIVALS.length+' lines received today', color:'var(--good)' }
+    ];
+    document.getElementById('statTiles').innerHTML = tiles.map(function(t){
+      return '<div class="stat" style="--sc:'+t.color+'"><div class="slabel">'+t.label+'</div><div class="sval">'+t.val+'</div><div class="ssub">'+t.sub+'</div></div>';
+    }).join('');
+  }
+  function renderFilters(){
+    var defs = [['all','All'],['new','New SKU'],['restock','Restock'],['newbatch','New Batch'],['premium','Premium only']];
+    document.getElementById('filterChips').innerHTML = defs.map(function(d){
+      return '<button class="fchip'+(d[0]===activeFilter?' active':'')+'" data-f="'+d[0]+'">'+d[1]+'</button>';
+    }).join('');
+    document.querySelectorAll('.fchip').forEach(function(b){ b.addEventListener('click', function(){ activeFilter = b.getAttribute('data-f'); renderFilters(); renderList(); }); });
+  }
+
+  function ageClass(days){ return days<=0 ? 'age0' : (days===1 ? 'age1' : 'age2'); }
+  function ageLabel(days){ return days<=0 ? 'Received today' : ('Received '+days+' day'+(days>1?'s':'')+' ago — still in the safe'); }
+
+  function renderRow(a){
+    var kindLabel = a.kind==='new' ? 'New SKU' : (a.kind==='restock' ? 'Restock' : 'New Batch');
+    var html = '<div class="arow'+(a.disp==='floor'?' done':'')+'" data-id="'+a.id+'">'
+      + '<span class="cat-dot" style="--cd:'+CATCOLOR[a.cat]+'"></span>'
+      + '<div class="arow-main">'
+      + '<div class="aname"><span class="kindpill '+a.kind+'">'+kindLabel+'</span>'+esc(a.name)+' <span style="color:var(--inkMute);font-weight:500;">× '+a.qty+'</span></div>'
+      + '<div class="batchchip"><b>'+a.batch.no+'</b><span>THC '+(a.batch.thc!=null?a.batch.thc+'%':'n/a')+'</span><span>Packaged '+a.batch.packaged+'</span></div>';
+    if (a.kind==='newbatch' && a.existing && a.existing.length){
+      html += '<div class="existingnote"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9.3"/></svg>'
+        + a.existing.map(function(e){ return e.no+' already on hand ('+e.where+')'; }).join('; ') + ' — do not say "no stock."</div>';
+    }
+    if (a.premium){
+      var days = a.disp==='floor' ? 0 : (a.ageDays||0);
+      html += '<div><span class="agechip '+ageClass(days)+'">'+ageLabel(days)+'</span></div>';
+    }
+    html += '<div class="attrline">Received by <b>'+esc(a.receivedBy)+'</b> · '+a.receivedAt+'</div>';
+    if (a.disp==='floor') html += '<div class="attrline putaway">Put away by <b>'+esc(a.putAwayBy)+'</b> · '+a.putAwayAt+'</div>';
+    if (a.disp==='safe') html += '<div class="attrline">Held in safe by <b>'+esc(a.heldBy)+'</b> — '+esc(a.holdReason)+'</div>';
+    html += '</div>';
+
+    html += '<div class="arow-action">';
+    if (a.disp==='floor'){
+      html += '<span class="disp-onfloor"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>On floor</span>';
+    } else if (a.disp==='safe'){
+      html += '<button class="btn btn-primary btn-sm" data-putout="'+a.id+'">Put out now</button>';
+      html += '<button class="holdlink" data-clearhold="'+a.id+'">Clear hold</button>';
+    } else {
+      html += '<button class="btn btn-primary btn-sm" data-putout="'+a.id+'">Put out now</button>';
+      html += '<select class="holdreason" data-holdselect="'+a.id+'"><option value="">Hold in safe — why not?</option>'
+        + REASONS.map(function(r){ return '<option value="'+esc(r)+'">'+esc(r)+'</option>'; }).join('') + '</select>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderList(){
+    var list = ARRIVALS.filter(function(a){
+      if (activeFilter==='premium') return a.premium;
+      if (activeFilter==='all') return true;
+      return a.kind===activeFilter;
+    });
+    document.getElementById('arrivalList').innerHTML = list.map(renderRow).join('') || '<div class="arow"><div class="arow-main">No arrivals match this filter.</div></div>';
+
+    document.querySelectorAll('[data-putout]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var a = ARRIVALS.filter(function(x){ return x.id===b.getAttribute('data-putout'); })[0];
+        a.disp = 'floor'; a.putAwayBy = ACTOR; a.putAwayAt = 'just now'; delete a.holdReason; delete a.heldBy;
+        renderList();
+        toast('On the floor', esc(a.name)+' put out by '+ACTOR+'.');
+      });
+    });
+    document.querySelectorAll('[data-clearhold]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var a = ARRIVALS.filter(function(x){ return x.id===b.getAttribute('data-clearhold'); })[0];
+        a.disp = 'pending'; delete a.holdReason; delete a.heldBy;
+        renderList();
+      });
+    });
+    document.querySelectorAll('[data-holdselect]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        if (!sel.value) return;
+        var a = ARRIVALS.filter(function(x){ return x.id===sel.getAttribute('data-holdselect'); })[0];
+        a.disp = 'safe'; a.holdReason = sel.value; a.heldBy = ACTOR;
+        renderList();
+        toast('Held in safe', esc(a.name)+' — '+sel.value+'.');
+      });
+    });
+  }
+
+  /* ---------------- boot ---------------- */
+  renderStats();
+  renderFilters();
+  renderList();
+})();
+</script>
+</body>
+</html>

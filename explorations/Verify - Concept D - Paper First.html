@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Verify — Concept D — Paper First</title>
+<style>
+/* ============================================================================
+   Verify — Concept D — Paper First
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK); rail
+   shell copied from Hyperwolf Bounty.html. The printed pick slip is the
+   primary artifact: box order, batch numbers, THC, packaged date, the LOUD
+   mixed-batch flag, a QR per kit, and "picked by / packed by / verified by"
+   lines. The tablet shows the identical lines for the trained team, with a
+   paper/tablet switch saved per station. No build step, no external
+   requests. All names, products, batches and times are EXAMPLE data.
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:11px; --f-meta:12.5px; --f-body:14px; --f-strong:16px; --f-title:18px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentText:#7A5A00;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.22);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentText:#FFD100;
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentText:#FFD100;
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.26);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+button:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:72px;flex:0 0 72px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 6px;gap:2px;position:sticky;top:0;height:100vh;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;color:var(--accentInk);flex:0 0 auto;}
+.rail-item{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-6px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:600;white-space:nowrap;}
+.rail-spacer{flex:1;}
+.rail-bottom{width:100%;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap;}
+.titleblock{margin-right:auto;min-width:160px;}
+.h1{font-size:var(--f-h1);font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.1;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+
+.example-banner{display:flex;align-items:center;gap:8px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:8px 14px;font-size:var(--f-meta);font-weight:600;margin:12px 18px 0;}
+
+.stationbar{display:flex;align-items:center;gap:14px;margin:10px 18px 0;padding:10px 14px;border-radius:var(--r12);border:1px solid var(--hairline2);background:var(--surface2);flex-wrap:wrap;}
+.stationbar label{font-size:var(--f-meta);color:var(--inkMute);font-weight:600;}
+.stationbar select{height:36px;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 8px;font-size:var(--f-meta);}
+.modepill{display:inline-flex;gap:2px;background:var(--surface3);border-radius:99px;padding:2px;}
+.modepill button{border:none;background:transparent;border-radius:99px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--inkDim);}
+.modepill button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.stationnote{font-size:11.5px;color:var(--inkMute);margin-left:auto;}
+
+.kittabs{display:flex;gap:8px;padding:12px 18px 0;flex-wrap:wrap;}
+.kittab{padding:9px 16px;border-radius:99px;border:1px solid var(--hairline2);background:var(--surface);font-size:12.5px;font-weight:700;cursor:pointer;color:var(--inkDim);}
+.kittab.active{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.kittab .mx{color:var(--bad);font-weight:800;}
+
+.workarea{flex:1;padding:16px 18px 30px;display:flex;justify-content:center;}
+
+/* ---- paper preview: a Letter-shaped page on a tray ---- */
+.papertray{background:var(--bg2);border-radius:var(--r16);padding:22px;width:100%;max-width:900px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.printbar{display:flex;gap:10px;align-items:center;width:100%;max-width:640px;}
+.printbar .note{font-size:11.5px;color:var(--inkMute);margin-left:auto;}
+.sheet{background:#fff;color:#111;width:100%;max-width:640px;aspect-ratio:8.5/11;box-shadow:var(--shadowLg);border-radius:2px;padding:34px 38px;font-size:12px;overflow-y:auto;}
+.sheet .s-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:12px;}
+.sheet .s-title{font-size:17px;font-weight:800;}
+.sheet .s-meta{font-size:11px;color:#444;margin-top:2px;line-height:1.5;}
+.sheet .qr{width:64px;height:64px;flex:0 0 auto;background:
+  repeating-linear-gradient(0deg,#111 0 4px,transparent 4px 8px),
+  repeating-linear-gradient(90deg,#111 0 4px,transparent 4px 8px);
+  background-blend-mode:multiply;border:5px solid #fff;box-shadow:0 0 0 1.5px #111;}
+.sheet .qr-cap{font-size:8.5px;text-align:center;color:#555;margin-top:3px;}
+.sheet .s-box{margin-bottom:10px;}
+.sheet .s-boxname{font-weight:800;font-size:12.5px;background:#eee;padding:3px 6px;border-radius:3px;margin-bottom:3px;}
+.sheet table{width:100%;border-collapse:collapse;font-size:10.6px;}
+.sheet th{text-align:left;font-size:8.5px;text-transform:uppercase;letter-spacing:.03em;color:#555;padding:3px 4px;border-bottom:1px solid #999;}
+.sheet td{padding:3px 4px;border-bottom:1px solid #ddd;}
+.sheet tr.loudrow td{background:#fbdcd6;font-weight:700;}
+.sheet .loudtag{font-size:8px;font-weight:800;color:#a3271b;border:1px solid #a3271b;border-radius:3px;padding:0 3px;margin-left:4px;}
+.sheet .s-sign{margin-top:16px;border-top:1px solid #999;padding-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.sheet .s-sign div{font-size:9px;color:#333;}
+.sheet .s-sign .line{border-bottom:1px solid #111;height:22px;margin-bottom:3px;display:flex;align-items:flex-end;font-size:10px;font-weight:700;color:#111;}
+.sheet .s-foot{margin-top:10px;font-size:8.5px;color:#777;text-align:center;}
+
+/* ---- tablet mode: same lines, on-screen, checkable ---- */
+.tabletcard{width:100%;max-width:640px;background:var(--surface);border-radius:var(--r16);box-shadow:var(--shadowMd);padding:18px 20px;}
+.tabletcard .t-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--hairline2);padding-bottom:10px;margin-bottom:10px;}
+.tabletcard .t-title{font-size:var(--f-title);font-weight:800;}
+.tabletcard .t-meta{font-size:11.5px;color:var(--inkMute);margin-top:2px;}
+.tbox{margin-bottom:12px;}
+.tbox .tboxname{font-weight:800;font-size:13px;background:var(--surface3);padding:6px 10px;border-radius:var(--r8);margin-bottom:6px;}
+.trow{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid var(--hairline);}
+.trow input[type=checkbox]{width:22px;height:22px;flex:0 0 auto;accent-color:var(--good);}
+.trow .tname{flex:1;font-size:13px;font-weight:700;}
+.trow .tsub{font-size:11px;color:var(--inkMute);font-weight:500;}
+.trow.checked .tname{text-decoration:line-through;color:var(--inkMute);}
+.trow .tloud{font-size:9.5px;font-weight:800;color:var(--bad);border:1px solid var(--bad);background:var(--badSoft);border-radius:5px;padding:1px 5px;margin-left:6px;}
+.signrow{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.signbtn{flex:1;min-width:160px;height:52px;border-radius:var(--r10);border:1px dashed var(--hairline3);background:var(--surface2);color:var(--inkDim);font-size:12.5px;font-weight:700;cursor:pointer;text-align:left;padding:0 14px;}
+.signbtn.signed{border-style:solid;border-color:var(--good);background:var(--goodSoft);color:var(--good);}
+.signbtn .sb-k{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;opacity:.75;}
+.closebyqr{margin-top:14px;display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r10);border:1px dashed var(--hairline3);}
+.qrmini{width:44px;height:44px;flex:0 0 auto;background:repeating-linear-gradient(0deg,var(--ink) 0 3px,transparent 3px 6px),repeating-linear-gradient(90deg,var(--ink) 0 3px,transparent 3px 6px);background-blend-mode:multiply;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 16px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:20px;}
+.modal{background:var(--surface);border-radius:var(--r20);width:100%;max-width:360px;padding:22px;box-shadow:var(--shadowLg);}
+.modal h2{margin:0 0 6px;font-size:var(--f-title);}
+.modal p{font-size:12.5px;color:var(--inkDim);}
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+.pinpad button{height:48px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface2);font-size:17px;font-weight:700;cursor:pointer;}
+.pindots{display:flex;gap:10px;justify-content:center;margin:12px 0 0;}
+.pindots span{width:13px;height:13px;border-radius:50%;border:2px solid var(--hairline3);}
+.pindots span.filled{background:var(--ink);border-color:var(--ink);}
+
+.toast{position:fixed;right:18px;bottom:20px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;}
+.footer{padding:10px 20px;font-size:var(--f-meta);color:var(--inkMute);border-top:1px solid var(--hairline2);}
+
+/* ---- print: the sheet, and only the sheet, at Letter ---- */
+@media print{
+  @page{ size: letter; margin: 0.5in; }
+  body{ background:#fff !important; }
+  .rail,.topbar,.example-banner,.stationbar,.kittabs,.printbar,.footer,.papertray{ display:none !important; }
+  .print-root{ display:block !important; }
+  .print-root .sheet{ box-shadow:none !important; border-radius:0 !important; width:100% !important; max-width:none !important; aspect-ratio:auto !important; padding:0 !important; margin:0 !important; page-break-after:always; }
+  .print-root .sheet:last-child{ page-break-after:auto; }
+}
+.print-root{ display:none; }
+
+@media (max-width: 760px){
+  .rail{width:58px;flex-basis:58px;}
+  .rail-item .lbl{display:none;}
+  .h1{font-size:20px;}
+  .sheet .s-sign{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <button class="rail-item" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+    <button class="rail-item" title="Kit templates"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+    <button class="rail-item active" title="Distribution"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+    <button class="rail-item" title="Driver kits"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom"><button class="rail-item" title="Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82"/></svg><span class="lbl">Settings</span></button></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb">Distribution · Verify</div>
+        <h1 class="h1">Paper First</h1>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle theme">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="example-banner">Design mockup — every name, product, batch number, quantity and time on this screen is example data.</div>
+
+    <div class="stationbar">
+      <label for="stationSel">This station</label>
+      <select id="stationSel">
+        <option value="receiving">Receiving</option>
+        <option value="packing" selected>Packing Bench</option>
+        <option value="lp">LP Bench</option>
+      </select>
+      <div class="modepill" id="modePill"><button data-mode="paper" class="active">Paper</button><button data-mode="tablet">Tablet</button></div>
+      <div class="stationnote" id="stationNote"></div>
+    </div>
+
+    <div class="kittabs" id="kitTabs"></div>
+
+    <div class="workarea" id="workarea"></div>
+
+    <div class="footer">Verify — Concept D of 4 — Paper First</div>
+  </div>
+</div>
+
+<div class="overlay" id="pinOverlay" style="display:none;">
+  <div class="modal">
+    <h2 id="pinTitle">Sign</h2>
+    <p>Enter your 4-digit PIN to stamp this line as done, with your name and the time.</p>
+    <div class="pindots" id="pinDots"></div>
+    <div class="pinpad" id="pinPad"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $ = function(s,r){ return (r||document).querySelector(s); };
+var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+
+/* ---------- theme ---------- */
+var root = document.documentElement;
+try{ var saved = localStorage.getItem('hw-paperfirst-theme'); if(saved) root.setAttribute('data-theme', saved); }catch(e){}
+$('#themeToggle').addEventListener('click', function(){
+  var cur = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  try{ localStorage.setItem('hw-paperfirst-theme', next); }catch(e){}
+});
+function toast(msg){
+  var t = document.createElement('div'); t.className='toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 3600);
+}
+
+/* ---------- data: EXAMPLE ONLY. same plan, same lines, on paper or on tablet ---------- */
+var STAFF = {'2201':'Dana K.','4471':'Priya S.','1010':'Tomás G.'};
+var KITS = [
+  {
+    id:'k1', driver:'Marcus R.', route:'Route 3', region:'West LA', kitCode:'DK1-0910-A',
+    boxes:[
+      { name:'Flower Box 1', items:[
+        {sku:'Sunset OG 3.5g', batch:'B-2291', thc:'24.8%', packed:'08/22/26', qty:20},
+        {sku:'Blue Dream 3.5g', batch:'B-1187 + B-2205', thc:'22.4% / 27.9%', packed:'06/12/26 + 08/02/26', qty:10, mixed:true}
+      ]},
+      { name:'Pre-Roll Box 1', items:[
+        {sku:'Indica 5-pack', batch:'B-1900', thc:'—', packed:'08/10/26', qty:14}
+      ]},
+      { name:'Vape Box 1', items:[
+        {sku:'Live Resin Cart 1g', batch:'B-2077', thc:'82.4%', packed:'08/05/26', qty:16}
+      ]}
+    ],
+    picked:null, packed:null, verified:null
+  },
+  {
+    id:'k2', driver:'Priya K.', route:'Route 5', region:'West LA', kitCode:'DK1-0910-B',
+    boxes:[
+      { name:'Flower Box 1', items:[
+        {sku:'Sunset OG 3.5g', batch:'B-2291', thc:'24.8%', packed:'08/22/26', qty:12}
+      ]},
+      { name:'Pre-Roll Box 1', items:[
+        {sku:'Sativa Singles', batch:'B-1955', thc:'—', packed:'08/09/26', qty:10}
+      ]}
+    ],
+    picked:null, packed:null, verified:null
+  }
+];
+var mode = 'paper';
+var station = 'packing';
+var selectedKitId = KITS[0].id;
+
+function loadStationMode(){
+  try{ var m = localStorage.getItem('hw-paperfirst-mode-'+station); if(m) mode = m; else mode='paper'; }catch(e){ mode='paper'; }
+}
+function saveStationMode(){
+  try{ localStorage.setItem('hw-paperfirst-mode-'+station, mode); }catch(e){}
+}
+
+$('#stationSel').addEventListener('change', function(){
+  station = this.value; loadStationMode(); renderModePill(); renderAll();
+});
+function renderModePill(){
+  $$('#modePill button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-mode')===mode); });
+  $('#stationNote').textContent = 'Each station remembers its own mode — this is ' + labelFor(station) + '’s ' + mode + ' view.';
+}
+function labelFor(s){ return s==='receiving'?'Receiving':s==='packing'?'the Packing Bench':'the LP Bench'; }
+$$('#modePill button').forEach(function(b){
+  b.addEventListener('click', function(){ mode = b.getAttribute('data-mode'); saveStationMode(); renderModePill(); renderAll(); });
+});
+
+function renderKitTabs(){
+  $('#kitTabs').innerHTML = KITS.map(function(k){
+    var hasMixed = k.boxes.some(function(bx){ return bx.items.some(function(i){ return i.mixed; }); });
+    return '<button class="kittab'+(k.id===selectedKitId?' active':'')+'" data-kit="'+k.id+'">'+k.driver+' · '+k.route+(hasMixed?' <span class="mx">MIXED</span>':'')+'</button>';
+  }).join('');
+  $$('.kittab').forEach(function(b){ b.addEventListener('click', function(){ selectedKitId = b.getAttribute('data-kit'); renderAll(); }); });
+}
+
+function renderAll(){ renderKitTabs(); renderWork(); }
+
+function renderWork(){
+  var k = KITS.filter(function(x){ return x.id===selectedKitId; })[0];
+  var wa = $('#workarea');
+  wa.innerHTML = mode==='paper' ? paperHtml(k) : tabletHtml(k);
+  wireCommon(k);
+}
+
+function boxRows(k, forPrint){
+  return k.boxes.map(function(bx){
+    var rows = bx.items.map(function(i){
+      return '<tr class="'+(i.mixed?'loudrow':'')+'"><td>'+i.sku+(i.mixed?'<span class="loudtag">MIXED BATCH</span>':'')+'</td><td>'+i.batch+'</td><td>'+i.thc+'</td><td>'+i.packed+'</td><td style="text-align:right;">'+i.qty+'</td></tr>';
+    }).join('');
+    return '<div class="s-box"><div class="s-boxname">'+bx.name+'</div><table><thead><tr><th>Product</th><th>Batch</th><th>THC</th><th>Packaged</th><th style="text-align:right;">Qty</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+}
+
+function paperHtml(k){
+  return '<div class="papertray">'
+    + '<div class="printbar"><button class="btn btn-primary" id="printBtn">🖨️ Print pick slip</button><span class="note">Prints one Letter page per kit, QR included.</span></div>'
+    + '<div class="sheet-view">' + sheetMarkup(k) + '</div>'
+    + '<div class="print-root" id="printRoot">' + KITS.map(sheetMarkup).join('') + '</div>'
+    + '</div>';
+}
+function sheetMarkup(k){
+  return '<div class="sheet">'
+    + '<div class="s-head"><div><div class="s-title">Pick Slip — '+k.kitCode+'</div><div class="s-meta">Driver: '+k.driver+' · '+k.route+' · '+k.region+'<br>Business day Thu Sep 10 · printed '+nowStr()+'</div></div>'
+    + '<div><div class="qr"></div><div class="qr-cap">scan to close kit</div></div></div>'
+    + boxRows(k)
+    + '<div class="s-sign">'
+    + signCell('Picked by', k.picked) + signCell('Packed by', k.packed) + signCell('Verified by', k.verified)
+    + '</div>'
+    + '<div class="s-foot">Two batches on one line print LOUD — oldest batch first, always. Every name, batch and quantity is EXAMPLE data.</div>'
+    + '</div>';
+}
+function signCell(label, val){
+  return '<div><div class="line">'+(val?val:'')+'</div>'+label+' &amp; time</div>';
+}
+function nowStr(){
+  var d = new Date(); var h=d.getHours()%12; if(h===0)h=12;
+  return h+':'+String(d.getMinutes()).padStart(2,'0')+' '+(d.getHours()<12?'AM':'PM');
+}
+
+function tabletHtml(k){
+  var boxesHtml = k.boxes.map(function(bx){
+    var rows = bx.items.map(function(i,idx){
+      var key = k.id+'-'+bx.name+'-'+idx;
+      return '<label class="trow" data-line="'+key+'"><input type="checkbox" data-line="'+key+'"><div style="flex:1;"><div class="tname">'+i.sku+(i.mixed?'<span class="tloud">MIXED BATCH</span>':'')+'</div><div class="tsub">'+i.batch+' · '+i.thc+' THC · packaged '+i.packed+' · qty '+i.qty+'</div></div></label>';
+    }).join('');
+    return '<div class="tbox"><div class="tboxname">'+bx.name+'</div>'+rows+'</div>';
+  }).join('');
+  return '<div class="tabletcard">'
+    + '<div class="t-head"><div><div class="t-title">'+k.kitCode+' — '+k.driver+'</div><div class="t-meta">'+k.route+' · '+k.region+' · same lines as the printed slip</div></div><div class="qrmini" title="Tap to close by scan"></div></div>'
+    + boxesHtml
+    + '<div class="signrow">'
+    + signBtn('picked', k.picked) + signBtn('packed', k.packed) + signBtn('verified', k.verified)
+    + '</div>'
+    + '<div class="closebyqr"><div class="qrmini"></div><div style="font-size:12px;color:var(--inkDim);">Bench closes this kit by scanning the same QR that prints on paper — same artifact, either way.</div></div>'
+    + '</div>';
+}
+function signBtn(kind, val){
+  var label = kind==='picked'?'Picked by':kind==='packed'?'Packed by':'Verified by';
+  return '<button class="signbtn'+(val?' signed':'')+'" data-sign="'+kind+'"><span class="sb-k">'+label+'</span>'+(val?val:'Tap to sign')+'</button>';
+}
+
+function wireCommon(k){
+  var printBtn = $('#printBtn');
+  if(printBtn) printBtn.addEventListener('click', function(){ window.print(); });
+  $$('.trow input[type=checkbox]').forEach(function(cb){
+    cb.addEventListener('change', function(){ cb.closest('.trow').classList.toggle('checked', cb.checked); });
+  });
+  $$('.signbtn').forEach(function(b){
+    b.addEventListener('click', function(){ openPin(b.getAttribute('data-sign'), k); });
+  });
+  var qrTablet = $('.tabletcard .qrmini');
+  if(qrTablet) qrTablet.addEventListener('click', function(){ toast('Kit '+k.kitCode+' closed by QR scan.'); });
+}
+
+/* ---------- PIN sign-in, stamps name + time onto picked/packed/verified ---------- */
+var pinBuf = '', pinTarget = null, pinKit = null;
+function openPin(target, k){
+  pinTarget = target; pinKit = k; pinBuf = '';
+  $('#pinTitle').textContent = 'Sign as ' + (target==='picked'?'picker':target==='packed'?'packer':'verifier');
+  renderPinDots();
+  $('#pinOverlay').style.display='flex';
+}
+$('#pinPad').innerHTML = ['1','2','3','4','5','6','7','8','9','⌫','0','✓'].map(function(k){ return '<button data-k="'+k+'">'+k+'</button>'; }).join('');
+function renderPinDots(){ $('#pinDots').innerHTML = [0,1,2,3].map(function(i){ return '<span class="'+(i<pinBuf.length?'filled':'')+'"></span>'; }).join(''); }
+$$('#pinPad button').forEach(function(b){
+  b.addEventListener('click', function(){
+    var k = b.getAttribute('data-k');
+    if(k==='⌫'){ pinBuf = pinBuf.slice(0,-1); renderPinDots(); return; }
+    if(k==='✓'){ trySign(); return; }
+    if(pinBuf.length<4){ pinBuf += k; renderPinDots(); if(pinBuf.length===4) trySign(); }
+  });
+});
+function trySign(){
+  var name = STAFF[pinBuf];
+  if(name){
+    pinKit[pinTarget] = name + ' · ' + nowStr();
+    $('#pinOverlay').style.display='none';
+    toast(name+' signed as '+pinTarget+'.');
+    renderWork();
+  } else {
+    toast('PIN not recognized — try again.');
+    pinBuf=''; renderPinDots();
+  }
+}
+
+/* ---------- init ---------- */
+loadStationMode();
+renderModePill();
+renderAll();
+})();
+</script>
+</body>
+</html>

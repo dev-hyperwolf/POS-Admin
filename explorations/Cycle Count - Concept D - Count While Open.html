@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cycle Count — Concept D — Count While Open</title>
+<style>
+/* ============================================================================
+   Cycle Count — Concept D — Count While Open
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK) and
+   shared/hd-ui.jsx (table/pill patterns); rail/header shape copied from
+   Hyperwolf Bounty.html; box-panel stepper shape copied from
+   "Distribution Refill - Concept D - Tablet Packing.html" (keeper). No build
+   step, no external scripts or fonts. Every shelf, product, name and time on
+   this screen is EXAMPLE DATA — see the banner below the header.
+   ========================================================================= */
+:root{
+  --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  --fontMono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:18px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --cat-flower:#3F9E72; --cat-preroll:#D45A3C; --cat-vape:#3F73D6; --cat-concentrate:#C2841D; --cat-edible:#E0477C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+  --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;font-family:var(--fontSans);}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+.content{padding:20px 24px 40px;display:flex;flex-direction:column;gap:18px;max-width:1560px;width:100%;margin:0 auto;}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+.example-banner svg{flex:0 0 auto;}
+.banner{display:flex;align-items:flex-start;gap:12px;border-radius:var(--r12);padding:13px 16px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
+.banner.info{background:var(--infoSoft);border-color:var(--info);color:var(--info);}
+.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;color:inherit;}
+.banner .b-body{color:var(--inkDim);}
+.banner.info .b-body{color:var(--info);opacity:.92;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
+.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
+.card-body{padding:0 16px 16px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.btn-good:hover{background:var(--good);color:#fff;}
+.btn-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.btn-warn:hover{background:var(--warn);color:#fff;}
+.btn-sm{height:29px;padding:0 11px;font-size:var(--f-meta);border-radius:var(--r8);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+select.sel{height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 8px;font-size:var(--f-meta);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;border:1px solid transparent;text-transform:uppercase;letter-spacing:.03em;}
+.pill-done{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-active{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+.pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+.pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+
+/* ---- shelf grid ---- */
+.shelfrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;padding:6px 16px 16px;}
+.shelf{border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:13px;display:flex;flex-direction:column;gap:8px;border-top:3px solid var(--shelf-c,var(--neutral));}
+.shelf .stitle{display:flex;align-items:center;gap:7px;font-weight:700;font-size:var(--f-strong);}
+.shelf .catdot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
+.shelf .sassoc{font-size:var(--f-meta);color:var(--inkMute);}
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;font-size:var(--f-meta);font-weight:600;width:fit-content;}
+.chip-fresh{background:var(--goodSoft);color:var(--good);}
+.chip-stale{background:var(--warnSoft);color:var(--warnText);}
+.chip-none{background:var(--neutralSoft);color:var(--neutral);}
+.chip-flag{background:var(--badSoft);color:var(--bad);}
+.chip-counting{background:var(--accentSoft);color:var(--accentText);}
+.chip .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.shelf .sactions{display:flex;gap:8px;margin-top:auto;padding-top:4px;}
+.shelf .sactions .btn{flex:1;}
+
+/* ---- active windows ---- */
+.winrow{display:flex;align-items:center;gap:14px;padding:11px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.winrow:last-child{border-bottom:none;}
+.winrow .wname{font-weight:700;font-size:var(--f-strong);min-width:150px;}
+.winrow .wmeta{font-size:var(--f-meta);color:var(--inkMute);}
+.winrow .wticker{flex:1;min-width:220px;font-size:var(--f-meta);color:var(--info);}
+.winrow .spacer{flex:1;}
+
+/* ---- drawer (count entry), stepper look copied from Tablet Packing keeper ---- */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:20px;}
+.modal{background:var(--surface);border-radius:var(--r16);width:100%;max-width:640px;max-height:88vh;overflow-y:auto;padding:20px;box-shadow:var(--shadowLg);}
+.modal h2{margin:0 0 4px;font-size:var(--f-h2);}
+.modal .msub{font-size:var(--f-meta);color:var(--inkMute);margin-bottom:10px;}
+.prow{display:flex;align-items:center;gap:14px;padding:12px 8px;border-radius:var(--r12);margin-bottom:8px;border:1px solid var(--hairline);background:var(--surface2);flex-wrap:wrap;}
+.prow.amber{background:var(--warnSoft);border-color:var(--warn);}
+.prow .pname{flex:1 1 160px;min-width:140px;}
+.prow .pname b{font-size:var(--f-body);font-weight:700;display:block;}
+.prow .pname .sub{font-size:var(--f-meta);color:var(--inkMute);}
+.prow .stat2{display:flex;gap:14px;font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkDim);flex:0 0 auto;}
+.prow .stat2 div{text-align:center;}
+.prow .stat2 .k{font-size:10px;text-transform:uppercase;color:var(--inkMute);letter-spacing:.05em;}
+.stepper{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.stepbtn{width:38px;height:38px;border-radius:var(--r10);border:1px solid var(--hairline3);background:var(--surface3);font-size:19px;font-weight:700;cursor:pointer;color:var(--ink);}
+.stepbtn:hover{background:var(--hairline2);}
+.stepval{width:44px;text-align:center;font-family:var(--fontMono);font-size:17px;font-weight:800;}
+.reasonline{flex-basis:100%;font-size:var(--f-meta);color:var(--warnText);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.varbadge{font-family:var(--fontMono);font-weight:800;}
+.modal-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end;}
+.who-row{display:flex;align-items:center;gap:8px;font-size:var(--f-meta);color:var(--inkDim);margin-bottom:12px;}
+
+/* ---- approval table ---- */
+table.apptbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+table.apptbl th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px 7px;border-bottom:1px solid var(--hairline2);}
+table.apptbl td{padding:7px;border-bottom:1px solid var(--hairline);vertical-align:top;}
+table.apptbl tr:last-child td{border-bottom:none;}
+table.apptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.attrib{font-size:10.5px;color:var(--inkMute);}
+.attrib b{color:var(--ink2);font-weight:700;}
+
+/* ---- print sheet ---- */
+.printsheet{border:1.5px dashed var(--hairline3);border-radius:var(--r10);padding:16px;font-family:var(--fontMono);}
+.printsheet table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
+.printsheet th,.printsheet td{border:1px solid var(--hairline3);padding:5px 6px;text-align:left;}
+.printsheet .qr{width:64px;height:64px;background:repeating-conic-gradient(var(--ink) 0% 25%, transparent 0% 50%) 0/16px 16px;float:right;border:1px solid var(--hairline3);}
+.printsheet .signline{margin-top:14px;display:flex;gap:24px;font-size:11px;}
+.printsheet .signline div{flex:1;border-top:1px solid var(--ink);padding-top:4px;}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+  .content{padding:14px 14px 30px;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+  .shelfrow{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item" title="Kit templates"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+      <button class="rail-item active" title="Distribution"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Cycle Count</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Concept D</span></div>
+        <h1 class="h1">Count While Open</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">1:14 PM PT</div>
+        <div class="clock-sub">Store open · West Hollywood · closes 9:00 PM PT</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="content">
+      <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Design mockup — every shelf, product, associate name and time on this screen is example data, not a live store.</div>
+
+      <div class="banner info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor" stroke="none"/></svg>
+        <div><div class="b-title">Counting doesn't stop the register</div>
+        <div class="b-body">Open a count window on one shelf at a time; associates count between customers. Any sale that rings up while a window is open is reconciled automatically — the expected quantity adjusts, it is never treated as a discrepancy. Nothing posts to inventory until a manager approves the window.</div></div>
+      </div>
+
+      <!-- ============ shelf grid ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Sales floor — West Hollywood</h2><span class="hint">One shelf at a time · oldest batch stays fronted</span></div>
+        <div class="shelfrow" id="shelfGrid"></div>
+      </div>
+
+      <!-- ============ active windows ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Open count windows</h2><span class="hint">Sales during the window reconcile here, live</span></div>
+        <div id="windowList"><div class="winrow"><span style="color:var(--inkMute);font-size:var(--f-body);">No windows open — open one from a shelf above.</span></div></div>
+      </div>
+
+      <!-- ============ pending manager approval ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Pending manager approval</h2><span class="hint">Approving manager
+          <select class="sel" id="managerSel" style="margin-left:6px;">
+            <option>Dana K. — Store Manager</option>
+            <option>Whitney L. — District Manager</option>
+          </select></span>
+          <button class="btn btn-ghost btn-sm" id="printBtn" style="margin-left:auto;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3a1 1 0 01-1-1v-4a1 1 0 011-1h18a1 1 0 011 1v4a1 1 0 01-1 1h-3"/></svg>Print count sheet</button>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="apptbl">
+          <thead><tr><th>Shelf · product</th><th class="r">Expected</th><th class="r">Counted</th><th class="r">Variance</th><th>Attribution</th><th>Action</th></tr></thead>
+          <tbody id="approvalBody"><tr><td colspan="6" style="color:var(--inkMute);padding:14px 8px;">Nothing pending.</td></tr></tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="footerline">Cycle Count — Concept D of 4 — Count While Open</div>
+    </div>
+  </div>
+</div>
+
+<!-- count entry drawer -->
+<div class="overlay" id="countOverlay" style="display:none;">
+  <div class="modal" id="countModalBody"></div>
+</div>
+<!-- print sheet -->
+<div class="overlay" id="printOverlay" style="display:none;">
+  <div class="modal">
+    <h2>Printable count sheet</h2>
+    <div class="printsheet" id="printSheetBody"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="closePrint">Close</button><button class="btn btn-primary" onclick="window.print()">Print</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- theme + clock ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('cyclecount-d-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('cyclecount-d-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+  function nowStr(){ try { return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){ return 'just now'; } }
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  var CATCOLOR = { flower:'var(--cat-flower)', preroll:'var(--cat-preroll)', vape:'var(--cat-vape)', concentrate:'var(--cat-concentrate)', edible:'var(--cat-edible)' };
+
+  /* ---------------- data: EXAMPLE ONLY ---------------- */
+  var pid = 0;
+  function P(name, expected){ return { id:'p'+(++pid), name:name, expected:expected, base:expected }; }
+
+  var SHELVES = [
+    { id:'flowerwall', name:'Flower Wall', cat:'flower', assoc:'Alicia N.', ago:12, status:'fresh',
+      products:[P('Blue Dream 3.5g',22), P('OG Kush 3.5g',14), P('Wedding Cake 3.5g',9)] },
+    { id:'vapecase', name:'Vape Case', cat:'vape', assoc:'Marcus R.', ago:46, status:'stale',
+      products:[P('Live Resin Cart 1g',16), P('Distillate Cart 0.5g',10)] },
+    { id:'prendcap', name:'Pre-Roll Endcap', cat:'preroll', assoc:null, ago:null, status:'none',
+      products:[P('Indica PR 5-pack',18), P('Hybrid PR Single',24)],
+      saleScript:[ {atMs:3000, name:'Indica PR 5-pack', qty:1}, {atMs:7500, name:'Hybrid PR Single', qty:2} ] },
+    { id:'ediblesh', name:'Edible Shelf', cat:'edible', assoc:'Priya S.', ago:5, status:'flag',
+      products:[P('Gummies 100mg',20), P('Chocolate Bar 100mg',12)],
+      flaggedLine:{ product:'Chocolate Bar 100mg', expected:12, counted:9, countedBy:'Priya S.', countedAt:'12:58 PM PT' } },
+    { id:'concentratecase', name:'Concentrate Case', cat:'concentrate', assoc:null, ago:null, status:'none',
+      products:[P('Live Rosin 1g',14), P('Shatter 1g',9)],
+      saleScript:[ {atMs:4000, name:'Live Rosin 1g', qty:1} ] }
+  ];
+
+  var WINDOWS = {}; // shelfId -> { openedBy, openedAt, ticker:[], timers:[] }
+  var PENDING = []; // approval lines: { shelf, product, expected, counted, countedBy, countedAt, status, approvedBy, approvedAt }
+
+  // seed the pre-flagged edible-shelf variance as already pending approval
+  (function seedPending(){
+    var s = SHELVES.find(function(x){ return x.id==='ediblesh'; });
+    PENDING.push({ shelf:s.name, product:s.flaggedLine.product, expected:s.flaggedLine.expected, counted:s.flaggedLine.counted,
+      countedBy:s.flaggedLine.countedBy, countedAt:s.flaggedLine.countedAt, status:'pending', approvedBy:null, approvedAt:null });
+  })();
+
+  function chipHtml(shelf){
+    if (WINDOWS[shelf.id]) return '<span class="chip chip-counting"><span class="dot"></span>Window open — counting now</span>';
+    if (shelf.status==='flag') return '<span class="chip chip-flag"><span class="dot"></span>Counted '+shelf.ago+' min ago — variance flagged</span>';
+    if (shelf.status==='fresh') return '<span class="chip chip-fresh"><span class="dot"></span>Counted '+shelf.ago+' min ago</span>';
+    if (shelf.status==='stale') return '<span class="chip chip-stale"><span class="dot"></span>Counted '+shelf.ago+' min ago</span>';
+    return '<span class="chip chip-none"><span class="dot"></span>Not counted today</span>';
+  }
+
+  function renderShelves(){
+    var host = document.getElementById('shelfGrid');
+    host.innerHTML = SHELVES.map(function(s){
+      var winOpen = !!WINDOWS[s.id];
+      var openBtn = winOpen
+        ? '<button class="btn btn-ghost btn-sm" disabled>Window open</button>'
+        : '<button class="btn btn-ghost btn-sm" data-open="'+s.id+'">Open window</button>';
+      var countBtn = '<button class="btn btn-primary btn-sm" data-count="'+s.id+'"'+(!winOpen?' disabled title="Open a count window first"':'')+'>Count this shelf</button>';
+      return '<div class="shelf" style="--shelf-c:'+CATCOLOR[s.cat]+'">'
+        + '<div class="stitle"><span class="catdot" style="background:'+CATCOLOR[s.cat]+'"></span>'+esc(s.name)+'</div>'
+        + '<div class="sassoc">'+(s.assoc?'Usually counted by '+esc(s.assoc):'No regular counter assigned')+'</div>'
+        + chipHtml(s)
+        + '<div class="sactions">'+openBtn+countBtn+'</div>'
+        + '</div>';
+    }).join('');
+    host.querySelectorAll('[data-open]').forEach(function(btn){ btn.addEventListener('click', function(){ openWindow(btn.getAttribute('data-open')); }); });
+    host.querySelectorAll('[data-count]').forEach(function(btn){ btn.addEventListener('click', function(){ if(!btn.disabled) openCountDrawer(btn.getAttribute('data-count')); }); });
+  }
+
+  /* ---------------- windows + live sale reconciliation ---------------- */
+  function openWindow(shelfId){
+    if (WINDOWS[shelfId]) return;
+    var shelf = SHELVES.find(function(s){ return s.id===shelfId; });
+    var win = { openedBy: shelf.assoc || 'Alicia N.', openedAt: nowStr(), ticker: [], timers: [] };
+    WINDOWS[shelfId] = win;
+    (shelf.saleScript||[]).forEach(function(sale){
+      var t = setTimeout(function(){
+        var p = shelf.products.find(function(x){ return x.name===sale.name; });
+        if (!p) return;
+        p.expected = Math.max(0, p.expected - sale.qty);
+        win.ticker.unshift(nowStr()+' — sold '+sale.qty+' × '+sale.name+' — expected adjusted to '+p.expected+', reconciled automatically');
+        renderWindows();
+      }, sale.atMs);
+      win.timers.push(t);
+    });
+    renderShelves();
+    renderWindows();
+  }
+
+  function closeWindow(shelfId){
+    var win = WINDOWS[shelfId];
+    if (win){ win.timers.forEach(clearTimeout); }
+    delete WINDOWS[shelfId];
+    renderShelves(); renderWindows();
+  }
+
+  function renderWindows(){
+    var host = document.getElementById('windowList');
+    var ids = Object.keys(WINDOWS);
+    if (!ids.length){ host.innerHTML = '<div class="winrow"><span style="color:var(--inkMute);font-size:var(--f-body);">No windows open — open one from a shelf above.</span></div>'; return; }
+    host.innerHTML = ids.map(function(id){
+      var shelf = SHELVES.find(function(s){ return s.id===id; });
+      var win = WINDOWS[id];
+      return '<div class="winrow"><span class="wname">'+esc(shelf.name)+'</span>'
+        + '<span class="wmeta">Opened by '+esc(win.openedBy)+' · '+win.openedAt+'</span>'
+        + '<span class="wticker">'+(win.ticker.length ? esc(win.ticker[0]) : 'No sales yet during this window.')+'</span>'
+        + '<span class="spacer"></span>'
+        + '<button class="btn btn-primary btn-sm" data-count2="'+id+'">Count this shelf</button>'
+        + '<button class="btn btn-ghost btn-sm" data-close="'+id+'">Cancel window</button>'
+        + '</div>';
+    }).join('');
+    host.querySelectorAll('[data-count2]').forEach(function(btn){ btn.addEventListener('click', function(){ openCountDrawer(btn.getAttribute('data-count2')); }); });
+    host.querySelectorAll('[data-close]').forEach(function(btn){ btn.addEventListener('click', function(){ closeWindow(btn.getAttribute('data-close')); }); });
+  }
+
+  /* ---------------- count entry drawer ---------------- */
+  function openCountDrawer(shelfId){
+    var shelf = SHELVES.find(function(s){ return s.id===shelfId; });
+    var counts = {}; // productId -> counted value, defaults to expected
+    shelf.products.forEach(function(p){ counts[p.id] = p.expected; });
+    renderDrawer(shelf, counts);
+    document.getElementById('countOverlay').style.display = 'flex';
+  }
+  function renderDrawer(shelf, counts){
+    var rowsHtml = shelf.products.map(function(p){
+      var counted = counts[p.id];
+      var variance = counted - p.expected;
+      var amber = variance !== 0;
+      return '<div class="prow'+(amber?' amber':'')+'" data-p="'+p.id+'">'
+        + '<div class="pname"><b>'+esc(p.name)+'</b><span class="sub">'+esc(shelf.name)+'</span></div>'
+        + '<div class="stat2"><div><div class="k">Expected</div>'+p.expected+'</div><div><div class="k">Variance</div><span class="varbadge" style="color:'+(amber?'var(--warnText)':'var(--good)')+'">'+(variance>0?'+':'')+variance+'</span></div></div>'
+        + '<div class="stepper"><button class="stepbtn" data-act="dec" data-p="'+p.id+'">−</button><span class="stepval">'+counted+'</span><button class="stepbtn" data-act="inc" data-p="'+p.id+'">+</button></div>'
+        + (amber ? '<div class="reasonline">Reason required — variance vs. expected (already adjusted for in-window sales).</div>' : '')
+        + '</div>';
+    }).join('');
+    document.getElementById('countModalBody').innerHTML =
+      '<h2>Count — '+esc(shelf.name)+'</h2><div class="msub">Expected is already adjusted for any sale reconciled during this window.</div>'
+      + '<div class="who-row">Counted by <select class="sel" id="assocSel"><option'+(shelf.assoc?' selected':'')+'>'+esc(shelf.assoc||'Alicia N.')+'</option><option>Marcus R.</option><option>Priya S.</option></select></div>'
+      + rowsHtml
+      + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelCount">Cancel</button><button class="btn btn-primary" id="saveCount">Save count</button></div>';
+    document.getElementById('cancelCount').addEventListener('click', function(){ document.getElementById('countOverlay').style.display='none'; });
+    document.querySelectorAll('#countModalBody .stepbtn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var pid = btn.getAttribute('data-p'), act = btn.getAttribute('data-act');
+        if (act==='inc') counts[pid] = counts[pid] + 1;
+        if (act==='dec') counts[pid] = Math.max(0, counts[pid] - 1);
+        renderDrawer(shelf, counts);
+      });
+    });
+    document.getElementById('saveCount').addEventListener('click', function(){
+      var countedBy = document.getElementById('assocSel').value;
+      var anyVariance = false;
+      shelf.products.forEach(function(p){
+        var counted = counts[p.id], variance = counted - p.expected;
+        if (variance !== 0){
+          anyVariance = true;
+          PENDING.push({ shelf:shelf.name, product:p.name, expected:p.expected, counted:counted, countedBy:countedBy, countedAt:nowStr(), status:'pending', approvedBy:null, approvedAt:null });
+        }
+        p.expected = counted; // the count becomes the new on-hand for the shelf display
+      });
+      shelf.ago = 0; shelf.status = anyVariance ? 'flag' : 'fresh'; shelf.lastCountedBy = countedBy;
+      closeWindow(shelf.id);
+      document.getElementById('countOverlay').style.display = 'none';
+      renderShelves(); renderPending();
+    });
+  }
+
+  /* ---------------- pending manager approval ---------------- */
+  function renderPending(){
+    var body = document.getElementById('approvalBody');
+    var open = PENDING.filter(function(p){ return p.status==='pending'; });
+    if (!open.length){ body.innerHTML = '<tr><td colspan="6" style="color:var(--inkMute);padding:14px 8px;">Nothing pending.</td></tr>'; return; }
+    body.innerHTML = PENDING.map(function(p, i){
+      var variance = p.counted - p.expected;
+      var attrib = '<div class="attrib">Counted by <b>'+esc(p.countedBy)+'</b> · '+p.countedAt+'</div><div class="attrib">'+(p.approvedBy?('Approved by <b>'+esc(p.approvedBy)+'</b> · '+p.approvedAt):'Awaiting approval')+'</div>';
+      var actions = p.status==='pending'
+        ? '<div style="display:flex;gap:6px;"><button class="btn btn-good btn-sm" data-approve="'+i+'">Approve</button><button class="btn btn-warn btn-sm" data-recount="'+i+'">Blind recount</button></div>'
+        : '<span class="pill '+(p.status==='approved'?'pill-done':'pill-active')+'">'+(p.status==='approved'?'Approved — posted':'Recount requested')+'</span>';
+      return '<tr class="'+(variance!==0?'variance':'')+'"><td>'+esc(p.shelf)+' · '+esc(p.product)+'</td><td class="r" style="font-family:var(--fontMono);">'+p.expected+'</td><td class="r" style="font-family:var(--fontMono);">'+p.counted+'</td><td class="r" style="font-family:var(--fontMono);">'+(variance>0?'+':'')+variance+'</td><td>'+attrib+'</td><td>'+actions+'</td></tr>';
+    }).join('');
+    body.querySelectorAll('[data-approve]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var p = PENDING[+btn.getAttribute('data-approve')];
+        p.status='approved'; p.approvedBy=document.getElementById('managerSel').value; p.approvedAt=nowStr();
+        renderPending();
+      });
+    });
+    body.querySelectorAll('[data-recount]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var p = PENDING[+btn.getAttribute('data-recount')];
+        p.status='recount'; p.approvedBy=document.getElementById('managerSel').value+' (requested blind recount)'; p.approvedAt=nowStr();
+        renderPending();
+      });
+    });
+  }
+
+  /* ---------------- print count sheet ---------------- */
+  document.getElementById('printBtn').addEventListener('click', function(){
+    var rows = PENDING.map(function(p){
+      return '<tr><td>'+esc(p.shelf)+'</td><td>'+esc(p.product)+'</td><td>'+p.expected+'</td><td>'+p.counted+'</td><td>'+esc(p.countedBy)+'</td></tr>';
+    }).join('');
+    document.getElementById('printSheetBody').innerHTML =
+      '<div class="qr"></div><h3 style="margin:0;">Sales Floor Cycle Count — West Hollywood</h3>'
+      + '<div>Business day: Thu Sep 10, 2026 · Printed '+nowStr()+'</div>'
+      + '<table><thead><tr><th>Shelf</th><th>Product</th><th>Expected</th><th>Counted</th><th>Counted by</th></tr></thead><tbody>'
+      + (rows || '<tr><td colspan="5">No variance lines — every shelf counted matched.</td></tr>') + '</tbody></table>'
+      + '<div class="signline"><div>Counted by: (see rows above)</div><div>Approved by: _____________________</div></div>';
+    document.getElementById('printOverlay').style.display = 'flex';
+  });
+  document.getElementById('closePrint').addEventListener('click', function(){ document.getElementById('printOverlay').style.display='none'; });
+
+  /* ---------------- freshness ticking (chips age forward) ---------------- */
+  setInterval(function(){
+    SHELVES.forEach(function(s){ if (typeof s.ago==='number'){ s.ago += 1; if (s.status==='fresh' && s.ago>15) s.status='stale'; } });
+    renderShelves();
+  }, 60000);
+
+  /* ---------------- boot ---------------- */
+  renderShelves();
+  renderWindows();
+  renderPending();
+})();
+</script>
+</body>
+</html>

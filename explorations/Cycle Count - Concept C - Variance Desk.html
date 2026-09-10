@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cycle Count — Concept C — Variance Desk</title>
+<style>
+/* ============================================================================
+   Cycle Count — Concept C — Variance Desk. The manager's screen: every open
+   count session, variances ranked by value and units, who counted, recount
+   status, approve/reject per line with a reason, accuracy trend, editable
+   thresholds. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK), table
+   and pill patterns from shared/hd-ui.jsx, rail/header shape from
+   Hyperwolf Bounty.html (rail active "Distribution"). Row schema and tinted
+   rows reproduce the Concept B kit-column look; the stepper look reproduces
+   the Concept D box panel. No build step, no external scripts or fonts.
+   Every name, product, quantity and time below is EXAMPLE DATA.
+   ========================================================================= */
+:root{
+  --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  --fontMono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:18px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --cat-flower:#3F9E72; --cat-vape:#3F73D6; --cat-edible:#E0477C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+  --cat-flower:#4FBE8A; --cat-vape:#6B93E8; --cat-edible:#EE6E9C;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --cat-flower:#4FBE8A; --cat-vape:#6B93E8; --cat-edible:#EE6E9C;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+button:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+.content{padding:20px 24px 50px;display:flex;flex-direction:column;gap:18px;max-width:1560px;width:100%;margin:0 auto;}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+.banner{display:flex;align-items:flex-start;gap:12px;border-radius:var(--r12);padding:13px 16px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
+.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;}
+.banner .b-body{color:var(--inkDim);}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
+.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
+.card-body{padding:0 16px 16px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 14px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.btn-good:hover{background:var(--good);color:#fff;}
+.btn-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.btn-warn:hover{background:var(--warn);color:#fff;}
+.btn-sm{height:28px;padding:0 10px;font-size:10.5px;border-radius:var(--r8);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 8px;border-radius:99px;font-size:10px;font-weight:700;white-space:nowrap;border:1px solid transparent;text-transform:uppercase;letter-spacing:.03em;}
+.pill-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.pill-info{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+
+/* ---- thresholds card ---- */
+.thresh-row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;padding:2px 0 4px;}
+.thresh-field{display:flex;flex-direction:column;gap:5px;}
+.thresh-field label{font-size:var(--f-meta);font-weight:700;color:var(--inkDim);}
+.thresh-field .inp-wrap{display:flex;align-items:center;gap:6px;}
+.thresh-field input{width:64px;height:36px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:14px;font-weight:700;padding:0 8px;text-align:right;}
+.thresh-field .unit{font-size:var(--f-body);color:var(--inkMute);}
+.thresh-note{font-size:var(--f-meta);color:var(--inkMute);flex-basis:100%;margin-top:2px;}
+.thresh-saved{font-size:var(--f-meta);color:var(--good);font-weight:600;display:none;align-items:center;gap:5px;}
+
+/* ---- session cards (open count sessions) ---- */
+.sessions{display:flex;gap:12px;overflow-x:auto;padding:2px 16px 14px;}
+.sess-card{flex:0 0 240px;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:12px;display:flex;flex-direction:column;gap:7px;cursor:pointer;}
+.sess-card:hover{border-color:var(--hairline3);}
+.sess-card.selected{border-color:var(--accentBorder);box-shadow:0 0 0 2px var(--accentSoft) inset;}
+.sess-loc{font-size:var(--f-strong);font-weight:700;}
+.sess-scope{font-size:var(--f-meta);color:var(--inkMute);}
+.sess-meta{font-size:var(--f-meta);color:var(--inkDim);display:flex;justify-content:space-between;font-family:var(--fontMono);}
+.sess-bar{height:6px;border-radius:99px;background:var(--hairline2);overflow:hidden;}
+.sess-bar>span{display:block;height:100%;border-radius:99px;background:var(--info);}
+.sess-foot{display:flex;justify-content:space-between;align-items:center;margin-top:auto;}
+
+/* ---- filter tabs ---- */
+.vtabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);padding:0 16px;}
+.vtab{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 4px;border:none;background:transparent;color:var(--inkDim);font-size:var(--f-title);font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.vtab:hover{color:var(--ink);}
+.vtab.active{color:var(--ink);border-bottom-color:var(--accentBorder);}
+.vtab .n{font-family:var(--fontMono);font-size:var(--f-meta);font-weight:600;color:var(--inkMute);background:var(--surface3);border-radius:99px;padding:2px 8px;}
+.sortbtns{margin-left:auto;display:flex;gap:6px;align-self:center;padding-bottom:8px;}
+
+/* ---- variance table (row schema: reproduces the box-card boxtbl look) ---- */
+table.vartbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
+table.vartbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:8px 8px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.vartbl th:first-child,table.vartbl th:nth-child(2),table.vartbl th:nth-child(7){text-align:left;}
+table.vartbl td{padding:9px 8px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.vartbl tr:last-child td{border-bottom:none;}
+.vartbl .pn{font-weight:700;font-size:12px;}
+.vartbl .psub{font-size:9.5px;color:var(--inkMute);margin-top:1px;}
+.vartbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.vartbl .num.varunits{font-weight:700;}
+.vartbl tr.row-warn{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.vartbl tr.row-bad{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+.vartbl tr.row-resolved{opacity:.55;}
+.batchchip{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;color:var(--bad);}
+.reasonsel{width:100%;min-width:150px;height:30px;border-radius:6px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-size:11px;padding:0 6px;}
+.rowactions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;}
+
+/* ---- who cell: counted / recount / approved attribution per line ---- */
+.whocell{display:flex;flex-direction:column;gap:3px;min-width:170px;}
+.whorow{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--ink);}
+.whorow .wholbl{flex:0 0 54px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--inkFaint);}
+.whorow .whoval-empty{color:var(--inkFaint);}
+
+.flash{animation:flashbox 1.6s ease;}
+@keyframes flashbox{0%,100%{box-shadow:var(--shadowSm);}20%,60%{box-shadow:0 0 0 3px var(--accentBorder), var(--shadowMd);}}
+
+/* ---- accuracy trend (inline bar charts, no chart library) ---- */
+.trendgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:4px 16px 16px;}
+@media (max-width:900px){.trendgrid{grid-template-columns:1fr;}}
+.trendlist{display:flex;flex-direction:column;gap:9px;}
+.trendrow{display:grid;grid-template-columns:120px 1fr 46px;align-items:center;gap:10px;font-size:var(--f-meta);}
+.trendrow .tname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.trendbar{height:9px;border-radius:99px;background:var(--hairline2);overflow:hidden;}
+.trendbar>span{display:block;height:100%;border-radius:99px;}
+.trendrow .tval{font-family:var(--fontMono);text-align:right;font-weight:700;}
+
+/* ---- approve/recount modal ---- */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px;}
+.modal{background:var(--surface);border-radius:var(--r16);width:100%;max-width:440px;max-height:88vh;overflow-y:auto;padding:20px;box-shadow:var(--shadowMd);}
+.modal h2{margin:0 0 4px;font-size:var(--f-title);}
+.modal .mrow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--hairline);font-size:var(--f-body);gap:12px;}
+.modal .mrow b{font-family:var(--fontMono);text-align:right;}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.modal-actions .btn{flex:1;}
+.mtinput{width:100%;height:38px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 12px;font-size:var(--f-body);margin-top:8px;}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+  .content{padding:14px 14px 40px;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+  table.vartbl{display:block;overflow-x:auto;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item" title="Kit templates"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+      <button class="rail-item active" title="Distribution"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Cycle Count</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Concept C</span></div>
+        <h1 class="h1">Variance Desk</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">10:14 AM PT</div>
+        <div class="clock-sub">Business day: Thu Sep 10, 2026 · rolls at 12:00 AM PT</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="content">
+      <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Design mockup — every location, name, batch, quantity and timestamp on this screen is example data, not a live count.</div>
+
+      <div class="banner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;color:var(--info);"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+        <div><div class="b-title">Counts propose. Nothing adjusts stock until you approve.</div>
+        <div class="b-body">Every row below is a proposed correction from a hand count or an RFID read. Approving posts the counted quantity as the new on-hand for that batch and location, and records who approved it; rejecting sends it back for a blind recount by a second, named person. No automated process ever writes an adjustment.</div></div>
+      </div>
+
+      <!-- ============ thresholds ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Recount &amp; escalation thresholds</h2><span class="hint">Applies to every open session below</span></div>
+        <div class="card-body">
+          <div class="thresh-row">
+            <div class="thresh-field">
+              <label for="threshRecount">Blind recount triggers above</label>
+              <div class="inp-wrap"><input type="number" id="threshRecount" min="0.5" max="20" step="0.5" value="2"/><span class="unit">% of on-hand</span></div>
+            </div>
+            <div class="thresh-field">
+              <label for="threshEscalate">Hold &amp; escalate above</label>
+              <div class="inp-wrap"><input type="number" id="threshEscalate" min="2" max="50" step="1" value="10"/><span class="unit">% of on-hand</span></div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="saveThresh">Save thresholds</button>
+            <span class="thresh-saved" id="threshSaved"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Saved — table re-tinted below</span>
+            <div class="thresh-note">Below the recount line, a variance is informational only. Between the two lines it holds the line for a second, blind count. Above the escalate line the location/SKU is held from further automated allocation until a manager investigates (industry pattern: 2–3% recount, 2–10% supervisor review, 10%+ freeze).</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ open sessions ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Open count sessions</h2><span class="hint">Tap a session to filter the desk below to it</span></div>
+        <div class="sessions" id="sessionLane"></div>
+      </div>
+
+      <!-- ============ variance desk table ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Variance desk</h2><span class="hint" id="filterHint">All open sessions</span></div>
+        <div class="vtabs" id="filterTabs">
+          <span class="sortbtns">
+            Sort by <button class="btn btn-ghost btn-sm" id="sortValue">Value</button><button class="btn btn-ghost btn-sm" id="sortUnits">Units</button>
+          </span>
+        </div>
+        <div class="card-body">
+          <div style="overflow-x:auto;">
+            <table class="vartbl">
+              <thead><tr><th>Product / batch</th><th>Location</th><th>Expected</th><th>Counted</th><th>Variance</th><th>Value</th><th>Who — counted / recounted / approved</th><th>Reason</th><th></th></tr></thead>
+              <tbody id="varBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ accuracy trend ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Accuracy trend — last 30 days</h2><span class="hint">Counted-correct rate, EXAMPLE data</span></div>
+        <div class="trendgrid">
+          <div>
+            <div class="card-head" style="padding:0 0 8px;"><h2 style="font-size:var(--f-strong);">By location</h2></div>
+            <div class="trendlist" id="trendLocations"></div>
+          </div>
+          <div>
+            <div class="card-head" style="padding:0 0 8px;"><h2 style="font-size:var(--f-strong);">By counter</h2></div>
+            <div class="trendlist" id="trendCounters"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footerline">Cycle Count — Concept C of 4 — Variance Desk</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- theme ---------------- */
+  var root = document.documentElement;
+  try { var stored = localStorage.getItem('cyclecount-vardesk-theme'); if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored); } catch(e){}
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('cyclecount-vardesk-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+
+  /* ---------------- data: EXAMPLE ONLY ---------------- */
+  var CURRENT_MANAGER = 'Alicia T. (Inventory Manager)';
+
+  var SESSIONS = [
+    { id:'s1', loc:'Warehouse · Rack F2 (Flower)', scope:'Location', counter:'Priya S.', blind:true, lines:24, done:18, status:'Recount pending' },
+    { id:'s2', loc:'West LA Store · Front of House', scope:'Category = Vape', counter:'Jordan P.', blind:false, lines:10, done:6, status:'In progress' },
+    { id:'s3', loc:'Inland Empire Hub · Cooler', scope:'Expiry ≤ 14 days', counter:'Dana K.', blind:true, lines:12, done:12, status:'Needs approval' },
+    { id:'s4', loc:'Orange County Store · Random spot', scope:'Random', counter:'Marcus R.', blind:true, lines:8, done:8, status:'Closed' }
+  ];
+  var activeSession = 'all';
+
+  var COUNTERS = ['Priya S.','Jordan P.','Dana K.','Marcus R.','Whitney L.'];
+  var REASONS = ['', 'Count variance', 'Batch mismatch — wrong batch pulled', 'Misplaced — found in another location', 'Damaged, moved to quarantine', 'No cause found — escalate as shrink'];
+
+  var LINES = [
+    { id:'v1', session:'s1', name:'GMO 3.5g', batch:'B-88214', loc:'Rack F2-B-03', exp:96, cnt:81, unitVal:9.5, counter:'Priya S.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v2', session:'s1', name:'Wedding Cake 1g', batch:'B-88301 / B-88477', loc:'Rack F2-C-01', exp:64, cnt:58, unitVal:14.0, counter:'Priya S.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:true, resolved:false },
+    { id:'v3', session:'s1', name:'Blue Dream 3.5g', batch:'B-87990', loc:'Rack F2-B-05', exp:40, cnt:39, unitVal:9.0, counter:'Priya S.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v4', session:'s2', name:'Live Resin Cart 1g', batch:'B-91002', loc:'Vape Case A', exp:22, cnt:14, unitVal:32.0, counter:'Jordan P.', recount:'requested', recountBy:'Dana K.', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v5', session:'s2', name:'Distillate Cart 0.5g', batch:'B-90711', loc:'Vape Case A', exp:18, cnt:17, unitVal:18.0, counter:'Jordan P.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v6', session:'s2', name:'Disposable Vape 1g', batch:'B-90455', loc:'Vape Case B', exp:30, cnt:22, unitVal:22.0, counter:'Jordan P.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v7', session:'s3', name:'THC Seltzer 4-pack', batch:'B-89112', loc:'Cooler 1', exp:16, cnt:16, unitVal:16.0, counter:'Dana K.', recount:'confirmed', recountBy:'Marcus R.', approvedBy:'Alicia T. (Inventory Manager)', reason:'Count variance', mixed:false, resolved:true },
+    { id:'v8', session:'s3', name:'Cold Brew 100mg', batch:'B-89340', loc:'Cooler 1', exp:12, cnt:9, unitVal:11.0, counter:'Dana K.', recount:'confirmed', recountBy:'Priya S.', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v9', session:'s4', name:'Sour Diesel 3.5g', batch:'B-86020', loc:'Rack B1-A-02', exp:20, cnt:20, unitVal:9.0, counter:'Marcus R.', recount:'confirmed', recountBy:'Whitney L.', approvedBy:'Alicia T. (Inventory Manager)', reason:'Count variance', mixed:false, resolved:true },
+    { id:'v10', session:'s1', name:'Chocolate Bar 100mg', batch:'B-88900', loc:'Rack F2-E-01', exp:24, cnt:11, unitVal:13.5, counter:'Priya S.', recount:'requested', recountBy:'Jordan P.', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v11', session:'s2', name:'Rosin Cart 0.5g', batch:'B-90980', loc:'Vape Case B', exp:14, cnt:13, unitVal:26.0, counter:'Jordan P.', recount:'none', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false },
+    { id:'v12', session:'s3', name:'Gummies 100mg', batch:'B-89577', loc:'Cooler 2', exp:20, cnt:18, unitVal:12.0, counter:'Dana K.', recount:'pending', recountBy:'', approvedBy:'', reason:'', mixed:false, resolved:false }
+  ];
+
+  var TREND_LOC = [
+    { name:'Warehouse — Rack F2', pct:96.1 }, { name:'Warehouse — Rack B1', pct:98.4 },
+    { name:'West LA Store', pct:93.8 }, { name:'Inland Empire Hub', pct:97.2 }, { name:'Orange County Store', pct:99.1 }
+  ];
+  var TREND_COUNTER = [
+    { name:'Priya S.', pct:95.0 }, { name:'Jordan P.', pct:91.6 }, { name:'Dana K.', pct:98.0 },
+    { name:'Marcus R.', pct:99.2 }, { name:'Whitney L.', pct:96.7 }
+  ];
+
+  var thresholds = { recount: 2, escalate: 10 };
+  var sortKey = 'value'; // 'value' | 'units'
+
+  /* ---------------- sessions ---------------- */
+  function findSession(id){ for (var i=0;i<SESSIONS.length;i++) if (SESSIONS[i].id===id) return SESSIONS[i]; }
+  function renderSessions(){
+    var host = document.getElementById('sessionLane');
+    host.innerHTML = SESSIONS.map(function(s){
+      var pct = s.lines ? Math.round(s.done/s.lines*100) : 0;
+      var statusClass = s.status==='Closed' ? 'pill-good' : s.status==='Needs approval' ? 'pill-warn' : s.status==='Recount pending' ? 'pill-bad' : 'pill-info';
+      return '<div class="sess-card'+(activeSession===s.id?' selected':'')+'" data-id="'+s.id+'">'
+        + '<div class="sess-loc">'+esc(s.loc)+'</div>'
+        + '<div class="sess-scope">Scope: '+esc(s.scope)+' · '+(s.blind?'Blind':'Informed')+'</div>'
+        + '<div class="sess-bar"><span style="width:'+pct+'%"></span></div>'
+        + '<div class="sess-meta"><span>'+s.done+' / '+s.lines+' lines</span><span>'+esc(s.counter)+'</span></div>'
+        + '<div class="sess-foot"><span class="pill '+statusClass+'">'+esc(s.status)+'</span></div>'
+        + '</div>';
+    }).join('');
+    host.querySelectorAll('.sess-card').forEach(function(card){
+      card.addEventListener('click', function(){
+        var id = card.getAttribute('data-id');
+        activeSession = (activeSession === id) ? 'all' : id;
+        renderSessions();
+        renderTable();
+      });
+    });
+  }
+
+  /* ---------------- variance math ---------------- */
+  function varUnits(l){ return l.cnt - l.exp; }
+  function varPct(l){ return l.exp ? Math.abs(varUnits(l)) / l.exp * 100 : 0; }
+  function varValue(l){ return Math.abs(varUnits(l)) * l.unitVal; }
+  function severity(l){
+    if (l.resolved) return 'resolved';
+    var p = varPct(l);
+    if (p >= thresholds.escalate) return 'bad';
+    if (p >= thresholds.recount) return 'warn';
+    return 'ok';
+  }
+
+  /* ---------------- who cell: counted / recounted / approved ---------------- */
+  function whoCell(l){
+    var recountHtml;
+    if (l.resolved) recountHtml = l.recountBy ? '<span class="pill pill-good">'+esc(l.recountBy)+'</span>' : '<span class="pill pill-good">Confirmed</span>';
+    else if (l.recount === 'confirmed') recountHtml = '<span class="pill pill-good">'+esc(l.recountBy || '—')+' confirmed</span>';
+    else if (l.recount === 'requested') recountHtml = '<span class="pill pill-bad">'+esc(l.recountBy || '—')+' — 2nd count</span>';
+    else if (l.recount === 'pending') recountHtml = '<span class="pill pill-warn">Blind recount pending</span>';
+    else recountHtml = '<span class="pill pill-neutral">Not needed</span>';
+    var approvedHtml = l.approvedBy ? esc(l.approvedBy) : '<span class="whoval-empty">—</span>';
+    return '<div class="whocell">'
+      + '<div class="whorow"><span class="wholbl">Counted</span>'+esc(l.counter)+'</div>'
+      + '<div class="whorow"><span class="wholbl">Recount</span>'+recountHtml+'</div>'
+      + '<div class="whorow"><span class="wholbl">Approved</span>'+approvedHtml+'</div>'
+      + '</div>';
+  }
+
+  /* ---------------- table render ---------------- */
+  function visibleLines(){
+    var lines = LINES.filter(function(l){ return activeSession === 'all' || l.session === activeSession; });
+    lines.sort(function(a,b){
+      if (sortKey === 'units') return Math.abs(varUnits(b)) - Math.abs(varUnits(a));
+      return varValue(b) - varValue(a);
+    });
+    return lines;
+  }
+
+  function renderTable(){
+    var hint = document.getElementById('filterHint');
+    hint.textContent = activeSession === 'all' ? 'All open sessions' : findSession(activeSession).loc;
+    var lines = visibleLines();
+    var host = document.getElementById('varBody');
+    if (!lines.length){ host.innerHTML = '<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--inkMute);">No variance lines for this filter.</td></tr>'; return; }
+    host.innerHTML = lines.map(function(l){
+      var sev = severity(l);
+      var rowClass = sev === 'bad' ? 'row-bad' : sev === 'warn' ? 'row-warn' : sev === 'resolved' ? 'row-resolved' : '';
+      var vu = varUnits(l);
+      var vuStr = (vu > 0 ? '+' : '') + vu;
+      var reasonOptions = REASONS.map(function(r){ return '<option'+(r===l.reason?' selected':'')+'>'+(r||'Select a reason…')+'</option>'; }).join('');
+      var canAct = !l.resolved;
+      return '<tr class="'+rowClass+'" data-id="'+l.id+'">'
+        + '<td><div class="pn">'+esc(l.name)+'</div><div class="psub">'+esc(l.batch)+(l.mixed?' <span class="batchchip">⚠ MIXED BATCH</span>':'')+'</div></td>'
+        + '<td class="psub" style="text-align:left;">'+esc(l.loc)+'</td>'
+        + '<td class="num">'+l.exp+'</td>'
+        + '<td class="num">'+l.cnt+'</td>'
+        + '<td class="num varunits" style="color:'+(vu<0?'var(--bad)':vu>0?'var(--info)':'var(--inkMute)')+'">'+vuStr+' <span style="font-weight:400;color:var(--inkMute);">('+varPct(l).toFixed(1)+'%)</span></td>'
+        + '<td class="num">$'+varValue(l).toFixed(2)+'</td>'
+        + '<td style="text-align:left;">'+whoCell(l)+'</td>'
+        + '<td><select class="reasonsel" data-act="reason" data-id="'+l.id+'"'+(canAct?'':' disabled')+'>'+reasonOptions+'</select></td>'
+        + '<td><div class="rowactions">'
+          + (canAct ? '<button class="btn btn-good btn-sm" data-act="approve" data-id="'+l.id+'">Approve</button><button class="btn btn-warn btn-sm" data-act="recount" data-id="'+l.id+'">Recount</button>' : '<span class="pill pill-good">Done</span>')
+          + '</div></td>'
+        + '</tr>';
+    }).join('');
+
+    host.querySelectorAll('select[data-act="reason"]').forEach(function(sel){
+      sel.addEventListener('change', function(){
+        var line = LINES.find(function(l){ return l.id === sel.getAttribute('data-id'); });
+        line.reason = sel.value === 'Select a reason…' ? '' : sel.value;
+      });
+    });
+    host.querySelectorAll('button[data-act="approve"]').forEach(function(btn){
+      btn.addEventListener('click', function(){ openApprove(btn.getAttribute('data-id')); });
+    });
+    host.querySelectorAll('button[data-act="recount"]').forEach(function(btn){
+      btn.addEventListener('click', function(){ requestRecount(btn.getAttribute('data-id')); });
+    });
+  }
+
+  function requestRecount(id){
+    var l = LINES.find(function(x){ return x.id === id; });
+    if (!l.reason){ toast('Add a reason first', 'A recount request needs a plain-words reason before it goes to the second counter.'); return; }
+    var pool = COUNTERS.filter(function(c){ return c !== l.counter; });
+    var second = pool[Math.floor(Math.random()*pool.length)];
+    l.recount = 'requested';
+    l.recountBy = second;
+    toast('Blind recount requested', second+' will recount '+l.name+' at '+l.loc+' without seeing '+l.counter+'’s number.');
+    renderTable();
+  }
+
+  function openApprove(id){
+    var l = LINES.find(function(x){ return x.id === id; });
+    if (!l.reason){ toast('Add a reason first', 'Every approved adjustment needs a plain-words reason recorded with it.'); return; }
+    var overlay = document.createElement('div'); overlay.className = 'overlay';
+    overlay.innerHTML = '<div class="modal"><h2>Approve adjustment</h2>'
+      + '<div class="mrow"><span>Product</span><b>'+esc(l.name)+'</b></div>'
+      + '<div class="mrow"><span>Batch</span><b>'+esc(l.batch)+'</b></div>'
+      + '<div class="mrow"><span>Location</span><b>'+esc(l.loc)+'</b></div>'
+      + '<div class="mrow"><span>Expected → counted</span><b>'+l.exp+' → '+l.cnt+'</b></div>'
+      + '<div class="mrow"><span>Counted by</span><b>'+esc(l.counter)+'</b></div>'
+      + (l.recountBy ? '<div class="mrow"><span>Recounted by</span><b>'+esc(l.recountBy)+'</b></div>' : '')
+      + '<div class="mrow"><span>Reason</span><b>'+esc(l.reason)+'</b></div>'
+      + '<div class="mrow"><span>Approved by</span><b>'+esc(CURRENT_MANAGER)+' (you)</b></div>'
+      + '<p style="font-size:var(--f-meta);color:var(--inkMute);">This posts '+l.cnt+' as the new on-hand for this batch at this location. It cannot be undone automatically.</p>'
+      + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelApprove">Cancel</button><button class="btn btn-primary" id="confirmApprove">Confirm approve</button></div></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+    overlay.querySelector('#cancelApprove').addEventListener('click', function(){ overlay.remove(); });
+    overlay.querySelector('#confirmApprove').addEventListener('click', function(){
+      l.resolved = true; l.recount = l.recount === 'none' ? 'none' : 'confirmed'; l.approvedBy = CURRENT_MANAGER;
+      overlay.remove();
+      toast('Adjustment approved', l.name+' at '+l.loc+' is now '+l.cnt+' on hand. Approved by '+CURRENT_MANAGER+'.');
+      renderTable();
+    });
+  }
+
+  /* ---------------- trend charts ---------------- */
+  function colorFor(pct){ return pct >= 97 ? 'var(--good)' : pct >= 93 ? 'var(--warn)' : 'var(--bad)'; }
+  function renderTrend(hostId, data){
+    var host = document.getElementById(hostId);
+    host.innerHTML = data.map(function(d){
+      return '<div class="trendrow"><span class="tname">'+esc(d.name)+'</span><div class="trendbar"><span style="width:'+d.pct+'%;background:'+colorFor(d.pct)+'"></span></div><span class="tval">'+d.pct.toFixed(1)+'%</span></div>';
+    }).join('');
+  }
+
+  /* ---------------- thresholds ---------------- */
+  document.getElementById('saveThresh').addEventListener('click', function(){
+    var r = parseFloat(document.getElementById('threshRecount').value);
+    var e = parseFloat(document.getElementById('threshEscalate').value);
+    if (isNaN(r) || isNaN(e) || r <= 0 || e <= r){ toast('Check the numbers', 'The escalate threshold must be higher than the recount threshold.'); return; }
+    thresholds.recount = r; thresholds.escalate = e;
+    var saved = document.getElementById('threshSaved');
+    saved.style.display = 'inline-flex';
+    setTimeout(function(){ saved.style.display = 'none'; }, 2600);
+    renderTable();
+  });
+
+  /* ---------------- sort ---------------- */
+  function setSort(key){
+    sortKey = key;
+    document.getElementById('sortValue').classList.toggle('btn-primary', key==='value');
+    document.getElementById('sortValue').classList.toggle('btn-ghost', key!=='value');
+    document.getElementById('sortUnits').classList.toggle('btn-primary', key==='units');
+    document.getElementById('sortUnits').classList.toggle('btn-ghost', key!=='units');
+    renderTable();
+  }
+  document.getElementById('sortValue').addEventListener('click', function(){ setSort('value'); });
+  document.getElementById('sortUnits').addEventListener('click', function(){ setSort('units'); });
+
+  /* ---------------- toast ---------------- */
+  var toastHost = document.createElement('div');
+  toastHost.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:400;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;';
+  document.body.appendChild(toastHost);
+  function toast(title, body){
+    var el = document.createElement('div');
+    el.style.cssText = 'pointer-events:auto;min-width:260px;max-width:380px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:10px;box-shadow:var(--shadowMd);padding:10px 12px;';
+    el.innerHTML = '<div style="font-size:13.5px;font-weight:700;color:var(--ink);">'+esc(title)+'</div><div style="font-size:12.5px;color:var(--inkDim);margin-top:2px;">'+esc(body)+'</div>';
+    toastHost.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4600);
+  }
+
+  /* ---------------- boot ---------------- */
+  renderSessions();
+  setSort('value');
+  renderTrend('trendLocations', TREND_LOC);
+  renderTrend('trendCounters', TREND_COUNTER);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cycle Count — Concept B — RFID Walk the Vault</title>
+<style>
+/* ============================================================================
+   Cycle Count — Concept B — RFID Walk the Vault
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK) and
+   shared/hd-ui.jsx (table + pill patterns); rail/header shape copied from
+   Hyperwolf Bounty.html so this reads like the same estate. No build step,
+   no external scripts or fonts. Every location, batch, name and time on this
+   screen is EXAMPLE DATA — see the banner below the header.
+   ========================================================================= */
+:root{
+  --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  --fontMono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:18px; --f-h1:26px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --cat-flower:#3F9E72; --cat-preroll:#D45A3C; --cat-vape:#3F73D6; --cat-concentrate:#C2841D; --cat-edible:#E0477C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+  --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;font-family:var(--fontSans);}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+.content{padding:20px 24px 40px;display:flex;flex-direction:column;gap:18px;max-width:1560px;width:100%;margin:0 auto;}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+.example-banner svg{flex:0 0 auto;}
+.banner{display:flex;align-items:flex-start;gap:12px;border-radius:var(--r12);padding:13px 16px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
+.banner.info{background:var(--infoSoft);border-color:var(--info);color:var(--info);}
+.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;color:inherit;}
+.banner .b-body{color:var(--inkDim);}
+.banner.info .b-body{color:var(--info);opacity:.92;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
+.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
+.card-head .manage-link{margin-left:auto;background:none;border:none;color:var(--info);font-size:var(--f-meta);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.card-body{padding:0 16px 16px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.btn-good:hover{background:var(--good);color:#fff;}
+.btn-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.btn-warn:hover{background:var(--warn);color:#fff;}
+.btn-sm{height:29px;padding:0 11px;font-size:var(--f-meta);border-radius:var(--r8);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+select.sel{height:32px;border-radius:var(--r8);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:0 8px;font-size:var(--f-meta);}
+
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;border:1px solid transparent;text-transform:uppercase;letter-spacing:.03em;}
+.pill-done{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-active{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+.pill-pending{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+.pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+
+/* ---- session bar ---- */
+.walkbar{display:flex;align-items:center;gap:22px;padding:14px 16px;flex-wrap:wrap;}
+.walkbar .wstat{display:flex;flex-direction:column;gap:1px;}
+.walkbar .wstat .k{font-size:var(--f-micro);text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.walkbar .wstat .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;font-variant-numeric:tabular-nums;}
+.walkbar .who{display:flex;align-items:center;gap:6px;font-size:var(--f-meta);color:var(--inkDim);}
+.walkbar .spacer{flex:1;}
+.walkbar .actions{display:flex;gap:8px;}
+.progress-outer{height:8px;border-radius:99px;background:var(--hairline2);overflow:hidden;margin:0 16px 14px;}
+.progress-outer>span{display:block;height:100%;border-radius:99px;background:var(--info);transition:width .2s ease;}
+
+/* ---- rack grid ---- */
+.rackrow{display:flex;gap:16px;overflow-x:auto;padding:4px 16px 16px;}
+.rack{flex:0 0 auto;border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface2);padding:10px;}
+.rack h3{margin:0 0 8px;font-size:var(--f-strong);display:flex;align-items:center;gap:7px;}
+.rack .catdot{width:9px;height:9px;border-radius:3px;}
+.shelfgrid{display:grid;grid-template-columns:repeat(3,44px);gap:6px;}
+.loc-tile{width:44px;height:38px;border-radius:7px;border:1.5px solid var(--hairline3);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--fontMono);font-size:9px;font-weight:700;color:var(--inkMute);cursor:pointer;line-height:1.15;position:relative;}
+.loc-tile .b{font-size:8.5px;font-weight:600;}
+.loc-tile.reading{border-color:var(--accentBorder);background:var(--accentSoft);color:var(--accentText);animation:pulse 1s ease-in-out infinite;}
+.loc-tile.match{border-color:var(--good);background:var(--goodSoft);color:var(--good);}
+.loc-tile.variance{border-color:var(--warn);background:var(--warnSoft);color:var(--warnText);}
+.loc-tile.drift{border-color:var(--bad);background:var(--badSoft);color:var(--bad);}
+.loc-tile.empty-expected{background:var(--surface3);color:var(--inkFaint);border-style:dashed;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,209,0,.5);}50%{box-shadow:0 0 0 5px rgba(255,209,0,0);}}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 16px 14px;align-items:center;}
+.legend .li{display:flex;align-items:center;gap:7px;font-size:var(--f-meta);color:var(--inkDim);}
+.legend .swatch{width:12px;height:12px;border-radius:4px;flex:0 0 auto;border:1.5px solid transparent;}
+
+/* ---- live feed ---- */
+.feed{display:flex;flex-direction:column;max-height:230px;overflow-y:auto;}
+.feedrow{display:flex;gap:10px;align-items:flex-start;padding:8px 16px;border-bottom:1px solid var(--hairline);font-size:var(--f-body);}
+.feedrow:last-child{border-bottom:none;}
+.feedrow .ftime{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);flex:0 0 62px;}
+.feedrow .ficon{flex:0 0 auto;width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.feedrow.match .ficon{background:var(--goodSoft);color:var(--good);}
+.feedrow.variance .ficon{background:var(--warnSoft);color:var(--warnText);}
+.feedrow.drift .ficon{background:var(--badSoft);color:var(--bad);}
+.feedrow .ftext{flex:1;color:var(--ink2);}
+.feedrow .ftext b{color:var(--ink);}
+
+/* ---- proposal table ---- */
+table.proptbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;}
+table.proptbl th{text-align:left;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:7px 8px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.proptbl th.r{text-align:right;}
+table.proptbl td{padding:8px;border-bottom:1px solid var(--hairline);vertical-align:top;}
+table.proptbl tr:last-child td{border-bottom:none;}
+table.proptbl tr.variance{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+table.proptbl tr.drift{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+.num{font-family:var(--fontMono);text-align:right;white-space:nowrap;}
+.batchflag{color:var(--bad);font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.03em;}
+.attrib{font-size:10.5px;color:var(--inkMute);white-space:nowrap;}
+.attrib b{color:var(--ink2);font-weight:700;}
+.rowactions{display:flex;gap:6px;flex-wrap:wrap;}
+.confirmed-strip{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--goodSoft);color:var(--good);font-size:var(--f-body);font-weight:600;border-radius:var(--r10);margin:0 16px 12px;}
+
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:24px;}
+.modal{background:var(--surface);border-radius:var(--r16);width:100%;max-width:640px;max-height:86vh;overflow-y:auto;padding:22px;box-shadow:var(--shadowLg);}
+.modal h2{margin:0 0 12px;font-size:var(--f-h2);}
+.printsheet{border:1.5px dashed var(--hairline3);border-radius:var(--r10);padding:16px;font-family:var(--fontMono);}
+.printsheet table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
+.printsheet th,.printsheet td{border:1px solid var(--hairline3);padding:5px 6px;text-align:left;}
+.printsheet .qr{width:64px;height:64px;background:repeating-conic-gradient(var(--ink) 0% 25%, transparent 0% 50%) 0/16px 16px;float:right;border:1px solid var(--hairline3);}
+.printsheet .signline{margin-top:14px;display:flex;gap:24px;font-size:11px;}
+.printsheet .signline div{flex:1;border-top:1px solid var(--ink);padding-top:4px;}
+.modal-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end;}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+  .content{padding:14px 14px 30px;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item" title="Kit templates"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+      <button class="rail-item active" title="Distribution"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Cycle Count</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Concept B</span></div>
+        <h1 class="h1">RFID Walk the Vault</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">7:42 AM PT</div>
+        <div class="clock-sub">Business day: Thu Sep 10, 2026 · rolls at 12:00 AM PT</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="content">
+      <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Design mockup — every location, batch number, name and time on this screen is example data, not a live vault.</div>
+
+      <div class="banner info">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r=".6" fill="currentColor" stroke="none"/></svg>
+        <div><div class="b-title">RFID reads propose — nothing adjusts stock until a manager approves</div>
+        <div class="b-body">Walk the vault with the handheld; each read updates the map below in real time. Matches auto-confirm. Anything that disagrees with what the system expects becomes a proposal line a manager must approve, reject, or send to a blind recount — the count itself never writes to inventory.</div></div>
+      </div>
+
+      <!-- ============ session / control bar ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Vault walk — Warehouse 1</h2><span class="hint">Handheld session, Zone A (Flower · Vape · Concentrate/Edible)</span></div>
+        <div class="walkbar">
+          <div class="wstat"><span class="k">Locations read</span><span class="v" id="statRead">0 / 27</span></div>
+          <div class="wstat"><span class="k">Matches</span><span class="v" id="statMatch" style="color:var(--good);">0</span></div>
+          <div class="wstat"><span class="k">Flagged</span><span class="v" id="statFlag" style="color:var(--warnText);">0</span></div>
+          <div class="wstat"><span class="k">Elapsed</span><span class="v" id="statTime">00:00</span></div>
+          <div class="who">Counted by
+            <select class="sel" id="operatorSel">
+              <option>Jordan P. — Handheld 2</option>
+              <option>Marcus R. — Handheld 1</option>
+              <option>Priya S. — Handheld 3</option>
+            </select>
+          </div>
+          <div class="spacer"></div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm" id="resetBtn">Reset walk</button>
+            <button class="btn btn-ghost btn-sm" id="stepBtn">Step ▸</button>
+            <button class="btn btn-primary btn-sm" id="playBtn">▶ Play walk</button>
+          </div>
+        </div>
+        <div class="progress-outer"><span id="progressBar" style="width:0%"></span></div>
+      </div>
+
+      <!-- ============ rack grid ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Racks — lights on read</h2><span class="hint">Three-level address: rack · shelf · bin (e.g. F2-B-03)</span></div>
+        <div class="rackrow" id="rackRow"></div>
+        <div class="legend">
+          <span class="li"><span class="swatch" style="border:1.5px dashed var(--hairline3);background:var(--surface3);"></span>Not yet read</span>
+          <span class="li"><span class="swatch" style="border-color:var(--accentBorder);background:var(--accentSoft);"></span>Reading now</span>
+          <span class="li"><span class="swatch" style="border-color:var(--good);background:var(--goodSoft);"></span>Match</span>
+          <span class="li"><span class="swatch" style="border-color:var(--warn);background:var(--warnSoft);"></span>Variance</span>
+          <span class="li"><span class="swatch" style="border-color:var(--bad);background:var(--badSoft);"></span>Drift — batch read where it shouldn't be</span>
+        </div>
+      </div>
+
+      <!-- ============ live feed ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Live read feed</h2><span class="hint">Every scan, in order</span></div>
+        <div class="feed" id="feedList"><div class="feedrow"><span class="ftime">—</span><span class="ftext" style="color:var(--inkMute);">Press Step or Play to begin the walk.</span></div></div>
+      </div>
+
+      <!-- ============ proposal list ============ -->
+      <div class="card">
+        <div class="card-head"><h2>Proposal list — manager review</h2><span class="hint">Approving manager
+          <select class="sel" id="managerSel" style="margin-left:6px;">
+            <option>Dana K. — Warehouse Manager</option>
+            <option>Whitney L. — Ops Manager</option>
+          </select></span>
+          <button class="manage-link" id="printBtn" style="margin-left:auto;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><rect x="6" y="13" width="12" height="8"/><path d="M6 17H3a1 1 0 01-1-1v-4a1 1 0 011-1h18a1 1 0 011 1v4a1 1 0 01-1 1h-3"/></svg>Print count sheet</button>
+        </div>
+        <div id="confirmedStrip"></div>
+        <div style="overflow-x:auto;">
+        <table class="proptbl">
+          <thead><tr><th>Product</th><th>Location</th><th class="r">Expected</th><th class="r">Read</th><th class="r">Variance</th><th>Flag / batch</th><th>Attribution</th><th>Action</th></tr></thead>
+          <tbody id="proposalBody"><tr><td colspan="8" style="color:var(--inkMute);padding:14px 8px;">No proposals yet — start the walk above.</td></tr></tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="footerline">Cycle Count — Concept B of 4 — RFID Walk the Vault</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="printOverlay" style="display:none;">
+  <div class="modal">
+    <h2>Printable count sheet</h2>
+    <div class="printsheet" id="printSheetBody"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="closePrint">Close</button><button class="btn btn-primary" onclick="window.print()">Print</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- theme toggle ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('cyclecount-b-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('cyclecount-b-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+
+  /* ---------------- data: EXAMPLE ONLY ---------------- */
+  var RACKS = [
+    { id:'F2', name:'Rack F2 — Flower', cat:'flower', shelves:['A','B','C'], bins:3 },
+    { id:'V1', name:'Rack V1 — Vape / Pre-Roll', cat:'vape', shelves:['A','B','C'], bins:3 },
+    { id:'C3', name:'Rack C3 — Concentrate / Edible', cat:'edible', shelves:['A','B','C'], bins:3 }
+  ];
+  var CATCOLOR = { flower:'var(--cat-flower)', vape:'var(--cat-vape)', edible:'var(--cat-edible)' };
+
+  // Build the full location list. Most are plain "expect nothing / expect a known batch, and it matches."
+  // A curated subset gets an interesting outcome so the walk demonstrates variance and drift.
+  var LOCATIONS = [];
+  RACKS.forEach(function(rack){
+    rack.shelves.forEach(function(shelf){
+      for (var bin=1; bin<=rack.bins; bin++){
+        var addr = rack.id+'-'+shelf+'-'+String(bin).padStart(2,'0');
+        LOCATIONS.push({ addr:addr, rack:rack.id, cat:rack.cat, expectedQty:0, expectedBatch:null, product:null });
+      }
+    });
+  });
+  function loc(addr){ return LOCATIONS.find(function(l){ return l.addr===addr; }); }
+
+  // Seed expected stock on a handful of real locations.
+  var SEED = [
+    ['F2-A-01','Blue Dream 3.5g','#F-1188',24],
+    ['F2-A-02','OG Kush 3.5g','#F-1204',18],
+    ['F2-B-01','Wedding Cake 3.5g','#F-1177',30],
+    ['F2-B-03','GMO 7g','#F-1204',12],
+    ['F2-C-02','Sour Diesel 3.5g','#F-1150',16],
+    ['V1-A-01','Live Resin Cart 1g','#V-0912',40],
+    ['V1-A-02','Distillate Cart 0.5g','#V-0888',35],
+    ['V1-B-02','Indica PR 5-pack','#P-0301',60],
+    ['V1-C-01','Hybrid PR Single','#P-0299',50],
+    ['C3-A-01','Live Rosin 1g','#C-0455',20],
+    ['C3-B-02','Gummies 100mg','#E-0710',45],
+    ['C3-C-01','Chocolate Bar 100mg','#E-0699',22]
+  ];
+  SEED.forEach(function(s){ var l = loc(s[0]); if (l){ l.product = s[1]; l.expectedBatch = s[2]; l.expectedQty = s[3]; } });
+
+  // Walk sequence: each step reads one location and reports what the handheld actually found.
+  // outcome: 'match' | 'variance' | 'drift' | 'empty'
+  var WALK = [
+    { addr:'F2-A-01', found:24, batch:'#F-1188', outcome:'match' },
+    { addr:'F2-A-02', found:18, batch:'#F-1204', outcome:'match' },
+    { addr:'F2-A-03', found:0, batch:null, outcome:'empty' },
+    { addr:'F2-B-01', found:27, batch:'#F-1177', outcome:'variance', note:'3 short of expected 30' },
+    { addr:'F2-B-02', found:2, batch:'#F-1204', outcome:'drift', note:'GMO 7g Batch #F-1204 read here — that batch is racked at F2-B-03, not F2-B-02' },
+    { addr:'F2-B-03', found:9, batch:'#F-1204', outcome:'variance', note:'9 of 12 expected; the other 2 units read at F2-B-02 (see above)' },
+    { addr:'F2-C-01', found:0, batch:null, outcome:'empty' },
+    { addr:'F2-C-02', found:16, batch:'#F-1150', outcome:'match' },
+    { addr:'F2-C-03', found:0, batch:null, outcome:'empty' },
+    { addr:'V1-A-01', found:40, batch:'#V-0912', outcome:'match' },
+    { addr:'V1-A-02', found:35, batch:'#V-0888', outcome:'match' },
+    { addr:'V1-A-03', found:0, batch:null, outcome:'empty' },
+    { addr:'V1-B-01', found:0, batch:null, outcome:'empty' },
+    { addr:'V1-B-02', found:57, batch:'#P-0301', outcome:'variance', note:'3 short of expected 60' },
+    { addr:'V1-B-03', found:0, batch:null, outcome:'empty' },
+    { addr:'V1-C-01', found:50, batch:'#P-0299', outcome:'match' },
+    { addr:'V1-C-02', found:6, batch:'#P-0345', outcome:'drift', note:'Pre-Roll batch #P-0345 read here — not on any expected location list; likely mis-shelved from receiving' },
+    { addr:'V1-C-03', found:0, batch:null, outcome:'empty' },
+    { addr:'C3-A-01', found:20, batch:'#C-0455', outcome:'match' },
+    { addr:'C3-A-02', found:0, batch:null, outcome:'empty' },
+    { addr:'C3-A-03', found:0, batch:null, outcome:'empty' },
+    { addr:'C3-B-01', found:0, batch:null, outcome:'empty' },
+    { addr:'C3-B-02', found:45, batch:'#E-0710', outcome:'match' },
+    { addr:'C3-B-03', found:0, batch:null, outcome:'empty' },
+    { addr:'C3-C-01', found:22, batch:'#E-0699', outcome:'match' },
+    { addr:'C3-C-02', found:0, batch:null, outcome:'empty' },
+    { addr:'C3-C-03', found:0, batch:null, outcome:'empty' }
+  ];
+
+  var cursor = 0, playTimer = null, startTime = null, elapsedTimer = null;
+  var proposals = []; // { addr, product, expectedQty, expectedBatch, found, batch, outcome, note, status, approvedBy, approvedAt }
+  var matchCount = 0;
+
+  function operatorName(){ return document.getElementById('operatorSel').value; }
+  function managerName(){ return document.getElementById('managerSel').value; }
+
+  /* ---------------- rack grid render ---------------- */
+  function renderRacks(){
+    var host = document.getElementById('rackRow');
+    host.innerHTML = RACKS.map(function(rack){
+      var tiles = LOCATIONS.filter(function(l){ return l.rack===rack.id; }).map(function(l){
+        var cls = 'loc-tile' + (l.status ? ' '+l.status : (l.expectedQty>0 ? '' : ' empty-expected'));
+        var shelfBin = l.addr.split('-').slice(1).join('-');
+        return '<div class="'+cls+'" data-addr="'+l.addr+'" title="'+l.addr+(l.product?' — '+esc(l.product):'')+'">'+shelfBin+(l.readBatch?'<span class="b">'+l.readBatch.replace('#','')+'</span>':'')+'</div>';
+      }).join('');
+      return '<div class="rack"><h3><span class="catdot" style="background:'+CATCOLOR[rack.cat]+'"></span>'+rack.name+'</h3><div class="shelfgrid">'+tiles+'</div></div>';
+    }).join('');
+  }
+
+  /* ---------------- feed + proposals ---------------- */
+  function pushFeed(entry, timeStr){
+    var host = document.getElementById('feedList');
+    if (host.children.length===1 && host.children[0].querySelector('.ftext').style.color) host.innerHTML='';
+    var row = document.createElement('div');
+    row.className = 'feedrow ' + (entry.outcome==='match'||entry.outcome==='empty' ? 'match' : entry.outcome);
+    var icon = entry.outcome==='drift'
+      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>'
+      : entry.outcome==='variance'
+      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/></svg>'
+      : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+    var text = entry.outcome==='empty' ? '<b>'+entry.addr+'</b> — no tags read, none expected. Match.'
+      : entry.outcome==='match' ? '<b>'+entry.addr+'</b> — '+esc(entry.product)+' '+entry.batch+' — '+entry.found+' read, '+entry.found+' expected. Match.'
+      : '<b>'+entry.addr+'</b> — '+esc(entry.note);
+    row.innerHTML = '<span class="ftime">'+timeStr+'</span><span class="ficon">'+icon+'</span><span class="ftext">'+text+'</span>';
+    host.insertBefore(row, host.firstChild);
+  }
+
+  function addProposal(entry){
+    proposals.push({
+      addr: entry.addr, product: entry.product || '(unbound tag)', expectedQty: entry.l.expectedQty, expectedBatch: entry.l.expectedBatch,
+      found: entry.found, batch: entry.batch, outcome: entry.outcome, note: entry.note,
+      status: 'pending', countedBy: operatorName(), approvedBy: null, approvedAt: null
+    });
+  }
+
+  function renderProposals(){
+    var body = document.getElementById('proposalBody');
+    if (!proposals.length){ body.innerHTML = '<tr><td colspan="8" style="color:var(--inkMute);padding:14px 8px;">No proposals yet — start the walk above.</td></tr>'; document.getElementById('confirmedStrip').innerHTML=''; return; }
+    body.innerHTML = proposals.map(function(p, i){
+      var variance = p.found - (p.expectedQty || 0);
+      var varTxt = (p.outcome==='drift') ? '—' : (variance>0?'+':'')+variance;
+      var flagHtml = p.outcome==='drift'
+        ? '<span class="batchflag">Drift · batch '+esc(p.batch)+'</span><div style="font-size:10.5px;color:var(--inkDim);margin-top:2px;max-width:220px;">'+esc(p.note)+'</div>'
+        : '<span style="font-size:10.5px;color:var(--warnText);font-weight:700;">Variance</span><div style="font-size:10.5px;color:var(--inkDim);margin-top:2px;max-width:220px;">'+esc(p.note)+'</div>';
+      var attrib = '<div class="attrib">Counted by <b>'+esc(p.countedBy)+'</b></div><div class="attrib">'+(p.approvedBy?('Approved by <b>'+esc(p.approvedBy)+'</b> · '+p.approvedAt):'Awaiting approval')+'</div>';
+      var actions;
+      if (p.status==='pending'){
+        actions = '<div class="rowactions">'
+          + '<button class="btn btn-good btn-sm" data-act="approve" data-i="'+i+'">Approve</button>'
+          + '<button class="btn btn-warn btn-sm" data-act="recount" data-i="'+i+'">Blind recount</button>'
+          + '</div>';
+      } else {
+        actions = '<span class="pill '+(p.status==='approved'?'pill-done':'pill-active')+'">'+(p.status==='approved'?'Approved — posts to Discrepancy queue':'Recount requested')+'</span>';
+      }
+      return '<tr class="'+p.outcome+'"><td>'+esc(p.product)+(p.expectedBatch&&p.outcome!=='drift'?'<div style="font-size:10.5px;color:var(--inkMute);">Batch '+esc(p.expectedBatch)+'</div>':'')+'</td>'
+        + '<td style="font-family:var(--fontMono);">'+p.addr+'</td>'
+        + '<td class="num">'+(p.expectedQty||0)+'</td>'
+        + '<td class="num">'+p.found+'</td>'
+        + '<td class="num">'+varTxt+'</td>'
+        + '<td>'+flagHtml+'</td>'
+        + '<td>'+attrib+'</td>'
+        + '<td>'+actions+'</td>'
+        + '</tr>';
+    }).join('');
+    body.querySelectorAll('[data-act]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var i = +btn.getAttribute('data-i'), act = btn.getAttribute('data-act');
+        var p = proposals[i];
+        if (act==='approve'){ p.status='approved'; p.approvedBy = managerName(); p.approvedAt = nowStr(); }
+        if (act==='recount'){ p.status='recount'; p.approvedBy = managerName()+' (requested recount)'; p.approvedAt = nowStr(); }
+        renderProposals();
+      });
+    });
+    var confirmed = document.getElementById('confirmedStrip');
+    confirmed.innerHTML = matchCount ? '<div class="confirmed-strip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'+matchCount+' location'+(matchCount===1?'':'s')+' matched expected exactly — auto-confirmed, no approval needed, counted by '+esc(operatorName())+'.</div>' : '';
+  }
+
+  function nowStr(){
+    try { return new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){ return 'just now'; }
+  }
+
+  /* ---------------- walk step ---------------- */
+  function step(){
+    if (cursor >= WALK.length){ stopPlay(); return; }
+    if (cursor===0 && !startTime){ startTime = Date.now(); elapsedTimer = setInterval(updateElapsed, 1000); }
+    var entry = WALK[cursor];
+    var l = loc(entry.addr);
+    // clear previous "reading" state
+    LOCATIONS.forEach(function(x){ if (x.status==='reading') x.status = x._prevStatus || null; });
+    l.status = (entry.outcome==='match'||entry.outcome==='empty') ? 'match' : entry.outcome;
+    l.readBatch = entry.batch;
+    if (entry.outcome==='drift'){
+      // also mark the location the batch is supposed to live at, if any, as variance-adjacent
+    }
+    entry.product = l.product;
+    entry.l = l;
+    var t = nowStr();
+    pushFeed(entry, t);
+    if (entry.outcome==='match' || entry.outcome==='empty'){ matchCount++; }
+    else { addProposal(entry); }
+    cursor++;
+    renderRacks();
+    renderProposals();
+    document.getElementById('statRead').textContent = cursor + ' / ' + WALK.length;
+    document.getElementById('statMatch').textContent = matchCount;
+    document.getElementById('statFlag').textContent = proposals.length;
+    document.getElementById('progressBar').style.width = Math.round(cursor/WALK.length*100) + '%';
+    if (cursor >= WALK.length) stopPlay();
+  }
+
+  function updateElapsed(){
+    if (!startTime) return;
+    var s = Math.floor((Date.now()-startTime)/1000);
+    var m = String(Math.floor(s/60)).padStart(2,'0'), ss = String(s%60).padStart(2,'0');
+    document.getElementById('statTime').textContent = m+':'+ss;
+  }
+
+  function stopPlay(){
+    if (playTimer){ clearInterval(playTimer); playTimer=null; }
+    document.getElementById('playBtn').textContent = '▶ Play walk';
+    if (elapsedTimer && cursor >= WALK.length){ clearInterval(elapsedTimer); elapsedTimer=null; }
+  }
+
+  document.getElementById('stepBtn').addEventListener('click', step);
+  document.getElementById('playBtn').addEventListener('click', function(){
+    if (playTimer){ stopPlay(); return; }
+    if (cursor >= WALK.length) return;
+    this.textContent = '⏸ Pause';
+    playTimer = setInterval(step, 650);
+  });
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    stopPlay();
+    cursor = 0; matchCount = 0; proposals = []; startTime = null;
+    if (elapsedTimer){ clearInterval(elapsedTimer); elapsedTimer=null; }
+    document.getElementById('statTime').textContent = '00:00';
+    LOCATIONS.forEach(function(l){ l.status=null; l.readBatch=null; });
+    document.getElementById('feedList').innerHTML = '<div class="feedrow"><span class="ftime">—</span><span class="ftext" style="color:var(--inkMute);">Press Step or Play to begin the walk.</span></div>';
+    document.getElementById('statRead').textContent = '0 / '+WALK.length;
+    document.getElementById('statMatch').textContent = '0';
+    document.getElementById('statFlag').textContent = '0';
+    document.getElementById('progressBar').style.width = '0%';
+    renderRacks(); renderProposals();
+  });
+
+  /* ---------------- print count sheet ---------------- */
+  document.getElementById('printBtn').addEventListener('click', function(){
+    var rows = proposals.map(function(p){
+      return '<tr><td>'+esc(p.product)+'</td><td>'+p.addr+'</td><td>'+(p.expectedQty||0)+'</td><td>'+p.found+'</td><td>'+(p.outcome==='drift'?'DRIFT — '+esc(p.batch):'variance')+'</td></tr>';
+    }).join('');
+    document.getElementById('printSheetBody').innerHTML =
+      '<div class="qr"></div><h3 style="margin:0;">Vault Cycle Count — Warehouse 1, Zone A</h3>'
+      + '<div>Business day: Thu Sep 10, 2026 · Session started '+nowStr()+'</div>'
+      + '<table><thead><tr><th>Product</th><th>Location</th><th>Expected</th><th>Read</th><th>Flag</th></tr></thead><tbody>'
+      + (rows || '<tr><td colspan="5">No flagged lines — every read matched.</td></tr>') + '</tbody></table>'
+      + '<div class="signline"><div>Counted by: '+esc(operatorName())+'</div><div>Approved by: _____________________</div></div>';
+    document.getElementById('printOverlay').style.display = 'flex';
+  });
+  document.getElementById('closePrint').addEventListener('click', function(){ document.getElementById('printOverlay').style.display='none'; });
+
+  /* ---------------- boot ---------------- */
+  renderRacks();
+  renderProposals();
+})();
+</script>
+</body>
+</html>

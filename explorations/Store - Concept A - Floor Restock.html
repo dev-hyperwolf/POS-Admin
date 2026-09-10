@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Store — Concept A — Floor Restock</title>
+<style>
+/* ============================================================================
+   Store — Concept A — Floor Restock. Safe → shelf, several times a day. Row
+   schema (PRODUCT · SOLD · ON SHELF · PAR · WILL MOVE · REASON) and the tinted
+   shortfall/skip rows are the keeper from Distribution Refill Concept B (Box
+   Cards) — same colours, same "never a bare skip" rule, oldest batch always
+   first. A shelf that would carry a second live batch turns LOUD (red, both
+   batch numbers, THC, packaged dates) — never quiet. Every restock stamps who
+   moved it and when. Tokens copied inline from pos/tokens.jsx; rail/header
+   shape from Hyperwolf Bounty.html. No build step, no external requests.
+   Every name, product, quantity and time below is EXAMPLE DATA.
+   ========================================================================= */
+:root{
+  --fontSans:"Inter",-apple-system,system-ui,sans-serif;
+  --fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:19px; --f-h1:27px; --f-numRow:15px; --f-numTotal:21px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r20:20px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+  --cat-flower:#3F9E72; --cat-preroll:#D45A3C; --cat-vape:#3F73D6; --cat-concentrate:#C2841D; --cat-edible:#E0477C;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+  --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+    --cat-flower:#4FBE8A; --cat-preroll:#E27158; --cat-vape:#6B93E8; --cat-concentrate:#D69A3E; --cat-edible:#EE6E9C;
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;font-family:var(--fontSans);}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;margin:14px 24px 0;}
+
+.content{flex:1;padding:14px 24px 130px;}
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);margin-bottom:14px;overflow:hidden;}
+.card-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--hairline2);flex-wrap:wrap;}
+.card-head h2{margin:0;font-size:var(--f-h2);font-weight:700;}
+.card-head .hint{font-size:var(--f-meta);color:var(--inkMute);}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;padding:0 15px;border-radius:var(--r10);font-size:var(--f-body);font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-sm{height:32px;font-size:var(--f-meta);padding:0 11px;}
+.manage-link{display:inline-flex;align-items:center;gap:6px;background:none;border:1px dashed var(--hairline3);border-radius:99px;color:var(--inkMute);font-size:var(--f-meta);cursor:pointer;padding:6px 12px;}
+.manage-link:hover{color:var(--ink);border-color:var(--inkMute);}
+
+/* aisle tabs */
+.aisle-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);padding:0 2px;}
+.atab{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 4px;border:none;background:transparent;color:var(--inkDim);font-size:var(--f-title);font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.atab:hover{color:var(--ink);}
+.atab.active{color:var(--ink);border-bottom-color:var(--accentBorder);}
+.atab .n{font-family:var(--fontMono);font-size:var(--f-meta);font-weight:600;color:var(--inkMute);background:var(--surface3);border-radius:99px;padding:2px 8px;}
+.atab.hasflag .n{background:var(--badSoft);color:var(--bad);}
+
+/* shelf grid + shelf card (row schema keeper) */
+.shelf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;padding:14px 4px 4px;}
+.shelf-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);overflow:hidden;border-top:3px solid var(--sc,var(--neutral));}
+.shelf-card.moved{opacity:.72;}
+.shelf-head{padding:10px 12px;border-bottom:1px solid var(--hairline);}
+.shelf-head .sname{font-size:var(--f-strong);font-weight:700;display:flex;align-items:center;gap:8px;}
+.shelf-head .scode{font-family:var(--fontMono);font-size:var(--f-meta);color:var(--inkMute);font-weight:600;}
+.shelf-head .sattr{font-size:var(--f-meta);color:var(--inkMute);margin-top:3px;}
+.shelf-head .sattr b{color:var(--ink2);font-weight:700;}
+table.shelftbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
+table.shelftbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:6px;border-bottom:1px solid var(--hairline);}
+table.shelftbl th:first-child{text-align:left;}
+table.shelftbl td{padding:7px 6px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.shelftbl tr:last-child td{border-bottom:none;}
+.shelftbl .pn{font-weight:600;font-size:11.5px;}
+.shelftbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.shelftbl tr.row-skip{background:var(--badSoft);box-shadow:inset 3px 0 0 var(--bad);}
+.shelftbl tr.row-short{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.shelftbl tr.row-loud{background:var(--badSoft);box-shadow:inset 4px 0 0 var(--bad);}
+.loudpill{display:inline-flex;align-items:center;height:15px;padding:0 5px;border-radius:4px;background:var(--bad);color:#fff;font-size:8.5px;font-weight:800;letter-spacing:.05em;margin-right:4px;}
+.willmove-input{width:44px;height:27px;text-align:right;border-radius:6px;border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);font-family:var(--fontMono);font-size:11.5px;font-weight:600;padding:0 5px;}
+.willmove-input:disabled{background:var(--surface3);color:var(--inkFaint);}
+.reasoncell{font-size:9.5px;color:var(--inkMute);max-width:120px;line-height:1.3;}
+.reasoncell.r-bad{color:var(--bad);font-weight:700;}
+.reasoncell.r-warn{color:var(--warnText);font-weight:700;}
+.loud-detail{background:var(--surface);border-top:1px dashed var(--bad);}
+.loud-detail td{padding:8px 10px;}
+.loud-detail .lrow{display:flex;justify-content:space-between;gap:10px;font-family:var(--fontMono);font-size:10.5px;color:var(--ink2);padding:2px 0;}
+.loud-detail .lrow span:first-child{font-family:var(--fontSans);color:var(--inkDim);font-weight:600;}
+.oldest-badge{display:inline-flex;height:15px;padding:0 5px;border-radius:4px;background:var(--goodSoft);color:var(--good);font-size:8.5px;font-weight:800;letter-spacing:.04em;margin-left:6px;}
+
+/* skips + legend (Refill Concept B pattern) */
+.skiplist{display:flex;flex-direction:column;}
+.skipitem{display:flex;gap:11px;padding:10px 16px;border-bottom:1px solid var(--hairline);align-items:flex-start;cursor:pointer;background:none;border-left:none;border-right:none;border-top:none;width:100%;text-align:left;}
+.skipitem:last-child{border-bottom:none;}
+.skipitem:hover{background:var(--surface2);}
+.skipitem .sk-icon{width:26px;height:26px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.skipitem.skip .sk-icon,.skipitem.loud .sk-icon{background:var(--badSoft);color:var(--bad);}
+.skipitem.short .sk-icon{background:var(--warnSoft);color:var(--warnText);}
+.skipitem .sk-body{flex:1;min-width:0;}
+.skipitem .sk-title{font-size:var(--f-strong);font-weight:700;}
+.skipitem .sk-text{font-size:var(--f-body);color:var(--inkDim);margin-top:2px;}
+.skipitem .sk-jump{flex:0 0 auto;font-size:var(--f-meta);color:var(--info);font-weight:600;align-self:center;}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:12px 16px;align-items:center;}
+.legend .li{display:flex;align-items:center;gap:7px;font-size:var(--f-meta);color:var(--inkDim);}
+.legend .swatch{width:10px;height:10px;border-radius:3px;flex:0 0 auto;}
+
+.flash{animation:flashbox 1.6s ease;}
+@keyframes flashbox{0%,100%{box-shadow:var(--shadowSm);}20%,60%{box-shadow:0 0 0 3px var(--accentBorder), var(--shadowMd);}}
+
+/* commit bar */
+.commitbar{position:fixed;left:74px;right:0;bottom:0;z-index:25;display:flex;align-items:center;gap:16px;padding:12px 24px;border-top:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.05);}
+.commitbar .sum{display:flex;gap:20px;flex-wrap:wrap;}
+.commitbar .sumitem{display:flex;flex-direction:column;gap:1px;}
+.commitbar .sumitem .k{font-size:var(--f-micro);text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.commitbar .sumitem .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
+.commitbar .btn{margin-left:auto;}
+.commitbar .confirmed{font-size:var(--f-meta);color:var(--good);font-weight:700;margin-left:auto;}
+
+/* print overlay */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:flex-start;justify-content:center;z-index:80;overflow-y:auto;padding:30px 16px;}
+.print-sheet{background:#fff;color:#111;width:100%;max-width:640px;border-radius:var(--r12);padding:26px 28px;font-family:var(--fontMono);box-shadow:var(--shadowLg);}
+.print-sheet h3{font-family:var(--fontSans);margin:0 0 2px;font-size:17px;}
+.print-sheet .psub{font-family:var(--fontSans);font-size:11.5px;color:#666;margin-bottom:14px;}
+.print-sheet table{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:6px;}
+.print-sheet th,.print-sheet td{border-bottom:1px solid #ddd;padding:5px 4px;text-align:left;}
+.print-sheet th{font-family:var(--fontSans);font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:#777;}
+.print-sheet .ploud{color:#a5251b;font-weight:700;}
+.print-foot{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:12px;}
+.qr{width:64px;height:64px;background:
+  repeating-linear-gradient(0deg,#111 0 4px,#fff 4px 8px),
+  repeating-linear-gradient(90deg,#111 0 4px,transparent 4px 8px);
+  background-blend-mode:multiply;border:1px solid #111;flex:0 0 auto;}
+.print-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
+@media print{
+  body>.app,.overlay .print-actions,.example-banner{display:none !important;}
+  .overlay{position:static;background:none;padding:0;}
+  .print-sheet{box-shadow:none;max-width:none;}
+}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:10px 0 14px;}
+.toast{position:fixed;right:18px;bottom:88px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:var(--r10);box-shadow:var(--shadowMd);padding:11px 14px;font-size:var(--f-body);z-index:100;max-width:340px;animation:fadeIn .16s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+  .commitbar{left:64px;}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .commitbar{left:56px;flex-direction:column;align-items:stretch;}
+  .commitbar .btn,.commitbar .confirmed{margin-left:0;width:100%;text-align:center;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+  .example-banner{margin:14px 12px 0;}
+  .content{padding:12px 12px 150px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item active" title="Store"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="12" rx="2"/><path d="M3 9l2-5h14l2 5"/><path d="M9 21v-6h6v6"/></svg><span class="lbl">Store</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Store · Corona</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Floor Restock · Concept A</span></div>
+        <h1 class="h1">Floor Restock</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">2:14 PM PT</div>
+        <div class="clock-sub">Floor team · Marcus D.</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+      Design mockup — every product, shelf, quantity, name and time on this screen is example data, not live inventory or a real restock.</div>
+
+    <div class="content">
+      <div class="card">
+        <div class="aisle-tabs" id="aisleTabs"></div>
+        <div class="shelf-grid" id="shelfGrid"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Skips &amp; shortfalls — this restock</h2><span class="hint">Tap one to jump to the shelf it happened on</span></div>
+        <div class="skiplist" id="skipList"></div>
+      </div>
+
+      <div class="card">
+        <div class="legend">
+          <span class="li"><span class="swatch" style="background:var(--warnSoft);border:1px solid var(--warn)"></span>Short stock in safe — partial move</span>
+          <span class="li"><span class="swatch" style="background:var(--badSoft);border:1px solid var(--bad)"></span>Nothing to move — safe is empty</span>
+          <span class="li"><span class="swatch" style="background:var(--bad)"></span>LOUD — a second batch would join this shelf</span>
+          <button class="manage-link" style="margin-left:auto;" onclick="toast('Manage shelf pars','Pars vary by shelf and season — opens the shelf-par editor (not built in this mockup).')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>Manage shelf pars</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="commitbar">
+      <div class="sum">
+        <div class="sumitem"><div class="k">Aisle</div><div class="v" id="cbAisle">—</div></div>
+        <div class="sumitem"><div class="k">Shelves</div><div class="v" id="cbShelves">0 / 0</div></div>
+        <div class="sumitem"><div class="k">Units to move</div><div class="v" id="cbUnits">0</div></div>
+      </div>
+      <button class="btn btn-ghost" id="printBtn">Print restock slip</button>
+      <button class="btn btn-primary" id="commitBtn">Move to floor</button>
+      <span class="confirmed" id="cbConfirmed" style="display:none;"></span>
+    </div>
+    <div class="footerline">Store — Concept A of 4 — Floor Restock</div>
+  </div>
+</div>
+
+<div id="overlayHost"></div>
+
+<script>
+(function(){
+  "use strict";
+  var ACTOR = 'Marcus D.';
+
+  /* ---------------- theme + clock ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('store-restock-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('store-restock-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  window.toast = function(title, body){
+    var host = document.getElementById('overlayHost');
+    var el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = '<div style="font-weight:700;">'+title+'</div><div style="color:var(--inkDim);margin-top:2px;">'+body+'</div>';
+    host.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4400);
+  };
+
+  /* ---------------- EXAMPLE DATA: aisles → shelves → products ---------------- */
+  var CATCOLOR = { flower:'var(--cat-flower)', vape:'var(--cat-vape)', preroll:'var(--cat-preroll)', edible:'var(--cat-edible)' };
+  var AISLES = [
+    { id:'flower', name:'Flower Wall', cat:'flower', shelves:[
+      { id:'f1', code:'F2-A-01', label:'Top Shelf Flower', lastBy:'Dana R.', lastAt:'9:12 AM', products:[
+        { name:'Blue Dream 3.5g', sold:6, onShelf:2, par:10, onBatch:{no:'B-2291',thc:22.4,packaged:'Jun 28'},
+          safe:[{no:'B-2291',thc:22.4,packaged:'Jun 28',qty:3},{no:'B-2350',thc:24.9,packaged:'Aug 02',qty:40}] },
+        { name:'Wedding Cake 3.5g', sold:3, onShelf:5, par:8, onBatch:{no:'B-2402',thc:27.6,packaged:'Aug 12'},
+          safe:[{no:'B-2402',thc:27.6,packaged:'Aug 12',qty:20}] }
+      ]},
+      { id:'f2', code:'F2-B-03', label:'Value Flower', lastBy:'Dana R.', lastAt:'9:18 AM', products:[
+        { name:'OG Kush 3.5g (bag)', sold:10, onShelf:0, par:12, onBatch:null,
+          safe:[{no:'B-6610',thc:19.2,packaged:'Jul 15',qty:12}] },
+        { name:'Sour Diesel 3.5g (bulk)', sold:4, onShelf:3, par:10, onBatch:{no:'B-7001',thc:18.4,packaged:'May 30'},
+          safe:[{no:'B-7050',thc:21.0,packaged:'Aug 25',qty:2}] }
+      ]}
+    ]},
+    { id:'vape', name:'Vape Case', cat:'vape', shelves:[
+      { id:'v1', code:'V1-A-02', label:'510 + Pods', lastBy:'Marcus D.', lastAt:'8:40 AM', products:[
+        { name:'Live Resin Cart 1g', sold:5, onShelf:4, par:10, onBatch:{no:'B-1042',thc:84.2,packaged:'Jul 10'},
+          safe:[{no:'B-1042',thc:84.2,packaged:'Jul 10',qty:1},{no:'B-1090',thc:88.1,packaged:'Aug 20',qty:22}] },
+        { name:'All-In-One Vape 1g', sold:2, onShelf:8, par:10, onBatch:{no:'B-1200',thc:79.0,packaged:'Jul 22'},
+          safe:[{no:'B-1200',thc:79.0,packaged:'Jul 22',qty:30}] }
+      ]}
+    ]},
+    { id:'preroll', name:'Pre-Roll Rack', cat:'preroll', shelves:[
+      { id:'p1', code:'P1-A-01', label:'Singles', lastBy:'Dana R.', lastAt:'7:55 AM', products:[
+        { name:'GMO Pre-Roll 5-pack', sold:6, onShelf:1, par:8, onBatch:{no:'B-3311',thc:26.0,packaged:'Jul 01'},
+          safe:[{no:'B-3311',thc:26.0,packaged:'Jul 01',qty:0}] }
+      ]}
+    ]},
+    { id:'edible', name:'Edible Shelf', cat:'edible', shelves:[
+      { id:'e1', code:'E1-A-01', label:'Gummies &amp; Chews', lastBy:'Marcus D.', lastAt:'8:05 AM', products:[
+        { name:'Gummies 10mg 10-pack', sold:8, onShelf:6, par:12, onBatch:{no:'B-4410',thc:null,packaged:'May 15'},
+          safe:[{no:'B-4410',thc:null,packaged:'May 15',qty:30}] }
+      ]}
+    ]}
+  ];
+  var activeAisle = 'flower';
+
+  /* ---------------- allocation + row classification ---------------- */
+  function computeRow(p){
+    var need = Math.max(p.par - p.onShelf, 0);
+    var remaining = need, alloc = [];
+    for (var i=0;i<p.safe.length && remaining>0;i++){
+      var take = Math.min(p.safe[i].qty, remaining);
+      if (take <= 0) continue;
+      alloc.push({ no:p.safe[i].no, thc:p.safe[i].thc, packaged:p.safe[i].packaged, take:take });
+      remaining -= take;
+    }
+    var will = (typeof p._will === 'number') ? p._will : alloc.reduce(function(s,a){return s+a.take;},0);
+    var loud = p.onBatch && alloc.some(function(a){ return a.no !== p.onBatch.no; }) && alloc.length && (alloc.length>1 || alloc[0].no!==p.onBatch.no) && will>0;
+    // LOUD only when the shelf already carries stock AND the incoming batch(es) include one different from what's on the shelf.
+    loud = !!(p.onShelf>0 && p.onBatch && alloc.some(function(a){ return a.no !== p.onBatch.no; }) && will>0);
+    var cls = loud ? 'row-loud' : (will===0 && need>0 ? 'row-skip' : (will<need ? 'row-short' : ''));
+    var reason = '';
+    if (loud) reason = 'LOUD — '+p.onBatch.no+' is already on the shelf; '+alloc.filter(function(a){return a.no!==p.onBatch.no;}).map(function(a){return a.no;}).join(', ')+' would join it.'
+      + (will<need ? ' Also short: only '+alloc.reduce(function(s,a){return s+a.take;},0)+' of '+need+' needed is in the safe.' : '');
+    else if (will===0 && need>0) reason = 'Nothing to move — safe has none of this SKU left.';
+    else if (will<need) reason = 'Short stock in safe: only '+will+' of '+need+' needed.';
+    else if (need===0) reason = 'At par — nothing to move.';
+    else reason = 'Oldest batch first.';
+    return { need:need, alloc:alloc, will:will, loud:loud, cls:cls, reason:reason };
+  }
+
+  /* ---------------- rendering ---------------- */
+  function findAisle(id){ for (var i=0;i<AISLES.length;i++) if (AISLES[i].id===id) return AISLES[i]; }
+  function renderTabs(){
+    document.getElementById('aisleTabs').innerHTML = AISLES.map(function(a){
+      var flagged = a.shelves.some(function(s){ return s.products.some(function(p){ return computeRow(p).cls; }); });
+      return '<button class="atab'+(a.id===activeAisle?' active':'')+(flagged?' hasflag':'')+'" data-aisle="'+a.id+'">'+a.name
+        + (flagged ? ' <span class="n">flag</span>' : '')+'</button>';
+    }).join('');
+    document.querySelectorAll('.atab').forEach(function(b){ b.addEventListener('click', function(){ showAisle(b.getAttribute('data-aisle')); }); });
+  }
+  function renderRow(shelf, p, pi){
+    var r = computeRow(p);
+    var html = '<tr class="'+r.cls+'" data-shelf="'+shelf.id+'" data-pi="'+pi+'">'
+      + '<td class="pn">'+esc(p.name)+'</td>'
+      + '<td class="num">'+p.sold+'</td>'
+      + '<td class="num">'+p.onShelf+'</td>'
+      + '<td class="num">'+p.par+'</td>'
+      + '<td class="num"><input class="willmove-input" type="number" min="0" max="'+r.need+'" value="'+r.will+'" data-shelf="'+shelf.id+'" data-p="'+pi+'"'+(shelf.moved?' disabled':'')+'/></td>'
+      + '<td class="reasoncell'+(r.loud||( r.will===0&&r.need>0)?' r-bad':(r.will<r.need?' r-warn':''))+'">'+(r.loud?'<span class="loudpill">LOUD</span>':'')+esc(r.reason)+'</td>'
+      + '</tr>';
+    if (r.loud){
+      html += '<tr class="loud-detail"><td colspan="6"><div class="lrow"><span>On shelf now</span><span>'+p.onBatch.no+' · THC '+(p.onBatch.thc!=null?p.onBatch.thc+'%':'n/a')+' · Packaged '+p.onBatch.packaged+'</span></div>'
+        + r.alloc.filter(function(a){return a.no!==p.onBatch.no;}).map(function(a){
+            return '<div class="lrow"><span>Incoming from safe</span><span>'+a.no+' × '+a.take+' · THC '+(a.thc!=null?a.thc+'%':'n/a')+' · Packaged '+a.packaged+'</span></div>';
+          }).join('') + '</td></tr>';
+    }
+    return html;
+  }
+  function renderShelf(shelf, cat){
+    var rows = shelf.products.map(function(p,pi){ return renderRow(shelf, p, pi); }).join('');
+    var attr = shelf.moved
+      ? 'Restocked by <b>'+ACTOR+'</b> · just now'
+      : 'Last restocked by <b>'+esc(shelf.lastBy)+'</b> · '+shelf.lastAt;
+    return '<div class="shelf-card'+(shelf.moved?' moved':'')+'" id="shelf-'+shelf.id+'" style="--sc:'+CATCOLOR[cat]+'">'
+      + '<div class="shelf-head"><div class="sname">'+esc(shelf.label)+' <span class="scode">'+shelf.code+'</span></div>'
+      + '<div class="sattr">'+attr+'</div></div>'
+      + '<table class="shelftbl"><thead><tr><th>Product</th><th>Sold</th><th>On shelf</th><th>Par</th><th>Will move</th><th>Reason</th></tr></thead><tbody>'+rows+'</tbody></table>'
+      + '</div>';
+  }
+  function renderGrid(){
+    var a = findAisle(activeAisle);
+    document.getElementById('shelfGrid').innerHTML = a.shelves.map(function(s){ return renderShelf(s, a.cat); }).join('');
+    updateCommitBar();
+  }
+  window.showAisle = function(id){
+    activeAisle = id;
+    renderTabs();
+    renderGrid();
+  };
+
+  function aisleTotals(a){
+    var shelvesTotal = a.shelves.length, shelvesMoved = a.shelves.filter(function(s){return s.moved;}).length, units = 0;
+    a.shelves.forEach(function(s){ s.products.forEach(function(p){ units += computeRow(p).will; }); });
+    return { shelvesTotal:shelvesTotal, shelvesMoved:shelvesMoved, units:units };
+  }
+  function updateCommitBar(){
+    var a = findAisle(activeAisle), t = aisleTotals(a);
+    document.getElementById('cbAisle').textContent = a.name;
+    document.getElementById('cbShelves').textContent = t.shelvesMoved+' / '+t.shelvesTotal;
+    document.getElementById('cbUnits').textContent = t.units;
+    var confirmed = document.getElementById('cbConfirmed');
+    var commitBtn = document.getElementById('commitBtn');
+    if (t.shelvesMoved === t.shelvesTotal && t.shelvesTotal>0){
+      confirmed.style.display = ''; confirmed.textContent = 'Moved by '+ACTOR+' · just now';
+      commitBtn.disabled = true; commitBtn.textContent = 'Moved to floor ✓';
+    } else {
+      confirmed.style.display = 'none';
+      commitBtn.disabled = false; commitBtn.textContent = 'Move to floor';
+    }
+  }
+
+  document.addEventListener('input', function(e){
+    if (!e.target.classList.contains('willmove-input')) return;
+    var inp = e.target, shelfId = inp.getAttribute('data-shelf'), pi = +inp.getAttribute('data-p');
+    var a = findAisle(activeAisle), shelf = a.shelves.filter(function(s){return s.id===shelfId;})[0];
+    var p = shelf.products[pi];
+    var need = computeRow(p).need;
+    var v = parseInt(inp.value,10); if (isNaN(v)||v<0) v=0; if (v>need) v=need;
+    p._will = v;
+    renderGrid();
+    renderSkips();
+  });
+
+  document.getElementById('commitBtn').addEventListener('click', function(){
+    var a = findAisle(activeAisle);
+    a.shelves.forEach(function(s){
+      var anyMove = s.products.some(function(p){ return computeRow(p).will>0; });
+      if (anyMove){ s.moved = true; s.lastBy = ACTOR; s.lastAt = 'just now'; }
+    });
+    renderGrid();
+    renderSkips();
+    toast('Moved to floor', a.name+' restocked and attributed to '+ACTOR+'.');
+  });
+
+  /* ---------------- skips panel ---------------- */
+  function renderSkips(){
+    var items = [];
+    AISLES.forEach(function(a){
+      a.shelves.forEach(function(s){
+        s.products.forEach(function(p,pi){
+          var r = computeRow(p);
+          if (!r.cls) return;
+          items.push({ aisle:a.id, shelf:s.id, name:p.name, cls:r.cls, reason:r.reason, shelfLabel:s.label });
+        });
+      });
+    });
+    var host = document.getElementById('skipList');
+    if (!items.length){ host.innerHTML = '<div class="skipitem"><div class="sk-body"><div class="sk-text">No skips or shortfalls right now.</div></div></div>'; return; }
+    host.innerHTML = items.map(function(it){
+      var kind = it.cls==='row-loud'?'loud':(it.cls==='row-skip'?'skip':'short');
+      var icon = kind==='short'
+        ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>'
+        : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><circle cx="12" cy="16.4" r=".6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9.3"/></svg>';
+      return '<button class="skipitem '+kind+'" data-aisle="'+it.aisle+'" data-shelf="'+it.shelf+'">'
+        + '<span class="sk-icon">'+icon+'</span>'
+        + '<div class="sk-body"><div class="sk-title">'+esc(it.name)+' · '+esc(it.shelfLabel)+'</div><div class="sk-text">'+esc(it.reason)+'</div></div>'
+        + '<span class="sk-jump">Jump →</span></button>';
+    }).join('');
+    host.querySelectorAll('.skipitem').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var aisleId = btn.getAttribute('data-aisle'), shelfId = btn.getAttribute('data-shelf');
+        showAisle(aisleId);
+        setTimeout(function(){
+          var el = document.getElementById('shelf-'+shelfId);
+          if (el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 1700); }
+        }, 30);
+      });
+    });
+  }
+
+  /* ---------------- printable restock slip ---------------- */
+  document.getElementById('printBtn').addEventListener('click', function(){
+    var a = findAisle(activeAisle);
+    var rowsHtml = '';
+    a.shelves.forEach(function(s){
+      s.products.forEach(function(p){
+        var r = computeRow(p);
+        if (r.will<=0) return;
+        var batchText = r.alloc.map(function(x){ return x.no+' ('+x.take+')'; }).join(' + ');
+        rowsHtml += '<tr><td>'+s.code+' · '+esc(s.label)+'</td><td>'+esc(p.name)+'</td><td>'+batchText+'</td><td>'+r.will+'</td>'
+          + '<td class="'+(r.loud?'ploud':'')+'">'+(r.loud?'LOUD — mixed batch':'—')+'</td></tr>';
+      });
+    });
+    var host = document.getElementById('overlayHost');
+    var el = document.createElement('div');
+    el.className = 'overlay';
+    el.id = 'printOverlay';
+    el.innerHTML = '<div class="print-sheet">'
+      + '<h3>Floor Restock Slip — '+esc(a.name)+'</h3>'
+      + '<div class="psub">Corona · '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · Prepared by '+ACTOR+'</div>'
+      + '<table><thead><tr><th>Shelf</th><th>Product</th><th>Batch(es)</th><th>Move</th><th>Flag</th></tr></thead><tbody>'+(rowsHtml||'<tr><td colspan="5">Nothing to move on this aisle right now.</td></tr>')+'</tbody></table>'
+      + '<div class="print-foot"><div style="font-size:11px;color:#555;max-width:400px;">Oldest batch first. Any LOUD line means two batches will share that shelf — tell the next person, do not report "no stock" while the other batch exists.</div><div class="qr" title="QR — scan to close this restock"></div></div>'
+      + '<div class="print-actions"><button class="btn btn-ghost" id="printClose">Close</button><button class="btn btn-primary" id="printNow">Print</button></div>'
+      + '</div>';
+    host.appendChild(el);
+    document.getElementById('printClose').addEventListener('click', function(){ el.remove(); });
+    document.getElementById('printNow').addEventListener('click', function(){ window.print(); });
+  });
+
+  /* ---------------- boot ---------------- */
+  renderTabs();
+  renderGrid();
+  renderSkips();
+})();
+</script>
+</body>
+</html>

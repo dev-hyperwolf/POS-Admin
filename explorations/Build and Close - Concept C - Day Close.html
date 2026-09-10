@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Build &amp; Close — Concept C — Day Close</title>
+<style>
+/* ============================================================================
+   Build & Close — Concept C — Day Close
+   Static mockup. Tokens copied inline from pos/tokens.jsx (LIGHT/DARK) and
+   shared/hd-ui.jsx (table/pill patterns); rail/header shape and the box-card /
+   kit-column look copied from Hyperwolf Bounty.html, Distribution Refill —
+   Concept B (Box Cards) and Concept D (Tablet Packing) so this reads like the
+   same estate. No build step, no external scripts or fonts. Every driver
+   name, product, quantity and time on this screen is EXAMPLE DATA.
+   ========================================================================= */
+:root{
+  --fontSans:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  --fontMono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
+  --f-micro:10px; --f-meta:11.5px; --f-body:12.5px; --f-strong:13.5px;
+  --f-title:16px; --f-h2:18px; --f-h1:26px; --f-numRow:14px; --f-numTotal:20px;
+  --r8:8px; --r10:10px; --r12:12px; --r16:16px; --r999:999px;
+  --bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+  --hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200;
+  --accentHover:#F5C900; --accentActive:#E0B800; --accentText:#7A5A00; --highlightSoft:#F1EFE9;
+  --good:#1F8A4F; --goodSoft:#E2F2E8;
+  --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+  --bad:#C0392B; --badSoft:#F8E2DF;
+  --info:#2C5BB8; --infoSoft:#E3ECFA;
+  --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+  --shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+  --focusRing:0 0 0 2px #FFFFFF, 0 0 0 4px #2C5BB8;
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+  --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+  --accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+  --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+  --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+  --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+  --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  --shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+  --shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+  --shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+  --focusRing:0 0 0 2px #1A1A14, 0 0 0 4px #6A99EC;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+    --hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+    --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40); --accentHover:#FFDA33; --accentActive:#E8BE00; --accentText:#FFD100; --highlightSoft:rgba(245,243,234,.06);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15);
+    --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16);
+    --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+    --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+  }
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{background:var(--bg);color:var(--ink);font-family:var(--fontSans);-webkit-font-smoothing:antialiased;}
+button,select,input,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:rgba(128,128,120,.32);border-radius:99px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-track{background:transparent;}
+button:focus-visible,[tabindex]:focus-visible,a:focus-visible,input:focus-visible{outline:none;box-shadow:var(--focusRing);position:relative;z-index:1;border-radius:6px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+
+.app{display:flex;min-height:100vh;}
+.rail{width:74px;flex:0 0 74px;background:var(--rail);display:flex;flex-direction:column;align-items:center;padding:10px 8px;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:none;}
+.rail-logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:9px;flex:0 0 auto;color:var(--accentInk);}
+.rail-item{position:relative;width:100%;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 3px 6px;background:transparent;color:var(--railInk);border:none;border-radius:10px;cursor:pointer;font-family:var(--fontSans);}
+.rail-item:hover{background:var(--railHover);}
+.rail-item.active{background:var(--railActive);color:var(--railBright);}
+.rail-item.active::before{content:"";position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--accent);border-radius:99px;}
+.rail-item .lbl{font-size:10px;font-weight:500;white-space:nowrap;}
+.rail-item.active .lbl{font-weight:700;}
+.rail-spacer{flex:1;min-height:8px;}
+.rail-bottom{width:100%;flex:0 0 auto;padding-top:6px;border-top:1px solid var(--railHair);}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--hairline2);display:flex;align-items:center;gap:16px;padding:12px 24px;flex-wrap:wrap;}
+.titleblock{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:180px;}
+.crumb{font-size:var(--f-meta);color:var(--inkMute);display:flex;align-items:center;gap:5px;}
+.h1{font-size:var(--f-h1);font-weight:700;line-height:1.15;margin:0;letter-spacing:-.01em;}
+.clockblock{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-family:var(--fontMono);}
+.clock-now{font-size:var(--f-strong);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+.clock-sub{font-size:var(--f-micro);color:var(--inkMute);text-transform:uppercase;letter-spacing:.06em;}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface);color:var(--inkDim);cursor:pointer;flex:0 0 auto;}
+.iconbtn:hover{background:var(--surface3);color:var(--ink);}
+.content{padding:20px 24px 128px;display:flex;flex-direction:column;gap:18px;max-width:1560px;width:100%;margin:0 auto;}
+
+.example-banner{display:flex;align-items:center;gap:10px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);border-radius:var(--r10);padding:9px 14px;font-size:var(--f-meta);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+.example-banner svg{flex:0 0 auto;}
+.banner{display:flex;align-items:flex-start;gap:12px;border-radius:var(--r12);padding:13px 16px;font-size:var(--f-body);border:1px solid var(--hairline2);background:var(--surface2);}
+.banner.warn{background:var(--warnSoft);border-color:var(--warn);color:var(--warnText);}
+.banner.info{background:var(--infoSoft);border-color:var(--info);color:var(--info);}
+.banner .b-title{font-weight:700;font-size:var(--f-strong);margin-bottom:2px;color:inherit;}
+.banner .b-body{color:var(--inkDim);}
+.banner.warn .b-body, .banner.info .b-body{color:inherit;opacity:.92;}
+.banner .b-actions{margin-left:auto;display:flex;gap:8px;flex:0 0 auto;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);}
+.card-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;flex-wrap:wrap;}
+.card-head h2{font-size:var(--f-h2);font-weight:700;margin:0;letter-spacing:-.01em;}
+.card-head .hint{font-size:var(--f-body);color:var(--inkMute);}
+.card-head .manage-link{margin-left:auto;background:none;border:none;color:var(--info);font-size:var(--f-meta);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.card-head .manage-link:hover{text-decoration:underline;}
+.card-body{padding:0 16px 16px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 15px;border-radius:var(--r10);font-size:var(--f-body);font-weight:600;cursor:pointer;white-space:nowrap;border:1px solid transparent;}
+.btn-primary{background:var(--accent);color:var(--accentInk);}
+.btn-primary:hover{background:var(--accentHover);}
+.btn-primary:disabled{background:var(--surface3);color:var(--inkFaint);cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--hairline3);}
+.btn-ghost:hover{background:var(--surface3);}
+.btn-danger{background:transparent;color:var(--bad);border-color:var(--bad);}
+.btn-danger:hover{background:var(--badSoft);}
+.btn-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.btn-good:hover{background:var(--good);color:#fff;}
+.btn-sm{height:30px;padding:0 11px;font-size:var(--f-meta);border-radius:var(--r8);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap;border:1px solid transparent;text-transform:uppercase;letter-spacing:.03em;}
+.pill-good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);border-color:var(--warn);}
+.pill-bad{background:var(--badSoft);color:var(--bad);border-color:var(--bad);}
+.pill-neutral{background:var(--neutralSoft);color:var(--neutral);border-color:var(--hairline3);}
+.pill-info{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+
+/* ---- day stat tiles ---- */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.stat{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowSm);padding:12px 14px;}
+.stat::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--stat-c,var(--info));}
+.stat .lbl{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);}
+.stat .val{margin-top:6px;font-family:var(--fontMono);font-size:22px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;}
+.stat .sub{margin-top:3px;font-size:var(--f-meta);color:var(--inkDim);}
+@media (max-width:1180px){ .stats{grid-template-columns:repeat(2,1fr);} }
+
+/* ---- region tabs (keeper look) ---- */
+.region-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--hairline2);padding:0 2px;}
+.rtab{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 4px;border:none;background:transparent;color:var(--inkDim);font-size:var(--f-title);font-weight:700;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.rtab:hover{color:var(--ink);}
+.rtab.active{color:var(--ink);border-bottom-color:var(--accentBorder);}
+.rtab .n{font-family:var(--fontMono);font-size:var(--f-meta);font-weight:600;color:var(--inkMute);background:var(--surface3);border-radius:99px;padding:2px 8px;}
+.rtab.closed .n{background:var(--goodSoft);color:var(--good);}
+.rtab.open .n{background:var(--warnSoft);color:var(--warnText);}
+
+/* ---- driver closure card (kit-column look) ---- */
+.driver-row{display:none;flex-direction:column;gap:14px;padding-top:14px;}
+.driver-row.active{display:flex;}
+.driver-card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r16);box-shadow:var(--shadowSm);overflow:hidden;}
+.driver-card.closed{opacity:.82;}
+.driver-head{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.driver-head .dname{font-size:var(--f-title);font-weight:800;}
+.driver-head .droute{font-size:var(--f-meta);color:var(--inkMute);}
+.driver-head .dmid{display:flex;flex-direction:column;gap:1px;margin-right:auto;}
+
+/* mini day timeline, 6 stages */
+.mini-tl{display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.mtl-step{display:flex;align-items:center;gap:5px;padding:0 9px;position:relative;font-size:10px;color:var(--inkMute);white-space:nowrap;}
+.mtl-step::after{content:"›";margin-left:9px;color:var(--hairline3);}
+.mtl-step:last-child::after{content:"";}
+.mtl-dot{width:7px;height:7px;border-radius:50%;background:var(--hairline3);flex:0 0 auto;}
+.mtl-step.done{color:var(--ink2);font-weight:600;}
+.mtl-step.done .mtl-dot{background:var(--good);}
+.mtl-step.active{color:var(--ink);font-weight:800;}
+.mtl-step.active .mtl-dot{background:var(--accent);box-shadow:0 0 0 3px var(--accentSoft);}
+
+.driver-body{padding:14px 16px;display:flex;flex-direction:column;gap:14px;}
+.subhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);margin:0;}
+
+/* ---- attribution row: who packed / verified / closed this kit ---- */
+.attrib-row{display:flex;gap:18px;flex-wrap:wrap;padding:9px 12px;background:var(--surface2);border-radius:var(--r10);border:1px solid var(--hairline2);}
+.attrib-item{font-size:var(--f-meta);color:var(--inkDim);display:flex;gap:5px;align-items:baseline;}
+.attrib-item .k{text-transform:uppercase;letter-spacing:.04em;font-size:10px;color:var(--inkMute);font-weight:700;}
+.attrib-item .v{font-weight:700;color:var(--ink);}
+.attrib-item .v.pending{font-weight:600;color:var(--inkFaint);}
+
+table.rectbl{width:100%;border-collapse:separate;border-spacing:0;font-size:11.5px;}
+table.rectbl th{text-align:right;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute);padding:5px 6px;border-bottom:1px solid var(--hairline);}
+table.rectbl th:first-child{text-align:left;}
+table.rectbl td{padding:6px;border-bottom:1px solid var(--hairline);vertical-align:middle;color:var(--ink);}
+table.rectbl tr:last-child td{border-bottom:none;}
+.rectbl .pn{font-weight:600;font-size:11.5px;}
+.rectbl .num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;}
+.rectbl tr.row-diff{background:var(--warnSoft);box-shadow:inset 3px 0 0 var(--warn);}
+.rectbl tr.row-mixed{background:var(--badSoft);}
+.rectbl .reasoncell{font-size:9.5px;color:var(--inkMute);max-width:150px;line-height:1.25;}
+.rectbl .reasoncell.r-warn{color:var(--warnText);font-weight:700;}
+.batchchip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;margin:1px 3px 1px 0;border-radius:6px;background:var(--badSoft);color:var(--bad);font-weight:800;font-family:var(--fontMono);font-size:9.5px;border:1px solid var(--bad);white-space:nowrap;}
+.batchwrap{display:flex;flex-wrap:wrap;gap:2px;}
+
+.revrow{display:flex;gap:20px;flex-wrap:wrap;padding:10px 12px;background:var(--surface2);border-radius:var(--r10);border:1px solid var(--hairline2);}
+.revrow .ritem{display:flex;flex-direction:column;gap:1px;}
+.revrow .ritem .k{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--inkMute);}
+.revrow .ritem .v{font-family:var(--fontMono);font-size:15px;font-weight:700;}
+.revrow .ritem .v.bad{color:var(--bad);}
+.revrow .ritem .v.good{color:var(--good);}
+
+.caselist{display:flex;flex-direction:column;gap:8px;}
+.case{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--r10);border:1px solid var(--hairline2);background:var(--surface2);}
+.case.resolved{opacity:.65;}
+.case .c-body{flex:1;min-width:0;}
+.case .c-title{font-size:var(--f-strong);font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.case .c-text{font-size:var(--f-meta);color:var(--inkDim);margin-top:2px;}
+.case .c-actions{display:flex;gap:6px;flex:0 0 auto;flex-wrap:wrap;}
+
+.forced-note{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--r10);background:var(--badSoft);border:1px solid var(--bad);color:var(--bad);font-size:var(--f-meta);font-weight:600;}
+
+.driver-foot{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--hairline);flex-wrap:wrap;background:var(--surface2);}
+.driver-foot .df-hint{font-size:var(--f-meta);color:var(--inkMute);margin-right:auto;}
+
+.flash{animation:flashcard 1.6s ease;}
+@keyframes flashcard{0%,100%{box-shadow:var(--shadowSm);}20%,60%{box-shadow:0 0 0 3px var(--accentBorder), var(--shadowMd);}}
+
+/* ---- day close bar ---- */
+.closebar{position:fixed;left:74px;right:0;bottom:0;z-index:25;display:flex;align-items:center;gap:16px;padding:12px 24px;border-top:1px solid var(--hairline2);background:var(--surface);flex-wrap:wrap;box-shadow:0 -6px 18px rgba(0,0,0,.05);}
+.closebar .sum{display:flex;gap:20px;flex-wrap:wrap;}
+.closebar .sumitem{display:flex;flex-direction:column;gap:1px;}
+.closebar .sumitem .k{font-size:var(--f-micro);text-transform:uppercase;letter-spacing:.06em;color:var(--inkMute);}
+.closebar .sumitem .v{font-family:var(--fontMono);font-size:var(--f-strong);font-weight:700;}
+.closebar .btn{margin-left:auto;}
+
+/* ---- modal ---- */
+.overlay{position:fixed;inset:0;background:rgba(10,10,8,.5);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px;}
+.modal{background:var(--surface);border-radius:var(--r16);width:100%;max-width:480px;max-height:86vh;overflow-y:auto;padding:20px;box-shadow:var(--shadowLg);}
+.modal h2{margin:0 0 4px;font-size:var(--f-h2);}
+.modal p{color:var(--inkDim);font-size:var(--f-body);}
+.modal .mrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:var(--f-body);gap:12px;}
+.modal .mrow b{font-family:var(--fontMono);}
+.modal-actions{display:flex;gap:10px;margin-top:16px;}
+.modal-actions .btn{flex:1;}
+.mtinput{width:100%;min-height:70px;border-radius:var(--r10);border:1px solid var(--fieldBorder);background:var(--field);color:var(--ink);padding:9px 12px;font-size:var(--f-body);margin-top:8px;resize:vertical;}
+
+.footerline{text-align:center;font-size:var(--f-meta);color:var(--inkFaint);padding:6px 0 0;}
+
+@media (max-width: 1024px){
+  .rail{width:64px;flex-basis:64px;}
+  .rail-item .lbl{display:none;}
+  .closebar{left:64px;}
+  .content{padding:14px 14px 140px;}
+  .stats{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width: 640px){
+  .rail{position:fixed;left:0;top:0;bottom:0;z-index:20;width:56px;flex-basis:56px;}
+  .main{margin-left:56px;}
+  .closebar{left:56px;flex-direction:column;align-items:stretch;}
+  .closebar .btn{margin-left:0;width:100%;}
+  .h1{font-size:22px;}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l8-3 8 3v9l-8 6-8-6z"/></svg></div>
+    <div style="display:flex;flex-direction:column;gap:2px;width:100%;">
+      <button class="rail-item" title="Home"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></button>
+      <button class="rail-item" title="Kit templates"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="11" rx="1"/><rect x="17" y="4" width="4" height="14" rx="1"/></svg><span class="lbl">Templates</span></button>
+      <button class="rail-item active" title="Distribution"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg><span class="lbl">Distribution</span></button>
+      <button class="rail-item" title="Driver kits"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="15" height="10" rx="1.5"/><path d="M16 10h3l3 3v4h-6z"/><circle cx="6" cy="19" r="1.6"/><circle cx="17.5" cy="19" r="1.6"/></svg><span class="lbl">Driver Kits</span></button>
+      <button class="rail-item" title="Reports"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M15 3v5h5"/><path d="M9 13h6M9 17h6"/></svg><span class="lbl">Reports</span></button>
+    </div>
+    <div class="rail-spacer"></div>
+    <div class="rail-bottom">
+      <button class="rail-item" title="Settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.16.36.25.75.25 1.14V11a2 2 0 110 4z"/></svg><span class="lbl">Settings</span></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="titleblock">
+        <div class="crumb"><span>Distribution</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>Build &amp; Close · Concept C</span></div>
+        <h1 class="h1">Day Close</h1>
+      </div>
+      <div class="clockblock">
+        <div class="clock-now" id="clockNow">6:58 PM PT</div>
+        <div class="clock-sub">Business day: Thu Sep 10, 2026 · rolls at 12:00 AM PT</div>
+      </div>
+      <button class="iconbtn" id="themeToggle" title="Toggle light / dark" aria-label="Toggle light or dark theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/></svg>
+      </button>
+    </header>
+
+    <div class="content">
+      <div class="example-banner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.5" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>
+        Design mockup — every driver name, product, quantity, dollar figure and timestamp on this screen is example data, not a live reconciliation.</div>
+
+      <div class="banner info" id="modelBanner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:0 0 auto;margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        <div><div class="b-title">A day closes one driver at a time — never all at once</div>
+        <div class="b-body">"Closed" isn't one flag: each driver's own closeout must be approved, and the day is closed only once every driver is. Every dispatched unit must end as sold, returned, or an open case with a reason — nothing is silently dropped. Who packed, who return-verified and who closed each kit is recorded below.</div></div>
+        <div class="b-actions"><button class="btn btn-ghost btn-sm" onclick="this.closest('.banner').style.display='none'">Dismiss</button></div>
+      </div>
+
+      <div class="stats" id="dayStats"></div>
+
+      <div>
+        <div class="region-tabs" id="regionTabs"></div>
+        <div id="driverRows"></div>
+      </div>
+
+      <div class="footerline">Build &amp; Close — Concept C of 4 — Day Close</div>
+    </div>
+
+    <div class="closebar">
+      <div class="sum">
+        <div class="sumitem"><span class="k">Drivers closed</span><span class="v" id="closeDrivers">0 / 0</span></div>
+        <div class="sumitem"><span class="k">Open cases</span><span class="v" id="closeCases">0</span></div>
+        <div class="sumitem"><span class="k">Revenue variance</span><span class="v" id="closeVariance">$0</span></div>
+      </div>
+      <button class="btn btn-primary" id="closeDayBtn">Close day</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- theme toggle ---------------- */
+  var root = document.documentElement;
+  var stored = null;
+  try { stored = localStorage.getItem('dayclose-c-theme'); } catch(e){}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+  function paintThemeIcon(){
+    var mode = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var icon = document.getElementById('themeIcon'); if (!icon) return;
+    icon.innerHTML = mode === 'dark'
+      ? '<path d="M20 14.5A8.5 8.5 0 1110 3.3 6.8 6.8 0 0020 14.5z" fill="currentColor" stroke="none"/>'
+      : '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.5 4.5l1.6 1.6M17.9 17.9l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.5 19.5l1.6-1.6M17.9 6.1l1.6-1.6"/>';
+  }
+  paintThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    var cur = root.getAttribute('data-theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('dayclose-c-theme', next); } catch(e){}
+    paintThemeIcon();
+  });
+
+  function tickClock(){
+    var el = document.getElementById('clockNow'); if (!el) return;
+    try { el.textContent = new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',timeZone:'America/Los_Angeles'}).format(new Date()) + ' PT'; } catch(e){}
+  }
+  tickClock(); setInterval(tickClock, 30000);
+
+  /* ---------------- toast host ---------------- */
+  var toastHost = document.createElement('div');
+  toastHost.style.cssText = 'position:fixed;right:16px;bottom:92px;z-index:400;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none;';
+  document.body.appendChild(toastHost);
+  function toast(title, body){
+    var el = document.createElement('div');
+    el.style.cssText = 'pointer-events:auto;min-width:260px;max-width:380px;background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--good);border-radius:10px;box-shadow:var(--shadowMd);padding:10px 12px;font-family:var(--fontSans);animation:fadeIn .16s ease;';
+    el.innerHTML = '<div style="font-size:13.5px;font-weight:700;color:var(--ink);">'+title+'</div><div style="font-size:12.5px;color:var(--inkDim);margin-top:2px;">'+body+'</div>';
+    toastHost.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4400);
+  }
+  var styleTag = document.createElement('style');
+  styleTag.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}';
+  document.head.appendChild(styleTag);
+
+  function esc(s){ return String(s).replace(/[&<>]/g, function(c){ return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;'; }); }
+  function money(n){ var neg = n<0; n = Math.abs(n); var s = '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return neg ? '−'+s : s; }
+  function who(name){ return name ? esc(name) : '<span class="v pending">pending</span>'; }
+
+  /* ---------------- data: EXAMPLE ONLY ---------------- */
+  var STAGES = ['Dispatched','Pack-verified','Refilled','Returned','Return-verified','Closed'];
+
+  function tl(doneCount, activeAt, times){
+    return STAGES.map(function(label, i){
+      var status = i < doneCount ? 'done' : (i === activeAt ? 'active' : '');
+      return { label:label, status:status, time: times[i] || '—' };
+    });
+  }
+
+  var REGIONS = [
+    { id:'westla', name:'West LA', drivers:[
+      { id:'mr3', driver:'Marcus R.', route:'Route 3', state:'closed', closedBy:'Marcus R.', closedAt:'6:12 PM', packedBy:'Marcus R.', verifiedBy:'LP Bench — Sam D.',
+        timeline: tl(6,6, ['1:40 PM','1:52 PM','3:05 PM','5:44 PM','5:58 PM','6:12 PM']),
+        rows:[
+          { name:'Blue Dream 3.5g', batches:[{no:'B-11042',thc:22.4}], dispatched:20, soldAsap:17, soldSched:0, returned:3, reason:'' },
+          { name:'OG Kush 3.5g', batches:[{no:'B-11039',thc:24.1}], dispatched:12, soldAsap:10, soldSched:0, returned:2, reason:'' },
+          { name:'Gummies 100mg 10-pk', batches:[{no:'B-10988',thc:null}], dispatched:18, soldAsap:14, soldSched:2, returned:2, reason:'' }
+        ],
+        expectedRevenue:1284.50, actualRevenue:1284.50, cases:[] },
+      { id:'dk1', driver:'Dana K.', route:'Route 1', state:'pending', closedBy:null, closedAt:null, packedBy:'Dana K.', verifiedBy:'LP Bench — Sam D.',
+        timeline: tl(5,5, ['1:35 PM','1:48 PM','3:10 PM','5:36 PM','5:50 PM','—']),
+        rows:[
+          { name:'Wedding Cake 3.5g', batches:[{no:'B-11050',thc:23.8},{no:'B-11061',thc:31.2}], dispatched:14, soldAsap:11, soldSched:0, returned:2, reason:'MIXED_BATCH — two batches shipped in one line', mixed:true },
+          { name:'Live Resin Cart 1g', batches:[{no:'B-10977',thc:null}], dispatched:10, soldAsap:9, soldSched:0, returned:1, reason:'' },
+          { name:'Rosin 1g', batches:[{no:'B-10960',thc:null}], dispatched:6, soldAsap:4, soldSched:0, returned:1, reason:'1 unit unaccounted — open case below', diff:true }
+        ],
+        expectedRevenue:842.00, actualRevenue:806.50, cases:[
+          { id:'c1', kind:'Missing', title:'Rosin 1g — 1 unit missing', text:'Dispatched 6, sold 4, returned 1 — one tag never scanned back and no sale recorded.', status:'pending' }
+        ] },
+      { id:'ps5', driver:'Priya S.', route:'Route 5', state:'open', closedBy:null, closedAt:null, packedBy:'Priya S.', verifiedBy:null,
+        timeline: tl(3,3, ['1:38 PM','1:55 PM','3:20 PM','—','—','—']),
+        rows:[
+          { name:'Ice Cream Cake 3.5g', batches:[{no:'B-11055',thc:null}], dispatched:12, soldAsap:8, soldSched:0, returned:0, reason:'Not yet returned — driver still on route' }
+        ],
+        expectedRevenue:0, actualRevenue:0, cases:[] }
+    ]},
+    { id:'inlandempire', name:'Inland Empire', drivers:[
+      { id:'tg2', driver:'Tomás G.', route:'Route 2', state:'forced', closedBy:'Warehouse (admin)', closedAt:'5:20 PM', packedBy:'Tomás G.', verifiedBy:null,
+        timeline: tl(6,6, ['12:50 PM','1:05 PM','2:40 PM','5:02 PM','—','5:20 PM']),
+        rows:[
+          { name:'GMO 3.5g', batches:[{no:'B-11020',thc:null}], dispatched:16, soldAsap:13, soldSched:0, returned:2, reason:'Forced closed before return-verify — driver could not reach the bench', diff:true }
+        ],
+        expectedRevenue:606.00, actualRevenue:0, cases:[
+          { id:'c2', kind:'Unverified', title:'GMO 3.5g — 1 unit never scanned back', text:'Return-verify was skipped when this driver\'s closeout was forced. Sold + returned accounts for 15 of 16 dispatched.', status:'pending' }
+        ] },
+      { id:'wl4', driver:'Whitney L.', route:'Route 4', state:'open', closedBy:null, closedAt:null, packedBy:'Whitney L.', verifiedBy:null,
+        timeline: tl(4,4, ['12:52 PM','1:08 PM','2:44 PM','5:10 PM','—','—']),
+        rows:[
+          { name:'Zkittlez 3.5g', batches:[{no:'B-11031',thc:null}], dispatched:12, soldAsap:0, soldSched:0, returned:0, reason:'Awaiting return-verify' },
+          { name:'Chocolate Bar 100mg', batches:[{no:'B-10999',thc:null}], dispatched:8, soldAsap:0, soldSched:0, returned:0, reason:'Awaiting return-verify' }
+        ],
+        expectedRevenue:0, actualRevenue:0, cases:[] }
+    ]},
+    { id:'orangecounty', name:'Orange County', drivers:[
+      { id:'jp6', driver:'Jordan P.', route:'Route 6', state:'open', closedBy:null, closedAt:null, packedBy:'Jordan P.', verifiedBy:null,
+        timeline: tl(2,2, ['1:02 PM','1:14 PM','—','—','—','—']),
+        rows:[
+          { name:'Lemon Cherry Gelato 3.5g', batches:[{no:'B-11066',thc:null}], dispatched:10, soldAsap:0, soldSched:0, returned:0, reason:'On route' }
+        ],
+        expectedRevenue:0, actualRevenue:0, cases:[] }
+    ]}
+  ];
+  var activeRegion = 'westla';
+
+  function findRegion(id){ for (var i=0;i<REGIONS.length;i++) if (REGIONS[i].id===id) return REGIONS[i]; }
+  function findDriver(region, id){ for (var i=0;i<region.drivers.length;i++) if (region.drivers[i].id===id) return region.drivers[i]; }
+  function diffOf(r){ return r.dispatched - r.soldAsap - r.soldSched - r.returned; }
+  function allCasesResolved(d){ return d.cases.every(function(c){ return c.status !== 'pending'; }); }
+  function rowsClean(d){ return d.rows.every(function(r){ return diffOf(r) === 0; }); }
+
+  /* ---------------- day stat tiles ---------------- */
+  function renderStats(){
+    var totalDrivers=0, closedDrivers=0, openCases=0, expected=0, actual=0, unitsDispatched=0, unitsReturned=0;
+    REGIONS.forEach(function(region){ region.drivers.forEach(function(d){
+      totalDrivers++;
+      if (d.state==='closed' || d.state==='forced') closedDrivers++;
+      d.cases.forEach(function(c){ if (c.status==='pending') openCases++; });
+      expected += d.expectedRevenue; actual += d.actualRevenue;
+      d.rows.forEach(function(r){ unitsDispatched += r.dispatched; unitsReturned += r.returned; });
+    }); });
+    var variance = actual - expected;
+    var tiles = [
+      { c:'var(--info)', lbl:'Drivers closed', val: closedDrivers+' / '+totalDrivers, sub: (totalDrivers-closedDrivers)+' still open' },
+      { c:'var(--warn)', lbl:'Open cases', val: openCases, sub: openCases ? 'need manager disposition' : 'none open' },
+      { c: variance<0 ? 'var(--bad)' : 'var(--good)', lbl:'Revenue variance', val: money(variance), sub: 'expected '+money(expected)+' vs actual '+money(actual) },
+      { c:'var(--good)', lbl:'Units dispatched', val: unitsDispatched, sub: 'across '+totalDrivers+' drivers today' },
+      { c:'var(--neutral)', lbl:'Units returned', val: unitsReturned, sub: 'to safe / loss prevention' }
+    ];
+    document.getElementById('dayStats').innerHTML = tiles.map(function(t){
+      return '<div class="stat" style="--stat-c:'+t.c+'"><div class="lbl">'+t.lbl+'</div><div class="val">'+t.val+'</div><div class="sub">'+t.sub+'</div></div>';
+    }).join('');
+    document.getElementById('closeDrivers').textContent = closedDrivers+' / '+totalDrivers;
+    document.getElementById('closeCases').textContent = openCases;
+    document.getElementById('closeVariance').textContent = money(variance);
+  }
+
+  /* ---------------- region tabs ---------------- */
+  function renderTabs(){
+    var host = document.getElementById('regionTabs');
+    host.innerHTML = REGIONS.map(function(r){
+      var allClosed = r.drivers.every(function(d){ return d.state==='closed' || d.state==='forced'; });
+      return '<button class="rtab'+(r.id===activeRegion?' active':'')+(allClosed?' closed':' open')+'" data-region="'+r.id+'">'+r.name+' <span class="n">'+(allClosed?'all closed':(r.drivers.length)+' driver'+(r.drivers.length===1?'':'s'))+'</span></button>';
+    }).join('');
+    host.querySelectorAll('.rtab').forEach(function(btn){
+      btn.addEventListener('click', function(){ showRegion(btn.getAttribute('data-region')); });
+    });
+  }
+  window.showRegion = function(id){
+    activeRegion = id;
+    document.querySelectorAll('.rtab').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-region')===id); });
+    document.querySelectorAll('.driver-row').forEach(function(b){ b.classList.toggle('active', b.id === 'drow-'+id); });
+  };
+
+  /* ---------------- driver card ---------------- */
+  var STATE_PILL = {
+    closed:'<span class="pill pill-good">Closed</span>',
+    pending:'<span class="pill pill-warn">Pending approval</span>',
+    open:'<span class="pill pill-neutral">Open</span>',
+    forced:'<span class="pill pill-bad">Forced closed</span>'
+  };
+  function renderRow(r, di){
+    var d = diffOf(r);
+    var cls = r.mixed ? 'row-mixed' : (d !== 0 ? 'row-diff' : '');
+    var batchHtml = '<div class="batchwrap">' + r.batches.map(function(b){
+      return r.mixed ? '<span class="batchchip">'+b.no+(b.thc?' · '+b.thc+'% THC':'')+'</span>' : '<span style="font-family:var(--fontMono);font-size:10px;color:var(--inkMute);">'+b.no+'</span>';
+    }).join('') + '</div>';
+    return '<tr class="'+cls+'">'
+      + '<td class="pn">'+esc(r.name)+batchHtml+'</td>'
+      + '<td class="num">'+r.dispatched+'</td>'
+      + '<td class="num">'+r.soldAsap+'</td>'
+      + '<td class="num">'+r.soldSched+'</td>'
+      + '<td class="num">'+r.returned+'</td>'
+      + '<td class="num" style="font-weight:800;color:'+(d!==0?'var(--warnText)':'var(--ink)')+'">'+d+'</td>'
+      + '<td class="reasoncell'+(d!==0||r.mixed?' r-warn':'')+'">'+(r.reason||'—')+'</td>'
+      + '</tr>';
+  }
+  function renderDriverCard(region, d){
+    var recRows = d.rows.map(function(r){ return renderRow(r); }).join('');
+    var variance = d.actualRevenue - d.expectedRevenue;
+    var caseHtml = d.cases.length
+      ? '<div class="caselist">'+d.cases.map(function(c){
+          return '<div class="case'+(c.status!=='pending'?' resolved':'')+'" data-driver="'+d.id+'" data-case="'+c.id+'">'
+            + '<div class="c-body"><div class="c-title">'+esc(c.title)+' <span class="pill '+(c.status==='pending'?'pill-warn':c.status==='approved'?'pill-good':'pill-bad')+'">'+c.status+'</span></div>'
+            + '<div class="c-text">'+esc(c.text)+'</div></div>'
+            + (c.status==='pending'
+              ? '<div class="c-actions"><button class="btn btn-good btn-sm case-approve" data-driver="'+d.id+'" data-case="'+c.id+'">Approve</button><button class="btn btn-danger btn-sm case-waste" data-driver="'+d.id+'" data-case="'+c.id+'">Send to Waste review</button></div>'
+              : '')
+            + '</div>';
+        }).join('')+'</div>'
+      : '<div style="font-size:var(--f-body);color:var(--inkMute);">No open cases for this driver.</div>';
+
+    var forcedNote = d.state==='forced'
+      ? '<div class="forced-note"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><circle cx="12" cy="16.3" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 3.9 1.8 18.5A1.6 1.6 0 003.2 21h17.6a1.6 1.6 0 001.4-2.5L13.7 3.9a1.6 1.6 0 00-2.8 0z"/></svg>Forced closed by '+esc(d.closedBy)+' at '+d.closedAt+' — no return-verify submitted by the driver. Distinct from a driver-approved close, recorded for audit.</div>'
+      : '';
+
+    var attribRow = '<div class="attrib-row">'
+      + '<span class="attrib-item"><span class="k">Packed</span><span class="v">'+who(d.packedBy)+'</span></span>'
+      + '<span class="attrib-item"><span class="k">Return-verified</span><span class="v">'+who(d.verifiedBy)+'</span></span>'
+      + '<span class="attrib-item"><span class="k">Closed</span><span class="v">'+who(d.closedBy)+'</span></span>'
+      + '</div>';
+
+    var canApprove = allCasesResolved(d) && rowsClean(d) && (d.state==='pending' || d.state==='open');
+    var footHint = d.state==='closed' ? ('Closed by '+esc(d.closedBy)+' at '+d.closedAt)
+      : d.state==='forced' ? 'Closed by admin override — see note above'
+      : !rowsClean(d) ? 'Every dispatched unit must be sold, returned, or an open case before this driver can close.'
+      : !allCasesResolved(d) ? 'Resolve every open case before approving this closure.'
+      : 'Ready to approve.';
+
+    return '<div class="driver-card'+(d.state==='closed'||d.state==='forced'?' closed':'')+'" id="dcard-'+d.id+'">'
+      + '<div class="driver-head">'
+      + '<div class="dmid"><span class="dname">'+esc(d.driver)+'</span><span class="droute">'+esc(d.route)+' · '+region.name+'</span></div>'
+      + STATE_PILL[d.state]
+      + '<div class="mini-tl">'+d.timeline.map(function(s){ return '<span class="mtl-step '+s.status+'"><span class="mtl-dot"></span>'+s.label+' <span style="font-family:var(--fontMono);color:var(--inkFaint);">'+s.time+'</span></span>'; }).join('')+'</div>'
+      + '</div>'
+      + '<div class="driver-body">'
+      + attribRow
+      + forcedNote
+      + '<div><div class="subhead">Return-verify reconciliation</div>'
+      + '<table class="rectbl"><thead><tr><th>Product</th><th>Dispatched</th><th>Sold ASAP</th><th>Sold sched.</th><th>Returned</th><th>Diff</th><th>Reason</th></tr></thead><tbody>'+recRows+'</tbody></table></div>'
+      + '<div><div class="subhead">Revenue reconciliation</div>'
+      + '<div class="revrow">'
+      + '<div class="ritem"><span class="k">Expected</span><span class="v">'+money(d.expectedRevenue)+'</span></div>'
+      + '<div class="ritem"><span class="k">Actual (Blaze)</span><span class="v">'+money(d.actualRevenue)+'</span></div>'
+      + '<div class="ritem"><span class="k">Variance</span><span class="v '+(variance<0?'bad':variance>0?'good':'')+'">'+money(variance)+'</span></div>'
+      + '</div></div>'
+      + '<div><div class="subhead">Discrepancies as cases</div>'+caseHtml+'</div>'
+      + '</div>'
+      + '<div class="driver-foot">'
+      + '<span class="df-hint">'+footHint+'</span>'
+      + (d.state==='open' || d.state==='pending' ? '<button class="btn btn-ghost btn-sm force-close" data-driver="'+d.id+'">Force close…</button>' : '')
+      + (d.state==='open' || d.state==='pending' ? '<button class="btn btn-primary btn-sm approve-close" data-driver="'+d.id+'" '+(canApprove?'':'disabled')+'>Approve closure</button>' : '')
+      + '</div>'
+      + '</div>';
+  }
+
+  function renderDriverRows(){
+    document.getElementById('driverRows').innerHTML = REGIONS.map(function(region){
+      return '<div class="driver-row" id="drow-'+region.id+'">'+region.drivers.map(function(d){ return renderDriverCard(region, d); }).join('')+'</div>';
+    }).join('');
+    wireCards();
+  }
+
+  function refreshAll(){ renderStats(); renderTabs(); renderDriverRows(); showRegion(activeRegion); }
+
+  function wireCards(){
+    document.querySelectorAll('.case-approve').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var region = findRegion(activeRegion), d = findDriver(region, btn.getAttribute('data-driver'));
+        var c = d.cases.find(function(x){ return x.id===btn.getAttribute('data-case'); });
+        c.status = 'approved';
+        toast('Case approved', esc(c.title)+' recorded as approved — no stock adjustment posts without this step.');
+        refreshAll();
+      });
+    });
+    document.querySelectorAll('.case-waste').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var region = findRegion(activeRegion), d = findDriver(region, btn.getAttribute('data-driver'));
+        var c = d.cases.find(function(x){ return x.id===btn.getAttribute('data-case'); });
+        c.status = 'rejected';
+        toast('Sent to Waste review', esc(c.title)+' — not resolved as sold or returned, so it moves to the Waste queue for a manager to reason and approve (Concept D).');
+        refreshAll();
+      });
+    });
+    document.querySelectorAll('.approve-close').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var region = findRegion(activeRegion), d = findDriver(region, btn.getAttribute('data-driver'));
+        d.state = 'closed'; d.closedBy = d.driver; d.closedAt = document.getElementById('clockNow').textContent.replace(' PT','');
+        if (!d.verifiedBy) d.verifiedBy = 'LP Bench — Sam D.';
+        toast('Closure approved', esc(d.driver)+' ('+esc(d.route)+') is now closed for today.');
+        refreshAll();
+      });
+    });
+    document.querySelectorAll('.force-close').forEach(function(btn){
+      btn.addEventListener('click', function(){ openForceClose(btn.getAttribute('data-driver')); });
+    });
+  }
+
+  /* ---------------- force close modal ---------------- */
+  function openForceClose(driverId){
+    var region = findRegion(activeRegion), d = findDriver(region, driverId);
+    var overlay = document.createElement('div'); overlay.className = 'overlay';
+    overlay.innerHTML = '<div class="modal"><h2>Force close — '+esc(d.driver)+'</h2>'
+      + '<p>This closes the day for '+esc(d.driver)+' without their own return-verify submission. It is recorded as an admin override, distinct from a driver-approved closure, and never silently reuses the "Admin" default — a reason is required.</p>'
+      + '<textarea class="mtinput" id="forceReason" placeholder="Reason (required) — e.g. driver unreachable, vehicle breakdown, end of shift…"></textarea>'
+      + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelForce">Cancel</button><button class="btn btn-danger" id="confirmForce" disabled>Force close</button></div></div>';
+    document.body.appendChild(overlay);
+    var reasonEl = overlay.querySelector('#forceReason'), confirmBtn = overlay.querySelector('#confirmForce');
+    reasonEl.addEventListener('input', function(){ confirmBtn.disabled = reasonEl.value.trim().length < 4; });
+    overlay.addEventListener('click', function(e){ if (e.target===overlay) overlay.remove(); });
+    overlay.querySelector('#cancelForce').addEventListener('click', function(){ overlay.remove(); });
+    confirmBtn.addEventListener('click', function(){
+      d.state = 'forced'; d.closedBy = 'Warehouse (admin)'; d.closedAt = document.getElementById('clockNow').textContent.replace(' PT','');
+      overlay.remove();
+      toast('Force closed', esc(d.driver)+' closed by admin override. Reason logged: "'+esc(reasonEl.value.trim())+'".');
+      refreshAll();
+    });
+  }
+
+  /* ---------------- close day (bulk) ---------------- */
+  document.getElementById('closeDayBtn').addEventListener('click', function(){
+    var totalDrivers=0, closedDrivers=0, openCases=0;
+    REGIONS.forEach(function(region){ region.drivers.forEach(function(d){
+      totalDrivers++; if (d.state==='closed'||d.state==='forced') closedDrivers++;
+      d.cases.forEach(function(c){ if (c.status==='pending') openCases++; });
+    }); });
+    var overlay = document.createElement('div'); overlay.className = 'overlay';
+    overlay.innerHTML = '<div class="modal"><h2>Close the day — Thu Sep 10, 2026</h2>'
+      + '<div class="mrow"><span>Drivers closed</span><b>'+closedDrivers+' / '+totalDrivers+'</b></div>'
+      + '<div class="mrow"><span>Open cases</span><b style="color:'+(openCases>0?'var(--warnText)':'var(--good)')+'">'+openCases+'</b></div>'
+      + (closedDrivers<totalDrivers
+          ? '<p style="color:var(--warnText);">'+(totalDrivers-closedDrivers)+' driver(s) are not closed yet. The day cannot be marked closed until every driver is — there is no single flag that overrides that.</p>'
+          + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelDay">Close</button></div>'
+          : '<p style="color:var(--good);">Every driver is closed. Marking the day closed is the final, honest record — nothing here was inferred from which buttons were visible.</p>'
+          + '<div class="modal-actions"><button class="btn btn-ghost" id="cancelDay">Cancel</button><button class="btn btn-primary" id="confirmDay">Mark day closed</button></div>')
+      + '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+    var cancel = overlay.querySelector('#cancelDay'); if (cancel) cancel.addEventListener('click', function(){ overlay.remove(); });
+    var confirm = overlay.querySelector('#confirmDay');
+    if (confirm) confirm.addEventListener('click', function(){ overlay.remove(); toast('Day closed', 'Thu Sep 10, 2026 marked closed — '+totalDrivers+' drivers, '+openCases+' case(s) carried forward if any remain.'); });
+  });
+
+  /* ---------------- boot ---------------- */
+  refreshAll();
+})();
+</script>
+</body>
+</html>
