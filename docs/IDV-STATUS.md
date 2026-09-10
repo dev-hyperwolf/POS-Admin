@@ -190,3 +190,16 @@ Open: real-passport OCR-B unproven (synthetic only); non-US passport captions; `
 reused for an invalid MRZ; Render engine image lacks the optional age model; FACE_MATCH alone does not gate the
 selfie step (LIVENESS does); `face_search_min` has no control on the Workflows screen; every push to wm-demo
 main redeploys production mid-capture.
+
+## Third push — 2026-09-09/10 night (first real passport run)
+Owner's passport run (local session 22530969820a411e872b508584ec1dc0) exposed: page captured with the MRZ cut
+off at the frame edge on every try; captions OCR'd as MRZ lines and called tamper (`MRZ_INVALID` ->
+`BARCODE_OCR_MISMATCH` -> Declined); every document retake re-ran selfie + liveness; the passport visual zone
+returned captions/fragments as values. Fixed and pushed: MRZ shape filter (captions never tamper), whole-frame
+band scan without a page quad, partial-line `cut_off_bottom` hint with guidance, passport values read BELOW the
+caption (US passport number by shape), browser-side MRZ band gate before the passport snap (no escape snap),
+"Retake" screen with one "I'm ready" button on every Awaiting User, document-only retakes keep accepted
+selfie/liveness (server step states, newest media per kind, absent nodes mid-resubmission not new findings),
+liveness clip keeps the camera aspect, proof from the full-res selfie, document choice no longer hidden by consent.
+Counts: rules 427, api 204, store 80, import 78, engine 447. Owner's real passport frame 1: valid TD3, MATCH,
+no warnings.
