@@ -83,7 +83,12 @@
 
   const FEATURE_LABEL = { OCR: 'Document (OCR)', LIVENESS: 'Liveness', FACE_MATCH: 'Face match' };
   const AAMVA_CODE = { first_name: 'DAC', last_name: 'DCS', date_of_birth: 'DBB', document_number: 'DAQ', expiration_date: 'DBA', issuing_state: 'DAJ' };
-  const FIELD_LABEL = { first_name: 'First name', last_name: 'Last name', date_of_birth: 'Date of birth', document_number: 'Document number', expiration_date: 'Expires', issuing_state: 'Issuing state' };
+  const FIELD_LABEL = { first_name: 'First name', last_name: 'Last name', date_of_birth: 'Date of birth', document_number: 'Document number', expiration_date: 'Expires', issuing_state: 'Issuing state', nationality: 'Nationality' };
+  // ── passport / MRZ (2026-09-09 contract) ──────────────────────────────────
+  const DOC_TYPE_LABEL_LONG = { drivers_license: "Driver's licence / state ID", passport: 'Passport' };
+  const MRZ_CHECK_LABEL = { document_number: 'Document number', date_of_birth: 'Date of birth',
+    expiration_date: 'Expiration date', personal_number: 'Personal number', composite: 'Composite' };
+  const MRZ_CHECK_ORDER = ['document_number', 'date_of_birth', 'expiration_date', 'personal_number', 'composite'];
   const MEDIA_ORDER = ['document_front', 'document_back', 'selfie', 'selfie_frame', 'portrait_crop', 'liveness_video', 'challenge_frame', 'import_pdf'];
   const MEDIA_LABEL = { document_front: 'Front', document_back: 'Back', selfie: 'Selfie', selfie_frame: 'Selfie frame', liveness_video: 'Liveness clip', portrait_crop: 'Portrait crop', challenge_frame: 'Challenge frame', import_pdf: 'Imported PDF' };
   const REVIEW_ACTION_LABEL = { approve: 'Approved', decline: 'Declined', request_resubmission: 'Requested resubmission', note: 'Added a note', assign: 'Assigned', escalate: 'Escalated', override_feature: 'Overrode a feature', edit_data: 'Edited data', merge_person: 'Merged people', add_to_list: 'Added to a list' };
@@ -99,8 +104,16 @@
   // a Response so the caller can read bytes (blob) instead of JSON.
   function liveBase() { return (window.HW_LIVE && window.HW_LIVE.base) || ''; }
   function actorHeaders() {
+    // Same headers as every other console request -- actor AND the console PIN
+    // token. A local copy that sent only the actor worked while the gate was
+    // off locally and failed on the first production session (2026-09-09:
+    // every media tile "Could not load" while the engine, holding a media
+    // token, fetched the same files fine).
+    if (window.HWIdv && typeof window.HWIdv.actorHeaders === 'function') return window.HWIdv.actorHeaders();
     const s = window.HWIdv ? window.HWIdv.session() : null;
-    return s && s.id ? { 'X-HW-Actor': s.id } : {};
+    const h = s && s.id ? { 'X-HW-Actor': s.id } : {};
+    try { const t = window.localStorage.getItem('hw-console-token'); if (t) h['X-HW-Console-Token'] = t; } catch (e) {}
+    return h;
   }
   function fetchBytes(path) {
     return fetch(liveBase() + path, { method: 'GET', credentials: 'omit', cache: 'no-store', headers: actorHeaders() })
@@ -424,6 +437,13 @@
     const consents = data.consents || [];
     const queue = data.queue || null;
     const idn0 = decision && decision.id_verifications && decision.id_verifications[0];
+    // idv_sessions.document_type is the session-level field (contract,
+    // 2026-09-09); id_verifications[0].document_type carrying Didit's literal
+    // "Passport" is the fallback for a session read before that column
+    // existed on this row.
+    const documentType = (sess && sess.document_type)
+      || (idn0 && idn0.document_type === 'Passport' ? 'passport' : 'drivers_license');
+    const isPassport = documentType === 'passport';
 
     // ── thresholds — fetched once per workflow version (gap #3 above) ──────
     // GET …/workflows/{id}/versions carries idv_version alongside the list now
@@ -506,25 +526,37 @@
       return rows;
     }, [decision]);
 
+    // SAME RENDERING FOR BOTH SOURCES (contract, 2026-09-09): a passport
+    // session reads `crosschecks.mrz_vs_ocr` instead of `barcode_vs_ocr` —
+    // same shape (status/agree/disagree/missing/confidence) — and the
+    // "primary" column's value comes from the node's own top-level field
+    // rather than an AAMVA-coded side-bag, because the contract fills those
+    // top-level fields FROM THE MRZ once `mrz.valid`. There is no
+    // `mrz_fields` the way `barcode_fields` exists for AAMVA codes.
     const crosscheckRows = React.useMemo(() => {
-      const cc = decision && decision.crosschecks && decision.crosschecks.barcode_vs_ocr;
+      const cc = decision && decision.crosschecks && (isPassport ? decision.crosschecks.mrz_vs_ocr : decision.crosschecks.barcode_vs_ocr);
       if (!idn0 || !cc) return [];
       // Print (OCR) values must come from the OCR reader itself, never from the
-      // node's top-level fields — those are barcode-derived once the barcode
-      // decodes, so filling the column from them silently echoes the barcode
-      // back in a column labeled "Print" (see 2026-09-09 contract addendum:
+      // node's top-level fields — those are barcode/MRZ-derived once decoded,
+      // so filling the column from them silently echoes that value back in a
+      // column labeled "Print" (see 2026-09-09 contract addendum:
       // barcode_vs_ocr.missing means the OCR reader produced nothing for that
       // field, and this column must say so, not restate the chip's value).
       const ocrFields = (idn0.engine_detail && idn0.engine_detail.ocr_fields) || idn0.ocr_fields || null;
       const fields = Array.from(new Set([].concat(cc.agree || [], cc.disagree || [], cc.missing || [])));
       return fields.map((f) => {
-        const code = AAMVA_CODE[f];
-        const barcode = code && idn0.barcode_fields ? idn0.barcode_fields[code] : null;
+        let primary;
+        if (isPassport) {
+          primary = idn0[f];
+        } else {
+          const code = AAMVA_CODE[f];
+          primary = code && idn0.barcode_fields ? idn0.barcode_fields[code] : null;
+        }
         const print = ocrFields ? ocrFields[f] : null;
         const agrees = (cc.agree || []).includes(f) ? 'yes' : (cc.disagree || []).includes(f) ? 'no' : (cc.missing || []).includes(f) ? 'missing' : '—';
-        return { field: FIELD_LABEL[f] || f, barcode: barcode == null ? '—' : String(barcode), print: print == null ? '—' : String(print), agrees };
+        return { field: FIELD_LABEL[f] || f, primary: primary == null ? '—' : String(primary), print: print == null ? '—' : String(print), agrees };
       });
-    }, [decision, idn0]);
+    }, [decision, idn0, isPassport]);
 
     if (poll.error && !poll.data) {
       return <S.NotConnected onRetry={poll.refresh} />;
@@ -678,11 +710,16 @@
     }
 
     const otherCrosschecks = decision && decision.crosschecks;
-    const barcodeVsOcr = otherCrosschecks && otherCrosschecks.barcode_vs_ocr;
-    const ocrFailNote = barcodeVsOcr && barcodeVsOcr.status === 'DECODED_OCR_FAILED'
-      ? 'The print could not be read on this front; the barcode is the data source.'
-      : barcodeVsOcr && barcodeVsOcr.status === 'NO_BARCODE'
-      ? 'No barcode was decoded; print only.'
+    // `primaryCC` is whichever of the two the session's document type reads —
+    // same shape either way (contract: mrz_vs_ocr mirrors barcode_vs_ocr).
+    const primaryCC = otherCrosschecks && (isPassport ? otherCrosschecks.mrz_vs_ocr : otherCrosschecks.barcode_vs_ocr);
+    const ocrFailNote = primaryCC && primaryCC.status === 'DECODED_OCR_FAILED'
+      ? `The print could not be read on this front; the ${isPassport ? 'MRZ' : 'barcode'} is the data source.`
+      // NO_BARCODE is the only "nothing decoded" literal the contract names;
+      // read defensively for a passport-specific analogue too in case the
+      // engine sends one once it ships.
+      : primaryCC && (primaryCC.status === 'NO_BARCODE' || primaryCC.status === 'NO_MRZ')
+      ? (isPassport ? 'No MRZ was read; print only.' : 'No barcode was decoded; print only.')
       : null;
 
     const orderedMedia = MEDIA_ORDER.map((k) => media.find((m) => m.kind === k)).filter(Boolean)
@@ -822,23 +859,24 @@
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <Card padding={0}>
-                <CardHead icon="barcode" title="Cross-check" />
+                <CardHead icon={isPassport ? 'scroll' : 'barcode'} title={isPassport ? 'MRZ vs printed' : 'Cross-check'} />
                 {crosscheckRows.length === 0
-                  ? <div style={{ padding: 16 }}><EmptyState compact icon="barcode" title="Nothing to compare" body="No barcode read, or no document on this session." /></div>
+                  ? <div style={{ padding: 16 }}><EmptyState compact icon={isPassport ? 'scroll' : 'barcode'} title="Nothing to compare"
+                      body={isPassport ? 'No MRZ read, or no document on this session.' : 'No barcode read, or no document on this session.'} /></div>
                   : (
                     <div style={{ overflowX: 'auto' }}>
                       {ocrFailNote && (
                         <div style={{ padding: '8px 12px', fontSize: P.type.meta, color: P.inkDim, borderBottom: `1px solid ${P.hairline2}` }}>{ocrFailNote}</div>)}
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: P.type.meta }}>
                         <thead><tr style={{ background: P.surface2 }}>
-                          {['Field', 'Barcode', 'Print (OCR)', 'Agrees'].map((h) => (
+                          {['Field', isPassport ? 'MRZ' : 'Barcode', 'Print (OCR)', 'Agrees'].map((h) => (
                             <th key={h} style={{ textAlign: 'left', padding: '7px 12px', fontWeight: 600, fontSize: 10.5, letterSpacing: '.06em', textTransform: 'uppercase', color: P.inkDim, borderBottom: `1px solid ${P.hairline2}` }}>{h}</th>))}
                         </tr></thead>
                         <tbody>
                           {crosscheckRows.map((r, i) => (
                             <tr key={i} style={{ background: r.agrees === 'no' ? P.badSoft : 'transparent' }}>
                               <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, color: P.ink }}>{r.field}</td>
-                              <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, fontFamily: P.fontMono, color: P.ink }}>{r.barcode}</td>
+                              <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, fontFamily: P.fontMono, color: P.ink }}>{r.primary}</td>
                               <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}`, fontFamily: P.fontMono, color: P.ink }}>{r.print}</td>
                               <td style={{ padding: '7px 12px', borderTop: `1px solid ${P.hairline}` }}>
                                 <Pill kind={r.agrees === 'yes' ? 'good' : r.agrees === 'no' ? 'bad' : 'neutral'} size="sm">
@@ -848,9 +886,9 @@
                             </tr>))}
                         </tbody>
                       </table>
-                      {(otherCrosschecks || (barcodeVsOcr && barcodeVsOcr.confidence != null)) && (
+                      {(otherCrosschecks || (primaryCC && primaryCC.confidence != null)) && (
                         <div style={{ padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                          {barcodeVsOcr && barcodeVsOcr.confidence != null && <Pill kind="neutral" size="sm">Print read at {Math.round(barcodeVsOcr.confidence)}% confidence</Pill>}
+                          {primaryCC && primaryCC.confidence != null && <Pill kind="neutral" size="sm">Print read at {Math.round(primaryCC.confidence)}% confidence</Pill>}
                           {otherCrosschecks && otherCrosschecks.portrait_vs_selfie != null && <Pill kind="neutral" size="sm">Portrait vs selfie {fmt.score(otherCrosschecks.portrait_vs_selfie)}</Pill>}
                           {otherCrosschecks && otherCrosschecks.name_vs_expected && <Pill kind={otherCrosschecks.name_vs_expected === 'match' ? 'good' : otherCrosschecks.name_vs_expected === 'mismatch' ? 'bad' : 'neutral'} size="sm">Name vs expected: {otherCrosschecks.name_vs_expected}</Pill>}
                           {otherCrosschecks && otherCrosschecks.dob_vs_age_rule && <Pill kind={otherCrosschecks.dob_vs_age_rule === 'pass' ? 'good' : otherCrosschecks.dob_vs_age_rule === 'fail' ? 'bad' : 'neutral'} size="sm">DOB vs age rule: {otherCrosschecks.dob_vs_age_rule}</Pill>}
@@ -862,6 +900,7 @@
                 <CardHead icon="note" title="Session facts" />
                 <div style={{ padding: '0 14px' }}>
                   <Kv label="Status" value={sess.status} mono />
+                  <Kv label="Document type" value={DOC_TYPE_LABEL_LONG[documentType] || documentType} mono />
                   <Kv label="Reasons" value={(sess.reasons || []).join(', ') || 'none'} mono />
                   <Kv label="Channel · origin" value={channelLabel} mono />
                   <Kv label="Workflow" value={workflowLabel} mono />
@@ -874,6 +913,43 @@
                 <div style={{ height: 12 }} />
               </Card>
             </div>
+
+            {/* ── MRZ (passports only, 2026-09-09 contract) ──────────────────
+                Format, the identity fields the MRZ itself carries, and the
+                five check digits as green/red/grey ticks (grey = not
+                applicable — `personal_number` is `bool|null`). This is the
+                MRZ's OWN read, not the cross-check above: the table compares
+                it against the visual zone, this card just shows what it is. */}
+            {isPassport && idn0 && idn0.mrz && (
+              <Card padding={0}>
+                <CardHead icon="scroll" title="MRZ" right={
+                  <Pill kind={idn0.mrz.valid ? 'good' : 'bad'} size="sm" dot>{idn0.mrz.valid ? 'valid' : 'invalid'}</Pill>} />
+                <div style={{ padding: '0 14px' }}>
+                  <Kv label="Format" value={idn0.mrz.format} mono />
+                  <Kv label="Document number" value={idn0.mrz.document_number} mono />
+                  <Kv label="Nationality" value={idn0.mrz.nationality} mono />
+                  <Kv label="Issuing state" value={idn0.mrz.issuing_state} mono />
+                  <Kv label="Date of birth" value={idn0.mrz.date_of_birth} mono />
+                  <Kv label="Expiration date" value={idn0.mrz.expiration_date} mono />
+                  <Kv label="Sex" value={idn0.mrz.sex} mono />
+                </div>
+                <div style={{ padding: '10px 14px', borderTop: `1px solid ${P.hairline}`, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                  {MRZ_CHECK_ORDER.map((k) => {
+                    const v = idn0.mrz.checks ? idn0.mrz.checks[k] : null;
+                    const ok = v === true, bad = v === false;
+                    return (
+                      <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: P.type.meta,
+                        color: ok ? P.good : bad ? P.bad : P.inkMute }}>
+                        <Icon name={ok ? 'check-circle' : bad ? 'x' : 'minus'} size={13} stroke={2} />
+                        {MRZ_CHECK_LABEL[k] || k}
+                      </span>);
+                  })}
+                </div>
+                {idn0.mrz.ocr_confidence != null && (
+                  <div style={{ padding: '0 14px 10px', fontSize: P.type.micro, color: P.inkMute }}>
+                    Read at {Math.round(idn0.mrz.ocr_confidence)}% confidence
+                  </div>)}
+              </Card>)}
 
             <Card padding={0}>
               <CardHead icon="ban" title="List hits" right={<Pill kind={decision && decision.list_hits && decision.list_hits.length ? 'bad' : 'good'} size="sm">{decision && decision.list_hits ? decision.list_hits.length : 0}</Pill>} />

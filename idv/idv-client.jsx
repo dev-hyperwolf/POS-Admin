@@ -419,5 +419,5 @@
     },
     version: function () { return window.HWContracts ? window.HWContracts.VERSION : null; },
   };
-  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can, contract: contract, auth: auth };
+  window.HWIdv = { session: session, get: get, post: post, patch: patch, put: put, del: del, usePoll: usePoll, fmt: fmt, role: role, can: can, contract: contract, auth: auth, actorHeaders: actorHeaders };
 })();
