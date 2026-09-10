@@ -20,6 +20,11 @@
     // People-adjacent to Members on purpose: Bounty scores and pays budtenders,
     // the same people Members tracks identity for. docs/INCENTIVES-PLAN-2026-09-07.md §0/§5.
     { id: 'bounty', label: 'Bounty', icon: 'trophy', href: 'Hyperwolf Bounty.html' },
+    // Docs is the dev-team console: the audit, the contract and every repo,
+    // searchable, with an assistant that cites file:line. No natural
+    // neighbor among the staff-facing items above, so it sits right after
+    // Bounty — the last "internal ops" item before Verify's identity group.
+    { id: 'docs', label: 'Docs', icon: 'note', href: 'Hyperwolf Docs.html' },
     // Identity-adjacent to Members and Bounty on purpose: Verify is the ID
     // check/liveness/review console. docs/IDV-PLAN-2026-09-08.md §10.
     { id: 'idv', label: 'Verify', icon: 'shield', href: 'Hyperwolf Verify.html' },

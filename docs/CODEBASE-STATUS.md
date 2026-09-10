@@ -1,6 +1,6 @@
 # Hyperwolf codebase audit — status
 
-Updated 2026-09-09 (evening). Phases 1, 2 and 3 are complete. **The Hyper-Tech repos are
+Updated 2026-09-09 (late). Phases 1, 2, 3 and 4 (Hyperwolf Docs) are complete. **The Hyper-Tech repos are
 read-only for this work by the owner's decision**: findings go to the developer team as
 `codebase-audit/TEAM-TODO.md`, and nothing under `/Users/jt/hyper-tech` has been modified.
 Nothing has been pushed anywhere; both our repos auto-deploy on push and the owner pushes.
@@ -27,6 +27,34 @@ Attribution note: `e6ef263` (terminals) also carries wave 4's pipeline files, sw
 
 Contract is 0.3.0 (52 enums), every enum drift-tested against the file that owns its values. Still queued: the Verify engine channel's move to the contract preimage (both sides together).
 Three refuter lenses ran over the eleven wave commits: 1 blocker (Publish crash) and 8 warnings, all fixed the same evening; the only surviving caveat is that the register's demo order ids come from a pool of 40 values, so a colliding demo id is swallowed as a replay — a demo limit, not a contract defect.
+
+## Phase 4 — Hyperwolf Docs (built, verified on a fresh port, committed, not pushed)
+
+A new POS-Admin app served by wm-demo exactly like Bounty: rail item, app-switcher entry, hub
+card, IIFE files, and **every route (reads included) behind the write token**. Three screens:
+Pages (the audit, the contract guides, the 24 per-repo reports, rendered from the repo with
+"View on GitHub"), Search (BM25 over every file of all 14 repos, each hit a `file:Lstart-Lend`
+link pinned to the SHA the index was built from) and Ask (chat over the same index; every claim
+cites an excerpt `[n]` that links to GitHub).
+
+| Piece | Where | Notes |
+|---|---|---|
+| Index | `wm-demo/wmdemo/docs_index.py` | stdlib + SQLite; 21,800 chunks over 14 repos in 12.6 s; markdown by heading, code in 80-line windows; populate-then-swap; `.env` never indexed, private-key blocks and long tokens redacted |
+| Routes | `wm-demo/wmdemo/docs_api.py` | `/api/docs/status`, `/pages`, `/page`, `/search`, `POST /chat`, `POST /reindex` (background thread); 403 without `x-hw-write-token`; path traversal refused |
+| Model seam | `wm-demo/wmdemo/llm_adapter.py` | `complete(system, messages)`; provider `HW_LLM_PROVIDER` (anthropic \| none), model `HW_LLM_MODEL` (default `claude-fable-5-1`), key `ANTHROPIC_API_KEY` from `.env`, urllib only. No key → chat answers extractively with the same citations |
+| App | `Hyperwolf Docs.html`, `docs-app/docs-client.jsx` (`window.HWDocs`), `docs-app/app.jsx` | registered in `shared/app-nav.js`, `shared/app-switcher.js`, hub card in `Hyperwolf.html` |
+| Probe | `wm-demo/qa/docs_probe.py` (in `qa/battery.py`) | fixture index, token gate, search, page, traversal, chat (extractive), reindex |
+| Run buttons | `wm-demo/tools/set_anthropic_key.sh` (hidden dialog → `.env`, restarts), `wm-demo/tools/hw_docs_reindex.sh` | the key never passes through chat |
+
+**Re-index on push**: the index records each repo's HEAD SHA at build time and citations link to
+that SHA, so a stale index still points at the right lines. Rebuild by the Re-index button, the
+Run button, or `POST /api/docs/reindex`; a GitHub webhook → that route is the one-line follow-up
+once Render has the clones (today the clones live on this Mac, so Render serves the index only
+after the DB is copied or the clones are added to the deploy).
+
+**Movable**: the three Python files depend only on `config.WRITE_TOKEN`/`PUBLIC`/`STATIC_DIR` and
+`contracts.error/http_status`; the app depends on `HW_LIVE` and the rail. Lifting them into a
+Hyper-Tech service means copying the files and the two `server.py` mount lines.
 
 ## Phase 3 — compatibility (done, committed, not pushed)
 
@@ -110,6 +138,7 @@ Three refuter lenses ran over the eleven wave commits: 1 blocker (Publish crash)
 
 ## Waiting on you
 
+0. **Push POS-Admin** (Run button: `tools/hw_push_pos_admin.sh`) and **push wm-demo** — the classifier refuses `git push` from this session. Then run `wm-demo/tools/set_anthropic_key.sh` once to give Docs a model; without it the assistant is extractive.
 1. **Rotate the three committed service-account keys** (`hyperwolf-backend/hyperdrive-firebase-adminsdk.json`,
    `hemp-backend/staticDB/fcmtoken.json`, `stilo-backend/staticDB/fcmtoken.json`), the Google Maps
    key in `hyperwolf-backend/controllers/google-controllers.js:23`, and the LedgerGreen webhook
