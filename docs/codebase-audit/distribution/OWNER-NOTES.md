@@ -154,3 +154,17 @@ stand (cap ratchet, usedQty only rising, identity joins, IST day boundary, laggi
   discrepancy with a reason (missing, extra, wrong batch, sold-but-returned).
 - Refill need = ASAP sold since last refill per SKU (batch-aware), capped by demand, never by
   what stock allowed last time.
+
+**Q3 — scan points:** a handheld at the **packing bench, per box as it is packed** (a mismatch
+interrupts the packer before the next box), **and** a handheld at the **loss-prevention bench**
+nearby, for the return scan. So: two handhelds, two stations a few steps apart; no fixed portal;
+receiving-time tag commissioning happens at receiving (per Q1) with whichever handheld is free.
+
+**Consequences for the next round.**
+- Packing tablet (Concept D keeper) gains a "Scan box" step on the Box packed button: the box
+  cannot be marked packed until its read matches the plan per batch, or the packer records a
+  reason. The discrepancy is raised there, not at closeout.
+- Loss-prevention bench gets its own screen: return scan per kit → expected (dispatched + refills
+  − ASAP sold − scheduled sold) vs read, per batch, with the driver's closeout beside it.
+- The RFID middleware needs a RETURN session mode and batch-keyed plan input; the developer list
+  needs the additive verify endpoint. Both recorded in `RFID-FOR-DISTRIBUTION.md` and the change list.
