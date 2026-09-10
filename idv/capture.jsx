@@ -3211,9 +3211,11 @@
     // rendered. "Evidence" is anything the server has accepted (`done`) or
     // is asking to see again (`retry`), or anything this page itself has
     // uploaded this load.
+    // Consent is a step in `done` but it is not evidence -- counting it hid
+    // the document choice for EVERY guest (owner's passport test, 2026-09-09).
     const hasEvidenceMedia = ((state && state.steps) || []).some(function (s) {
-      return s.state === 'done' || s.state === 'retry';
-    }) || Object.keys(done).length > 0;
+      return s && typeof s === 'object' && s.id !== 'consent' && (s.state === 'done' || s.state === 'retry');
+    }) || Object.keys(done).some(function (k) { return k !== 'consent'; });
 
     // The step list, with consent prepended while the terms row is missing.
     // THE FALLBACK IS DOCUMENT-TYPE-AWARE (contract §Session): when `GET
