@@ -206,3 +206,53 @@ receiving-time tag commissioning happens at receiving (per Q1) with whichever ha
   transfers, terminals) with `BlazeProvider` today and `HyperwolfPosProvider` (our own POS in
   POS-Admin/wm-demo) next; Metrc/track-and-trace obligations that Blaze handles today must be
   identified before the exit.
+
+## 2026-09-10 · live tour of admin.hyperwolf.com (read-only; nothing clicked that writes)
+
+**The real box types (15), with product counts today** — box types are a "Boxes" table with a
+name, a description and a category rule, plus a Products tab mapping SKUs to boxes:
+Flower BOX 1 HW Jar (HW premium 3.5g, 10) · Flower BOX 2 HW Bag (29) · Flower BOX 3 Bag
+(outside 3.5g, 69) · Flower BOX 4 Bulk Bag (outside >3.5g, 66) · Flower BOX 5 Boxed (108) ·
+Flower BOX 6 Bulk Jar (1) · Pre-Roll BOX 1 Single (249) · Pre-Roll BOX 2 Packs (173) · Vape BOX 1
+510 + Pods (166) · Vape BOX 2 All In One (136) · Vape BOX 3 Box Vapes (94) · Concentrate BOX 1
+All (184) · Edible BOX 1 Mixed (223) · Edible BOX 3 Beverages (36) · Accessories (31). No cooler
+or bin exists as a box type today; the owner's list (Cooler, Concentrate Bin 1/2, Edible Bin) is
+the vocabulary the console should offer, so box types stay data.
+
+**Things on the screens we had not discussed**
+1. **Box → product mapping is a first-class admin object** (Manage Boxes, Products tab): each
+   SKU belongs to a box type by rule; the build reads this. Our console needs the same editor or
+   must read it as-is.
+2. **Kit Template has two tables**: Distribution and Refill. Two templates live today, T-0001-LA
+   (region RC, 9 subregions, 15 boxes, min 1 / max 1100 products per region) and T-0002-LA
+   (SB+OC, 9 subregions). "Min/Max Products Per Region" is a template-level cap.
+3. **Distribution Config** (global): min/max products per region, per box, per product; default
+   "Products Expiring In N days"; **Discrepancy Resolution ETA in hours** ("before products are
+   marked as waste") — the field that empties Waste Inventory when unset; a **Discrepancy Type**
+   list (today: "Missing SKU"); **Aging Rules By Category** (empty today).
+4. **Distributions list**: one distribution, Sep 05 2026, kit value **$112,757.24**, status
+   Distributed; "Total unique products" and "Total quantities" show "-". Actions column has two
+   unlabeled icon buttons.
+5. **Kit Replenishment Logs**: refills on Sep 07 ($10,513 / 867 units), Sep 08 ($4,709 / 451),
+   Sep 09 ($5,130 / 505); an **Activity Logs** button; a **Refill Kit** button (one click, no
+   preview — confirmed live).
+6. **Driver Kit Verification**: a global **SCANNING** toggle; rows D-0001 Distribution (Sep 05,
+   verified **0/11,484**), R-0001..R-0003 Refill (verified **0/867, 0/451, 0/505**), all
+   "Completed". **Nothing has been scan-verified**: the barcode verification step is not used.
+7. **Closure Overview**: every day shows **17 open forms, 0 closed, $0 revenue** (Sep 06–09); a
+   revenue min/max filter. Either closure is not being done or revenue is not flowing into it.
+8. **Discrepancy Management**: empty. **Discrepancy Approvals**: columns Product/SKU · Sub
+   Category · Brand · Weight · **Batch** · Scanned Qty · Discrepancy Type · Status — empty.
+   **Waste Inventory**: columns Product · Brand · Batch · Sub Category · Qty Waste · Date Marked ·
+   Discrepancy · Type — empty. Batch is already a column in Loss Prevention; not in refill.
+9. **Aging Products / Promotional Products**: a filter by "Expiry Days"; list empty today.
+10. **Regions** menu item routes to `/regions`, which redirected to Orders in this session — a
+    broken or role-gated link (customer data on that page; nothing recorded).
+11. **Pick slips**: the refill detail's PDF downloads (box and region) are the pick slips; they
+    exist only as PDF via Puppeteer and only from the detail screen.
+
+**What it means.** The production data confirms the studies: a weekly build (11,484 units), a
+daily refill of ~450–870 units, zero scan verification, zero closure, zero discrepancies
+recorded. The loss-prevention half of the module is unused, so today's "every unit accounted
+for" is a spreadsheet or nobody. The console's pack-verify and return-verify replace a step
+nobody performs, not one they do badly.
