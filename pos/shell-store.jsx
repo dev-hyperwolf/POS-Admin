@@ -1,41 +1,58 @@
 // ── Product shells · store + taxonomy ──────────────────────────────────────
-// One shell = one product family. Brand + format + category + size + price +
-// traits + delivery box are set ONCE here and inherited by every variation.
-// Batches still own quantity, cost, barcode and potency.
+// One shell = one product family: brand + format + weight/unit/pack + kit box
+// + Weedmaps node. That is now the WHOLE shell record (docs/SHELLS-PLAN-2026-
+// 09-09.md §1) — price, traits and a shared "sub" no longer live here. A
+// variation (a real catalog product) hangs off a shell and owns its own
+// price; its NAME is never typed, it is DERIVED by the naming engine from the
+// slots (strain/flavor, ratio, tier, type…) the operator fills in, applied to
+// the shell's format template. Numeric weights never appear in a name — the
+// owner's ruling, plan §0.
+//
+// THIS FILE IS NOW A THIN CLIENT over the wm-demo shells API
+// (docs/SHELLS-PLAN-2026-09-09.md §3), through window.HW_LIVE.get/post — the
+// one read/write seam every sibling seam on this page shares (shared/hw-
+// live.js). There is no more client-side SHELLS mock rebuilt from
+// HW.PRODUCTS on every page load: the library is fetched once, cached here,
+// and refetched after every write, exactly the discipline the plan names.
 ;(function () {
   const HW = window.HW;
 
   // Categories mirror the live hyperwolf.com/shop menu. slug = real URL segment.
+  // Still used for: the category chips on the shell form (which filter the
+  // format picker), catDef()/menuPath() and the weight-unit/preset helpers.
+  // Subcategory, traits and a per-category default FORMAT no longer live
+  // here — formats are server records now (GET /api/shells/formats), owned by
+  // pos/shell-formats.jsx.
   const TAX = [
     { key: 'Flower', name: 'Flower', slug: 'flower', units: ['g', 'oz'], unit: 'g', presets: ['1g', '3.5g', '7g', '14g', '28g'],
       subs: ['Premium Flower', 'Smaller Bud Flower', 'Value Flower', 'Bulk Flower 5g–28g', 'Infused Flower', 'Smalls'],
-      wm: 'Flower › Bud', traits: [{ label: 'Format', value: 'Whole flower' }, { label: 'Cure', value: 'Cold cure' }, { label: 'Infused', value: 'No' }] },
+      wm: 'Flower › Bud' },
     { key: 'Pre-Rolls', name: 'Pre-Rolls', slug: 'prerolls', units: ['g', 'ct', 'oz'], unit: 'g', presets: ['0.5g', '1g', '1.75g', '2.5g', '5g'],
       subs: ['Single Pre-Roll', 'Multipacks', 'Infused Pre-Rolls', 'Blunts', 'Hash Holes'],
-      wm: 'Pre Roll › Single', traits: [{ label: 'Pieces per pack', value: '1' }, { label: 'Infused', value: 'No' }] },
+      wm: 'Pre Roll › Single' },
     { key: 'Vapes', name: 'Vapes', slug: 'vapes', units: ['g', 'ml', 'ct'], unit: 'g', presets: ['0.3g', '0.5g', '1g', '2g'],
       subs: ['All-In-One', 'Cartridges', 'Pods', 'Disposables', 'Batteries'],
-      wm: 'Vape Pens › All-In-One', traits: [{ label: 'Hardware', value: 'All-in-one' }, { label: 'Extract', value: 'Distillate' }] },
+      wm: 'Vape Pens › All-In-One' },
     { key: 'Concentrates', name: 'Concentrates', slug: 'concentrates', units: ['g', 'ct'], unit: 'g', presets: ['0.5g', '1g', '2g', '3.5g'],
       subs: ['Live Resin', 'Live Rosin', 'Badder', 'Diamonds', 'Sauce', 'Hash', 'Solventless', 'Applicators'],
-      wm: 'Concentrates › Live Resin', traits: [{ label: 'Extract type', value: 'Live Resin' }, { label: 'Consistency', value: 'Badder' }] },
+      wm: 'Concentrates › Live Resin' },
     { key: 'Edibles', name: 'Edibles', slug: 'edibles', units: ['mg', 'g', 'ct', 'ml'], unit: 'mg', presets: ['10mg', '100mg', '200mg', '1000mg'],
       subs: ['Gummies', 'Chocolates', 'Baked Goods', 'Drinks', 'Tablets', 'Microdose', 'High Dose'],
-      wm: 'Edibles › Gummies', traits: [{ label: 'Pieces per pack', value: '10' }, { label: 'Serving size', value: '10 mg' }] },
+      wm: 'Edibles › Gummies' },
     { key: 'Wellness', name: 'CBD & Wellness', slug: 'cbd-wellness', units: ['mg', 'ml', 'g', 'ct'], unit: 'ml', presets: ['30ml', '60ml', '100mg', '500mg'],
       subs: ['Tinctures', 'Topicals', 'CBD', 'Ratio Products', 'Capsules', 'Pet'],
-      wm: 'Wellness › Tinctures', traits: [{ label: 'Ratio', value: '1:1' }, { label: 'Format', value: 'Tincture' }] },
+      wm: 'Wellness › Tinctures' },
     { key: 'Accessories', name: 'Accessories', slug: 'accessories', units: ['ct', 'g'], unit: 'ct', presets: ['1ct', '2ct', '5ct'],
       subs: ['Batteries', 'Papers & Wraps', 'Grinders', 'Lighters', 'Glass', 'Storage', 'Apparel'],
-      wm: 'Gear › Accessories', traits: [{ label: 'Material', value: '—' }] }];
+      wm: 'Gear › Accessories' }];
 
   const catDef = (key) => TAX.find((c) => c.key === key) || TAX[0];
 
-  // Delivery boxes — which box on the van a family rides in.
+  // Delivery boxes — which box on the van a family rides in. Still a local,
+  // client-only list (the plan never gives this its own table); a shell's own
+  // `kit_box` field just needs to hold a value, any value, and this is where
+  // the picker gets its suggestions from.
   let BOXES = ['Flower Box 1', 'Flower Box 2', 'Pre-roll Box 1', 'Vape Box 1', 'Vape Box 2', 'Edible Box', 'Concentrate bin 1', 'Cooler'];
-
-  const FORMAT_BY_CAT = { Flower: 'Eighth Jar 3.5g', Vapes: 'All-In-One Vape 1g', 'Pre-Rolls': 'Pre-Roll 1g', Concentrates: 'Live Resin 1g', Edibles: 'Gummies 100mg 10pk', Wellness: 'Tincture 30ml', Accessories: 'Accessory' };
-  const SHELL_FORMATS = ['All-In-One Vape 1g', 'Cartridge 1g', 'Cartridge .5g', 'Eighth Jar 3.5g', 'Quarter Jar 7g', 'Pre-Roll 1g', 'Pre-Roll 5-pack', 'Infused Pre-Roll 1.5g', 'Gummies 100mg 10pk', 'Live Resin 1g', 'Rosin 1g', 'Tincture 30ml'];
   const BOX_BY_CAT = { Flower: 'Flower Box 1', Vapes: 'Vape Box 1', 'Pre-Rolls': 'Pre-roll Box 1', Concentrates: 'Concentrate bin 1', Edibles: 'Edible Box', Wellness: 'Cooler', Accessories: 'Cooler' };
 
   // ── size parsing — "3.5g", "1/8", "eighth", "100 mg" all land correctly ──
@@ -55,196 +72,463 @@
   const slugify = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const familyPath = (s) => s.brand + ' › ' + s.sub + ' › ' + s.weight;
   const menuPath = (s) => 'hyperwolf.com/shop/' + catDef(s.cat).slug + '/' + slugify(s.sub || '');
+  // Purely decorative — a deterministic gradient hue for a shell tile, same
+  // char-sum technique window.Avatar already uses for a person's initials.
+  // The server does not send a hue (there is nothing for it to mean), so this
+  // is never treated as data — only ever passed to <Thumb>.
+  const hueOf = (s) => [...String((s && (s.id || s.brand)) || '?')].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
 
-  // ── seed from the live catalog, grouped brand × category ──
-  function seed() {
-    const byBrandCat = {};
-    HW.PRODUCTS.forEach((p) => {const k = p.brand + '|' + p.cat;(byBrandCat[k] = byBrandCat[k] || []).push(p);});
-    return Object.keys(byBrandCat).map((k, i) => {
-      const items = byBrandCat[k], first = items[0], def = catDef(first.cat);
-      const fmtName = FORMAT_BY_CAT[first.cat] || 'Eighth Jar 3.5g';
-      const size = splitSize(first.wt || def.presets[1] || '1g');
-      const unit = def.units.includes(size.unit) ? size.unit : def.unit;
-      // ── UNIT COST: AVERAGED FROM WHAT, EXACTLY ────────────────────────────
-      // This averaged `p.cost`, which was the SKU character-hash (pos/data.jsx
-      // P_(), now removed). Averaging a hash produces a hash. It is `null`
-      // unless a real cost has actually been written onto a member of the
-      // family, and the row that renders it says which (see sharedRows).
-      const costs = items.map((p) => p.cost).filter((c) => typeof c === 'number' && isFinite(c));
-      const avgCost = costs.length ? window.HW.round2(costs.reduce((a, c) => a + c, 0) / costs.length) : null;
-      const costsKnown = costs.length, costsTotal = items.length;
-      // Base price = the price most of the family actually sells at, so the
-      // shell reads as the family norm and only genuine outliers show OVERRIDE.
-      // A shell's EFFECTIVE price is always `sale || price`, and it always
-      // equals base — so "inherited" means one number across the whole line.
-      const tally = {};items.forEach((p) => {tally[p.price] = (tally[p.price] || 0) + 1;});
-      const base = Number(Object.keys(tally).sort((a, b) => tally[b] - tally[a] || b - a)[0]);
-      // Only treat a was-price as a promo when it is plausibly the list price.
-      const promo = items.map((p) => p.was || 0).filter((w) => w > base && w <= base * 2);
-      const retail = promo.length ? Math.max(...promo) : base;
-      const sale = promo.length ? base : 0;
+  // Sends the ASSOCIATE ID, not the display name -- confirmed live:
+  // wmdemo's contests.is_manager(actor) does associates.get(actor), a lookup
+  // keyed by associate_id ('manisha-saini'), not by the display name
+  // ('Manisha Saini'). Sending the name 403'd every manager-only call
+  // (format delete, name_override) under a real Floor Manager. Same
+  // accessor pos/shell-formats.jsx's actorName() already uses -- there is
+  // no second "who is this" for the POS layer.
+  function actor() {
+    const a = (HW && HW.STATS && HW.STATS.associate) || {};
+    return a.id || a.name || 'POS';
+  }
+  function apiGet(path) {
+    const get = window.HW_LIVE && typeof window.HW_LIVE.get === 'function' ? window.HW_LIVE.get : null;
+    if (!get) return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-write-path',
+      hint: 'shared/hw-live.js is not on this page — there is no read path to call.' });
+    return get(path);
+  }
+  function apiPost(path, body) {
+    const post = window.HW_LIVE && typeof window.HW_LIVE.post === 'function' ? window.HW_LIVE.post : null;
+    if (!post) return Promise.resolve({ ok: false, code: 0, body: null, error: 'no-write-path',
+      hint: 'shared/hw-live.js is not on this page — there is no write path to call.' });
+    return post(path, body);
+  }
+
+  const subs = new Set();
+  const emit = () => subs.forEach((f) => f());
+  // A write can settle its fetch (and call emit()) BETWEEN a component's first
+  // render and the effect below actually running — GET /api/shells resolves
+  // over microtask hops, and a subscriber that was not registered yet simply
+  // misses that emit() forever, leaving the screen on its stale first-render
+  // snapshot with no error and no further update. Calling `cb()` once, right
+  // after subscribing, re-reads current state unconditionally and closes that
+  // window — idempotent (one extra render) when nothing changed underneath.
+  function useSubscribed(readFn) {
+    const [, bump] = React.useState(0);
+    React.useEffect(() => {
+      const cb = () => bump((n) => n + 1);
+      subs.add(cb);
+      cb();
+      return () => subs.delete(cb);
+    }, []);
+    return readFn();
+  }
+
+  // ══ FORMATS — GET /api/shells/formats ═══════════════════════════════════
+  let FORMATS = null, FORMAT_COUNTS = {}, formatsLoading = false, formatsError = null, formatsPromise = null;
+
+  function fetchFormats() {
+    if (formatsPromise) return formatsPromise;
+    formatsLoading = true; formatsError = null; emit();
+    formatsPromise = apiGet('/api/shells/formats').then((r) => {
+      formatsLoading = false; formatsPromise = null;
+      const b = r.body || {};
+      if (r.ok && Array.isArray(b.formats)) {
+        FORMATS = b.formats; FORMAT_COUNTS = b.counts || {}; formatsError = null;
+        // The two fetches run concurrently — if the shells library already
+        // landed with formats still unknown, decorate() fell back on empty
+        // category/subcategory/format-name strings. Re-decorate from the
+        // untouched raw rows now that the format lookups can actually
+        // resolve, so this file settles like a shell page that loaded the
+        // format library first would have — never left silently blank.
+        if (RAW_SHELLS) { SHELLS = RAW_SHELLS.map(decorate); }
+      }
+      else { formatsError = (b && b.error) || r.error || ('HTTP ' + r.code); }
+      emit();
+      return FORMATS || [];
+    });
+    return formatsPromise;
+  }
+  function formats() { if (FORMATS === null && !formatsLoading) fetchFormats(); return FORMATS || []; }
+  function formatById(id) { return formats().find((f) => f.id === id) || null; }
+  function formatCounts(id) { return FORMAT_COUNTS[id] || { shells: 0, products: 0 }; }
+  function useFormats() { return useSubscribed(formats); }
+  function useFormatsStatus() { return useSubscribed(() => ({ loading: formatsLoading, error: formatsError, loaded: FORMATS !== null })); }
+  function refreshFormats() { FORMATS = null; formatsPromise = null; return fetchFormats(); }
+
+  // ══ BRANDS — GET /api/shells/brands ══════════════════════════════════════
+  // The one source of {brand_key, brand_name, product_count, shell_count} —
+  // resolved server-side through wmdemo.mapping.brand_key, the SAME fold
+  // derive() and create_shell() use. shared/brands.js is a DIFFERENT id
+  // scheme (its own `key`, e.g. 'raw' for "Raw Garden") built for the
+  // register-screen mock data; using it here landed a shell on brand RAW
+  // instead of Raw Garden (docs/SHELLS-PLAN-2026-09-09.md's brand-key-
+  // collision fix). Nothing in this file should read window.HW_BRANDS again.
+  let BRANDS = null, brandsLoading = false, brandsError = null, brandsPromise = null;
+
+  function fetchBrands() {
+    if (brandsPromise) return brandsPromise;
+    brandsLoading = true; brandsError = null; emit();
+    brandsPromise = apiGet('/api/shells/brands').then((r) => {
+      brandsLoading = false; brandsPromise = null;
+      const b = r.body || {};
+      if (r.ok && Array.isArray(b.brands)) { BRANDS = b.brands; brandsError = null; }
+      else { brandsError = (b && b.error) || r.error || ('HTTP ' + r.code); }
+      emit();
+      return BRANDS || [];
+    });
+    return brandsPromise;
+  }
+  function brands() { if (BRANDS === null && !brandsLoading) fetchBrands(); return BRANDS || []; }
+  function useBrands() { return useSubscribed(brands); }
+  function refreshBrands() { BRANDS = null; brandsPromise = null; return fetchBrands(); }
+
+  // ══ CATALOGUE STATUS — GET /api/shells/catalogue/status ══════════════════
+  // "Is the hyperwolf.com catalogue loaded" (Render's own deploy carries
+  // only the 151-product demo seed). Same lazy-fetch/cache shape as FORMATS/
+  // BRANDS above.
+  let CAT_STATUS = null, catStatusLoading = false, catStatusError = null, catStatusPromise = null;
+
+  function fetchCatalogueStatus() {
+    if (catStatusPromise) return catStatusPromise;
+    catStatusLoading = true; catStatusError = null; emit();
+    catStatusPromise = apiGet('/api/shells/catalogue/status').then((r) => {
+      catStatusLoading = false; catStatusPromise = null;
+      const b = r.body || {};
+      if (r.ok && !b.error) { CAT_STATUS = b; catStatusError = null; }
+      else { catStatusError = (b && b.error) || r.error || ('HTTP ' + r.code); }
+      emit();
+      return CAT_STATUS;
+    });
+    return catStatusPromise;
+  }
+  function catalogueStatus() { if (CAT_STATUS === null && !catStatusLoading) fetchCatalogueStatus(); return CAT_STATUS; }
+  function refreshCatalogueStatus() { CAT_STATUS = null; catStatusPromise = null; return fetchCatalogueStatus(); }
+  function useCatalogueStatus() {
+    return useSubscribed(() => {
+      const s = catalogueStatus() || {};
       return {
-        id: 'SH-' + String(1040 + i * 7),
-        brand: first.brand, format: fmtName, name: first.brand + ' · ' + fmtName,
-        cat: first.cat, sub: def.subs[0], ptype: first.cat === 'Accessories' ? 'Accessory' : 'Cannabis',
-        unit, netW: size.amount || '1', weight: (size.amount || '1') + unit, pack: first.cat === 'Edibles' ? '10' : '1',
-        kit: BOX_BY_CAT[first.cat] || 'Cooler',
-        wmNode: def.wm,
-        // ⚠️ `stores` WAS `1 + first.sku.charCodeAt(1) % 4` — a count of retail
-        // locations carrying this product line, taken from THE SECOND LETTER OF
-        // A SKU, rendered as "3 stores" on the shell list (pos/shells.jsx:220)
-        // and in the product-shell header (pos/product-shell.jsx:62).
-        //
-        // It is NULL, not 1. The estate claims four stores (HW.STORE.count = 4,
-        // and the catalog header prints "24 SKUs across 4 stores"), but nothing
-        // anywhere records WHICH of them carries a given shell — there is no
-        // per-store distribution table on the mock rows, in the wm-demo
-        // database or on /api/state. "1 store" would be a second invented
-        // figure standing where the first one was.
-        stores: null,
-        hue: first.hue, price: retail, sale: sale, cost: avgCost,
-        costsKnown, costsTotal,
-        traits: def.traits.map((t) => ({ ...t })),
-        // ── `sample: false` THREW AWAY THE ONE FLAG THIS SCREEN PROMISES TO KEEP ─
-        //
-        // The Display-sample toggle (pos/product-shell.jsx:342) confirms, in the
-        // flow's own words: "Marked as a display sample — Kept off the sellable
-        // menu, still tracked as a full product profile." Rebuilding every
-        // variation with a hardcoded `false` broke that promise inside POS,
-        // before anything downstream got the chance to break it.
-        //
-        // 🔴 THE BIGGER FINDING THE HARDCODED `false` WAS HIDING: no stored item
-        // carries `sample` at all. Three writers produce product rows in this
-        // build — pos/data.jsx `P_()` (:38-55), shared/demo-seed.js `product()`
-        // (:196-207) and the live adapter shared/hw-live.js (:580-617) — and not
-        // one of them has this field. So the flag's only home was the variation
-        // object inside SHELLS, which lives exactly as long as the page. Reading
-        // `p.sample` here is half the repair; `addVariation` writing it onto the
-        // product row is the other half, and together they close the round trip
-        // for any variation whose SKU has a row.
-        //
-        // `active` IS NOT A STAND-IN, and is never read backwards. It is also
-        // false for `b.skip` and for qty === 0, so "inactive" cannot be decoded
-        // as "is a sample" — that inference is exactly how a display sample and
-        // an out-of-stock product become indistinguishable. The implication runs
-        // ONE way only, and that direction is enforced: a row flagged as a
-        // sample is never rebuilt as sellable, because a sample that comes back
-        // active is a sample back on the menu.
-        variations: items.map((p) => ({ sku: p.sku, name: p.name, price: p.price, override: p.price !== base, strain: p.strain, sample: !!p.sample, active: !!p.active && !p.sample, qty: p.qty, thumb: p }))
+        loading: catStatusLoading, error: catStatusError,
+        productsTotal: s.products_total != null ? s.products_total : null,
+        harvestRows: s.harvest_rows != null ? s.harvest_rows : null,
+        harvestDate: s.harvest_date || null,
+        brandsInScope: s.brands_in_phase1_scope || []
       };
     });
   }
 
-  let SHELLS = null;
-  const subs = new Set();
-  const emit = () => subs.forEach((f) => f());
-  function allShells() {if (!SHELLS) SHELLS = seed();return SHELLS;}
-  function shellById(id) {return allShells().find((s) => s.id === id) || null;}
-  function shellOf(p) {return allShells().filter((s) => s.brand === p.brand && s.cat === p.cat)[0] || allShells()[0];}
-  function totalStock(s) {return s.variations.reduce((a, v) => a + (v.qty || 0), 0);}
-  // What a variation sells for when it inherits — the promo price if one is
-  // running, otherwise retail. Every "inherited" tag refers to this number.
-  function effectivePrice(s) {return !s ? 0 : s.sale ? s.sale : s.price;}
-
-  // React binding — any component calling useShells() re-renders on a mutation.
-  function useShells() {
-    const [, bump] = React.useState(0);
-    React.useEffect(() => {const cb = () => bump((n) => n + 1);subs.add(cb);return () => subs.delete(cb);}, []);
-    return allShells();
+  // ── POST /api/shells/catalogue/load — dry run first, then Apply ──
+  // Never fires anything Weedmaps-facing (the server route deliberately has
+  // no access to that call — see wmdemo/shells.py's load_hyperwolf_catalogue
+  // docstring). A real (non-dry-run) load refreshes brands + the shells
+  // library + this status, same discipline deriveShells already applies.
+  function loadCatalogue(dryRun) {
+    return apiPost('/api/shells/catalogue/load',
+      { dry_run: !!dryRun, actor: actor() }).then((r) => {
+      const b = r.body || {};
+      if (r.ok && !b.error) {
+        if (!dryRun) { refreshCatalogueStatus(); refreshBrands(); refreshShells(); }
+        return { ok: true, rows_read: b.rows_read || 0, created: b.created || 0,
+          updated: b.updated || 0, unchanged: b.unchanged || 0,
+          rejected: b.rejected || 0, dry_run: !!b.dry_run };
+      }
+      return { ok: false, error: (b && b.error) || r.error || ('HTTP ' + r.code), hint: r.hint || null };
+    });
   }
 
-  // A SHELL HAS NO SERVER REPRESENTATION, on purpose — wmdemo's catalog is
-  // flat products; brand/format/category/price only exist there per-SKU,
-  // encoded into each product's own fields (see productPayload below). So
-  // this staying local-only is correct, not the same gap createVariation
-  // fixes. What IS a real, undressed gap: editing a shell that already has
-  // variations does not re-push any of them — a price or brand change here
-  // is invisible to every SKU already created under it until something else
-  // (a rename, a manual re-push) touches that SKU. Not fixed here: looping a
-  // full /api/product upsert over up to ~50 variations from a single form
-  // save is a different-shaped change (batching, partial-failure reporting,
-  // rate limits) than "wire the one write this form already makes."
-  function saveShell(draft, editingId) {
-    const list = allShells();
-    const def = catDef(draft.cat);
-    const weight = (draft.netW || '1') + draft.unit;
-    const common = {
-      brand: (draft.brand || '').trim() || 'New Brand', cat: draft.cat, sub: draft.sub || def.subs[0],
-      format: draft.format || FORMAT_BY_CAT[draft.cat] || 'Eighth Jar 3.5g',
-      unit: draft.unit, netW: draft.netW || '1', weight, pack: draft.pack || '1', kit: draft.kit || '—',
-      ptype: draft.ptype || 'Cannabis', wmNode: draft.wmNode || def.wm,
-      price: parseFloat(draft.price) || 0, sale: parseFloat(draft.sale) || 0,
-      traits: (draft.traits || []).filter((t) => t.label.trim()).map((t) => ({ label: t.label.trim(), value: t.value.trim() || '—' })),
-    };
-    common.name = common.brand + ' · ' + common.format;
-    let id = editingId;
-    if (editingId) {
-      SHELLS = list.map((s) => s.id === editingId ? { ...s, ...common } : s);
-    } else {
-      id = 'SH-' + String(2000 + Math.floor(Math.random() * 900));
-      // cost is NULL, not 0. `0` renders as "$0" — a wholesale cost of nothing,
-      // and a 100% margin — where the truth is that no cost has been entered.
-      SHELLS = [{ id, ...common, stores: null, hue: Math.floor(Math.random() * 360), cost: null, costsKnown: 0, costsTotal: 0, variations: [] }, ...list];
-    }
-    emit();
-    return id;
+  // ══ SHELLS LIBRARY — GET /api/shells ═════════════════════════════════════
+  // Raw server rows are augmented with the flat, legacy-shaped fields the
+  // rest of this estate's UI (and pos/pricing-shared.jsx, which this file does
+  // not own) already reads: brand, cat, sub, weight, format — so the blast
+  // radius of moving to a real backend stays inside this file rather than
+  // spreading through every screen that renders a shell.
+  let SHELLS = null, RAW_SHELLS = null, shellsLoading = false, shellsError = null, shellsPromise = null;
+  const SHELL_DETAILS = {};       // id -> { loading, error, shell, format, products, promise }
+  const _skuToShellId = {};       // opportunistic sku -> shell id, filled by detail fetches & writes
+  let _lastReportId = null;
+
+  function decorate(raw) {
+    const fmt = formatById(raw.format_id);
+    const unit = raw.unit || (fmt && fmt.default_unit) || 'g';
+    const weight = raw.weight != null ? raw.weight : (fmt && fmt.default_weight);
+    // The live server already answers GET /api/shells with `cat` and
+    // `format_name` on every row (verified 2026-09-09) — prefer THOSE first.
+    // Falling back straight to the format-library lookup, and only then to
+    // '', meant a shell rendered with a BLANK category/format the instant
+    // formats hadn't loaded yet (a real race — GET /api/shells and GET
+    // /api/shells/formats fire concurrently), clobbering a perfectly good
+    // value the shells response itself already carried.
+    return Object.assign({}, raw, {
+      brand: raw.brand_name || raw.brand_key || '',
+      cat: raw.cat || (fmt && fmt.category) || raw.category || '',
+      sub: raw.sub || (fmt && fmt.subcategory) || raw.subcategory || '',
+      format: raw.format_name || (fmt && fmt.name) || raw.format_id || '',
+      unit, netW: weight != null ? String(weight) : '1',
+      // weight 0 or missing is not a measurement — it means the source data
+      // never carried one (2026-09-09 derive report: Heavy Hitters edibles
+      // landed at 0.0 from unparseable source rows). Showing "0g" would
+      // invent a number nobody measured; say so honestly instead.
+      weight: (weight === 0 || weight == null) ? 'weight not recorded' : (weight + unit),
+      pack: raw.pack != null ? raw.pack : (fmt && fmt.default_pack) || 1,
+      kit: raw.kit_box || (fmt && fmt.kit_box) || '—',
+      wmNode: raw.wm_node || (fmt && fmt.wm_node) || '—',
+      variationCount: raw.product_count || 0,
+      sampleNames: raw.sample_names || []
+    });
   }
 
-  // ── real write path: POST /api/product ──────────────────────────────────
-  // wmdemo's /api/product (server.py) is a FULL UPSERT — catalog.upsert_product
-  // replaces the whole stored JSON blob for a sku, so every field this shell +
-  // variation actually own has to go in every call, or the rest of the record
-  // is silently erased server-side (server.py's own comment on this route
-  // names `sample` as the field that used to be lost exactly this way).
+  function fetchShells(params) {
+    if (shellsPromise) return shellsPromise;
+    shellsLoading = true; shellsError = null; emit();
+    const qs = params ? '?' + Object.keys(params).filter((k) => params[k]).map((k) => k + '=' + encodeURIComponent(params[k])).join('&') : '';
+    shellsPromise = apiGet('/api/shells' + qs).then((r) => {
+      shellsLoading = false; shellsPromise = null;
+      const b = r.body || {};
+      if (r.ok && Array.isArray(b.shells)) {
+        RAW_SHELLS = b.shells;
+        SHELLS = RAW_SHELLS.map(decorate);
+        shellsError = null;
+        if (b.last_report_id) _lastReportId = b.last_report_id;
+      } else {
+        shellsError = (b && b.error) || r.error || ('HTTP ' + r.code);
+      }
+      emit();
+      return SHELLS || [];
+    });
+    return shellsPromise;
+  }
+  function allShells() { if (SHELLS === null && !shellsLoading) fetchShells(); return SHELLS || []; }
+  function shellById(id) { return allShells().find((s) => s.id === id) || null; }
+  // No arbitrary allShells()[0] fallback — a product whose shell cannot be
+  // resolved renders "No shell" honestly (pos/product-shell.jsx,
+  // pos/screen-catalog.jsx) rather than borrowing a random one.
+  function shellOf(p) {
+    if (!p) return null;
+    const sid = p.shell_id || _skuToShellId[p.sku];
+    return sid ? shellById(sid) : null;
+  }
+  function refreshShells(params) { SHELLS = null; shellsPromise = null; return fetchShells(params); }
+  function useShells() { return useSubscribed(allShells); }
+  function useShellsStatus() { return useSubscribed(() => ({ loading: shellsLoading, error: shellsError, loaded: SHELLS !== null, lastReportId: _lastReportId })); }
+
+  // ── one shell's full product list — GET /api/shells/<id> ──
+  function fetchShellDetail(id, force) {
+    if (!id) return Promise.resolve(null);
+    const cur = SHELL_DETAILS[id];
+    if (cur && cur.promise && !force) return cur.promise;
+    const entry = Object.assign({}, cur, { loading: true, error: null });
+    SHELL_DETAILS[id] = entry; emit();
+    const p = apiGet('/api/shells/' + encodeURIComponent(id)).then((r) => {
+      const b = r.body || {};
+      const next = SHELL_DETAILS[id] || entry;
+      next.promise = null; next.loading = false;
+      if (r.ok && b.shell) {
+        next.error = null; next.shell = b.shell; next.format = b.format || formatById(b.shell.format_id);
+        next.products = Array.isArray(b.products) ? b.products : [];
+        next.products.forEach((pr) => { if (pr.sku) _skuToShellId[pr.sku] = id; });
+      } else {
+        next.error = (b && b.error) || r.error || ('HTTP ' + r.code);
+      }
+      SHELL_DETAILS[id] = next; emit();
+      return next;
+    });
+    entry.promise = p;
+    return p;
+  }
+  function shellDetail(id) { return id ? SHELL_DETAILS[id] || null : null; }
+  function useShellDetail(id) {
+    React.useEffect(() => { if (id && !SHELL_DETAILS[id]) fetchShellDetail(id); }, [id]);
+    return useSubscribed(() => shellDetail(id));
+  }
+
+  function totalStock(products) { return (products || []).reduce((a, p) => a + (p.inventory || 0), 0); }
+  // A shell's own price is a client-side READ of whatever variations are
+  // already cached for it (detail fetch), never a shell-level field — the
+  // server does not have one (docs/SHELLS-PLAN-2026-09-09.md §1: shells own
+  // brand+format+weight/unit/pack+kit+wm_node, nothing priced). Returns null
+  // until a detail fetch has actually landed — callers (MarketPricingSection)
+  // must treat null as "no shelf price yet", not as $0.
+  function effectivePrice(s) {
+    if (!s) return null;
+    const det = SHELL_DETAILS[s.id];
+    const products = det && det.products;
+    if (!products || !products.length) return null;
+    const withPrice = products.filter((p) => typeof p.price === 'number' && isFinite(p.price));
+    if (!withPrice.length) return null;
+    const tally = {};
+    withPrice.forEach((p) => { tally[p.price] = (tally[p.price] || 0) + 1; });
+    return Number(Object.keys(tally).sort((a, b) => tally[b] - tally[a] || b - a)[0]);
+  }
+
+  // Resulting shell name, computed client-side by the same rule the server
+  // uses to derive it (plan §1): "<brand> · <format.name>", with the weight
+  // appended ONLY when this brand already has this exact format at a
+  // DIFFERENT weight/unit/pack — i.e. the weight is the thing telling two
+  // shells apart. Purely a preview; the server is the actual author of
+  // `shell.name` once POST /api/shells lands.
+  function previewShellName(brandName, formatId, weight, unit, pack, existing) {
+    const fmt = formatById(formatId);
+    const fmtName = (fmt && fmt.name) || '';
+    if (!brandName || !fmtName) return '';
+    const key = brandKeyFor(brandName);
+    const siblings = (existing || allShells()).filter((s) => (s.brand_key || brandKeyFor(s.brand)) === key && s.format_id === formatId);
+    const distinctWeights = new Set(siblings.map((s) => String(s.weight)));
+    distinctWeights.add(String(weight) + unit);
+    const needsWeight = distinctWeights.size > 1;
+    return brandName + ' · ' + fmtName + (needsWeight ? ' · ' + weight + unit + (pack > 1 ? ' (' + pack + ')' : '') : '');
+  }
+
+  // Client-side-only approximation, used purely for the LOCAL preview above
+  // (grouping "does this brand already have this format at another weight").
+  // It is never sent to the server — saveShell() sends brand_name only and
+  // the server is the one and only place a brand_key is ever computed for
+  // real (mapping.brand_key, GET /api/shells/brands). Prefers the server's
+  // own brand list so the preview groups the same way the write will.
+  function brandKeyFor(name) {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return '';
+    const hit = brands().find((b) => (b.brand_name || '').toLowerCase() === trimmed.toLowerCase());
+    return hit ? hit.brand_key : slugify(trimmed);
+  }
+
+  // ── the one write: create a shell — POST /api/shells ──
+  // No update-shell route exists in this phase (plan §3): a shell is
+  // effectively keyed by brand+format+weight+unit+pack (UNIQUE in the
+  // schema), so changing any of those is a new shell, not an edit of this
+  // one. saveShell() only ever creates.
   //
-  // CATEGORY. wmdemo/engine.build_item_payload normalises OUR spelling before
-  // it ever reaches Weedmaps — taxonomy._norm_category + CATEGORY_ALIASES
-  // (wmdemo/taxonomy.py:246-284) — 'Vapes' -> 'Vape Pens', 'Pre-Rolls' ->
-  // 'Pre Roll', 'Wellness' and 'Accessories' are already canonical. Verified
-  // by reading that table 2026-08-28: every TAX key above already resolves.
-  // So shell.cat is sent AS-IS; there is no separate category-assignment step
-  // to build here, and no mapping/category screen this flow needs to touch.
-  function productPayload(shell, v, b) {
-    // v.strain here is the GENETICS CLASS (Indica/Sativa/Hybrid/CBD or null —
-    // see AddProductFlow.commit()), not a strain NAME. The API's `strain` is
-    // the name (server.py, catalog.py) and v.name IS that name — it is the
-    // field this whole flow calls "flavour".
-    const genetics = v.strain ? String(v.strain).toLowerCase() : null;
+  // brand_key is NEVER sent — only brand_name. The server resolves the key
+  // itself via the one fold function (mapping.brand_key) that GET
+  // /api/shells/brands, derive() and create_shell() all share; a client-
+  // computed key (this file used to send one, via shared/brands.js's own id
+  // scheme) is exactly what caused the brand-key collision this fixes.
+  function saveShell(draft) {
     const body = {
-      sku: v.sku,
-      name: [shell.brand, v.name, shell.format].filter(Boolean).join(' '),
-      category: shell.cat,
-      price: typeof v.price === 'number' ? v.price : parseFloat(v.price) || 0,
-      weight_unit: shell.unit, weight_value: shell.netW || '1',
-      genetics,
-      strain: v.name || null,
-      description: v.desc || null,
-      brand_name: shell.brand || null,
-      items_per_pack: shell.pack && shell.pack !== '1' ? shell.pack : null,
-      sample: !!v.sample,
-      inventory: v.qty || 0
+      brand_name: (draft.brand || '').trim(),
+      format_id: draft.format_id,
+      actor: actor()
     };
-    // THC/CBD are real top-level fields on the catalog product (server.py) —
-    // there is NO batch/lot table behind them (GET /api/state.batches is
-    // always empty; see the note on costRow above), so this is the only place
-    // they are ever actually stored, whatever the wizard's "batch" step and
-    // its cost/barcode/METRC/expiry fields might imply.
-    if (b && !b.skip) {
-      if (b.thc !== '' && b.thc != null) body.thc = b.thc;
-      if (b.cbd !== '' && b.cbd != null) body.cbd = b.cbd;
-    }
-    // v.photo is a data: URL from FileReader (product-shell.jsx readImg) — it
-    // is never sent as `image_url`. There is no image-hosting endpoint in
-    // this build, and image_url is documented (engine.py build_item_payload)
-    // as a field WM's PUT expects to be a real URL. Sending the raw base64
-    // would either bloat every push or get silently rejected by WM — worse
-    // than the honest gap this leaves, which the "done" screen names.
-    return body;
+    if (draft.netW !== '' && draft.netW != null) body.weight = parseFloat(draft.netW);
+    if (draft.unit) body.unit = draft.unit;
+    if (draft.pack !== '' && draft.pack != null) body.pack = parseInt(draft.pack, 10);
+    if (draft.kit) body.kit_box = draft.kit;
+    if (draft.wmNode) body.wm_node = draft.wmNode;
+    return apiPost('/api/shells', body).then((r) => {
+      const b = r.body || {};
+      if (r.ok && b.shell) { refreshShells(); return { ok: true, shell: decorate(b.shell) }; }
+      return { ok: false, code: r.code, error: (b && b.error) || r.error || ('HTTP ' + r.code), hint: r.hint || null };
+    });
   }
 
-  // THE one write. Never rejects — mirrors window.HW_LIVE.post's own contract
-  // (post()'s docstring, shared/hw-live.js:184), so a caller cannot mistake a
-  // refusal for a network error and report a committed write as one.
+  // ── create a variation — POST /api/shells/<id>/variations ──
+  // Sends SLOTS, never a free-text product name — the server derives the
+  // name from the shell's format template (naming engine, plan §2) and hands
+  // it back. `extra` carries sku?, price, cost?, thc?, genetics?.
+  function createVariation(shellId, slots, extra) {
+    if (!shellId) return Promise.resolve({ ok: false, error: 'unknown_shell', hint: 'This shell no longer exists — pick one again.' });
+    const body = Object.assign({ slots: slots || {} }, extra || {});
+    if (body.actor == null) body.actor = actor();
+    return apiPost('/api/shells/' + encodeURIComponent(shellId) + '/variations', body).then((r) => {
+      const b = r.body || {};
+      if (r.ok && !b.error && b.product) {
+        if (b.product.sku) _skuToShellId[b.product.sku] = shellId;
+        refreshShells();
+        if (SHELL_DETAILS[shellId]) fetchShellDetail(shellId, true);
+        return { ok: true, sku: b.product.sku, product: b.product, name_derived: b.name_derived, warnings: b.warnings || [] };
+      }
+      return { ok: false, error: (b && b.error) || r.error || ('HTTP ' + r.code), hint: r.hint || null,
+        warnings: (b && b.warnings) || null, fields: b && (b.field ? [b.field] : b.fields || null) };
+    });
+  }
+
+  // ── rename / re-slot a variation — POST /api/shells/<id>/variations/<sku> ──
+  // Two calling shapes, on purpose:
+  //   renameVariation(shellId, sku, {ratio, tier, type, …})  — re-derive from
+  //     new slots (product-shell.jsx / a future variation editor).
+  //   renameVariation(shellId, sku, "Some Typed Name")        — a MANAGER
+  //     override (plan §1: shell_products.name_override, "set only by a
+  //     manager"). This is the exact shape pos/screen-catalog.jsx's inline
+  //     name editor already calls (`renameVariation(shellId, sku, next)`,
+  //     `next` a free-typed string) — that file is owned by the sibling doing
+  //     Catalog/Formats and is not touched here, so the string form stays
+  //     supported rather than breaking that call site. Routing a typed string
+  //     to `name_override` (never to a slot) keeps the owner's ruling intact:
+  //     the ONLY way a literal string becomes a product name is the
+  //     manager-override path the plan itself names.
+  function renameVariation(shellId, sku, nameOrSlots) {
+    if (!shellId) return Promise.resolve({ ok: false, sku, error: 'unknown_shell',
+      hint: 'This product has no shell on record — open it from the shell page.' });
+    const body = { actor: actor() };
+    if (typeof nameOrSlots === 'string') {
+      const trimmed = nameOrSlots.trim();
+      if (!trimmed) return Promise.resolve({ ok: false, sku, error: 'empty_name', hint: 'Enter a name.' });
+      body.name_override = trimmed;
+    } else {
+      body.slots = nameOrSlots || {};
+    }
+    return apiPost('/api/shells/' + encodeURIComponent(shellId) + '/variations/' + encodeURIComponent(sku), body).then((r) => {
+      const b = r.body || {};
+      if (r.ok && !b.error) {
+        refreshShells();
+        if (SHELL_DETAILS[shellId]) fetchShellDetail(shellId, true);
+        return { ok: true, sku, product: b.product || null, name_derived: b.name_derived || null, warnings: b.warnings || [] };
+      }
+      return { ok: false, sku, error: (b && b.error) || r.error || ('HTTP ' + r.code), hint: r.hint || null };
+    });
+  }
+
+  // ── naming preview — local engine when loaded, else the server route ──
+  // POST /api/shells/name/preview {format_id | template, slots, shell?} ->
+  // {name, warnings[]}. window.HW_NAMING (shared/hw-naming.js, the sibling's
+  // file) implements the identical pure function synchronously — when it has
+  // loaded, this calls it directly (no round trip on every keystroke); either
+  // path returns a Promise so callers never need two code paths.
+  function previewName(formatIdOrTemplate, slots, shell) {
+    const isTemplate = typeof formatIdOrTemplate === 'string' && /[{}]/.test(formatIdOrTemplate);
+    if (window.HW_NAMING && typeof window.HW_NAMING.derive === 'function') {
+      let template = formatIdOrTemplate;
+      if (!isTemplate) { const f = formatById(formatIdOrTemplate); template = f ? f.template : null; }
+      if (template) {
+        try { return Promise.resolve(window.HW_NAMING.derive(template, slots || {}, shell || {})); }
+        catch (e) { /* fall through to the server on a local-engine exception */ }
+      }
+    }
+    const body = { slots: slots || {}, shell: shell || {} };
+    if (isTemplate) body.template = formatIdOrTemplate; else body.format_id = formatIdOrTemplate;
+    return apiPost('/api/shells/name/preview', body).then((r) => {
+      const b = r.body || {};
+      if (r.ok && b.name != null) return { name: b.name, warnings: b.warnings || [] };
+      return { name: '', warnings: [(b && b.error) || r.error || ('HTTP ' + r.code)] };
+    });
+  }
+
+  // ── derive — POST /api/shells/derive, GET /api/shells/derive/<id> ──
+  function deriveShells(brands, dryRun) {
+    return apiPost('/api/shells/derive', { brands: brands || [], dry_run: !!dryRun, actor: actor() }).then((r) => {
+      const b = r.body || {};
+      if (r.ok && !b.error) {
+        if (b.report_id) _lastReportId = b.report_id;
+        if (!dryRun) refreshShells();
+        return { ok: true, created_formats: b.created_formats || 0, created_shells: b.created_shells || [],
+          assigned: b.assigned || 0, unplaced: b.unplaced || [], report_id: b.report_id || null };
+      }
+      return { ok: false, error: (b && b.error) || r.error || ('HTTP ' + r.code), hint: r.hint || null };
+    });
+  }
+  function fetchDeriveReport(reportId) {
+    if (!reportId) return Promise.resolve({ ok: false, error: 'no_report' });
+    return apiGet('/api/shells/derive/' + encodeURIComponent(reportId)).then((r) => {
+      const b = r.body || {};
+      if (r.ok && !b.error) return { ok: true, report: b };
+      return { ok: false, error: (b && b.error) || r.error || ('HTTP ' + r.code) };
+    });
+  }
+  function lastReportId() { return _lastReportId; }
+
+  // ══ product-field editing that has nothing to do with shell naming ══════
+  // category/genetics (and anything else /api/product owns that shells does
+  // not) still go through the raw catalog row, GET -> modify -> POST ->
+  // read-back, exactly as before. This is what pos/screen-catalog.jsx's
+  // "Save changes" button calls (SH.updateVariationFields) and is left
+  // unchanged by the shells rewrite — it was never a shell-naming concern.
   function pushProduct(body) {
     const post = window.HW_LIVE && typeof window.HW_LIVE.post === 'function' ? window.HW_LIVE.post : null;
     if (!post) {
@@ -258,13 +542,6 @@
         hint: r.hint || null, fields: b.field ? [b.field] : b.fields || null };
     });
   }
-
-  // Per-listing verdict out of push_product's own return shape (engine.py):
-  // {menu_id: <2xx status>} on a landed push, {menu_id: {error, ...}} on a
-  // refusal (423/paused) or a caught exception. This is NOT a read-back like
-  // engine.set_product_published's — push_product reports what WM's PUT
-  // itself returned, nothing more — so it can say "the push was accepted",
-  // never "Weedmaps is now serving it".
   function wmPushSummary(wm) {
     if (!wm || typeof wm !== 'object') return { ok: false, checked: 0, failed: [] };
     const entries = Object.entries(wm);
@@ -272,335 +549,101 @@
     return { ok: entries.length > 0 && failed.length === 0, checked: entries.length,
       failed: failed.map(([mid, v]) => mid + ': ' + (v && typeof v === 'object' ? (v.note || v.error) : 'no response')) };
   }
-
-  // Reads the just-written SKU back out of the LIVE catalogue — a fresh
-  // GET /api/state via window.HW_LIVE.refresh(), not the POST response we
-  // already have — so "created" means the catalog actually holds it now, the
-  // same discipline engine.set_product_published applies with its own
-  // read-back. This is also what catches the gap a bare 200/500 cannot: a
-  // push that raises AFTER catalog.upsert_product already committed (dead
-  // WM_API_BASE, the exact shape server.py's do_POST wrapper answers with a
-  // 500 "unhandled: ...") still leaves the product saved, and this is the
-  // only way this page can find that out.
-  // Resolves null when there is no live seam to ask, or the sku genuinely
-  // is not there after a refresh.
   function readBackProduct(sku) {
     const HL = window.HW_LIVE;
     if (!HL || typeof HL.refresh !== 'function') return Promise.resolve(null);
     return HL.refresh().then(() => {
-      const rows = (window.HW && window.HW.PRODUCTS) || [];
+      const rows = (HW && HW.PRODUCTS) || [];
       return rows.find((p) => p.sku === sku) || null;
     }).catch(() => null);
   }
-
-  // A SKU the Add Product wizard submits under is not guaranteed new — there
-  // is no client- or server-side SKU-uniqueness check anywhere, and an
-  // operator re-running this flow with a typo'd or reused SKU hits a sku a
-  // real product already owns. productPayload() builds a body straight from
-  // the wizard form, which only knows the fields the wizard shows —
-  // `wm_manual_unpublish` (the operator's own "hide from storefront" call),
-  // `wm_product_id` (the Weedmaps mapping link), `wm_brand_id`, `tags`,
-  // `image_url`, `sale_pct` are not among them. Because /api/product is a
-  // full replace (catalog.upsert_product, wmdemo/server.py's own comment on
-  // this exact route), POSTing that body on a collision would silently wipe
-  // every one of those fields with a 200 OK — undoing a real operator
-  // decision, or worse, unmapping a live Weedmaps listing.
-  //
-  // So: GET the sku first (createVariation below). A 404 means this really is
-  // a new product — proceed exactly as before. A hit means this is actually
-  // an EDIT of an existing row wearing an Add-Product wizard, and gets the
-  // same GET -> modify -> POST discipline renameVariation already uses:
-  // rawToPayload folds the wizard's fields onto the raw stored row, so
-  // everything the wizard never heard of survives untouched.
-  //
-  // `sample` is deliberately left OUT of the collision override set. The
-  // wizard's Display-sample switch defaults to off, and an operator filling
-  // it in has not reviewed — has no reason to suspect — an existing product's
-  // sample status; sending it through would re-run the exact same silent-wipe
-  // bug one field at a time (a real sample landing on a colliding SKU gets
-  // de-sampled, and samples must never reach Weedmaps — owner ruling
-  // 2026-08-27, catalog.set_wm_product_id). Changing sample on a product that
-  // already exists is the product-detail page's job (updateVariationFields),
-  // done deliberately, not a side effect of colliding with it here.
-  function collisionOverrides(shell, v, b) {
-    const genetics = v.strain ? String(v.strain).toLowerCase() : null;
-    const o = {
-      name: [shell.brand, v.name, shell.format].filter(Boolean).join(' '),
-      category: shell.cat,
-      price: typeof v.price === 'number' ? v.price : parseFloat(v.price) || 0,
-      weight_unit: shell.unit, weight_value: shell.netW || '1',
-      genetics,
-      strain: v.name || null,
-      description: v.desc || null,
-      brand_name: shell.brand || null,
-      items_per_pack: shell.pack && shell.pack !== '1' ? shell.pack : null,
-      inventory: v.qty || 0
-    };
-    if (b && !b.skip) {
-      if (b.thc !== '' && b.thc != null) o.thc = b.thc;
-      if (b.cbd !== '' && b.cbd != null) o.cbd = b.cbd;
-    }
-    return o;
-  }
-
-  // Creates a PRODUCT, not a local row. WAS: a pure client-side mock write to
-  // SHELLS (and, for `sample`, to HW.PRODUCTS in place) — the Add Product flow
-  // reported "created" to the operator and nothing ever reached Weedmaps.
-  // NOW: POST /api/product first; SHELLS is only ever updated FROM a write the
-  // live catalogue actually confirms — one source of truth, not two that can
-  // disagree.
-  //
-  // Returns a promise of { ok, sku, wm, error, hint, collided }:
-  //   ok    the catalog write is confirmed by reading it back — never set from
-  //         a bare HTTP 200.
-  //   wm    per-listing push verdict (wmPushSummary), or null when a push
-  //         result never came back at all (e.g. the 500-after-commit case
-  //         above) — a genuinely different fact from "the push failed".
-  //   error/hint  present when `ok` is false, for the one place in this flow
-  //         that shows an operator what happened (product-shell.jsx commit()).
-  //   collided  true when the sku already had a row before this call — this
-  //         write edited it (via collisionOverrides above) rather than
-  //         creating a new product, so a caller can say so instead of
-  //         reporting a fresh "created".
-  function createVariation(shellId, v, b) {
-    const shell = shellById(shellId);
-    if (!shell) return Promise.resolve({ ok: false, sku: v && v.sku, error: 'unknown_shell', hint: null });
-    return fetchRawProduct(v.sku).then((existing) => {
-      const collided = !!existing.ok;
-      const body = collided ? rawToPayload(existing.product, collisionOverrides(shell, v, b)) : productPayload(shell, v, b);
-      return pushProduct(body).then((r) => readBackProduct(v.sku).then((live) => {
-        if (!live) {
-          return { ok: false, sku: v.sku, error: r.error || 'not_confirmed',
-            hint: r.hint || (r.ok ? null :
-              'A fresh read of the catalog does not show ' + v.sku + ' — nothing was created.') };
-        }
-        // CONFIRMED. Populate the mock FROM the confirmed row so the shell list
-        // and product sheet show exactly what the server holds, not what we
-        // asked it to hold. `thumb: live` mirrors seed()'s own `thumb: p`.
-        const row = { sku: live.sku, name: live.name, price: live.price, override: !!v.override,
-          strain: live.strain, active: !!live.active && !live.sample, qty: live.qty || 0,
-          sample: !!live.sample, thumb: live };
-        SHELLS = allShells().map((s) => s.id === shell.id ? { ...s, variations: [...s.variations, row] } : s);
-        emit();
-        return { ok: true, sku: v.sku, wm: r.wm ? wmPushSummary(r.wm) : null, collided };
-      }));
-    });
-  }
-
-  // Reads the TRUE stored row for one sku off the new GET /api/product/<sku>
-  // (wmdemo/server.py) — the same shape catalog.upsert_product reads/writes
-  // (weight nested, tags a list), NOT the live-adapted shape adaptProducts
-  // hands the rest of this page (shared/hw-live.js), which is missing
-  // items_per_pack and the raw weight split. Resolves { ok: false, ... } on a
-  // network failure, a missing read seam, or an unknown sku (404) — never
-  // rejects, same contract as pushProduct/readBackProduct below.
   function fetchRawProduct(sku) {
-    const get = window.HW_LIVE && typeof window.HW_LIVE.get === 'function' ? window.HW_LIVE.get : null;
-    if (!get) {
-      return Promise.resolve({ ok: false, error: 'no-write-path',
-        hint: 'shared/hw-live.js is not on this page — there is no read path to call.' });
-    }
-    return get('/api/product/' + encodeURIComponent(sku)).then((r) => {
+    return apiGet('/api/product/' + encodeURIComponent(sku)).then((r) => {
       const b = r.body || {};
       if (r.ok && !b.error) return { ok: true, product: b };
-      return { ok: false, code: r.code, error: b.error || r.error || ('HTTP ' + r.code),
-        hint: r.hint || null };
+      return { ok: false, code: r.code, error: b.error || r.error || ('HTTP ' + r.code), hint: r.hint || null };
     });
   }
-
-  // Raw catalog row (fetchRawProduct's shape) -> the flat POST /api/product
-  // body (server.py's do_POST reads weight_unit/weight_value and a comma
-  // string for tags, not the nested/array forms the row itself stores). Every
-  // key server.py's writer names is carried through explicitly — the same
-  // discipline productPayload above already follows for a NEW variation — so
-  // a get-then-modify-then-put through this function drops nothing: `sample`,
-  // `items_per_pack`, `wm_manual_unpublish`, thc/cbd, the WM ids, all of it.
-  // `overrides` is applied last and wins, e.g. { name: next }.
   function rawToPayload(raw, overrides) {
     const w = raw.weight || {};
     const body = {
-      sku: raw.sku,
-      name: raw.name,
-      category: raw.category,
-      price: raw.price,
+      sku: raw.sku, name: raw.name, category: raw.category, price: raw.price,
       sale_pct: raw.sale_pct != null ? raw.sale_pct : '',
-      weight_unit: w.unit || 'g',
-      weight_value: w.value != null ? String(w.value) : '1.0',
-      genetics: raw.genetics || null,
-      strain: raw.strain || null,
-      thc: raw.thc || null,
-      cbd: raw.cbd || null,
-      description: raw.description || null,
-      image_url: raw.image_url || null,
-      brand_name: raw.brand_name || null,
-      wm_brand_id: raw.wm_brand_id || null,
-      wm_product_id: raw.wm_product_id || null,
-      items_per_pack: raw.items_per_pack || null,
-      inventory: raw.inventory != null ? raw.inventory : 25,
-      sample: !!raw.sample,
-      wm_manual_unpublish: !!raw.wm_manual_unpublish,
+      weight_unit: w.unit || 'g', weight_value: w.value != null ? String(w.value) : '1.0',
+      genetics: raw.genetics || null, strain: raw.strain || null, thc: raw.thc || null, cbd: raw.cbd || null,
+      description: raw.description || null, image_url: raw.image_url || null,
+      brand_name: raw.brand_name || null, wm_brand_id: raw.wm_brand_id || null, wm_product_id: raw.wm_product_id || null,
+      items_per_pack: raw.items_per_pack || null, inventory: raw.inventory != null ? raw.inventory : 25,
+      sample: !!raw.sample, wm_manual_unpublish: !!raw.wm_manual_unpublish,
       tags: Array.isArray(raw.tags) ? raw.tags.join(',') : (raw.tags || '')
     };
     return Object.assign(body, overrides || {});
   }
-
-  // A variation's NAME is a variation field, not a shell field — the flavour or
-  // strain that distinguishes it inside the family. It is renamed in place from
-  // wherever the product is open (product detail, shell page).
-  //
-  // NOW FIXED, on the same "write, then read back to confirm" discipline as
-  // createVariation above: GET the current row (fetchRawProduct), change only
-  // `name` on it (rawToPayload), POST the complete object back, then confirm
-  // via readBackProduct before touching the mock. WAS a pure client-side
-  // rename with no server round-trip at all (2026-08-28 audit) — deliberately
-  // NOT fixed by rebuilding a payload from the live-adapted shape this page
-  // already had, because that shape drops items_per_pack and the raw weight
-  // split and would have silently erased them on every rename. The missing
-  // piece was GET /api/product/<sku>, added alongside this fix.
-  //
-  // Returns a promise of { ok, sku, wm, error, hint } — same shape
-  // createVariation returns, for the same reason: one contract, one place
-  // (screen-catalog.jsx's inline name editor) that shows an operator what
-  // happened.
-  function renameVariation(shellId, sku, next) {
-    const name = (next || '').trim();
-    if (!name) return Promise.resolve({ ok: false, sku, error: 'empty_name', hint: 'Enter a name.' });
-    return fetchRawProduct(sku).then((g) => {
-      if (!g.ok) {
-        return { ok: false, sku, error: g.error || 'not_found',
-          hint: g.hint || ('Could not read the current record for ' + sku +
-            ' before renaming it — nothing was changed.') };
-      }
-      const body = rawToPayload(g.product, { name });
-      return pushProduct(body).then((r) => readBackProduct(sku).then((live) => {
-        if (!live || live.name !== name) {
-          return { ok: false, sku, error: r.error || 'not_confirmed',
-            hint: r.hint || ('A fresh read of the catalog does not show the new '
-              + 'name for ' + sku + ' — the rename may not have landed.') };
-        }
-        // CONFIRMED. Same "populate FROM the confirmed row" rule as
-        // createVariation: the shell list shows what the server holds.
-        SHELLS = allShells().map((s) => s.id !== shellId ? s :
-        { ...s, variations: s.variations.map((v) => v.sku === sku ?
-          { ...v, name: live.name, sample: !!live.sample, thumb: live } : v) });
-        const prod = (HW.PRODUCTS || []).find((x) => x.sku === sku);
-        if (prod) prod.name = live.name;
-        emit();
-        return { ok: true, sku, wm: r.wm ? wmPushSummary(r.wm) : null };
-      }));
-    });
-  }
-  // Generic field save for the product detail page's "Save changes" button —
-  // shares renameVariation's exact GET -> modify -> POST -> read-back
-  // discipline (fetchRawProduct + rawToPayload's `overrides` already carry
-  // every OTHER field through unmodified, so a caller here cannot
-  // accidentally erase a field it never named). `overrides` are flat
-  // POST /api/product keys (rawToPayload's own key list). `confirm(live)`
-  // decides whether the read-back proves the write actually landed — the
-  // caller names it because what counts as "landed" differs per field (e.g.
-  // genetics is titleCased on this page but stored lowercase server-side, so
-  // the two sides cannot be compared with plain equality without knowing
-  // that).
-  //
-  // Does NOT touch SHELLS the way renameVariation does. category/genetics
-  // are not shown on the shell list (name and sample are, which is what
-  // renameVariation patches), and HW.PRODUCTS is already correct after
-  // readBackProduct's refresh() rebuilds it — the next seed() naturally picks
-  // up the change. See screen-catalog.jsx's Save changes note for exactly
-  // which fields this is used for and why the others are not.
   function updateVariationFields(shellId, sku, overrides, confirm) {
     return fetchRawProduct(sku).then((g) => {
       if (!g.ok) {
         return { ok: false, sku, error: g.error || 'not_found',
-          hint: g.hint || ('Could not read the current record for ' + sku +
-            ' before saving — nothing was changed.') };
+          hint: g.hint || ('Could not read the current record for ' + sku + ' before saving — nothing was changed.') };
       }
       const body = rawToPayload(g.product, overrides);
       return pushProduct(body).then((r) => readBackProduct(sku).then((live) => {
         if (!live || (confirm && !confirm(live))) {
           return { ok: false, sku, error: r.error || 'not_confirmed',
-            hint: r.hint || ('A fresh read of the catalog does not show the '
-              + 'change for ' + sku + ' — it may not have landed.') };
+            hint: r.hint || ('A fresh read of the catalog does not show the change for ' + sku + ' — it may not have landed.') };
         }
         return { ok: true, sku, wm: r.wm ? wmPushSummary(r.wm) : null };
       }));
     });
   }
-  function addBox(name) {if (name && !BOXES.includes(name)) {BOXES = [...BOXES, name];emit();}}
+
+  function addBox(name) { if (name && !BOXES.includes(name)) { BOXES = [...BOXES, name]; emit(); } }
   function renameBox(oldName, next) {
     if (!next || next === oldName) return;
     BOXES = BOXES.map((b) => b === oldName ? next : b);
-    SHELLS = allShells().map((s) => s.kit === oldName ? { ...s, kit: next } : s);
     emit();
   }
 
   // AI product-description draft for a new variation.
   function aiDesc(shell, v) {
     if (!shell) return '';
-    const type = v && v.strain || 'Hybrid';
-    const name = v && v.name && v.name.trim() || shell.brand + ' ' + shell.sub;
+    const type = v && v.type || 'Hybrid';
+    const name = v && v.name && v.name.trim() || shell.brand + ' ' + shell.format;
     const effect = { Indica: 'a mellow, body-heavy calm', Sativa: 'a bright, uplifting lift', Hybrid: 'a balanced, easygoing effect', CBD: 'a clear-headed, non-intoxicating calm' }[type] || 'a balanced effect';
     const pick = (a) => a[Math.floor(Math.random() * a.length)];
     return pick(['Meet ' + name + '.', 'Say hello to ' + name + '.', name + ' joins the family.']) + ' ' +
-    pick(['This ' + String(type).toLowerCase() + ' ' + shell.sub.toLowerCase() + ' delivers ' + effect + ' in every ' + shell.weight + ' unit.',
-    'A ' + String(type).toLowerCase() + ' spin on the ' + shell.brand + ' ' + shell.sub.toLowerCase() + ', tuned for ' + effect + '.',
+    pick(['This ' + String(type).toLowerCase() + ' ' + String(shell.sub || shell.format).toLowerCase() + ' delivers ' + effect + ' in every ' + shell.weight + ' unit.',
+    'A ' + String(type).toLowerCase() + ' spin on the ' + shell.brand + ' ' + String(shell.format).toLowerCase() + ', tuned for ' + effect + '.',
     'Built for ' + effect + ', held to the same ' + shell.weight + ' spec as the rest of the line.']) + ' ' +
     pick(['Consistent, compliant, and shelf-ready.', 'Same trusted format, a fresh flavour.', 'Small-batch quality your regulars will recognise.']);
   }
 
-  // The fields a variation inherits, rendered identically on the shell page,
-  // in the create-variation step and in the add-product flow.
+  // The fields a variation inherits — shown identically on the shell page and
+  // in the create-variation step. No price/traits rows any more: neither is
+  // a shell-level field in the new model (a variation owns its own price;
+  // there is no traits column at all — see the file header).
   function sharedRows(s) {
-    const money = HW.fmt.money0;
-    // ── THE HIGHEST-SEVERITY LIE ON THIS SCREEN WAS ITS LABEL ──────────────
-    //
-    // 🔴 The unit-cost row read:
-    //     { label: 'Unit cost · batch avg', value: money(s.cost),
-    //       sub: 'low ' + money(s.cost*0.85) + ' · high ' + money(s.cost*1.18),
-    //       flag: 'From batches' }
-    //
-    // `s.cost` was the average of pos/data.jsx's SKU character-hash, and the
-    // low/high spread was that hash multiplied by two constants — a "range
-    // across batches" for a family whose batches were never read. And it was
-    // stamped FROM BATCHES, beside a row genuinely flagged 'Synced'.
-    //
-    // A false provenance is worse than an undisclosed derivation: an operator
-    // who is told where a number came from stops asking. GET /api/state serves
-    // `batches` and it is an EMPTY ARRAY (0 rows, verified 2026-08-27) — this
-    // estate has never been handed a lot for any SKU, so nothing on this screen
-    // has ever been "from batches".
-    //
-    // The row survives, because the field is real and receiving a batch is how
-    // it gets filled (pos/product-shell.jsx:402). What it may claim does not.
-    const costRow = s.cost != null ?
-      { label: 'Unit cost · batch avg', value: money(s.cost),
-        sub: s.costsKnown === s.costsTotal ?
-          'averaged over all ' + s.costsTotal + ' variation' + (s.costsTotal === 1 ? '' : 's') :
-          'averaged over ' + s.costsKnown + ' of ' + s.costsTotal + ' variations — the rest have no cost recorded',
-        flag: 'Entered on receipt' } :
-      { label: 'Unit cost · batch avg', value: 'not recorded',
-        sub: 'no cost of goods is held for this line. Nothing in this build carries one — '
-           + 'GET /api/state serves no cost field and its batches list is empty — so it is '
-           + 'set when a batch is received, not derived.', flag: null };
     return [
       { label: 'Brand', value: s.brand },
       { label: 'Category', value: s.cat },
       { label: 'Subcategory', value: s.sub },
       { label: 'Format', value: s.format },
       { label: 'Weight / size', value: s.weight },
-      { label: 'Retail price', value: money(s.price) },
-      { label: 'Sale price', value: s.sale ? money(s.sale) : '—', sub: s.sale ? 'was ' + money(s.price) : 'no promo running' },
-      costRow,
-      { label: 'Weedmaps node', value: s.wmNode, flag: 'Synced' },
+      { label: 'Pack', value: String(s.pack || 1) },
+      { label: 'Weedmaps node', value: s.wmNode, flag: 'From format' },
       { label: 'Delivery box', value: s.kit || '—', flag: 'Delivery only' }];
   }
 
-  window.HW_SHELL = { TAX, catDef, get BOXES() {return BOXES;}, KIT_BOXES: BOXES, SHELL_FORMATS, FORMAT_BY_CAT,
-    allShells, shellById, shellOf, useShells, saveShell, createVariation, renameVariation, updateVariationFields, addBox, renameBox,
-    // fetchRawProduct exported so the Add Product wizard can warn an operator
-    // BEFORE submitting that a sku already exists — createVariation above
-    // does the same GET internally and merges safely either way, so this is
-    // purely advisory; nothing about correctness depends on the UI calling it.
+  window.HW_SHELL = {
+    TAX, catDef, get BOXES() { return BOXES; }, KIT_BOXES: BOXES,
+    formats, formatById, formatCounts, useFormats, useFormatsStatus, refreshFormats,
+    brands, useBrands, refreshBrands,
+    catalogueStatus, useCatalogueStatus, refreshCatalogueStatus, loadCatalogue,
+    allShells, shellById, shellOf, useShells, useShellsStatus, refreshShells,
+    shellDetail, useShellDetail, fetchShellDetail,
+    saveShell, createVariation, renameVariation, updateVariationFields, previewName, previewShellName,
+    deriveShells, fetchDeriveReport, lastReportId,
+    addBox, renameBox, brandKeyFor, actor,
     fetchRawProduct,
-    parseSize, splitSize, mono1, mono2, slugify, familyPath, menuPath, totalStock, effectivePrice, aiDesc, sharedRows };
+    parseSize, splitSize, mono1, mono2, slugify, familyPath, menuPath, hueOf,
+    totalStock, effectivePrice, aiDesc, sharedRows };
 })();

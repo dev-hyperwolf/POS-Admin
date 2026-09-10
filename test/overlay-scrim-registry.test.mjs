@@ -288,7 +288,10 @@ const MIGRATED = {
   'logistics/lorder.jsx': 2,
   'pos/screen-stubs.jsx': 6,   // 5 from the first pass + WeedmapsStatusPanel (2026-08-28)
   // ── the 2026-08-27 pass: correct-but-hand-typed, now on the helper ──
-  'pos/product-shell.jsx': 3,
+  // 4th call added 2026-09-09: ShellEditModal's "no shell on record" branch
+  // (the shells rewrite) — a second, small overlayScrim modal in the same
+  // file, still through the helper, never hand-typed.
+  'pos/product-shell.jsx': 4,
   'pos/checkin.jsx': 1,
   'pos/drawer.jsx': 1,
   'pos/product-sheet.jsx': 1,     // spreads the helper to keep its own fontFamily

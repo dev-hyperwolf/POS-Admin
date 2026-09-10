@@ -87,7 +87,7 @@ window.CatalogScreen = function CatalogScreen() {
   const [detail, setDetail] = React.useState(null); // product opened in the detail page
   const [showCats, setShowCats] = React.useState(false); // category management screen
   const [addOpen, setAddOpen] = React.useState(false); // unified add-product flow (starts at the shell)
-  const [section, setSection] = React.useState('products'); // catalog sub-module: products | shells
+  const [section, setSection] = React.useState('products'); // catalog sub-module: products | shells | formats
   const shells = window.HW_SHELL.useShells();
 
   // Does ANY row in this catalogue carry a real margin? Drives the column, the
@@ -194,11 +194,14 @@ window.CatalogScreen = function CatalogScreen() {
   // Catalog sub-nav — Products and Shells are two views of the same catalog.
   const SubNav = () =>
   <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 3, marginBottom: 18, background: P.surface3, border: `1px solid ${P.hairline2}`, borderRadius: P.r12, width: 'fit-content' }} data-tour="catalog-subnav">
-      {[['products', 'Products', 'package', all.length], ['shells', 'Shells', 'box-add', shells.length]].map(([k, label, ic, n]) => {
+      {[['products', 'Products', 'package', all.length], ['shells', 'Shells', 'box-add', shells.length], ['formats', 'Formats', 'layout-template', null]].map(([k, label, ic, n]) => {
       const on = section === k;
-      return <button key={k} onClick={() => setSection(k)} title={k === 'shells' ? 'Product shells — the family template every product hangs off' : 'Every individual product (a variation of a shell)'} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, border: 'none', background: on ? P.surface : 'transparent', color: on ? P.ink : P.inkDim, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, boxShadow: on ? P.shadowSm : 'none', transition: 'all .12s' }}>
+      const title = k === 'shells' ? 'Product shells — the family template every product hangs off' :
+      k === 'formats' ? 'Naming templates a shell picks from — the sentence a product name is built from' :
+      'Every individual product (a variation of a shell)';
+      return <button key={k} onClick={() => setSection(k)} title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, border: 'none', background: on ? P.surface : 'transparent', color: on ? P.ink : P.inkDim, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans, boxShadow: on ? P.shadowSm : 'none', transition: 'all .12s' }}>
           <Icon name={ic} size={14} stroke={on ? 2 : 1.8} />{label}
-          <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: on ? P.inkMute : P.inkFaint }}>{n}</span>
+          {n != null && <span style={{ fontSize: 11.5, fontFamily: P.fontMono, color: on ? P.inkMute : P.inkFaint }}>{n}</span>}
         </button>;
     })}
     </div>;
@@ -206,6 +209,7 @@ window.CatalogScreen = function CatalogScreen() {
   if (detail) return <ProductDetailPage p={detail} onBack={() => setDetail(null)} />;
   if (showCats) return <window.CategoriesScreen onBack={() => setShowCats(false)} />;
   if (section === 'shells') return <div style={{ maxWidth: 1320, margin: '0 auto' }}><SubNav /><window.ShellsModule /></div>;
+  if (section === 'formats') return <div style={{ maxWidth: 1320, margin: '0 auto' }}><SubNav /><window.ShellFormatsModule /></div>;
 
   return (
     <div style={{ maxWidth: 1320, margin: '0 auto' }}>

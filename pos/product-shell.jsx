@@ -95,10 +95,14 @@ function MiniSwitch({ on, onChange, color }) {
 // needs — no computation, no guess.
 function shellProbeKeys(shell) {
   const HP = window.HW_PRICING;
-  const variations = (shell.variations && shell.variations.length) ? shell.variations : [null];
+  // Variations are no longer embedded on the shell (they live behind
+  // GET /api/shells/<id> now) — use whatever detail this page has already
+  // cached for it, same as SH.effectivePrice() does.
+  const detail = SH.shellDetail(shell.id);
+  const products = (detail && detail.products && detail.products.length) ? detail.products : [null];
   const keys = new Set();
-  variations.forEach(function (v) {
-    const productName = [shell.brand, v && v.name, shell.weight].filter(Boolean).join(' ');
+  products.forEach(function (p) {
+    const productName = [shell.brand, p && (p.name || p.name_derived), shell.weight].filter(Boolean).join(' ');
     const key = HP.groupKey({ brand: shell.brand, product_name: productName });
     if (key) { keys.add(key); }
   });
@@ -453,7 +457,14 @@ function MarketPricingSection({ shell }) {
           <div style={{ fontSize: 12.5, color: P.inkMute }}>No live listings for any {HP.normalizeBrandSpaced(shell.brand)} {shell.weight} {shell.cat} at any tracked store.</div>}
         {state.status === 'ready' && state.storeCount > 0 && state.solo &&
           <MarketSoloLine row={state.solo} shell={shell} />}
-        {state.status === 'ready' && state.rows &&
+        {/* A shell no longer carries its own price (docs/SHELLS-PLAN-2026-09-
+            09.md §1 — price lives on the variation, not the shell), so
+            `ownPreTax` is null until at least one priced variation has been
+            fetched for this shell. Comparing against a fabricated $0 would be
+            worse than saying so. */}
+        {state.status === 'ready' && state.rows && ownPreTax == null &&
+          <div style={{ fontSize: 12.5, color: P.inkMute }}>No shelf price recorded for this shell yet — add a priced variation to compare it against nearby stores.</div>}
+        {state.status === 'ready' && state.rows && ownPreTax != null &&
           <React.Fragment>
             <MarketLadder extremes={state.extremes} ownPreTax={ownPreTax} />
             {function () {
@@ -472,26 +483,54 @@ function MarketPricingSection({ shell }) {
   );
 }
 
-// ── Edit a shell — the same form the Shells module uses, in a modal ────────
+// ── Shell details — read-only, in a modal ──────────────────────────────────
+// There is no update-shell route (docs/SHELLS-PLAN-2026-09-09.md §3): a shell
+// is keyed by brand+format+weight+unit+pack, so a different size or format is
+// a NEW shell, not an edit of this one. This used to host the shell form in
+// edit mode; now it just shows what the shell is and how it prices against
+// the market. `onSave` is accepted for backward compatibility with callers
+// that still pass it (it is never called).
 window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave }) {
   const P = useP();
-  const id = shellId || (p ? SH.shellOf(p).id : null);
-  const shell = SH.shellById(id);
-  if (!shell) return null;
+  const resolved = shellId || (p ? (SH.shellOf(p) || {}).id : null);
+  const shell = resolved ? SH.shellById(resolved) : null;
+  SH.useShellDetail(resolved); // primes SH.effectivePrice() for MarketPricingSection below
+  if (!shell) {
+    return <div onClick={onClose} style={window.overlayScrim(P, { z: 220, padding: '32px 20px' })}>
+      <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(480px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}`, background: P.surface }}>
+          <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 700, color: P.ink }}>No shell on record</div></div>
+          <IconBtn icon="x" size={16} onClick={onClose} />
+        </div>
+        <div style={{ padding: 20 }}>
+          <window.EmptyState icon="box" title="This product isn't linked to a shell" body="It may predate the shells rewrite, or the link could not be resolved. Add it to a shell from the catalog." compact />
+        </div>
+      </div>
+    </div>;
+  }
   return <div onClick={onClose} style={window.overlayScrim(P, { z: 220, padding: '32px 20px' })}>
-    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(900px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
+    <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(760px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '15px 20px', borderBottom: `1px solid ${P.hairline}`, background: P.surface }}>
-        <Thumb item={shell.variations[0] ? shell.variations[0].thumb : { hue: shell.hue }} size={44} />
+        <Thumb item={{ hue: SH.hueOf(shell) }} size={44} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Product shell</div>
           <div style={{ fontSize: 16, fontWeight: 800, color: P.ink, letterSpacing: '-.01em' }}>{shell.name}</div>
-          <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{shell.id} · {shell.variations.length} variation{shell.variations.length === 1 ? '' : 's'} · {shell.stores == null ? 'stores not tracked' : shell.stores + ' store' + (shell.stores > 1 ? 's' : '')}</div>
+          <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 1 }}>{shell.id} · {shell.variationCount} variation{shell.variationCount === 1 ? '' : 's'}</div>
         </div>
         <IconBtn icon="x" size={16} onClick={onClose} />
       </div>
       <div style={{ padding: 20, maxHeight: '72vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', gap: 9, padding: '11px 13px', background: P.infoSoft, borderRadius: P.r10, marginBottom: 16 }}>
+          <Icon name="info" size={14} color={P.info} style={{ flex: '0 0 auto', marginTop: 1 }} />
+          <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Shell details are set at creation and can’t be edited here — create a new shell if the brand, format or size needs to change.</div>
+        </div>
+        <Card padding={16} style={{ marginBottom: 18 }}>
+          {SH.sharedRows(shell).map((f, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: P.inkDim }}>{f.label}{f.flag && <Tag>{f.flag}</Tag>}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{f.value}</span>
+          </div>)}
+        </Card>
         <MarketPricingSection shell={shell} />
-        <window.ShellForm editingId={shell.id} compact onCancel={onClose} onSaved={() => {onSave && onSave();onClose();}} />
       </div>
     </div>
   </div>;
@@ -504,16 +543,34 @@ const FLOW_STEPS = [
 { k: 'batch', label: 'First batch' },
 { k: 'done', label: 'Done' }];
 
+// Which slot labels the primary name field, by category — the owner's
+// ruling: the intake person types a strain or flavor name, never a product
+// name, and the product name is derived from it (docs/SHELLS-PLAN-2026-09-
+// 09.md, rulings). Wellness/Accessories have no strain/flavor concept at all.
+const NAME_SLOT_LABEL = { Flower: 'Strain', 'Pre-Rolls': 'Strain', Vapes: 'Strain', Concentrates: 'Strain', Edibles: 'Flavor', Wellness: 'Product name', Accessories: 'Product name' };
+const NAME_SLOT_EXAMPLE = { Flower: 'Blue Dream', 'Pre-Rolls': 'Blue Dream', Vapes: 'Blue Dream', Concentrates: 'Blue Dream', Edibles: 'Fruit Punch', Wellness: 'Sleep Support', Accessories: 'Grinder' };
+
 window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, onClose, onDone }) {
   const P = useP();
   const money = window.HW.fmt.money0;
   const shells = SH.useShells();
+  SH.useFormats(); // ensure the format library (and its templates) is loaded
   const [step, setStep] = React.useState(lockShell ? 1 : 0);
   const [q, setQ] = React.useState('');
   const [shellId, setShellId] = React.useState(lockShell || null);
   const [newShell, setNewShell] = React.useState(false); // inline "create shell first"
   const shell = shellId ? SH.shellById(shellId) : null;
-  const [v, setV] = React.useState({ name: '', strain: 'Hybrid', sku: '', skuManual: false, override: false, price: '', desc: '', photo: '', sample: false, metaTitle: '', metaDesc: '', slug: '', keywords: '' });
+  const format = shell ? SH.formatById(shell.format_id) : null;
+  const template = (format && format.template) || '';
+  // Which optional slots this shell's format actually uses — shown only when
+  // the template has them (plan §2 / §4).
+  const hasRatio = /\{ratio\}/.test(template);
+  const hasTier = /\{tier\}/.test(template);
+  const hasType = /\{[^}]*type[^}]*\}/.test(template);
+  const nameLabel = (shell && NAME_SLOT_LABEL[shell.cat]) || 'Name';
+  const nameExample = (shell && NAME_SLOT_EXAMPLE[shell.cat]) || 'Example';
+
+  const [v, setV] = React.useState({ name: '', ratio: '', tier: '', type: 'Hybrid', sku: '', skuManual: false, price: '', desc: '', photo: '', sample: false, metaTitle: '', metaDesc: '', slug: '', keywords: '' });
   const [metaOpen, setMetaOpen] = React.useState(false);
   const [b, setB] = React.useState({ skip: false, qty: '', cost: '', code: '', metrc: '', exp: '', thc: '', cbd: '', total: '' });
   const s1 = (k, x) => setV((o) => ({ ...o, [k]: x }));
@@ -532,25 +589,48 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   }, [shell && shell.id, v.name]);
   const sku = v.skuManual ? v.sku : autoSku;
 
+  // The derived product name — rendered live under the name field, engine
+  // warnings surfaced inline. Never sent as a typed name; `commit()` below
+  // sends the SLOTS and lets the server (or the local naming engine) derive
+  // it the same way this preview does.
+  const [namePreview, setNamePreview] = React.useState(null); // null while pending/empty
+  React.useEffect(() => {
+    if (!shell || !v.name.trim()) { setNamePreview(null); return; }
+    const slots = { name: v.name.trim() };
+    if (hasRatio && v.ratio.trim()) slots.ratio = v.ratio.trim();
+    if (hasTier && v.tier) slots.tier = v.tier;
+    if (hasType && v.type && v.type !== 'N/A') slots.type = v.type;
+    let live = true;
+    const t = setTimeout(() => {
+      SH.previewName(shell.format_id, slots, { weight: shell.netW, unit: shell.unit, pack: shell.pack, category: shell.cat }).then((r) => { if (live) setNamePreview(r); });
+    }, 250);
+    return () => { live = false; clearTimeout(t); };
+  }, [shell && shell.id, v.name, v.ratio, v.tier, v.type, hasRatio, hasTier, hasType]);
+  const derivedName = (namePreview && namePreview.name) || '';
+
   // Storefront meta belongs to the PRODUCT, not the family — every variation
   // gets its own search listing. Drafted from the name, editable per field.
+  // (Decorative only — there is no column for it server-side; see the "done"
+  // step's own note.)
   const meta = React.useMemo(() => {
-    const nm = v.name.trim() || 'New product';
+    const nm = derivedName || v.name.trim() || 'New product';
     const br = shell ? shell.brand : '';
     return {
       title: v.metaTitle || `${nm} — ${br} | Hyperwolf`,
       desc: v.metaDesc || `Buy ${nm} by ${br} — ${shell ? shell.weight + ' ' + shell.cat.toLowerCase() : ''}, lab-tested with same-day delivery across Riverside and San Bernardino.`,
       slug: v.slug || SH.slugify(br + '-' + nm),
-      keywords: v.keywords || [br.toLowerCase(), nm.toLowerCase(), shell ? shell.cat.toLowerCase() : '', String(v.strain).toLowerCase(), 'cannabis delivery'].filter(Boolean).join(', ') };
-  }, [v.name, v.strain, v.metaTitle, v.metaDesc, v.slug, v.keywords, shell && shell.id]);
+      keywords: v.keywords || [br.toLowerCase(), nm.toLowerCase(), shell ? shell.cat.toLowerCase() : '', hasType ? String(v.type).toLowerCase() : '', 'cannabis delivery'].filter(Boolean).join(', ') };
+  }, [derivedName, v.name, v.metaTitle, v.metaDesc, v.slug, v.keywords, shell && shell.id]);
 
   // Seed the description from the AI drafter the moment a shell is chosen.
+  // Price is never seeded from the shell — a shell no longer carries one
+  // (docs/SHELLS-PLAN-2026-09-09.md §1); every variation prices itself.
   React.useEffect(() => {
-    if (shell && !v.desc) setV((o) => ({ ...o, desc: SH.aiDesc(shell, { name: o.name, strain: o.strain }), price: String(SH.effectivePrice(shell)) }));
+    if (shell && !v.desc) setV((o) => ({ ...o, desc: SH.aiDesc(shell, { name: o.name, type: o.type }) }));
   }, [shell && shell.id]);
 
   const canNext = cur.k === 'shell' ? !!shell :
-  cur.k === 'variation' ? !!v.name.trim() && !!sku.trim() && (!v.override || v.price !== '') :
+  cur.k === 'variation' ? !!v.name.trim() && !!sku.trim() && v.price !== '' && !!derivedName :
   cur.k === 'batch' ? b.skip || b.qty !== '' && b.cost !== '' : true;
 
   // WHAT IS STOPPING YOU, in words.
@@ -563,38 +643,49 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   const missing =
     cur.k === 'shell' ? (!shell ? 'Pick a shell to continue.' : null) :
     cur.k === 'variation' ? (
-      !v.name.trim() ? 'Name the flavour to continue — e.g. “Fruit Punch”.' :
+      !v.name.trim() ? `Enter a ${nameLabel.toLowerCase()} to continue — e.g. “${nameExample}”.` :
       !sku.trim() ? 'This variation needs a SKU.' :
-      v.override && v.price === '' ? 'You overrode the price — enter one, or switch the override off.' : null) :
+      v.price === '' ? 'Enter a price to continue.' :
+      !derivedName ? ((namePreview && namePreview.warnings && namePreview.warnings[0]) || 'Waiting on the naming engine…') : null) :
     cur.k === 'batch' ? (
       !b.skip && b.qty === '' ? 'Enter a quantity, or tick “create without stock”.' :
       !b.skip && b.cost === '' ? 'Enter a unit cost, or tick “create without stock”.' : null) :
     null;
-  const effPrice = v.override && v.price !== '' ? parseFloat(v.price) || 0 : shell ? SH.effectivePrice(shell) : 0;
+  const effPrice = v.price !== '' ? parseFloat(v.price) || 0 : 0;
   const margin = effPrice && b.cost ? Math.round((1 - (parseFloat(b.cost) || 0) / (effPrice || 1)) * 100) : null;
 
   // WAS: SH.addVariation(...) — a synchronous write to the client-side mock
   // only, called from the button's onClick with the very next line advancing
-  // to the "done" step unconditionally. Nothing here ever reached
-  // POST /api/product, so nothing ever reached Weedmaps, and the operator was
-  // told "added" regardless. NOW: commit() is the one place this flow talks
-  // to the server, it is awaited, and the "done" step is only reached when
-  // SH.createVariation's own read-back confirms the write. See saveErr /
-  // saveWm below and their one call site, the "Create variation" button.
+  // to the "done" step unconditionally. Nothing here ever reached the server,
+  // so nothing ever reached Weedmaps, and the operator was told "added"
+  // regardless. NOW: commit() sends SLOTS (never a typed name) to
+  // SH.createVariation, which POSTs /api/shells/<id>/variations and hands
+  // back the server-derived name; the "done" step is only reached once that
+  // confirms. See saveErr / saveWm below and their one call site, the
+  // "Create variation" button.
   const [saving, setSaving] = React.useState(false);
   const [saveErr, setSaveErr] = React.useState(null);
   const [saveWm, setSaveWm] = React.useState(null);
   const [saveCollided, setSaveCollided] = React.useState(false);
+  const genetics = hasType && v.type && v.type !== 'N/A' ? String(v.type).toLowerCase() : null;
   const commit = () => {
     if (!shell) return Promise.resolve(false);
     setSaving(true);setSaveErr(null);
-    return SH.createVariation(shell.id, { sku, name: v.name.trim() || 'New Variation', price: effPrice, override: v.override,
-      strain: v.strain === 'N/A' ? null : v.strain, active: !v.sample && !b.skip, qty: b.skip ? 0 : parseInt(b.qty || '0', 10) || 0,
-      sample: v.sample, desc: v.desc, photo: v.photo, thumb: { hue: shell.hue },
-      metaTitle: meta.title, metaDesc: meta.desc, slug: meta.slug, keywords: meta.keywords }, b).then((r) => {
+    const slots = { name: v.name.trim() };
+    if (hasRatio && v.ratio.trim()) slots.ratio = v.ratio.trim();
+    if (hasTier && v.tier) slots.tier = v.tier;
+    if (hasType && v.type && v.type !== 'N/A') slots.type = v.type;
+    return SH.createVariation(shell.id, slots, {
+      sku, price: effPrice, genetics,
+      thc: !b.skip && b.thc !== '' ? parseFloat(b.thc) : undefined,
+      cbd: !b.skip && b.cbd !== '' ? parseFloat(b.cbd) : undefined,
+      cost: !b.skip && b.cost !== '' ? parseFloat(b.cost) : undefined,
+      inventory: b.skip ? 0 : parseInt(b.qty || '0', 10) || 0,
+      sample: v.sample, description: v.desc || null
+    }).then((r) => {
       setSaving(false);
       if (!r.ok) {setSaveErr(wmCreateErrorText(r));return false;}
-      setSaveWm(r.wm);
+      setSaveWm(r.wm || null);
       setSaveCollided(!!r.collided);
       return true;
     });
@@ -603,14 +694,12 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   // ── pre-submit collision warning ──
   // There is no sku-uniqueness check anywhere in this build, so a typo'd or
   // reused sku silently turns "add a product" into "edit an existing one".
-  // SH.createVariation now merges that case safely (wm_manual_unpublish,
-  // wm_product_id and sample all survive — see its own comment), but the
-  // operator should find out BEFORE clicking Create, not just after. Debounced
-  // off `sku` (which changes on every keystroke of the name while
+  // The operator should find out BEFORE clicking Create, not just after.
+  // Debounced off `sku` (which changes on every keystroke of the name while
   // auto-assigned) and only checked on the variation step, where the field is
-  // visible. Purely advisory: createVariation does its own GET regardless of
-  // whether this resolves in time, so a slow or failed check here cannot
-  // cause data loss, only a missed warning.
+  // visible. Purely advisory: createVariation's own server-side check runs
+  // regardless of whether this resolves in time, so a slow or failed check
+  // here cannot cause data loss, only a missed warning.
   const [skuExisting, setSkuExisting] = React.useState(null); // null = clear/unknown, else the raw row found
   React.useEffect(() => {
     if (cur.k !== 'variation' || !sku || !sku.trim() || !SH.fetchRawProduct) {setSkuExisting(null);return;}
@@ -633,11 +722,11 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
   </div>;
 
   const ShellRecap = () => shell ? <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 12px', background: P.goodSoft, borderRadius: P.r10 }}>
-    <Thumb item={{ hue: shell.hue }} size={34} radius={8} />
+    <Thumb item={{ hue: SH.hueOf(shell) }} size={34} radius={8} />
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.07em', textTransform: 'uppercase', color: P.good }}>Adding to shell</div>
       <div style={{ fontSize: 12.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{shell.name}</div>
-      <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{shell.id} · {SH.familyPath(shell)} · {shell.variations.length} existing variation{shell.variations.length === 1 ? '' : 's'}</div>
+      <div style={{ fontSize: 11.5, color: P.inkDim, fontFamily: P.fontMono }}>{shell.id} · {SH.familyPath(shell)} · {shell.variationCount} existing variation{shell.variationCount === 1 ? '' : 's'}</div>
     </div>
     {!lockShell && <PBtn variant="ghost" size="xs" onClick={() => {setShellId(null);setStep(0);}}>Change</PBtn>}
   </div> : null;
@@ -679,10 +768,10 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
           <div><Lb>Find the shell</Lb><Field icon="search" placeholder="Brand, format, category or subcategory…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <div style={{ border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
             {hits.map((s, i) => <button key={s.id} onClick={() => {setShellId(s.id);setStep(1);}} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 12px', background: 'transparent', border: 'none', borderTop: i ? `1px solid ${P.hairline}` : 'none', cursor: 'pointer', textAlign: 'left', fontFamily: P.fontSans }} onMouseEnter={(e) => e.currentTarget.style.background = P.surface2} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-              <Thumb item={{ hue: s.hue }} size={34} radius={8} />
+              <Thumb item={{ hue: SH.hueOf(s) }} size={34} radius={8} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{s.id} · {SH.familyPath(s)} · {s.variations.length} variation{s.variations.length === 1 ? '' : 's'}</div>
+                <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono }}>{s.id} · {SH.familyPath(s)} · {s.variationCount} variation{s.variationCount === 1 ? '' : 's'}</div>
               </div>
               <span style={{ fontSize: 11.5, fontWeight: 700, color: P.info, flex: '0 0 auto' }}>Add variation</span>
             </button>)}
@@ -701,15 +790,15 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
           <div title="How much of the new product is already filled in from the shell. The higher this is, the faster staff can add a variation." style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', background: P.goodSoft, border: `1px solid ${P.good}44`, borderRadius: P.r12 }}>
             <span style={{ width: 34, height: 34, borderRadius: 9, background: P.good, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 auto' }}><Icon name="check" size={18} stroke={2.4} color="#fff" /></span>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {(() => {const inh = SH.sharedRows(shell).length + (shell.traits || []).length;const tot = inh + 5;
+              {(() => {const inh = SH.sharedRows(shell).length;const tot = inh + 2;
                 return <>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{inh} of {tot} details pre-filled</div>
                   <div style={{ fontSize: 11.5, color: P.good, marginTop: 2 }}>Inherited from the shell — you only set what makes this product unique.</div>
                 </>;})()}
             </div>
             <div style={{ width: 110, height: 8, borderRadius: 99, background: P.good + '33', overflow: 'hidden', flex: '0 0 auto' }}>
-              {(() => {const inh = SH.sharedRows(shell).length + (shell.traits || []).length;
-                return <div style={{ width: Math.round(inh / (inh + 5) * 100) + '%', height: '100%', background: P.good, borderRadius: 99 }} />;})()}
+              {(() => {const inh = SH.sharedRows(shell).length;
+                return <div style={{ width: Math.round(inh / (inh + 2) * 100) + '%', height: '100%', background: P.good, borderRadius: 99 }} />;})()}
             </div>
           </div>
 
@@ -733,16 +822,6 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                   <Icon name="lock" size={12} stroke={1.9} color={P.inkFaint} />
                 </div>
               </div>)}
-              {(shell.traits || []).length > 0 && <div style={{ marginTop: 12, paddingTop: 13, borderTop: `1px solid ${P.hairline}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>Product traits · carry across the line</span>
-                  <span title="Pack count, servings, infusion — set on the shell, inherited by the whole line. Edit them on the shell, not per product." style={{ display: 'inline-flex', cursor: 'help', color: P.inkFaint }}><Icon name="info" size={12} /></span>
-                </div>
-                {shell.traits.map((t, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 11px', marginBottom: 7, background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: 9 }}>
-                  <span style={{ fontSize: 12.5, color: P.inkDim }}>{t.label}</span>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: P.ink2, fontFamily: P.fontMono }}>{t.value}</span>
-                </div>)}
-              </div>}
             </div>
 
             {/* this variation (editable) */}
@@ -768,17 +847,29 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
                 </label>
               </div>
 
-              <div style={{ marginBottom: 13 }}><Lb hint="The flavour or strain — this is what makes it a distinct product.">Product name *</Lb>
-                <Field placeholder="e.g. Fruit Punch" value={v.name} onChange={(e) => s1('name', e.target.value)} /></div>
-
-              <div style={{ marginBottom: 13 }}><Lb>Type</Lb>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {[['Indica', P.indica], ['Sativa', P.sativa], ['Hybrid', P.hybrid]].map(([t, c]) => {const on = v.strain === t;
-                    return <button key={t} onClick={() => setV((o) => ({ ...o, strain: t, desc: SH.aiDesc(shell, { name: o.name, strain: t }) }))} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', borderRadius: P.r999, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 99, background: c }} />{t}</button>;})}
-                  <Sel2 value={['Indica', 'Sativa', 'Hybrid'].includes(v.strain) ? 'More' : v.strain} onChange={(x) => x !== 'More' && s1('strain', x)} options={['More', 'CBD', 'N/A']} />
-                </div>
+              <div style={{ marginBottom: 6 }}><Lb hint={`The ${nameLabel.toLowerCase()} the intake person types — never the product name itself. The name below is derived from it.`}>{nameLabel} *</Lb>
+                <Field placeholder={`e.g. ${nameExample}`} value={v.name} onChange={(e) => s1('name', e.target.value)} /></div>
+              {/* Derived name — same style as ShellForm's "Resulting shell name" line. Never editable: this IS the product name, and it is never typed. */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 13, padding: '10px 12px', background: P.surface2, borderRadius: P.r10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 10, color: P.inkMute, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase' }}>Product name</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink }}>{derivedName || (v.name.trim() ? '…' : '—')}</span>
+                {namePreview && namePreview.warnings && namePreview.warnings.length > 0 &&
+                  <span style={{ fontSize: 11, color: P.warn, fontWeight: 600 }}>{namePreview.warnings.join(' · ')}</span>}
               </div>
+
+              {(hasRatio || hasTier || hasType) && <div style={{ display: 'flex', gap: 10, marginBottom: 13, flexWrap: 'wrap' }}>
+                {hasRatio && <div style={{ flex: '1 1 100px' }}><Lb hint="Cannabinoid ratio, e.g. 2:1 CBD:THC.">Ratio</Lb>
+                  <Field mono placeholder="2:1" value={v.ratio} onChange={(e) => s1('ratio', e.target.value)} /></div>}
+                {hasTier && <div style={{ flex: '1 1 100px' }}><Lb>Tier</Lb>
+                  <Sel2 value={v.tier || '1'} onChange={(x) => s1('tier', x)} options={['1', '2', '3', '4']} /></div>}
+                {hasType && <div style={{ flex: '1 1 220px' }}><Lb>Type</Lb>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[['Indica', P.indica], ['Sativa', P.sativa], ['Hybrid', P.hybrid]].map(([t, c]) => {const on = v.type === t;
+                      return <button key={t} onClick={() => setV((o) => ({ ...o, type: t, desc: SH.aiDesc(shell, { name: o.name, type: t }) }))} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 10px', borderRadius: P.r999, border: `1px solid ${on ? P.ink : P.hairline2}`, background: on ? P.ink : P.surface, color: on ? P.surface : P.ink2, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: P.fontSans }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 99, background: c }} />{t}</button>;})}
+                  </div>
+                </div>}
+              </div>}
 
               <div style={{ marginBottom: 13 }}>
                 <Lb right={<PBtn variant="soft" size="xs" icon="sparkle" onClick={() => s1('desc', SH.aiDesc(shell, v))}>Regenerate</PBtn>}>
@@ -817,20 +908,9 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
               </div>
 
               <div>
-                <Lb right={<span onClick={() => s1('override', !v.override)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: v.override ? P.warn : P.inkMute }}>Override shell price</span>
-                  <MiniSwitch on={v.override} onChange={(x) => s1('override', x)} color={P.warn} /></span>}>Price</Lb>
-                {v.override ?
-                <Field mono icon="dollar" placeholder="0.00" value={v.price} onChange={(e) => s1('price', e.target.value.replace(/[^0-9.]/g, ''))} /> :
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: P.surface2, border: `1px solid ${P.hairline}`, borderRadius: P.r10, minHeight: 38 }}>
-                  <span style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 7 }}>
-                    {shell.sale ? <span style={{ fontSize: 11.5, color: P.inkFaint, textDecoration: 'line-through', fontFamily: P.fontMono }}>{money(shell.price)}</span> : null}
-                    <span style={{ fontSize: 13.5, fontWeight: 700, color: shell.sale ? P.bad : P.ink, fontFamily: P.fontMono }}>{money(SH.effectivePrice(shell))}</span>
-                    {shell.sale ? <Tag kind="warn">On sale</Tag> : null}
-                  </span>
-                  <Icon name="lock" size={12} stroke={1.9} color={P.inkFaint} />
-                </div>}
-                <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 5 }}>{v.override ? 'Custom price for this variation only — the rest of the family is unaffected.' : `Inherits the shell price of ${money(SH.effectivePrice(shell))}${shell.sale ? ' (promo, retail ' + money(shell.price) + ')' : ''}. Rare to override.`}</div>
+                <Lb hint="A shell no longer has a shared price — every variation prices itself.">Price *</Lb>
+                <Field mono icon="dollar" placeholder="0.00" value={v.price} onChange={(e) => s1('price', e.target.value.replace(/[^0-9.]/g, ''))} />
+                <div style={{ fontSize: 11.5, color: P.inkMute, marginTop: 5 }}>This variation's own retail price.</div>
               </div>
 
               {/* Storefront meta — per product, never shared with the family */}
@@ -903,12 +983,12 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
 
         {cur.k === 'done' && <div style={{ textAlign: 'center', padding: '14px 0' }}>
           <span style={{ width: 46, height: 46, borderRadius: 99, background: P.good, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="check" size={24} stroke={2.6} color="#fff" /></span>
-          <div style={{ fontSize: 16.5, fontWeight: 800, color: P.ink, marginTop: 11 }}>{v.name || 'Variation'} {saveCollided ? 'updated' : 'added'}</div>
-          <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{sku || '—'} · {shell ? shell.name : ''}{effPrice ? ' · ' + money(effPrice) + (v.override ? ' (override)' : '') : ''}</div>
+          <div style={{ fontSize: 16.5, fontWeight: 800, color: P.ink, marginTop: 11 }}>{derivedName || v.name || 'Variation'} {saveCollided ? 'updated' : 'added'}</div>
+          <div style={{ fontSize: 12.5, color: P.inkDim, fontFamily: P.fontMono, marginTop: 3 }}>{sku || '—'} · {shell ? shell.name : ''}{effPrice ? ' · ' + money(effPrice) : ''}</div>
           <div style={{ marginTop: 16, textAlign: 'left', border: `1px solid ${P.hairline}`, borderRadius: P.r10, overflow: 'hidden' }}>
             {[saveCollided ?
               ['Existing product updated, not created', 'warn', 'SKU ' + sku + ' already had a product on it — this edited that record in place rather than adding a new one. Its Weedmaps mapping, publish status and sample flag were left exactly as they were.'] :
-              ['Variation created on ' + (shell ? shell.id : 'the shell'), 'good', v.override ? 'Brand, format, size and traits inherited. Retail price overridden for this variation only.' : 'Brand, format, size, price and traits all inherited — nothing re-entered.'],
+              ['Variation created on ' + (shell ? shell.id : 'the shell'), 'good', 'Brand, format and size inherited; the name was derived, never typed.'],
             // The only line on this screen that reports whether this product
             // actually reached Weedmaps — SH.createVariation's own per-listing
             // push verdict, never a bare 200. `saveWm == null` is a genuinely
@@ -932,7 +1012,7 @@ window.AddProductFlow = function AddProductFlow({ entry = 'catalog', lockShell, 
             // wholesale cost, barcode/RFID, METRC tag and expiry are entered
             // above and held nowhere once this modal closes.
             ['Batch received · ' + (b.qty || 0) + ' units', 'good', 'Quantity synced to the Weedmaps catalog as on-hand inventory. Wholesale cost, barcode/RFID, METRC tag and expiry are not stored anywhere in this build — there is no batch/lot table server-side yet.'],
-            ['Inherits the shell’s Weedmaps node', 'good', shell ? shell.wmNode + ' — already mapped, so it can sync without joining the review queue.' : 'Already mapped.'],
+            ['Inherits the shell’s Weedmaps node', 'good', shell ? shell.wmNode : '—'],
             ['Its own storefront listing', 'good', 'hyperwolf.com/shop/' + meta.slug + ' — title, description and keywords are written per product, not shared with the family.'],
             b.skip || !b.thc ? ['Potency not recorded yet', 'warn', 'Enter THC and cannabinoids from the batch label when the stock is received.'] : ['Potency recorded · ' + b.thc + '% THC', 'good', 'Sent to the catalog as the product’s THC. Low / high / avg still assume per-batch lots this build does not have.'],
             v.photo ? ['Photo not synced to Weedmaps', 'warn', 'This build has no image-hosting endpoint — the API expects a real image URL, not the file captured here. The photo stays on this device only.'] : null].filter(Boolean).map(([t, tone, d], i) => {

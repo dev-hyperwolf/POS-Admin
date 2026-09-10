@@ -64,6 +64,10 @@ If you add, rename or retire a file, update the hub in the same turn.
   (`STORAGE.mode === 'memory'`; the card says so on screen). Three preview outcomes are kept apart
   on purpose: no photo · attached-but-no-preview · attached-and-broken. Self-wrapped in an IIFE, so
   it leaks no globals but the two.
+- `shared/hw-naming.js` — **the one product-naming engine** (`window.HW_NAMING.derive(template, slots,
+  shell)`), the browser twin of `wm-demo/wmdemo/shell_naming.py`. Both pass the same fixture
+  (`wm-demo/qa/fixtures/shells/naming-cases.json`); change a rule in both or in neither. Product names
+  are derived from a shell's format template — never typed. Plan: `docs/SHELLS-PLAN-2026-09-09.md`.
 - `shared/app-switcher.js` — floating cross-app launcher. Keep its list in sync with the hub.
 - `shared/tour-steps.js` + `shared/tour.js` — the guided walkthroughs, keyed by filename.
 - `shared/notes.js` — shared on-screen annotation layer (pins, threads, replies, resolve), synced

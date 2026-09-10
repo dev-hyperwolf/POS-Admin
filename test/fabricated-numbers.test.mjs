@@ -33,6 +33,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { withApp } from './ui-harness.mjs';
 import { createPortal } from 'react-dom';
+import { makeShellsFixture } from './shells-fetch-stub.mjs';
 
 /* ⚠️ THE HARNESS'S ReactDOM IS `react-dom/client`, WHICH HAS NO createPortal.
  * Three of the surfaces this file has to read — ProductSheet, FullOrderView and
@@ -422,71 +423,81 @@ test('lifetime spend and average basket come off the order book or say they are 
 });
 
 // ── 5 · THE SHELL: A FALSE PROVENANCE IS THE WORST OF THEM ──────────────────
+//
+// REWIRED 2026-09-09 (docs/SHELLS-PLAN-2026-09-09.md). A shell is now brand +
+// format + weight/unit/pack + kit box + Weedmaps node, fetched from a real
+// server (GET /api/shells) — the client-side seed() that averaged a "unit
+// cost" out of a SKU hash, and invented a per-shell store count from a SKU's
+// second letter, is gone entirely. These three tests now assert the STRONGER
+// invariant: the fields themselves are absent from the shell shape (never
+// derived, not even as a stated "not recorded"), because price/cost is a
+// per-variation concern now and no per-store distribution has ever existed
+// anywhere in this build.
 
-test('no shell row is stamped "From batches" over a figure no batch produced', async () => {
+test('a shell carries no unit-cost row at all — cost is a per-variation field, not a shell fabrication', async () => {
+  const fixture = makeShellsFixture();
   await withApp('pos', async (app) => {
+    await app.mount('ShellsModule');
+    await app.waitFor(() => [...app.document.querySelectorAll('span')].some((s) => /Open shell/.test((s.textContent || '').trim())),
+      { what: 'the fixture shell to load' });
     const S = app.window.HW_SHELL;
     const shells = S.allShells();
-    assert.ok(shells.length > 2, 'shells seeded');
+    assert.ok(shells.length > 0, 'shells seeded');
     for (const s of shells) {
       const rows = S.sharedRows(s);
-      const cost = rows.find((r) => /unit cost/i.test(r.label));
-      assert.ok(cost, 'the unit-cost row is still present — the FIELD is real');
-      assert.notEqual(cost.flag, 'From batches',
-        `${s.id} still flags its unit cost "From batches". GET /api/state serves ` +
-        'batches as an EMPTY ARRAY; nothing on this screen has ever come from one, ' +
-        'and a false provenance stops the operator asking where the number came from.');
-      assert.equal(s.cost, null, `${s.id} still averages a cost out of nothing`);
-      assert.ok(/not recorded/i.test(String(cost.value)), 'the row says the cost is not held');
-      assert.ok(!/low \$|high \$/.test(String(cost.sub || '')),
-        'the "low $x · high $y" batch spread is still printed for a family with no batches');
+      const cost = rows.find((r) => /unit cost|cost/i.test(r.label));
+      assert.equal(cost, undefined,
+        `${s.id}'s sharedRows() still carries a cost row. A shell no longer owns a ` +
+        'price or cost at all (docs/SHELLS-PLAN-2026-09-09.md §1) — averaging one ' +
+        'out of nothing, or stamping it "from batches", is not fixed by relabelling ' +
+        'the row; the row must not exist on a shell in the first place.');
+      // .length, not deepEqual against a literal [] — the array on the right
+      // is built in this test's own realm and the one on the left inside the
+      // jsdom-executed script; deepStrictEqual compares prototypes too, so an
+      // empty array from the OTHER realm never equals one built in this file.
+      assert.equal(rows.map((r) => r.flag).filter(Boolean).filter((f) => /batch/i.test(f)).length, 0,
+        `${s.id} still flags a row "from batches" — GET /api/state's batches list ` +
+        'is empty and nothing on a shell has ever come from one.');
     }
-    // ⚠️ AND THE OTHER BRANCH. Every shell above has cost === null, so the
-    // loop only ever exercised the empty case — reverting the flag string
-    // changed nothing and the mutation sweep scored it green. A shell that DOES
-    // carry a cost must not claim a batch produced it either: the cost gets
-    // there by an operator typing it on receipt (pos/product-shell.jsx:402).
-    const costed = { ...shells[0], cost: 12.5, costsKnown: 2, costsTotal: 2 };
-    const row = S.sharedRows(costed).find((r) => /unit cost/i.test(r.label));
-    assert.ok(/12\.5|13/.test(String(row.value)), 'a real cost IS shown when there is one');
-    assert.notEqual(row.flag, 'From batches',
-      'a costed shell still stamps its unit cost "From batches" — this estate ' +
-      'holds no batches (GET /api/state serves batches as an empty array)');
-    assert.ok(!/low \$|high \$/.test(String(row.sub || '')),
-      'the invented ±15%/+18% "batch spread" is back on the costed branch');
-  });
+  }, { fetch: fixture.fetch });
 });
 
-test('a shell claims no store count, because nothing records one per shell', async () => {
+test('a shell has no per-store distribution field, because nothing records one', async () => {
+  const fixture = makeShellsFixture();
   await withApp('pos', async (app) => {
+    await app.mount('ShellsModule');
+    await app.waitFor(() => [...app.document.querySelectorAll('span')].some((s) => /Open shell/.test((s.textContent || '').trim())),
+      { what: 'the fixture shell to load' });
     const S = app.window.HW_SHELL;
-    const counts = new Set(S.allShells().map((s) => s.stores));
-    assert.deepEqual([...counts], [null],
-      'shells still report a per-shell store count. It was 1 + sku.charCodeAt(1) % 4 ' +
-      '— a count of retail locations taken from the second letter of a SKU. The ' +
-      'estate claims four stores (HW.STORE.count) but records nothing about which ' +
-      'of them carries a given shell, so 1 would be a second invented figure.');
-  });
+    for (const s of S.allShells()) {
+      assert.equal('stores' in s, false,
+        `${s.id} carries a 'stores' key. It used to be ` +
+        '1 + sku.charCodeAt(1) % 4 — a count of retail locations taken from the ' +
+        "second letter of a SKU. The estate claims four stores (HW.STORE.count) " +
+        'but records nothing about which of them carries a given shell, so any ' +
+        'number here — even a placeholder — would be a second invented figure.');
+    }
+  }, { fetch: fixture.fetch });
 });
 
-test('the shell edit header says the store count is not tracked rather than printing one', async () => {
+test('the shell details modal never prints a per-shell store count', async () => {
+  const fixture = makeShellsFixture();
   await withApp('pos', async (app) => {
     const open = mounter(withPortals(app));
     try {
       const W = app.window;
-      const p = W.HW.PRODUCTS[0];
-      // ⚠️ NOT ShellsModule. Its default view is the grouped card list, which
-      // never renders `s.stores` at all — so an assertion there would pass on
-      // the unfixed build for want of a surface, which is the failure mode this
-      // whole file is about. ShellEditModal's header DOES render it.
-      await open('ShellEditModal', { p, shellId: null, onClose() {}, onSave() {} });
+      // Direct by shellId — ShellEditModal is read-only now (no update-shell
+      // route exists), so this exercises the same header the original test
+      // did without depending on a mock product's shell_id resolving.
+      await open('ShellEditModal', { shellId: fixture.SHELL.id, onClose() {}, onSave() {} });
+      await app.waitFor(() => /Kiva Confections/.test(norm(W.document.body.textContent)),
+        { what: 'the shell details modal to load the fixture shell' });
       const txt = norm(W.document.body.textContent);
       assert.ok(/variation/i.test(txt), 'the shell header rendered');
       assert.ok(!/\b[1-9] stores?\b/.test(txt),
-        'the shell header still prints "N store(s)" for a distribution nobody records');
-      assert.ok(/stores not tracked/.test(txt), 'the absence is stated, not just omitted');
+        'the shell details header prints "N store(s)" for a distribution nobody records');
     } finally { open.close(); }
-  });
+  }, { fetch: fixture.fetch });
 });
 
 // ── 7 · THE REGISTER'S CUSTOMER CHIP ────────────────────────────────────────
