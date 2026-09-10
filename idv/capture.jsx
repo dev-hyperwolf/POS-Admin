@@ -5523,9 +5523,20 @@
   // the landscape default when the video has not reported a size yet, because a
   // clip at the wrong aspect is better than no clip at all.
   function livenessPlan(vw, vh) {
+    // THE CLIP KEEPS THE CAMERA'S OWN ASPECT RATIO. A fixed 640x480 / 480x640
+    // canvas squeezed a 16:9 phone stream into 4:3 -- every liveness frame,
+    // and therefore the proof image, showed the guest's face flattened
+    // (owner, 2026-09-09: "you shrunk my photo vertically"). Long edge is
+    // LIVENESS_LONG, the short edge follows the stream, both even for the
+    // encoder.
     const portrait = !!(vw && vh) && vh > vw;
-    return { w: portrait ? LIVENESS_SHORT : LIVENESS_LONG,
-      h: portrait ? LIVENESS_LONG : LIVENESS_SHORT,
+    if (!vw || !vh) {
+      return { w: LIVENESS_LONG, h: LIVENESS_SHORT, fps: LIVENESS_FPS, bps: LIVENESS_BPS };
+    }
+    const k = LIVENESS_LONG / Math.max(vw, vh);
+    const even = function (n) { return Math.max(2, 2 * Math.round(n * k / 2)); };
+    return { w: portrait ? even(vw) : LIVENESS_LONG,
+      h: portrait ? LIVENESS_LONG : even(vh),
       fps: LIVENESS_FPS, bps: LIVENESS_BPS };
   }
   // THE MIME LADDER, UNCHANGED IN ORDER AND NOW IN ONE PLACE. vp9 first (about
