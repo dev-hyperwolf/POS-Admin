@@ -3029,7 +3029,7 @@
     const [loadErr, setLoadErr] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
 
-    // 'consent' | 'capture' | 'face' | 'processing' | 'outcome' | 'resuming'
+    // 'consent' | 'get_ready' | 'capture' | 'face' | 'processing' | 'outcome' | 'resuming'
     const [phase, setPhase] = React.useState('resuming');
     const [cursor, setCursor] = React.useState('consent');
     const [done, setDone] = React.useState({});        // step id -> true, this page session
@@ -3055,6 +3055,14 @@
     const resumeSubmitRef = React.useRef(false);
     const terminalFetchedRef = React.useRef(false);
     const pollNowRef = React.useRef(null);   // set by the polling effect
+    // ROUND 7: the owner's live-test note — the camera fired while he was
+    // still digging his ID out of his wallet. `pendingStepRef` is the step
+    // waiting behind the "Get ready" screen; `readyShownRef` makes it show
+    // AT MOST ONCE PER PAGE LOAD, so front → back → selfie stays one
+    // continuous camera pass and a reload gets the gate again (a fresh mount
+    // is a fresh `readyShownRef`, which is exactly what a cold camera needs).
+    const pendingStepRef = React.useRef(null);
+    const readyShownRef = React.useRef(false);
 
     const branding = (state && state.branding) || null;
     const copy = (branding && branding.copy) || {};
@@ -3106,6 +3114,54 @@
       if (step === 'consent') return 'consent';
       if (step === 'selfie' || step === 'challenge') return 'face';
       return 'capture';
+    }
+
+    function facingFor(step) {
+      return (step === 'selfie' || step === 'challenge') ? 'user' : 'environment';
+    }
+
+    // REQUEST THE PERMISSION ON THE TAP, NOT ON WHATEVER RENDERS AFTER IT.
+    // Camera screens have zero buttons and open with getUserMedia the instant
+    // they mount (useCamera's own effect) — there is no later gesture to hang
+    // the prompt off. Firing it here, synchronously inside the "I'm ready"
+    // click handler, is what lets the permission dialog land on the tap
+    // itself rather than on the render that follows it. Either way the track
+    // is stopped at once — the real stream is the one the step's own
+    // useCamera opens a moment later, which resolves instantly once
+    // permission is already granted.
+    function primeCameraPermission(facing) {
+      const md = navigator.mediaDevices;
+      if (!md || typeof md.getUserMedia !== 'function') return;
+      try {
+        md.getUserMedia({ video: { facingMode: { ideal: facing === 'user' ? 'user' : 'environment' } }, audio: false })
+          .then(function (s) { stopStream(s); }, function () {});
+      } catch (e) {}
+    }
+
+    // THE ONE GATE EVERY CAMERA-BOUND TRANSITION GOES THROUGH. `gate:false`
+    // is only for the poller's own `Awaiting User` handling (openGuidedStep
+    // below) — the guest is already mid-session with the phone up, nothing
+    // reloaded, and the camera they are being sent back into is the one they
+    // were just using. Every other route to a capture/face step is a cold
+    // one (just past consent, or a fresh mount reading server state) and
+    // gets the "Get ready" screen unless this page has already shown it.
+    function routeToStep(step, opts) {
+      const gate = !opts || opts.gate !== false;
+      if (gate && phaseFor(step) !== 'consent' && !readyShownRef.current) {
+        pendingStepRef.current = step;
+        setPhase('get_ready');
+        return;
+      }
+      setCursor(step);
+      setPhase(phaseFor(step));
+    }
+
+    function confirmReady() {
+      const step = pendingStepRef.current || cursor;
+      readyShownRef.current = true;
+      primeCameraPermission(facingFor(step));
+      setCursor(step);
+      setPhase(phaseFor(step));
     }
 
     // ── load state ─────────────────────────────────────────────────────────
@@ -3203,7 +3259,10 @@
           // across the phase change and rendered as the standing line above the
           // live hint, so a guest re-photographing their licence can still see
           // WHY while they are doing it.
-          openGuidedStep(b);
+          // `cold: true` — this branch only runs off a fresh `GET state`
+          // (page load or reload), which is exactly the "camera opens cold"
+          // case the "Get ready" gate exists for.
+          openGuidedStep(b, true);
         });
         return;
       }
@@ -3216,8 +3275,10 @@
       const retry = ((state.steps || []).filter(function (s) { return s.state === 'retry'; })[0] || {}).id;
       const next = retry || nextOutstanding(null);
       if (!next) { setPhase('processing'); return; }
-      setCursor(next);
-      setPhase(phaseFor(next));
+      // This fires off `state`, which only changes from a fresh `GET state` —
+      // a cold mount or a reload. `routeToStep`'s default gate is exactly
+      // what a resume landing straight on a camera step needs.
+      routeToStep(next);
       // eslint-disable-next-line
     }, [routeSig]);
 
@@ -3287,7 +3348,7 @@
     // `fixRef` is the sentence itself, held across the phase change and
     // rendered as the standing line above the live hint — which is the only
     // place in this flow guidance is ever shown.
-    function openGuidedStep(body) {
+    function openGuidedStep(body, cold) {
       const g = (body && body.guidance) || null;
       const fromState = ((((state && state.steps) || []).filter(
         function (s) { return s.state === 'retry'; })[0]) || {}).id;
@@ -3299,8 +3360,10 @@
       resumeSubmitRef.current = false;
       setNotice(null);
       setDone({});
-      setCursor(step);
-      setPhase(phaseFor(step));
+      // `cold` — true only from the page-load router (a reload). The
+      // poller's own call (mid-session, camera already in use moments ago)
+      // passes nothing, so `gate:false` skips the "Get ready" screen there.
+      routeToStep(step, { gate: !!cold });
     }
 
     // ── status polling ────────────────────────────────────────────────────
@@ -3455,8 +3518,9 @@
             setBusy(false);
             setDone(function (d) { return Object.assign({}, d, { consent: true }); });
             const nxt = nextOutstanding('consent') || 'document_front';
-            setCursor(nxt);
-            setPhase(phaseFor(nxt));
+            // The FIRST camera open of the session — the exact moment the
+            // owner's live test went wrong. Gated by default.
+            routeToStep(nxt);
           });
       });
     }
@@ -3475,8 +3539,10 @@
       setDone(function (d) { return Object.assign({}, d, mark); });
       fixRef.current = null;
       if (!nxt) { submitNow(); return; }
-      setCursor(nxt);
-      setPhase(phaseFor(nxt));
+      // Camera-to-camera inside one continuous pass (front → back → selfie).
+      // `readyShownRef` is already true by the time this ever runs, so the
+      // gate in `routeToStep` is a no-op here — it never re-shows mid-flow.
+      routeToStep(nxt);
     }
 
     function submitNow() {
@@ -3532,8 +3598,7 @@
       reportedRef.current = false;
       resumeSubmitRef.current = false;
       setDone({});
-      setCursor(step);
-      setPhase(phaseFor(step));
+      routeToStep(step);
       loadState();
       // eslint-disable-next-line
     }, [guidance, retryInfo, poll, loadState]);
@@ -3660,7 +3725,7 @@
               the initial value, which would light pip one under a screen that
               means "all of them are done". Better to show nothing than to show
               a wrong thing confidently. */}
-          {phase !== 'outcome' && phase !== 'resuming' && phase !== 'processing' && !loadErr
+          {phase !== 'outcome' && phase !== 'resuming' && phase !== 'processing' && phase !== 'get_ready' && !loadErr
             ? <Pips steps={stepIds} current={cursor} /> : null}
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             <div style={{ margin: 'auto', width: '100%', maxWidth: flush ? 720 : 640, display: 'flex',
@@ -3757,6 +3822,43 @@
           agreed={terms} onAgree={setTerms}
           busy={busy} notice={notice} onContinue={acceptTerms}
           workflowName={workflowName} />);
+    }
+
+    // ── get ready ────────────────────────────────────────────────────────
+    // ROUND 7, THE OWNER'S OWN LIVE TEST: "I wasn't prepared with my ID out;
+    // the system snapped a random image while I was grabbing my ID from my
+    // wallet." Camera screens are auto-capture with ZERO buttons on purpose —
+    // that rule stands — so the fix cannot live there. It has to be a
+    // separate screen BEFORE the lens opens, and `routeToStep`/`readyShownRef`
+    // put every cold path (post-consent, and a reload that resumes into a
+    // camera step) through this exact same gate, once per page load.
+    if (phase === 'get_ready') {
+      return shell('Get ready', (
+        <React.Fragment>
+          <Plate tone="neutral" icon="camera" />
+          <Big>Get your ID ready</Big>
+          <ol style={{ margin: 0, padding: 0, listStyle: 'none', width: '100%', maxWidth: 460,
+            display: 'flex', flexDirection: 'column', gap: P.space.x3, textAlign: 'left' }}>
+            {[
+              'Have your physical ID out of your wallet — a photo of your ID will not work.',
+              'Find a bright spot, no glare.',
+              'You’ll photograph the front, then the back barcode, then take a quick selfie and blink.',
+            ].map(function (line, i) {
+              return (
+                <li key={i} style={{ display: 'flex', gap: P.space.x3, alignItems: 'flex-start' }}>
+                  <span style={{ flex: '0 0 auto', width: 26, height: 26, borderRadius: '50%',
+                    background: P.neutralSoft, color: P.inkDim, fontWeight: P.weight.emph,
+                    fontSize: P.type.micro, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {i + 1}
+                  </span>
+                  <span style={{ fontSize: P.type.title, lineHeight: 1.45, color: P.ink }}>{line}</span>
+                </li>);
+            })}
+          </ol>
+          <Say mute>About 30 seconds.</Say>
+          <window.PBtn size="xl" variant="accent" onClick={confirmReady}>I&rsquo;m ready</window.PBtn>
+        </React.Fragment>),
+        'Camera opens on the next tap · nothing is captured yet', null);
     }
 
     // ── capture (document front / back / medical rec) ─────────────────────
