@@ -1,0 +1,1843 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engage — Concept A · Calm Ledger</title>
+<style>
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:-apple-system,"Segoe UI",system-ui,sans-serif;
+--fontMono:ui-monospace,"SF Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+--scrim:rgba(20,18,12,.42);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+--field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+--highlightSoft:#F1EFE9; --disabledBg:#F1EFE9; --disabledInk:rgba(15,15,12,.42);
+}
+[data-theme="dark"]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+--accentHover:#FFDA33; --accentText:#FFD100;
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+--neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+--field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+--highlightSoft:rgba(245,243,234,.06); --disabledBg:#28261D; --disabledInk:rgba(245,243,234,.40);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:13px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;color:var(--railBright);}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;line-height:1.5;max-width:820px;}
+.seg{display:inline-flex;background:var(--railHover);border-radius:var(--r10);padding:3px;gap:2px;margin-left:auto;flex-wrap:wrap;}
+.seg button{appearance:none;border:0;background:transparent;color:var(--railInk);font-family:var(--fontSans);
+font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+.seg button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.seg button:not(.active):hover{color:var(--railBright);background:var(--railHover);}
+.theme-btn{appearance:none;border:1px solid var(--railHair);background:transparent;color:var(--railBright);
+min-height:34px;padding:0 12px;border-radius:var(--r8);font-family:var(--fontSans);font-size:11.5px;font-weight:600;
+cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.theme-btn:hover{background:var(--railHover);}
+.tabpanel{display:none;}
+.tabpanel.active{display:block;}
+.intro{max-width:1320px;margin:0 auto;padding:18px 24px 0;}
+.intro .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 18px;box-shadow:var(--shadowSm);}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;max-width:980px;}
+.intro p:last-child{margin-bottom:0;}
+.intro code{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.stage{max-width:1320px;margin:18px auto 70px;padding:0 24px;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);}
+.card.pad{padding:16px;}
+.card.pad-sm{padding:12px;}
+.card.sunken{background:var(--bg2);border-color:var(--hairline);}
+.cardhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--hairline);}
+.cardhead .plate{width:28px;height:28px;border-radius:8px;background:var(--surface3);color:var(--ink2);
+display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.cardhead .ttl{flex:1;font-size:13.5px;font-weight:700;color:var(--ink);min-width:0;}
+.cbody{padding:14px;}
+.ic{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+.ic.s13{width:13px;height:13px;} .ic.s18{width:18px;height:18px;} .ic.s22{width:22px;height:22px;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+font-size:11.5px;font-weight:600;white-space:nowrap;}
+.pill.sm{padding:2px 7px 3px;font-size:10px;}
+.pill .dot{width:6px;height:6px;border-radius:99px;background:currentColor;}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-accent{background:var(--accentSoft);color:var(--accentText);}
+.pill-dark{background:var(--ink);color:var(--bg);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+white-space:nowrap;border:1px solid transparent;color:var(--ink);background:var(--surface);}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-primary{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.btn-ghost{background:transparent;color:var(--ink2);}
+.btn-xs{min-height:30px;padding:0 10px;font-size:11.5px;}
+.btn-lg{min-height:44px;padding:0 16px;font-size:13.5px;}
+.btn:disabled{background:var(--disabledBg);color:var(--disabledInk);border-color:var(--hairline2);cursor:not-allowed;}
+.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:800;color:var(--ink);}
+.lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute);}
+.meta{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:11px;color:var(--inkDim);}
+.muted{color:var(--inkDim);font-size:12px;line-height:1.55;}
+.bar{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden;}
+.bar > span{display:block;height:100%;border-radius:99px;background:var(--info);}
+.bar.tall{height:9px;}
+.caphead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:22px 0 10px;}
+.caphead h3{margin:0;font-size:14px;font-weight:700;letter-spacing:-.01em;}
+.caphead .cs{font-size:12px;color:var(--inkDim);max-width:720px;line-height:1.55;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start;}
+@media (max-width:1000px){.split{grid-template-columns:1fr;}}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.stack{display:flex;flex-direction:column;gap:12px;}
+.field{width:100%;min-height:38px;padding:0 12px;border-radius:var(--r8);border:1px solid var(--fieldBorder);
+background:var(--field);font-family:var(--fontSans);font-size:12.5px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.field.mono{font-family:var(--fontMono);}
+.field .ph{color:var(--inkMute);}
+.flbl{font-size:11px;font-weight:700;color:var(--inkDim);letter-spacing:.03em;text-transform:uppercase;
+margin-bottom:5px;display:block;}
+.fhint{font-size:11px;color:var(--inkMute);margin-top:5px;line-height:1.5;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:var(--r999);
+border:1px solid var(--hairline2);background:var(--surface);font-size:11.5px;font-weight:600;color:var(--ink2);}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.chip.accent{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+.chip.good{background:var(--goodSoft);color:var(--good);border-color:transparent;}
+.chip.info{background:var(--infoSoft);color:var(--info);border-color:transparent;}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:26px 18px;}
+.empty .plate{width:44px;height:44px;border-radius:99px;background:var(--surface3);color:var(--inkDim);
+display:flex;align-items:center;justify-content:center;}
+.empty .t{font-size:13.5px;font-weight:700;}
+.empty .b{font-size:12px;color:var(--inkDim);max-width:380px;line-height:1.55;}
+.tl{display:flex;flex-direction:column;}
+.tl-ev{display:flex;gap:10px;padding:9px 0;font-size:11.5px;border-top:1px dashed var(--hairline2);}
+.tl-ev:first-child{border-top:0;padding-top:0;}
+.tl-dot{width:7px;height:7px;border-radius:99px;background:var(--inkFaint);margin-top:5px;flex:0 0 auto;}
+.tl-dot.good{background:var(--good);} .tl-dot.warn{background:var(--warnText);} .tl-dot.info{background:var(--info);}
+.tl-body{flex:1;min-width:0;}
+.tl-action{font-weight:700;color:var(--ink);}
+.tl-meta{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;margin-top:2px;}
+.devnote{border-radius:var(--r12);padding:13px 15px;margin-top:14px;border:1px solid;font-size:12px;line-height:1.6;}
+.devnote.warn{background:var(--warnSoft);border-color:var(--warnText);color:var(--ink2);}
+.devnote.info{background:var(--infoSoft);border-color:var(--info);color:var(--ink2);}
+.devnote.bad{background:var(--badSoft);border-color:var(--bad);color:var(--ink2);}
+.devnote.good{background:var(--goodSoft);border-color:var(--good);color:var(--ink2);}
+.devnote .dn-head{display:flex;align-items:center;gap:7px;font-weight:700;font-size:11px;letter-spacing:.03em;
+text-transform:uppercase;margin-bottom:7px;}
+.devnote ul{margin:0;padding-left:18px;} .devnote li{margin-bottom:4px;} .devnote li:last-child{margin-bottom:0;}
+.built{margin-top:10px;font-size:11px;line-height:1.6;color:var(--inkDim);font-family:var(--fontMono);
+border-left:2px solid var(--hairline2);padding-left:10px;}
+.built b{color:var(--ink2);font-weight:600;}
+.av{border-radius:99px;background:var(--surface3);color:var(--ink2);display:inline-flex;align-items:center;
+justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto;width:26px;height:26px;
+border:1px solid var(--hairline2);}
+.av.lg{width:34px;height:34px;font-size:12px;}
+.av.me{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+table.dt{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--hairline2);
+border-radius:var(--r12);overflow:hidden;}
+table.dt thead th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+color:var(--inkDim);background:var(--surface2);padding:9px 13px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.dt tbody td{padding:10px 13px;border-top:1px solid var(--hairline);vertical-align:middle;font-size:12.5px;}
+table.dt tbody tr:first-child td{border-top:0;}
+table.dt tbody tr.me td{background:var(--accentSoft);}
+table.dt tbody tr:hover td{background:var(--surface2);}
+.tright{text-align:right;}
+.tbl-wrap{overflow-x:auto;}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+.kv:last-child{border-bottom:0;}
+.kv .k{color:var(--inkDim);}
+.kv .v{font-weight:600;color:var(--ink);text-align:right;}
+.kv .v.mono{font-weight:500;}
+.twoup{display:grid;grid-template-columns:340px minmax(0,1fr);gap:18px;align-items:start;}
+@media (max-width:1080px){.twoup{grid-template-columns:1fr;}}
+.st{background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);
+border-radius:var(--r10);padding:10px 12px;}
+.st.accent{border-left-color:var(--accent);}
+.st.good{border-left-color:var(--good);}
+.st .v{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:800;color:var(--ink);margin-top:3px;}
+.st .s{font-size:11px;color:var(--inkDim);margin-top:1px;}
+
+/* ── Engage app shell (one rail, one switcher) ─────────────────────────── */
+.appshell{display:flex;background:var(--bg);border:1px solid var(--hairline2);border-radius:var(--r12);
+overflow:hidden;box-shadow:var(--shadowLg);}
+.erail{width:66px;flex:0 0 auto;background:var(--rail);padding:12px 0;display:flex;flex-direction:column;
+align-items:center;gap:3px;}
+.erail .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accentInk);
+display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;margin-bottom:10px;flex:0 0 auto;}
+.erail .it{width:52px;padding:8px 0 6px;border-radius:var(--r10);color:var(--railInk);display:flex;
+flex-direction:column;align-items:center;gap:4px;font-size:9.5px;font-weight:600;position:relative;
+text-align:center;line-height:1.2;}
+.erail .it.on{background:var(--railActive);color:var(--railBright);}
+.erail .it.on::before{content:"";position:absolute;left:-9px;top:8px;bottom:8px;width:3px;border-radius:99px;background:var(--accent);}
+.erail .sp{flex:1;}
+.emain{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg);}
+.etop{display:flex;align-items:center;gap:12px;padding:11px 18px;background:var(--surface);
+border-bottom:1px solid var(--hairline2);flex-wrap:wrap;}
+.etop .storesw{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:99px;
+background:var(--surface3);border:1px solid var(--hairline2);font-size:11.5px;font-weight:700;color:var(--ink);}
+.etop .storesw .d{width:6px;height:6px;border-radius:99px;background:var(--good);}
+.escr{padding:20px 22px 26px;}
+
+/* ── POS app shell (loyalty lives here, deliberately different chrome) ──── */
+.posshell{display:flex;background:var(--bg);border:1px solid var(--hairline2);border-radius:var(--r12);
+overflow:hidden;box-shadow:var(--shadowLg);}
+.pos-rail{width:66px;background:var(--rail);flex:0 0 auto;padding:10px 0;display:flex;flex-direction:column;
+align-items:center;gap:4px;}
+.pos-rail .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accentInk);
+display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;margin-bottom:8px;}
+.pos-rail .it{width:54px;padding:7px 0;border-radius:var(--r10);color:var(--railInk);display:flex;flex-direction:column;
+align-items:center;gap:3px;font-size:9.5px;font-weight:600;position:relative;text-align:center;}
+.pos-rail .it.on{background:var(--railActive);color:var(--railBright);}
+.pos-rail .it.on::before{content:"";position:absolute;left:-9px;top:6px;bottom:6px;width:3px;border-radius:99px;background:var(--accent);}
+.pos-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.pos-top{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--surface);
+border-bottom:1px solid var(--hairline2);flex-wrap:wrap;}
+.pos-scr{padding:18px 20px 22px;background:var(--bg);}
+
+/* ── sentence editor ─────────────────────────────────────────────────── */
+.sentence{font-size:15px;line-height:2.3;color:var(--ink);}
+.sentence .tok{display:inline-flex;align-items:center;gap:4px;background:var(--accentSoft);color:var(--accentText);
+border:1px solid var(--accentBorder);border-radius:8px;padding:2px 10px;font-weight:700;margin:0 2px;white-space:nowrap;}
+.sentence .tok::after{content:"▾";font-size:9px;opacity:.7;margin-left:1px;}
+.sentence .plainbit{color:var(--ink2);}
+
+/* ── toggle switch (per-page gate) ───────────────────────────────────── */
+.gswitch{position:relative;width:38px;height:22px;border-radius:99px;background:var(--surface3);
+border:1px solid var(--hairline3);flex:0 0 auto;}
+.gswitch.on{background:var(--accent);border-color:var(--accentBorder);}
+.gswitch i{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:var(--surface);
+box-shadow:var(--shadowSm);display:block;transition:left .15s;}
+.gswitch.on i{left:18px;background:#fff;}
+
+/* ── journeys canvas ──────────────────────────────────────────────────── */
+.jcanvas{display:flex;align-items:stretch;overflow-x:auto;padding:28px 14px;border-radius:var(--r12);
+border:1px solid var(--hairline2);background-image:radial-gradient(var(--hairline2) 1px, transparent 1px);
+background-size:16px 16px;background-color:var(--bg2);}
+.jnode{flex:0 0 auto;width:196px;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+box-shadow:var(--shadowMd);padding:12px;margin:0 5px;align-self:center;}
+.jnode .k{display:flex;align-items:center;gap:6px;font-size:9.5px;font-weight:700;letter-spacing:.06em;
+text-transform:uppercase;color:var(--inkMute);margin-bottom:6px;}
+.jnode .t{font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.4;}
+.jnode .m{margin-top:8px;font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);line-height:1.6;}
+.jnode.exit{background:var(--surface2);}
+.jconn{flex:0 0 auto;width:30px;display:flex;align-items:center;justify-content:center;color:var(--inkFaint);
+align-self:center;}
+.jbranch{display:flex;flex-direction:column;gap:4px;align-self:center;}
+.jpalette{display:flex;gap:8px;flex-wrap:wrap;}
+.jpal-item{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:var(--r10);
+border:1px solid var(--hairline2);background:var(--surface);font-size:12px;font-weight:600;color:var(--ink2);}
+
+/* ── block builder ────────────────────────────────────────────────────── */
+.bpalette{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.bblock{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;border-radius:var(--r10);
+border:1px solid var(--hairline2);background:var(--surface);font-size:10px;font-weight:600;color:var(--ink2);text-align:center;}
+.bcanvas{background:var(--bg2);border:1px solid var(--hairline2);border-radius:var(--r12);padding:14px;
+display:flex;flex-direction:column;gap:8px;min-height:380px;}
+.bsec{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:12px 14px 11px;
+position:relative;}
+.bsec .tag{position:absolute;top:-9px;left:10px;font-size:9px;font-weight:700;text-transform:uppercase;
+letter-spacing:.06em;color:var(--inkMute);background:var(--bg2);padding:0 6px;}
+
+/* ── phone / snap preview frame ──────────────────────────────────────── */
+.snap{position:relative;background:var(--rail);border-radius:var(--r16);overflow:hidden;color:var(--railBright);
+aspect-ratio:9/16;display:flex;flex-direction:column;border:6px solid var(--rail);box-shadow:var(--shadowLg);}
+.snap .scr{flex:1;background:var(--bg);border-radius:10px;margin:0;display:flex;flex-direction:column;overflow:hidden;color:var(--ink);}
+.snap .bar{height:auto;background:none;}
+.snap .sh{padding:12px 14px 8px;text-align:center;}
+.snap .sh .g{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);}
+.snap .sh h4{margin:4px 0 0;font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--ink);}
+.snap .body{flex:1;padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;}
+.snap .gatepill{align-self:center;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;
+font-size:9.5px;font-weight:700;}
+
+/* ── policy chain ─────────────────────────────────────────────────────── */
+.pchain{display:flex;flex-wrap:wrap;gap:8px;}
+.pchain .st2{flex:1;min-width:170px;border-radius:var(--r10);border:1px solid var(--hairline2);
+background:var(--surface2);padding:10px 12px;}
+.pchain .st2 .h{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;text-transform:uppercase;
+letter-spacing:.06em;color:var(--inkMute);}
+.pchain .st2 .v{margin-top:4px;font-size:15px;font-weight:800;font-family:var(--fontMono);color:var(--ink);}
+.pchain .st2 .s{margin-top:1px;font-size:11px;color:var(--inkDim);}
+
+/* ── sub-tabs (within a screen) ──────────────────────────────────────── */
+.subtabseg{display:inline-flex;background:var(--surface3);border-radius:var(--r10);padding:3px;gap:2px;flex-wrap:wrap;}
+.subtab-btn{appearance:none;border:0;background:transparent;color:var(--inkDim);font-family:var(--fontSans);
+font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;}
+.subtab-btn.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.subpanel{display:none;}
+.subpanel.active{display:block;}
+
+/* ── register member panel (reused component id) ────────────────────── */
+.memberpanel{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+box-shadow:var(--shadowMd);overflow:hidden;}
+.memberpanel .mp-head{padding:14px 16px;background:var(--rail);color:var(--railBright);
+display:flex;align-items:center;gap:11px;}
+.memberpanel .mp-body{padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.footnote{display:flex;gap:10px;padding:11px 0;border-top:1px dashed var(--hairline2);font-size:12px;line-height:1.6;}
+.footnote:first-child{border-top:0;}
+.footnote .n{font-family:var(--fontMono);font-weight:700;color:var(--inkMute);flex:0 0 22px;}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ── main tab switching ────────────────────────────────────────────────
+  document.getElementById('tabseg').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tab-btn'); if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tabpanel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  });
+
+  // ── in-screen sub-tab switching (Messages, Loyalty, Customers) ────────
+  document.querySelectorAll('.subtabseg').forEach(function (seg) {
+    seg.addEventListener('click', function (e) {
+      var btn = e.target.closest('.subtab-btn'); if (!btn) return;
+      var group = seg.dataset.group;
+      document.querySelectorAll('.subtab-btn[data-group="' + group + '"]').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.subpanel[data-group="' + group + '"]').forEach(function (p) { p.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelector('.subpanel[data-group="' + group + '"][data-subtab="' + btn.dataset.subtab + '"]').classList.add('active');
+    });
+  });
+
+  // ── one rail, injected everywhere so every screen shares it exactly ───
+  function railHTML(active) {
+    var items = [
+      ['home', 'i-home', 'Home'],
+      ['customers', 'i-users', 'Customers'],
+      ['audiences', 'i-target', 'Audiences'],
+      ['messages', 'i-message', 'Messages'],
+      ['journeys', 'i-branch', 'Journeys'],
+      ['loyalty', 'i-award', 'Loyalty']
+    ];
+    var html = '<span class="logo">E</span>';
+    items.forEach(function (it) {
+      html += '<span class="it' + (it[0] === active ? ' on' : '') + '"><svg class="ic s18"><use href="#' + it[1] + '"/></svg>' + it[2] + '</span>';
+    });
+    html += '<span class="sp"></span><span class="it' + (active === 'settings' ? ' on' : '') + '"><svg class="ic s18"><use href="#i-settings"/></svg>Settings</span>';
+    return html;
+  }
+  document.querySelectorAll('.erail').forEach(function (el) { el.innerHTML = railHTML(el.dataset.active); });
+
+  function posRailHTML(active) {
+    var items = [
+      ['home', 'i-home', 'Home'],
+      ['register', 'i-register', 'Register'],
+      ['orders', 'i-board', 'Orders'],
+      ['catalog', 'i-package', 'Catalog'],
+      ['loyalty', 'i-award', 'Loyalty']
+    ];
+    var html = '<span class="logo">P</span>';
+    items.forEach(function (it) {
+      html += '<span class="it' + (it[0] === active ? ' on' : '') + '"><svg class="ic s18"><use href="#' + it[1] + '"/></svg>' + it[2] + '</span>';
+    });
+    return html;
+  }
+  document.querySelectorAll('.pos-rail').forEach(function (el) { el.innerHTML = posRailHTML(el.dataset.active); });
+
+  // ── theme toggle ────────────────────────────────────────────────────
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    var lbl = document.getElementById('themeLbl');
+    var use = btn.querySelector('use');
+    function paint() {
+      var dark = root.getAttribute('data-theme') === 'dark';
+      lbl.textContent = dark ? 'Light' : 'Dark';
+      use.setAttribute('href', dark ? '#i-sun' : '#i-moon');
+      btn.title = dark ? 'Switch to light' : 'Switch to dark';
+      document.body.style.colorScheme = dark ? 'dark' : 'light';
+    }
+    btn.addEventListener('click', function () {
+      root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      paint();
+    });
+    paint();
+  })();
+});
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V6z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17.2v.2"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16.5 5.2a3.5 3.5 0 010 6.6"/><path d="M18 14.9c2.2.7 3.6 2.6 3.6 5.1"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M2 20h20"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 8a2 2 0 012-2h13a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M16 12.5h3.5"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.7 2.7L16 9.6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M5 9l7 7 7-7"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.5l-5.4 2.9 1-6.1L3.2 10l6.1-.9z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 11.5a8.5 8.5 0 10-2.4 6.6"/><path d="M20.5 5.5v6h-6"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 010 18"/><path d="M12 3a15 15 0 000 18"/></symbol>
+<symbol id="i-register" viewBox="0 0 24 24"><path d="M4 8h16v12H4z"/><path d="M7 8V5h10v3"/><path d="M8 12h8"/><path d="M8 16h5"/></symbol>
+<symbol id="i-board" viewBox="0 0 24 24"><path d="M4 4h6v16H4z"/><path d="M14 4h6v9h-6z"/></symbol>
+<symbol id="i-package" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/></symbol>
+<symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3 20c0-3.4 3.2-6 7-6"/><path d="M17.5 12v6"/><path d="M14.5 15h6"/></symbol>
+<symbol id="i-trending-up" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></symbol>
+<symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 13.6L7 21l5-3 5 3-2-7.4"/></symbol>
+<symbol id="i-coins" viewBox="0 0 24 24"><path d="M4 7c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3z"/><path d="M4 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M4 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5l4.5 4.5"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2 12h2M20 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0112 5c6.2 0 10 7 10 7a17 17 0 01-4 4.6M6.5 6.6A17 17 0 002 12s3.8 7 10 7c1.4 0 2.7-.3 3.9-.8"/><path d="M9.9 9.9a3 3 0 004.2 4.2"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 11V4h7l10 10-7 7z"/><circle cx="7.5" cy="7.5" r="1.3"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16"/><path d="M8 3v4M16 3v4"/></symbol>
+<symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+<symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.3"/><circle cx="6" cy="18" r="2.3"/><circle cx="18" cy="10" r="2.3"/><path d="M6 8.3V18"/><path d="M6 8.3c0 4 4 4 8 4h1.6"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 006 6L16 14l5 2v4a2 2 0 01-2 2C10.5 22 2 13.5 2 5a2 2 0 012-2z"/></symbol>
+<symbol id="i-smartphone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 19h4"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M9 15l6-6"/><path d="M8 13l-2 2a3.5 3.5 0 005 5l2-2"/><path d="M16 11l2-2a3.5 3.5 0 00-5-5l-2 2"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2.5-7.5z"/><path d="M13 13L21 3"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><path d="M4 8h16v4H4z"/><path d="M6 12h12v9H6z"/><path d="M12 8v13"/><path d="M12 8c-1.5-4-6-4-6 0"/><path d="M12 8c1.5-4 6-4 6 0"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></symbol>
+<symbol id="i-credit-card" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 3v18"/><path d="M6 4h12l-3 4 3 4H6"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+<symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0112 0v5l2 3H4l2-3z"/><path d="M10 21a2 2 0 004 0"/></symbol>
+<symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M13 5l7 7-7 7"/></symbol>
+<symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M20 12H4"/><path d="M11 5l-7 7 7 7"/></symbol>
+<symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12"/><path d="M7.5 11.5L12 16l4.5-4.5"/><path d="M4 18h16v2H4z"/></symbol>
+<symbol id="i-lightning" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol>
+</defs></svg>
+
+<div class="doc-head">
+<div style="min-width:0">
+<h1>Engage — Concept A · Calm Ledger</h1>
+<div class="sub">DESIGN MOCKUP — every number below is demo data, nothing is read from an API · unified Engage per ENGAGE-CONCEPT-BRIEF-2026-09-10.md · tokens mirror pos/tokens.jsx</div>
+</div>
+<div class="seg" id="tabseg">
+<button class="tab-btn active" data-tab="why">1 · Why</button>
+<button class="tab-btn" data-tab="home">2 · Home / Insights</button>
+<button class="tab-btn" data-tab="customers">3 · Customers</button>
+<button class="tab-btn" data-tab="audiences">4 · Audiences</button>
+<button class="tab-btn" data-tab="messages">5 · Messages</button>
+<button class="tab-btn" data-tab="journeys">6 · Journeys</button>
+<button class="tab-btn" data-tab="loyalty">7 · Loyalty</button>
+<button class="tab-btn" data-tab="promorules">8 · Promo rules</button>
+<button class="tab-btn" data-tab="dev">9 · Dev call-outs</button>
+</div>
+<button class="theme-btn" id="themeBtn" title="Switch to dark"><svg class="ic s13"><use href="#i-moon"/></svg><span id="themeLbl">Dark</span></button>
+</div>
+
+<!-- ════════════════════════════════════════ 1 · WHY ════════════════════════════════════════ -->
+<div class="tabpanel active" id="tab-why">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Concept A — the organizing idea</div>
+<h2>One console, six sections, and nothing wider than a number and a list.</h2>
+<p>Calm Ledger takes the owner's ruling literally. Six sections live behind one rail — Home/Insights, Customers, Audiences, Messages, Journeys, Loyalty — with Settings, integrations, audit and health under one gear, and Loyalty is physically a POS screen rather than a section borrowed into Engage. Home never grows past four numbers and one list — the four are active members, messages sent this week, redemption rate, and revenue Engage can claim credit for; the list is "needs attention," not a dashboard of fifty-one tiles fighting for the same eye. Every other screen is list + detail: pick a row on the left, read the record on the right, edit inline. There is exactly one dense surface in the whole concept — the Journeys canvas — because a journey genuinely needs to be seen whole; everything else earns its depth by scrolling, never by cramming.</p>
+<p>The calm comes from a rule, not a mood: nothing in Calm Ledger shows a number without also showing the sentence that produced it. Audiences reads <code>Customers who ordered 3+ times, last order over 45 days ago…</code> before it reads <code>412</code> — the same discipline Klaviyo's plain-language segment builder and BLAZE's "on their 3rd visit" framing use (both flagged in the inspiration digest). Messages keeps that promise into send: the policy chain — consent coverage, quiet hours holds, frequency cap — sits above the Send button in the same sentence style, not behind a settings tab a marketer only finds after something goes wrong. Loyalty's earn rules and rewards use the identical sentence grammar — <code>2× points · Flower · Fri–Sun</code> — because rule 7 says loyalty and promotions share one vocabulary, and a second grammar would be the first thing to make the console feel busy again.</p>
+<p>What it costs: a console this literal about "one rail, one switcher" still has a seam. Loyalty's program screens live in the POS shell, not the Engage shell, exactly per rule 3 — so a marketer configuring a reward and a manager reading the register's member panel are looking at genuinely different chrome around the same ledger. This concept doesn't hide that seam; it shows both shells side by side in tab 7 so the trade is visible rather than assumed. And because every screen is list + detail, Calm Ledger is not the fastest concept for starting a one-off campaign from nothing — a goal-picker or canvas-first direction will feel quicker for that specific job. Calm Ledger is built instead for the console a marketer returns to every day, reads in ten seconds, and either acts on or closes.</p>
+</div>
+</div>
+<div class="stage">
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-layout"/></svg></span><span class="ttl">Density budget</span><span class="pill pill-neutral sm">the whole rule</span></div>
+<div class="cbody stack" style="gap:9px">
+<div class="kv"><span class="k">Home</span><span class="v">4 numbers · 1 list</span></div>
+<div class="kv"><span class="k">Customers · Audiences · Journeys list · Loyalty catalogue</span><span class="v">list + detail</span></div>
+<div class="kv"><span class="k">Journeys canvas</span><span class="v">the one dense screen</span></div>
+<div class="kv"><span class="k">Every rule</span><span class="v">a plain sentence, always visible</span></div>
+<div class="kv"><span class="k">Dev call-outs</span><span class="v">footnotes, not a floating panel</span></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-branch"/></svg></span><span class="ttl">Two shells, one ledger</span><span class="pill pill-neutral sm">rule 3</span></div>
+<div class="cbody stack" style="gap:9px">
+<div class="kv"><span class="k">Engage shell</span><span class="v">Home · Customers · Audiences · Messages · Journeys</span></div>
+<div class="kv"><span class="k">POS shell</span><span class="v">Loyalty program + register member panel</span></div>
+<div class="kv"><span class="k">Register never edited</span><span class="v">panel reaches it via Home card + payment modal</span></div>
+<div class="kv"><span class="k">Same record</span><span class="v">Customers detail == POS member lookup</span></div>
+</div>
+</div>
+</div>
+<div class="devnote warn">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>What this concept trades away</div>
+<ul>
+<li><b>Not the fastest way to start from nothing.</b> A goal-picker or a canvas-first concept gets a one-off campaign live in fewer clicks. Calm Ledger optimizes for the tenth visit, not the first.</li>
+<li><b>Two shells to keep aligned.</b> Loyalty's POS screens and the Engage screens share tokens and a rule vocabulary, but they are not the same React tree — a change to the sentence editor has to land in both.</li>
+<li><b>List + detail everywhere can feel like a lot of clicking</b> for someone who wants a single glance at everything. That is deliberate — rule 5 says calm over dense, and Starbucks' own A/B test (inspiration digest §15) is the strongest evidence that a denser variant reads worse, not better.</li>
+</ul>
+</div>
+<div class="built"><b>Built from:</b> pos/screen-home.jsx's "Needs attention" card (promoted to Home's one list) · engage/screen-customers.jsx's list+detail record pattern · engage/screen-audience-builder.jsx's prompt→sentence→size flow · athome/crm.jsx's two-pane member record · pos/tokens.jsx for every color, radius and shadow in this file.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ 2 · HOME / INSIGHTS ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-home">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Home / Insights — what a marketer sees first</div>
+<h2>Four numbers. One list. Nothing else competes for the first ten seconds.</h2>
+<p>The four numbers are the ones a marketer would ask for out loud if the console vanished: how many members do we have, how much did we send this week, what fraction of sends converted, and what can Engage take credit for. The one list is "Needs attention" — the same shape as the POS Home's own attention card — so the console never grows a second dashboard next to the first.</p>
+</div>
+</div>
+<div class="stage">
+<div class="appshell">
+<div class="erail" data-active="home"></div>
+<div class="emain">
+<div class="etop">
+<span class="storesw"><span class="d"></span>All stores ▾</span>
+<div style="flex:1"></div>
+<div style="width:260px"><div class="field"><svg class="ic s13" style="color:var(--inkMute)"><use href="#i-search"/></svg><span class="ph">Search customers, audiences…</span></div></div>
+<span style="position:relative"><svg class="ic s18" style="color:var(--inkDim)"><use href="#i-bell"/></svg><span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:99px;background:var(--bad);color:#fff;font-size:8.5px;font-weight:800;display:flex;align-items:center;justify-content:center">3</span></span>
+<span class="av lg me">MS</span>
+</div>
+<div class="escr">
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+<div><div class="lbl" style="margin-bottom:4px">Tuesday, September 10</div><h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Good afternoon, Manisha</h1></div>
+<span class="pill pill-neutral sm">demo data · not read from any API</span>
+</div>
+
+<div class="grid4" style="margin-bottom:18px">
+<div class="st accent"><div class="lbl">Active members</div><div class="v">18,406</div><div class="s">consented + at least 1 order, 90d</div></div>
+<div class="st"><div class="lbl">Sent this week</div><div class="v">9,214</div><div class="s">3 campaigns · SMS + email</div></div>
+<div class="st good"><div class="lbl">Redemption rate</div><div class="v">31.4%</div><div class="s">of sends that carried a reward link</div></div>
+<div class="st"><div class="lbl">Revenue attributed</div><div class="v">$41,880</div><div class="s">30d · last-touch to a message or journey</div></div>
+</div>
+
+<div class="card" style="overflow:hidden">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-shield"/></svg></span><span class="ttl">Needs attention</span><span class="pill pill-warn sm"><span class="dot"></span>5</span></div>
+<div>
+<div style="display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span class="cardhead .plate" style="width:30px;height:30px;border-radius:8px;background:var(--badSoft);color:var(--bad);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-alert"/></svg></span>
+<span style="flex:1;font-size:12.5px;font-weight:600">"September win-back" is 62% blocked by quiet hours — its 9:00a send window opens in 41 minutes</span>
+<span class="pill pill-warn sm">Messages</span>
+</div>
+<div style="display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--warnSoft);color:var(--warnText);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-users"/></svg></span>
+<span style="flex:1;font-size:12.5px;font-weight:600">"Lapsing VIPs — Corona" shrank 18% overnight (412 → 338) — a store-affinity trait may be mis-mapped</span>
+<span class="pill pill-warn sm">Audiences</span>
+</div>
+<div style="display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--infoSoft);color:var(--info);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-branch"/></svg></span>
+<span style="flex:1;font-size:12.5px;font-weight:600">"Win-back — flower regulars" journey has 1,204 enrolled but only 22% reached the Message node — check the consent branch</span>
+<span class="pill pill-info sm">Journeys</span>
+</div>
+<div style="display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--badSoft);color:var(--bad);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-x"/></svg></span>
+<span style="flex:1;font-size:12.5px;font-weight:600">"New drop: Papaya Rosin" failed policy check — 3 blocks say cannabis content in the SMS body, not the landing page</span>
+<span class="pill pill-bad sm">Messages</span>
+</div>
+<div style="display:flex;align-items:center;gap:11px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-gift"/></svg></span>
+<span style="flex:1;font-size:12.5px;font-weight:600">14 referral credits are ready to settle — $210 total, unpaid since Sep 3</span>
+<span class="pill pill-neutral sm">Loyalty</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> the four-stat grid is <code>pos/screen-home.jsx</code>'s <code>Stat</code> tile, unchanged. The "Needs attention" list is that same screen's attention card, promoted from a Home sidebar item to the entire second half of this page — same 30px icon plate, same right-aligned pill, same "nothing needs you" empty state (not shown; today isn't clear).</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ 3 · CUSTOMERS ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-customers">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Customers — the Members CRM, updated (athome/crm.jsx)</div>
+<h2>List on the left, one full record on the right — the same panel the register shows.</h2>
+<p>This is not a second member module. It is the existing Members CRM with loyalty made real: points balance, tier, and expiry sit next to identity and consent instead of in a separate Alpine IQ tab that no longer exists. The record panel below is the literal component the POS register's customer lookup renders (tab 7) — built once, read from two shells.</p>
+</div>
+</div>
+<div class="stage">
+<div class="appshell">
+<div class="erail" data-active="customers"></div>
+<div class="emain">
+<div class="etop"><span class="storesw"><span class="d"></span>All stores ▾</span><div style="flex:1"></div><span class="pill pill-neutral sm">4,218 customers · demo</span></div>
+<div class="escr">
+<div class="subtabseg" data-group="cust" style="margin-bottom:14px">
+<button class="subtab-btn active" data-group="cust" data-subtab="list">List</button>
+<button class="subtab-btn" data-group="cust" data-subtab="record">Member record</button>
+</div>
+
+<div class="subpanel active" data-group="cust" data-subtab="list">
+<div class="card" style="overflow:hidden">
+<div style="padding:12px 16px;border-bottom:1px solid var(--hairline2);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<div style="flex:1;min-width:220px"><div class="field"><svg class="ic s13" style="color:var(--inkMute)"><use href="#i-search"/></svg><span class="ph">Search by name or phone…</span></div></div>
+<span class="chip on">All</span><span class="chip">Champions</span><span class="chip">At risk</span><span class="chip">Hibernating</span><span class="chip">New</span>
+</div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Customer</th><th>Tier</th><th>Segment</th><th class="tright">Lifetime</th><th class="tright">Orders</th><th class="tright">Points</th><th>Consent</th><th>Affinity store</th></tr></thead>
+<tbody>
+<tr class="me"><td><div class="row" style="gap:9px"><span class="av me">JA</span><div><div style="font-weight:700">Jordan Alvarez</div><div class="meta">CUS-8f2a1c</div></div></div></td><td><span class="pill pill-accent sm">Gold</span></td><td><span class="pill pill-good sm">Champions</span></td><td class="tright mono">$3,940</td><td class="tright mono">22</td><td class="tright mono">3,240</td><td><span class="pill pill-good sm">SMS + email</span></td><td>Corona</td></tr>
+<tr><td><div class="row" style="gap:9px"><span class="av">DC</span><div><div style="font-weight:700">Dana Cho</div><div class="meta">CUS-1129af</div></div></div></td><td><span class="pill pill-neutral sm">Silver</span></td><td><span class="pill pill-info sm">Loyal regulars</span></td><td class="tright mono">$640</td><td class="tright mono">6</td><td class="tright mono">410</td><td><span class="pill pill-good sm">SMS only</span></td><td>Riverside</td></tr>
+<tr><td><div class="row" style="gap:9px"><span class="av">LP</span><div><div style="font-weight:700">Leo Park</div><div class="meta">CUS-77ce02</div></div></div></td><td><span class="pill pill-accent sm">Gold</span></td><td><span class="pill pill-warn sm">At risk</span></td><td class="tright mono">$4,100</td><td class="tright mono">22</td><td class="tright mono">2,880</td><td><span class="pill pill-neutral sm">none</span></td><td>Corona</td></tr>
+<tr><td><div class="row" style="gap:9px"><span class="av">MF</span><div><div style="font-weight:700">Mia Flores</div><div class="meta">CUS-3d19b0</div></div></div></td><td><span class="pill pill-neutral sm">Silver</span></td><td><span class="pill pill-info sm">Loyal regulars</span></td><td class="tright mono">$1,350</td><td class="tright mono">11</td><td class="tright mono">960</td><td><span class="pill pill-good sm">SMS + email</span></td><td>Lake Elsinore</td></tr>
+<tr><td><div class="row" style="gap:9px"><span class="av">TN</span><div><div style="font-weight:700">Tara Nguyen</div><div class="meta">CUS-4471e9</div></div></div></td><td><span class="pill pill-neutral sm">Member</span></td><td><span class="pill pill-info sm">New</span></td><td class="tright mono">$210</td><td class="tright mono">2</td><td class="tright mono">210</td><td><span class="pill pill-good sm">SMS only</span></td><td>West Hollywood</td></tr>
+<tr><td><div class="row" style="gap:9px"><span class="av">SO</span><div><div style="font-weight:700">Sam Ortiz</div><div class="meta">CUS-90aa41</div></div></div></td><td><span class="pill pill-neutral sm">Member</span></td><td><span class="pill pill-bad sm">Hibernating</span></td><td class="tright mono">$0</td><td class="tright mono">0</td><td class="tright mono">0</td><td><span class="pill pill-neutral sm">none</span></td><td>—</td></tr>
+</tbody>
+</table></div>
+<div style="padding:10px 16px;font-size:11.5px;color:var(--inkDim);border-top:1px solid var(--hairline2)">6 of 4,218 · demo rows</div>
+</div>
+</div>
+
+<div class="subpanel" data-group="cust" data-subtab="record">
+<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+<span class="av lg me" style="width:48px;height:48px;font-size:15px">JA</span>
+<div style="min-width:0"><h2 style="margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em">Jordan Alvarez</h2><div class="meta">CUS-8f2a1c · member since Jan 14, 2025</div></div>
+<div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+<span class="pill pill-accent sm">Gold tier</span><span class="pill pill-good sm">Champions</span><span class="pill pill-good sm">age verified</span>
+</div>
+</div>
+
+<div class="grid4" style="margin-bottom:14px">
+<div class="st accent"><div class="lbl">Lifetime spend</div><div class="v" style="font-size:19px">$3,940</div></div>
+<div class="st"><div class="lbl">Lifetime orders</div><div class="v" style="font-size:19px">22</div></div>
+<div class="st"><div class="lbl">Points balance</div><div class="v" style="font-size:19px">3,240</div><div class="s">620 expire Nov 30, 2026</div></div>
+<div class="st"><div class="lbl">Recency</div><div class="v" style="font-size:19px">6d</div></div>
+</div>
+
+<div class="grid2" style="margin-bottom:14px">
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-lock"/></svg></span><span class="ttl">Identity</span></div>
+<div class="cbody">
+<div class="kv"><span class="k">Mobile</span><span class="v mono">+1 (951) 555-0142</span></div>
+<div class="kv"><span class="k">Email</span><span class="v mono">jordan.alvarez@example.com</span></div>
+<div class="kv"><span class="k">POS customer id</span><span class="v mono">POS-104829</span></div>
+<div class="kv"><span class="k">Web id</span><span class="v mono">cus_8f2a1c</span></div>
+<div class="kv"><span class="k">Wallet pass</span><span class="v">Apple Wallet · added Jul 2</span></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-check-circle"/></svg></span><span class="ttl">Consent</span></div>
+<div class="cbody">
+<div class="kv"><span class="k">SMS marketing</span><span class="v"><span class="pill pill-good sm">granted</span></span></div>
+<div class="kv"><span class="k">· source / when</span><span class="v mono">pos.checkout · Jan 14, 2025</span></div>
+<div class="kv"><span class="k">Email marketing</span><span class="v"><span class="pill pill-good sm">granted</span></span></div>
+<div class="kv"><span class="k">· source / when</span><span class="v mono">web.landing · Jan 14, 2025</span></div>
+</div>
+</div>
+</div>
+
+<div class="grid2" style="margin-bottom:14px">
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-map-pin"/></svg></span><span class="ttl">Store affinity</span></div>
+<div class="cbody stack" style="gap:9px">
+<div><div class="row" style="justify-content:space-between"><span style="font-size:12.5px;font-weight:600">Corona</span><span class="meta">68%</span></div><div class="bar tall"><span style="width:68%"></span></div></div>
+<div><div class="row" style="justify-content:space-between"><span style="font-size:12.5px;font-weight:600">West Hollywood</span><span class="meta">22%</span></div><div class="bar tall"><span style="width:22%;background:var(--neutral)"></span></div></div>
+<div><div class="row" style="justify-content:space-between"><span style="font-size:12.5px;font-weight:600">Lake Elsinore</span><span class="meta">10%</span></div><div class="bar tall"><span style="width:10%;background:var(--neutral)"></span></div></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-gift"/></svg></span><span class="ttl">Referral</span></div>
+<div class="cbody">
+<div class="kv"><span class="k">Referred</span><span class="v">2 friends</span></div>
+<div class="kv"><span class="k">Converted</span><span class="v">1 (Dana Cho, Jul 5)</span></div>
+<div class="kv"><span class="k">Credit earned</span><span class="v mono">$25.00</span></div>
+</div>
+</div>
+</div>
+
+<div class="grid2" style="margin-bottom:14px">
+<div class="card" style="overflow:hidden">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-target"/></svg></span><span class="ttl">Audiences</span><span class="pill pill-neutral sm">3</span></div>
+<div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);font-size:12.5px"><b>Champions · Corona</b><div class="meta">joined Aug 22</div></div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);font-size:12.5px"><b>Gold tier members</b><div class="meta">joined Mar 3</div></div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);font-size:12.5px"><b>Flower-first, no edibles 90d</b><div class="meta">joined Jul 19</div></div>
+</div>
+</div>
+<div class="card" style="overflow:hidden">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-message"/></svg></span><span class="ttl">Messages received</span><span class="pill pill-neutral sm">3</span></div>
+<div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);display:flex;justify-content:space-between;font-size:12.5px"><span><b>Gold tier double points weekend</b><div class="meta">email · Sep 6</div></span><span class="pill pill-good sm">clicked</span></div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);display:flex;justify-content:space-between;font-size:12.5px"><span><b>Birthday reward</b><div class="meta">sms · Mar 14</div></span><span class="pill pill-good sm">redeemed</span></div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);display:flex;justify-content:space-between;font-size:12.5px"><span><b>Welcome to Gold</b><div class="meta">email · Mar 3</div></span><span class="pill pill-info sm">delivered</span></div>
+</div>
+</div>
+</div>
+
+<div class="card" style="overflow:hidden">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-clock"/></svg></span><span class="ttl">Order history</span><span class="pill pill-neutral sm">last 5 of 22</span></div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Order</th><th>Store</th><th>Channel</th><th class="tright">Items</th><th class="tright">Total</th></tr></thead>
+<tbody>
+<tr><td class="mono">H-9241</td><td>Corona</td><td>Pickup</td><td class="tright mono">3</td><td class="tright mono">$186</td></tr>
+<tr><td class="mono">H-9188</td><td>Corona</td><td>Delivery</td><td class="tright mono">5</td><td class="tright mono">$212</td></tr>
+<tr><td class="mono">H-9042</td><td>West Hollywood</td><td>Delivery</td><td class="tright mono">2</td><td class="tright mono">$96</td></tr>
+<tr><td class="mono">H-8877</td><td>Corona</td><td>Pickup</td><td class="tright mono">4</td><td class="tright mono">$164</td></tr>
+<tr><td class="mono">H-8801</td><td>Lake Elsinore</td><td>Delivery</td><td class="tright mono">3</td><td class="tright mono">$148</td></tr>
+</tbody>
+</table></div>
+</div>
+<div class="devnote info" style="margin-top:14px"><div class="dn-head"><svg class="ic s13"><use href="#i-register"/></svg>Same component, two shells</div>Every card above is the record this concept reuses verbatim inside the POS register's customer lookup (see tab 7 · Register-side). A staff member ringing a sale sees the identity, consent, points, and reward-eligibility rows exactly as drawn here — not a re-derived summary.</div>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> <code>engage/screen-customers.jsx</code>'s list (RFM filter chips, avatar-initial rows, tabular numerics) and its <code>ScreenCustomerDetail</code> stat grid + audience-membership / consent-log / message-history list pattern; <code>athome/crm.jsx</code>'s two-pane member record shape supplied the identity/consent card split.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ 4 · AUDIENCES ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-audiences">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Audiences — the builder</div>
+<h2>A sentence you can read out loud, a live count, and five real rows to check your work.</h2>
+<p>Type a prompt or click a trait — either path lands in the same editable sentence, because a segment built by AI and a segment built by hand should look identical once they're saved. The size updates as you edit; the sample of 5 is there so nobody has to trust a number they can't spot-check.</p>
+</div>
+</div>
+<div class="stage">
+<div class="appshell">
+<div class="erail" data-active="audiences"></div>
+<div class="emain">
+<div class="etop"><span class="storesw"><span class="d"></span>All stores ▾</span></div>
+<div class="escr">
+
+<div class="split" style="margin-bottom:24px">
+<div class="stack">
+<div>
+<div class="flbl">Describe the audience</div>
+<div class="card pad" style="display:flex;gap:10px;align-items:center">
+<svg class="ic s18" style="color:var(--accentText)"><use href="#i-sparkle"/></svg>
+<span style="flex:1;font-size:13.5px;color:var(--ink2)">"Customers who ordered 3+ times, lapsed 45+ days, SMS consent granted, favourite store Corona"</span>
+<button class="btn btn-accent btn-xs">Generate</button>
+</div>
+<div class="fhint">Claude Sonnet · reads trait paths only, never raw customer PII.</div>
+</div>
+
+<div>
+<div class="flbl">The sentence — click any token to change it</div>
+<div class="card pad">
+<div class="sentence">
+Customers who <span class="tok">ordered</span> <span class="tok">3+ times</span>, last order <span class="tok">over 45 days ago</span>, SMS consent <span class="tok">granted</span>, favourite store <span class="tok">Corona</span>.
+</div>
+</div>
+</div>
+
+<div>
+<div class="flbl">Sample of 5 — matching customers, demo</div>
+<div class="card" style="overflow:hidden">
+<table class="dt">
+<thead><tr><th>Customer</th><th>Last order</th><th class="tright">Orders</th><th>Consent</th></tr></thead>
+<tbody>
+<tr><td><div class="row" style="gap:8px"><span class="av">LP</span>Leo Park</div></td><td class="mono">52d ago</td><td class="tright mono">22</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td><div class="row" style="gap:8px"><span class="av">RW</span>Reggie Watts</div></td><td class="mono">61d ago</td><td class="tright mono">34</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td><div class="row" style="gap:8px"><span class="av">JB</span>Jordan Blake</div></td><td class="mono">49d ago</td><td class="tright mono">41</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td><div class="row" style="gap:8px"><span class="av">WK</span>Wesley Kim</div></td><td class="mono">77d ago</td><td class="tright mono">9</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td><div class="row" style="gap:8px"><span class="av">MF</span>Mia Flores</div></td><td class="mono">58d ago</td><td class="tright mono">11</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+</tbody>
+</table>
+<div style="padding:8px 14px;font-size:11px;color:var(--inkMute);border-top:1px solid var(--hairline2)">demo rows · 5 of 412 matches</div>
+</div>
+</div>
+</div>
+
+<aside class="stack">
+<div class="card pad" style="background:var(--accentSoft);border-color:var(--accentBorder)">
+<div class="flbl">Live size</div>
+<div style="font-size:38px;font-weight:800;font-family:var(--fontMono);line-height:1;letter-spacing:-.02em">412</div>
+<div class="fhint" style="margin-top:6px">matching customers · updates as you edit the sentence</div>
+</div>
+<div class="card pad-sm">
+<div class="flbl" style="margin-bottom:6px">Why 412?</div>
+<div class="muted">Resolved 4 trait paths from the catalog. "3+ times" and "45+ days" came straight from the sentence; "Corona" matched 1,180 customers before the other three clauses narrowed it. Unresolvable traits fail closed rather than matching everyone.</div>
+</div>
+<div class="card pad-sm">
+<div class="flbl" style="margin-bottom:6px">Try one of these</div>
+<div class="row" style="gap:6px">
+<span class="chip">Big spenders, lapsed 30d+</span>
+<span class="chip">Flower-first, no edibles 90d</span>
+<span class="chip">Birthday this month</span>
+</div>
+</div>
+</aside>
+</div>
+
+<div class="caphead"><h3>Saved audiences</h3><span class="cs">Refresh cadence and where each one is currently used — so nobody deletes an audience three campaigns depend on.</span></div>
+<div class="card" style="overflow:hidden">
+<table class="dt">
+<thead><tr><th>Name</th><th class="tright">Size</th><th>Refresh</th><th>Used in</th></tr></thead>
+<tbody>
+<tr><td><b>Lapsing VIPs — Corona</b></td><td class="tright mono">412</td><td><span class="pill pill-good sm"><span class="dot"></span>live · hourly</span></td><td class="meta">2 journeys · 1 campaign</td></tr>
+<tr><td><b>Flower-first, no edibles 90d</b></td><td class="tright mono">1,206</td><td><span class="pill pill-good sm"><span class="dot"></span>live · daily</span></td><td class="meta">1 campaign</td></tr>
+<tr><td><b>Birthday this month</b></td><td class="tright mono">88</td><td><span class="pill pill-good sm"><span class="dot"></span>live · daily</span></td><td class="meta">1 journey</td></tr>
+<tr><td><b>Gold tier members</b></td><td class="tright mono">2,140</td><td><span class="pill pill-good sm"><span class="dot"></span>live · daily</span></td><td class="meta">1 campaign · 1 journey</td></tr>
+<tr><td><b>New members, 0 orders</b></td><td class="tright mono">340</td><td><span class="pill pill-neutral sm">static · saved Aug 14</span></td><td class="meta">1 campaign</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> <code>engage/screen-audience-builder.jsx</code> — the trait catalog, the prompt→translate→leaves flow, the debounced live-size preview, and the "Why this size?" disclosure all map directly; Concept A collapses the three-column builder into one readable sentence because the raw filter-chip view is exactly the density this direction is trying to avoid by default (still one click away, not shown here).</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ 5 · MESSAGES ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-messages">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Messages — compose, the block builder, and the SMS + landing page pair</div>
+<h2>Audience → channel → content → schedule → policy check → send — the policy check is never a surprise.</h2>
+<p>SMS never carries cannabis content, price, or imagery — the text is a short, generic line pointing at a landing page, and that page carries the offer plus a per-page 21+/state gate toggle (the storefront itself stays gate-free, rule D-024a). The same block builder composes both the email and the landing page from one small palette.</p>
+</div>
+</div>
+<div class="stage">
+<div class="appshell">
+<div class="erail" data-active="messages"></div>
+<div class="emain">
+<div class="etop"><span class="storesw"><span class="d"></span>All stores ▾</span></div>
+<div class="escr">
+
+<div class="subtabseg" data-group="msg" style="margin-bottom:16px">
+<button class="subtab-btn active" data-group="msg" data-subtab="compose">Compose</button>
+<button class="subtab-btn" data-group="msg" data-subtab="blocks">Block builder</button>
+<button class="subtab-btn" data-group="msg" data-subtab="sms">SMS + landing page</button>
+</div>
+
+<!-- COMPOSE -->
+<div class="subpanel active" data-group="msg" data-subtab="compose">
+<div class="twoup">
+<div class="card" style="overflow:hidden">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-message"/></svg></span><span class="ttl">Campaigns</span><span class="pill pill-neutral sm">3</span></div>
+<div>
+<div style="padding:12px 14px;border-top:1px solid var(--hairline);background:var(--accentSoft);cursor:pointer">
+<div style="font-size:13px;font-weight:700">September win-back</div>
+<div class="meta" style="margin-top:2px">SMS · scheduled Sep 12, 9:00a</div>
+<div style="margin-top:6px"><span class="pill pill-warn sm">quiet hours holding 62%</span></div>
+</div>
+<div style="padding:12px 14px;border-top:1px solid var(--hairline)">
+<div style="font-size:13px;font-weight:700">Gold tier double points weekend</div>
+<div class="meta" style="margin-top:2px">Email · sent Sep 6</div>
+<div style="margin-top:6px"><span class="pill pill-good sm">delivered · 91%</span></div>
+</div>
+<div style="padding:12px 14px;border-top:1px solid var(--hairline)">
+<div style="font-size:13px;font-weight:700">New drop: Papaya Rosin</div>
+<div class="meta" style="margin-top:2px">SMS + Email · draft</div>
+<div style="margin-top:6px"><span class="pill pill-bad sm">policy check failed</span></div>
+</div>
+</div>
+</div>
+
+<div class="stack">
+<div class="card pad">
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-size:16px;font-weight:700">September win-back</div><div class="meta">campaign · evergreen? no — one-time broadcast</div></div>
+<span class="pill pill-warn sm">draft, not sent</span>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:0">
+<div style="flex:1;min-width:150px;padding:10px 12px;border:1px solid var(--hairline2);border-radius:var(--r10) 0 0 var(--r10)"><div class="lbl">1 · Audience</div><div style="font-size:12.5px;font-weight:700;margin-top:3px">Lapsing VIPs — Corona</div><div class="meta">412 members</div></div>
+<div style="flex:1;min-width:150px;padding:10px 12px;border:1px solid var(--hairline2);border-left:0"><div class="lbl">2 · Channel</div><div style="font-size:12.5px;font-weight:700;margin-top:3px">SMS</div><div class="meta">short body only</div></div>
+<div style="flex:1;min-width:150px;padding:10px 12px;border:1px solid var(--hairline2);border-left:0"><div class="lbl">3 · Content</div><div style="font-size:12.5px;font-weight:700;margin-top:3px">Landing: "We miss you"</div><div class="meta">block builder</div></div>
+<div style="flex:1;min-width:150px;padding:10px 12px;border:1px solid var(--hairline2);border-left:0;border-radius:0 var(--r10) var(--r10) 0"><div class="lbl">4 · Schedule</div><div style="font-size:12.5px;font-weight:700;margin-top:3px">Sep 12, 9:00a PT</div><div class="meta">respects quiet hours</div></div>
+</div>
+</div>
+
+<div class="card pad">
+<div class="flbl" style="margin-bottom:10px">5 · Policy check — before Send, not after</div>
+<div class="pchain">
+<div class="st2"><div class="h"><svg class="ic s13" style="color:var(--good)"><use href="#i-check-circle"/></svg>Consent coverage</div><div class="v">96%</div><div class="s">396 of 412 have SMS consent · 16 excluded automatically</div></div>
+<div class="st2"><div class="h"><svg class="ic s13" style="color:var(--warnText)"><use href="#i-clock"/></svg>Quiet hours</div><div class="v">62% held</div><div class="s">window opens 9:00a PT · releases automatically, no resend needed</div></div>
+<div class="st2"><div class="h"><svg class="ic s13" style="color:var(--good)"><use href="#i-check-circle"/></svg>Frequency cap</div><div class="v">1 / 3</div><div class="s">weekly sends used for this audience — clear to send</div></div>
+</div>
+<div class="devnote warn" style="margin-top:12px"><div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Honest, not hidden</div>62% of this send will queue and release automatically when quiet hours end at 9:00a — Send below queues all 396, it does not mean 396 texts leave in the next minute.</div>
+</div>
+
+<div class="row" style="justify-content:flex-end;gap:8px">
+<button class="btn btn-secondary">Save draft</button>
+<button class="btn btn-accent btn-lg">Send to 396 →</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- BLOCK BUILDER -->
+<div class="subpanel" data-group="msg" data-subtab="blocks">
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-size:15px;font-weight:700">Landing page: "We miss you at Corona"</div><div class="meta">Same builder composes email content — one small palette, two output shapes</div></div>
+<div class="row" style="gap:10px">
+<span style="font-size:12px;font-weight:600;color:var(--ink2)">21+ / state gate on this page</span>
+<span class="gswitch on"><i></i></span>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:180px minmax(0,1fr) 220px;gap:14px;align-items:start">
+<div class="card pad-sm">
+<div class="flbl" style="margin-bottom:8px">Blocks · 12</div>
+<div class="bpalette">
+<div class="bblock"><svg class="ic s18"><use href="#i-layout"/></svg>Header</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-message"/></svg>Text</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-layout"/></svg>Image</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-send"/></svg>Button</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-package"/></svg>Product</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-clock"/></svg>Countdown</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-layout"/></svg>Divider</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-users"/></svg>Social</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-layout"/></svg>Footer</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-award"/></svg>Reward</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-play"/></svg>Video</div>
+<div class="bblock"><svg class="ic s18"><use href="#i-layout"/></svg>Spacer</div>
+</div>
+<div class="flbl" style="margin:14px 0 8px">Saved sections</div>
+<div class="stack" style="gap:6px">
+<span class="chip">Standard footer</span>
+<span class="chip">Consent disclosure</span>
+<span class="chip">Store hours</span>
+</div>
+</div>
+
+<div class="bcanvas">
+<div class="bsec"><span class="tag">Header</span><div style="font-size:16px;font-weight:800">We miss you at Corona</div><div class="meta" style="margin-top:2px">Green Leaf Rewards</div></div>
+<div class="bsec"><span class="tag">Text</span><div style="font-size:12.5px;color:var(--ink2)">Hi {{first_name}} — it's been a while. You have {{points_balance}} points waiting, and one of them can turn into $5 off right now.</div></div>
+<div class="bsec"><span class="tag">Reward badge</span><div class="row" style="gap:10px"><span class="pill pill-accent sm">$5 off</span><span class="pill pill-neutral sm">delivery + in-store</span><span class="meta">expires in 14 days</span></div></div>
+<div class="bsec"><span class="tag">Button</span><button class="btn btn-accent btn-full" style="width:100%">Redeem at Corona</button></div>
+<div class="bsec"><span class="tag">Footer</span><div class="meta">{{store_name}} · reply STOP to opt out · saved section: Consent disclosure</div></div>
+</div>
+
+<div>
+<div class="flbl" style="margin-bottom:8px">Mobile preview</div>
+<div class="snap">
+<div class="scr">
+<div style="padding:6px 10px 0"><span class="gatepill" style="background:var(--warnSoft);color:var(--warnText)"><svg class="ic s13"><use href="#i-shield"/></svg>21+ gate on</span></div>
+<div class="sh"><div class="g">Green Leaf Rewards</div><h4>We miss you at Corona</h4></div>
+<div class="body">
+<div style="font-size:11px;color:var(--inkDim);line-height:1.5">Hi Jordan — you have 3,240 points waiting, and one of them can turn into $5 off right now.</div>
+<div class="card pad-sm" style="text-align:center"><span class="pill pill-accent sm">$5 off · delivery + in-store</span></div>
+<button class="btn btn-accent btn-full">Redeem at Corona</button>
+<div style="font-size:9.5px;color:var(--inkMute);text-align:center;margin-top:auto">Corona · reply STOP to opt out</div>
+</div>
+</div>
+</div>
+<div class="flbl" style="margin-top:12px">Merge tags</div>
+<div class="stack" style="gap:5px;margin-top:6px">
+<span class="chip" style="font-family:var(--fontMono)">{{first_name}}</span>
+<span class="chip" style="font-family:var(--fontMono)">{{points_balance}}</span>
+<span class="chip" style="font-family:var(--fontMono)">{{store_name}}</span>
+<span class="chip" style="font-family:var(--fontMono)">{{reward_link}}</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- SMS + LANDING -->
+<div class="subpanel" data-group="msg" data-subtab="sms">
+<div class="grid2">
+<div class="card pad">
+<div class="flbl" style="margin-bottom:10px">SMS composer — the short body</div>
+<div style="display:flex;justify-content:flex-end">
+<div style="max-width:280px;background:var(--info);color:#fff;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:13.5px;line-height:1.5">Important message from Hyperwolf: hyp.wf/x7Kq2p</div>
+</div>
+<div class="fhint" style="text-align:right;margin-top:6px">44 characters · no cannabis content, price, or imagery — nothing here needs a SHAFT review</div>
+<div class="devnote info" style="margin-top:14px"><div class="dn-head"><svg class="ic s13"><use href="#i-link"/></svg>What hyp.wf/x7Kq2p opens</div>The short link resolves server-side to this customer's landing page render — the offer, the reward, the gate, and every merge tag live only on the page, never in the text.</div>
+</div>
+<div>
+<div class="flbl" style="margin-bottom:10px">The page it opens</div>
+<div class="snap">
+<div class="scr">
+<div style="padding:6px 10px 0"><span class="gatepill" style="background:var(--warnSoft);color:var(--warnText)"><svg class="ic s13"><use href="#i-shield"/></svg>21+ gate on</span></div>
+<div class="sh"><div class="g">Green Leaf Rewards</div><h4>We miss you at Corona</h4></div>
+<div class="body">
+<div style="font-size:11px;color:var(--inkDim);line-height:1.5">Hi Jordan — you have 3,240 points waiting, and one of them can turn into $5 off right now.</div>
+<div class="card pad-sm" style="text-align:center"><span class="pill pill-accent sm">$5 off · delivery + in-store</span></div>
+<button class="btn btn-accent btn-full">Redeem at Corona</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="row" style="justify-content:space-between;margin-top:14px;padding:12px 14px;background:var(--surface2);border:1px solid var(--hairline2);border-radius:var(--r10)">
+<span style="font-size:12.5px;font-weight:600">Per-page gate — this landing page only, not the storefront (rule D-024a)</span>
+<span class="gswitch on"><i></i></span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> the stepper mirrors <code>engage/screen-customers.jsx</code>'s card rhythm; the block palette caps at 12 the way the inspiration digest's Klaviyo/Mailchimp comparison found best-in-class email builders do (§2d); the phone frame reuses Concept D's <code>.snap</code> shape; the policy chain is written the same "show the honest number, not a green checkmark" way Concept D's freshness strip does.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ 6 · JOURNEYS ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-journeys">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Journeys — the one dense screen in this concept, on purpose</div>
+<h2>Trigger · wait · branch · message · loyalty action · exit — six node types, nothing else.</h2>
+<p>This is the single canvas in Calm Ledger, because a journey genuinely needs to be read all at once to make sense of it — the same reasoning that keeps every other screen to list + detail. Every node below carries a real enrolled/converted count so the shape of a win-back journey is visible without opening a report.</p>
+</div>
+</div>
+<div class="stage">
+<div class="appshell">
+<div class="erail" data-active="journeys"></div>
+<div class="emain">
+<div class="etop"><span class="storesw"><span class="d"></span>All stores ▾</span></div>
+<div class="escr">
+
+<div class="subtabseg" data-group="journeys" style="margin-bottom:16px">
+<button class="subtab-btn active" data-group="journeys" data-subtab="prompt">Prompt</button>
+<button class="subtab-btn" data-group="journeys" data-subtab="canvas">Canvas</button>
+</div>
+
+<div class="subpanel active" data-group="journeys" data-subtab="prompt">
+
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-size:16px;font-weight:700">Smart prompt → journey</div><div class="meta">same prompt field as Promo rules (tab 8) — the model only proposes, the catalog validates, the runner executes</div></div>
+<span class="pill pill-neutral sm">demo data</span>
+</div>
+
+<div class="card pad" style="margin-bottom:16px">
+<div class="flbl">Describe the journey</div>
+<div class="field" style="min-height:44px;height:auto;padding:10px 14px;flex-wrap:wrap;">
+<span class="sentence" style="font-size:13.5px;line-height:1.6"><span class="plainbit">When a customer's</span> <span class="tok">ordering slows down</span><span class="plainbit">, wait</span> <span class="tok">7 days</span><span class="plainbit">, then text them a</span> <span class="tok">$10 delivery-only reward</span><span class="plainbit">; if they still haven't ordered</span> <span class="tok">14 days</span> <span class="plainbit">later, email them</span> <span class="tok">2× points on next order</span><span class="plainbit">; stop when they order.</span></span>
+</div>
+<div class="fhint">Every highlighted phrase already resolves to a catalog parameter, a wait duration, or a reward on the rewards catalogue — same grounding guarantee as the Promo rules prompt (tab 8).</div>
+</div>
+
+<div class="caphead" style="margin-top:0"><h3>Interpretation — node by node</h3><span class="cs">Each line is the concept's normal journey node, editable here exactly as on the canvas below — not a second representation that has to be kept in sync.</span></div>
+<div class="card pad" style="margin-bottom:16px">
+<div class="tl">
+<div class="tl-ev"><span class="tl-dot info"></span><div class="tl-body"><div class="tl-action">Trigger — order frequency drops</div><div class="muted" style="margin-top:2px">Ordering less often than usual, vs. this customer's own rolling average — the same catalog parameter the canvas trigger below uses.</div><div class="tl-meta">1,204 enrolled · demo</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div class="tl-body"><div class="tl-action">Wait — 7 days</div><div class="tl-meta">1,204 waiting · demo</div></div></div>
+<div class="tl-ev"><span class="tl-dot warn"></span><div class="tl-body"><div class="tl-action">Branch — ordered since triggering? Yes → Exit</div><div class="muted" style="margin-top:2px">Already reordered on their own — no message needed.</div><div class="tl-meta">390 exited here · demo</div></div></div>
+<div class="tl-ev"><span class="tl-dot good"></span><div class="tl-body"><div class="row" style="justify-content:space-between;gap:10px"><div class="tl-action">Message — SMS: short body + landing page · reward "Welcome back $10" · delivery only</div><span class="pill pill-good sm"><span class="dot"></span>policy chain clear</span></div><div class="tl-meta">814 sent · demo</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div class="tl-body"><div class="tl-action">Wait — 14 days</div><div class="tl-meta">814 waiting · demo</div></div></div>
+<div class="tl-ev"><span class="tl-dot warn"></span><div class="tl-body"><div class="tl-action">Branch — ordered since the SMS? Yes → Exit</div><div class="muted" style="margin-top:2px">Converted from the first message — no second message needed.</div><div class="tl-meta">270 exited here · demo</div></div></div>
+<div class="tl-ev"><span class="tl-dot good"></span><div class="tl-body"><div class="row" style="justify-content:space-between;gap:10px"><div class="tl-action">Message — email: 2× points on next order</div><span class="pill pill-warn sm"><span class="dot"></span>quiet hours holding 8%</span></div><div class="tl-meta">544 sent · demo</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div class="tl-body"><div class="tl-action">Exit — journey ends</div><div class="tl-meta">544 completed · demo</div></div></div>
+</div>
+</div>
+
+<div class="caphead"><h3>The same journey, on the canvas</h3><span class="cs">Identical node objects — the prompt is another way to write the graph below, not a separate thing that gets translated later.</span></div>
+<div class="jcanvas" style="margin-bottom:16px">
+<div class="jnode"><div class="k"><svg class="ic s13"><use href="#i-lightning"/></svg>Trigger</div><div class="t">Ordering less often than usual (frequency drop)</div><div class="m">1,204 enrolled</div></div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jnode"><div class="k"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div><div class="t">7 days</div><div class="m">1,204 waiting</div></div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jbranch">
+<div class="jnode" style="margin-bottom:4px;width:210px"><div class="k"><svg class="ic s13"><use href="#i-branch"/></svg>Branch</div><div class="t">Ordered since triggering?</div></div>
+</div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jbranch">
+<div class="jnode exit" style="margin-bottom:8px"><div class="k"><svg class="ic s13"><use href="#i-flag"/></svg>Yes · 390</div><div class="t">Exit — already reordered</div><div class="m">390 exited</div></div>
+<div class="jnode" style="margin-bottom:0"><div class="k" style="color:var(--good)"><svg class="ic s13"><use href="#i-message"/></svg>No · 814</div><div class="t">Message — SMS "Welcome back $10", delivery only</div><div class="m">814 sent</div></div>
+</div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jnode"><div class="k"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div><div class="t">14 days</div><div class="m">814 waiting</div></div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jbranch">
+<div class="jnode exit" style="margin-bottom:8px"><div class="k"><svg class="ic s13"><use href="#i-flag"/></svg>Yes · 270</div><div class="t">Exit — converted</div><div class="m">270 exited</div></div>
+<div class="jnode" style="margin-bottom:0"><div class="k" style="color:var(--good)"><svg class="ic s13"><use href="#i-message"/></svg>No · 544</div><div class="t">Message — email, 2× points on next order</div><div class="m">544 sent</div></div>
+</div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jnode exit"><div class="k"><svg class="ic s13"><use href="#i-flag"/></svg>Exit</div><div class="t">Journey ends</div><div class="m">544 completed</div></div>
+</div>
+
+<div class="grid2" style="margin-bottom:16px">
+<div class="card pad-sm">
+<div class="flbl" style="margin-bottom:6px">Parameters pulled from the system</div>
+<div class="kv"><span class="k">Order frequency drop (trigger)</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">SMS consent granted</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">Delivery-only channel</span><span class="v mono">stores</span></div>
+<div class="kv"><span class="k">"Welcome back $10" reward</span><span class="v mono">rewards catalogue</span></div>
+<div class="kv"><span class="k">Email consent granted</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">2× points action</span><span class="v mono">rewards catalogue</span></div>
+</div>
+<div>
+<div class="flbl">Refine — describe the change</div>
+<div class="field"><span class="ph">"make the second message an SMS too" or "only Corona customers"</span></div>
+<div class="fhint">Refining re-runs the interpretation and the canvas together — they can't drift, because they're the same object.</div>
+</div>
+</div>
+
+<div class="caphead"><h3>"Customers who reviewed us" — needs a new parameter</h3><span class="cs">Not every clause has somewhere to come from. When it doesn't, the box says so instead of quietly ignoring the clause.</span></div>
+<div class="card pad" style="margin-bottom:16px">
+<div class="meta" style="margin-bottom:8px">prompt · "…and only include customers who reviewed us" · Sep 10, 4:10p</div>
+<div class="empty">
+<span class="plate" style="background:var(--badSoft);color:var(--bad)"><svg class="ic s22"><use href="#i-alert"/></svg></span>
+<div class="t">No data source for this</div>
+<div class="b">Ask a developer to add a field, or collect it with a questionnaire — Hyperwolf doesn't track review activity anywhere today, and this box says so rather than silently dropping the clause.</div>
+<button class="btn btn-secondary btn-xs">Start a questionnaire</button>
+</div>
+</div>
+
+<div class="card" style="overflow:hidden;margin-bottom:16px">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-clock"/></svg></span><span class="ttl">Version history</span><span class="pill pill-neutral sm">2</span></div>
+<div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);background:var(--accentSoft)">
+<div class="row" style="justify-content:space-between"><b style="font-size:12.5px">v2 · current</b><span class="meta">Sep 10, 4:05p</span></div>
+<div class="muted" style="margin-top:3px">Refine: "delivery only" → narrowed the first message's channel from all to delivery.</div>
+</div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline)">
+<div class="row" style="justify-content:space-between"><b style="font-size:12.5px">v1 · original prompt</b><span class="meta">Sep 10, 3:58p</span></div>
+<div class="muted" style="margin-top:3px">"When a customer's ordering slows down, wait a week, then text them a $10 delivery-only reward; if they still haven't ordered 14 days later, email them 2x points on their next order; stop when they order."</div>
+</div>
+</div>
+</div>
+
+<div class="devnote info">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Dev call-out — what production must add</div>
+The prompt box compiles to the same journey object as the canvas above; the model only proposes, the catalog validates, the runner executes. Production must add:
+<ul>
+<li><b>Journey and run tables</b> — a journey definition (nodes, edges) plus a per-customer run/state table, so an enrolled customer's position in the graph survives a restart.</li>
+<li>The <b>same policy chain</b> (consent, quiet hours, frequency caps) evaluated at every Message node, not just at compose time — the verdict pills above have to be real, not decorative.</li>
+<li>A <b>prompt + interpretation audit</b> stored on the journey version, matching the promotion audit described in tab 8.</li>
+</ul>
+</div>
+
+</div>
+
+<div class="subpanel" data-group="journeys" data-subtab="canvas">
+
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-size:16px;font-weight:700">Win-back — flower regulars</div><div class="meta">live since Aug 3 · 1,204 enrolled to date</div></div>
+<span class="pill pill-info sm">live</span>
+</div>
+
+<div class="jcanvas">
+<div class="jnode"><div class="k"><svg class="ic s13"><use href="#i-lightning"/></svg>Trigger</div><div class="t">Ordering less often than usual (frequency drop)</div><div class="m">1,204 enrolled</div></div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jnode"><div class="k"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div><div class="t">3 days</div><div class="m">1,204 waiting</div></div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jbranch">
+<div class="jnode" style="margin-bottom:4px;width:210px"><div class="k"><svg class="ic s13"><use href="#i-branch"/></svg>Branch</div><div class="t">SMS consent granted?</div></div>
+</div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jbranch">
+<div class="jnode" style="margin-bottom:8px"><div class="k" style="color:var(--good)"><svg class="ic s13"><use href="#i-check-circle"/></svg>Yes · 812</div><div class="t">Message — SMS win-back</div><div class="m">812 sent · 396 clicked</div></div>
+<div class="jnode exit"><div class="k"><svg class="ic s13"><use href="#i-flag"/></svg>No · 392</div><div class="t">Exit — no consent</div><div class="m">392 exited</div></div>
+</div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jnode"><div class="k"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div><div class="t">4 days</div><div class="m">812 waiting</div></div>
+<div class="jconn"><svg class="ic"><use href="#i-arrow-right"/></svg></div>
+<div class="jbranch">
+<div class="jnode" style="margin-bottom:8px"><div class="k" style="color:var(--good)"><svg class="ic s13"><use href="#i-award"/></svg>Converted · 268</div><div class="t">Loyalty action — credit 150 bonus points</div><div class="m">268 credited</div></div>
+<div class="jnode exit"><div class="k"><svg class="ic s13"><use href="#i-flag"/></svg>Not yet · 544</div><div class="t">Exit — journey ends</div><div class="m">544 exited</div></div>
+</div>
+</div>
+
+<div class="grid3" style="margin-top:14px">
+<div class="st good"><div class="lbl">Converted</div><div class="v" style="font-size:19px">268</div><div class="s">22.3% of enrolled</div></div>
+<div class="st"><div class="lbl">SMS click rate</div><div class="v" style="font-size:19px">48.8%</div><div class="s">of the 812 who received a message</div></div>
+<div class="st"><div class="lbl">Exited without consent</div><div class="v" style="font-size:19px">392</div><div class="s">32.6% — never reached the message</div></div>
+</div>
+
+<div class="caphead"><h3>The palette</h3><span class="cs">Six node types. New journeys start from these, never from a blank canvas with an empty sidebar.</span></div>
+<div class="jpalette">
+<div class="jpal-item"><svg class="ic s13"><use href="#i-lightning"/></svg>Trigger</div>
+<div class="jpal-item"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div>
+<div class="jpal-item"><svg class="ic s13"><use href="#i-branch"/></svg>Branch</div>
+<div class="jpal-item"><svg class="ic s13"><use href="#i-message"/></svg>Message</div>
+<div class="jpal-item"><svg class="ic s13"><use href="#i-award"/></svg>Loyalty action</div>
+<div class="jpal-item"><svg class="ic s13"><use href="#i-flag"/></svg>Exit</div>
+</div>
+<div class="fhint" style="margin-top:8px">Trigger options in this tenant: ordering less often than usual (frequency drop) · lapsed N days · tier change · birthday · cart abandoned · first order · referral.</div>
+
+</div>
+
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> node shape and enrolled/converted counters follow Concept D's <code>.jnode</code>-equivalent card language (plate + label + mono metric); trigger vocabulary and the branch/exit split are drawn from the inspiration digest's Braze/Customer.io/Attentive synthesis (§(a)2, §(a)3) — evergreen journeys, not broadcasts, with exit named as a first-class node rather than an implicit fall-off. The Prompt sub-tab's node list and canvas compile to the same journey object shown here — same enrolled/converted counters, same node vocabulary.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ 7 · LOYALTY ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-loyalty">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Loyalty — configured in the POS, read at the register</div>
+<h2>Two shells, one ledger. The seam is shown, not hidden.</h2>
+<p>Per rule 3, loyalty configuration is not an Engage screen — it is a POS settings surface, and the register's own customer panel is where the same ledger becomes a tender-time decision. The register itself is never modified in code; what's shown here is the customer panel as it would read with real loyalty data, reached via the POS Home card and payment modal.</p>
+</div>
+</div>
+<div class="stage">
+<div class="subtabseg" data-group="loy" style="margin-bottom:16px">
+<button class="subtab-btn active" data-group="loy" data-subtab="program">Program (POS settings)</button>
+<button class="subtab-btn" data-group="loy" data-subtab="register">Register-side (member panel)</button>
+</div>
+
+<!-- PROGRAM -->
+<div class="subpanel active" data-group="loy" data-subtab="program">
+<div class="posshell">
+<div class="pos-rail" data-active="loyalty"></div>
+<div class="pos-main">
+<div class="pos-top"><span style="font-size:13px;font-weight:700">Loyalty program</span><span class="pill pill-neutral sm" style="margin-left:8px">Corona · all stores view</span></div>
+<div class="pos-scr">
+
+<div class="caphead" style="margin-top:0"><h3>Earn rules</h3><span class="cs">Same sentence grammar as the Promotions Suite's IF/THEN builder — a plain rule per row, store and channel scope always visible.</span></div>
+<div class="card" style="overflow:hidden;margin-bottom:18px">
+<table class="dt">
+<thead><tr><th>Rule</th><th>Scope</th><th>Multiplier</th></tr></thead>
+<tbody>
+<tr><td>1 point per $1 spent</td><td>All stores · all channels</td><td class="mono">1×</td></tr>
+<tr><td>Flower category, Fri–Sun</td><td>All stores</td><td class="mono">2×</td></tr>
+<tr><td>Grand opening bonus</td><td><span class="pill pill-accent sm">West Hollywood only</span></td><td class="mono">3× · ends Sep 30</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="caphead"><h3>Tiers</h3><span class="cs">Entry threshold, plus a grace window before a customer drops a tier.</span></div>
+<div class="grid4" style="margin-bottom:18px">
+<div class="st"><div class="lbl">Member</div><div class="v" style="font-size:17px">0 pts</div><div class="s">entry tier</div></div>
+<div class="st"><div class="lbl">Silver</div><div class="v" style="font-size:17px">2,500 pts</div><div class="s">no grace</div></div>
+<div class="st accent"><div class="lbl">Gold</div><div class="v" style="font-size:17px">6,000 pts</div><div class="s">30-day grace</div></div>
+<div class="st"><div class="lbl">Platinum</div><div class="v" style="font-size:17px">12,000 pts</div><div class="s">60-day grace</div></div>
+</div>
+
+<div class="caphead"><h3>Rewards catalogue</h3><span class="cs">Store- and channel-scoped, per rule 4 — never a single "redeem" button that means something different everywhere.</span></div>
+<div class="grid3" style="margin-bottom:18px">
+<div class="card pad">
+<div style="font-size:13.5px;font-weight:700;margin-bottom:6px">$5 off next order</div>
+<div class="row" style="gap:6px;margin-bottom:8px"><span class="chip good">All stores</span><span class="chip info">Delivery + in-store</span></div>
+<div class="meta">500 points · expires 12mo after earn</div>
+</div>
+<div class="card pad">
+<div style="font-size:13.5px;font-weight:700;margin-bottom:6px">Free pre-roll</div>
+<div class="row" style="gap:6px;margin-bottom:8px"><span class="chip accent">Corona only</span><span class="chip">In-store only</span></div>
+<div class="meta">800 points · store-funded</div>
+</div>
+<div class="card pad">
+<div style="font-size:13.5px;font-weight:700;margin-bottom:6px">10% off next order</div>
+<div class="row" style="gap:6px;margin-bottom:8px"><span class="chip good">All stores</span><span class="chip info">Delivery-only</span></div>
+<div class="meta">1,200 points</div>
+</div>
+</div>
+
+<div class="grid2">
+<div class="card pad">
+<div class="flbl" style="margin-bottom:8px">Expiry &amp; referral</div>
+<div class="kv"><span class="k">Point expiry</span><span class="v">12 months after earn</span></div>
+<div class="kv"><span class="k">Tier reset</span><span class="v">annual, with grace above</span></div>
+<div class="kv"><span class="k">Referral reward</span><span class="v">$15 credit both sides</span></div>
+<div class="kv"><span class="k">· pays out</span><span class="v">after referred customer's first completed order</span></div>
+</div>
+<div>
+<div class="flbl" style="margin-bottom:8px">Wallet pass preview</div>
+<div class="snap" style="aspect-ratio:16/9">
+<div class="scr" style="justify-content:center;padding:14px">
+<div style="display:flex;justify-content:space-between;align-items:flex-start">
+<div><div class="g" style="text-align:left">GREEN LEAF REWARDS</div><h4 style="text-align:left">Jordan Alvarez</h4></div>
+<span class="pill pill-accent sm">Gold</span>
+</div>
+<div style="margin-top:14px;font-size:26px;font-weight:800;font-family:var(--fontMono)">3,240 <span style="font-size:12px;font-weight:600;color:var(--inkMute)">pts</span></div>
+<div class="meta" style="margin-top:2px">660 to Platinum</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- REGISTER SIDE -->
+<div class="subpanel" data-group="loy" data-subtab="register">
+<div class="devnote info" style="margin-bottom:14px"><div class="dn-head"><svg class="ic s13"><use href="#i-register"/></svg>Register is never modified in code</div>This is the customer panel as it would read with real loyalty data — it lands via the POS Home card, the member panel, and the payment modal, not by touching <code>pos/screen-register.jsx</code>.</div>
+<div class="posshell">
+<div class="pos-rail" data-active="register"></div>
+<div class="pos-main">
+<div class="pos-top"><span style="font-size:13px;font-weight:700">Register 101</span><span class="pill pill-good sm" style="margin-left:8px"><span class="dot"></span>Drawer open</span></div>
+<div class="pos-scr">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start">
+<div class="card pad" style="min-height:260px;display:flex;flex-direction:column;gap:10px">
+<div class="flbl">Cart — 3 items</div>
+<div class="kv"><span class="k">Blue Dream 3.5g</span><span class="v mono">$42.00</span></div>
+<div class="kv"><span class="k">Papaya Rosin 1g</span><span class="v mono">$68.00</span></div>
+<div class="kv"><span class="k">Pre-roll pack (5)</span><span class="v mono">$38.00</span></div>
+<div style="margin-top:auto;padding-top:10px;border-top:1px solid var(--hairline2)">
+<div class="kv"><span class="k">Subtotal</span><span class="v mono">$148.00</span></div>
+<div class="kv"><span class="k">Loyalty earn this sale</span><span class="v mono" style="color:var(--good)">+84 pts (1×)</span></div>
+<div class="kv"><span class="k">Redeem available</span><span class="v mono">500 pts → $5 off</span></div>
+</div>
+</div>
+
+<div class="memberpanel">
+<div class="mp-head">
+<span class="av lg" style="background:var(--accent);color:var(--accentInk)">JA</span>
+<div><div style="font-size:14px;font-weight:700">Jordan Alvarez</div><div style="font-size:10px;font-family:var(--fontMono);color:var(--railInk)">CUS-8f2a1c · Gold</div></div>
+</div>
+<div class="mp-body">
+<div class="card sunken pad-sm" style="text-align:center">
+<div class="lbl">Points balance</div>
+<div style="font-size:30px;font-weight:800;font-family:var(--fontMono);letter-spacing:-.02em">3,240</div>
+<div class="meta">660 to Platinum</div>
+</div>
+<div class="devnote good" style="margin:0"><div class="dn-head"><svg class="ic s13"><use href="#i-award"/></svg>3 rewards usable here · 1 delivery-only</div>
+<ul>
+<li>$5 off next order — 500 pts, all stores</li>
+<li>Free pre-roll — 800 pts, Corona only</li>
+<li style="opacity:.55">10% off next order — 1,200 pts, delivery-only, not usable at register</li>
+</ul>
+</div>
+<div class="kv"><span class="k">SMS / email consent</span><span class="v"><span class="pill pill-good sm">both granted</span></span></div>
+<button class="btn btn-secondary btn-lg" style="width:100%">View full member record</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> the POS shell reuses Concept D's <code>.pos-rail</code>/<code>.pos-top</code> chrome unchanged, to make the seam between shells legible rather than novel; the member panel's "N rewards usable here" line and the sunken points tile follow <code>athome/crm.jsx</code>'s tier/points card and <code>engage/screen-customers.jsx</code>'s unified-balance card.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════ 8 · PROMO RULES ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-promorules">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Promo rules — the Trait &amp; Condition Catalog</div>
+<h2>Define a condition once, in plain language. It shows up everywhere a rule gets built.</h2>
+<p>This is the answer to the owner's actual complaint: marketing can't say "if a customer falls into this segment, give them X" or "brand + category is 30% off, excluding this list" without a developer, and every new shape of that idea needs another ticket. The Trait &amp; Condition Catalog is a settings screen — reached from the gear, same as the rest of admin config — where a condition is defined once: a name, a sentence template with fill-in blanks, the data it reads, a type, and the operators it allows. The moment it's saved it is available, unmodified, in the same sentence editor Audiences (tab 4) and Loyalty earn rules (tab 7) already use.</p>
+<p>Three of the fourteen conditions below were added by Maria in Marketing, not by a developer — the catalog list says so, with the date, because "no developer needed" is a claim worth being able to check. What still needs engineering is the promotion engine underneath: it doesn't yet know how to evaluate an audience, a saved product list, or a store/channel scope. That gap is written out honestly at the bottom of this tab, not hidden behind a demo that pretends it already works.</p>
+</div>
+</div>
+<div class="stage">
+<div class="appshell">
+<div class="erail" data-active="settings"></div>
+<div class="emain">
+<div class="etop">
+<span class="storesw"><span class="d"></span>All stores ▾</span>
+<div style="flex:1"></div>
+<span class="pill pill-neutral sm">Settings → Trait &amp; Condition Catalog · demo data</span>
+</div>
+<div class="escr">
+
+<div class="subtabseg" data-group="promo" style="margin-bottom:16px">
+<button class="subtab-btn active" data-group="promo" data-subtab="prompt">Prompt</button>
+<button class="subtab-btn" data-group="promo" data-subtab="catalog">Catalog</button>
+<button class="subtab-btn" data-group="promo" data-subtab="new">New condition</button>
+<button class="subtab-btn" data-group="promo" data-subtab="promotions">Promotions using it</button>
+<button class="subtab-btn" data-group="promo" data-subtab="lists">Saved product lists</button>
+</div>
+
+<!-- PROMPT → PROMOTION -->
+<div class="subpanel active" data-group="promo" data-subtab="prompt">
+
+<div class="caphead" style="margin-top:0"><h3>Typeahead, not a bare prompt</h3><span class="cs">Why typeahead beats a bare prompt: every phrase on offer is guaranteed to exist as data — nothing you pick here can quietly fail to match anything.</span></div>
+<div class="card pad" style="margin-bottom:6px">
+<div class="flbl">Describe the promotion — shown mid-typing, demo</div>
+<div class="field" style="min-height:44px;height:auto;padding:10px 14px;flex-wrap:wrap;">
+<span class="sentence" style="font-size:13.5px;line-height:1.6"><span class="plainbit">customers who usually buy</span> <span class="tok">Raw Garden</span> <span class="plainbit">and haven't ordered in</span></span>
+<span class="mono" style="font-weight:700">|</span>
+</div>
+<div class="card pad-sm" style="margin-top:2px">
+<div class="kv"><span class="k">… 30 days</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">… 45 days</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">… 60 days</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">… their usual gap × 2 (frequency drop)</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv" style="opacity:.55"><span class="k" style="font-style:italic">… since they left a review — no matching parameter</span><span class="v mono">no data source</span></div>
+</div>
+</div>
+
+<div class="flbl" style="margin-bottom:6px">Recognised so far</div>
+<div class="row" style="gap:6px;margin-bottom:20px">
+<span class="chip good">Who: brand affinity = Raw Garden</span>
+<span class="chip good">Who: days since last order ≥ …</span>
+</div>
+
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-size:16px;font-weight:700">Smart prompt → promotion</div><div class="meta">one text field, pulling parameters straight from the catalog on this tab — the model only proposes, the catalog validates</div></div>
+<span class="pill pill-neutral sm">demo data</span>
+</div>
+
+<div class="card pad" style="margin-bottom:10px">
+<div class="flbl">Describe the promotion</div>
+<div style="display:flex;gap:10px;align-items:center">
+<svg class="ic s18" style="color:var(--accentText)"><use href="#i-sparkle"/></svg>
+<span style="flex:1;font-size:13.5px;color:var(--ink2)">"Customers who usually buy Raw Garden but haven't ordered in 45 days get 20% off Raw Garden concentrates, delivery only, this Friday to Sunday, once each."</span>
+<button class="btn btn-accent btn-xs">Generate</button>
+</div>
+<div class="fhint">Reads trait paths and product/order fields only, never raw customer PII — same model note as Audiences (tab 4).</div>
+<div class="row" style="gap:6px;margin-top:10px">
+<span class="chip on">Raw Garden win-back, 45d lapsed, 20% off, delivery, Fri–Sun</span>
+<span class="chip">10% off after 8pm weekdays at Corona</span>
+<span class="chip">Customers who own a dog</span>
+</div>
+</div>
+
+<div class="caphead" style="margin-top:6px"><h3>Raw Garden win-back — fully interpreted</h3><span class="cs">Every clause resolves against a condition that already exists on the Catalog tab — nothing new needed for this one.</span></div>
+<div class="card pad" style="margin-bottom:16px">
+<div class="row" style="justify-content:space-between;margin-bottom:8px">
+<div class="meta">prompt · Sep 10, 2:05p</div>
+<span class="pill pill-good sm"><span class="dot"></span>fully interpreted</span>
+</div>
+<div class="stack" style="gap:0">
+<div style="padding:9px 0;border-top:0">
+<div class="lbl" style="margin-bottom:3px">Who</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Customers whose <span class="tok">brand affinity</span> is <span class="tok">Raw Garden</span>, last order <span class="tok">≥ 45 days</span> ago.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">What</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Product brand is <span class="tok">Raw Garden</span> and category is <span class="tok">Concentrates</span>, excluding list <span class="tok">none set</span>.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">Reward</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9"><span class="tok">20% off</span> matching items.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">Where</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Stores <span class="tok">all</span>, channel <span class="tok">delivery only</span>.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">When</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9"><span class="tok">Fri 13 Sep</span> – <span class="tok">Sun 15 Sep</span>, <span class="tok">once per customer</span>.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">Guardrails</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Stacking <span class="tok">no</span>, budget cap <span class="tok">none set</span>.</div>
+</div>
+</div>
+
+<div class="grid4" style="margin:14px 0">
+<div class="st accent" title="Why 1,884? Live count of customer.last_order_days ≥ 45, narrowed by brand affinity = Raw Garden."><div class="lbl">Customers matched</div><div class="v">1,884</div><div class="s">demo · brand affinity + recency</div></div>
+<div class="st" title="Why 96? 318 Raw Garden products ∩ 640 Concentrates-category products."><div class="lbl">Products matched</div><div class="v">96</div><div class="s">demo · brand ∩ category</div></div>
+<div class="st good" title="Why 210? September win-back campaign's historical redemption rate applied to this audience size."><div class="lbl">Est. redemptions</div><div class="v">210</div><div class="s">demo · this window</div></div>
+<div class="st" title="Why $4,120? 210 est. redemptions × avg basket $19.62 discounted 20%."><div class="lbl">Est. cost</div><div class="v">$4,120</div><div class="s">demo · 20% off</div></div>
+</div>
+
+<div class="card pad-sm" style="margin-bottom:12px">
+<div class="flbl" style="margin-bottom:6px">Parameters pulled from the system</div>
+<div class="kv"><span class="k">Brand affinity = Raw Garden</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">Days since last order ≥ 45</span><span class="v mono">customer trait catalog</span></div>
+<div class="kv"><span class="k">Product brand = Raw Garden</span><span class="v mono">product attributes</span></div>
+<div class="kv"><span class="k">Product category = Concentrates</span><span class="v mono">product attributes</span></div>
+<div class="kv"><span class="k">Store scope = all stores</span><span class="v mono">stores</span></div>
+<div class="kv"><span class="k">Send window = Fri 13 – Sun 15 Sep</span><span class="v mono">calendar</span></div>
+</div>
+
+<div class="grid2" style="margin-bottom:12px">
+<div>
+<div class="flbl">Refine — describe the change</div>
+<div class="field"><span class="ph">"make it in-store too" or "exclude the Clearance list"</span></div>
+<div class="fhint">Refining re-runs the interpretation above and adds a version below — tokens never drift out of sync with the prompt that produced them.</div>
+</div>
+<div>
+<div class="flbl">Explained plainly</div>
+<div class="muted">"Give lapsed Raw Garden buyers 20% off Raw Garden concentrates, delivery only, this Friday through Sunday, once per customer. No stacking, no budget cap set."</div>
+</div>
+</div>
+
+<div class="card" style="overflow:hidden;margin-bottom:12px">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-clock"/></svg></span><span class="ttl">Version history</span><span class="pill pill-neutral sm">3</span></div>
+<div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline);background:var(--accentSoft)">
+<div class="row" style="justify-content:space-between"><b style="font-size:12.5px">v3 · current</b><span class="meta">Sep 10, 2:14p</span></div>
+<div class="muted" style="margin-top:3px">Refine: "exclude the Clearance list" → added exclusion list, no reward change.</div>
+</div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline)">
+<div class="row" style="justify-content:space-between"><b style="font-size:12.5px">v2</b><span class="meta">Sep 10, 2:09p</span></div>
+<div class="muted" style="margin-top:3px">Refine: "delivery only" → narrowed channel from all to delivery.</div>
+</div>
+<div style="padding:10px 14px;border-top:1px solid var(--hairline)">
+<div class="row" style="justify-content:space-between"><b style="font-size:12.5px">v1 · original prompt</b><span class="meta">Sep 10, 2:05p</span></div>
+<div class="muted" style="margin-top:3px">"Customers who usually buy Raw Garden but haven't ordered in 45 days get 20% off Raw Garden concentrates, delivery only, this Friday to Sunday, once each."</div>
+</div>
+</div>
+</div>
+
+<div class="row" style="justify-content:flex-end;gap:8px">
+<button class="btn btn-secondary">Save draft</button>
+<button class="btn btn-accent btn-lg">Save promotion →</button>
+</div>
+</div>
+
+<div class="caphead"><h3>8 pm Corona weekday — needs a new parameter</h3><span class="cs">One clause has no catalog match. The box pauses, proposes deriving it, and continues once created — it never fails silently.</span></div>
+<div class="card pad" style="margin-bottom:16px">
+<div class="row" style="justify-content:space-between;margin-bottom:8px">
+<div class="meta">prompt · "10% off for anyone who orders after 8 pm on weekdays at Corona" · Sep 10, 3:40p</div>
+<span class="pill pill-warn sm"><span class="dot"></span>1 parameter created</span>
+</div>
+
+<div class="row" style="gap:10px;align-items:flex-start;padding:12px;border-radius:var(--r10);background:var(--warnSoft);border:1px solid var(--warnText);margin-bottom:12px">
+<svg class="ic s18" style="color:var(--warnText);flex:0 0 auto;margin-top:1px"><use href="#i-alert"/></svg>
+<div style="flex:1;min-width:0">
+<div style="font-size:12.5px;font-weight:700">Needs a new parameter: orders placed after 8 pm</div>
+<div class="muted" style="margin-top:4px">I can derive it from <code>orders.created_at</code> (hour ≥ 20). Create it?</div>
+<div class="fhint" style="margin-top:6px">Added to the Trait &amp; Condition Catalog as "Order hour is at least {n}" — appears immediately in Catalog (this tab) and every other rule builder, no developer, no deploy.</div>
+</div>
+<button class="btn btn-xs" disabled style="background:var(--goodSoft);color:var(--good);border-color:transparent"><svg class="ic s13"><use href="#i-check-circle"/></svg>Created</button>
+</div>
+
+<div class="stack" style="gap:0">
+<div style="padding:9px 0;border-top:0">
+<div class="lbl" style="margin-bottom:3px">Who</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">All customers <span class="tok">no audience restriction</span>.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">What</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Any item — <span class="tok">no product restriction</span>, applies to the whole order.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">Reward</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9"><span class="tok">10% off</span> order subtotal.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">Where</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Store is <span class="tok">Corona</span>.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">When</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Day of week is <span class="tok">Mon–Fri</span>, order hour is <span class="tok">at least 20</span>.</div>
+</div>
+<div style="padding:9px 0;border-top:1px dashed var(--hairline2)">
+<div class="lbl" style="margin-bottom:3px">Guardrails</div>
+<div class="sentence" style="font-size:13.5px;line-height:1.9">Stacking <span class="tok">no</span>, budget cap <span class="tok">none set</span>.</div>
+</div>
+</div>
+
+<div class="grid4" style="margin:14px 0">
+<div class="st accent" title="Why 340? Corona orders in the last 30 days placed after 8pm on a weekday."><div class="lbl">Orders eligible</div><div class="v">340</div><div class="s">demo · 30d, Corona</div></div>
+<div class="st" title="Why $38.10? Average subtotal of those 340 orders."><div class="lbl">Avg order value</div><div class="v">$38.10</div><div class="s">demo · eligible orders</div></div>
+<div class="st good" title="Why 78/wk? Historical late-evening conversion rate applied to eligible weekday volume."><div class="lbl">Est. redemptions</div><div class="v">78/wk</div><div class="s">demo · per week</div></div>
+<div class="st" title="Why $297/wk? 78 est. redemptions × $38.10 avg order × 10%."><div class="lbl">Est. cost</div><div class="v">$297/wk</div><div class="s">demo · 10% off</div></div>
+</div>
+
+<div class="card pad-sm">
+<div class="flbl" style="margin-bottom:6px">Parameters pulled from the system</div>
+<div class="kv"><span class="k">Store = Corona</span><span class="v mono">stores</span></div>
+<div class="kv"><span class="k">Day of week = Mon–Fri</span><span class="v mono">calendar</span></div>
+<div class="kv"><span class="k">Order hour ≥ 20</span><span class="v mono"><span class="pill pill-accent sm">created via prompt · Sep 10</span></span></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Honest failure — no data source</h3><span class="cs">Not every prompt can be answered. When the data doesn't exist anywhere in the system, the box says so instead of quietly matching everyone.</span></div>
+<div class="card pad" style="margin-bottom:16px">
+<div class="meta" style="margin-bottom:8px">prompt · "customers who own a dog" · Sep 10, 3:52p</div>
+<div class="empty">
+<span class="plate" style="background:var(--badSoft);color:var(--bad)"><svg class="ic s22"><use href="#i-alert"/></svg></span>
+<div class="t">No data source for this</div>
+<div class="b">Ask a developer to add a field, or collect it with a questionnaire — Hyperwolf doesn't track pet ownership anywhere today, and this box says so rather than silently matching everyone or guessing.</div>
+<button class="btn btn-secondary btn-xs">Start a questionnaire</button>
+</div>
+</div>
+
+<div class="devnote info">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Dev call-out — what production must add</div>
+The prompt box compiles to the same rule JSON as the builders; the model only proposes, the catalog validates, the engine evaluates. Production must add:
+<ul>
+<li><b>Audience, product_list, store, channel</b> attributes to the promotion engine.</li>
+<li>A <b>derived-parameter definition table</b> (name, source field, expression, type) read by the trait catalog — this is what "Created" above actually writes.</li>
+<li>A <b>prompt + interpretation audit</b> on the promotion, so every saved rule keeps the prompt and version history that produced it.</li>
+</ul>
+</div>
+
+</div>
+
+<!-- CATALOG -->
+<div class="subpanel" data-group="promo" data-subtab="catalog">
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-size:16px;font-weight:700">14 conditions</div><div class="meta">3 added by marketing, no developer involved</div></div>
+<button class="btn btn-accent btn-xs"><svg class="ic s13"><use href="#i-plus"/></svg>New condition</button>
+</div>
+<div class="card" style="overflow:hidden">
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-target"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Customer is in segment {audience}</div><div class="meta" style="margin-top:2px">customer.audience_membership · saved audience · operators: is / is not</div></div>
+<span class="pill pill-neutral sm">Customer</span>
+<span class="meta" style="min-width:118px;text-align:right">2,140 customers match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-users"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Customer lifetime orders is at least {n}</div><div class="meta" style="margin-top:2px">customer.lifetime_orders · number · operators: at least / at most</div></div>
+<span class="pill pill-neutral sm">Customer</span>
+<span class="meta" style="min-width:118px;text-align:right">3,406 customers match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--accentSoft);color:var(--accentText);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-clock"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Customer last order was over {n} days ago</div><div class="meta" style="margin-top:2px">customer.last_order_days · number · operators: over / under</div></div>
+<span class="pill pill-accent sm">added by Maria · Sep 2</span>
+<span class="meta" style="min-width:118px;text-align:right">1,884 customers match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-award"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Customer loyalty tier is {tier}</div><div class="meta" style="margin-top:2px">customer.loyalty_tier · picklist · operators: is / is not / at least</div></div>
+<span class="pill pill-neutral sm">Customer</span>
+<span class="meta" style="min-width:118px;text-align:right">2,140 customers match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-tag"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Product brand is {brand}</div><div class="meta" style="margin-top:2px">product.brand · picklist · operators: is / is not</div></div>
+<span class="pill pill-neutral sm">Product</span>
+<span class="meta" style="min-width:118px;text-align:right">318 products match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-package"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Product category is {category}</div><div class="meta" style="margin-top:2px">product.category · picklist · operators: is / is not</div></div>
+<span class="pill pill-neutral sm">Product</span>
+<span class="meta" style="min-width:118px;text-align:right">640 products match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-package"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Product is in list {product_list}</div><div class="meta" style="margin-top:2px">saved product list · operators: in list / not in list</div></div>
+<span class="pill pill-neutral sm">Product</span>
+<span class="meta" style="min-width:118px;text-align:right">12 products match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--accentSoft);color:var(--accentText);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-package"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Product is not in list {product_list}</div><div class="meta" style="margin-top:2px">saved product list · operators: in list / not in list</div></div>
+<span class="pill pill-accent sm">added by Maria · Aug 28</span>
+<span class="meta" style="min-width:118px;text-align:right">4,206 products match</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-wallet"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Cart contains product {product}</div><div class="meta" style="margin-top:2px">cart.line_items.product · operators: contains / does not contain</div></div>
+<span class="pill pill-neutral sm">Cart</span>
+<span class="meta" style="min-width:118px;text-align:right">evaluated per cart</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-wallet"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Cart subtotal is over {amount}</div><div class="meta" style="margin-top:2px">cart.subtotal · currency · operators: over / under / between</div></div>
+<span class="pill pill-neutral sm">Cart</span>
+<span class="meta" style="min-width:118px;text-align:right">evaluated per cart</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-board"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Order channel is {channel}</div><div class="meta" style="margin-top:2px">order.channel · picklist (delivery / pickup / in-store) · operators: is / is not</div></div>
+<span class="pill pill-neutral sm">Order</span>
+<span class="meta" style="min-width:118px;text-align:right">evaluated per order</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-map-pin"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Store is {store}</div><div class="meta" style="margin-top:2px">store.id · picklist · operators: is / is not / in list</div></div>
+<span class="pill pill-neutral sm">Store</span>
+<span class="meta" style="min-width:118px;text-align:right">evaluated per order</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--accentSoft);color:var(--accentText);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-credit-card"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Payment method is {method}</div><div class="meta" style="margin-top:2px">order.payment_method · picklist · operators: is / is not</div></div>
+<span class="pill pill-accent sm">added by Maria · Sep 8</span>
+<span class="meta" style="min-width:118px;text-align:right">evaluated per order</span>
+</div>
+
+<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--hairline)">
+<span style="width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg class="ic"><use href="#i-calendar"/></svg></span>
+<div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Day of week is {days}</div><div class="meta" style="margin-top:2px">time.day_of_week · multiselect · operators: in</div></div>
+<span class="pill pill-neutral sm">Time</span>
+<span class="meta" style="min-width:118px;text-align:right">evaluated per order</span>
+</div>
+
+</div>
+</div>
+
+<!-- NEW CONDITION -->
+<div class="subpanel" data-group="promo" data-subtab="new">
+<div class="split">
+<div class="stack">
+<div>
+<div class="flbl">Condition name</div>
+<div class="field">Product is not in list</div>
+</div>
+<div>
+<div class="flbl">Plain-language sentence template</div>
+<div class="field mono">product is not in list {product_list}</div>
+<div class="fhint">This exact sentence is what a marketer clicks and edits in every rule builder — promotions, loyalty earn rules, audiences. No second name for developers to keep in sync.</div>
+</div>
+<div class="grid2">
+<div>
+<div class="flbl">Data it reads</div>
+<div class="field"><svg class="ic s13" style="color:var(--inkMute)"><use href="#i-package"/></svg>Product → saved product list</div>
+<div class="fhint">Picker: customer field · order field · cart field · product field · store field · time field · saved audience · saved product list</div>
+</div>
+<div>
+<div class="flbl">Type</div>
+<div class="field">Product list (saved)</div>
+</div>
+</div>
+<div>
+<div class="flbl">Allowed operators</div>
+<div class="row" style="gap:6px">
+<span class="chip on">not in list</span>
+<span class="chip">in list</span>
+</div>
+</div>
+<div class="row" style="justify-content:flex-end;gap:8px">
+<button class="btn btn-secondary">Cancel</button>
+<button class="btn btn-accent">Save condition</button>
+</div>
+</div>
+<aside class="stack">
+<div class="card pad" style="background:var(--accentSoft);border-color:var(--accentBorder)">
+<div class="flbl">Live preview</div>
+<div style="font-size:15px;line-height:1.6">Product is <span class="tok">not in list</span> <span class="tok">Clearance exclusions</span></div>
+<div class="fhint" style="margin-top:6px">This condition currently matches <b>4,206</b> of 4,218 products · excludes the 12 products in "Clearance exclusions" (tab: Saved product lists)</div>
+</div>
+<div class="card pad-sm">
+<div class="flbl" style="margin-bottom:6px">Once saved</div>
+<div class="muted">Appears immediately in the rule sentence builder used by promotions, loyalty earn rules and audiences — no developer, no deploy, no waiting for a release.</div>
+</div>
+</aside>
+</div>
+</div>
+
+<!-- PROMOTIONS -->
+<div class="subpanel" data-group="promo" data-subtab="promotions">
+<div class="caphead" style="margin-top:0"><h3>Built from the catalog — no code</h3><span class="cs">Same sentence grammar as Audiences (tab 4) and Loyalty earn rules (tab 7). Every token below traces back to a condition on the Catalog tab.</span></div>
+<div class="stack" style="gap:14px">
+
+<div class="card pad">
+<div class="row" style="justify-content:space-between;margin-bottom:10px">
+<div><div style="font-size:13.5px;font-weight:700">Raw Garden 30% off, minus clearance</div><div class="meta">promotion · cart-level discount · demo</div></div>
+<span class="pill pill-good sm"><span class="dot"></span>live</span>
+</div>
+<div class="sentence">
+When a cart <span class="tok">contains</span> <span class="tok">Raw Garden Concentrates</span>, take <span class="tok">30% off</span> those items, excluding products in list <span class="tok">"Clearance exclusions"</span> (12 products).
+</div>
+<div class="row" style="gap:6px;margin-top:10px">
+<span class="chip">catalog · Cart contains product {product}</span>
+<span class="chip">catalog · Product is not in list {product_list}</span>
+</div>
+</div>
+
+<div class="card pad">
+<div class="row" style="justify-content:space-between;margin-bottom:10px">
+<div><div style="font-size:13.5px;font-weight:700">Lapsed VIPs welcome-back reward</div><div class="meta">promotion · audience-triggered reward · demo</div></div>
+<span class="pill pill-good sm"><span class="dot"></span>live</span>
+</div>
+<div class="sentence">
+When the customer <span class="tok">is in audience</span> <span class="tok">"Lapsed VIPs"</span>, give reward <span class="tok">"Welcome back $10"</span> <span class="tok">delivery only</span>.
+</div>
+<div class="row" style="gap:6px;margin-top:10px">
+<span class="chip">catalog · Customer is in segment {audience}</span>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- SAVED PRODUCT LISTS -->
+<div class="subpanel" data-group="promo" data-subtab="lists">
+<div class="row" style="justify-content:space-between;margin-bottom:12px">
+<div><div style="font-size:15px;font-weight:700">Saved product list — "Clearance exclusions"</div><div class="meta">used by 1 condition · 1 promotion · demo</div></div>
+<button class="btn btn-secondary btn-xs">+ New list</button>
+</div>
+<div class="card" style="overflow:hidden">
+<div style="padding:12px 16px;border-bottom:1px solid var(--hairline2);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<div style="flex:1;min-width:220px"><div class="field"><svg class="ic s13" style="color:var(--inkMute)"><use href="#i-search"/></svg><span class="ph">Search products by name or SKU…</span></div></div>
+<span class="chip on">All brands</span><span class="chip">Raw Garden</span><span class="chip">Stiiizy</span><span class="chip">Kiva</span>
+</div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th style="width:36px"></th><th>Product</th><th>Brand</th><th>Category</th><th class="tright">Price</th></tr></thead>
+<tbody>
+<tr class="me"><td><span class="chip on" style="padding:3px 7px"><svg class="ic s13"><use href="#i-check-circle"/></svg></span></td><td><div style="font-weight:700">Raw Garden Live Resin 1g — Blue Dream</div><div class="meta">SKU RG-1042</div></td><td>Raw Garden</td><td>Concentrate</td><td class="tright mono">$38.00</td></tr>
+<tr class="me"><td><span class="chip on" style="padding:3px 7px"><svg class="ic s13"><use href="#i-check-circle"/></svg></span></td><td><div style="font-weight:700">Raw Garden Live Resin 1g — Gelato</div><div class="meta">SKU RG-1049</div></td><td>Raw Garden</td><td>Concentrate</td><td class="tright mono">$38.00</td></tr>
+<tr class="me"><td><span class="chip on" style="padding:3px 7px"><svg class="ic s13"><use href="#i-check-circle"/></svg></span></td><td><div style="font-weight:700">Raw Garden Diamonds 1g</div><div class="meta">SKU RG-1103</div></td><td>Raw Garden</td><td>Concentrate</td><td class="tright mono">$45.00</td></tr>
+<tr><td><span class="chip" style="padding:3px 7px;width:26px;justify-content:center"></span></td><td><div style="font-weight:700">Stiiizy Pod 1g — OG Kush</div><div class="meta">SKU SZ-2210</div></td><td>Stiiizy</td><td>Vape</td><td class="tright mono">$32.00</td></tr>
+<tr><td><span class="chip" style="padding:3px 7px;width:26px;justify-content:center"></span></td><td><div style="font-weight:700">Kiva Camino Gummies 100mg</div><div class="meta">SKU KV-0310</div></td><td>Kiva</td><td>Edible</td><td class="tright mono">$22.00</td></tr>
+</tbody>
+</table></div>
+<div style="padding:10px 16px;font-size:11.5px;color:var(--inkDim);border-top:1px solid var(--hairline2)">12 of 4,218 products selected · demo rows, 5 of 4,218 shown</div>
+</div>
+</div>
+
+<div class="devnote warn" style="margin-top:16px">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Honest, not hidden — what production must add</div>
+<ul>
+<li>The promotion engine's rule types — <code>cart</code> · <code>product</code> · <code>user</code> · <code>bogo</code> · <code>time</code> · <code>payment</code> — need three new attributes before any condition above can run for real: <code>audience</code> (resolves to a saved audience's live membership), <code>product_list</code> (resolves to a saved product list's members), and <code>store</code>/<code>channel</code> scope on every rule type, not only some of them.</li>
+<li>The catalog itself is <b>data, not code</b>. Each row is a stored sentence template plus a field path and an operator set. Saving a new condition writes a row — it never touches the promotion engine's evaluator. The evaluator learns the three attributes above once, and every condition built on top of them — today's 14, or next year's 40 — works with no further deploy.</li>
+<li>Live match counts (Catalog, New condition tabs) need a read-only query path into the customer/product tables that a marketer-saved condition can safely hit — rate-limited and cached, so Maria saving a condition can never trigger an unindexed scan against production.</li>
+</ul>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> the sentence editor and live-match mechanism are the exact <code>.sentence</code>/<code>.tok</code> pattern from <code>engage/screen-audience-builder.jsx</code> (tab 4) and the Loyalty earn-rules table (tab 7) — Concept A's rule that "loyalty and promotions share one vocabulary" (tab 1) extends one level deeper here, into the catalog that feeds all three. The catalog list and product-list editor reuse the Customers list's search + chip + table shell (tab 3) rather than inventing a new one.</div>
+</div>
+
+<!-- ════════════════════════════════════════ 9 · DEV CALL-OUTS ════════════════════════════════════════ -->
+<div class="tabpanel" id="tab-dev">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Dev call-outs — what production must wire</div>
+<h2>Footnotes, not a floating panel — density budget applies to this tab too.</h2>
+<p>A fixed corner panel would be the one place in Calm Ledger that never goes away, which is exactly the kind of permanent chrome this concept avoids everywhere else. These six items are gathered here instead, each one grounded in a spot elsewhere in this document where it actually matters.</p>
+</div>
+</div>
+<div class="stage">
+<div class="card pad">
+<div class="footnote">
+<span class="n">1</span>
+<div><b>customer_id on the sale.</b> Every POS sale line must carry the canonical <code>customer_id</code> at write time — not resolved later by matching a phone-number string against the identity graph. Today's join (tab 3, "Unified loyalty balance" pattern in <code>engage/screen-customers.jsx</code>) is exactly that string match, and it is the reason a pre-iter-104 bucket of points exists with no store tag at all.</div>
+</div>
+<div class="footnote">
+<span class="n">2</span>
+<div><b>Points ledger route.</b> A single idempotent <code>POST /loyalty/ledger/credit</code> / <code>/debit</code>, keyed by <code>sale_id</code>, replaces any direct sheet or table write from the register (tab 7, tender step) or from a journey's loyalty-action node (tab 6). One route means one place a refund's point reversal can be audited.</div>
+</div>
+<div class="footnote">
+<span class="n">3</span>
+<div><b>Consent write.</b> SMS/email grants and revokes (tab 3, "Consent" card) go through one consent-service endpoint regardless of where they originate — <code>pos.checkout</code>, <code>web.landing</code>, or <code>console.manual</code> — and the source + timestamp shown in every consent row must be the real write, not inferred from "customer exists so they must have consented."</div>
+</div>
+<div class="footnote">
+<span class="n">4</span>
+<div><b>Short-link redirect.</b> <code>hyp.wf/*</code> (tab 5, SMS composer) resolves <code>landing_page_id</code> + a per-customer token server-side. The redirect must never leak which customer a link belongs to in the URL itself, and must 404 cleanly rather than fall through to a generic page on an expired token.</div>
+</div>
+<div class="footnote">
+<span class="n">5</span>
+<div><b>Landing page render.</b> The 21+/state gate toggle (tab 5, block builder) is a per-page setting stored with the page, not a global flag — the storefront itself stays gate-free per rule D-024a, and a page built without the gate must be a deliberate choice visible in the builder, not a default anyone can miss.</div>
+</div>
+<div class="footnote">
+<span class="n">6</span>
+<div><b>Promotion-engine rule compatibility.</b> Loyalty earn rules and rewards (tab 7) must compile to the exact same IF/THEN vocabulary as the production Promotions Suite — cart · product · user · bogo · time · payment, plus store and channel scope — so the one sentence editor shown throughout this concept is not a second rule language pretending to be the first.</div>
+</div>
+</div>
+</div>
+</div>
+
+</body>
+</html>

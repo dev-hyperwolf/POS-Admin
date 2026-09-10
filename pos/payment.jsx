@@ -334,11 +334,30 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
         const subtotalCents = priced.length ? priced.reduce((t, l) => t + l.line_gross_cents, 0) : null;
         const discountCents = priced.length ? priced.reduce((t, l) => t + (l.discount_cents || 0), 0) : null;
         const totalCents = Math.round(rec.total * 100);
+        // THE ENGAGE IDENTITY JOIN (docs/ENGAGE-BUILD-CONTRACT.md) — the
+        // local attached member's OWN resolved identity id, when one is
+        // known. `hw_identity_id` is where a resolved identity lands on a
+        // local member record (pos/data.jsx's postWalkInCheckIn, "STASHED,
+        // NEVER OVERWRITTEN WITH A GUESS"; pos/screen-register.jsx reads
+        // the same field off a check-in's bound member). `identity_id`/
+        // `identityId` are read too, matching pos/checkin-verify-seam.jsx's
+        // own priority order, for a member record that carries the id
+        // under one of those spellings instead. No fallback to a WM/POS
+        // customer id here — those name a DIFFERENT ledger's row, not
+        // hw_identities, and sending one under `customer_id` would silently
+        // mis-join a stranger's identity if the two numbering spaces ever
+        // overlapped. Never sent when nothing is attached; wmdemo resolves
+        // a customer server-side from whatever else the body carries when
+        // this is absent (engage.identity.resolve_customer).
+        const customerId = customer && (customer.hw_identity_id != null ? customer.hw_identity_id
+          : customer.identity_id != null ? customer.identity_id
+          : customer.identityId != null ? customer.identityId : null);
         const legacyBody = {
           order_id: rec.id, store_id: a.storeId, associate_id: a.id,
           total_cents: totalCents, item_count: rec.items,
           subtotal_cents: subtotalCents, discount_cents: discountCents,
           method: rec.method, customer_name: rec.name,
+          customer_id: customerId != null ? customerId : undefined,
           lines: saleLines,
         };
 
@@ -367,6 +386,10 @@ window.PaymentModal = function PaymentModal({ total, sub, tax, count, customer, 
               // leave every contract-path sale unattributed by tender.
               payment_method: HC.isEnum('PaymentMethod', rec.method) ? rec.method : undefined,
               customer_name: rec.name || undefined,
+              // contracts/schema/Order.json's customer_id is a STRING —
+              // the same attached-member identity id as legacyBody's own
+              // customer_id above, stringified for the contract shape.
+              customer_id: customerId != null ? String(customerId) : undefined,
               subtotal: HC.money(subtotalCents, 'ex_tax_gross'),
               discount: HC.money(discountCents, 'ex_tax_gross'),
               total: HC.money(totalCents, 'inc_tax'),

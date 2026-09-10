@@ -1,0 +1,1460 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engage — Concept D · Canvas</title>
+<style>
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--hueBlue:#1F5FA8; --hueViolet:#6D4AC8; --hueTeal:#0E7C6B; --hueGreen:#2C7A34; --huePink:#B4306A;
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+--field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+--highlightSoft:#F1EFE9; --disabledBg:#F1EFE9; --disabledInk:rgba(15,15,12,.42);
+--imgScrim:rgba(0,0,0,.60);
+}
+[data-theme="dark"]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+--accentHover:#FFDA33; --accentText:#FFD100;
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+--neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--hueBlue:#8FC2FF; --hueViolet:#B79CFF; --hueTeal:#67D6C4; --hueGreen:#8FD68B; --huePink:#F7A8C4;
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:var(--railBright);
+--railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+--field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+--highlightSoft:rgba(245,243,234,.06); --disabledBg:#28261D; --disabledInk:rgba(245,243,234,.40);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:13px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;color:var(--railBright);}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;line-height:1.5;max-width:860px;}
+.seg{display:inline-flex;background:var(--railHover);border-radius:var(--r10);padding:3px;gap:2px;margin-left:auto;flex-wrap:wrap;}
+.seg button{appearance:none;border:0;background:transparent;color:var(--railInk);font-family:var(--fontSans);
+font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+.seg button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.seg button:not(.active):hover{color:var(--railBright);background:var(--railHover);}
+.theme-btn{appearance:none;border:1px solid var(--railHair);background:transparent;color:var(--railBright);
+min-height:34px;padding:0 12px;border-radius:var(--r8);font-family:var(--fontSans);font-size:11.5px;font-weight:600;
+cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.theme-btn:hover{background:var(--railHover);}
+.tabpanel{display:none;}
+.tabpanel.active{display:block;}
+.intro{max-width:1360px;margin:0 auto;padding:18px 24px 0;}
+.intro .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 18px;box-shadow:var(--shadowSm);}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;max-width:1020px;}
+.intro p:last-child{margin-bottom:0;}
+.intro code{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.stage{max-width:1360px;margin:18px auto 70px;padding:0 24px;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);}
+.card.pad{padding:16px;}
+.card.pad-sm{padding:12px;}
+.card.sunken{background:var(--bg2);border-color:var(--hairline);}
+.cardhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--hairline);}
+.cardhead .plate{width:28px;height:28px;border-radius:8px;background:var(--surface3);color:var(--ink2);
+display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.cardhead .ttl{flex:1;font-size:13.5px;font-weight:700;color:var(--ink);min-width:0;}
+.cbody{padding:14px;}
+.ic{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+.ic.s13{width:13px;height:13px;} .ic.s18{width:18px;height:18px;} .ic.s22{width:22px;height:22px;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+font-size:11.5px;font-weight:600;white-space:nowrap;}
+.pill.sm{padding:2px 7px 3px;font-size:10px;}
+.pill .dot{width:6px;height:6px;border-radius:99px;background:currentColor;}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-accent{background:var(--accentSoft);color:var(--accentText);}
+.pill-dark{background:var(--ink);color:var(--bg);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+white-space:nowrap;border:1px solid transparent;color:var(--ink);background:var(--surface);}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-primary{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.btn-ghost{background:transparent;color:var(--ink2);}
+.btn-xs{min-height:30px;padding:0 10px;font-size:11.5px;}
+.btn-lg{min-height:44px;padding:0 16px;font-size:13.5px;}
+.btn:disabled{background:var(--disabledBg);color:var(--disabledInk);border-color:var(--hairline2);cursor:not-allowed;}
+.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:800;color:var(--ink);}
+.lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute);}
+.meta{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:11px;color:var(--inkDim);}
+.muted{color:var(--inkDim);font-size:12px;line-height:1.55;}
+.bar{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden;}
+.bar > span{display:block;height:100%;border-radius:99px;background:var(--info);}
+.bar.tall{height:9px;}
+.segctl{display:inline-flex;background:var(--surface3);border-radius:var(--r10);padding:3px;gap:2px;flex-wrap:wrap;}
+.segctl span{font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:7px;color:var(--inkDim);min-height:30px;
+display:inline-flex;align-items:center;gap:5px;}
+.segctl span.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.av{border-radius:99px;background:var(--surface3);color:var(--ink2);display:inline-flex;align-items:center;
+justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto;width:26px;height:26px;
+border:1px solid var(--hairline2);}
+.av.lg{width:34px;height:34px;font-size:12px;}
+.av.me{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+table.dt{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--hairline2);
+border-radius:var(--r12);overflow:hidden;}
+table.dt thead th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+color:var(--inkDim);background:var(--surface2);padding:9px 13px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.dt tbody td{padding:10px 13px;border-top:1px solid var(--hairline);vertical-align:middle;font-size:12.5px;}
+table.dt tbody tr:first-child td{border-top:0;}
+table.dt tbody tr.me td{background:var(--accentSoft);}
+table.dt tbody tr.foot td{background:var(--surface2);color:var(--inkDim);font-size:11.5px;}
+.tright{text-align:right;}
+.tbl-wrap{overflow-x:auto;}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+.kv:last-child{border-bottom:0;}
+.kv .k{color:var(--inkDim);}
+.kv .v{font-weight:600;color:var(--ink);text-align:right;}
+.kv .v.mono{font-weight:500;}
+.devnote{border-radius:var(--r12);padding:13px 15px;margin-top:14px;border:1px solid;font-size:12px;line-height:1.6;}
+.devnote.warn{background:var(--warnSoft);border-color:var(--warnText);color:var(--ink2);}
+.devnote.info{background:var(--infoSoft);border-color:var(--info);color:var(--ink2);}
+.devnote.bad{background:var(--badSoft);border-color:var(--bad);color:var(--ink2);}
+.devnote.good{background:var(--goodSoft);border-color:var(--good);color:var(--ink2);}
+.devnote .dn-head{display:flex;align-items:center;gap:7px;font-weight:700;font-size:11px;letter-spacing:.03em;
+text-transform:uppercase;margin-bottom:7px;}
+.devnote ul{margin:0;padding-left:18px;} .devnote li{margin-bottom:4px;} .devnote li:last-child{margin-bottom:0;}
+.built{margin-top:10px;font-size:11px;line-height:1.6;color:var(--inkDim);font-family:var(--fontMono);
+border-left:2px solid var(--hairline2);padding-left:10px;}
+.built b{color:var(--ink2);font-weight:600;}
+.caphead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:22px 0 10px;}
+.caphead h3{margin:0;font-size:14px;font-weight:700;letter-spacing:-.01em;}
+.caphead .cs{font-size:12px;color:var(--inkDim);max-width:760px;line-height:1.55;}
+.fresh{display:flex;flex-wrap:wrap;gap:6px 14px;padding:9px 13px;background:var(--surface2);
+border:1px solid var(--hairline);border-radius:var(--r10);}
+.fresh .f{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:var(--fontMono);
+font-variant-numeric:tabular-nums;color:var(--inkDim);}
+.fresh .f .d{width:6px;height:6px;border-radius:99px;flex:0 0 auto;}
+.fresh .f.ok .d{background:var(--good);} .fresh .f.warn .d{background:var(--warnText);}
+.fresh .f.bad .d{background:var(--bad);} .fresh .f.off .d{background:var(--inkFaint);}
+.fresh .f.bad{color:var(--bad);} .fresh .f.warn{color:var(--warnText);}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start;}
+@media (max-width:1000px){.split{grid-template-columns:1fr;}}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.stack{display:flex;flex-direction:column;gap:12px;}
+.field{width:100%;min-height:40px;padding:0 12px;border-radius:var(--r8);border:1px solid var(--fieldBorder);
+background:var(--field);font-family:var(--fontSans);font-size:12.5px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.field.mono{font-family:var(--fontMono);}
+.field .ph{color:var(--inkMute);}
+.flbl{font-size:11px;font-weight:700;color:var(--inkDim);letter-spacing:.03em;text-transform:uppercase;
+margin-bottom:5px;display:block;}
+.fhint{font-size:11px;color:var(--inkMute);margin-top:5px;line-height:1.5;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:var(--r999);
+border:1px solid var(--hairline2);background:var(--surface);font-size:11.5px;font-weight:600;color:var(--ink2);}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.chip.accent{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+.chip.good{background:var(--goodSoft);color:var(--good);border-color:transparent;}
+.chip.info{background:var(--infoSoft);color:var(--info);border-color:transparent;}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:26px 18px;}
+.empty .plate{width:44px;height:44px;border-radius:99px;background:var(--surface3);color:var(--inkDim);
+display:flex;align-items:center;justify-content:center;}
+.empty .t{font-size:13.5px;font-weight:700;}
+.empty .b{font-size:12px;color:var(--inkDim);max-width:380px;line-height:1.55;}
+.tl{display:flex;flex-direction:column;}
+.tl-ev{display:flex;gap:10px;padding:9px 0;font-size:11.5px;border-top:1px dashed var(--hairline2);}
+.tl-ev:first-child{border-top:0;padding-top:0;}
+.tl-dot{width:7px;height:7px;border-radius:99px;background:var(--inkFaint);margin-top:5px;flex:0 0 auto;}
+.tl-dot.good{background:var(--good);} .tl-dot.warn{background:var(--warnText);} .tl-dot.info{background:var(--info);} .tl-dot.bad{background:var(--bad);}
+.tl-body{flex:1;min-width:0;}
+.tl-action{font-weight:700;color:var(--ink);}
+.tl-meta{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;margin-top:2px;}
+.tl-reason{color:var(--ink2);margin-top:2px;}
+.demo-tag{font-family:var(--fontMono);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+color:var(--inkMute);background:var(--surface3);border:1px solid var(--hairline2);border-radius:5px;padding:1px 5px;}
+
+/* ── stat tiles (Home) ─────────────────────────────────────────────── */
+.stat4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media (max-width:900px){.stat4{grid-template-columns:repeat(2,1fr);}}
+.stile{background:var(--surface);border:1px solid var(--hairline2);border-left:3px solid var(--hairline2);
+border-radius:var(--r12);padding:14px 15px;}
+.stile.a{border-left-color:var(--accent);} .stile.b{border-left-color:var(--info);}
+.stile.c{border-left-color:var(--good);} .stile.d{border-left-color:var(--hueViolet);}
+.stile .v{font-family:var(--fontMono);font-size:27px;font-weight:800;color:var(--ink);letter-spacing:-.02em;margin-top:4px;}
+.stile .s{font-size:11.5px;color:var(--inkDim);margin-top:3px;}
+.stile .tr{font-size:10.5px;font-family:var(--fontMono);margin-top:7px;}
+.needrow{display:flex;align-items:center;gap:11px;padding:11px 14px;border-top:1px solid var(--hairline);}
+.needrow:first-child{border-top:0;}
+.needrow .p{width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;
+align-items:center;justify-content:center;flex:0 0 auto;}
+.needrow .b{flex:1;min-width:0;}
+.needrow .b .t{font-size:12.5px;font-weight:600;color:var(--ink);}
+.needrow .b .s{font-size:11px;color:var(--inkDim);margin-top:2px;}
+.needrow .a{font-size:12px;font-weight:700;color:var(--info);white-space:nowrap;text-decoration:none;}
+
+/* ── member record (Customers + reused in Loyalty register panel) ────── */
+.mrecord{display:grid;grid-template-columns:260px minmax(0,1fr);gap:0;}
+@media (max-width:900px){.mrecord{grid-template-columns:1fr;}}
+.mr-side{padding:18px;border-right:1px solid var(--hairline2);background:var(--surface2);}
+@media (max-width:900px){.mr-side{border-right:0;border-bottom:1px solid var(--hairline2);}}
+.mr-name{font-size:16px;font-weight:700;margin-top:10px;}
+.mr-sub{font-size:11.5px;color:var(--inkDim);font-family:var(--fontMono);margin-top:2px;}
+.mr-main{padding:16px 18px;display:flex;flex-direction:column;gap:16px;}
+.mr-sec{}
+.mr-sec .h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--inkMute);margin-bottom:8px;}
+.consentrow{display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px dashed var(--hairline2);font-size:12px;}
+.consentrow:first-child{border-top:0;}
+.consentrow .ch{flex:0 0 auto;font-weight:700;width:56px;}
+.consentrow .src{flex:1;color:var(--inkDim);font-family:var(--fontMono);font-size:10.5px;}
+.afflist{display:flex;flex-direction:column;gap:6px;}
+.affrow{display:flex;align-items:center;gap:9px;font-size:11.5px;}
+.affrow .nm{width:110px;flex:0 0 auto;color:var(--ink2);}
+.affrow .bar{flex:1;}
+.affrow .pc{width:36px;text-align:right;font-family:var(--fontMono);color:var(--inkDim);}
+
+/* ── audiences ─────────────────────────────────────────────────────── */
+.sentence{display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:14px;line-height:2.1;color:var(--ink2);}
+.sentence .cl{display:inline-flex;align-items:center;gap:5px;background:var(--accentSoft);color:var(--accentText);
+border:1px solid var(--accentBorder);border-radius:8px;padding:3px 9px;font-weight:700;font-size:13px;white-space:nowrap;}
+.aiask{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--hairline2);
+background:var(--surface2);border-radius:var(--r12);}
+.aiask .cursor{width:1.5px;height:15px;background:var(--ink);display:inline-block;}
+.aiask .txt{flex:1;font-family:var(--fontMono);font-size:12.5px;color:var(--ink);}
+
+/* ── journeys canvas ───────────────────────────────────────────────── */
+.jpalette{display:flex;flex-wrap:wrap;gap:8px;}
+.jchip{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:var(--r10);
+border:1px solid var(--hairline2);background:var(--surface);font-size:11.5px;font-weight:700;color:var(--ink2);}
+.jchip .dot{width:9px;height:9px;border-radius:99px;flex:0 0 auto;}
+.jcanvas-scroll{overflow-x:auto;background:
+  radial-gradient(circle, var(--hairline2) 1px, transparent 1px) 0 0/22px 22px,
+  var(--bg2);border:1px solid var(--hairline2);border-radius:var(--r12);}
+.jcanvas{position:relative;width:1660px;height:640px;min-height:640px;}
+.jnode{position:absolute;width:230px;border-radius:var(--r12);background:var(--surface);
+border:1px solid var(--hairline2);box-shadow:var(--shadowMd);}
+.jnode.jexit{width:170px;}
+.jnode.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accentSoft),var(--shadowLg);}
+.jn-head{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--hairline);}
+.jn-head .p{width:24px;height:24px;border-radius:7px;color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.jn-head .k{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--inkMute);}
+.jn-body{padding:9px 11px;}
+.jn-title{font-size:12.5px;font-weight:700;color:var(--ink);line-height:1.35;}
+.jn-detail{font-size:10.5px;color:var(--inkDim);line-height:1.5;margin-top:5px;}
+.jn-stats{padding:8px 11px;border-top:1px solid var(--hairline);font-size:10.5px;font-family:var(--fontMono);
+color:var(--inkDim);background:var(--surface2);border-radius:0 0 11px 11px;}
+.jlabel{position:absolute;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.jlabel.yes{background:var(--goodSoft);color:var(--good);}
+.jlabel.no{background:var(--neutralSoft);color:var(--ink2);}
+.jconn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+
+/* ── mini graph (campaign = one node) ─────────────────────────────── */
+.minigraph{display:flex;align-items:center;gap:0;overflow-x:auto;padding:6px 2px;}
+.mininode{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:var(--r10);
+border:1px solid var(--hairline2);background:var(--surface2);min-width:150px;}
+.mininode .p{width:22px;height:22px;border-radius:6px;color:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.mininode .t{font-size:11.5px;font-weight:700;color:var(--ink);}
+.mininode .s{font-size:10px;color:var(--inkMute);font-family:var(--fontMono);}
+.miniarrow{flex:0 0 auto;width:26px;height:2px;background:var(--hairline3);position:relative;}
+.miniarrow::after{content:"";position:absolute;right:0;top:-3px;border:4px solid transparent;border-left-color:var(--hairline3);}
+
+/* ── smart prompt co-pilot (Promo rules) ─────────────────────────────── */
+.cpwrap{display:flex;flex-direction:column;gap:12px;}
+.cpturn{display:flex;gap:8px;align-items:flex-start;}
+.cpturn.you{flex-direction:row-reverse;}
+.cpbubble{flex:1;min-width:0;padding:9px 11px;border-radius:12px 12px 12px 3px;font-size:12px;line-height:1.55;
+  background:var(--surface2);border:1px solid var(--hairline2);color:var(--ink2);}
+.cpturn.you .cpbubble{background:var(--accentSoft);border-color:var(--accentBorder);border-radius:12px 12px 3px 12px;color:var(--ink2);}
+.cpbubble code{font-family:var(--fontMono);font-size:11px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+.cpq{font-weight:700;color:var(--ink);margin-top:6px;}
+.cpchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px;}
+.cpnode-added{display:flex;align-items:center;gap:6px;font-size:10.5px;font-family:var(--fontMono);
+  color:var(--good);padding-left:34px;}
+
+/* ── block builder ─────────────────────────────────────────────────── */
+.bbwrap{display:grid;grid-template-columns:190px minmax(0,1fr) 260px;gap:0;border:1px solid var(--hairline2);
+border-radius:var(--r12);overflow:hidden;background:var(--surface);}
+@media (max-width:1150px){.bbwrap{grid-template-columns:1fr;}}
+.bpalette{border-right:1px solid var(--hairline2);padding:12px;background:var(--surface2);display:flex;flex-direction:column;gap:6px;}
+.bblock{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;border:1px solid var(--hairline2);
+background:var(--surface);font-size:11px;font-weight:600;color:var(--ink2);}
+.bcanvas{padding:16px;display:flex;flex-direction:column;gap:0;background:var(--bg2);}
+.pageblock{background:var(--surface);border:1px solid var(--hairline2);padding:12px 14px;position:relative;}
+.pageblock:first-child{border-top-left-radius:10px;border-top-right-radius:10px;}
+.pageblock:last-child{border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+.pageblock + .pageblock{border-top:none;}
+.pageblock .tag{position:absolute;top:6px;right:8px;font-family:var(--fontMono);font-size:9px;color:var(--inkFaint);}
+.bside{padding:14px;display:flex;flex-direction:column;gap:14px;}
+.phone{position:relative;background:var(--rail);border-radius:22px;overflow:hidden;color:var(--railBright);
+aspect-ratio:9/17;display:flex;flex-direction:column;padding:8px;width:180px;margin:0 auto;}
+.phone .scr{flex:1;background:var(--surface);border-radius:14px;overflow:hidden;color:var(--ink);display:flex;flex-direction:column;}
+.phone .scr .blk{padding:8px 9px;border-bottom:1px solid var(--hairline);font-size:8.5px;line-height:1.4;}
+.phone .scr .blk:last-child{border-bottom:0;}
+.phone .scr .blk.hero{background:var(--surface3);text-align:center;color:var(--inkMute);font-family:var(--fontMono);padding:16px 9px;}
+.phone .scr .blk.cta{text-align:center;}
+.phone .scr .blk.cta span{display:inline-block;background:var(--accent);color:var(--accentInk);border-radius:99px;
+padding:4px 12px;font-weight:700;font-size:8.5px;}
+
+.smsbubble{background:var(--ink);color:var(--bg);border-radius:14px 14px 14px 3px;padding:9px 12px;font-size:12px;
+line-height:1.5;max-width:230px;}
+.smsflow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+
+.swtch{display:inline-flex;align-items:center;gap:8px;}
+.swtch .track{width:36px;height:20px;border-radius:99px;background:var(--surface3);border:1px solid var(--hairline3);
+position:relative;flex:0 0 auto;}
+.swtch .track .knob{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:99px;background:var(--surface);
+box-shadow:var(--shadowSm);transition:.15s;}
+.swtch.on .track{background:var(--ink);border-color:var(--ink);}
+.swtch.on .track .knob{left:17px;background:var(--accent);}
+.swtch .lbltxt{font-size:12px;font-weight:600;color:var(--ink2);}
+
+/* ── loyalty ───────────────────────────────────────────────────────── */
+.milebar{position:relative;height:14px;border-radius:99px;background:var(--surface3);margin:26px 4px 34px;}
+.milebar .fill{position:absolute;left:0;top:0;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accentBorder),var(--accent));}
+.milestop{position:absolute;top:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:99px;
+background:var(--surface);border:3px solid var(--hairline3);}
+.milestop.hit{border-color:var(--accent);background:var(--accent);}
+.mlabel{position:absolute;top:20px;transform:translateX(-50%);text-align:center;white-space:nowrap;}
+.mlabel .t{font-size:11px;font-weight:700;color:var(--ink);}
+.mlabel .s{font-size:9.5px;color:var(--inkMute);font-family:var(--fontMono);}
+.rewardcard{border:1px solid var(--hairline2);border-radius:var(--r12);background:var(--surface);padding:13px 14px;
+display:flex;flex-direction:column;gap:8px;}
+.scopechips{display:flex;flex-wrap:wrap;gap:5px;}
+.walletcard{background:linear-gradient(135deg,#17160F,#26241A);color:#F5F3EA;border-radius:16px;padding:16px 18px;
+width:280px;box-shadow:var(--shadowLg);}
+.walletcard .top{display:flex;justify-content:space-between;align-items:flex-start;}
+.walletcard .brand{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#FFD100;}
+.walletcard .tier{font-size:10px;color:rgba(245,243,234,.6);margin-top:2px;}
+.walletcard .bal{font-family:var(--fontMono);font-size:30px;font-weight:800;margin-top:14px;}
+.walletcard .balsub{font-size:10px;color:rgba(245,243,234,.5);margin-top:2px;}
+.walletcard .qr{width:44px;height:44px;border-radius:6px;background:rgba(245,243,234,.9);display:flex;align-items:center;justify-content:center;color:#17160F;}
+
+/* ── POS register mock (reused member panel) ──────────────────────── */
+.pos{display:flex;background:var(--bg);border:1px solid var(--hairline2);border-radius:var(--r12);
+overflow:hidden;box-shadow:var(--shadowLg);}
+.pos-rail{width:64px;background:var(--rail);flex:0 0 auto;padding:10px 0;display:flex;flex-direction:column;
+align-items:center;gap:4px;}
+.pos-rail .logo{width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accentInk);
+display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;margin-bottom:8px;}
+.pos-rail .it{width:52px;padding:7px 0;border-radius:var(--r10);color:var(--railInk);display:flex;flex-direction:column;
+align-items:center;gap:3px;font-size:9px;font-weight:600;position:relative;}
+.pos-rail .it.on{background:var(--railActive);color:var(--railBright);}
+.pos-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.pos-top{display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--surface);
+border-bottom:1px solid var(--hairline2);}
+.pos-scr{padding:16px 18px 20px;background:var(--bg);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;}
+.memberpanel{width:300px;flex:0 0 auto;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);
+overflow:hidden;box-shadow:var(--shadowMd);}
+.tenderline{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface);border:1px solid var(--hairline2);
+border-radius:var(--r10);font-size:12px;}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('tabseg').addEventListener('click', function (e) {
+    var btn = e.target.closest('.tab-btn'); if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.tabpanel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  });
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    var lbl = document.getElementById('themeLbl');
+    var use = btn.querySelector('use');
+    function paint() {
+      var dark = root.getAttribute('data-theme') === 'dark';
+      lbl.textContent = dark ? 'Light' : 'Dark';
+      use.setAttribute('href', dark ? '#i-sun' : '#i-moon');
+      btn.title = dark ? 'Switch to light' : 'Switch to dark';
+      document.body.style.colorScheme = dark ? 'dark' : 'light';
+    }
+    btn.addEventListener('click', function () {
+      root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      paint();
+    });
+    paint();
+  })();
+  window.toggleTheme = function () { document.getElementById('themeBtn').click(); };
+});
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-lightning" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-split" viewBox="0 0 24 24"><path d="M6 3v5c0 2 1.6 3.5 4 3.5h4c2.4 0 4-1.5 4-3.5V3"/><path d="M12 11.5V21"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3L3 10.5l7 3 3 7z"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><path d="M3 6h18v13H3z"/><path d="M3 7l9 6 9-6"/></symbol>
+<symbol id="i-coins" viewBox="0 0 24 24"><path d="M4 7c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3z"/><path d="M4 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M4 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></symbol>
+<symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16.5 5.2a3.5 3.5 0 010 6.6"/><path d="M18 14.9c2.2.7 3.6 2.6 3.6 5.1"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M2 20h20"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 8a2 2 0 012-2h13a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M16 12.5h3.5"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.7 2.7L16 9.6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.5l-5.4 2.9 1-6.1L3.2 10l6.1-.9z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 11.5a8.5 8.5 0 10-2.4 6.6"/><path d="M20.5 5.5v6h-6"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 010 18"/><path d="M12 3a15 15 0 000 18"/></symbol>
+<symbol id="i-register" viewBox="0 0 24 24"><path d="M4 8h16v12H4z"/><path d="M7 8V5h10v3"/><path d="M8 12h8"/><path d="M8 16h5"/></symbol>
+<symbol id="i-board" viewBox="0 0 24 24"><path d="M4 4h6v16H4z"/><path d="M14 4h6v9h-6z"/></symbol>
+<symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3 20c0-3.4 3.2-6 7-6"/><path d="M17.5 12v6"/><path d="M14.5 15h6"/></symbol>
+<symbol id="i-trending-up" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></symbol>
+<symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 13.6L7 21l5-3 5 3-2-7.4"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5l4.5 4.5"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2 12h2M20 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 11V4h7l10 10-7 7z"/><circle cx="7.5" cy="7.5" r="1.3"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16"/><path d="M8 3v4M16 3v4"/></symbol>
+<symbol id="i-smartphone" viewBox="0 0 24 24"><path d="M8 3h8v18H8z"/><path d="M11 18h2"/></symbol>
+<symbol id="i-qr" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h3v3h-3zM19 14v3M14 19h3"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6 8v6l-4 2v-8z"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M9 15l6-6"/><path d="M8 13l-2.5 2.5a3.5 3.5 0 004.9 4.9L13 18"/><path d="M16 11l2.5-2.5a3.5 3.5 0 00-4.9-4.9L11 6"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V6z"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17.2v.2"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5"/><path d="M15 3v5"/><path d="M6 8h12v3a6 6 0 01-12 0z"/><path d="M12 17v4"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="M8 6l-5 6 5 6"/><path d="M16 6l5 6-5 6"/></symbol>
+</defs></svg>
+
+<div class="doc-head">
+<div style="min-width:0">
+<h1>Engage — Concept D · Canvas</h1>
+<div class="sub">DESIGN MOCKUP — every number is illustrative and marked demo, nothing is read from an API · tokens mirror pos/tokens.jsx · opens on Journeys because in this concept the canvas is where you land</div>
+</div>
+<div class="seg" id="tabseg">
+<button class="tab-btn" data-tab="home">1 · Home / Insights</button>
+<button class="tab-btn" data-tab="customers">2 · Customers</button>
+<button class="tab-btn" data-tab="audiences">3 · Audiences</button>
+<button class="tab-btn" data-tab="messages">4 · Messages</button>
+<button class="tab-btn active" data-tab="journeys">5 · Journeys</button>
+<button class="tab-btn" data-tab="loyalty">6 · Loyalty (POS)</button>
+<button class="tab-btn" data-tab="promo">7 · Promo rules</button>
+<button class="tab-btn" data-tab="dev">8 · Dev call-outs</button>
+</div>
+<button class="theme-btn" id="themeBtn" title="Switch to dark"><svg class="ic s13"><use href="#i-moon"/></svg><span id="themeLbl">Dark</span></button>
+</div>
+
+<!-- ════════════════════════════════════ 1 · HOME / INSIGHTS ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-home">
+<div class="intro"><div class="card">
+<div class="eyebrow">Concept D — the organizing idea</div>
+<h2>The journeys canvas is the primary surface. Everything else is either a view over it or a builder that feeds it.</h2>
+<p>A one-off campaign is a one-node journey (trigger: manual send → message → exit), so Messages never became a second automation system to learn — it's the same canvas at its smallest. The block builder that composes an email or a landing page opens <b>inside</b> a message node rather than in its own top-level screen. Loyalty actions (give points, change tier) are nodes with the same shape as a message node, not a bridge to a separate system. Audiences aren't a destination you pick before sending — they're the entry condition written into a trigger or branch node. The result is the fewest top-level screens of the four concepts: <b>Home, Customers, Audiences, Messages, Journeys, Loyalty, and one settings gear</b> — and four of those seven are, structurally, just filtered views of the canvas or a library that feeds it.</p>
+<p>What it costs: a marketer who wants "just send a text to my VIPs" has to internalize, at least once, that they are creating a journey with one node — a small conceptual tax that Concept A (calm ledger) and Concept B (goal picker) don't ask for. This Home tab is deliberately thin — four numbers and one list — because the canvas itself is the dashboard once you're in it.</p>
+</div></div>
+<div class="stage">
+<div class="caphead"><h3>The four numbers</h3><span class="cs">Every marketer's first question, answered without a login-time dashboard build. All figures below are <span class="demo-tag">demo</span> — wired to the journeys/points/consent tables noted in Dev call-outs.</span></div>
+<div class="stat4">
+<div class="stile a"><div class="lbl">Active journeys</div><div class="v">14</div><div class="s">3 win-back · 5 lifecycle · 6 one-node campaigns</div><div class="tr" style="color:var(--good)">▲ 2 vs last week</div></div>
+<div class="stile b"><div class="lbl">Messages sent · 7d</div><div class="v">8,412</div><div class="s">5,206 SMS · 3,206 email</div><div class="tr" style="color:var(--inkDim)">flat vs last week</div></div>
+<div class="stile c"><div class="lbl">Points redeemed · 7d</div><div class="v">$2,180</div><div class="s">across 341 redemptions, all stores</div><div class="tr" style="color:var(--good)">▲ $340 vs last week</div></div>
+<div class="stile d"><div class="lbl">SMS consent rate</div><div class="v">61%</div><div class="s">of customers with a phone on file</div><div class="tr" style="color:var(--warnText)">▼ 2pt vs last week</div></div>
+</div>
+<div class="caphead"><h3>Needs attention</h3><span class="cs">The one list. Not a second dashboard — each row opens the exact node, audience or rule it's about.</span></div>
+<div class="card">
+<div class="needrow"><span class="p"><svg class="ic"><use href="#i-alert"/></svg></span>
+<div class="b"><div class="t">Win-back journey · frequency cap holding 41 sends</div><div class="s">14 customers hit the 2-messages-per-7-days cap before the SMS node could fire · demo</div></div>
+<a class="a" href="#" onclick="document.querySelector('[data-tab=journeys]').click();return false;">Open journey <svg class="ic s13" style="vertical-align:-2px"><use href="#i-chevron-right"/></svg></a></div>
+<div class="needrow"><span class="p"><svg class="ic"><use href="#i-clock"/></svg></span>
+<div class="b"><div class="t">312 Gold-tier points expire in 5 days</div><div class="s">$3.12 avg balance per affected customer · no reminder journey enrolled yet · demo</div></div>
+<a class="a" href="#" onclick="document.querySelector('[data-tab=loyalty]').click();return false;">Open Loyalty <svg class="ic s13" style="vertical-align:-2px"><use href="#i-chevron-right"/></svg></a></div>
+<div class="needrow"><span class="p"><svg class="ic"><use href="#i-users"/></svg></span>
+<div class="b"><div class="t">Consent rate at Lake Elsinore down 6pt this month</div><div class="s">register-side opt-in prompt disabled after a POS build 2026-08-22 · demo</div></div>
+<a class="a" href="#" onclick="document.querySelector('[data-tab=customers]').click();return false;">Open Customers <svg class="ic s13" style="vertical-align:-2px"><use href="#i-chevron-right"/></svg></a></div>
+<div class="needrow"><span class="p"><svg class="ic"><use href="#i-tag"/></svg></span>
+<div class="b"><div class="t">Corona weekend drop ends in 6 hours</div><div class="s">one-node campaign journey · 2,140 entered · 812 redeemed · demo</div></div>
+<a class="a" href="#" onclick="document.querySelector('[data-tab=messages]').click();return false;">Open Messages <svg class="ic s13" style="vertical-align:-2px"><use href="#i-chevron-right"/></svg></a></div>
+</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════ 2 · CUSTOMERS ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-customers">
+<div class="intro"><div class="card">
+<div class="eyebrow">Customers — the Members CRM, updated</div>
+<h2>List + one record. The record panel below is the same component the register shows during a lookup.</h2>
+<p>This is <code>athome/crm.jsx</code>, updated with the fields loyalty now owns: points balance, tier, expiry, and which audiences a customer currently matches. It is not a second member module — the panel in the Loyalty tab's register mock (tab 6) is the identical layout, because a budtender and a marketer should never see two different truths about the same person.</p>
+</div></div>
+<div class="stage">
+<div class="split">
+<div class="tbl-wrap">
+<table class="dt">
+<thead><tr><th>Customer</th><th>Phone</th><th>Store</th><th>Tier</th><th class="tright">Points</th><th>Consent</th><th>Last order</th></tr></thead>
+<tbody>
+<tr class="me"><td>Jordan Alvarez</td><td class="mono">•••-•••-4471</td><td>Corona</td><td><span class="pill pill-accent sm">Gold</span></td><td class="tright mono">1,240</td><td><span class="pill pill-good sm">SMS + Email</span></td><td class="mono">52d ago</td></tr>
+<tr><td>Priya Nathan</td><td class="mono">•••-•••-2290</td><td>Lake Elsinore</td><td><span class="pill pill-neutral sm">Silver</span></td><td class="tright mono">620</td><td><span class="pill pill-good sm">SMS only</span></td><td class="mono">6d ago</td></tr>
+<tr><td>Marcus Yee</td><td class="mono">•••-•••-7783</td><td>Corona</td><td><span class="pill pill-dark sm">Platinum</span></td><td class="tright mono">4,905</td><td><span class="pill pill-warn sm">Email only</span></td><td class="mono">2d ago</td></tr>
+<tr><td>Sara Duncan</td><td class="mono">•••-•••-0912</td><td>Long Beach</td><td><span class="pill pill-neutral sm">Silver</span></td><td class="tright mono">340</td><td><span class="pill pill-bad sm">None</span></td><td class="mono">61d ago</td></tr>
+<tr><td>Devon Ruiz</td><td class="mono">•••-•••-5501</td><td>Corona</td><td><span class="pill pill-neutral sm">Bronze</span></td><td class="tright mono">80</td><td><span class="pill pill-good sm">SMS + Email</span></td><td class="mono">9d ago</td></tr>
+<tr class="foot"><td colspan="7">5 of 18,204 shown · demo rows</td></tr>
+</tbody></table>
+</div>
+<div>
+<div class="card pad-sm"><div class="fresh">
+<span class="f ok"><i class="d"></i>points ledger synced 2m ago</span>
+<span class="f ok"><i class="d"></i>consent table synced 2m ago</span>
+<span class="f warn"><i class="d"></i>order history 14m stale</span>
+</div></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Record — Jordan Alvarez</h3><span class="cs">Reused verbatim (same markup, same data shape) as the register-side member panel in the Loyalty tab.</span></div>
+<div class="card">
+<div class="mrecord">
+<div class="mr-side">
+<span class="av lg me" style="width:52px;height:52px;font-size:16px">JA</span>
+<div class="mr-name">Jordan Alvarez</div>
+<div class="mr-sub">cust_84471 · web_id 9931-JA</div>
+<div class="kv"><span class="k">Phone</span><span class="v mono">•••-•••-4471</span></div>
+<div class="kv"><span class="k">POS ids</span><span class="v mono">cor-4471, delv-4471</span></div>
+<div class="kv"><span class="k">Wallet pass</span><span class="v"><span class="pill pill-good sm">Installed</span></span></div>
+<div class="kv"><span class="k">Referred by</span><span class="v">Marcus Yee</span></div>
+<div class="btn btn-secondary btn-xs" style="margin-top:10px;width:100%"><svg class="ic s13"><use href="#i-qr"/></svg>View wallet pass QR</div>
+</div>
+<div class="mr-main">
+<div class="grid2">
+<div class="mr-sec"><div class="h">Consent</div>
+<div class="consentrow"><span class="ch"><span class="pill pill-good sm">SMS</span></span><span class="src">granted · kiosk sign-up · 2026-06-02</span></div>
+<div class="consentrow"><span class="ch"><span class="pill pill-good sm">Email</span></span><span class="src">granted · web checkout · 2026-07-14</span></div>
+</div>
+<div class="mr-sec"><div class="h">Points · tier · expiry</div>
+<div class="kv"><span class="k">Balance</span><span class="v num">1,240 pts</span></div>
+<div class="kv"><span class="k">Tier</span><span class="v"><span class="pill pill-accent sm">Gold</span> since Mar 2026</span></div>
+<div class="kv"><span class="k">Expiring soon</span><span class="v" style="color:var(--warnText)">320 pts · Nov 1</span></div>
+</div>
+</div>
+<div class="grid2">
+<div class="mr-sec"><div class="h">Store affinity</div>
+<div class="afflist">
+<div class="affrow"><span class="nm">Corona</span><div class="bar"><span style="width:68%"></span></div><span class="pc">68%</span></div>
+<div class="affrow"><span class="nm">Lake Elsinore</span><div class="bar"><span style="width:22%"></span></div><span class="pc">22%</span></div>
+<div class="affrow"><span class="nm">Other</span><div class="bar"><span style="width:10%"></span></div><span class="pc">10%</span></div>
+</div>
+</div>
+<div class="mr-sec"><div class="h">Audiences they're in</div>
+<div class="row"><span class="chip accent">SMS opted-in</span><span class="chip">Corona regulars</span><span class="chip">Gold tier</span><span class="chip">Referral source</span></div>
+<div class="fhint">"Audiences they're in" doubles as "entry conditions currently matched" — see tab 3.</div>
+</div>
+</div>
+<div class="grid2">
+<div class="mr-sec"><div class="h">Order history</div>
+<div class="tbl-wrap"><table class="dt"><tbody>
+<tr><td class="mono" style="width:80px">Jul 20</td><td>Corona · pickup</td><td class="tright mono">$64.10</td></tr>
+<tr><td class="mono">Jun 30</td><td>Corona · delivery</td><td class="tright mono">$91.40</td></tr>
+<tr><td class="mono">Jun 02</td><td>Corona · pickup</td><td class="tright mono">$38.00</td></tr>
+</tbody></table></div>
+</div>
+<div class="mr-sec"><div class="h">Messages received · referral</div>
+<div class="kv"><span class="k">Last message</span><span class="v">"Weekend drop" SMS · opened</span></div>
+<div class="kv"><span class="k">Referrals</span><span class="v">2 sent · 1 converted</span></div>
+<div class="kv"><span class="k">Referral earnings</span><span class="v num">+300 pts</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-plug"/></svg>Dev call-out</div>
+One record component, two mount points — this tab and the register lookup. See tab 7 for the shared <code>customer_id</code> contract that has to hold for both.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════ 3 · AUDIENCES ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-audiences">
+<div class="intro"><div class="card">
+<div class="eyebrow">Audiences — entry conditions, not a destination</div>
+<h2>In Concept D an audience isn't chosen at send time. It's the same object wired into a trigger or branch node on the canvas.</h2>
+<p>The builder below produces a plain-language sentence, exactly like the AI prompt does — the AI never sends anything, it only drafts an editable sentence. What's different from Concepts A–C: the "used in" column on the saved list points at journey nodes, not campaigns, because in this concept there mostly isn't a separate campaign object to point at.</p>
+</div></div>
+<div class="stage">
+<div class="card pad">
+<div class="flbl">Plain-language rule sentence</div>
+<div class="sentence">Customers who <span class="cl">ordered 3+ times</span> and <span class="cl">last order over 45 days ago</span> and <span class="cl">SMS consent granted</span> and <span class="cl">favourite store = Corona</span></div>
+<div class="row" style="margin-top:12px;justify-content:space-between">
+<div class="row" style="gap:8px">
+<span class="btn btn-secondary btn-xs"><svg class="ic s13"><use href="#i-tag"/></svg>+ add condition</span>
+<span class="segctl"><span class="on">Live segment</span><span>Frozen snapshot</span></span>
+</div>
+<div style="text-align:right"><div class="num" style="font-size:22px">1,842</div><div class="lbl">match now · recomputes nightly</div></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Ask in plain English</h3><span class="cs">Converts to the exact sentence above — never sends, never saves without a click.</span></div>
+<div class="aiask"><svg class="ic" style="color:var(--inkMute)"><use href="#i-search"/></svg>
+<span class="txt">win back people who used to order weekly but slowed down, texted before, at Corona<span class="cursor"></span></span>
+<span class="btn btn-accent btn-xs">Draft sentence</span></div>
+
+<div class="caphead"><h3>Sample of 5</h3><span class="cs">Pulled from the 1,842 live matches, for a gut-check before this feeds a node.</span></div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Customer</th><th class="tright">Orders</th><th>Last order</th><th>Store</th><th>Consent</th></tr></thead>
+<tbody>
+<tr><td>Priya Nathan</td><td class="tright mono">7</td><td class="mono">52d ago</td><td>Corona</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td>Devon Ruiz</td><td class="tright mono">4</td><td class="mono">61d ago</td><td>Corona</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td>Lena Ford</td><td class="tright mono">9</td><td class="mono">48d ago</td><td>Corona</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td>Amir Cole</td><td class="tright mono">3</td><td class="mono">70d ago</td><td>Corona</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr><td>Rosa Kim</td><td class="tright mono">5</td><td class="mono">46d ago</td><td>Corona</td><td><span class="pill pill-good sm">SMS</span></td></tr>
+<tr class="foot"><td colspan="5">demo sample</td></tr>
+</tbody></table></div>
+
+<div class="caphead"><h3>Saved audiences</h3><span class="cs">"Used in" points at nodes on the canvas, not campaigns.</span></div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Name</th><th class="tright">Size</th><th>Refresh</th><th>Used in</th><th>Last computed</th></tr></thead>
+<tbody>
+<tr><td>Ordering less often than usual</td><td class="tright mono">1,204</td><td class="mono">nightly</td><td><a href="#" onclick="document.querySelector('[data-tab=journeys]').click();return false;" style="color:var(--info);text-decoration:none">Trigger · Win-back journey</a></td><td class="mono">6h ago</td></tr>
+<tr><td>SMS consent granted</td><td class="tright mono">11,308</td><td class="mono">nightly</td><td><a href="#" onclick="document.querySelector('[data-tab=journeys]').click();return false;" style="color:var(--info);text-decoration:none">Branch · Win-back journey</a></td><td class="mono">6h ago</td></tr>
+<tr><td>Corona weekend regulars</td><td class="tright mono">2,140</td><td class="mono">on send</td><td><a href="#" onclick="document.querySelector('[data-tab=messages]').click();return false;" style="color:var(--info);text-decoration:none">Trigger · Corona weekend drop (1-node)</a></td><td class="mono">2d ago</td></tr>
+<tr><td>Gold tier, points expiring 14d</td><td class="tright mono">312</td><td class="mono">daily</td><td><span class="muted">not yet wired to a node</span></td><td class="mono">1d ago</td></tr>
+</tbody></table></div>
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-filter"/></svg>Why this tab is thin</div>
+There's no "audience detail" screen with its own analytics, activity feed and export button — that content lives on the trigger/branch node that uses the audience, in the Journeys tab, so the same number (1,204 entered) isn't shown twice in two places that can drift.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════ 4 · MESSAGES ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-messages">
+<div class="intro"><div class="card">
+<div class="eyebrow">Messages — what opens when you open a message node</div>
+<h2>A one-off campaign is a one-node journey. This whole tab is the inside of that one node.</h2>
+<p>Below: the campaign as a one-node journey (so the equivalence is literal, not just a claim), the compose stepper, the block builder used for both email and landing pages, the SMS composer next to the page it opens, and the honest policy-chain result before send.</p>
+</div></div>
+<div class="stage">
+
+<div class="caphead"><h3>Corona weekend drop</h3><span class="cs">A one-off campaign, modeled exactly as it's stored: one node between an implicit manual trigger and exit.</span></div>
+<div class="card pad">
+<div class="minigraph">
+<div class="mininode"><span class="p" style="background:var(--hueViolet)"><svg class="ic s13" style="color:#fff"><use href="#i-lightning"/></svg></span><div><div class="t">Manual send</div><div class="s">now</div></div></div>
+<div class="miniarrow"></div>
+<div class="mininode" style="background:var(--accentSoft);border-color:var(--accentBorder)"><span class="p" style="background:var(--huePink)"><svg class="ic s13" style="color:#fff"><use href="#i-send"/></svg></span><div><div class="t">SMS + landing page</div><div class="s">this node, open below</div></div></div>
+<div class="miniarrow"></div>
+<div class="mininode"><span class="p" style="background:var(--neutral)"><svg class="ic s13" style="color:#fff"><use href="#i-ban"/></svg></span><div><div class="t">Exit</div><div class="s">2,140 entered · 812 redeemed</div></div></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Compose</h3><span class="cs">Audience → Channel → Content → Schedule → Policy check → Send. Content is open below.</span></div>
+<div class="card pad"><div class="row" style="gap:0">
+<span class="chip good" style="border-radius:8px 0 0 8px">✓ Audience</span>
+<span class="chip good" style="border-radius:0">✓ Channel</span>
+<span class="chip on" style="border-radius:0">Content</span>
+<span class="chip" style="border-radius:0">Schedule</span>
+<span class="chip" style="border-radius:0">Policy check</span>
+<span class="chip" style="border-radius:0 8px 8px 0">Send</span>
+</div></div>
+
+<div class="caphead"><h3>Block builder</h3><span class="cs">Same builder for email and landing pages. 12-block palette, canvas, mobile preview, merge tags, saved sections, per-page gate toggle.</span></div>
+<div class="bbwrap">
+<div class="bpalette">
+<div class="flbl" style="margin-bottom:2px">Blocks · 12</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-layers"/></svg>Header</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-eye"/></svg>Hero image</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-tag"/></svg>Heading text</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-code"/></svg>Body text</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-chevron-right"/></svg>Button / CTA</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-eye"/></svg>Image</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-split"/></svg>Divider</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-award"/></svg>Reward chip</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-clock"/></svg>Countdown</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-globe"/></svg>Social icons</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-shield"/></svg>Footer / legal</div>
+<div class="bblock"><svg class="ic s13"><use href="#i-x"/></svg>Unsubscribe / STOP</div>
+<div class="fhint">Saved sections (Universal) — searchable, reused across builds</div>
+<div class="chip" style="justify-content:center">★ Hyperwolf header</div>
+<div class="chip" style="justify-content:center">★ Legal footer, CA</div>
+</div>
+<div class="bcanvas">
+<div class="pageblock" style="text-align:center"><span class="tag">header</span><b>HYPERWOLF</b></div>
+<div class="pageblock" style="background:var(--surface3);text-align:center;color:var(--inkMute);font-family:var(--fontMono);font-size:11px;padding:34px 14px"><span class="tag">hero image · demo</span>lifestyle photo, no product/price shown</div>
+<div class="pageblock"><span class="tag">heading</span><div style="font-size:17px;font-weight:800">We miss you, {{first_name}}</div></div>
+<div class="pageblock"><span class="tag">body</span><div class="muted" style="font-size:12px">It's been a while. Here's something for your next visit at {{favorite_store}}.</div></div>
+<div class="pageblock"><span class="tag">reward chip</span><span class="pill pill-accent">$10 off · delivery & in-store</span></div>
+<div class="pageblock" style="text-align:center"><span class="tag">cta</span><span class="btn btn-primary btn-xs">Redeem now</span></div>
+<div class="pageblock" style="font-size:10px;color:var(--inkMute)"><span class="tag">footer</span>Hyperwolf · 21+ where the gate is on · <a href="#" style="color:var(--inkMute)">reply STOP to opt out</a></div>
+</div>
+<div class="bside">
+<div class="flbl">Mobile preview</div>
+<div class="phone"><div class="scr">
+<div class="blk" style="text-align:center;font-weight:700">HYPERWOLF</div>
+<div class="blk hero">hero image</div>
+<div class="blk" style="font-weight:800;font-size:11px">We miss you, Jordan</div>
+<div class="blk">$10 off · delivery & in-store</div>
+<div class="blk cta"><span>Redeem now</span></div>
+<div class="blk" style="color:var(--inkMute)">21+ where the gate is on</div>
+</div></div>
+<div class="flbl" style="margin-top:4px">Merge tags</div>
+<div class="row" style="gap:5px"><span class="chip">{{first_name}}</span><span class="chip">{{points_balance}}</span><span class="chip">{{favorite_store}}</span><span class="chip">{{reward_code}}</span></div>
+<div class="flbl" style="margin-top:4px">Per-page 21+ / state gate</div>
+<div class="swtch on"><span class="track"><span class="knob"></span></span><span class="lbltxt">Gate ON for this page</span></div>
+<div class="fhint">Storefront itself always stays gate-free (rule D-024a). This toggle is per landing page only — off for the SMS-verified audience above, on wherever the visitor's age isn't already known.</div>
+</div>
+</div>
+
+<div class="caphead"><h3>SMS composer</h3><span class="cs">The short body, next to the page it opens — never cannabis content, price, or imagery in the text itself.</span></div>
+<div class="card pad"><div class="smsflow">
+<div class="smsbubble">Important message from Hyperwolf: hyp.wf/x7Kq2p<br><span style="opacity:.6;font-size:10px">Reply STOP to opt out</span></div>
+<svg class="ic" style="color:var(--inkFaint)"><use href="#i-chevron-right"/></svg>
+<div style="width:100px"><div class="phone" style="width:100px"><div class="scr">
+<div class="blk" style="text-align:center;font-weight:700;font-size:7px">HYPERWOLF</div>
+<div class="blk hero" style="padding:8px 6px;font-size:6px">hero</div>
+<div class="blk cta"><span style="font-size:7px;padding:2px 7px">Redeem</span></div>
+</div></div></div>
+<span class="muted">hyp.wf/x7Kq2p resolves to the exact landing page built above · gate off for this send, per audience</span>
+</div></div>
+
+<div class="caphead"><h3>Policy check — honest result</h3><span class="cs">Shown before send, not discovered after. Two of seven held or blocked, worded rather than silent.</span></div>
+<div class="card pad">
+<div class="tl">
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">Suppression list</span> <span class="pill pill-good sm">pass</span><div class="tl-reason">0 of 2,140 on the do-not-contact list</div></div></div>
+<div class="tl-ev"><div class="tl-dot warn"></div><div class="tl-body"><span class="tl-action">Consent</span> <span class="pill pill-warn sm">1,988 of 2,140 pass</span><div class="tl-reason">152 have no current SMS consent record and are dropped from this send, not silently skipped — see audit</div></div></div>
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">Age gate</span> <span class="pill pill-good sm">n/a for SMS</span><div class="tl-reason">gate applies to the landing page, toggled on above where needed</div></div></div>
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">Geo</span> <span class="pill pill-good sm">pass</span><div class="tl-reason">all 1,988 in a legal delivery/pickup radius of Corona</div></div></div>
+<div class="tl-ev"><div class="tl-dot warn"></div><div class="tl-body"><span class="tl-action">Frequency cap</span> <span class="pill pill-warn sm">1,847 of 1,988 pass</span><div class="tl-reason">141 already received 2 messages in the last 7 days · held, sends when the window clears</div></div></div>
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">Content scan</span> <span class="pill pill-good sm">pass</span><div class="tl-reason">SMS body carries no SHAFT-restricted terms, price, or imagery</div></div></div>
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">Quiet hours</span> <span class="pill pill-good sm">pass</span><div class="tl-reason">send window 10am–7pm recipient-local, current time clears it</div></div></div>
+</div>
+<div class="row" style="justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--hairline)">
+<span class="muted"><b style="color:var(--ink)">1,847</b> will send now · <b style="color:var(--warnText)">141</b> held for frequency cap · <b style="color:var(--bad)">152</b> excluded for consent</span>
+<span class="btn btn-accent btn-lg">Send to 1,847 →</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════ 5 · JOURNEYS ════════════════════════════════════ -->
+<div class="tabpanel active" id="tab-journeys">
+<div class="intro"><div class="card">
+<div class="eyebrow">Journeys — the primary surface</div>
+<h2>One canvas, a six-kind palette, and a complete win-back journey laid out end to end below.</h2>
+<p>The palette below is deliberately capped at six node kinds — trigger, wait, branch, message, loyalty action, exit — the same vocabulary <code>engage/screen-flows.jsx</code> already uses (<code>NODE_ICON</code>/<code>NODE_HUE</code>). Braze's "Full Step" composite (delay + filter + message in one card) was considered and rejected here: it would let a node's meaning depend on how a builder folded it, and this concept's whole bet is that a canvas stays calm by keeping every node's meaning fixed by its kind, not by its configuration. The branch node below is selected — its property panel is open on the right, exactly what opening a real node would show.</p>
+</div></div>
+<div class="stage">
+
+<div class="caphead"><h3>Node palette</h3><span class="cs">Six kinds. Drag onto the canvas, or use the in-context "+" between two connected nodes.</span></div>
+<div class="jpalette">
+<span class="jchip"><span class="dot" style="background:var(--hueViolet)"></span>Trigger</span>
+<span class="jchip"><span class="dot" style="background:var(--hueBlue)"></span>Wait</span>
+<span class="jchip"><span class="dot" style="background:var(--hueTeal)"></span>Branch</span>
+<span class="jchip"><span class="dot" style="background:var(--huePink)"></span>Message</span>
+<span class="jchip"><span class="dot" style="background:var(--hueGreen)"></span>Loyalty action</span>
+<span class="jchip"><span class="dot" style="background:var(--neutral)"></span>Exit</span>
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Smart prompt → journey</h3><span class="cs">The same co-pilot as Promo rules (tab 7), same node kinds as the palette above — one prompt lays out a full journey, node by node, then the hand-built win-back journey below shows the identical vocabulary built by hand.</span></div>
+
+<div class="split">
+<div class="jcanvas-scroll"><div class="jcanvas" style="width:2140px;height:520px;min-height:520px">
+<svg class="jconn" viewBox="0 0 2140 520" preserveAspectRatio="none">
+<path d="M250,360 L290,360" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M520,360 L560,360" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M675,300 C675,230 675,230 675,170" stroke="var(--good)" stroke-width="2" fill="none"/>
+<path d="M790,360 L830,360" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M1060,360 L1100,360" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M1330,360 L1370,360" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M1485,300 C1485,230 1485,230 1485,170" stroke="var(--good)" stroke-width="2" fill="none"/>
+<path d="M1600,360 L1640,360" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M1870,360 L1910,360" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+</svg>
+<span class="jlabel yes" style="left:685px;top:220px">Yes</span>
+<span class="jlabel no" style="left:800px;top:336px">No</span>
+<span class="jlabel yes" style="left:1495px;top:220px">Yes</span>
+<span class="jlabel no" style="left:1610px;top:336px">No</span>
+
+<div class="jnode" style="left:20px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--hueViolet)"><svg class="ic s13" style="color:#fff"><use href="#i-lightning"/></svg></span><span class="k">Trigger</span></div>
+<div class="jn-body"><div class="jn-title">Ordering slows down</div><div class="jn-detail">Order-frequency drop vs 90-day average · catalog parameter · from prompt</div></div>
+<div class="jn-stats">~2,860 customers/mo match · demo</div>
+</div>
+
+<div class="jnode" style="left:290px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-clock"/></svg></span><span class="k">Wait</span></div>
+<div class="jn-body"><div class="jn-title">Wait 7 days</div><div class="jn-detail">"wait a week" · from prompt</div></div>
+<div class="jn-stats">2,860 continue · demo</div>
+</div>
+
+<div class="jnode" style="left:560px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--hueTeal)"><svg class="ic s13" style="color:#fff"><use href="#i-split"/></svg></span><span class="k">Branch</span></div>
+<div class="jn-body"><div class="jn-title">Ordered since?</div><div class="jn-detail">Reads live order history · "stop when they order"</div></div>
+<div class="jn-stats">812 yes → exit · 2,048 no · demo</div>
+</div>
+
+<div class="jnode jexit" style="left:590px;top:60px">
+<div class="jn-head"><span class="p" style="background:var(--neutral)"><svg class="ic s13" style="color:#fff"><use href="#i-ban"/></svg></span><span class="k">Exit</span></div>
+<div class="jn-body"><div class="jn-title">Exit — ordered</div><div class="jn-detail">"stop when they order"</div></div>
+<div class="jn-stats">812 exited · demo</div>
+</div>
+
+<div class="jnode" style="left:830px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--huePink)"><svg class="ic s13" style="color:#fff"><use href="#i-send"/></svg></span><span class="k">Message · SMS</span></div>
+<div class="jn-body"><div class="jn-title">Short SMS + landing page</div><div class="jn-detail">Reward "Welcome back $10" · delivery only · from prompt</div>
+<div class="row" style="gap:5px;margin-top:6px"><span class="pill pill-good sm"><span class="dot"></span>Policy chain: pass</span></div>
+<div class="jn-detail" style="margin-top:3px">Consent ✓ · quiet hours clear · under frequency cap</div>
+</div>
+<div class="jn-stats">2,048 entered · demo</div>
+</div>
+
+<div class="jnode" style="left:1100px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-clock"/></svg></span><span class="k">Wait</span></div>
+<div class="jn-body"><div class="jn-title">Wait 14 days</div><div class="jn-detail">"14 days later" · from prompt</div></div>
+<div class="jn-stats">2,048 continue · demo</div>
+</div>
+
+<div class="jnode" style="left:1370px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--hueTeal)"><svg class="ic s13" style="color:#fff"><use href="#i-split"/></svg></span><span class="k">Branch</span></div>
+<div class="jn-body"><div class="jn-title">Ordered since?</div><div class="jn-detail">Reads live order history · "stop when they order"</div></div>
+<div class="jn-stats">928 yes → exit · 1,120 no · demo</div>
+</div>
+
+<div class="jnode jexit" style="left:1400px;top:60px">
+<div class="jn-head"><span class="p" style="background:var(--neutral)"><svg class="ic s13" style="color:#fff"><use href="#i-ban"/></svg></span><span class="k">Exit</span></div>
+<div class="jn-body"><div class="jn-title">Exit — ordered</div><div class="jn-detail">"stop when they order"</div></div>
+<div class="jn-stats">928 exited · demo</div>
+</div>
+
+<div class="jnode" style="left:1640px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--huePink)"><svg class="ic s13" style="color:#fff"><use href="#i-mail"/></svg></span><span class="k">Message · Email</span></div>
+<div class="jn-body"><div class="jn-title">Email: 2× points next order</div><div class="jn-detail">Loyalty engine earn-rate override · from prompt</div>
+<div class="row" style="gap:5px;margin-top:6px"><span class="pill pill-good sm"><span class="dot"></span>Policy chain: pass</span></div>
+<div class="jn-detail" style="margin-top:3px">Consent ✓ · quiet hours clear · 2nd send this 30d window</div>
+</div>
+<div class="jn-stats">1,120 entered · demo</div>
+</div>
+
+<div class="jnode jexit" style="left:1910px;top:300px">
+<div class="jn-head"><span class="p" style="background:var(--neutral)"><svg class="ic s13" style="color:#fff"><use href="#i-ban"/></svg></span><span class="k">Exit</span></div>
+<div class="jn-body"><div class="jn-title">Exit journey</div><div class="jn-detail">End of sequence · re-entry after 60 days</div></div>
+<div class="jn-stats">1,120 completed · demo</div>
+</div>
+</div></div>
+
+<div class="card" style="position:sticky;top:70px">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-search"/></svg></span><span class="ttl">Smart prompt · co-pilot</span></div>
+<div class="cbody cpwrap">
+
+<div class="cpturn you">
+<span class="av me">M</span>
+<div class="cpbubble">When a customer's ordering slows down, wait a week, then text them a $10 delivery-only reward; if they still haven't ordered 14 days later, email them 2x points on their next order; stop when they order.</div>
+</div>
+
+<div class="cpturn bot">
+<span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span>
+<div class="cpbubble">Trigger, both waits, both branches and both messages are set from your prompt. One question before I finish the trigger:
+<div class="cpq">Which store's customers?</div>
+<div class="cpchips"><span class="chip">Corona only</span><span class="chip">Lake Elsinore only</span><span class="chip good">✓ All stores</span></div>
+</div>
+</div>
+<div class="cpnode-added"><svg class="ic s13"><use href="#i-check-circle"/></svg>Trigger node scope set: all stores</div>
+
+<div class="cpturn bot">
+<span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span>
+<div class="cpbubble"><div class="cpq">Stop when they order?</div>
+<div class="cpchips"><span class="chip good">✓ Yes</span><span class="chip">No, keep going</span></div>
+</div>
+</div>
+<div class="cpnode-added"><svg class="ic s13"><use href="#i-check-circle"/></svg>Branch nodes added: "ordered since?" exits to Exit at both checkpoints</div>
+
+<div class="cpturn bot">
+<span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span>
+<div class="cpbubble">Done. Ordering slows down → wait 7 days → ordered? yes exit, no → SMS "Welcome back $10", delivery only → wait 14 days → ordered? yes exit, no → email 2× points on next order → exit. <span class="demo-tag">demo</span></div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Parameters pulled from the system</h3><span class="cs">Every parameter the interpretation above used, and where it came from — same "Parameters pulled from the system" list as Promo rules.</span></div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Parameter</th><th>Resolved to</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Trigger condition</td><td>Order-frequency drop</td><td>Customer trait catalog · derived from order history</td></tr>
+<tr><td>Store scope</td><td>All stores</td><td>Stores</td></tr>
+<tr><td>Wait 1</td><td>7 days</td><td>Journey parameter · from prompt</td></tr>
+<tr><td>Branch condition</td><td>Ordered since node entry</td><td>Orders connector</td></tr>
+<tr><td>Reward · message 1</td><td>$10, delivery only, landing page</td><td>Promotion engine · reward catalog</td></tr>
+<tr><td>Wait 2</td><td>14 days</td><td>Journey parameter · from prompt</td></tr>
+<tr><td>Loyalty multiplier · message 2</td><td>2× points on next order</td><td>Loyalty engine · earn-rate override</td></tr>
+<tr><td>Policy chain</td><td>consent · quiet hours · frequency cap</td><td>Consent table · quiet-hours config · frequency-cap ledger</td></tr>
+<tr class="foot"><td colspan="3">demo rows</td></tr>
+</tbody></table></div>
+
+<div class="caphead" style="margin-top:22px"><h3>Two more things it handles</h3><span class="cs">Same co-pilot, two more edges — a parameter it honestly can't find, and a plain-English refine that changes a node.</span></div>
+<div class="grid2">
+
+<div class="card pad">
+<div class="row" style="gap:8px;margin-bottom:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-alert"/></svg></span><b style="font-size:12.5px">No data source — said honestly</b></div>
+<div class="cpturn you" style="margin-bottom:8px"><span class="av me">M</span><div class="cpbubble">Only enroll customers who reviewed us</div></div>
+<div class="cpturn bot"><span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span><div class="cpbubble">No data source for this — ask a developer to add a field, or collect it with a questionnaire.</div></div>
+<div class="card pad-sm" style="margin-top:8px;background:var(--bg2)">
+<div class="flbl">Suggested questionnaire <span class="demo-tag">demo</span></div>
+<div style="font-size:12px;font-weight:600;color:var(--ink2);margin-top:6px">Did you leave us a review?</div>
+<div class="row" style="gap:6px;margin-top:6px"><span class="chip">Yes</span><span class="chip">No</span><span class="chip">Prefer not to say</span></div>
+<div class="fhint">Answers write to the customer trait catalog as a new field — usable here once enough customers respond.</div>
+</div>
+</div>
+
+<div class="card pad">
+<div class="row" style="gap:8px;margin-bottom:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-refresh"/></svg></span><b style="font-size:12.5px">Refine, in words</b></div>
+<div class="cpturn you" style="margin-bottom:8px"><span class="av me">M</span><div class="cpbubble">Refine: make the second message an SMS too</div></div>
+<div class="cpturn bot"><span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span><div class="cpbubble">Changed — the email node becomes an SMS node; the policy chain re-checks before it can send.</div></div>
+<div class="minigraph" style="margin-top:8px">
+<div class="mininode"><span class="p" style="background:var(--neutral)"><svg class="ic s13" style="color:#fff"><use href="#i-mail"/></svg></span><div><div class="t">was: Email · 2× points</div><div class="s">removed · demo</div></div></div>
+<div class="miniarrow"></div>
+<div class="mininode" style="background:var(--accentSoft);border-color:var(--accentBorder)"><span class="p" style="background:var(--huePink)"><svg class="ic s13" style="color:#fff"><use href="#i-send"/></svg></span><div><div class="t">now: SMS · 2× points</div><div class="s">1,120 entered · demo</div></div></div>
+</div>
+</div>
+
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Version list</h3><span class="cs">Every prompt → journey pair, kept — same audit pattern as Promo rules.</span></div>
+<div class="card pad">
+<div class="tl">
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">v1 · prompt</span> <span class="pill pill-neutral sm">draft</span><div class="tl-meta">"When a customer's ordering slows down, wait a week, then text them a $10 delivery-only reward; if they still haven't ordered 14 days later, email them 2x points on their next order; stop when they order."</div><div class="tl-reason">Trigger, 2 waits, 2 branches, 2 messages and 3 exits created · store scope unset</div></div></div>
+<div class="tl-ev"><div class="tl-dot info"></div><div class="tl-body"><span class="tl-action">v2 · answered "All stores"</span><div class="tl-meta">Which store's customers?</div><div class="tl-reason">Trigger node scope set: all stores</div></div></div>
+<div class="tl-ev"><div class="tl-dot info"></div><div class="tl-body"><span class="tl-action">v3 · answered "Yes"</span><div class="tl-meta">Stop when they order?</div><div class="tl-reason">Both branch nodes wired to exit on yes</div></div></div>
+<div class="tl-ev"><div class="tl-dot warn"></div><div class="tl-body"><span class="tl-action">v4 · refine</span><div class="tl-meta">"make the second message an SMS too"</div><div class="tl-reason">Message 2 node kind changed: Email → SMS · policy chain re-evaluated</div></div></div>
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">v4 · saved</span> <span class="pill pill-good sm">draft, ready to review</span><div class="tl-reason">Same journey object a hand-built canvas would produce · prompt and interpretation stored on it for audit</div></div></div>
+</div>
+</div>
+
+<div class="devnote warn"><div class="dn-head"><svg class="ic s13"><use href="#i-plug"/></svg>Dev call-out</div>
+<ul>
+<li>Compiles to the same journey object as the canvas below — the model only proposes, the trait catalog validates, the journey runner executes. It never writes journey JSON directly.</li>
+<li>Production needs journey and journey-run tables — today only the hand-built win-back journey below is wired to anything real.</li>
+<li>The policy chain — consent, quiet hours, frequency caps — has to be evaluated live at each message node, not just once at journey entry, so its verdict pill above is always current.</li>
+<li>Same derived-parameter definition table as Promo rules (tab 7) is read here too — "order-frequency drop" is one catalog parameter, not a journeys-only copy.</li>
+<li>Every journey built this way needs a prompt + interpretation audit stored on its version, same as the promotion audit in Promo rules.</li>
+</ul>
+</div>
+
+<div class="caphead" style="margin-top:16px"><h3>Win-back journey</h3><span class="cs">Live · 1,204 entered this month · scroll the canvas horizontally</span></div>
+<div class="split">
+<div class="jcanvas-scroll"><div class="jcanvas">
+<svg class="jconn" viewBox="0 0 1660 640" preserveAspectRatio="none">
+<path d="M250,310 L290,310" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M520,310 L560,310" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M790,300 C825,260 825,150 850,120" stroke="var(--good)" stroke-width="2" fill="none"/>
+<path d="M790,320 C825,360 825,470 850,500" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M1080,120 C1115,120 1115,280 1140,300" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M1080,500 C1115,500 1115,320 1140,320" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M1370,310 L1410,310" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+</svg>
+<span class="jlabel yes" style="left:806px;top:210px">Yes</span>
+<span class="jlabel no" style="left:806px;top:410px">No</span>
+
+<div class="jnode" style="left:20px;top:250px">
+<div class="jn-head"><span class="p" style="background:var(--hueViolet)"><svg class="ic s13" style="color:#fff"><use href="#i-lightning"/></svg></span><span class="k">Trigger</span></div>
+<div class="jn-body"><div class="jn-title">Ordering less often than usual</div><div class="jn-detail">Frequency drop vs 90-day average · re-evaluated nightly</div></div>
+<div class="jn-stats">1,204 entered this month</div>
+</div>
+
+<div class="jnode" style="left:290px;top:250px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-clock"/></svg></span><span class="k">Wait</span></div>
+<div class="jn-body"><div class="jn-title">Wait 2 days</div><div class="jn-detail">Lets a same-week reorder cancel the journey naturally</div></div>
+<div class="jn-stats">1,169 continued · 35 exited (reordered)</div>
+</div>
+
+<div class="jnode selected" style="left:560px;top:250px">
+<div class="jn-head"><span class="p" style="background:var(--hueTeal)"><svg class="ic s13" style="color:#fff"><use href="#i-split"/></svg></span><span class="k">Branch</span></div>
+<div class="jn-body"><div class="jn-title">SMS consent granted?</div><div class="jn-detail">Reads the live consent record, not the signup default</div></div>
+<div class="jn-stats">1,169 evaluated · 812 yes · 357 no</div>
+</div>
+
+<div class="jnode" style="left:850px;top:60px">
+<div class="jn-head"><span class="p" style="background:var(--huePink)"><svg class="ic s13" style="color:#fff"><use href="#i-send"/></svg></span><span class="k">Message · SMS</span></div>
+<div class="jn-body"><div class="jn-title">Short SMS + landing page</div><div class="jn-detail">hyp.wf/x7Kq2p · gate off, verified at signup</div></div>
+<div class="jn-stats">812 entered · 646 opened · 402 redeemed</div>
+</div>
+
+<div class="jnode" style="left:850px;top:440px">
+<div class="jn-head"><span class="p" style="background:var(--huePink)"><svg class="ic s13" style="color:#fff"><use href="#i-mail"/></svg></span><span class="k">Message · Email</span></div>
+<div class="jn-body"><div class="jn-title">Email: We miss you</div><div class="jn-detail">Same landing page, gate ON — no signup verification on file</div></div>
+<div class="jn-stats">357 entered · 189 opened · 74 redeemed</div>
+</div>
+
+<div class="jnode" style="left:1140px;top:250px">
+<div class="jn-head"><span class="p" style="background:var(--hueGreen)"><svg class="ic s13" style="color:#fff"><use href="#i-coins"/></svg></span><span class="k">Loyalty action</span></div>
+<div class="jn-body"><div class="jn-title">+150 bonus points</div><div class="jn-detail">reason code WINBACK_2026Q3 · does not affect tier</div></div>
+<div class="jn-stats">476 entered · 476 credited</div>
+</div>
+
+<div class="jnode jexit" style="left:1410px;top:250px">
+<div class="jn-head"><span class="p" style="background:var(--neutral)"><svg class="ic s13" style="color:#fff"><use href="#i-ban"/></svg></span><span class="k">Exit</span></div>
+<div class="jn-body"><div class="jn-title">Exit journey</div><div class="jn-detail">Re-entry allowed after 60 days</div></div>
+<div class="jn-stats">476 converted · 693 unconverted</div>
+</div>
+</div></div>
+
+<div class="card" style="position:sticky;top:70px">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-split"/></svg></span><span class="ttl">Selected node · Branch</span></div>
+<div class="cbody stack">
+<div><div class="flbl">Node name</div><div class="field">SMS consent granted?</div></div>
+<div><div class="flbl">Condition</div><div class="field mono">consent.sms == "granted"</div></div>
+<div><div class="flbl">Yes path</div><div class="field"><span class="pill pill-good sm">Yes</span> Message · Short SMS + landing page</div></div>
+<div><div class="flbl">No path</div><div class="field"><span class="pill pill-neutral sm">No</span> Message · Email win-back</div></div>
+<div><div class="flbl">Re-evaluate</div><div class="field">Once, at the moment this node is reached</div></div>
+<div class="fhint">Reading consent here — not at journey entry — means an opt-out during the 2-day wait routes correctly to email instead of a blocked SMS.</div>
+<div class="row" style="gap:8px;margin-top:4px"><span class="btn btn-secondary btn-xs" style="flex:1">Duplicate</span><span class="btn btn-secondary btn-xs" style="flex:1">Delete</span></div>
+</div>
+</div>
+</div>
+
+<div class="devnote good"><div class="dn-head"><svg class="ic s13"><use href="#i-award"/></svg>Loyalty actions are nodes</div>
+The +150 bonus-points node above posts to the same points ledger route the register uses at tender — see the Loyalty tab and Dev call-outs. There is no separate "loyalty automation" screen to keep in sync with this canvas.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════ 6 · LOYALTY (POS) ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-loyalty">
+<div class="intro"><div class="card">
+<div class="eyebrow">Loyalty — configured here, lives in the POS</div>
+<h2>Program setup, then the exact register-side read a budtender sees at checkout.</h2>
+<p>Earn rules, tiers, rewards and referral live as POS screens per the brief. <code>pos/screen-register.jsx</code> is never modified in code for this exploration — the register mock below shows how the member panel and tender line would read with real loyalty wired in, landing via the POS Home card, the member panel, and the payment modal (see Dev call-outs).</p>
+</div></div>
+<div class="stage">
+
+<div class="caphead"><h3>Earn rules</h3><span class="cs">Per $, per category, per store, and stacking multipliers — one rule table, same sentence style as the promotions engine.</span></div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Rule</th><th>Sentence</th><th>Scope</th><th class="tright">Multiplier</th></tr></thead>
+<tbody>
+<tr><td>Base earn</td><td>Earn 1 point per $1 spent</td><td>All stores · all channels</td><td class="tright mono">1.0×</td></tr>
+<tr><td>Flower boost</td><td>Earn 2 points per $1 on flower</td><td>All stores</td><td class="tright mono">2.0×</td></tr>
+<tr><td>Corona weekday</td><td>Earn 1.5× base, Mon–Thu</td><td>Corona only · in-store</td><td class="tright mono">1.5×</td></tr>
+<tr><td>Delivery kickoff</td><td>Earn 1.25× base on a customer's first delivery order</td><td>All stores · delivery only</td><td class="tright mono">1.25×</td></tr>
+</tbody></table></div>
+
+<div class="caphead"><h3>Tiers</h3><span class="cs">Whole ladder at a glance, Starbucks-style. Entry and retention thresholds are shown separately — Gold retains at a lower bar than it took to earn.</span></div>
+<div class="card pad">
+<div class="milebar">
+<div class="fill" style="width:52%"></div>
+<div class="milestop hit" style="left:0%"></div><div class="mlabel" style="left:0%"><div class="t">Bronze</div><div class="s">0 pts</div></div>
+<div class="milestop hit" style="left:20%"></div><div class="mlabel" style="left:20%"><div class="t">Silver</div><div class="s">500 pts</div></div>
+<div class="milestop hit" style="left:52%"></div><div class="mlabel" style="left:52%"><div class="t">Gold</div><div class="s">1,000 pts</div></div>
+<div class="milestop" style="left:80%"></div><div class="mlabel" style="left:80%"><div class="t">Platinum</div><div class="s">3,000 pts</div></div>
+</div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Tier</th><th class="tright">Enter at</th><th class="tright">Retain at</th><th>Benefits</th><th>Grace</th></tr></thead>
+<tbody>
+<tr><td>Silver</td><td class="tright mono">500 pts / yr</td><td class="tright mono">300 pts / yr</td><td>Birthday reward</td><td class="mono">30d</td></tr>
+<tr class="me"><td>Gold</td><td class="tright mono">1,000 pts / yr</td><td class="tright mono">650 pts / yr</td><td>+free delivery over $40</td><td class="mono">45d</td></tr>
+<tr><td>Platinum</td><td class="tright mono">3,000 pts / yr</td><td class="tright mono">2,000 pts / yr</td><td>+early drop access</td><td class="mono">60d</td></tr>
+</tbody></table></div>
+</div>
+
+<div class="caphead"><h3>Rewards catalogue</h3><span class="cs">Store- and channel-scoped, shown plainly per the brief — no locked/greyed items, just different chips.</span></div>
+<div class="grid3">
+<div class="rewardcard"><div class="row" style="justify-content:space-between"><b style="font-size:13px">$10 off</b><span class="num">500 pts</span></div><div class="scopechips"><span class="chip good">All stores</span><span class="chip info">Delivery + in-store</span></div></div>
+<div class="rewardcard"><div class="row" style="justify-content:space-between"><b style="font-size:13px">Free pre-roll</b><span class="num">300 pts</span></div><div class="scopechips"><span class="chip">Corona only</span><span class="chip">In-store only</span></div></div>
+<div class="rewardcard"><div class="row" style="justify-content:space-between"><b style="font-size:13px">Free delivery</b><span class="num">150 pts</span></div><div class="scopechips"><span class="chip good">All stores</span><span class="chip">Delivery only</span></div></div>
+<div class="rewardcard"><div class="row" style="justify-content:space-between"><b style="font-size:13px">20% off next order</b><span class="num">800 pts</span></div><div class="scopechips"><span class="chip">Corona, Lake Elsinore</span><span class="chip info">Delivery + in-store</span></div></div>
+<div class="rewardcard"><div class="row" style="justify-content:space-between"><b style="font-size:13px">VIP tasting event</b><span class="num">2,000 pts</span></div><div class="scopechips"><span class="chip pill-dark" style="background:var(--ink);color:var(--bg)">Platinum only</span><span class="chip">In-store only</span></div></div>
+<div class="rewardcard"><div class="row" style="justify-content:space-between"><b style="font-size:13px">Birthday $5 off</b><span class="num">auto</span></div><div class="scopechips"><span class="chip good">All stores</span><span class="chip info">Delivery + in-store</span></div></div>
+</div>
+
+<div class="grid2" style="margin-top:14px">
+<div class="card pad">
+<div class="flbl">Expiry policy</div>
+<div class="muted">Points expire 180 days after the earning order, rolling — not a single yearly cutoff. A customer with orders every month never sees an expiry.</div>
+<div class="flbl" style="margin-top:10px">Referral program</div>
+<div class="muted">When a referred customer completes their first order, both people earn 300 points. Caps at 10 successful referrals per calendar year.</div>
+</div>
+<div class="card pad" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+<div class="flbl" style="align-self:flex-start">Wallet pass preview</div>
+<div class="walletcard">
+<div class="top"><div><div class="brand">Hyperwolf</div><div class="tier">Gold · Jordan Alvarez</div></div><div class="qr"><svg class="ic s18"><use href="#i-qr"/></svg></div></div>
+<div class="bal">1,240<span style="font-size:14px;font-weight:600"> pts</span></div>
+<div class="balsub">320 pts expire Nov 1 · 3 rewards usable now</div>
+</div>
+</div>
+</div>
+
+<div class="caphead"><h3>Register-side read</h3><span class="cs">Same member-record component as Customers, mounted where a budtender actually looks.</span></div>
+<div class="pos">
+<div class="pos-rail">
+<span class="logo">HW</span>
+<span class="it on"><svg class="ic"><use href="#i-register"/></svg>Register</span>
+<span class="it"><svg class="ic"><use href="#i-board"/></svg>Home</span>
+<span class="it"><svg class="ic"><use href="#i-users"/></svg>Members</span>
+</div>
+<div class="pos-main">
+<div class="pos-top"><b style="font-size:13px">Register · Corona</b><span class="muted" style="margin-left:auto">Cart · 2 items · $64.10</span></div>
+<div class="pos-scr">
+<div style="flex:1;min-width:260px" class="stack">
+<div class="tenderline"><span class="lbl" style="margin-right:auto">This sale earns</span><b class="num" style="color:var(--good)">+18 pts</b><span class="muted">(1.5× Corona weekday)</span></div>
+<div class="tenderline"><span class="lbl" style="margin-right:auto">Customer may redeem</span><b class="num">up to 1,240 pts</b><span class="muted">= $12.40 off</span></div>
+</div>
+<div class="memberpanel">
+<div class="mr-side" style="border-right:0;border-bottom:1px solid var(--hairline2);padding:14px">
+<span class="av me" style="width:38px;height:38px">JA</span>
+<div class="mr-name" style="font-size:13.5px">Jordan Alvarez</div>
+<div class="mr-sub">cust_84471</div>
+</div>
+<div style="padding:12px 14px" class="stack">
+<div class="kv"><span class="k">Points</span><span class="v num">1,240</span></div>
+<div class="kv"><span class="k">Tier</span><span class="v"><span class="pill pill-accent sm">Gold</span></span></div>
+<div class="kv"><span class="k">Consent</span><span class="v"><span class="pill pill-good sm">SMS + Email</span></span></div>
+<div class="devnote good" style="margin-top:2px;padding:9px 10px;font-size:11px">3 rewards usable here · 1 delivery-only</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="devnote warn"><div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Register screen is never modified in code</div>
+This mock is a read of <code>pos/screen-register.jsx</code> with real loyalty data, not an edit to it. The member panel, the Home card, and the payment modal are the three real landing points — see Dev call-outs.</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════ 7 · PROMO RULES ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-promo">
+<div class="intro"><div class="card">
+<div class="eyebrow">Promo rules — conditions are nodes, data sources are connector cards</div>
+<h2>Marketing's problem: "if a customer falls into this segment, they get X" or "brand + category is 30% off, excluding this list" currently needs a developer. This tab is where that stops being true.</h2>
+<p>A promotion is a small graph, on the same canvas style as Journeys (tab 5): <b>source nodes</b> (Audience, Product filter, Cart, Store, Time, Customer field) feed <b>combine nodes</b> (AND, OR, NOT/Exclude) which feed a single <b>action node</b> (percent off, reward, points multiplier, free product) carrying its own store/channel scope. Every node shows a live match count, so the graph is checkable before it goes live, not after. New data — a table, a feed, a one-off list — comes in through a <b>connector card</b> in the Data sources drawer below: pick a source, and its fields become source nodes immediately. No developer touches this path.</p>
+<p>Two worked graphs below: a product-and-category discount with an exclusion list, and a one-hop audience reward. Both produce the same plain-language readout a reviewer can sign off on without reading the graph.</p>
+</div></div>
+<div class="stage">
+
+<div class="caphead"><h3>Node palette</h3><span class="cs">Eight kinds, same discipline as Journeys — a node's meaning is fixed by its kind, not by how it's configured.</span></div>
+<div class="jpalette">
+<span class="jchip"><span class="dot" style="background:var(--hueViolet)"></span>Audience</span>
+<span class="jchip"><span class="dot" style="background:var(--hueBlue)"></span>Product filter</span>
+<span class="jchip"><span class="dot" style="background:var(--hueTeal)"></span>Cart</span>
+<span class="jchip"><span class="dot" style="background:var(--hueGreen)"></span>Store</span>
+<span class="jchip"><span class="dot" style="background:var(--huePink)"></span>Time</span>
+<span class="jchip"><span class="dot" style="background:var(--neutral)"></span>Customer field</span>
+<span class="jchip"><span class="dot" style="background:var(--warnText)"></span>Combine · AND / OR / NOT</span>
+<span class="jchip"><span class="dot" style="background:var(--accentText)"></span>Action</span>
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Smart prompt → promotion</h3><span class="cs">One text field builds the graph below it, node by node — the same node kinds and the same rule JSON as a hand-built graph, so nothing here is a second system to keep in sync. The co-pilot asks at most what it needs, then shows its work.</span></div>
+
+<div class="split">
+<div class="jcanvas-scroll"><div class="jcanvas" style="width:950px;height:620px;min-height:620px">
+<svg class="jconn" viewBox="0 0 950 620" preserveAspectRatio="none">
+<path d="M250,303 C275,303 275,408 300,408" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M250,513 C275,513 275,408 300,408" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M530,408 C580,408 580,253 650,253" stroke="var(--good)" stroke-width="2" fill="none"/>
+<path d="M250,93 C400,93 400,253 650,253" stroke="var(--good)" stroke-width="2" fill="none"/>
+</svg>
+<span class="jlabel yes" style="left:430px;top:110px">from prompt</span>
+<span class="jlabel yes" style="left:540px;top:370px">match</span>
+
+<div class="jnode" style="left:20px;top:20px">
+<div class="jn-head"><span class="p" style="background:var(--hueViolet)"><svg class="ic s13" style="color:#fff"><use href="#i-users"/></svg></span><span class="k">Audience</span></div>
+<div class="jn-body"><div class="jn-title">Raw Garden buyers, lapsed 45d+</div><div class="jn-detail">brand affinity = Raw Garden AND days since last order ≥ 45 · from Customers connector</div></div>
+<div class="jn-stats">1,340 customers match · demo</div>
+</div>
+
+<div class="jnode" style="left:20px;top:230px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><span class="k">Product filter</span></div>
+<div class="jn-body"><div class="jn-title">brand = Raw Garden</div><div class="jn-detail">from the Products connector · brand field</div></div>
+<div class="jn-stats">340 products match · demo</div>
+</div>
+
+<div class="jnode" style="left:20px;top:440px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><span class="k">Product filter</span></div>
+<div class="jn-body"><div class="jn-title">category = Concentrates</div><div class="jn-detail">from the Products connector · category field</div></div>
+<div class="jn-stats">812 products match · demo</div>
+</div>
+
+<div class="jnode" style="left:300px;top:335px">
+<div class="jn-head"><span class="p" style="background:var(--warnText)"><svg class="ic s13" style="color:#fff"><use href="#i-split"/></svg></span><span class="k">Combine · AND</span></div>
+<div class="jn-body"><div class="jn-title">brand AND category</div><div class="jn-detail">intersection of both product filters above</div></div>
+<div class="jn-stats">96 products match · demo</div>
+</div>
+
+<div class="jnode selected" style="left:650px;top:180px">
+<div class="jn-head"><span class="p" style="background:var(--accentText)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><span class="k">Action</span></div>
+<div class="jn-body"><div class="jn-title">20% off Raw Garden Concentrates</div><div class="jn-detail">both channels · once per customer · Fri 11–Sun 13 Sep</div></div>
+<div class="jn-stats">1,340 customers × 96 SKUs eligible · demo</div>
+</div>
+</div></div>
+
+<div class="card" style="position:sticky;top:70px">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-search"/></svg></span><span class="ttl">Smart prompt · co-pilot</span></div>
+<div class="cbody cpwrap">
+
+<div class="cpturn you">
+<span class="av me">M</span>
+<div class="cpbubble">Customers who usually buy Raw Garden but haven't ordered in 45 days get 20% off Raw Garden concentrates this weekend</div>
+</div>
+
+<div class="cpturn bot">
+<span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span>
+<div class="cpbubble">Audience and product filter are set from your prompt. One question before I finish the action:
+<div class="cpq">Delivery only, in-store, or both?</div>
+<div class="cpchips"><span class="chip">Delivery only</span><span class="chip">In-store only</span><span class="chip good">✓ Both</span></div>
+</div>
+</div>
+<div class="cpnode-added"><svg class="ic s13"><use href="#i-check-circle"/></svg>Action node scope set: delivery + in-store</div>
+
+<div class="cpturn bot">
+<span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span>
+<div class="cpbubble"><div class="cpq">Once per customer?</div>
+<div class="cpchips"><span class="chip good">✓ Yes</span><span class="chip">No limit</span></div>
+</div>
+</div>
+<div class="cpnode-added"><svg class="ic s13"><use href="#i-check-circle"/></svg>Action node: once per customer</div>
+
+<div class="cpturn bot">
+<span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span>
+<div class="cpbubble">Done. When a customer who usually buys Raw Garden hasn't ordered in 45+ days has Raw Garden Concentrates in their cart, take 20% off — delivery and in-store, once per customer, Fri 11–Sun 13 Sep. <span class="demo-tag">demo</span></div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Parameters pulled from the system</h3><span class="cs">Every parameter the interpretation above used, and where it came from — the "pulls data parameters from our system" part of the ask.</span></div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>Parameter</th><th>Resolved to</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Brand affinity</td><td>Raw Garden</td><td>Customer trait catalog · derived from order history</td></tr>
+<tr><td>Days since last order</td><td>≥ 45</td><td>Customer trait catalog</td></tr>
+<tr><td>Product brand</td><td>Raw Garden</td><td>Product attributes · Products connector</td></tr>
+<tr><td>Product category</td><td>Concentrates</td><td>Product attributes · Products connector</td></tr>
+<tr><td>Channel scope</td><td>Delivery + in-store</td><td>Stores</td></tr>
+<tr><td>Redemption limit</td><td>Once per customer</td><td>Promotion engine guardrail</td></tr>
+<tr><td>Date window</td><td>Fri 11 – Sun 13 Sep 2026</td><td>Calendar</td></tr>
+<tr class="foot"><td colspan="3">demo rows</td></tr>
+</tbody></table></div>
+
+<div class="caphead" style="margin-top:22px"><h3>Three more things it handles</h3><span class="cs">Same co-pilot, three different edges — a missing parameter it can derive, one it honestly can't, and a plain-English refine.</span></div>
+<div class="grid3">
+
+<div class="card pad">
+<div class="row" style="gap:8px;margin-bottom:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-database"/></svg></span><b style="font-size:12.5px">Needs a new parameter</b></div>
+<div class="cpturn you" style="margin-bottom:8px"><span class="av me">M</span><div class="cpbubble">10% off for anyone who orders after 8 pm on weekdays at Corona</div></div>
+<div class="cpturn bot"><span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span><div class="cpbubble">I don't have order hour yet — derive it from <code>orders.created_at</code> (hour ≥ 20)?<div class="cpchips"><span class="chip good">✓ Create it</span></div></div></div>
+<div class="cpnode-added"><svg class="ic s13"><use href="#i-check-circle"/></svg>Customer field node added: order hour (derived) · store = Corona · weekdays</div>
+</div>
+
+<div class="card pad">
+<div class="row" style="gap:8px;margin-bottom:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-alert"/></svg></span><b style="font-size:12.5px">No data source — said honestly</b></div>
+<div class="cpturn you" style="margin-bottom:8px"><span class="av me">M</span><div class="cpbubble">20% off for customers who own a dog</div></div>
+<div class="cpturn bot"><span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span><div class="cpbubble">No data source for this — ask a developer to add a field, or collect it with a questionnaire.</div></div>
+<div class="card pad-sm" style="margin-top:8px;background:var(--bg2)">
+<div class="flbl">Suggested questionnaire <span class="demo-tag">demo</span></div>
+<div style="font-size:12px;font-weight:600;color:var(--ink2);margin-top:6px">Do you have a dog at home?</div>
+<div class="row" style="gap:6px;margin-top:6px"><span class="chip">Yes</span><span class="chip">No</span><span class="chip">Prefer not to say</span></div>
+<div class="fhint">Answers write to the customer trait catalog as a new field — usable here once enough customers respond.</div>
+</div>
+</div>
+
+<div class="card pad">
+<div class="row" style="gap:8px;margin-bottom:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-refresh"/></svg></span><b style="font-size:12.5px">Refine, in words</b></div>
+<div class="cpturn you" style="margin-bottom:8px"><span class="av me">M</span><div class="cpbubble">Refine: exclude the Clearance list</div></div>
+<div class="cpturn bot"><span class="av"><svg class="ic s13"><use href="#i-search"/></svg></span><div class="cpbubble">Added — a Combine · NOT node goes in before the Action, same shape as the hand-built graph below.</div></div>
+<div class="minigraph" style="margin-top:8px">
+<div class="mininode"><span class="p" style="background:var(--warnText)"><svg class="ic s13" style="color:#fff"><use href="#i-ban"/></svg></span><div><div class="t">NOT: Clearance list</div><div class="s">12 SKUs excluded · demo</div></div></div>
+<div class="miniarrow"></div>
+<div class="mininode" style="background:var(--accentSoft);border-color:var(--accentBorder)"><span class="p" style="background:var(--accentText)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><div><div class="t">20% off</div><div class="s">84 SKUs eligible · demo</div></div></div>
+</div>
+</div>
+
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Version list</h3><span class="cs">Every prompt → rule pair, kept — the final rule is never a black box, even after several refine turns.</span></div>
+<div class="card pad">
+<div class="tl">
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">v1 · prompt</span> <span class="pill pill-neutral sm">draft</span><div class="tl-meta">"Customers who usually buy Raw Garden but haven't ordered in 45 days get 20% off Raw Garden concentrates this weekend"</div><div class="tl-reason">Audience + Product filter + AND + Action nodes created · channel and redemption limit unset</div></div></div>
+<div class="tl-ev"><div class="tl-dot info"></div><div class="tl-body"><span class="tl-action">v2 · answered "Both"</span><div class="tl-meta">Delivery only, in-store, or both?</div><div class="tl-reason">Action node scope set: delivery + in-store</div></div></div>
+<div class="tl-ev"><div class="tl-dot info"></div><div class="tl-body"><span class="tl-action">v3 · answered "Yes"</span><div class="tl-meta">Once per customer?</div><div class="tl-reason">Action node: once per customer</div></div></div>
+<div class="tl-ev"><div class="tl-dot warn"></div><div class="tl-body"><span class="tl-action">v4 · refine</span><div class="tl-meta">"exclude the Clearance list"</div><div class="tl-reason">Combine · NOT node inserted before Action · 84 SKUs eligible, 12 excluded</div></div></div>
+<div class="tl-ev"><div class="tl-dot good"></div><div class="tl-body"><span class="tl-action">v4 · saved</span> <span class="pill pill-good sm">draft, ready to review</span><div class="tl-reason">Same rule JSON a hand-built graph would produce · prompt and interpretation stored on it for audit</div></div></div>
+</div>
+</div>
+
+<div class="devnote warn"><div class="dn-head"><svg class="ic s13"><use href="#i-plug"/></svg>Dev call-out</div>
+<ul>
+<li>The prompt box compiles to the same rule JSON as the graphs below — the model only proposes, the trait catalog validates, the engine evaluates. It never writes rule JSON or SQL directly.</li>
+<li>Production must add <code>audience</code>, <code>product_list</code>, <code>store</code> and <code>channel</code> attributes to the promotion engine — the same gap the hand-built graphs below assume.</li>
+<li>Needs a derived-parameter definition table (name, source field, expression, type) read by the trait catalog — what "order hour" resolves to in the Corona example above.</li>
+<li>Every promotion built this way needs a prompt + interpretation audit stored on it — the version list above is that audit, not just a UI nicety.</li>
+</ul>
+</div>
+
+<div class="caphead" style="margin-top:16px"><h3>Raw Garden Concentrates — 30% off, excluding Clearance</h3><span class="cs">Live · the Action node is selected below — its property panel is open on the right, same pattern as the Journeys branch node.</span></div>
+<div class="split">
+<div class="jcanvas-scroll"><div class="jcanvas" style="width:1180px;height:500px;min-height:500px">
+<svg class="jconn" viewBox="0 0 1180 500" preserveAspectRatio="none">
+<path d="M250,93 C275,93 275,213 300,213" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M250,343 C275,343 275,213 300,213" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+<path d="M530,213 C565,213 565,293 600,293" stroke="var(--good)" stroke-width="2" fill="none"/>
+<path d="M530,413 C565,413 565,293 600,293" stroke="var(--bad)" stroke-width="2" fill="none"/>
+<path d="M830,293 L900,293" stroke="var(--hairline3)" stroke-width="2" fill="none"/>
+</svg>
+<span class="jlabel yes" style="left:250px;top:118px">match</span>
+<span class="jlabel no" style="left:540px;top:368px">excl</span>
+
+<div class="jnode" style="left:20px;top:20px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><span class="k">Product filter</span></div>
+<div class="jn-body"><div class="jn-title">brand = Raw Garden</div><div class="jn-detail">from the Products connector · brand field</div></div>
+<div class="jn-stats">340 products match · demo</div>
+</div>
+
+<div class="jnode" style="left:20px;top:270px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><span class="k">Product filter</span></div>
+<div class="jn-body"><div class="jn-title">category = Concentrates</div><div class="jn-detail">from the Products connector · category field</div></div>
+<div class="jn-stats">812 products match · demo</div>
+</div>
+
+<div class="jnode" style="left:300px;top:140px">
+<div class="jn-head"><span class="p" style="background:var(--warnText)"><svg class="ic s13" style="color:#fff"><use href="#i-split"/></svg></span><span class="k">Combine · AND</span></div>
+<div class="jn-body"><div class="jn-title">brand AND category</div><div class="jn-detail">intersection of both product filters above</div></div>
+<div class="jn-stats">96 products match · demo</div>
+</div>
+
+<div class="jnode" style="left:300px;top:340px">
+<div class="jn-head"><span class="p" style="background:var(--hueBlue)"><svg class="ic s13" style="color:#fff"><use href="#i-layers"/></svg></span><span class="k">Product filter</span></div>
+<div class="jn-body"><div class="jn-title">Saved list: Clearance exclusions</div><div class="jn-detail">from the Saved lists connector · SKU field</div></div>
+<div class="jn-stats">12 SKUs on this list · demo</div>
+</div>
+
+<div class="jnode" style="left:600px;top:220px">
+<div class="jn-head"><span class="p" style="background:var(--warnText)"><svg class="ic s13" style="color:#fff"><use href="#i-ban"/></svg></span><span class="k">Combine · NOT</span></div>
+<div class="jn-body"><div class="jn-title">Exclude Clearance list</div><div class="jn-detail">AND-result, minus any SKU on the Clearance exclusions list</div></div>
+<div class="jn-stats">84 products match · 12 excluded · demo</div>
+</div>
+
+<div class="jnode selected" style="left:900px;top:220px">
+<div class="jn-head"><span class="p" style="background:var(--accentText)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><span class="k">Action</span></div>
+<div class="jn-body"><div class="jn-title">30% off</div><div class="jn-detail">all stores · delivery + in-store</div></div>
+<div class="jn-stats">84 SKUs · demo</div>
+</div>
+</div></div>
+
+<div class="card" style="position:sticky;top:70px">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-tag"/></svg></span><span class="ttl">Selected node · Action</span></div>
+<div class="cbody stack">
+<div><div class="flbl">Node name</div><div class="field">30% off Raw Garden Concentrates</div></div>
+<div><div class="flbl">Action type</div><div class="segctl"><span class="on">% off</span><span>Reward</span><span>Points multiplier</span><span>Free product</span></div></div>
+<div><div class="flbl">Discount</div><div class="field mono">30%</div></div>
+<div><div class="flbl">Applies to</div><div class="field">84 SKUs <span class="muted" style="margin-left:6px">(from Exclude Clearance list, upstream)</span></div></div>
+<div><div class="flbl">Store scope</div><div class="row" style="gap:5px"><span class="chip on">All stores</span></div></div>
+<div><div class="flbl">Channel scope</div><div class="row" style="gap:5px"><span class="chip on">Delivery</span><span class="chip on">In-store</span></div></div>
+<div><div class="flbl">Stacking</div><div class="field">Does not stack with other % off promotions</div></div>
+<div class="fhint">Match counts update live as upstream nodes change — this panel always shows what the graph currently resolves to, not what it resolved to at save time.</div>
+<div class="row" style="gap:8px;margin-top:4px"><span class="btn btn-secondary btn-xs" style="flex:1">Duplicate</span><span class="btn btn-secondary btn-xs" style="flex:1">Delete</span></div>
+</div>
+</div>
+</div>
+
+<div class="card pad" style="margin-top:14px">
+<div class="flbl">Plain-language readout</div>
+<div class="sentence">When a cart contains <span class="cl">Raw Garden</span> <span class="cl">Concentrates</span> not in <span class="cl">Clearance exclusions</span>, take <span class="cl">30% off</span> those items · <span class="cl">all stores</span> · <span class="cl">delivery + in-store</span>.</div>
+<div class="fhint">Every graph on this canvas produces this sentence, kept in sync with the nodes — the rule stays reviewable by someone who never opens the canvas.</div>
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Lapsed VIPs — welcome-back reward</h3><span class="cs">A one-hop graph: an audience source straight into an action, same shape as a one-node campaign in Messages.</span></div>
+<div class="card pad">
+<div class="minigraph">
+<div class="mininode"><span class="p" style="background:var(--hueViolet)"><svg class="ic s13" style="color:#fff"><use href="#i-users"/></svg></span><div><div class="t">Audience: Lapsed VIPs</div><div class="s">624 customers match · demo</div></div></div>
+<div class="miniarrow"></div>
+<div class="mininode" style="background:var(--accentSoft);border-color:var(--accentBorder)"><span class="p" style="background:var(--accentText)"><svg class="ic s13" style="color:#fff"><use href="#i-tag"/></svg></span><div><div class="t">Action: reward "Welcome back $10"</div><div class="s">delivery only · once per customer</div></div></div>
+</div>
+</div>
+<div class="card pad" style="margin-top:10px">
+<div class="flbl">Plain-language readout</div>
+<div class="sentence">When a customer is in <span class="cl">Lapsed VIPs</span>, give <span class="cl">$10 welcome back reward</span> · <span class="cl">delivery only</span> · <span class="cl">once per customer</span>.</div>
+</div>
+
+<div class="caphead" style="margin-top:22px"><h3>Data sources</h3><span class="cs">Six connector cards. Adding one makes its fields available as source nodes on the canvas immediately — no developer in the loop.</span></div>
+<div class="grid3">
+<div class="card pad-sm"><div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-users"/></svg></span><b style="font-size:12.5px">Customers</b></span><span class="pill pill-good sm">connected</span></div><div class="muted" style="margin-top:6px">18,204 rows · 22 fields · tier, consent, points, store affinity</div></div>
+<div class="card pad-sm"><div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-register"/></svg></span><b style="font-size:12.5px">Orders</b></span><span class="pill pill-good sm">connected</span></div><div class="muted" style="margin-top:6px">order history, channel, store, cart contents</div></div>
+<div class="card pad-sm"><div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-tag"/></svg></span><b style="font-size:12.5px">Products</b></span><span class="pill pill-good sm">connected</span></div><div class="muted" style="margin-top:6px">brand, category, SKU, price · feeds Product filter nodes</div></div>
+<div class="card pad-sm"><div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-database"/></svg></span><b style="font-size:12.5px">Inventory</b></span><span class="pill pill-good sm">connected</span></div><div class="muted" style="margin-top:6px">on-hand by store · feeds Store + Product filter nodes</div></div>
+<div class="card pad-sm"><div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="plate" style="width:26px;height:26px"><svg class="ic s13"><use href="#i-filter"/></svg></span><b style="font-size:12.5px">Saved lists</b></span><span class="pill pill-good sm">connected</span></div><div class="muted" style="margin-top:6px">4 lists · e.g. Clearance exclusions, 12 SKUs</div></div>
+<div class="card pad-sm" style="border-color:var(--accentBorder)"><div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><span class="plate" style="width:26px;height:26px;background:var(--accentSoft);color:var(--accentText)"><svg class="ic s13"><use href="#i-code"/></svg></span><b style="font-size:12.5px">CSV upload</b></span><span class="pill pill-accent sm">adding…</span></div><div class="muted" style="margin-top:6px">one-off file, mapped to an existing field below</div></div>
+</div>
+
+<div class="card pad" style="margin-top:10px">
+<div class="cardhead" style="padding:0 0 10px;border-bottom:0"><span class="plate"><svg class="ic"><use href="#i-code"/></svg></span><span class="ttl">Adding: Q4 vendor-funded SKUs</span><span class="pill pill-accent sm">not yet added</span></div>
+<div class="grid2">
+<div class="stack">
+<div><div class="flbl">File</div><div class="field mono">Q4_vendor_funded_skus.csv <span class="demo-tag" style="margin-left:6px">demo</span></div></div>
+<div><div class="flbl">Maps to</div><div class="field">Product · SKU field</div></div>
+<div><div class="flbl">Rows</div><div class="field">212 SKUs · 1 unmatched (flagged, not silently dropped)</div></div>
+<span class="btn btn-accent btn-xs" style="align-self:flex-start">Add connector → 6 source nodes ready</span>
+</div>
+<div class="tbl-wrap"><table class="dt">
+<thead><tr><th>CSV column</th><th>Maps to field</th><th>Sample</th></tr></thead>
+<tbody>
+<tr><td class="mono">sku</td><td>Product · SKU</td><td class="mono">RG-CONC-0182</td></tr>
+<tr><td class="mono">vendor_funded_pct</td><td>Product · custom field</td><td class="mono">50%</td></tr>
+<tr><td class="mono">program_end</td><td>Product · custom field</td><td class="mono">2026-12-31</td></tr>
+<tr class="foot"><td colspan="3">demo preview · 3 of 212 rows</td></tr>
+</tbody></table></div>
+</div>
+</div>
+
+<div class="devnote warn"><div class="dn-head"><svg class="ic s13"><use href="#i-plug"/></svg>Dev call-out</div>
+<ul>
+<li>Production has to add <code>audience</code>, <code>product_list</code>, <code>store</code> and <code>channel</code> as first-class attributes on the promotion engine — today the engine only knows cart/product/user/bogo/time/payment (see Loyalty tab's rule-compatibility note); this canvas assumes those four exist.</li>
+<li>Each graph compiles to the engine's existing rule JSON — the canvas is an editor over that JSON, not a second rules format to keep in sync with it.</li>
+<li>Connector cards are data, not code: adding one registers a table/feed and its fields, it does not ship a deploy. A CSV upload becomes a first-class source the moment its mapping is confirmed, and stays queryable exactly like Customers or Products above.</li>
+</ul>
+</div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════ 8 · DEV CALL-OUTS ════════════════════════════════════ -->
+<div class="tabpanel" id="tab-dev">
+<div class="intro"><div class="card">
+<div class="eyebrow">Dev call-outs</div>
+<h2>What production has to wire for this concept to be real, not a claim of what already exists.</h2>
+<p>Six items, each named in the tabs above where it matters. This is the "small fixed panel" from the brief, made its own tab because the canvas-first layout left no chrome to pin it to without covering a node.</p>
+</div></div>
+<div class="stage">
+<div class="grid2">
+
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-plug"/></svg>customer_id on the sale</div>
+Every register sale needs a resolved <code>customer_id</code> before tender completes, or the earn/redeem tender line (Loyalty tab) has nothing to post against. Today this depends on phone-number lookup at the register; a missed match silently earns nobody points.</div>
+
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-coins"/></svg>Points ledger route</div>
+One ledger, written by two callers: the register's tender step and a journey's loyalty-action node (Journeys tab, <code>+150 bonus points</code>). Both need the same idempotent write path keyed on <code>(customer_id, reason_code, source_event_id)</code> so a retried journey step or a re-tendered sale can't double-credit.</div>
+
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-shield"/></svg>Consent write</div>
+SMS/email opt-in and opt-out both need a single write path, called from the register (kiosk sign-up), the web checkout, and inbound STOP replies. The branch node in Journeys reads this table live — a write that lands in a different table than the branch reads from will silently misroute customers.</div>
+
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-link"/></svg>Short-link redirect</div>
+<code>hyp.wf/x7Kq2p</code> (Messages tab) needs a redirect service that resolves a short code to a specific landing-page render, per-recipient, so click tracking and the gate toggle both know which version of the page a given customer opened.</div>
+
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-globe"/></svg>Landing page render</div>
+The block-builder output (Messages tab) has to render server-side as an actual public page with the per-page 21+/state gate evaluated before content shows — the gate is a page setting in this concept, not a global switch, and storefront stays gate-free per rule D-024a.</div>
+
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-tag"/></svg>Promotion-engine rule compatibility</div>
+Loyalty earn rules and reward redemptions (Loyalty tab) are written as IF/THEN sentences in the same vocabulary as the Promotions Suite (cart · product · user · bogo · time · payment, plus store/channel scope) — one rule engine underneath, so a reward is legible as "a promotion whose action is points."</div>
+
+</div>
+</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1512 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engage — Concept C · One Customer Record</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#F4F2EC; --bg2:#EEEBE2; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+--ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42); --inkFaint:rgba(15,15,12,.22);
+--hairline:rgba(15,15,12,.08); --hairline2:rgba(15,15,12,.14); --hairline3:rgba(15,15,12,.24);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:#FFF4B8; --accentBorder:#F2C200; --accentHover:#F5C900; --accentText:#7A5A00;
+--good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6; --warnText:#8F560C;
+--bad:#C0392B; --badSoft:#F8E2DF; --info:#2C5BB8; --infoSoft:#E3ECFA; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+--r8:8px; --r10:10px; --r12:12px; --r14:14px; --r16:16px; --r20:20px; --r999:999px;
+--shadowSm:0 1px 0 rgba(15,15,12,.04), 0 1px 2px rgba(15,15,12,.05);
+--shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+--shadowLg:0 1px 0 rgba(15,15,12,.04), 0 18px 44px rgba(15,15,12,.14);
+--fontSans:"Inter", -apple-system, system-ui, sans-serif;
+--fontMono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+--scrim:rgba(20,18,12,.42);
+--rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+--railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.08);
+--field:#FFFFFF; --fieldBorder:rgba(15,15,12,.18);
+--highlightSoft:#F1EFE9; --disabledBg:#F1EFE9; --disabledInk:rgba(15,15,12,.42);
+--imgScrim:rgba(0,0,0,.60);
+--indica:#7E55C9; --sativa:#D98316; --hybrid:#3F9E72;
+}
+[data-theme="dark"]{
+--bg:#0D0D0A; --bg2:#0A0A07; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+--ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40); --inkFaint:rgba(245,243,234,.22);
+--hairline:rgba(245,243,234,.09); --hairline2:rgba(245,243,234,.15); --hairline3:rgba(245,243,234,.26);
+--accent:#FFD100; --accentInk:#1A1400; --accentSoft:rgba(255,209,0,.15); --accentBorder:rgba(255,209,0,.40);
+--accentHover:#FFDA33; --accentText:#FFD100;
+--good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15); --warnText:#E0A53A;
+--bad:#E8675B; --badSoft:rgba(232,103,91,.16); --info:#6A99EC; --infoSoft:rgba(106,153,236,.16);
+--neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+--shadowSm:0 1px 0 rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.40);
+--shadowMd:0 1px 0 rgba(0,0,0,.30), 0 8px 22px rgba(0,0,0,.45);
+--shadowLg:0 1px 0 rgba(0,0,0,.30), 0 22px 50px rgba(0,0,0,.62);
+--scrim:rgba(0,0,0,.62);
+--rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+--railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --railHair:rgba(255,255,255,.07);
+--field:#15150F; --fieldBorder:rgba(245,243,234,.22);
+--highlightSoft:rgba(245,243,234,.06); --disabledBg:#28261D; --disabledInk:rgba(245,243,234,.40);
+--indica:#A789E0; --sativa:#E5A24E; --hybrid:#5DBE93;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg2);}
+body{font-family:var(--fontSans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.doc-head{position:sticky;top:0;z-index:50;background:var(--rail);color:var(--railBright);
+padding:13px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadowLg);}
+.doc-head h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;color:var(--railBright);}
+.doc-head .sub{font-size:11px;color:var(--railInk);font-family:var(--fontMono);margin-top:3px;line-height:1.5;max-width:900px;}
+.seg{display:inline-flex;background:var(--railHover);border-radius:var(--r10);padding:3px;gap:2px;margin-left:auto;flex-wrap:wrap;}
+.seg button{appearance:none;border:0;background:transparent;color:var(--railInk);font-family:var(--fontSans);
+font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;cursor:pointer;transition:.12s;white-space:nowrap;}
+.seg button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.seg button:not(.active):hover{color:var(--railBright);background:var(--railHover);}
+.theme-btn{appearance:none;border:1px solid var(--railHair);background:transparent;color:var(--railBright);
+min-height:34px;padding:0 12px;border-radius:var(--r8);font-family:var(--fontSans);font-size:11.5px;font-weight:600;
+cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.theme-btn:hover{background:var(--railHover);}
+.tabpanel{display:none;}
+.tabpanel.active{display:block;}
+.intro{max-width:1360px;margin:0 auto;padding:18px 24px 0;}
+.intro .card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 18px;box-shadow:var(--shadowSm);}
+.intro h2{font-size:16px;margin:0 0 8px;letter-spacing:-.01em;}
+.intro p{font-size:12.5px;color:var(--ink2);line-height:1.62;margin:0 0 8px;max-width:1000px;}
+.intro p:last-child{margin-bottom:0;}
+.intro code{font-family:var(--fontMono);font-size:11.5px;background:var(--surface3);padding:1px 5px;border-radius:6px;}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+color:var(--inkDim);font-family:var(--fontMono);margin-bottom:6px;}
+.stage{max-width:1360px;margin:18px auto 70px;padding:0 24px;}
+
+.card{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);}
+.card.pad{padding:16px;}
+.card.pad-sm{padding:12px;}
+.card.sunken{background:var(--bg2);border-color:var(--hairline);}
+.cardhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--hairline);}
+.cardhead .plate{width:28px;height:28px;border-radius:8px;background:var(--surface3);color:var(--ink2);
+display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+.cardhead .ttl{flex:1;font-size:13.5px;font-weight:700;color:var(--ink);min-width:0;}
+.cbody{padding:14px;}
+.ic{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;}
+.ic.s13{width:13px;height:13px;} .ic.s18{width:18px;height:18px;} .ic.s22{width:22px;height:22px;}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 4px;border-radius:var(--r999);
+font-size:11.5px;font-weight:600;white-space:nowrap;}
+.pill.sm{padding:2px 7px 3px;font-size:10px;}
+.pill .dot{width:6px;height:6px;border-radius:99px;background:currentColor;}
+.pill-good{background:var(--goodSoft);color:var(--good);}
+.pill-warn{background:var(--warnSoft);color:var(--warnText);}
+.pill-bad{background:var(--badSoft);color:var(--bad);}
+.pill-info{background:var(--infoSoft);color:var(--info);}
+.pill-neutral{background:var(--neutralSoft);color:var(--ink2);}
+.pill-accent{background:var(--accentSoft);color:var(--accentText);}
+.pill-dark{background:var(--ink);color:var(--bg);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;
+font-size:12.5px;font-weight:600;font-family:var(--fontSans);border-radius:var(--r8);cursor:pointer;
+white-space:nowrap;border:1px solid transparent;color:var(--ink);background:var(--surface);}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--hairline3);}
+.btn-accent{background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder);}
+.btn-primary{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.btn-ghost{background:transparent;color:var(--ink2);}
+.btn-danger{background:var(--surface);color:var(--bad);border-color:var(--bad);}
+.btn-xs{min-height:30px;padding:0 10px;font-size:11.5px;}
+.btn-lg{min-height:44px;padding:0 16px;font-size:13.5px;}
+.btn-xl{min-height:48px;padding:0 18px;font-size:14px;}
+.btn-full{width:100%;}
+.btn:disabled{background:var(--disabledBg);color:var(--disabledInk);border-color:var(--hairline2);cursor:not-allowed;}
+.mono{font-family:var(--fontMono);font-variant-numeric:tabular-nums;}
+.num{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-weight:800;color:var(--ink);}
+.lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--inkMute);}
+.meta{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:11px;color:var(--inkDim);}
+.muted{color:var(--inkDim);font-size:12px;line-height:1.55;}
+.bar{height:6px;border-radius:99px;background:var(--surface3);overflow:hidden;}
+.bar > span{display:block;height:100%;border-radius:99px;background:var(--info);}
+.bar.tall{height:9px;}
+.segctl{display:inline-flex;background:var(--surface3);border-radius:var(--r10);padding:3px;gap:2px;flex-wrap:wrap;}
+.segctl span{font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:7px;color:var(--inkDim);min-height:30px;
+display:inline-flex;align-items:center;gap:5px;cursor:pointer;}
+.segctl span.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadowSm);}
+.segctl.lg span{min-height:40px;font-size:13px;padding:0 14px;}
+.segctl .cnt{font-family:var(--fontMono);font-size:10px;color:var(--inkMute);}
+.tabsrow{display:flex;gap:2px;border-bottom:1px solid var(--hairline2);flex-wrap:wrap;}
+.tabsrow span{font-size:12.5px;font-weight:600;color:var(--inkDim);padding:10px 12px;border-bottom:2px solid transparent;
+display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.tabsrow span.on{color:var(--ink);border-bottom-color:var(--accent);}
+.tabsrow .cnt{font-family:var(--fontMono);font-size:10px;background:var(--surface3);color:var(--inkDim);
+padding:1px 5px;border-radius:99px;}
+.av{border-radius:99px;background:var(--surface3);color:var(--ink2);display:inline-flex;align-items:center;
+justify-content:center;font-size:10.5px;font-weight:700;flex:0 0 auto;width:26px;height:26px;
+border:1px solid var(--hairline2);}
+.av.lg{width:34px;height:34px;font-size:12px;}
+.av.xl{width:56px;height:56px;font-size:18px;border-radius:16px;}
+.av.me{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+table.dt{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--hairline2);
+border-radius:var(--r12);overflow:hidden;}
+table.dt thead th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+color:var(--inkDim);background:var(--surface2);padding:9px 13px;border-bottom:1px solid var(--hairline2);white-space:nowrap;}
+table.dt tbody td{padding:10px 13px;border-top:1px solid var(--hairline);vertical-align:middle;font-size:12.5px;}
+table.dt tbody tr:first-child td{border-top:0;}
+table.dt tbody tr.me td{background:var(--accentSoft);}
+table.dt tbody tr.foot td{background:var(--surface2);color:var(--inkDim);font-size:11.5px;}
+table.dt tbody tr.unattr td{background:var(--warnSoft);}
+table.dt tbody tr.sel td{background:var(--accentSoft);}
+.tright{text-align:right;}
+.tbl-wrap{overflow-x:auto;}
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--hairline);font-size:12px;}
+.kv:last-child{border-bottom:0;}
+.kv .k{color:var(--inkDim);}
+.kv .v{font-weight:600;color:var(--ink);text-align:right;}
+.kv .v.mono{font-weight:500;}
+.devnote{border-radius:var(--r12);padding:13px 15px;margin-top:14px;border:1px solid;font-size:12px;line-height:1.6;}
+.devnote.warn{background:var(--warnSoft);border-color:var(--warnText);color:var(--ink2);}
+.devnote.info{background:var(--infoSoft);border-color:var(--info);color:var(--ink2);}
+.devnote.bad{background:var(--badSoft);border-color:var(--bad);color:var(--ink2);}
+.devnote.good{background:var(--goodSoft);border-color:var(--good);color:var(--ink2);}
+.devnote .dn-head{display:flex;align-items:center;gap:7px;font-weight:700;font-size:11px;letter-spacing:.03em;
+text-transform:uppercase;margin-bottom:7px;}
+.devnote ul{margin:0;padding-left:18px;} .devnote li{margin-bottom:4px;} .devnote li:last-child{margin-bottom:0;}
+.built{margin-top:10px;font-size:11px;line-height:1.6;color:var(--inkDim);font-family:var(--fontMono);
+border-left:2px solid var(--hairline2);padding-left:10px;}
+.built b{color:var(--ink2);font-weight:600;}
+.caphead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:22px 0 10px;}
+.caphead h3{margin:0;font-size:14px;font-weight:700;letter-spacing:-.01em;}
+.caphead .cs{font-size:12px;color:var(--inkDim);max-width:760px;line-height:1.55;}
+
+.fresh{display:flex;flex-wrap:wrap;gap:6px 14px;padding:9px 13px;background:var(--surface2);
+border:1px solid var(--hairline);border-radius:var(--r10);}
+.fresh .f{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:var(--fontMono);
+font-variant-numeric:tabular-nums;color:var(--inkDim);}
+.fresh .f .d{width:6px;height:6px;border-radius:99px;flex:0 0 auto;}
+.fresh .f.ok .d{background:var(--good);} .fresh .f.warn .d{background:var(--warnText);}
+.fresh .f.bad .d{background:var(--bad);} .fresh .f.off .d{background:var(--inkFaint);}
+.fresh .f.bad{color:var(--bad);} .fresh .f.warn{color:var(--warnText);}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start;}
+@media (max-width:1000px){.split{grid-template-columns:1fr;}}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.stack{display:flex;flex-direction:column;gap:12px;}
+.field{width:100%;min-height:40px;padding:0 12px;border-radius:var(--r8);border:1px solid var(--fieldBorder);
+background:var(--field);font-family:var(--fontSans);font-size:12.5px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.field.mono{font-family:var(--fontMono);}
+.field .ph{color:var(--inkMute);}
+.flbl{font-size:11px;font-weight:700;color:var(--inkDim);letter-spacing:.03em;text-transform:uppercase;
+margin-bottom:5px;display:block;}
+.fhint{font-size:11px;color:var(--inkMute);margin-top:5px;line-height:1.5;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:var(--r999);
+border:1px solid var(--hairline2);background:var(--surface);font-size:11.5px;font-weight:600;color:var(--ink2);}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.chip.accent{background:var(--accentSoft);color:var(--accentText);border-color:var(--accentBorder);}
+.chip.good{background:var(--goodSoft);color:var(--good);border-color:var(--good);}
+.chip.info{background:var(--infoSoft);color:var(--info);border-color:var(--info);}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:26px 18px;}
+.empty .plate{width:44px;height:44px;border-radius:99px;background:var(--surface3);color:var(--inkDim);
+display:flex;align-items:center;justify-content:center;}
+.empty .t{font-size:13.5px;font-weight:700;}
+.empty .b{font-size:12px;color:var(--inkDim);max-width:380px;line-height:1.55;}
+.empty.err .plate{background:var(--badSoft);color:var(--bad);}
+.skel{height:12px;border-radius:6px;background:linear-gradient(90deg,var(--surface3) 0%,var(--surface2) 40%,var(--surface3) 80%);
+background-size:200% 100%;animation:shimmer 1.4s linear infinite;}
+.tl{display:flex;flex-direction:column;}
+.tl-ev{display:flex;gap:10px;padding:9px 0;font-size:11.5px;border-top:1px dashed var(--hairline2);}
+.tl-ev:first-child{border-top:0;padding-top:0;}
+.tl-dot{width:7px;height:7px;border-radius:99px;background:var(--inkFaint);margin-top:5px;flex:0 0 auto;}
+.tl-dot.good{background:var(--good);} .tl-dot.warn{background:var(--warnText);} .tl-dot.info{background:var(--info);}
+.tl-body{flex:1;min-width:0;}
+.tl-action{font-weight:700;color:var(--ink);}
+.tl-meta{color:var(--inkMute);font-family:var(--fontMono);font-size:10.5px;margin-top:2px;}
+.tl-reason{color:var(--ink2);margin-top:2px;font-style:italic;}
+
+.pos{display:flex;background:var(--bg);border:1px solid var(--hairline2);border-radius:var(--r12);
+overflow:hidden;box-shadow:var(--shadowLg);}
+.pos-rail{width:70px;background:var(--rail);flex:0 0 auto;padding:10px 0;display:flex;flex-direction:column;
+align-items:center;gap:4px;}
+.pos-rail .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accentInk);
+display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;margin-bottom:8px;}
+.pos-rail .it{width:56px;padding:7px 0;border-radius:var(--r10);color:var(--railInk);display:flex;flex-direction:column;
+align-items:center;gap:3px;font-size:10px;font-weight:600;position:relative;}
+.pos-rail .it.on{background:var(--railActive);color:var(--railBright);}
+.pos-rail .it.on::before{content:"";position:absolute;left:-9px;top:6px;bottom:6px;width:3px;border-radius:99px;background:var(--accent);}
+.pos-main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.pos-top{display:flex;align-items:center;gap:12px;padding:9px 16px;background:var(--surface);
+border-bottom:1px solid var(--hairline2);}
+.pos-scr{padding:18px 20px 22px;background:var(--bg);}
+.quick{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);border:1px solid var(--hairline2);
+border-radius:var(--r12);}
+.quick .p{width:38px;height:38px;border-radius:10px;background:var(--surface3);color:var(--ink2);display:flex;
+align-items:center;justify-content:center;flex:0 0 auto;}
+.quick.accent .p{background:var(--accent);color:var(--accentInk);}
+.quick .l{font-size:14px;font-weight:700;} .quick .s{font-size:11px;color:var(--inkDim);margin-top:1px;}
+kbd{font-family:var(--fontMono);font-size:10px;background:var(--surface3);border:1px solid var(--hairline2);
+border-bottom-width:2px;border-radius:5px;padding:1px 5px;color:var(--ink2);}
+.stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.st{background:var(--surface2);border:1px solid var(--hairline);border-left:3px solid var(--hairline2);
+border-radius:var(--r10);padding:10px 12px;}
+.st.accent{border-left-color:var(--accent);}
+.st.good{border-left-color:var(--good);}
+.st .v{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:19px;font-weight:800;color:var(--ink);margin-top:3px;}
+.st .s{font-size:11px;color:var(--inkDim);margin-top:1px;}
+.hero{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:16px 16px 14px;}
+.hero .big{font-family:var(--fontMono);font-variant-numeric:tabular-nums;font-size:44px;font-weight:800;
+line-height:.95;color:var(--ink);letter-spacing:-.03em;}
+.hero .of{font-family:var(--fontMono);font-size:13px;font-weight:600;color:var(--inkMute);}
+
+/* ── Concept C additions ─────────────────────────────────────────────── */
+.switch{position:relative;width:38px;height:22px;border-radius:99px;background:var(--surface3);border:1px solid var(--hairline2);flex:0 0 auto;cursor:pointer;display:inline-block;}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:var(--surface);box-shadow:var(--shadowSm);transition:.15s;}
+.switch.on{background:var(--accent);border-color:var(--accentBorder);}
+.switch.on::after{left:18px;background:var(--accentInk);}
+.sentence{font-size:15.5px;line-height:2.1;color:var(--ink2);font-weight:500;}
+.sentence .blank{display:inline-flex;align-items:center;gap:5px;background:var(--accentSoft);border:1px solid var(--accentBorder);color:var(--accentText);padding:3px 10px;border-radius:7px;font-weight:700;font-size:13.5px;margin:0 2px;white-space:nowrap;}
+.blockpal{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;}
+.blockitem{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px;border:1px solid var(--hairline2);border-radius:var(--r10);background:var(--surface);font-size:10px;font-weight:600;color:var(--ink2);text-align:center;cursor:grab;}
+.blockitem .p{width:30px;height:30px;border-radius:8px;background:var(--surface3);color:var(--ink2);display:flex;align-items:center;justify-content:center;}
+.lp-canvas{background:var(--bg2);border:1px solid var(--hairline2);border-radius:var(--r12);padding:14px;display:flex;flex-direction:column;gap:8px;min-height:420px;}
+.lp-block{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r10);padding:12px 14px;position:relative;}
+.lp-block .tag{position:absolute;top:-9px;left:10px;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--bg);padding:2px 7px;border-radius:5px;}
+.lp-block:hover{border-color:var(--hairline3);}
+.phone{width:230px;max-width:100%;margin:0 auto;background:var(--rail);border-radius:26px;padding:10px;box-shadow:var(--shadowLg);}
+.phone .scr{background:var(--bg);border-radius:18px;overflow:hidden;min-height:400px;}
+.phone .bar{height:22px;display:flex;align-items:center;justify-content:center;}
+.phone .bar .notch{width:60px;height:6px;border-radius:99px;background:rgba(255,255,255,.2);}
+.sms-bubble{background:#E8E8ED;color:#000;border-radius:16px 16px 16px 4px;padding:9px 13px;font-size:13px;line-height:1.4;max-width:82%;margin:10px auto 0 10px;}
+[data-theme="dark"] .sms-bubble{background:#3A3A3C;color:#fff;}
+.flow-row{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:8px 2px 16px;}
+.fnode{background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);padding:12px 14px;min-width:176px;max-width:190px;box-shadow:var(--shadowSm);flex:0 0 auto;}
+.fnode .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--inkMute);font-weight:700;display:flex;align-items:center;gap:5px;}
+.fnode .t{font-size:12.5px;font-weight:700;margin-top:5px;color:var(--ink);line-height:1.35;}
+.fnode .m{font-family:var(--fontMono);font-size:10.5px;color:var(--inkDim);margin-top:7px;}
+.fnode .cnv{font-family:var(--fontMono);font-size:10.5px;color:var(--good);margin-top:2px;font-weight:700;}
+.fconn{flex:0 0 32px;display:flex;align-items:center;justify-content:center;color:var(--inkFaint);}
+.fpalette{display:flex;gap:8px;flex-wrap:wrap;}
+.fpalette .fp{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--hairline2);border-radius:var(--r999);background:var(--surface);font-size:11.5px;font-weight:600;color:var(--ink2);}
+.walletpass{border-radius:18px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;background:linear-gradient(145deg,#17160f,#302c18);box-shadow:var(--shadowLg);}
+.walletpass::after{content:"";position:absolute;top:-40px;right:-30px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(255,209,0,.28),transparent 70%);}
+.walletpass .wtop{display:flex;justify-content:space-between;align-items:flex-start;position:relative;}
+.walletpass .wname{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+.walletpass .wtier{font-size:19px;font-weight:800;margin-top:2px;}
+.walletpass .wbig{font-family:var(--fontMono);font-size:34px;font-weight:800;margin-top:14px;position:relative;}
+.walletpass .wrow{display:flex;justify-content:space-between;margin-top:14px;font-size:11px;color:rgba(255,255,255,.7);position:relative;}
+.recordwrap{border:1px dashed var(--hairline3);border-radius:var(--r16);padding:14px;background:var(--bg2);}
+.recordwrap .rw-lbl{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--inkMute);font-family:var(--fontMono);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.rec-hd{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:2px 2px 16px;}
+.rec-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;}
+.rec-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;}
+.rec-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:16px;}
+.rec-kpi{background:var(--surface2);border:1px solid var(--hairline);border-radius:var(--r10);padding:10px 12px;}
+.rec-kpi .l{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--inkMute);}
+.rec-kpi .v{font-family:var(--fontMono);font-size:18px;font-weight:800;color:var(--ink);margin-top:3px;}
+.rec-kpi .s{font-size:10.5px;color:var(--inkDim);margin-top:1px;}
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px;}
+.rec-list{display:flex;flex-direction:column;}
+.rec-item{display:flex;align-items:center;gap:11px;padding:10px 0;border-top:1px solid var(--hairline);}
+.rec-item:first-child{border-top:0;}
+.gate-toggle{display:flex;align-items:center;gap:10px;padding:11px 13px;background:var(--surface2);border:1px solid var(--hairline);border-radius:var(--r10);}
+.kv.condrow{gap:10px;flex-wrap:wrap;}
+.kv.condrow .cond-hover{opacity:.55;transition:opacity .12s;flex:0 0 auto;cursor:pointer;}
+.kv.condrow:hover .cond-hover,.kv.condrow:focus-within .cond-hover{opacity:1;}
+.tray{position:sticky;bottom:0;z-index:20;background:var(--surface);border:1px solid var(--hairline2);border-radius:var(--r12);box-shadow:var(--shadowLg);margin-top:18px;}
+.tray-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 15px;border-bottom:1px solid var(--hairline);flex-wrap:wrap;}
+.tray-body{padding:13px 15px;display:flex;flex-direction:column;gap:11px;}
+.tray-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+document.getElementById('tabseg').addEventListener('click', function (e) {
+var btn = e.target.closest('.tab-btn'); if (!btn) return;
+document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+document.querySelectorAll('.tabpanel').forEach(function (p) { p.classList.remove('active'); });
+btn.classList.add('active');
+document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+window.scrollTo({ top: 0, behavior: 'instant' });
+});
+(function () {
+var root = document.documentElement;
+var btn = document.getElementById('themeBtn');
+var lbl = document.getElementById('themeLbl');
+var use = btn.querySelector('use');
+function paint() {
+var dark = root.getAttribute('data-theme') === 'dark';
+lbl.textContent = dark ? 'Light' : 'Dark';
+use.setAttribute('href', dark ? '#i-sun' : '#i-moon');
+btn.title = dark ? 'Switch to light' : 'Switch to dark';
+document.body.style.colorScheme = dark ? 'dark' : 'light';
+}
+function flip() {
+root.setAttribute('data-theme', root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+paint();
+}
+btn.addEventListener('click', flip);
+window.toggleTheme = flip;
+paint();
+})();
+// Local sub-tab switchers (Customers list/record inner tabs, Loyalty POS screens, etc.)
+document.querySelectorAll('[data-subtabs]').forEach(function (group) {
+group.addEventListener('click', function (e) {
+var btn = e.target.closest('[data-subtab]'); if (!btn) return;
+var name = group.dataset.subtabs;
+group.querySelectorAll('[data-subtab]').forEach(function (b) { b.classList.remove('on'); });
+btn.classList.add('on');
+document.querySelectorAll('[data-subpanel="' + name + '"]').forEach(function (p) { p.style.display = 'none'; });
+var target = document.querySelector('[data-subpanel="' + name + '"][data-subpanel-key="' + btn.dataset.subtab + '"]');
+if (target) target.style.display = '';
+});
+});
+// Toggle switches (gate toggle, consent switches — cosmetic only, no state persisted)
+document.querySelectorAll('.switch').forEach(function (sw) {
+sw.addEventListener('click', function () { sw.classList.toggle('on'); });
+});
+// The member record — rendered from ONE template function into TWO slots
+// (Customers → CRM, and the POS register member lookup) so the markup is
+// byte-identical, proving the "same component" claim rather than asserting it.
+var slots = document.querySelectorAll('[data-record-slot]');
+if (slots.length && window.renderMemberRecord) {
+slots.forEach(function (el) { el.innerHTML = window.renderMemberRecord(el.dataset.recordSlot); });
+}
+});
+</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 6.5-7 8-4-1.5-7-4-7-8V6z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17.2v.2"/></symbol>
+<symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16.5 5.2a3.5 3.5 0 010 6.6"/><path d="M18 14.9c2.2.7 3.6 2.6 3.6 5.1"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V11"/><path d="M10 20V4"/><path d="M16 20v-6"/><path d="M2 20h20"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 8a2 2 0 012-2h13a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M16 12.5h3.5"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24"><path d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5"/><path d="M15 3v5"/><path d="M6 8h12v3a6 6 0 01-12 0z"/><path d="M12 17v4"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.7 2.7L16 9.6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17.5l-5.4 2.9 1-6.1L3.2 10l6.1-.9z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20.5 11.5a8.5 8.5 0 10-2.4 6.6"/><path d="M20.5 5.5v6h-6"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 010 18"/><path d="M12 3a15 15 0 000 18"/></symbol>
+<symbol id="i-register" viewBox="0 0 24 24"><path d="M4 8h16v12H4z"/><path d="M7 8V5h10v3"/><path d="M8 12h8"/><path d="M8 16h5"/></symbol>
+<symbol id="i-board" viewBox="0 0 24 24"><path d="M4 4h6v16H4z"/><path d="M14 4h6v9h-6z"/></symbol>
+<symbol id="i-package" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/></symbol>
+<symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8" r="3.5"/><path d="M3 20c0-3.4 3.2-6 7-6"/><path d="M17.5 12v6"/><path d="M14.5 15h6"/></symbol>
+<symbol id="i-trending-up" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7"/><path d="M17 8h4v4"/></symbol>
+<symbol id="i-award" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 13.6L7 21l5-3 5 3-2-7.4"/></symbol>
+<symbol id="i-coins" viewBox="0 0 24 24"><path d="M4 7c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3z"/><path d="M4 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M4 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5l4.5 4.5"/></symbol>
+<symbol id="i-lightning" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.5 1.5M18.3 18.3l1.5 1.5M2 12h2M20 12h2M4.2 19.8l1.5-1.5M18.3 5.7l1.5-1.5"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 11V4h7l10 10-7 7z"/><circle cx="7.5" cy="7.5" r="1.3"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4 16v4h16v-4"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M4 6h16v14H4z"/><path d="M4 10h16"/><path d="M8 3v4M16 3v4"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></symbol>
+<symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M6 3h4l1.5 4-2 1.8a13 13 0 006.2 6.2l1.8-2 4 1.5v4a2 2 0 01-2.2 2C10.5 20.2 3.8 13.5 4 6.2A2 2 0 016 3z"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M9 15l6-6"/><path d="M8 6l1.5-1.5a4 4 0 015.7 5.7L14 11.5"/><path d="M16 18l-1.5 1.5a4 4 0 01-5.7-5.7L10 12.5"/></symbol>
+<symbol id="i-gift" viewBox="0 0 24 24"><path d="M4 9h16v11H4z"/><path d="M4 9V6h16v3"/><path d="M12 6c-2 0-3.2-2-3.2-2s1.2 0 3.2 0 3.2 0 3.2 0S14 6 12 6z"/><path d="M12 6v14"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 00-2.7-1.6L15.4 2h-2.8l-.4 2.8a7 7 0 00-2.7 1.6l-2.3-.9-2 3.4 2 1.5a7 7 0 000 3.2l-2 1.5 2 3.4 2.3-.9a7 7 0 002.7 1.6l.4 2.8h2.8l.4-2.8a7 7 0 002.7-1.6l2.3.9 2-3.4-2-1.5c.13-.5.2-1.05.2-1.6z"/></symbol>
+<symbol id="i-layout" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16"/><path d="M9 9v11"/></symbol>
+<symbol id="i-smartphone" viewBox="0 0 24 24"><path d="M8 3h8v18H8z"/><path d="M11 18h2"/></symbol>
+<symbol id="i-crown" viewBox="0 0 24 24"><path d="M4 18h16l-1.5-9-4 3.5L12 6l-2.5 6.5-4-3.5z"/></symbol>
+</defs></svg>
+
+<div class="doc-head">
+<div style="min-width:0">
+<h1>Engage — Concept C · One Customer Record</h1>
+<div class="sub">DESIGN MOCKUP — every number is illustrative and labelled demo, nothing is read from a live API · Concept C: the member record is the centre of gravity; Audiences, Messages, Journeys and Loyalty are views over customers · tokens mirror pos/tokens.jsx</div>
+</div>
+<div class="seg" id="tabseg">
+<button class="tab-btn active" data-tab="home">1 · Home / Insights</button>
+<button class="tab-btn" data-tab="customers">2 · Customers</button>
+<button class="tab-btn" data-tab="audiences">3 · Audiences</button>
+<button class="tab-btn" data-tab="messages">4 · Messages</button>
+<button class="tab-btn" data-tab="journeys">5 · Journeys</button>
+<button class="tab-btn" data-tab="loyalty">6 · Loyalty (POS)</button>
+<button class="tab-btn" data-tab="promo">7 · Promo rules</button>
+<button class="tab-btn" data-tab="dev">8 · Dev call-outs</button>
+</div>
+<button class="theme-btn" id="themeBtn" title="Switch to dark"><svg class="ic s13"><use href="#i-moon"/></svg><span id="themeLbl">Dark</span></button>
+</div>
+
+<div class="tabpanel active" id="tab-home">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Concept C — the organizing idea</div>
+<h2>The member record is the centre of gravity. Every other section is a view over customers, not a separate database.</h2>
+<p>Six sections stay in the tab list because the brief requires them, but only one of them is actually a place things live: <b>Customers</b>. An audience is a saved filter over customer rows. A message is a thing sent to the customers an audience returned. A journey is a sequence of things that happen to customers who match a trigger. Loyalty is a set of rules that change a field on the customer record — points, tier, a reward's eligibility. Nothing in Audiences, Messages, Journeys or Loyalty owns a customer; they all read and write the same record. The clearest proof of that is literal, not rhetorical: tab 2's CRM record and the POS register's member-lookup panel are rendered from <code>one JavaScript template</code> in this file, called twice — open the page source and there is exactly one function, not two look-alike copies that could drift.</p>
+<p>That centre-of-gravity idea is also how this concept avoids the 51-tiles problem the owner rejected. Home shows exactly <b>four numbers</b> — reachable audience, points liability, this week's sends, active journeys — and exactly <b>one list</b>: a single unified "needs you" queue that merges what would otherwise be four separate review screens (a pending send, a stalled journey, a stale audience, a redemption dispute). There is no dashboard beneath the fold. Insights lives in this same tab rather than as an eighth section, because the only insight a calm console owes a marketer on login is "are my numbers current and does anything need me" — anything deeper is a click into the customer record that produced it.</p>
+</div>
+</div>
+<div class="stage">
+<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:14px">
+<div><div class="lbl">Monday 7 September · demo data</div><h1 style="margin:4px 0 0;font-size:26px;font-weight:800;letter-spacing:-.02em">Good afternoon, Priya</h1></div>
+<span class="pill pill-neutral">All stores</span>
+</div>
+<div class="grid4">
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><span class="lbl">Reachable audience</span><svg class="ic s13" style="color:var(--inkFaint)"><use href="#i-users"/></svg></div>
+<div class="num" style="font-size:26px;margin-top:6px">18,420</div>
+<div class="s" style="font-size:11px;color:var(--inkDim);margin-top:2px">of 26,880 total · SMS or email consented</div>
+</div>
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><span class="lbl">Points liability</span><svg class="ic s13" style="color:var(--inkFaint)"><use href="#i-coins"/></svg></div>
+<div class="num" style="font-size:26px;margin-top:6px">$42,180</div>
+<div class="s" style="font-size:11px;color:var(--inkDim);margin-top:2px">redeemable value outstanding, all stores</div>
+</div>
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><span class="lbl">Sent this week</span><svg class="ic s13" style="color:var(--inkFaint)"><use href="#i-message"/></svg></div>
+<div class="num" style="font-size:26px;margin-top:6px">3<span style="font-size:14px;color:var(--inkMute);font-weight:600"> sends</span></div>
+<div class="s" style="font-size:11px;color:var(--inkDim);margin-top:2px">41% open · 6.2% click, blended</div>
+</div>
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><span class="lbl">Active journeys</span><svg class="ic s13" style="color:var(--inkFaint)"><use href="#i-lightning"/></svg></div>
+<div class="num" style="font-size:26px;margin-top:6px">4<span style="font-size:14px;color:var(--inkMute);font-weight:600"> running</span></div>
+<div class="s" style="font-size:11px;color:var(--inkDim);margin-top:2px">812 customers currently enrolled</div>
+</div>
+</div>
+
+<div class="caphead"><h3>Needs you</h3><span class="cs">The one list. Every item names the customer record or audience it touches — there is no second inbox for "loyalty issues" hiding a different queue.</span></div>
+<div class="card">
+<div class="rec-list cbody">
+<div class="rec-item"><span class="plate" style="background:var(--warnSoft);color:var(--warnText)"><svg class="ic"><use href="#i-check-circle"/></svg></span><div style="flex:1"><div style="font-size:12.5px;font-weight:600">Win-back SMS is waiting on your approval</div><div class="meta">2,400 recipients · submitted by Dana Cho · 09:14</div></div><span class="btn btn-secondary btn-xs">Review</span></div>
+<div class="rec-item"><span class="plate" style="background:var(--badSoft);color:var(--bad)"><svg class="ic"><use href="#i-alert"/></svg></span><div style="flex:1"><div style="font-size:12.5px;font-weight:600">"Lapsed 60+ days" journey stalled at the branch node</div><div class="meta">214 customers stuck since yesterday 4:02p</div></div><span class="btn btn-secondary btn-xs">Open</span></div>
+<div class="rec-item"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-refresh"/></svg></span><div style="flex:1"><div style="font-size:12.5px;font-weight:600">"Rosin fans" audience hasn't refreshed in 9 days</div><div class="meta">used by 2 journeys and 1 saved message</div></div><span class="btn btn-secondary btn-xs">Refresh</span></div>
+<div class="rec-item"><span class="plate" style="background:var(--warnSoft);color:var(--warnText)"><svg class="ic"><use href="#i-coins"/></svg></span><div style="flex:1"><div style="font-size:12.5px;font-weight:600">1 redemption dispute needs a manual points adjustment</div><div class="meta">Customer C-1197 · store says reward already used</div></div><span class="btn btn-secondary btn-xs">Open record</span></div>
+<div class="rec-item"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-award"/></svg></span><div style="flex:1"><div style="font-size:12.5px;font-weight:600">340 members' points expire in 14 days</div><div class="meta">$3,120 in balance · no reminder scheduled</div></div><span class="btn btn-secondary btn-xs">Start journey</span></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Six views over one customer table</h3><span class="cs">Each card below is a lens on the same record set, not a separate destination — the number on each card is a live count of customer rows, framed by that lens.</span></div>
+<div class="grid3">
+<div class="card pad-sm"><div class="row" style="gap:9px"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-users"/></svg></span><b style="font-size:13px">Customers</b></div><div class="muted" style="margin-top:7px">26,880 records · the one table everything below reads</div></div>
+<div class="card pad-sm"><div class="row" style="gap:9px"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-target"/></svg></span><b style="font-size:13px">Audiences</b></div><div class="muted" style="margin-top:7px">11 saved filters over the customer table · 3 refresh daily</div></div>
+<div class="card pad-sm"><div class="row" style="gap:9px"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-message"/></svg></span><b style="font-size:13px">Messages</b></div><div class="muted" style="margin-top:7px">3 sent this week to customers matched by an audience</div></div>
+<div class="card pad-sm"><div class="row" style="gap:9px"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-lightning"/></svg></span><b style="font-size:13px">Journeys</b></div><div class="muted" style="margin-top:7px">4 running, watching customer rows for a trigger condition</div></div>
+<div class="card pad-sm"><div class="row" style="gap:9px"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-coins"/></svg></span><b style="font-size:13px">Loyalty</b></div><div class="muted" style="margin-top:7px">rules that write points/tier fields on the customer record</div></div>
+<div class="card pad-sm"><div class="row" style="gap:9px"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-chart"/></svg></span><b style="font-size:13px">Insights</b></div><div class="muted" style="margin-top:7px">this tab · consent → engaged → purchased funnel below</div></div>
+</div>
+
+<div class="caphead"><h3>Insights — the funnel, not a dashboard</h3><span class="cs">One funnel and one per-store table. Deliberately not a grid of stat tiles — see the dev call-out on why.</span></div>
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-chart"/></svg></span><span class="ttl">Consent → engaged → purchased</span><span class="pill pill-neutral sm">last 30 days · demo</span></div>
+<div class="cbody stack">
+<div class="row" style="justify-content:space-between"><span style="font-size:12.5px">Consented (SMS or email)</span><span class="mono" style="font-weight:700">18,420</span></div>
+<div class="bar tall"><span style="width:100%;background:var(--info)"></span></div>
+<div class="row" style="justify-content:space-between"><span style="font-size:12.5px">Opened or clicked a message</span><span class="mono" style="font-weight:700">7,562</span></div>
+<div class="bar tall"><span style="width:41%;background:var(--info)"></span></div>
+<div class="row" style="justify-content:space-between"><span style="font-size:12.5px">Purchased within 14 days of a send</span><span class="mono" style="font-weight:700">1,141</span></div>
+<div class="bar tall"><span style="width:6.2%;background:var(--good)"></span></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-pin"/></svg></span><span class="ttl">Per store</span><span class="pill pill-neutral sm">demo</span></div>
+<div class="tbl-wrap"><table class="dt" style="border:0;border-radius:0">
+<thead><tr><th>Store</th><th class="tright">Consented</th><th class="tright">Points liability</th><th class="tright">Active journeys touching</th></tr></thead>
+<tbody>
+<tr><td>Rancho Cucamonga</td><td class="tright mono">6,210</td><td class="tright mono">$14,880</td><td class="tright mono">3</td></tr>
+<tr><td>Corona</td><td class="tright mono">4,904</td><td class="tright mono">$10,240</td><td class="tright mono">3</td></tr>
+<tr><td>Riverside</td><td class="tright mono">3,318</td><td class="tright mono">$8,900</td><td class="tright mono">2</td></tr>
+<tr><td>Temecula</td><td class="tright mono">2,441</td><td class="tright mono">$5,120</td><td class="tright mono">2</td></tr>
+<tr><td>Murrieta</td><td class="tright mono">1,547</td><td class="tright mono">$3,040</td><td class="tright mono">1</td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div class="devnote info">
+<div class="dn-head"><svg class="ic s13"><use href="#i-database"/></svg>Why four numbers, not fifty-one tiles</div>
+Starbucks tested a denser, more analytical rewards view and reverted after it produced more errors in real tasks — the owner cited the same finding. Every number that isn't one of the four here is one click away, inside the customer record or the audience that produced it, never bolted onto Home as a fifth tile.
+</div>
+<div class="built"><b>Built from:</b> the same <code>KPI</code> tile and sunken-card primitives used across the POS and Engage screens (<code>pos/atoms.jsx</code>, <code>engage/screen-customers.jsx</code>) — four tiles, one list card reusing the register's "needs attention" row shape, then a funnel bar and a plain table. No chart library, no sparkline grid.</div>
+</div>
+</div>
+
+<div class="tabpanel" id="tab-customers">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Customers — the Members CRM, updated (athome/crm.jsx)</div>
+<h2>Same module, same record — Reggie Watts is still C-1042. What's new is everything the brief adds: consent with a source and a timestamp, points expiry, store affinity, and the audiences/messages a customer belongs to.</h2>
+<p>This is not a second member module next to the existing one. It is <code>athome/crm.jsx</code>'s list-plus-record layout, carrying the same identity (name, id, tier, region, tags) it already had, with the loyalty fields promoted from a "Wallet & points" tab into the header KPIs and a full Consent card added next to Identity — because Concept C treats consent and points as core identity fields, not a sub-tab you have to click into.</p>
+<p>The record below is rendered by <code>window.renderMemberRecord()</code>, a single template function defined once at the bottom of this file. This Customers view calls it into the slot marked <b>CRM</b>. Scroll to the POS mockup further down and the identical function is called again into a slot marked <b>POS member lookup</b> — same HTML, same order, same fields, because the brief's requirement is literal: "the same panel can appear inside the POS member lookup."</p>
+</div>
+</div>
+<div class="stage">
+<div style="display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start">
+<div class="card" style="overflow:hidden">
+<div class="cardhead"><span class="ttl">Members</span><span class="pill pill-neutral sm">4,218</span></div>
+<div class="cbody" style="padding:10px"><div class="field" style="margin-bottom:2px"><svg class="ic s13" style="color:var(--inkMute)"><use href="#i-search"/></svg><span class="ph">Search members…</span></div></div>
+<div class="rec-list">
+<div class="rec-item" style="padding:10px 14px;background:var(--accentSoft);border-left:3px solid var(--accent)"><div class="av" style="background:var(--accent);color:var(--accentInk)">RW</div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Reggie Watts</div><div class="meta">Gold · 34 ord · $8,240</div></div></div>
+<div class="rec-item" style="padding:10px 14px"><div class="av">JB</div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Jordan Blake</div><div class="meta">Gold · 41 ord · $11,200</div></div></div>
+<div class="rec-item" style="padding:10px 14px"><div class="av">DC</div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Dana Cho</div><div class="meta">Silver · 6 ord · $640</div></div><span class="pill pill-info sm">New</span></div>
+<div class="rec-item" style="padding:10px 14px"><div class="av">LP</div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Leo Park</div><div class="meta">Gold · 22 ord · $4,100</div></div></div>
+<div class="rec-item" style="padding:10px 14px"><div class="av">MF</div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Mia Flores</div><div class="meta">Silver · 11 ord · $1,350</div></div></div>
+<div class="rec-item" style="padding:10px 14px"><div class="av">SO</div><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">Sam Ortiz</div><div class="meta">no tier · 0 ord</div></div><span class="pill pill-bad sm">Flagged</span></div>
+</div>
+</div>
+<div class="recordwrap">
+<div class="rw-lbl"><svg class="ic s13"><use href="#i-users"/></svg>Customers → record component · context: CRM</div>
+<div data-record-slot="crm"></div>
+</div>
+</div>
+
+<div class="caphead"><h3>The same component, inside the POS member lookup</h3><span class="cs">A budtender taps a customer chip at the register. What opens is the identical record component above, in a POS-chrome sheet — not a slimmed-down summary that quietly drifts out of sync with the CRM's version.</span></div>
+<div class="pos">
+<div class="pos-rail">
+<div class="logo">W</div>
+<div class="it"><svg class="ic"><use href="#i-home"/></svg>Home</div>
+<div class="it on"><svg class="ic"><use href="#i-register"/></svg>Register</div>
+<div class="it"><svg class="ic"><use href="#i-board"/></svg>Orders</div>
+<div class="it"><svg class="ic"><use href="#i-users"/></svg>Members</div>
+</div>
+<div class="pos-main">
+<div class="pos-top"><span class="pill pill-neutral sm">Hyperwolf Rancho Cucamonga</span><span class="meta" style="margin-left:auto">Register 101 · drawer open</span><span class="av">MS</span></div>
+<div class="pos-scr">
+<div class="row" style="justify-content:space-between;margin-bottom:12px"><div class="row" style="gap:8px"><svg class="ic"><use href="#i-users"/></svg><b style="font-size:15px">Member lookup</b></div><span class="btn btn-ghost btn-xs"><svg class="ic s13"><use href="#i-x"/></svg>Close</span></div>
+<div class="recordwrap" style="background:var(--surface)">
+<div class="rw-lbl"><svg class="ic s13"><use href="#i-register"/></svg>Member lookup → record component · context: POS</div>
+<div data-record-slot="pos"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> <code>pos/screen-register.jsx</code>'s intake sheet chrome wrapping the exact same <code>renderMemberRecord()</code> output shown in the CRM above — view source and diff the two <code>[data-record-slot]</code> containers if you want to check it isn't two hand-authored copies. The referral "View referral chain" action is the only element hidden at the register (via a <code>context==='pos'</code> flag), because that action opens a full CRM screen a budtender has no reason to navigate to mid-sale — everything else, including consent and points expiry, is identical.</div>
+<div class="devnote warn">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Register screen — not modified</div>
+Owner rule: <code>pos/screen-register.jsx</code> is never changed in code. This member-lookup sheet is a new overlay reachable from a customer chip already on the register, the same way the POS Home card and payment modal are the sanctioned entry points for loyalty data at checkout — see tab 6 and tab 7.
+</div>
+</div>
+</div>
+
+<div class="tabpanel" id="tab-audiences">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Audiences — a saved filter over the customer table</div>
+<h2>An audience is not a list you build and copy — it's a sentence that re-reads the customer table every time it's used.</h2>
+<p>The sentence editor and the AI prompt both compile to the same thing: a filter over customer record fields. There is no separate "segment" object with its own storage — a saved audience is a name, the sentence, and a refresh cadence. The live size updates as soon as a clause changes, and the sample of 5 links straight into the record component from tab 2, because a marketer checking "who is this" should land on the same record a budtender sees, not a stripped preview row.</p>
+</div>
+</div>
+<div class="stage">
+<div class="split">
+<div class="stack">
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-target"/></svg></span><span class="ttl">Build a sentence</span></div>
+<div class="cbody">
+<div class="sentence">Customers who <span class="blank">ordered 3+ times<svg class="ic s13"><use href="#i-chevron-right" style="transform:rotate(90deg)"/></svg></span>, <span class="blank">last order over 45 days ago</span>, <span class="blank">SMS consent granted</span>, favourite store <span class="blank">Corona</span>.</div>
+<div class="row" style="margin-top:6px;gap:8px"><span class="btn btn-secondary btn-xs"><svg class="ic s13"><use href="#i-target"/></svg>+ Add condition</span></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-lightning"/></svg></span><span class="ttl">Or describe it in a prompt</span></div>
+<div class="cbody stack">
+<div class="field mono" style="height:auto;min-height:40px;align-items:flex-start;padding:9px 12px"><span class="ph">"Corona regulars who haven't ordered in over a month but used to order every couple weeks"</span></div>
+<div class="row"><span class="btn btn-accent btn-sm"><svg class="ic s13"><use href="#i-lightning"/></svg>Generate sentence</span><span class="muted">Produces the same editable sentence above — never a black-box filter you can't inspect.</span></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-users"/></svg></span><span class="ttl">Sample of 5</span><span class="pill pill-neutral sm">demo</span></div>
+<div class="tbl-wrap"><table class="dt" style="border:0;border-radius:0">
+<thead><tr><th>Customer</th><th>Orders</th><th>Last order</th><th>SMS consent</th><th>Store</th></tr></thead>
+<tbody>
+<tr><td class="row" style="gap:8px"><span class="av">RW</span>Reggie Watts</td><td class="mono">7</td><td class="mono">52d ago</td><td><span class="pill pill-good sm"><span class="dot"></span>Yes</span></td><td>Corona</td></tr>
+<tr><td class="row" style="gap:8px"><span class="av">TN</span>Tara Nguyen</td><td class="mono">4</td><td class="mono">61d ago</td><td><span class="pill pill-good sm"><span class="dot"></span>Yes</span></td><td>Corona</td></tr>
+<tr><td class="row" style="gap:8px"><span class="av">WK</span>Wesley Kim</td><td class="mono">5</td><td class="mono">48d ago</td><td><span class="pill pill-good sm"><span class="dot"></span>Yes</span></td><td>Corona</td></tr>
+<tr><td class="row" style="gap:8px"><span class="av">MF</span>Mia Flores</td><td class="mono">6</td><td class="mono">70d ago</td><td><span class="pill pill-good sm"><span class="dot"></span>Yes</span></td><td>Corona</td></tr>
+<tr><td class="row" style="gap:8px"><span class="av">LP</span>Leo Park</td><td class="mono">9</td><td class="mono">46d ago</td><td><span class="pill pill-good sm"><span class="dot"></span>Yes</span></td><td>Corona</td></tr>
+</tbody>
+</table></div>
+</div>
+</div>
+<div class="stack">
+<div class="hero">
+<div class="lbl">Live size</div>
+<div class="row" style="align-items:baseline;gap:8px;margin-top:4px"><span class="big">1,204</span><span class="of">customers</span></div>
+<div class="muted" style="margin-top:8px">Recomputes on every clause change · last computed 4 seconds ago</div>
+</div>
+<div class="card pad">
+<div class="lbl" style="margin-bottom:8px">Save this audience</div>
+<div class="stack">
+<div class="field"><span class="ph">Name this audience…</span></div>
+<div class="row" style="justify-content:space-between"><span style="font-size:12.5px">Refresh</span><span class="segctl"><span class="on">Daily</span><span>Hourly</span><span>Manual</span></span></div>
+<span class="btn btn-accent btn-full"><svg class="ic s13"><use href="#i-check-circle"/></svg>Save audience</span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="caphead"><h3>Saved audiences</h3><span class="cs">Refresh cadence and "where used" travel with the audience — a marketer editing a saved filter can see every message and journey that will change size underneath them.</span></div>
+<table class="dt">
+<thead><tr><th>Audience</th><th>Size</th><th>Refresh</th><th>Last refreshed</th><th>Used in</th><th></th></tr></thead>
+<tbody>
+<tr class="sel"><td><b>Corona lapsing regulars</b><div class="meta">3+ orders · 45+ days · SMS consent · Corona</div></td><td class="mono">1,204</td><td><span class="pill pill-neutral sm">Daily</span></td><td class="mono">4s ago</td><td>1 message draft</td><td><span class="btn btn-ghost btn-xs">Edit</span></td></tr>
+<tr><td><b>VIP · lifetime 3,000+ pts</b></td><td class="mono">2,918</td><td><span class="pill pill-neutral sm">Daily</span></td><td class="mono">2h ago</td><td>2 journeys · 1 message</td><td><span class="btn btn-ghost btn-xs">Edit</span></td></tr>
+<tr><td><b>Rosin fans</b><div class="meta">bought a concentrate SKU tagged "rosin" in last 90 days</div></td><td class="mono">640</td><td><span class="pill pill-warn sm">Daily</span></td><td class="mono mono" style="color:var(--warnText)">9 days ago — overdue</td><td>2 journeys · 1 message</td><td><span class="btn btn-ghost btn-xs">Edit</span></td></tr>
+<tr><td><b>Birthday this month</b></td><td class="mono">318</td><td><span class="pill pill-neutral sm">Daily</span></td><td class="mono">4s ago</td><td>1 journey</td><td><span class="btn btn-ghost btn-xs">Edit</span></td></tr>
+<tr><td><b>First order &lt; 7 days</b></td><td class="mono">96</td><td><span class="pill pill-neutral sm">Hourly</span></td><td class="mono">18m ago</td><td>1 journey</td><td><span class="btn btn-ghost btn-xs">Edit</span></td></tr>
+<tr><td><b>Cart abandoned, 2026 spring promo</b></td><td class="mono">412</td><td><span class="pill pill-info sm">Manual</span></td><td class="mono">Mar 14, 2026</td><td>0 · unused</td><td><span class="btn btn-ghost btn-xs">Edit</span></td></tr>
+</tbody>
+</table>
+<div class="built"><b>Built from:</b> the sentence editor is a row of <code>chip</code>-styled inline buttons rather than a form with labelled dropdowns — each blank opens the same picker a form field would, but reads as prose. The AI entry point sits directly above it and writes into the identical sentence state, so there is one underlying object regardless of how it was authored, matching the Klaviyo/BLAZE pattern from the inspiration digest.</div>
+</div>
+</div>
+
+<div class="tabpanel" id="tab-messages">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Messages — compose, the block builder, and the policy chain</div>
+<h2>One block builder serves email and landing pages, because an SMS never carries content — it only carries a link into a page this builder made.</h2>
+<p>Compose walks Audience → Channel → Content → Schedule → Policy check → Send, top to bottom on one screen rather than a wizard, so the policy numbers are visible while still editing. The block builder is the same canvas whether you're building an email body or a landing page ("squeeze page") — the only per-context control is the 21+/state gate toggle, which only does anything on a landing page. The SMS composer never gets a rich editor: it shows the fixed-format short body next to a live preview of the page it opens, because that is the entire SMS surface by rule D-024a.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="caphead"><h3>Compose</h3><span class="cs">Audience → channel → content → schedule → policy → send, all on one screen.</span></div>
+<div class="card">
+<div class="cbody stack">
+<div class="row" style="gap:16px;align-items:flex-start">
+<div style="flex:1;min-width:220px"><span class="flbl">1 · Audience</span><div class="field"><svg class="ic s13" style="color:var(--inkMute)"><use href="#i-target"/></svg>Corona lapsing regulars · 1,204</div></div>
+<div style="flex:1;min-width:220px"><span class="flbl">2 · Channel</span><div class="segctl"><span class="on"><svg class="ic s13"><use href="#i-message"/></svg>SMS</span><span><svg class="ic s13"><use href="#i-mail"/></svg>Email</span><span><svg class="ic s13"><use href="#i-smartphone"/></svg>Push</span></div></div>
+<div style="flex:1;min-width:220px"><span class="flbl">3 · Schedule</span><div class="field"><svg class="ic s13" style="color:var(--inkMute)"><use href="#i-calendar"/></svg>Thu Sep 11 · 10:00a local</div></div>
+</div>
+<div>
+<span class="flbl">4 · Content</span>
+<div class="grid2" style="margin-top:6px">
+<div class="card sunken pad">
+<div class="lbl" style="margin-bottom:6px">SMS short body</div>
+<div class="field mono">Important message from Hyperwolf: hyp.wf/x7Kq2p</div>
+<div class="fhint">160 char max · never contains price, product, or cannabis content — see rule 2 in the brief.</div>
+</div>
+<div class="card sunken pad">
+<div class="lbl" style="margin-bottom:6px">Opens to landing page</div>
+<div class="row" style="gap:8px"><span class="pill pill-neutral sm"><svg class="ic s13"><use href="#i-link"/></svg>hyp.wf/x7Kq2p</span><span class="btn btn-ghost btn-xs">Edit in block builder ↓</span></div>
+<div class="fhint">"We miss you at Corona" · gate: <b style="color:var(--good)">on</b> · built below</div>
+</div>
+</div>
+</div>
+<div>
+<span class="flbl">5 · Policy check</span>
+<div class="grid3" style="margin-top:6px">
+<div class="st good"><div class="lbl">Consent coverage</div><div class="v">1,138 / 1,204</div><div class="s">94.5% — 66 excluded, no SMS consent</div></div>
+<div class="st warn"><div class="lbl">Quiet hours holds</div><div class="v">212</div><div class="s">held until 9:00a recipient-local, sent then</div></div>
+<div class="st warn"><div class="lbl">Frequency cap</div><div class="v">58</div><div class="s">already at 3 messages this week — skipped</div></div>
+</div>
+<div class="devnote good" style="margin-top:10px"><div class="dn-head"><svg class="ic s13"><use href="#i-check-circle"/></svg>What will actually send</div>868 recipients now, 212 held for quiet hours and sent automatically at 9:00a local, 124 excluded (66 no consent, 58 over the frequency cap) — shown before send, not discovered after, per Springbig's "textable member count" pattern.</div>
+</div>
+<div class="row" style="justify-content:flex-end;gap:8px"><span class="btn btn-secondary btn-lg">Save draft</span><span class="btn btn-accent btn-lg"><svg class="ic s13"><use href="#i-message"/></svg>Send to 868 now, schedule 212</span></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Block builder — email and landing pages, one canvas</h3><span class="cs">The same builder either way. Palette capped at 12 blocks, saved sections searchable, live mobile preview, merge tags, and the per-page gate toggle that only matters on a landing page.</span></div>
+<div class="card">
+<div class="cardhead"><span class="ttl">"We miss you at Corona" — landing page</span><span class="pill pill-neutral sm">1 of 2 saved pages</span><span class="btn btn-ghost btn-xs" style="margin-left:auto">Saved sections</span></div>
+<div class="cbody">
+<div class="gate-toggle" style="margin-bottom:12px">
+<span class="switch on"></span>
+<div style="flex:1"><b style="font-size:12.5px">21+ / state age gate</b><div class="fhint" style="margin:0">On for this page. The storefront itself always stays gate-free (rule D-024a) — this toggle only affects pages built here.</div></div>
+<span class="pill pill-good sm"><span class="dot"></span>On</span>
+</div>
+<div style="display:grid;grid-template-columns:150px minmax(0,1fr) 220px;gap:14px;align-items:start">
+<div>
+<div class="lbl" style="margin-bottom:8px">Blocks · 12</div>
+<div class="blockpal">
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-layout"/></svg></span>Heading</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-message"/></svg></span>Text</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-package"/></svg></span>Image</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-lightning"/></svg></span>Button</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-package"/></svg></span>Product</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-award"/></svg></span>Reward</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-clock"/></svg></span>Countdown</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-users"/></svg></span>Social</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-shield"/></svg></span>Legal</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-database"/></svg></span>Merge tag</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-database"/></svg></span>Divider</div>
+<div class="blockitem"><span class="p"><svg class="ic s18"><use href="#i-settings"/></svg></span>Code</div>
+</div>
+</div>
+<div class="lp-canvas">
+<div class="lp-block"><span class="tag">Heading</span><div style="font-size:19px;font-weight:800">We miss you at Corona, {{first_name}}</div></div>
+<div class="lp-block"><span class="tag">Text</span><div class="muted">It's been a while since your last visit. Your Gold tier is still active and you've got 2,840 points waiting.</div></div>
+<div class="lp-block"><span class="tag">Reward</span><div class="row" style="justify-content:space-between"><b style="font-size:13px">$10 off your next order</b><span class="pill pill-accent sm">store-scoped</span></div><div class="fhint">Redeemable at Corona only · expires in 14 days</div></div>
+<div class="lp-block"><span class="tag">Button</span><span class="btn btn-accent">Shop the Corona menu</span></div>
+<div class="lp-block" style="opacity:.7"><span class="tag">Legal</span><div class="fhint">Age gate renders above this page per the toggle · unsubscribe link · Hyperwolf address</div></div>
+</div>
+<div>
+<div class="lbl" style="margin-bottom:8px">Mobile preview</div>
+<div class="phone"><div class="bar"><span class="notch"></span></div><div class="scr" style="padding:12px">
+<div style="font-size:15px;font-weight:800;margin-bottom:8px">We miss you at Corona, Reggie</div>
+<div style="font-size:11px;color:var(--inkDim);margin-bottom:10px">It's been a while since your last visit. Your Gold tier is still active and you've got 2,840 points waiting.</div>
+<div class="card sunken pad-sm" style="margin-bottom:10px"><b style="font-size:11.5px">$10 off your next order</b><div class="fhint">Corona only · expires 14 days</div></div>
+<span class="btn btn-accent btn-full btn-xs">Shop the Corona menu</span>
+</div></div>
+<div class="lbl" style="margin-top:12px;margin-bottom:6px">Merge tags</div>
+<div class="row" style="gap:6px"><span class="chip">{{first_name}}</span><span class="chip">{{points_balance}}</span><span class="chip">{{tier}}</span><span class="chip">{{store_name}}</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="caphead"><h3>SMS composer</h3><span class="cs">There is nothing else to compose — the short body and the page it opens, side by side, so what the customer sees is never a surprise.</span></div>
+<div class="grid2">
+<div class="card pad">
+<div class="lbl" style="margin-bottom:8px">Text message</div>
+<div class="sms-bubble">Important message from Hyperwolf: hyp.wf/x7Kq2p</div>
+<div class="kv" style="margin-top:14px"><span class="k">Characters</span><span class="v mono">49 / 160</span></div>
+<div class="kv"><span class="k">Short link</span><span class="v mono">hyp.wf/x7Kq2p → "We miss you at Corona"</span></div>
+<div class="kv"><span class="k">Registered sender</span><span class="v mono">10DLC campaign HW-2026-04</span></div>
+</div>
+<div class="card pad">
+<div class="lbl" style="margin-bottom:8px">Opens to</div>
+<div class="row" style="gap:10px"><span class="plate" style="background:var(--surface3);width:40px;height:40px"><svg class="ic"><use href="#i-globe"/></svg></span><div><b style="font-size:13px">"We miss you at Corona"</b><div class="fhint">gate on · built in the block builder above</div></div></div>
+<div class="devnote info" style="margin-top:12px"><div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Why the SMS never says more</div>Cannabis content in the SHAFT-restricted category is filtered by carriers independent of 10DLC registration approval. Keeping the SMS to a generic short link with no price, product, or cannabis language is a deliverability requirement, not a style choice.</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> the compose stepper reuses <code>Field</code>/<code>segctl</code> for channel choice, the block palette is a fixed 12-item grid (Klaviyo/Mailchimp's ~15-block norm, trimmed), and the mobile preview is the same <code>.phone</code> frame used for the wallet pass in tab 6 — one device chrome throughout the file.</div>
+</div>
+</div>
+
+<div class="tabpanel" id="tab-journeys">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Journeys — customer rows moving through a small canvas</div>
+<h2>Six node types. A journey is what happens to a customer record when it starts matching a trigger, and every node's number is a count of customer rows, not an abstract "conversion."</h2>
+<p>Trigger · wait · branch · message · loyalty action · exit — that's the whole palette. Loyalty actions (give points, adjust tier) sit as native nodes rather than a webhook out to a different system, matching the pattern Alpine IQ and Braze both use. Below is a win-back journey shown end to end with enrolled/converted counts at every node, because a canvas that only shows the shape of the flow without the numbers moving through it doesn't answer the question a marketer actually has: is this working.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="caphead"><h3>Describe it, or show it</h3><span class="cs">Same prompt box as tab 7, in the journey's flavour: write what should happen, or point at two customers who already lived the pattern. Either path lands in the identical trigger → wait → branch → message graph below, with the same parameters-pulled list and the policy chain's verdict on every message node.</span></div>
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--accentSoft);color:var(--accentText)"><svg class="ic"><use href="#i-lightning"/></svg></span><span class="ttl">Describe it</span><span class="pill pill-neutral sm">prompt</span></div>
+<div class="cbody stack">
+<div class="field mono" style="height:auto;min-height:56px;align-items:flex-start;padding:9px 12px">When a customer's ordering slows down, wait a week, then text them a $10 delivery-only reward; if they still haven't ordered 14 days later, email them 2x points on their next order; stop when they order.</div>
+<div class="row"><span class="btn btn-accent btn-sm"><svg class="ic s13"><use href="#i-lightning"/></svg>Interpret prompt</span><span class="muted">Reads into the graph below, not a query language — every node is something dragged from the palette could also have produced.</span></div>
+<div class="fhint">Same behaviour as tab 7's prompt box: a missing-but-derivable parameter gets a "create it?" card, and a parameter with no data source at all says so honestly — see below.</div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-users"/></svg></span><span class="ttl">Show me instead</span><span class="pill pill-neutral sm">demo</span></div>
+<div class="cbody stack">
+<div>
+<span class="flbl">Customers like these</span>
+<div class="row" style="gap:6px;margin-top:6px">
+<span class="chip on"><span class="av" style="width:18px;height:18px;font-size:9px;margin-right:1px">AR</span>Ana Reyes — lapsed, back after an SMS</span>
+<span class="chip on"><span class="av" style="width:18px;height:18px;font-size:9px;margin-right:1px">DP</span>Derek Park — lapsed, never returned</span>
+<span class="btn btn-ghost btn-xs">+ Add example</span>
+</div>
+</div>
+<div class="card sunken pad-sm">
+<div style="font-size:12.5px;line-height:1.6;color:var(--ink2)">Customers like these: order frequency dropped <b>40%+</b>, no order in <b>21 days</b> → one SMS with a delivery-only reward brought <b>1 of 2</b> back; propose a second touch by email — <span class="num">2,180</span> customers currently match the trigger</div>
+<div class="row" style="gap:8px;margin-top:8px"><span class="pill pill-warn sm"><span class="dot"></span>Medium confidence</span><span class="muted">2 examples is the minimum for a proposal — add a third to raise it</span></div>
+</div>
+</div>
+</div>
+</div>
+<div class="fhint">Either path is editable before anything saves — dragging a third customer in, or retyping a clause in the prompt, both just re-run the interpretation below.</div>
+
+<div class="caphead"><h3>Parameters pulled from the system</h3><span class="cs">Every node below names the data or catalog entry it came from — nothing is pulled from a source a marketer couldn't also see on a customer record. demo</span></div>
+<table class="dt">
+<thead><tr><th>Parameter</th><th>Value</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Order frequency drop</td><td class="mono">≥ 40% vs. trailing baseline</td><td>Customer trait catalog (derived)</td></tr>
+<tr><td>Days since last order</td><td class="mono">≥ 21</td><td>Customer trait catalog</td></tr>
+<tr><td>Wait 1 duration</td><td class="mono">7 days</td><td>Calendar</td></tr>
+<tr><td>Wait 2 duration</td><td class="mono">14 days</td><td>Calendar</td></tr>
+<tr><td>SMS reward</td><td class="mono">$10, delivery only</td><td>Loyalty rewards catalog</td></tr>
+<tr><td>Email reward</td><td class="mono">2x points, next order</td><td>Loyalty rewards catalog</td></tr>
+<tr><td>Channel scope</td><td class="mono">SMS then email</td><td>Consent / channel catalog</td></tr>
+</tbody>
+</table>
+
+<div class="caphead"><h3>When the data isn't there yet</h3><span class="cs">Same three-way answer as tab 7: interpreted outright, derivable from an existing field, or honestly not possible today. demo</span></div>
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--badSoft);color:var(--bad)"><svg class="ic"><use href="#i-x"/></svg></span><span class="ttl">No data source for this</span></div>
+<div class="cbody">
+<div class="field mono" style="height:auto;min-height:40px;align-items:flex-start;padding:9px 12px">"...but only message customers who reviewed us"</div>
+<div class="empty err" style="padding:18px 10px 4px">
+<span class="plate"><svg class="ic"><use href="#i-alert"/></svg></span>
+<div class="t">No data source for this</div>
+<div class="b">"Customers who reviewed us" isn't a field anywhere in the system today. Ask a developer to add it, or collect it with a questionnaire — the graph won't invent a branch condition that isn't there.</div>
+<span class="btn btn-secondary btn-xs" style="margin-top:2px"><svg class="ic s13"><use href="#i-message"/></svg>Build a questionnaire</span>
+</div>
+</div>
+</div>
+
+<div class="caphead"><h3>Both paths land here</h3><span class="cs">The win-back journey, fully interpreted — same node graph either path fills in, with the policy chain's verdict on every message node and enrolment counted at each step. demo</span></div>
+<div class="card pad">
+<div class="flow-row">
+<div class="fnode" style="border-top:3px solid var(--info)"><div class="k"><svg class="ic s13"><use href="#i-lightning"/></svg>Trigger</div><div class="t">Order frequency dropped 40%+, no order in 21 days</div><div class="m">enrolled</div><div class="cnv">2,180</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode"><div class="k"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div><div class="t">7 days</div><div class="m">passed through</div><div class="cnv">2,180</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--warnText)"><div class="k"><svg class="ic s13"><use href="#i-target"/></svg>Branch</div><div class="t">Ordered since?</div><div class="m">yes → 612 exit · no → 1,568</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--good)"><div class="k"><svg class="ic s13"><use href="#i-message"/></svg>Message</div><div class="t">SMS short body + landing page, reward "Welcome back $10", delivery only</div><div class="m">delivered</div><div class="cnv">1,510</div><div class="row" style="gap:4px;margin-top:6px" title="Consent: opted in · Quiet hours: clear (10a–8p local) · Frequency cap: 1 of 3 messages this week"><span class="pill pill-good sm"><span class="dot"></span>Policy: pass</span></div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode"><div class="k"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div><div class="t">14 days</div><div class="m">passed through</div><div class="cnv">1,510</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--warnText)"><div class="k"><svg class="ic s13"><use href="#i-target"/></svg>Branch</div><div class="t">Ordered since?</div><div class="m">yes → 398 exit · no → 1,112</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--good)"><div class="k"><svg class="ic s13"><use href="#i-message"/></svg>Message</div><div class="t">Email — 2x points on next order</div><div class="m">delivered</div><div class="cnv">1,088</div><div class="row" style="gap:4px;margin-top:6px" title="Consent: opted in · Quiet hours: n/a (email) · Frequency cap: 3rd message this customer would receive this week — cap is 3, sends anyway, logged"><span class="pill pill-warn sm"><span class="dot"></span>Policy: 1 flag</span></div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--bad)"><div class="k"><svg class="ic s13"><use href="#i-x"/></svg>Exit</div><div class="t">Converted — ordered after either touch</div><div class="m">of 2,180 entered</div><div class="cnv">1,010 · 46.3%</div></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Refine, and see every version</h3><span class="cs">Nothing above is a black box — refine it in words, and the version list keeps every prompt paired with the graph it produced. demo</span></div>
+<div class="grid2">
+<div class="card pad">
+<div class="lbl" style="margin-bottom:8px">Refine</div>
+<div class="field mono" style="height:auto;min-height:40px;align-items:flex-start;padding:9px 12px"><span class="ph">"make the second message an SMS too" · "only Corona customers" · "wait 10 days instead of 7"</span></div>
+<div class="row" style="margin-top:8px"><span class="btn btn-accent btn-sm"><svg class="ic s13"><use href="#i-lightning"/></svg>Apply refinement</span><span class="muted">Re-runs the interpretation above — never edits the journey object directly.</span></div>
+</div>
+<div class="card pad">
+<div class="lbl" style="margin-bottom:8px">Versions</div>
+<div class="tl">
+<div class="tl-ev"><span class="tl-dot good"></span><div class="tl-body"><div class="tl-action">v1 · original prompt</div><div class="tl-meta">Dana Cho · today 08:47</div><div class="tl-reason">"When a customer's ordering slows down, wait a week, then text them a $10 delivery-only reward; if they still haven't ordered 14 days later, email them 2x points on their next order; stop when they order."</div></div></div>
+<div class="tl-ev"><span class="tl-dot info"></span><div class="tl-body"><div class="tl-action">v2 · built from examples</div><div class="tl-meta">Dana Cho · today 08:52</div><div class="tl-reason">"Show me instead": Ana Reyes + Derek Park — same trigger and first touch inferred; second touch proposed as email rather than typed.</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div class="tl-body"><div class="tl-action">v3 · current, unsaved</div><div class="tl-meta">draft</div><div class="tl-reason">Matches the graph above.</div></div></div>
+</div>
+</div>
+</div>
+
+<div class="devnote warn">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Dev call-out — smart prompt, for journeys</div>
+The prompt box compiles to the same journey object as the canvas; the model proposes, the catalog validates, the runner executes. Production needs journey and run tables — the canvas below is rendered from static demo data, not a saved journey — plus the same policy chain (consent, quiet hours, frequency caps) gating every node a prompt or an example-set produces, not a separate check from the hand-built canvas.
+</div>
+<div class="built"><b>Built from:</b> the same <code>field</code>, <code>chip</code> and <code>fnode</code>/<code>fconn</code> primitives as tab 7's prompt tray and this tab's win-back canvas below — a prompt and a pair of picked examples both terminate in the identical trigger → wait → branch → message graph, never a separate journey language. The no-data-source state reuses <code>empty.err</code>; the version list reuses <code>.tl</code>; confidence reuses the same pill pattern as tab 7's "Show me instead."</div>
+
+<div class="caphead"><h3>The palette</h3><span class="cs">Six node types, reused in every journey in this system.</span></div>
+<div class="fpalette">
+<span class="fp"><svg class="ic s13"><use href="#i-lightning"/></svg>Trigger</span>
+<span class="fp"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</span>
+<span class="fp"><svg class="ic s13"><use href="#i-target"/></svg>Branch</span>
+<span class="fp"><svg class="ic s13"><use href="#i-message"/></svg>Message</span>
+<span class="fp"><svg class="ic s13"><use href="#i-coins"/></svg>Loyalty action</span>
+<span class="fp"><svg class="ic s13"><use href="#i-x"/></svg>Exit</span>
+</div>
+
+<div class="caphead"><h3>Win-back — lapsed 45+ days, end to end</h3><span class="cs">2,400 customers entered · 312 converted · counts per node, demo data.</span></div>
+<div class="card pad">
+<div class="flow-row">
+<div class="fnode" style="border-top:3px solid var(--info)"><div class="k"><svg class="ic s13"><use href="#i-lightning"/></svg>Trigger</div><div class="t">Lapsed 45+ days since last order</div><div class="m">enrolled</div><div class="cnv">2,400</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode"><div class="k"><svg class="ic s13"><use href="#i-clock"/></svg>Wait</div><div class="t">Until 10:00a recipient-local</div><div class="m">passed through</div><div class="cnv">2,400</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--good)"><div class="k"><svg class="ic s13"><use href="#i-message"/></svg>Message</div><div class="t">SMS — "we miss you" short link</div><div class="m">delivered</div><div class="cnv">2,318</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--warnText)"><div class="k"><svg class="ic s13"><use href="#i-target"/></svg>Branch</div><div class="t">Opened the landing page?</div><div class="m">yes → 812 · no → 1,506</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--accentBorder)"><div class="k"><svg class="ic s13"><use href="#i-coins"/></svg>Loyalty action</div><div class="t">Grant 200 bonus points (opened branch only)</div><div class="m">granted</div><div class="cnv">812</div></div>
+<div class="fconn"><svg class="ic"><use href="#i-chevron-right"/></svg></div>
+<div class="fnode" style="border-top:3px solid var(--bad)"><div class="k"><svg class="ic s13"><use href="#i-x"/></svg>Exit</div><div class="t">Converted — ordered within 14 days</div><div class="m">of 2,400 entered</div><div class="cnv">312 · 13.0%</div></div>
+</div>
+</div>
+<div class="devnote info" style="margin-top:0">
+<div class="dn-head"><svg class="ic s13"><use href="#i-database"/></svg>What "exit" means here, named explicitly</div>
+The exit node names its own criteria — "converted, ordered within 14 days" — rather than an implicit fall-off the customer can't see represented anywhere, following Customer.io's pattern from the inspiration digest. The 1,506 who didn't open still exit the journey; they aren't silently dropped, they're the "no" branch's own unlabelled remainder, visible by subtracting the branch counts.</div>
+
+<div class="caphead"><h3>Trigger library</h3><span class="cs">Every trigger a journey can start from — plain-language, matching a change on the customer record.</span></div>
+<div class="grid3">
+<div class="chip">Ordering less often than usual (frequency drop)</div>
+<div class="chip">Lapsed N days since last order</div>
+<div class="chip">Tier changed (up or down)</div>
+<div class="chip">Birthday</div>
+<div class="chip">Cart abandoned</div>
+<div class="chip">First order</div>
+<div class="chip">Referral completed</div>
+</div>
+
+<div class="caphead"><h3>All journeys</h3><span class="cs">demo</span></div>
+<table class="dt">
+<thead><tr><th>Journey</th><th>Trigger</th><th>Enrolled</th><th>Converted</th><th>Status</th></tr></thead>
+<tbody>
+<tr class="sel"><td><b>Win-back · lapsed 45+</b></td><td>Lapsed 45+ days</td><td class="mono">2,400</td><td class="mono">312 · 13.0%</td><td><span class="pill pill-good sm"><span class="dot"></span>Running</span></td></tr>
+<tr><td><b>Gold tier welcome</b></td><td>Tier changed → Gold</td><td class="mono">96</td><td class="mono">41 · 42.7%</td><td><span class="pill pill-good sm"><span class="dot"></span>Running</span></td></tr>
+<tr><td><b>Birthday reward</b></td><td>Birthday</td><td class="mono">318</td><td class="mono">88 · 27.7%</td><td><span class="pill pill-good sm"><span class="dot"></span>Running</span></td></tr>
+<tr><td><b>Lapsed 60+, second push</b></td><td>Lapsed 60+ days</td><td class="mono">214</td><td class="mono">—</td><td><span class="pill pill-bad sm"><span class="dot"></span>Stalled at branch</span></td></tr>
+<tr><td><b>Cart abandoned, spring promo</b></td><td>Cart abandoned</td><td class="mono">1,880</td><td class="mono">240 · 12.8%</td><td><span class="pill pill-neutral sm">Ended Mar 2026</span></td></tr>
+</tbody>
+</table>
+<div class="built"><b>Built from:</b> <code>.fnode</code> cards connected by a plain chevron rather than SVG bezier lines — a horizontal flow is legible at desktop width without a canvas library, and the counts live inside each node the way Braze's node cards carry their own metrics rather than a separate analytics overlay.</div>
+</div>
+</div>
+
+<div class="tabpanel" id="tab-loyalty">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Loyalty — a POS settings screen, not an Engage screen</div>
+<h2>Loyalty configuration lives in the POS because the register is the one place every loyalty rule has to be true at once. Engage only reads what's configured here.</h2>
+<p>Earn rules, tiers, rewards, expiry, referral and the wallet pass are all Settings screens inside the POS shell below — reached via <code>pos/screen-home.jsx</code>'s settings entry, not a second admin surface. The register-side read (points, tier, reward eligibility) reaches <code>pos/screen-register.jsx</code> only through the member panel and the tender step, per owner rule 6 — the register file itself is never edited, and the panel shown here is a new overlay, the same one from tab 2.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="pos">
+<div class="pos-rail">
+<div class="logo">W</div>
+<div class="it"><svg class="ic"><use href="#i-home"/></svg>Home</div>
+<div class="it"><svg class="ic"><use href="#i-register"/></svg>Register</div>
+<div class="it"><svg class="ic"><use href="#i-package"/></svg>Catalog</div>
+<div class="it on"><svg class="ic"><use href="#i-settings"/></svg>Settings</div>
+</div>
+<div class="pos-main">
+<div class="pos-top"><span class="pill pill-neutral sm">Hyperwolf · Settings</span><span class="meta" style="margin-left:auto">Owner / Admin access</span><span class="av">MS</span></div>
+<div class="pos-scr">
+<div class="row" style="justify-content:space-between;margin-bottom:14px"><h1 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em">Loyalty program</h1><span class="pill pill-good"><span class="dot"></span>Live · all stores</span></div>
+<div class="tabsrow" data-subtabs="loy">
+<span class="on" data-subtab="earn">Earn rules</span>
+<span data-subtab="tiers">Tiers</span>
+<span data-subtab="rewards">Rewards</span>
+<span data-subtab="expiry">Expiry</span>
+<span data-subtab="referral">Referral</span>
+<span data-subtab="wallet">Wallet pass</span>
+</div>
+
+<div data-subpanel="loy" data-subpanel-key="earn" style="margin-top:16px">
+<div class="card">
+<div class="cardhead"><span class="ttl">Earn rules</span><span class="pill pill-neutral sm">4 active</span><span class="btn btn-secondary btn-xs" style="margin-left:auto">+ Add rule</span></div>
+<table class="dt" style="border:0;border-radius:0">
+<thead><tr><th>Rule</th><th>Rate</th><th>Scope</th><th>Store</th></tr></thead>
+<tbody>
+<tr><td><b>Base earn</b></td><td class="mono">1 pt / $1</td><td>All categories</td><td>All stores</td></tr>
+<tr><td><b>Concentrate multiplier</b></td><td class="mono">2× pts</td><td>Concentrates category</td><td>All stores</td></tr>
+<tr><td><b>Gold tier multiplier</b></td><td class="mono">1.5× pts</td><td>Gold tier and above</td><td>All stores</td></tr>
+<tr><td><b>Corona grand-reopening</b></td><td class="mono">3× pts</td><td>All categories</td><td>Corona only · ends Sep 20</td></tr>
+</tbody>
+</table>
+</div>
+<div class="devnote info"><div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Rules share the promotion sentence editor</div>Each row above compiles to the same IF/THEN sentence the Promotions Suite uses — a reward is a promotion whose action is points or a member-only discount (owner rule 7), so this table and a cart promotion rule share one vocabulary: cart · product · user · bogo · time · payment, plus store and channel scope.</div>
+</div>
+
+<div data-subpanel="loy" data-subpanel-key="tiers" style="margin-top:16px;display:none">
+<table class="dt">
+<thead><tr><th>Tier</th><th>Enter at</th><th>Retain at</th><th>Benefits</th><th>Grace</th></tr></thead>
+<tbody>
+<tr><td><span class="pill" style="background:#CD7F32;color:#fff">Bronze</span></td><td class="mono">0 pts</td><td class="mono">—</td><td>Base earn rate</td><td>—</td></tr>
+<tr><td><span class="pill" style="background:#B9B9B9;color:#1A1A1A">Silver</span></td><td class="mono">800 pts / yr</td><td class="mono">500 pts / yr</td><td>1.2× earn</td><td>30 days</td></tr>
+<tr class="sel"><td><span class="pill pill-accent">Gold</span></td><td class="mono">2,500 pts / yr</td><td class="mono">1,800 pts / yr</td><td>1.5× earn · birthday reward</td><td>45 days</td></tr>
+<tr><td><span class="pill" style="background:#111;color:#fff">Platinum</span></td><td class="mono">3,500 pts / yr</td><td class="mono">2,600 pts / yr</td><td>2× earn · early access · free delivery</td><td>60 days</td></tr>
+</tbody>
+</table>
+<div class="fhint" style="margin-top:8px">Retention threshold is lower than the entry threshold, modeled separately per tier (Yotpo's pattern) — a customer doesn't fall out of Gold the moment they dip under 2,500 for the year.</div>
+</div>
+
+<div data-subpanel="loy" data-subpanel-key="rewards" style="margin-top:16px;display:none">
+<div class="grid2">
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><b style="font-size:13.5px">$10 off any order</b><span class="mono">1,000 pts</span></div>
+<div class="row" style="margin-top:8px;gap:6px"><span class="chip good">In-store</span><span class="chip good">Delivery</span><span class="chip">All stores</span></div>
+</div>
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><b style="font-size:13.5px">Free pre-roll, house brand</b><span class="mono">1,400 pts</span></div>
+<div class="row" style="margin-top:8px;gap:6px"><span class="chip good">In-store only</span><span class="chip">All stores</span></div>
+</div>
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><b style="font-size:13.5px">$5 delivery credit</b><span class="mono">400 pts</span></div>
+<div class="row" style="margin-top:8px;gap:6px"><span class="chip good">Delivery only</span><span class="chip">All stores</span></div>
+</div>
+<div class="card pad">
+<div class="row" style="justify-content:space-between"><b style="font-size:13.5px">Rosin flight tasting</b><span class="mono">2,200 pts</span></div>
+<div class="row" style="margin-top:8px;gap:6px"><span class="chip good">In-store only</span><span class="chip accent">Corona · Rancho Cucamonga only</span></div>
+</div>
+</div>
+<div class="fhint" style="margin-top:10px">Store/channel scope chips are the answer to owner rule 4 — a reward can be redeemable at some stores only, delivery-only, in-store only, or both, and it's shown plainly on the card rather than in a settings drawer.</div>
+</div>
+
+<div data-subpanel="loy" data-subpanel-key="expiry" style="margin-top:16px;display:none">
+<div class="card pad">
+<div class="kv"><span class="k">Points expire</span><span class="v">18 months after they're earned, rolling</span></div>
+<div class="kv"><span class="k">Expiry reminder</span><span class="v">Journey fires at 14 days before expiry (see tab 5)</span></div>
+<div class="kv"><span class="k">Tier grace period</span><span class="v">set per tier — see Tiers</span></div>
+<div class="kv"><span class="k">Unused reward expiry</span><span class="v">90 days after issue, unless store-overridden</span></div>
+</div>
+</div>
+
+<div data-subpanel="loy" data-subpanel-key="referral" style="margin-top:16px;display:none">
+<div class="card pad">
+<div class="kv"><span class="k">Referrer reward</span><span class="v mono">$25 store credit, on referred customer's first order</span></div>
+<div class="kv"><span class="k">Referred reward</span><span class="v mono">$10 off first order</span></div>
+<div class="kv"><span class="k">Counts toward tier</span><span class="v">Yes — each completed referral adds 150 pts</span></div>
+<div class="kv"><span class="k">Referral code format</span><span class="v mono">FIRSTNAME + 2 digits</span></div>
+</div>
+</div>
+
+<div data-subpanel="loy" data-subpanel-key="wallet" style="margin-top:16px;display:none">
+<div class="grid2">
+<div class="walletpass">
+<div class="wtop"><div><div class="wname">Hyperwolf Rewards</div><div class="wtier">Gold VIP</div></div><svg class="ic s22" style="color:var(--accent)"><use href="#i-crown"/></svg></div>
+<div class="wbig">2,840 <span style="font-size:14px;font-weight:600;color:rgba(255,255,255,.6)">pts</span></div>
+<div class="wrow"><span>Reggie Watts · C-1042</span><span>660 to Platinum</span></div>
+</div>
+<div class="stack">
+<div class="fhint">Apple Wallet and Google Wallet passes both preview from this one record — points balance and tier push automatically on every earn or redeem, no manual re-issue.</div>
+<div class="kv"><span class="k">Auto-update</span><span class="v"><span class="pill pill-good sm"><span class="dot"></span>On</span></span></div>
+<div class="kv"><span class="k">Proximity push</span><span class="v">Geofenced store promos, opt-in</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Settings screens built from:</b> the same <code>Tabs</code>/<code>Card</code>/<code>DataTable</code> atoms as every other POS settings screen, inside the existing Settings entry in <code>pos/screen-home.jsx</code> — Engage's old standalone loyalty-config screen is retired, not duplicated.</div>
+
+<div class="caphead"><h3>Register-side read — the member panel</h3><span class="cs">What a budtender sees during a sale. Reached via the customer chip and the tender step only — <code>pos/screen-register.jsx</code> itself carries no new code.</span></div>
+<div class="pos">
+<div class="pos-rail">
+<div class="logo">W</div>
+<div class="it on"><svg class="ic"><use href="#i-register"/></svg>Register</div>
+<div class="it"><svg class="ic"><use href="#i-board"/></svg>Orders</div>
+</div>
+<div class="pos-main">
+<div class="pos-top"><span class="pill pill-neutral sm">Hyperwolf Corona</span><span class="meta" style="margin-left:auto">Register 03 · order #4821</span><span class="av">DC</span></div>
+<div class="pos-scr">
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--accentSoft);color:var(--accentText)"><svg class="ic"><use href="#i-users"/></svg></span><span class="ttl">Reggie Watts</span><span class="pill pill-accent sm">Gold</span></div>
+<div class="cbody stack">
+<div class="row" style="justify-content:space-between"><span style="font-size:12.5px;color:var(--inkDim)">Points balance</span><span class="mono" style="font-weight:800;font-size:16px">2,840</span></div>
+<div class="row" style="justify-content:space-between"><span style="font-size:12.5px;color:var(--inkDim)">Tier</span><span style="font-weight:700;font-size:13px">Gold · 660 to Platinum</span></div>
+<div class="card sunken pad" style="margin-top:2px">
+<div style="font-size:12.5px;font-weight:700;color:var(--ink)">3 rewards usable here · 1 delivery-only</div>
+<div class="fhint">$10 off any order · Free pre-roll (in-store) both apply at Corona. $5 delivery credit is delivery-only — not usable on this in-store sale.</div>
+</div>
+<div class="row" style="gap:6px"><span class="chip good">SMS consent</span><span class="chip good">Email consent</span></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="ttl">Tender</span></div>
+<div class="cbody stack">
+<div class="kv"><span class="k">Subtotal</span><span class="v mono">$84.00</span></div>
+<div class="kv"><span class="k">Redeem "$10 off any order"</span><span class="v mono" style="color:var(--bad)">−$10.00</span></div>
+<div class="kv"><span class="k">Points earned this sale</span><span class="v mono" style="color:var(--good)">+111 pts (1.5× Gold rate)</span></div>
+<div class="kv" style="border-top:1px solid var(--hairline2);padding-top:9px;font-weight:800"><span class="k" style="color:var(--ink)">Total due</span><span class="v mono">$74.00</span></div>
+<span class="btn btn-accent btn-full btn-lg">Charge $74.00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="built"><b>Built from:</b> a new member panel + tender line reachable from the existing customer chip and payment modal on the register — same POS atoms (<code>Card</code>, <code>Pill</code>, <code>kv</code> rows) as the settings screens above, so the loyalty read at checkout looks like it belongs to the same product as the loyalty config, not a bolted-on widget.</div>
+</div>
+</div>
+
+<div class="tabpanel" id="tab-promo">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Promo rules — every field is already a condition</div>
+<h2>The marketing team's problem was never the rule logic. It's that today, "if a customer falls into this segment they receive X" requires a developer to write it. Concept C fixes that without a separate rule builder screen — because the customer record, the product record, and the order record are already the centre of this concept, any field on any record can be turned into a condition in place.</h2>
+<p>Hover a field on a member record — "Favorite store: Corona" — and it offers <b>Use as condition: favorite store is Corona</b>. Hover a field on a product record — "Brand: Raw Garden" — and it offers the same thing. There is no separate vocabulary to learn: whatever the record already shows is whatever the rule can filter on. Picked conditions land in the <b>rule tray</b> pinned to the bottom of the screen, where they're joined by AND/OR, counted live, and paired with a "Then…" action and a store/channel scope — never leaving the record you were just looking at.</p>
+<p>Two conditions need a saved <i>set</i>, not a single record: "everyone in this segment" and "every product except this list." Those are <b>saved lists</b> — a customer list (an audience) or a product list (an exclusion list) — built once, then referenced from any rule's "in audience…" or "excluding…" clause. The honest limit is at the bottom of this tab and repeated on tab 8: none of this works until the production promotion engine treats audience, product list, store, and channel as rule attributes the same way it already treats brand and category.</p>
+</div>
+</div>
+<div class="stage">
+
+<div class="caphead"><h3>Describe it, or show it</h3><span class="cs">Two ways into the same rule tray: write what you mean, or point at a few customers and products who already look like the audience you want. Either path ends in the identical Who / What / Reward / Where / When / Guardrails chips below, with live numbers — see tab 8 for what production has to wire before either path can save a real rule.</span></div>
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--accentSoft);color:var(--accentText)"><svg class="ic"><use href="#i-lightning"/></svg></span><span class="ttl">Describe it</span><span class="pill pill-neutral sm">prompt</span></div>
+<div class="cbody stack">
+<div class="field mono" style="height:auto;min-height:56px;align-items:flex-start;padding:9px 12px">Customers who usually buy Raw Garden but haven't ordered in 45 days get 20% off Raw Garden concentrates, delivery only, this Friday to Sunday, once each.</div>
+<div class="row"><span class="btn btn-accent btn-sm"><svg class="ic s13"><use href="#i-lightning"/></svg>Interpret prompt</span><span class="muted">Reads into the tray below, not a query language — every clause is something a "Use as condition" click could also have produced.</span></div>
+<div class="fhint">The box never fails silently. Two more prompts, further down this section, show what happens when a parameter is missing but derivable, and when there's truly no data for it:</div>
+<div class="row" style="gap:6px">
+<span class="chip">"10% off for anyone who orders after 8 pm on weekdays at Corona"</span>
+<span class="chip">"customers who own a dog"</span>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-users"/></svg></span><span class="ttl">Show me instead</span><span class="pill pill-neutral sm">demo</span></div>
+<div class="cbody stack">
+<div>
+<span class="flbl">Customers like these</span>
+<div class="row" style="gap:6px;margin-top:6px">
+<span class="chip on"><span class="av" style="width:18px;height:18px;font-size:9px;margin-right:1px">TN</span>Tara Nguyen</span>
+<span class="chip on"><span class="av" style="width:18px;height:18px;font-size:9px;margin-right:1px">WK</span>Wesley Kim</span>
+<span class="chip on"><span class="av" style="width:18px;height:18px;font-size:9px;margin-right:1px">MF</span>Mia Flores</span>
+<span class="btn btn-ghost btn-xs">+ Add example</span>
+</div>
+</div>
+<div>
+<span class="flbl">And products like these</span>
+<div class="row" style="gap:6px;margin-top:6px">
+<span class="chip on"><svg class="ic s13"><use href="#i-package"/></svg>Raw Garden Live Resin Sauce AIO</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-package"/></svg>Raw Garden Live Resin Cartridge</span>
+<span class="btn btn-ghost btn-xs">+ Add example</span>
+</div>
+</div>
+<div class="card sunken pad-sm">
+<div style="font-size:12.5px;line-height:1.6;color:var(--ink2)">Customers like these: usually buy <b>Raw Garden</b>, last order <b>45+ days</b> ago, favourite store <b>Corona or West Hollywood</b> (3 of 3 match) — <span class="num">1,204</span> customers</div>
+<div class="row" style="gap:8px;margin-top:8px"><span class="pill pill-good sm"><span class="dot"></span>High confidence</span><span class="muted">3 of 3 examples agree on brand affinity, store and recency band</span></div>
+<div class="fhint" style="margin-top:8px"><b>What I ignored:</b> all three examples also have a Gmail address — shared by coincidence, not predictive, so it's left out of the rule.</div>
+</div>
+</div>
+</div>
+</div>
+<div class="fhint">Either path is editable before anything saves — dragging a fourth customer in, or retyping a clause in the prompt, both just re-run the interpretation below.</div>
+
+<div class="caphead"><h3>Parameters pulled from the system</h3><span class="cs">Every clause in the tray below names the data it came from — nothing is pulled from a source a marketer couldn't also click into from a record. demo</span></div>
+<table class="dt">
+<thead><tr><th>Parameter</th><th>Value</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Brand affinity</td><td class="mono">Raw Garden</td><td>Customer trait catalog</td></tr>
+<tr><td>Days since last order</td><td class="mono">≥ 45</td><td>Customer trait catalog</td></tr>
+<tr><td>Brand</td><td class="mono">Raw Garden</td><td>Product attributes</td></tr>
+<tr><td>Category</td><td class="mono">Concentrates</td><td>Product attributes</td></tr>
+<tr><td>Store scope</td><td class="mono">All stores</td><td>Stores</td></tr>
+<tr><td>Send window</td><td class="mono">Fri 13 Sep – Sun 15 Sep</td><td>Calendar</td></tr>
+</tbody>
+</table>
+
+<div class="caphead"><h3>When the data isn't there yet</h3><span class="cs">Every prompt gets one of three answers: interpreted outright, derivable from an existing field, or honestly not possible today. demo</span></div>
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--warnSoft);color:var(--warnText)"><svg class="ic"><use href="#i-alert"/></svg></span><span class="ttl">Needs a new parameter</span></div>
+<div class="cbody stack">
+<div class="field mono" style="height:auto;min-height:40px;align-items:flex-start;padding:9px 12px">"10% off for anyone who orders after 8 pm on weekdays at Corona"</div>
+<div class="devnote warn" style="margin-top:0">
+<div class="dn-head"><svg class="ic s13"><use href="#i-database"/></svg>Needs a new parameter: orders placed after 8 pm</div>
+I can derive it from <code>orders.created_at</code> (hour ≥ 20). Create it?
+</div>
+<div class="row" style="justify-content:space-between">
+<span class="pill pill-good sm"><svg class="ic s13"><use href="#i-check-circle"/></svg>Created</span>
+<span class="muted">added to the trait catalog as <b>order hour</b></span>
+</div>
+<div class="row" style="gap:6px;flex-wrap:wrap">
+<span class="lbl">Re-interpreted</span>
+<span class="chip on">order hour ≥ 20</span>
+<span class="chip on">day of week is weekday</span>
+<span class="chip on">store is Corona</span>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--badSoft);color:var(--bad)"><svg class="ic"><use href="#i-x"/></svg></span><span class="ttl">No data source for this</span></div>
+<div class="cbody">
+<div class="field mono" style="height:auto;min-height:40px;align-items:flex-start;padding:9px 12px">"customers who own a dog"</div>
+<div class="empty err" style="padding:18px 10px 4px">
+<span class="plate"><svg class="ic"><use href="#i-alert"/></svg></span>
+<div class="t">No data source for this</div>
+<div class="b">Ask a developer to add a field, or collect it with a questionnaire — the box won't invent a filter that isn't there.</div>
+<span class="btn btn-secondary btn-xs" style="margin-top:2px"><svg class="ic s13"><use href="#i-message"/></svg>Build a questionnaire</span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="caphead"><h3>Both paths land here</h3><span class="cs">The Raw Garden win-back prompt, fully interpreted — the same chip tray either path fills in, with a live number on every line and "why this number" on hover. demo</span></div>
+<div class="card">
+<div class="tray-head">
+<div class="tray-row"><span class="lbl">Who</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-users"/></svg>brand affinity is Raw Garden</span>
+<span class="pill pill-dark sm">AND</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-users"/></svg>days since last order ≥ 45</span>
+</div>
+<div class="row" style="gap:8px" title="1,204 customers currently match both Who conditions, recomputed live"><span class="muted">matches</span><span class="num" style="font-size:16px">1,204</span><span class="muted">customers live</span></div>
+</div>
+<div class="tray-body">
+<div class="tray-row"><span class="lbl" style="min-width:72px">What</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-package"/></svg>brand is Raw Garden</span>
+<span class="pill pill-dark sm">AND</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-package"/></svg>category is Concentrates</span>
+<span class="muted" style="margin-left:auto" title="SKUs in the Raw Garden catalog tagged Concentrates, all stores">3,412 products matched</span>
+</div>
+<div class="tray-row"><span class="lbl" style="min-width:72px">Reward</span>
+<span class="chip accent"><svg class="ic s13"><use href="#i-gift"/></svg>20% off matching items</span>
+</div>
+<div class="tray-row"><span class="lbl" style="min-width:72px">Where</span>
+<span class="chip">All stores</span>
+<span class="chip on">Delivery only</span>
+</div>
+<div class="tray-row"><span class="lbl" style="min-width:72px">When</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-calendar"/></svg>Fri 13 Sep – Sun 15 Sep</span>
+<span class="chip on">once per customer</span>
+</div>
+<div class="tray-row"><span class="lbl" style="min-width:72px">Guardrails</span>
+<span class="chip">stacking: no</span>
+<span class="chip">budget cap: none set</span>
+</div>
+<div class="row" style="gap:12px;flex-wrap:wrap;border-top:1px solid var(--hairline);padding-top:11px;margin-top:2px">
+<div class="st accent" style="flex:1;min-width:150px" title="28% of the 1,204 matched, based on this audience's response rate on the last two win-back sends"><div class="lbl">Est. redemptions</div><div class="v">~340</div><div class="s">why this number ↑</div></div>
+<div class="st" style="flex:1;min-width:150px" title="Estimated redemptions × 20% off an average Raw Garden concentrate ticket of $55"><div class="lbl">Est. cost</div><div class="v">$4,760</div><div class="s">why this number ↑</div></div>
+</div>
+<div class="row" style="justify-content:flex-end;gap:8px;margin-top:2px"><span class="btn btn-secondary">Clear tray</span><span class="btn btn-accent"><svg class="ic s13"><use href="#i-check-circle"/></svg>Save rule</span></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Refine, and see every version</h3><span class="cs">Nothing above is a black box — refine it in words, and the version list keeps every prompt paired with the rule it produced. demo</span></div>
+<div class="grid2">
+<div class="card pad">
+<div class="lbl" style="margin-bottom:8px">Refine</div>
+<div class="field mono" style="height:auto;min-height:40px;align-items:flex-start;padding:9px 12px"><span class="ph">"make it in-store too" · "exclude the Clearance list" · "cap it at $5,000"</span></div>
+<div class="row" style="margin-top:8px"><span class="btn btn-accent btn-sm"><svg class="ic s13"><use href="#i-lightning"/></svg>Apply refinement</span><span class="muted">Re-runs the interpretation above — never edits the rule JSON directly.</span></div>
+</div>
+<div class="card pad">
+<div class="lbl" style="margin-bottom:8px">Versions</div>
+<div class="tl">
+<div class="tl-ev"><span class="tl-dot good"></span><div class="tl-body"><div class="tl-action">v1 · original prompt</div><div class="tl-meta">Dana Cho · today 09:02</div><div class="tl-reason">"Customers who usually buy Raw Garden but haven't ordered in 45 days get 20% off Raw Garden concentrates, delivery only, this Friday to Sunday, once each."</div></div></div>
+<div class="tl-ev"><span class="tl-dot info"></span><div class="tl-body"><div class="tl-action">v2 · refined</div><div class="tl-meta">Dana Cho · today 09:11</div><div class="tl-reason">Refine: "cap it at $5,000" — added a budget cap guardrail; 1,204 customers unchanged, est. cost now capped rather than open-ended.</div></div></div>
+<div class="tl-ev"><span class="tl-dot"></span><div class="tl-body"><div class="tl-action">v3 · current, unsaved</div><div class="tl-meta">draft</div><div class="tl-reason">Matches the tray above.</div></div></div>
+</div>
+</div>
+</div>
+
+<div class="devnote warn">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Dev call-out — smart prompt</div>
+The prompt box compiles to the same rule JSON as the builders; the model only proposes, the catalog validates, the engine evaluates. Production must add: <code>audience</code>, <code>product_list</code>, <code>store</code>, <code>channel</code> attributes to the promotion engine (the same gap tab 8 already flags for the hand-built tray below); a derived-parameter definition table (name, source field, expression, type) read by the trait catalog; a prompt + interpretation audit stored on the promotion.
+</div>
+<div class="built"><b>Built from:</b> the same <code>field</code>, <code>chip</code>, and <code>tray-row</code> primitives as "Any field, in place" below — a prompt and a handful of picked examples both terminate in the identical Who/What/Reward/Where/When/Guardrails vocabulary, never a separate rule language. Confidence and "what I ignored" reuse <code>fhint</code>; the no-data-source state reuses the <code>empty.err</code> pattern already defined for error states in this file; the version list reuses the unused <code>.tl</code> timeline primitive already in this stylesheet rather than adding a new one.</div>
+
+<div class="caphead"><h3>Any field, in place</h3><span class="cs">Hover a field on either record below for its "Use as condition" action — same affordance, same wording, whether the field belongs to a customer or a product. demo</span></div>
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--accentSoft);color:var(--accentText)"><svg class="ic"><use href="#i-users"/></svg></span><span class="ttl">Reggie Watts · C-1042</span><span class="pill pill-accent sm">Gold</span></div>
+<div class="cbody">
+<div class="kv condrow"><span class="k">Favorite store</span><span class="v">Corona</span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: favorite store is Corona</span></div>
+<div class="kv condrow"><span class="k">Audiences</span><span class="v"><span class="chip accent">Lapsed VIPs</span></span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: is in audience "Lapsed VIPs"</span></div>
+<div class="kv condrow"><span class="k">Tier</span><span class="v">Gold</span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: tier is Gold</span></div>
+<div class="kv condrow"><span class="k">SMS consent</span><span class="v"><span class="pill pill-good sm"><span class="dot"></span>Granted</span></span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: SMS consent granted</span></div>
+<div class="kv condrow"><span class="k">Last order</span><span class="v mono">52 days ago</span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: last order 45+ days ago</span></div>
+</div>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate" style="background:var(--surface3)"><svg class="ic"><use href="#i-package"/></svg></span><span class="ttl">Raw Garden · Live Resin Sauce All-In-One</span><span class="pill pill-neutral sm">SKU RG-LRS-1G</span></div>
+<div class="cbody">
+<div class="kv condrow"><span class="k">Brand</span><span class="v">Raw Garden</span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: brand is Raw Garden</span></div>
+<div class="kv condrow"><span class="k">Category</span><span class="v">Concentrates</span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: category is Concentrates</span></div>
+<div class="kv condrow"><span class="k">Price</span><span class="v mono">$55.00</span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: price ≥ $55.00</span></div>
+<div class="kv condrow"><span class="k">Tags</span><span class="v"><span class="chip">All-In-One</span> <span class="chip">Live Resin</span></span><span class="cond-hover chip accent"><svg class="ic s13"><use href="#i-target"/></svg>Use as condition: tagged "Live Resin"</span></div>
+<div class="kv condrow"><span class="k">Exclude from…</span><span class="v muted" style="font-size:11.5px">add this SKU to a saved product list</span><span class="cond-hover chip" style="background:var(--badSoft);color:var(--bad);border-color:var(--bad)"><svg class="ic s13"><use href="#i-x"/></svg>Add to "Clearance exclusions"</span></div>
+</div>
+</div>
+</div>
+<div class="fhint">Every "Use as condition" chip above is worded identically to how a marketer would say the rule out loud — there's no separate query language rendered anywhere on either record.</div>
+
+<div class="caphead"><h3>Rule tray</h3><span class="cs">Picked conditions accumulate here, joined by AND/OR, with a live count and a "Then…" action — pinned to the bottom of the screen so it's still there after you've moved on to the next record. demo</span></div>
+<div class="tray">
+<div class="tray-head">
+<div class="tray-row"><span class="lbl">Conditions</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-users"/></svg>favorite store is Corona</span>
+<span class="pill pill-dark sm">AND</span>
+<span class="chip on"><svg class="ic s13"><use href="#i-target"/></svg>is in audience "Lapsed VIPs"</span>
+<span class="btn btn-ghost btn-xs">+ Add condition</span>
+</div>
+<div class="row" style="gap:8px"><span class="muted">matches</span><span class="num" style="font-size:16px">640</span><span class="muted">customers live</span></div>
+</div>
+<div class="tray-body">
+<div class="tray-row">
+<span class="flbl" style="margin:0">Then…</span>
+<div class="segctl"><span class="on"><svg class="ic s13"><use href="#i-gift"/></svg>Reward</span><span>% off</span><span>Points multiplier</span><span>Free product</span></div>
+<div class="field mono" style="width:220px;min-height:34px">Welcome back $10</div>
+</div>
+<div class="tray-row">
+<span class="flbl" style="margin:0">Scope</span>
+<div class="segctl"><span class="on">All stores</span><span>Corona only</span></div>
+<div class="segctl"><span>In-store</span><span class="on">Delivery</span></div>
+<span class="btn btn-ghost btn-xs"><svg class="ic s13"><use href="#i-package"/></svg>Excluding list…</span>
+</div>
+<div class="row" style="justify-content:flex-end;gap:8px"><span class="btn btn-secondary">Clear tray</span><span class="btn btn-accent"><svg class="ic s13"><use href="#i-check-circle"/></svg>Save rule</span></div>
+</div>
+</div>
+
+<div class="caphead"><h3>Two rules, built this way</h3><span class="cs">Both assembled with nothing but "Use as condition" clicks and the tray above — no code, no ticket to engineering. demo</span></div>
+<table class="dt">
+<thead><tr><th>If</th><th>Then</th><th>Scope</th><th>Status</th></tr></thead>
+<tbody>
+<tr class="sel"><td><b>is in audience</b> "Lapsed VIPs"</td><td>reward <b>Welcome back $10</b></td><td>Delivery only</td><td><span class="pill pill-good sm"><span class="dot"></span>Live</span></td></tr>
+<tr><td><b>brand</b> is Raw Garden <span class="pill pill-neutral sm">AND</span> <b>category</b> is Concentrates</td><td><b>30% off</b> those items</td><td>All stores · in-store + delivery · excluding list <b>"Clearance exclusions"</b> (12)</td><td><span class="pill pill-good sm"><span class="dot"></span>Live</span></td></tr>
+</tbody>
+</table>
+
+<div class="caphead"><h3>Saved lists</h3><span class="cs">A product list and a customer list are built the same way as a rule condition: pick items, save the list, then reference it from any rule's "in…" or "excluding…" clause. demo</span></div>
+<div class="grid2">
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-package"/></svg></span><span class="ttl">Product lists</span></div>
+<table class="dt" style="border:0;border-radius:0">
+<thead><tr><th>List</th><th>Items</th><th>Used in</th></tr></thead>
+<tbody>
+<tr class="sel"><td><b>Clearance exclusions</b></td><td class="mono">12</td><td>1 rule — Raw Garden Concentrates 30% off</td></tr>
+<tr><td><b>Winter drop SKUs</b></td><td class="mono">34</td><td>0 · unused</td></tr>
+<tr><td><b>House brand concentrates</b></td><td class="mono">21</td><td>1 rule (draft)</td></tr>
+</tbody>
+</table>
+</div>
+<div class="card">
+<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-users"/></svg></span><span class="ttl">Customer lists</span></div>
+<table class="dt" style="border:0;border-radius:0">
+<thead><tr><th>List / audience</th><th>Size</th><th>Used in</th></tr></thead>
+<tbody>
+<tr class="sel"><td><b>Lapsed VIPs</b></td><td class="mono">640</td><td>1 rule, 2 journeys</td></tr>
+<tr><td><b>Staff test accounts</b></td><td class="mono">6</td><td>excluded from all rules</td></tr>
+<tr><td><b>Corona regulars</b></td><td class="mono">1,204</td><td>0 rules · unused</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="devnote warn">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>What production has to expose</div>
+Every "Use as condition" action above only works if the field it's attached to is already a rule attribute the promotion engine understands. Concretely: <code>audience</code>, <code>product_list</code>, <code>store</code>, and <code>channel</code> all need to become first-class attributes on the production promotion engine, the same way <code>brand</code>, <code>category</code>, and <code>price</code> already are — "in audience Lapsed VIPs" and "excluding list Clearance exclusions" aren't new rule types, they're the existing cart/product/user rule types reading one more attribute each. Lists themselves are data, not code: a product list and a customer list are just a saved set of IDs the engine joins against, so adding a new list never touches the rule language.
+</div>
+<div class="built"><b>Built from:</b> the same <code>kv</code> row used for every Identity/Consent field elsewhere in this file, with one modifier class (<code>condrow</code>) adding a hover-revealed action — the affordance is a CSS state on an existing primitive, not a new field component. The tray reuses <code>chip</code>, <code>segctl</code> and <code>field</code> exactly as the Audiences (tab 3) and Loyalty (tab 6) rule surfaces already do, pinned with the same sticky pattern as <code>.doc-head</code> at the top of the page.</div>
+</div>
+</div>
+
+<div class="tabpanel" id="tab-dev">
+<div class="intro">
+<div class="card">
+<div class="eyebrow">Dev call-outs — what production must wire, named once</div>
+<h2>Every number in this mockup is demo data. This tab is the honest list of what has to be real before any of the previous six tabs can be.</h2>
+<p>Concept C's "one customer record" idea only holds if every surface actually reads and writes the same backend row. These six items are the seams where that could quietly stop being true — each is called out again inline on the tab where it bites hardest, and repeated here as the single list a backend engineer can work from without reading the rest of the file.</p>
+</div>
+</div>
+<div class="stage">
+<div class="grid2">
+<div class="card pad">
+<div class="row" style="gap:9px"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-database"/></svg></span><b style="font-size:13.5px">customer_id on the sale</b></div>
+<div class="muted" style="margin-top:8px">Every POS sale row must carry a resolved <code>customer_id</code> before earn rules, tier multipliers, or reward redemption can post to the ledger. Today a sale can complete with no customer attached (guest checkout) — that path needs an explicit "skip loyalty" state rather than a null that silently breaks the tender-step math shown in tab 6.</div>
+</div>
+<div class="card pad">
+<div class="row" style="gap:9px"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-coins"/></svg></span><b style="font-size:13.5px">The points ledger route</b></div>
+<div class="muted" style="margin-top:8px">One ledger, append-only, per owner rule 1 — every earn, redeem, expiry, and manual adjustment is a row, not a mutated balance column. The $42,180 liability figure on Home (tab 1) is a SUM over this ledger, not a cached total, so it can't drift from what tab 6's tender step actually posts.</div>
+</div>
+<div class="card pad">
+<div class="row" style="gap:9px"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-shield"/></svg></span><b style="font-size:13.5px">Consent write</b></div>
+<div class="muted" style="margin-top:8px">SMS and email consent each need a source and a timestamp written atomically with the grant — <code>console.manual</code>, <code>landing.optin</code>, <code>register.checkin</code>, etc. — because tab 2's Consent card and the compose-time policy check in tab 4 both read this same write, and a consent flag with no source is not auditable if a customer disputes a message.</div>
+</div>
+<div class="card pad">
+<div class="row" style="gap:9px"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-link"/></svg></span><b style="font-size:13.5px">Short-link redirect</b></div>
+<div class="muted" style="margin-top:8px"><code>hyp.wf/*</code> needs a redirect service that resolves per-recipient (so click tracking can tie back to one customer row) and renders the correct landing page version including its own gate-toggle state, shown in tab 4's SMS composer. A broken short link is the only thing an SMS-only message can fail on, so this is the single highest-leverage integration point in the whole system.</div>
+</div>
+<div class="card pad">
+<div class="row" style="gap:9px"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-globe"/></svg></span><b style="font-size:13.5px">Landing page render</b></div>
+<div class="muted" style="margin-top:8px">The block builder in tab 4 needs a real renderer that respects the per-page 21+/state gate toggle and serves merge tags server-side (a customer's real first name, points balance, tier) — the storefront itself stays gate-free per rule D-024a; only pages built here can carry a gate.</div>
+</div>
+<div class="card pad">
+<div class="row" style="gap:9px"><span class="plate" style="background:var(--infoSoft);color:var(--info)"><svg class="ic"><use href="#i-target"/></svg></span><b style="font-size:13.5px">Promotion-engine rule compatibility</b></div>
+<div class="muted" style="margin-top:8px">Tab 6's earn rules and tab 3's audience sentences both need to compile to the production promotion engine's existing rule types — cart · product · user · bogo · time · payment, plus store and channel scope — per owner rule 7. A reward is a promotion whose action is points or a discount; if the loyalty rule builder speaks a different rule language than the Promotions Suite, this concept's "one sentence editor" claim breaks the first time someone builds a rule the engine can't run.</div>
+</div>
+</div>
+
+<div class="caphead"><h3>Where each call-out surfaces inline</h3><span class="cs">Cross-reference — every item above is also flagged on the tab where it matters most.</span></div>
+<table class="dt">
+<thead><tr><th>Call-out</th><th>Also flagged on</th></tr></thead>
+<tbody>
+<tr><td>customer_id on the sale</td><td>Tab 6 · Loyalty (POS) — register-side read</td></tr>
+<tr><td>Points ledger route</td><td>Tab 1 · Home — points liability tile · Tab 2 · Customers — Wallet card</td></tr>
+<tr><td>Consent write</td><td>Tab 2 · Customers — Consent card · Tab 4 · Messages — policy check</td></tr>
+<tr><td>Short-link redirect</td><td>Tab 4 · Messages — SMS composer</td></tr>
+<tr><td>Landing page render</td><td>Tab 4 · Messages — block builder, gate toggle</td></tr>
+<tr><td>Promotion-engine rule compatibility</td><td>Tab 3 · Audiences — sentence builder · Tab 6 · Loyalty — earn rules</td></tr>
+</tbody>
+</table>
+
+<div class="devnote warn">
+<div class="dn-head"><svg class="ic s13"><use href="#i-alert"/></svg>Register screen — restated once more</div>
+<code>pos/screen-register.jsx</code> is never modified in code (owner rule 6). Everything this concept shows at the register — the member panel, the tender earn/redeem line — arrives through the POS Home card, a new member-lookup overlay, and the payment modal. None of it is a change to the register file itself.
+</div>
+<div class="devnote good" style="margin-top:12px">
+<div class="dn-head"><svg class="ic s13"><use href="#i-check-circle"/></svg>What's already true, by construction</div>
+Alpine IQ is never referenced anywhere in this file, per owner rule 1. Every number carries a <code>demo</code> label or sits in a card explicitly marked illustrative. No badge anywhere claims "live." The record component is one function, called twice — see <code>window.renderMemberRecord</code> at the bottom of the page source.
+</div>
+<div class="built"><b>Built from:</b> the same <code>devnote</code> primitive used inline throughout tabs 1–6, collected here as the one list a backend engineer reads first — matching the brief's instruction that dev call-outs be "a small fixed panel or footnotes," kept as footnotes-at-the-end rather than a floating panel that would cover content at this page's information density.</div>
+</div>
+</div>
+
+
+<script>
+// ── The member record component — ONE template, injected into every slot ──
+// Concept C's central claim is that the CRM record and the POS member-lookup
+// panel are the SAME component. This function is the proof: both slots call
+// it and get byte-identical markup back, not two hand-written look-alikes.
+window.renderMemberRecord = function (context) {
+  var compact = context === 'pos';
+  return ''
+  + '<div class="rec-hd">'
+  +   '<div class="av xl" style="background:var(--accent);color:var(--accentInk);border-color:var(--accentBorder)">RW</div>'
+  +   '<div style="flex:1 1 260px;min-width:0">'
+  +     '<div class="row" style="gap:10px">'
+  +       '<span style="font-size:22px;font-weight:800;letter-spacing:-.02em;color:var(--ink)">Reggie Watts</span>'
+  +       '<span class="pill pill-accent"><svg class="ic s13"><use href="#i-crown"/></svg>Gold</span>'
+  +       '<span class="pill pill-good sm"><svg class="ic s13"><use href="#i-shield"/></svg>ID verified</span>'
+  +     '</div>'
+  +     '<div class="meta" style="margin-top:6px">C-1042 · member 2 yr · since Jun 12, 2024 · favourite store Rancho Cucamonga</div>'
+  +     '<div class="rec-tags">'
+  +       '<span class="rec-tag" style="background:var(--accentSoft);color:var(--accentText)">VIP</span>'
+  +       '<span class="rec-tag" style="background:var(--infoSoft);color:var(--info)">@ Home regular</span>'
+  +       '<span class="rec-tag" style="background:var(--goodSoft);color:var(--good)">High AOV</span>'
+  +     '</div>'
+  +   '</div>'
+  +   '<div class="row" style="gap:8px;flex:0 0 auto">'
+  +     '<span class="btn btn-secondary btn-sm"><svg class="ic s13"><use href="#i-phone"/></svg>Call</span>'
+  +     '<span class="btn btn-secondary btn-sm"><svg class="ic s13"><use href="#i-message"/></svg>Message</span>'
+  +   '</div>'
+  + '</div>'
+  + '<div class="rec-kpis">'
+  +   '<div class="rec-kpi"><div class="l">Points balance</div><div class="v">2,840</div><div class="s">660 to Platinum</div></div>'
+  +   '<div class="rec-kpi"><div class="l">Points expire</div><div class="v mono" style="font-size:13.5px">Dec 31, 2026</div><div class="s">rolling 18 mo from earn</div></div>'
+  +   '<div class="rec-kpi"><div class="l">Lifetime value</div><div class="v">$8,240</div><div class="s">34 orders</div></div>'
+  +   '<div class="rec-kpi"><div class="l">Store credit</div><div class="v">$42.50</div><div class="s">wallet balance</div></div>'
+  + '</div>'
+  + '<div class="rec-grid">'
+  +   '<div class="card">'
+  +     '<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-users"/></svg></span><span class="ttl">Identity</span></div>'
+  +     '<div class="cbody">'
+  +       '<div class="kv"><span class="k">Phone</span><span class="v mono">(909) 555-0287</span></div>'
+  +       '<div class="kv"><span class="k">Email</span><span class="v">reggie.w@gmail.com</span></div>'
+  +       '<div class="kv"><span class="k">POS customer id</span><span class="v mono">blz_cust_88214</span></div>'
+  +       '<div class="kv"><span class="k">Web / storefront id</span><span class="v mono">web_9c41a7</span></div>'
+  +       '<div class="kv"><span class="k">Wallet pass</span><span class="v"><span class="pill pill-good sm"><span class="dot"></span>Apple Wallet linked</span></span></div>'
+  +     '</div>'
+  +   '</div>'
+  +   '<div class="card">'
+  +     '<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-shield"/></svg></span><span class="ttl">Consent</span></div>'
+  +     '<div class="cbody">'
+  +       '<div class="kv"><span class="k">SMS marketing</span><span class="v"><span class="pill pill-good sm"><span class="dot"></span>Granted</span></span></div>'
+  +       '<div class="fhint" style="margin-top:-6px;margin-bottom:8px">console.manual · Jun 12, 2024 4:41p · Manisha Saini</div>'
+  +       '<div class="kv"><span class="k">Email marketing</span><span class="v"><span class="pill pill-good sm"><span class="dot"></span>Granted</span></span></div>'
+  +       '<div class="fhint" style="margin-top:-6px;margin-bottom:8px">landing.optin · Jun 14, 2024 9:02a</div>'
+  +       '<div class="kv"><span class="k">21+ / state gate</span><span class="v"><span class="pill pill-good sm"><span class="dot"></span>Passed</span></span></div>'
+  +     '</div>'
+  +   '</div>'
+  + '</div>'
+  + '<div class="rec-grid">'
+  +   '<div class="card">'
+  +     '<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-package"/></svg></span><span class="ttl">Recent orders</span><span class="pill pill-neutral sm">34 total</span></div>'
+  +     '<div class="rec-list cbody">'
+  +       '<div class="rec-item"><span class="meta" style="width:60px">Jul 2</span><span style="flex:1;font-size:12.5px">H-8841 · Delivery · 4 items</span><span class="mono" style="font-weight:700">$212.00</span></div>'
+  +       '<div class="rec-item"><span class="meta" style="width:60px">Jun 24</span><span style="flex:1;font-size:12.5px">H-8720 · Pickup · 2 items</span><span class="mono" style="font-weight:700">$96.00</span></div>'
+  +       '<div class="rec-item"><span class="meta" style="width:60px">Jun 12</span><span style="flex:1;font-size:12.5px">A-2010 · @ Home · 6 items</span><span class="mono" style="font-weight:700">$388.00</span></div>'
+  +     '</div>'
+  +   '</div>'
+  +   '<div class="card">'
+  +     '<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-target"/></svg></span><span class="ttl">In these audiences</span></div>'
+  +     '<div class="cbody row" style="gap:7px">'
+  +       '<span class="chip accent">VIP · lifetime 3,000+ pts</span>'
+  +       '<span class="chip">Rancho Cucamonga regulars</span>'
+  +       '<span class="chip">Concentrate buyers</span>'
+  +     '</div>'
+  +     '<div class="cardhead" style="border-top:1px solid var(--hairline)"><span class="plate"><svg class="ic"><use href="#i-message"/></svg></span><span class="ttl">Messages received</span></div>'
+  +     '<div class="rec-list cbody">'
+  +       '<div class="rec-item"><span class="pill pill-good sm" style="width:52px;justify-content:center">SMS</span><span style="flex:1;font-size:12.5px">Rosin restock alert</span><span class="meta">opened · Jul 1</span></div>'
+  +       '<div class="rec-item"><span class="pill pill-info sm" style="width:52px;justify-content:center">Email</span><span style="flex:1;font-size:12.5px">Gold tier welcome</span><span class="meta">clicked · Mar 3</span></div>'
+  +     '</div>'
+  +   '</div>'
+  + '</div>'
+  + '<div class="card" style="margin-top:14px">'
+  +   '<div class="cardhead"><span class="plate"><svg class="ic"><use href="#i-gift"/></svg></span><span class="ttl">Referral</span></div>'
+  +   '<div class="cbody row" style="justify-content:space-between">'
+  +     '<span style="font-size:12.5px;color:var(--ink2)">Code <span class="mono" style="font-weight:700">REGGIE25</span> · 2 friends joined · $50.00 in referral credit earned</span>'
+  +     (compact ? '' : '<span class="btn btn-secondary btn-xs">View referral chain</span>')
+  +   '</div>'
+  + '</div>';
+};
+</script>
+</body>
+</html>
