@@ -173,3 +173,20 @@ Open after this push (documented in the r5/r6 addenda): the importer writes Didi
 honest 409; person ids still appear in the AMBIGUOUS warning and `person.resolved` audit detail;
 the engine surface ranker still prefers session 9's 51-line nav-screen frame (now yields nothing
 instead of a wrong name); `_read_dob` has no shape guard for a non-dict barcode.
+
+## Second production push — 2026-09-09 night
+Live on Render for both services after the first tester round. Shipped: Standard plan for the web app (Starter
+was OOM-killed on every capture), multipart parser one-copy + 36 MB body cap, console PIN token on media fetches,
+no client-side abandon beacon, "Get ready" checklist before the camera, **passports** (document choice on Get
+ready, MRZ TD1/TD2/TD3 reader with check digits, identity from a valid MRZ, `mrz_vs_ocr`, passport page layout),
+**middle name** on every surface, **proof image** (selfie over ID front, photos only, media kind `proof`,
+`GET /api/idv/sessions/{id}/proof`, shown in the POS check-in seam), medical flow: MED_18_REC card replaces the
+stale MED_18_CARD banner, doctor's-recommendation card + tile on the session, `offer_medical_path` switch,
+`POST /capture/{token}/skip` so "I don't have one" counts an attempt, seam can pick a MED_18_REC workflow;
+"ID only — no selfie" preset (LIVENESS off removes the selfie step). Counts: rules 420, store 80, api 201,
+import 78, med18 replay 4/4, engine 428 (+2 skipped).
+
+Open: real-passport OCR-B unproven (synthetic only); non-US passport captions; `BARCODE_OCR_MISMATCH` literal
+reused for an invalid MRZ; Render engine image lacks the optional age model; FACE_MATCH alone does not gate the
+selfie step (LIVENESS does); `face_search_min` has no control on the Workflows screen; every push to wm-demo
+main redeploys production mid-capture.
