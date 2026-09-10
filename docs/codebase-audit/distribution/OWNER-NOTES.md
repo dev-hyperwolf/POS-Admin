@@ -266,3 +266,27 @@ and on the pick slips** for the person doing the refill. (No THC/date band; the 
 warehouse has many racks that can be labelled, given QR codes, etc. Owner: "design the perfect
 solution for it… keep this simple, smart, intuitive and automated." Swarm dispatched: location
 research + four concepts (`explorations/Batch Location - Concept A..D.html`).
+
+## 2026-09-10 · Blaze tour (read-only, 20 min; no customer data recorded)
+
+- **Blaze already has the inventory surfaces we are designing**: Cycle Counts (columns: date,
+  inventory/location, type, blind, force-scan, employee — **no counts recorded**), Inventory
+  Reconciliation, Inventory Transfers, Print Labels, Metrc Batches, Import Batches.
+- **Metrc Batches** = the Metrc package per batch: Label (the Metrc tag), Quantity, Measure,
+  Product, Category, **Packaged Date**, Testing State, Testing State Date. So package date and
+  the Metrc tag are on the batch; **THC result is not a column here** (may be on the product's
+  batch detail; unconfirmed) and **there is no storage location field anywhere**.
+- **Transactions**: every sale carries a **Metrc ID** — Blaze reports each sale to Metrc for the
+  Hyperwolf licence (C12-0000103). Columns: Time, Trans No., **Queue** (e.g. Delivery), **Terminal**
+  (one per driver — this is the `sellerTerminalId` → subregion map the refill uses), Type (Sale),
+  Employee, Member, Total, Metrc ID. Today: 68 sales/refunds, **91 adjustments/transfers**,
+  6 cancellations. ASAP vs scheduled is not a visible column here; it is the `orderTags` field the
+  refill filters on via the API (`common-controllers.js:125`).
+- **Compliance** is a top-level menu. Leaving Blaze means replacing: per-sale Metrc reporting,
+  Metrc package/batch sync, transfers between licensed locations, delivery manifests.
+- Products list: name, category, brand, price, stock, vendor, flower type, product type, status.
+  ~30 categories including "test data" and "2x Points!!" used as categories.
+
+**Consequence.** The engine's batch record needs Metrc tag + packaged date (from Blaze now, from
+our POS later), THC from the COA/test result (source to confirm), and storage location from our
+own receiving flow, since no system holds it today.
