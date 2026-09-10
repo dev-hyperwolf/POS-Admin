@@ -97,14 +97,18 @@
   // ── medical_rec (MED_18_REC, 2026-09-09 gap C) — MED_REC_* in plain words,
   // per idv_rules.py's _medical_block ordering (:2454-2463) and GUIDANCE
   // (:339-345, 431-448). Analyst-facing, not the guest-facing GUIDANCE copy.
+  // Addendum 4, 2026-09-10: the OUT_OF_STATE/INVALID_LICENSE sentences no
+  // longer name California by name — `_medical_block` compares against the
+  // workflow's own configured `jurisdiction` now, which is not always CA.
   const MED_REC_REASON_TEXT = {
     MED_REC_MISSING: 'No recommendation has been submitted.',
     MED_REC_UNREADABLE: 'The recommendation could not be read well enough to confirm — too few core fields, or OCR confidence below the floor.',
-    MED_REC_OUT_OF_STATE: 'The physician licence state is not California.',
-    MED_REC_INVALID_LICENSE: "The physician licence number doesn't match a valid California pattern.",
+    MED_REC_OUT_OF_STATE: "The physician licence state doesn't match the workflow's configured jurisdiction.",
+    MED_REC_INVALID_LICENSE: "The physician licence number doesn't match the configured jurisdiction's pattern.",
     MED_REC_NAME_MISMATCH: "The patient name on the recommendation doesn't match the ID.",
     MED_REC_DOB_MISMATCH: "The patient date of birth on the recommendation doesn't match the ID.",
     MED_REC_EXPIRED: 'The recommendation is expired, or dated in the future.',
+    MED_REC_JURISDICTION_UNCONFIGURED: "No medical-proof pattern is configured for the workflow's jurisdiction — declined rather than approved on an unverified rule.",
   };
   const MED_REC_STATUS_TONE = { Approved: 'good', Declined: 'bad', 'Not Finished': 'warn' };
   const REVIEW_ACTION_LABEL = { approve: 'Approved', decline: 'Declined', request_resubmission: 'Requested resubmission', note: 'Added a note', assign: 'Assigned', escalate: 'Escalated', override_feature: 'Overrode a feature', edit_data: 'Edited data', merge_person: 'Merged people', add_to_list: 'Added to a list' };
@@ -494,6 +498,12 @@
     // `decision.medical_recommendations` only exists on the payload at all
     // when a medical_rec image was uploaded (idv-engine app.py:882-886 never
     // sends an empty array), so `medRec` here doubles as "was one submitted".
+    // Addendum 4, 2026-09-10: this used to read an EMPTY array on every
+    // session — `idv_decisions` had no column for this node at all, unlike
+    // MRZ — because the persistence bug meant `decision.medical_recommendations`
+    // never actually reached this payload. Fixed backend-side
+    // (`idv_store.insert_decision` now stores it, `idv_api.decision_out`
+    // returns it); this line did not have to change to pick that up.
     const medRec = decision && decision.medical_recommendations && decision.medical_recommendations[0];
 
     // ── thresholds — fetched once per workflow version (gap #3 above) ──────
@@ -963,6 +973,8 @@
                       with " · " rather than doubling the row count. */}
                   <Kv label="Device" value={[sess.device_os, sess.device_browser].filter(Boolean).join(' · ') || null} mono />
                   <Kv label="Workflow" value={workflowLabel} mono />
+                  {/* Addendum 4, 2026-09-10: which state's medical-proof rule and out-of-state comparison this session ran under — pinned to the workflow VERSION this session was created on, same as `workflowLabel` above. */}
+                  <Kv label="Jurisdiction" value={sess.jurisdiction || '—'} mono />
                   <Kv label="Liveness attempts" value={sess.liveness_attempts} mono />
                   <Kv label="Resubmissions" value={sess.resubmissions} mono />
                   <Kv label="Created" value={fmt.date(sess.created_at)} mono />

@@ -3013,3 +3013,200 @@ backfill: `timing_json` is populated only going forward, at each session's own t
 already-Approved/Declined session from before this pass reads its timing live via `timing_for_session`
 (computed correctly, including `retake_s`/`retakes` with no `opened_at` at all — §B, `ST-87a`) rather
 than from a one-time migration that back-populates the cache column for every historical row.
+
+## Addendum — 2026-09-10 (r10): jurisdictions, and a persistence bug the PDF agent found
+
+Built to `mrz-contract.md`'s "Addendum 4" section (owner ruling, "expand outside California when the
+business does") plus a real defect this pass fixed while it was in the neighbourhood. An `idv-engine`
+agent built `idv-engine/pipeline/jurisdictions.py` and the engine-side `proof_type`/`jurisdiction` node
+fields in parallel and is not this pass's own work; everything below is `wmdemo/idv_jurisdictions.py`
+(new), `idv_rules.py`, `idv_store.py`, `idv_api.py`, the three `qa/idv_*_probe.py` files, and
+`POS-Admin/idv/screen-workflows.jsx` / `screen-session.jsx` / `screen-sessions.jsx`.
+
+### A. `wmdemo/idv_jurisdictions.py` — the mirror on this side
+
+One table, keyed by two-letter state code, same shape as the engine's:
+`{name, rec_age, med_age, medical_proof, physician_license_patterns, medical_card_patterns, notes}`.
+The 50 states + DC. Only `CA` is **configured** (a non-empty pattern list for its own `medical_proof`
+type) — copied byte for byte from what `idv_rules.MED_REC_LICENSE_PATTERNS` held before this table
+existed (`IDV-J07` asserts the two are still identical through `idv_rules.license_kind`). Every other
+entry is present (so `codes()` always answers "what jurisdictions exist" the same way) but
+**unconfigured**: empty pattern lists, `medical_proof: "state_medical_card"` as the honest DEFAULT
+assumption (most states issue a registry card, not a physician letter), and a `notes` sentence saying
+exactly that. `configured(code)` checks the pattern list that MATTERS for that state's own
+`medical_proof` — not a blanket "any pattern present" — which is the predicate that keeps a
+registry-card state's empty `physician_license_patterns` from reading as unconfigured once it does have
+a `medical_card_patterns` list. `normalise(value)` never raises (bare code, full name in any case, or
+garbage → falls back to `DEFAULT_JURISDICTION`, "CA") — the console validates on write instead (§D);
+this function's job is a pure workflow-config read that must never crash a decision.
+
+**THE ONE DOCUMENTED EXCEPTION to `idv_rules.py`'s "no imports from any other wmdemo module."** This
+module is equally pure — no I/O, no database, no clock, no network, just a table and some regex
+compilation — so `idv_rules.py` imports it (`from . import idv_jurisdictions as jur`) without
+compromising the property that rule actually protects (a rules module `qa/idv_rules_probe.py` can test
+without a server). The module docstring on both sides records this explicitly rather than silently
+breaking the stated invariant.
+
+### B. Everywhere California was hard-wired, now reading `cfg["jurisdiction"]`
+
+`idv_rules._CONFIG_DEFAULTS["jurisdiction"]` defaults to `idv_jurisdictions.DEFAULT_JURISDICTION`
+("CA"); `_cfg()` normalises whatever a workflow's stored config carries through `jur.normalise` on
+every read, so a garbled or absent value never reaches the rules as anything but a real table key.
+`_medical_block` (~24 sites, per the addendum's own estimate — the AAMVA barcode state-name table at
+`idv_rules.py`'s `_US_JURISDICTIONS`/similar is a DIFFERENT question, "what does this two-letter code
+mean on a barcode", and is untouched):
+
+  - **Step 0, new:** before a node is even read, `jur.configured(jurisdiction)` — an unconfigured
+    jurisdiction declines `MED_REC_JURISDICTION_UNCONFIGURED` immediately, no capture required, because
+    a state with no verified pattern can never pass step 2 however clean the photograph is. Asking the
+    guest to try anyway would spend a real attempt on a session that cannot Approve.
+  - **Step 1** (`license_state` match) compares against `jurisdiction`, not the old `MED_REC_STATE`
+    module constant.
+  - **Step 2** (`license_kind`) now takes an optional `jurisdiction` argument (defaults to
+    `DEFAULT_JURISDICTION`, so every caller written before this pass — including
+    `qa/idv_rules_probe.py`'s `LICENCE_CASES`, one argument, unchanged — keeps reading California's
+    patterns with no edit) and reads `idv_jurisdictions.credential_kind` instead of a hard-coded tuple.
+  - Guest-facing `GUIDANCE` text for `MED_REC_OUT_OF_STATE`/`MED_REC_INVALID_LICENSE`/`OUT_OF_STATE`
+    no longer names California specifically (that dict has no per-session argument — the one other
+    reader, `idv_pdf.compliance_pdf`, looks it up by bare reason code) — generalised to "the state we
+    operate in" / "the configured jurisdiction's pattern"; the DECLINE's own `explain` text, which does
+    have the session's `jurisdiction` in scope, still names the actual state.
+  - `MED_REC_JURISDICTION_UNCONFIGURED` joins `REASONS_DECLINE`; its `GUIDANCE` entry gives the
+    in-store path ("bring your physical ID and recommendation to any Hyperwolf store") the same way
+    every other hard medical decline already does — `_fallback_next_step` (unchanged) still resolves
+    that to `next_step: "in_store"` online, `"none"` at the register.
+
+Recreational (REC_21, not offered the medical path) sessions are completely unaffected: `_medical_scope`
+still gates on age alone, and an unconfigured jurisdiction is only ever read once `_medical_block`
+decides the session has something to do with the medical path at all — exactly the "rec sessions keep
+working in any state from the barcode DOB" the addendum asks for. `IDV-A73b`/`A73c` prove the
+unconfigured decline (no node needed, and a full node that would otherwise pass every other check does
+not save it); `IDV-A73d` proves a full state NAME in config normalises the same as a bare code.
+
+### C. The cross-service agreement probe
+
+`qa/idv_rules_probe.py`'s `IDV-J01`..`J09` load `idv-engine/pipeline/jurisdictions.py` **read-only**, by
+file path (`idv-engine` is a hyphenated directory name and cannot be a normal Python import — same
+`importlib.util.spec_from_file_location` trick this file already uses to read fixture JSON without a
+server, applied to Python source instead) and assert: the same 51 keys, the same configured set, the
+same `ENTRY_KEYS`, CA's `rec_age`/`med_age`/`medical_proof` and its two `physician_license_patterns`
+regex SOURCE STRINGS byte-identical, CA's own patterns still matching what
+`MED_REC_LICENSE_PATTERNS` held before this table existed, and every OTHER state's
+name/ages/configured-ness agreeing. This is the check the addendum's own promise — "adding a state
+later is filling in that state's entry in the two tables and nothing else" — depends on: if the two
+tables ever disagree about which states are configured, the engine could "Approve" a node these rules
+decline, a failure that would only be visible after a guest stood at a counter.
+
+### D. Workflow config: `jurisdiction`, validated on write, migrated forward
+
+`idv_store.DEFAULT_WORKFLOW_CONFIG["jurisdiction"] = idv_jurisdictions.DEFAULT_JURISDICTION` — explicit
+on a freshly-created workflow, the same convention every other config default in that dict already
+follows, rather than left to `_cfg`'s own default three modules away.
+`idv_store.migrate_workflow_jurisdiction(conn)` — idempotent BY CONTENT-STAMP
+(`jurisdiction_migrated: "2026-09-10"`), same shape as `migrate_challenge_scripts`/
+`calibrate_workflow_thresholds` before it, wired into `run_data_migrations` — gives every EXISTING
+workflow an explicit, normalised `jurisdiction` as a NEW VERSION (so the console's "workflow as this
+session pinned it" screen can show it for old sessions too). It changes no session's decision: `_cfg`
+already defaulted a missing key to the identical value at read time. Once a row carries the stamp, a
+later console edit to `jurisdiction` is left alone by the migration — it backfills absence once, it does
+not re-normalise on every request (`ST-88b`).
+
+`idv_api._normalised_workflow_config(cfg)` runs `jur.normalise` on `config.jurisdiction` on every
+`POST /workflows` and `PATCH /workflows/{id}` whose body actually carries the key — "validated against
+the table" happens at the write, not only defaulted at the read, so a console admin's own typo (a
+lower-case code, a full state name, an unrecognised string) is cleaned before it is stored rather than
+echoed back later as whatever they typed (`AP-164d`..`f`). A PATCH that omits `config` entirely is a
+no-op for this field (`AP-164g`) — leaving a workflow's config untouched must not force a value through
+the normaliser with nothing to normalise.
+
+`prepare_engine_job`'s job body carries `jurisdiction` as a top-level convenience field (normalised),
+the same relationship `document_type` already has to the session row it also echoes — the engine
+already receives the full value inside `workflow.config.jurisdiction` too, since that dict passes
+through whole.
+
+### E. The persistence bug (found by the PDF-review agent working the console in parallel)
+
+`idv_decisions` had a column for `id_verifications`/`liveness_checks`/`face_matches`/`face_searches`/
+`ip_analyses`/`age_estimations`/`questionnaire_responses` — every node array the engine's callback
+`decision` object carries **except** `medical_recommendations`, a sibling key of `id_verifications` on
+that same object. `insert_decision` simply never stored it, so `GET /api/idv/sessions/{id}` could not
+show the recommendation the engine actually read, and `POS-Admin/idv/screen-session.jsx`'s `medRec`
+constant — which has read `decision.medical_recommendations[0]` since the 2026-09-09 gap-C pass —
+always saw an empty array. The only place the node survived was the raw callback body
+`_engine_callback` has always logged onto `idv_session_events.payload`; the PDF route's
+`_latest_medical_rec` scanned that log backwards as a workaround, and the console screen simply had no
+data to read at all.
+
+**Fixed**: `idv_decisions.medical_recommendations TEXT`, added the same way `middle_name` was (in the
+`CREATE TABLE IF NOT EXISTS` for a fresh database, AND in `_ADDED_COLUMNS`/`_add_missing_columns` for
+an existing one — `ST-56b` proves the ALTER path on a database whose `idv_decisions` predates the
+column). `insert_decision` now reads `nodes.get("medical_recommendations")` — already present on its
+`nodes` argument, no new parameter needed, because `nodes` IS the callback's raw `decision` object —
+and stores it verbatim, denormalised nowhere (`ST-13b`/`ST-13c`). `idv_api.decision_out` returns it
+(defensively, `dict(d).get(...)` rather than `d[...]`, for a Row read before the ALTER ran); `_pdf_extras`
+/ `_latest_medical_rec` now takes the session's latest decision row and reads the column FIRST,
+falling back to the event-log scan only when the column is empty — the fallback is KEPT, not removed,
+for decision rows written before this fix (`AP-210f` proves it explicitly, by blanking the column on a
+real decision and confirming the PDF still finds the node). `screen-session.jsx`'s `medRec` line did
+not have to change at all to pick this up — it was already reading the right field on the right object,
+the object just never carried the data.
+
+### F. Console: `POS-Admin/idv/*`
+
+`screen-workflows.jsx`: a `<select>` (the 50 states + DC, `JURISDICTIONS`/`JURISDICTION_NAME` constants
+mirroring the two Python tables' keys and names) in the Age rule Card, one sentence on what it changes
+(the out-of-state comparison and the medical-proof rule; a REC_21 guest is unaffected), and a warning
+line naming the state when the selected jurisdiction has no configured medical-proof pattern —
+`JURISDICTION_CONFIGURED` is a literal `Set(['CA'])` here, not fetched, because a state's pattern
+landing is a code change on both Python sides already, not a runtime toggle this screen could read.
+`screen-sessions.jsx`: the Workflow column's list-row cell gains a small `jurisdiction` line under the
+name/version, and the CSV export gains a `jurisdiction` column. `screen-session.jsx`: a "Jurisdiction"
+row in Session facts (`sess.jurisdiction`, pinned to the session's own workflow version, same as every
+other fact in that card); `MED_REC_REASON_TEXT` gains `MED_REC_JURISDICTION_UNCONFIGURED` and the two
+California-specific sentences (`MED_REC_OUT_OF_STATE`/`MED_REC_INVALID_LICENSE`) are generalised to not
+name a state that may no longer be the workflow's configured one. The Doctor's recommendation card's
+`medRec` line needed no change — see §E.
+
+`idv_api.session_summary` (the list-row shape) and `_session_detail` (the override, pinned-version
+accuracy) both gain `jurisdiction`, same pattern the `workflow`/`timing` fields already use: the list
+row reads the CURRENT workflow's config (one extra `config` column on the same query that already reads
+`id, name` — no new query), the session detail overrides it with the PINNED version's own value
+(`AP-164b`/`c` prove the list-row approximation and the detail's pin separately — moving the live
+workflow to a different jurisdiction after a session was created leaves that session's own detail
+unmoved, the identical invariant `AP-163`/`AP-164` already proved for thresholds and features).
+
+### Probes: before → after
+
+`idv_rules_probe` 430 → 443 (+13: `IDV-A73b`/`A73c`/`A73d` the unconfigured-jurisdiction declines and
+the full-state-name normalisation, `IDV-J01`..`J09` the cross-service table-agreement probe against the
+engine's read-only file). `idv_api_probe` 227 → 236 (+9: `AP-164b`/`c` jurisdiction on the list row and
+the version pin, `AP-164d`..`g` write-side validation and the config-omitted no-op, `AP-210d`/`e` the
+persistence fix proved through the console read, `AP-210f` the event-log fallback proved by blanking
+the column on a real row). `idv_store_probe` 90 → 95 (+5: `ST-13b`/`c` `medical_recommendations`
+round-tripping through `insert_decision`/`get_decision`, `ST-56b` the ALTER path on a database whose
+`idv_decisions` predates the column, `ST-88`/`b` the jurisdiction migration's backfill and its
+idempotent-by-stamp behaviour on an already-migrated row). `idv_import_probe` unchanged at 78/78 — not
+touched this pass. `node --test test/global-collisions.test.mjs` unchanged at 17/17 (no new top-level
+name landed on a page that already declares it). All five run green, standalone, on this tree: 443/443,
+236/236, 95/95, 78/78, 17/17.
+
+**`qa/battery.py` was not touched by this pass**, per this pass's own scope — its `EXPECTED_CHECKS`
+already carried stale numbers before this pass started (`"idv_rules_probe": 427`, `"idv_store_probe":
+80`, `"idv_api_probe": 204` — r9's own note said these needed bumping to 430/90/210 and that bump never
+landed), so the honest instruction for whoever next touches that file is: read the CURRENT live numbers
+off each probe's own `main()` (not off this addendum, which will itself go stale) before writing new
+ones in, and update `TOTAL_CHECK_FLOOR` by the sum of every drift since the register was last true, not
+only this pass's own +27.
+
+### Not done by this pass, and not silently assumed
+
+The engine-side OCR reader's `state_medical_card` label set (patient name, DOB, card/registry number,
+expiry, issuing state) is the parallel `idv-engine` agent's own work, not read or verified here — this
+pass's probes exercise only the two jurisdiction TABLES agreeing with each other, never the engine's OCR
+extraction for a state that has no configured pattern to extract against yet. No state beyond California
+is actually configured: adding one is still "fill in that state's entry in both Python tables, add its
+console option's `JURISDICTION_CONFIGURED` membership" and nothing else structural, exactly as the
+addendum promises, but nobody has done that filling-in for a second state in this pass. The `OUT_OF_STATE`
+(non-medical, document-issued-elsewhere) finding was left alone beyond its guidance sentence's wording —
+its actual decision (`cfg["out_of_state"]` policy) was never California-specific engine-side logic to
+begin with, so there was nothing to make jurisdictional there.

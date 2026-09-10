@@ -59,6 +59,42 @@
   ];
   const NOT_AVAILABLE = 'Not available on the Hyperwolf engine';
 
+  // ── jurisdiction (Addendum 4, 2026-09-10, "expand outside California when
+  // the business does") ── the 50 states + DC, same keys and same names as
+  // `wmdemo/idv_jurisdictions.py` / `idv-engine/pipeline/jurisdictions.py` —
+  // a probe on the backend asserts the two Python tables agree with each
+  // other; this list only has to agree with THEM on the codes it sends, which
+  // `HWIdv.patch`'s round-trip through the console already proves (the
+  // backend normalises whatever it receives, so a name here that drifted
+  // from the backend's own name would still store the right CODE — it would
+  // just show the wrong LABEL in this dropdown until fixed).
+  const JURISDICTIONS = [
+    ['AL', 'Alabama'], ['AK', 'Alaska'], ['AZ', 'Arizona'], ['AR', 'Arkansas'],
+    ['CA', 'California'], ['CO', 'Colorado'], ['CT', 'Connecticut'],
+    ['DC', 'District of Columbia'], ['DE', 'Delaware'], ['FL', 'Florida'],
+    ['GA', 'Georgia'], ['HI', 'Hawaii'], ['IA', 'Iowa'], ['ID', 'Idaho'],
+    ['IL', 'Illinois'], ['IN', 'Indiana'], ['KS', 'Kansas'], ['KY', 'Kentucky'],
+    ['LA', 'Louisiana'], ['MA', 'Massachusetts'], ['MD', 'Maryland'], ['ME', 'Maine'],
+    ['MI', 'Michigan'], ['MN', 'Minnesota'], ['MO', 'Missouri'], ['MS', 'Mississippi'],
+    ['MT', 'Montana'], ['NC', 'North Carolina'], ['ND', 'North Dakota'],
+    ['NE', 'Nebraska'], ['NH', 'New Hampshire'], ['NJ', 'New Jersey'],
+    ['NM', 'New Mexico'], ['NV', 'Nevada'], ['NY', 'New York'], ['OH', 'Ohio'],
+    ['OK', 'Oklahoma'], ['OR', 'Oregon'], ['PA', 'Pennsylvania'],
+    ['RI', 'Rhode Island'], ['SC', 'South Carolina'], ['SD', 'South Dakota'],
+    ['TN', 'Tennessee'], ['TX', 'Texas'], ['UT', 'Utah'], ['VA', 'Virginia'],
+    ['VT', 'Vermont'], ['WA', 'Washington'], ['WI', 'Wisconsin'],
+    ['WV', 'West Virginia'], ['WY', 'Wyoming'],
+  ];
+  const JURISDICTION_NAME = Object.fromEntries(JURISDICTIONS);
+  // Only California has a configured medical-proof pattern on the backend
+  // today (`idv_jurisdictions.configured_codes()`) — every other state is
+  // present so recreational sessions work there from the barcode DOB, but a
+  // medical session declines MED_REC_JURISDICTION_UNCONFIGURED. Kept as a
+  // literal set here (not fetched) because it changes only when a state's
+  // credential pattern is verified and added to the backend table, which is
+  // a code change on both sides already, not a runtime toggle.
+  const JURISDICTION_CONFIGURED = new Set(['CA']);
+
   const WORKFLOW_ID_RE = /^\/workflows\/([^/]+)$/;
 
   function shortId(id) {
@@ -82,6 +118,7 @@
         face_liveness_method: 'PASSIVE',
         thresholds: { liveness_min: 70, face_match_min: 75, doc_quality_min: 60 },
         age_rule: 'REC_21',
+        jurisdiction: 'CA',
         allowed_document_types: ['DL', 'ID', 'PASSPORT'],
         allowed_countries: ['USA'],
         out_of_state: 'allow',
@@ -494,6 +531,27 @@
               </div>
               <div style={{ fontSize: P.type.meta, color: P.inkFaint, marginTop: 6, lineHeight: 1.5 }}>
                 On a REC_21 workflow, a guest reading 18–20 off the barcode is offered — never required — the doctor's-recommendation path instead of an immediate age decline; a MED_18_REC workflow always requires the recommendation regardless of this setting. Defaults on.
+              </div>
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${P.hairline}` }}>
+                <Eyebrow style={{ marginBottom: 6 }}>Jurisdiction</Eyebrow>
+                <Lockable locked={locked}>
+                  <select value={cfg.jurisdiction || 'CA'} disabled={locked}
+                    onChange={(e) => patchCfg({ jurisdiction: e.target.value })}
+                    style={{ width: '100%', height: P.ctrlH.md, padding: '0 11px', borderRadius: P.r8, border: `1px solid ${P.fieldBorder}`, background: P.field, color: P.ink, fontFamily: P.fontSans, fontSize: 13.5 }}>
+                    {JURISDICTIONS.map(([code, name]) => (
+                      <option key={code} value={code}>{name}{JURISDICTION_CONFIGURED.has(code) ? '' : ' (recreational only)'}</option>
+                    ))}
+                  </select>
+                </Lockable>
+                <div style={{ fontSize: P.type.meta, color: P.inkFaint, marginTop: 6, lineHeight: 1.5 }}>
+                  {/* One sentence on what this changes, per the addendum: out-of-state comparison, medical-proof rule, in-store copy. */}
+                  Which state's medical-proof rule and out-of-state comparison this workflow uses — a recreational (REC_21) guest is unaffected and still verifies from the barcode date of birth in any state.
+                  {!JURISDICTION_CONFIGURED.has(cfg.jurisdiction || 'CA') && (
+                    <span style={{ display: 'block', marginTop: 4, color: P.warnText }}>
+                      No medical-proof pattern is configured for {JURISDICTION_NAME[cfg.jurisdiction] || cfg.jurisdiction} yet — a medical (MED_18_REC, or an 18–20 guest offered the recommendation path) session here declines with a clear reason and an in-store path rather than approving on an unverified rule.
+                    </span>
+                  )}
+                </div>
               </div>
             </Card>
           </div>

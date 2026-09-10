@@ -128,13 +128,13 @@
   }
   function exportCsv(rows) {
     const headers = ['session_number', 'status', 'person', 'vendor_data', 'document_type', 'issuing_state',
-      'workflow', 'workflow_version', 'channel', 'origin', 'reasons', 'created_at', 'completed_at', 'imported_from'];
+      'workflow', 'workflow_version', 'jurisdiction', 'channel', 'origin', 'reasons', 'created_at', 'completed_at', 'imported_from'];
     const lines = [headers.join(',')];
     rows.forEach((r) => {
       lines.push([
         r.session_number, r.status, (r.person && r.person.display_name) || '', r.vendor_data || '',
         (r.document && r.document.type) || '', (r.document && r.document.issuing_state) || '',
-        (r.workflow && r.workflow.name) || '', (r.workflow && r.workflow.version) || '',
+        (r.workflow && r.workflow.name) || '', (r.workflow && r.workflow.version) || '', r.jurisdiction || '',
         r.channel || '', r.origin || '', (r.reasons || []).join('; '), r.created_at || '', r.completed_at || '', r.imported_from || '',
       ].map(csvCell).join(','));
     });
@@ -484,7 +484,15 @@
                       </div>
                     </TD>
                     <TD>{row.document ? (row.document.issuing_state ? row.document.issuing_state + ' · ' : '') + (DOC_TYPE_LABEL[row.document.type] || row.document.type) : <span style={{ color: P.inkFaint }}>—</span>}</TD>
-                    <TD>{row.workflow ? row.workflow.name + ' · v' + row.workflow.version : <span style={{ color: P.inkFaint }}>—</span>}</TD>
+                    <TD>
+                      {row.workflow ? (
+                        <div>
+                          <div>{row.workflow.name} · v{row.workflow.version}</div>
+                          {/* Addendum 4, 2026-09-10: which state's medical-proof rule this session ran under. */}
+                          {row.jurisdiction && <div style={{ fontSize: 11, color: P.inkFaint }}>{row.jurisdiction}</div>}
+                        </div>
+                      ) : <span style={{ color: P.inkFaint }}>—</span>}
+                    </TD>
                     <TD>
                       <div>{chLabel(row.channel)}</div>
                       {row.origin && <div style={{ fontSize: 11, color: P.inkFaint, fontFamily: P.fontMono }}>{row.origin}</div>}
