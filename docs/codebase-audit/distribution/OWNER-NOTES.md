@@ -54,3 +54,18 @@ quickly. More notes to come over the next hour; no screen revisions yet.
    can say "THC 24.1% vs 31.6%"; if not, batch number only.
 3. How is "near-identical" defined for the team (THC within N points, package dates within N
    days) so the engine can allow a quiet mix inside that band?
+
+## 2026-09-10 · keeper from Concept B (Box Cards)
+
+**Said.** "I really like this part of the design, great job — note that I want to keep it as we
+move forward." Screenshot: the region tabs with a "ran today" chip; per driver, a vertical
+timeline (Built → Frozen → Synced to Blaze → Dispatched → Refilled → Closed, each with time and
+who) running down the left of the kit column; a driver card (name, route, "2 / 2 boxes packed",
+unit total) with a progress bar; below it colour-coded box cards (Flower Box 1, Vape Box 1,
+Edible Bin) each with PRODUCT · SOLD · NEED · CAP · GIVE · REASON rows, a shortfall row tinted
+amber with "short stock"; a legend strip of box types plus shortfall/skipped row colours and a
+"Manage box types" button.
+
+**Keep, verbatim, in every later round:** the kit column composition (timeline + driver card +
+box card stack), the box-type colour legend, the row schema and the tinted shortfall/skipped rows.
+Concept B's file: `explorations/Distribution Refill - Concept B - Box Cards.html`.
