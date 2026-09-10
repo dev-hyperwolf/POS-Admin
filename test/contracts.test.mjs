@@ -254,6 +254,17 @@ test('our estate: wm-demo enums still equal the contract (FAILS on drift)', { sk
   const hwlive = fs.readFileSync(path.join(ROOT, 'shared/hw-live.js'), 'utf8');
   const lfs = /HW_LIVE_STATES\s*=\s*(?:Object\.freeze\()?\[([^\]]*)\]/.exec(hwlive); assert.ok(lfs, 'shared/hw-live.js HW_LIVE_STATES');
   assert.deepEqual([...lfs[1].matchAll(/'([a-z-]+)'/g)].map((m) => m[1]), C.enumValues('LiveFeedStatus'), 'HW_LIVE_STATES');
+  // every reason the Verify rules can emit must be in the enum, or contracts.py's is_enum filter
+  // drops it from outbound payloads (0.3.2 found 15 such). Order-free: the doc block owns order.
+  const rules = fs.readFileSync(path.join(WM, 'wmdemo/idv_rules.py'), 'utf8');
+  const emitted = new Set();
+  for (const name of ['REASONS_RETRYABLE', 'REASONS_DECLINE']) {
+    const m = rules.match(new RegExp('^' + name + ' = frozenset\\(\\(([\\s\\S]*?)\\)\\)', 'm'));
+    assert.ok(m, name + ' in idv_rules.py');
+    for (const r of m[1].matchAll(/"([A-Z0-9_]+)"/g)) emitted.add(r[1]);
+  }
+  const enumSet = new Set(C.enumValues('VerificationReason'));
+  assert.deepEqual([...emitted].filter((r) => !enumSet.has(r)), [], 'idv_rules.py reasons missing from VerificationReason');
   const contract = fs.readFileSync(path.join(ROOT, 'docs/IDV-API-CONTRACT.md'), 'utf8');
   const reasons = [...contract.slice(contract.indexOf('// Reason'), contract.indexOf('// Score')).matchAll(/\b[A-Z][A-Z0-9_]{3,}\b/g)].map((m) => m[0]);
   assert.deepEqual([...new Set(reasons)], C.enumValues('VerificationReason'), 'IDV-API-CONTRACT Reason list');

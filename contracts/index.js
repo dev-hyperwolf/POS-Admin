@@ -27,7 +27,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '0.3.1'; // 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
+  var VERSION = '0.3.2'; // 0.3.2: VerificationReason +15 reasons idv_rules.py already emitted. 0.3.1: VerificationReason + MED_REC_JURISDICTION_UNCONFIGURED (Verify r10). 0.2.x additive enums (MODULE-CONTRACT-GAPS.md §2, PersonStatus, LiveFeedStatus, AtHome*); 0.3.0: DiscountKind, CampaignStatus, FlowStatus, AudienceStatus, PointsKind+expired, IdSource+twilio/sendgrid/alpineiq/hyperdrive
   var HEADER = 'x-hw-contract'; // clients send this to ask for contract-shaped answers
 
   // ── Enums ──────────────────────────────────────────────────────────────────
@@ -69,8 +69,13 @@
       'AGE_ESTIMATE_UNDER_MARGIN', 'OUT_OF_STATE', 'DOC_NEAR_EXPIRY', 'ENGINE_UNAVAILABLE_MANUAL',
       'DOC_EXPIRED', 'UNDER_AGE', 'FACE_BLOCKLIST_HIT', 'DOCUMENT_BLOCKLIST_HIT', 'USER_BLOCKLIST_HIT',
       'IP_TOR', 'INJECTION_DETECTED', 'CHALLENGE_NONCE_MISMATCH', 'LIVENESS_ATTEMPTS_EXHAUSTED_HARD',
-      'MED_REC_JURISDICTION_UNCONFIGURED'],
-      source: 'docs/IDV-API-CONTRACT.md Reason (review + decline sets; r10 adds MED_REC_JURISDICTION_UNCONFIGURED)' },
+      'MED_REC_JURISDICTION_UNCONFIGURED',
+      // 0.3.2: the reasons wmdemo/idv_rules.py REASONS already emitted and the contract lacked
+      'BARCODE_NOT_DETECTED', 'DOC_PORTRAIT_NOT_FOUND', 'ENGINE_MEDIA_UNAVAILABLE', 'ENGINE_NO_EVIDENCE',
+      'MED_REC_DOB_MISMATCH', 'MED_REC_EXPIRED', 'MED_REC_INVALID_LICENSE', 'MED_REC_MISSING',
+      'MED_REC_NAME_MISMATCH', 'MED_REC_OUT_OF_STATE', 'MED_REC_UNREADABLE', 'MRZ_LOW_CONFIDENCE',
+      'MRZ_NOT_FOUND', 'OVI_SHIFT_NOT_SEEN', 'SCREEN_REPLAY_SUSPECTED'],
+      source: 'docs/IDV-API-CONTRACT.md Reason (review + decline sets) = wmdemo/idv_rules.py REASONS' },
     OrderStatus: { values: ['pending', 'confirmed', 'packed', 'out_for_delivery', 'completed', 'cancelled', 'refunded'],
       source: 'hyperwolf/distribution Order Joi (pending|completed|cancelled) widened with the POS stages' },
     TaskStatus: { values: ['not_started', 'unassigned', 'in_progress', 'completed', 'cancelled'],

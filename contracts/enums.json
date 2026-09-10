@@ -1,5 +1,5 @@
 {
-  "contract": "0.3.1",
+  "contract": "0.3.2",
   "header": "x-hw-contract",
   "http_status": {
     "bad_request": 400,
@@ -137,7 +137,22 @@
       "INJECTION_DETECTED",
       "CHALLENGE_NONCE_MISMATCH",
       "LIVENESS_ATTEMPTS_EXHAUSTED_HARD",
-      "MED_REC_JURISDICTION_UNCONFIGURED"
+      "MED_REC_JURISDICTION_UNCONFIGURED",
+      "BARCODE_NOT_DETECTED",
+      "DOC_PORTRAIT_NOT_FOUND",
+      "ENGINE_MEDIA_UNAVAILABLE",
+      "ENGINE_NO_EVIDENCE",
+      "MED_REC_DOB_MISMATCH",
+      "MED_REC_EXPIRED",
+      "MED_REC_INVALID_LICENSE",
+      "MED_REC_MISSING",
+      "MED_REC_NAME_MISMATCH",
+      "MED_REC_OUT_OF_STATE",
+      "MED_REC_UNREADABLE",
+      "MRZ_LOW_CONFIDENCE",
+      "MRZ_NOT_FOUND",
+      "OVI_SHIFT_NOT_SEEN",
+      "SCREEN_REPLAY_SUSPECTED"
     ],
     "OrderStatus": [
       "pending",
