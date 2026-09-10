@@ -73,3 +73,51 @@ owner's explicit approval before the next is switched on; step 4 is the ceiling 
 1. A1: get root on the servers through the cloud console.
 2. Send the request list above with dates.
 3. Say when Verify testing is done so the waiting production fixes can be pushed.
+
+## A1 runbook — taking back the AWS account (owner, no developer needed)
+
+The servers are EC2 instances in the company's AWS account (owner, 2026-09-10). Two are already
+known from the workflows: `54.81.94.241` (hemp-retailer-admin and hyperwolf-super-admin stage)
+and `18.235.246.3` (hyperwolf-backend stage). Production hosts are in the same account or not;
+the console will say.
+
+### Step 1 — look, change nothing (30 minutes)
+
+1. Sign in to the AWS console as the **root user** (the email the bills go to). If a developer
+   set the account up, use "Forgot password" on the root email; the reset goes to that inbox.
+2. **IAM → Users**: list every user, their access keys and last activity. Write the list down.
+   These are the people and machines that can touch the account today.
+3. **IAM → Identity Center / Roles**: note any roles with `AdministratorAccess` and who can assume them.
+4. **EC2 → Instances** (check every region in the top-right selector; N. Virginia `us-east-1`
+   first, the two known IPs are there): for each instance note name, public IP, key-pair name,
+   security groups, and instance type. Match IPs to the deploy map. Anything with no match is
+   production or forgotten; both matter.
+5. **Billing → Bills**: which services cost money this month. RDS or DocumentDB here means the
+   database is in this account after all; an absence means it is elsewhere (Atlas).
+6. **CloudWatch → Alarms**: expect none. That is A5's job.
+
+Report the four lists (users, roles, instances, services) back and the rest is planned from them.
+
+### Step 2 — lock the front door (15 minutes, safe)
+
+1. Root user: set a new password and enable **MFA** on it.
+2. IAM: enable MFA for your own admin user; create one if only root exists (never work as root day to day).
+3. Do **not** delete or disable developer users yet — deploys may run through their keys. That
+   comes after A2 is written and rehearsed.
+4. Billing: set a budget alert at 120% of last month.
+
+### Step 3 — get a shell on each instance (planned per instance, after Step 1)
+
+In order of least disruption:
+1. **Session Manager** (Systems Manager → Session Manager → Start session): works with no key if
+   the instance has the SSM agent and an instance role. Zero downtime. Try this first.
+2. **EC2 Instance Connect** (Instances → Connect): works on Ubuntu/Amazon Linux images that ship
+   the agent, if the security group lets SSH in from the Instance Connect range. Zero downtime.
+3. **Key-pair replacement via a rescue volume**: stop the instance, detach its root volume,
+   attach to a temporary instance, append your public key to `authorized_keys`, reattach, start.
+   About ten minutes of downtime per instance; only in the quiet window, only after the deploy
+   line for that host is written so a failed boot has a known recovery.
+
+Once on the box: `pm2 list`, `pm2 env <id>`, `cat ~/.pm2/logs/*` heads, `df -h`, `free -m`,
+`crontab -l`, and which git remote and branch each app directory is on. That is the deploy
+line for that host, written by you rather than requested from the developers.
