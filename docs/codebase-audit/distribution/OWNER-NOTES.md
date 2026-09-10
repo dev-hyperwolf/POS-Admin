@@ -95,3 +95,30 @@ our estate must be considered in the next round; no redesign yet.
   Flower Box 1 and 1 in Flower Box 2".
 - Return verify feeds closure: expected back = dispatched − sold (Blaze) ± refills; read back =
   RFID; difference = discrepancy, pre-filled for Loss Prevention.
+
+## 2026-09-10 · RFID study folded in (`RFID-FOR-DISTRIBUTION.md`)
+
+**What exists.** `rfid/` is the shipped module in the rail (mockup: fixture data, nothing
+written); three direction studies beside it. A real middleware clone lives at
+`/Users/jt/Documents/hyperwolf-repos/rfid-middleware`: TypeScript, 77 tests plus a 100-check
+conformance kit, strongest-read (argmax RSSI) reconciliation, a tag lifecycle state machine
+(… DISPATCHED → SOLD / RETURNED), a ports-based integration contract. The Android shell that
+talks to the radio is specified, not built; reader gates and RSSI values are simulated.
+
+**Gaps against the requirement.**
+- Pack-verify after **refill**: absent. The kits screen models the initial build only, and its
+  plan is keyed by SKU, so it cannot express "right SKU, wrong batch" — the mixed-batch case.
+- **Return-verify**: no screen, no `RETURN` session mode in the middleware (only KIT and CYCLE),
+  and nothing computes dispatched − sold; that number lives in distribution-backend and is
+  under-counted today (ASAP-only sold filter). The state machine already allows RETURNED.
+- The backend's existing scan path (`scanProduct` → one barcode unit per call) cannot carry a
+  batch RFID read; integration needs new additive endpoints and fields, never a reuse of
+  `scanProduct`. RFID output must never be wired into wm-demo's `/api/kit` (that write republishes
+  the public Weedmaps menu).
+
+**For the next round.** The engine's plan is keyed by **box × SKU × batch**; the RFID diff reads
+per box (strongest-read) and reports per batch. Three verification moments on the timeline:
+pack-verify after build, pack-verify after each refill (per box), return-verify at the door.
+Developer list additions: a `POST …/kits/:id/rfid-verify` (additive) that takes a batch read and
+writes a Discrepancy with reason codes; `tagId` on `productBatches[]` if tags are applied at
+receiving. Middleware additions: a RETURN session mode; batch-keyed plan input.
