@@ -46,11 +46,13 @@ cites an excerpt `[n]` that links to GitHub).
 | Probe | `wm-demo/qa/docs_probe.py` (in `qa/battery.py`) | fixture index, token gate, search, page, traversal, chat (extractive), reindex |
 | Run buttons | `wm-demo/tools/set_anthropic_key.sh` (hidden dialog → `.env`, restarts), `wm-demo/tools/hw_docs_reindex.sh` | the key never passes through chat |
 
-**Re-index on push**: the index records each repo's HEAD SHA at build time and citations link to
-that SHA, so a stale index still points at the right lines. Rebuild by the Re-index button, the
-Run button, or `POST /api/docs/reindex`; a GitHub webhook → that route is the one-line follow-up
-once Render has the clones (today the clones live on this Mac, so Render serves the index only
-after the DB is copied or the clones are added to the deploy).
+**Production index (owner decision 2026-09-09: clone on deploy)**: Render's build runs
+`wm-demo/tools/hw_docs_clone_repos.sh`, which shallow-clones the twelve Hyper-Tech repos with a
+read-only `HW_GITHUB_TOKEN` and builds the index into the checkout; the Re-index button rebuilds
+from those clones at runtime. Citations link to the SHA recorded at build time, so a stale index
+still points at the right lines. Without the token the deployed index covers POS-Admin and
+wm-demo only, and the build says so. A GitHub push webhook → `POST /api/docs/reindex` is the
+one-line follow-up. Without `WM_DEMO_WRITE_TOKEN` the routes answer loopback only.
 
 **Movable**: the three Python files depend only on `config.WRITE_TOKEN`/`PUBLIC`/`STATIC_DIR` and
 `contracts.error/http_status`; the app depends on `HW_LIVE` and the rail. Lifting them into a
@@ -138,7 +140,7 @@ Hyper-Tech service means copying the files and the two `server.py` mount lines.
 
 ## Waiting on you
 
-0. **Push POS-Admin** (Run button: `tools/hw_push_pos_admin.sh`) and **push wm-demo** — the classifier refuses `git push` from this session. Then run `wm-demo/tools/set_anthropic_key.sh` once to give Docs a model; without it the assistant is extractive.
+0. **Push POS-Admin** (Run button: `tools/hw_push_pos_admin.sh`) and **push wm-demo** — the classifier refuses `git push` from this session. Done: both pushed, key set, Docs live on the 8791 review server. Still owed on Render: `HW_GITHUB_TOKEN` (read-only, Hyper-Tech-inc repos), `ANTHROPIC_API_KEY`, `WM_DEMO_WRITE_TOKEN`.
 1. **Rotate the three committed service-account keys** (`hyperwolf-backend/hyperdrive-firebase-adminsdk.json`,
    `hemp-backend/staticDB/fcmtoken.json`, `stilo-backend/staticDB/fcmtoken.json`), the Google Maps
    key in `hyperwolf-backend/controllers/google-controllers.js:23`, and the LedgerGreen webhook
