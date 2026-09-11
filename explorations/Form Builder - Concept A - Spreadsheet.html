@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Form Builder — Concept A — Spreadsheet</title>
+<style>
+/* ============================================================================
+   Form Builder — Concept A — Spreadsheet. Rows = fields, columns = FormDef
+   Field properties (key, label, type, required, options/$enum/$ref, showWhen,
+   computed). Keyboard-first: arrow keys move the selected cell, Enter edits
+   it, Esc cancels, Tab commits and moves right. A repeating_group row expands
+   to show its nested Field rows (same columns, same schema, self-referential
+   per forms.py FIELD_SCHEMA). Ground truth: FORM-GENERATOR-PROPOSAL.md §2,
+   §6; wm-demo/wmdemo/forms.py FIELD_TYPES / FORMDEF_SCHEMA / _COND_OPS. Every
+   control that edits a value is annotated data-binds="<FormDef/Field
+   property or API route>" — hover any control to see its binding. No
+   invented capabilities: showWhen stays a flat AND (no condition trees),
+   nothing here edits a published version in place, no PDF export beyond the
+   browser's own print. Example data throughout — Incident Report is a
+   sample form, not a live one. No build step, no external requests.
+   ========================================================================= */
+:root{
+  --sans:-apple-system,system-ui,"Segoe UI",sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --bg:#F4F2EC; --surface:#FFFFFF; --surface2:#FAF9F5; --surface3:#F1EFE9;
+  --ink:#0F0F0C; --ink2:#2A2A26; --inkDim:rgba(15,15,12,.60); --inkMute:rgba(15,15,12,.42);
+  --line:rgba(15,15,12,.12); --line2:rgba(15,15,12,.20); --line3:rgba(15,15,12,.30);
+  --accent:#2C5BB8; --accentSoft:#E3ECFA; --accentInk:#FFFFFF; --accentBorder:#9FB6E2;
+  --good:#1F8A4F; --goodSoft:#E2F2E8; --warn:#C07A12; --warnSoft:#FBEFD6;
+  --bad:#C0392B; --badSoft:#F8E2DF; --neutral:#6E6E66; --neutralSoft:#ECEAE2;
+  --rail:#13130F; --railInk:rgba(255,255,255,.72); --railBright:#FFFFFF;
+  --railHover:rgba(255,255,255,.06); --railActive:rgba(255,209,0,.14); --accentRail:#FFD100;
+  --shadowMd:0 1px 0 rgba(15,15,12,.04), 0 6px 18px rgba(15,15,12,.07);
+  --focus:0 0 0 2px #FFFFFF, 0 0 0 4px var(--accent);
+}
+html[data-theme="dark"]{
+  --bg:#0D0D0A; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+  --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40);
+  --line:rgba(245,243,234,.12); --line2:rgba(245,243,234,.18); --line3:rgba(245,243,234,.28);
+  --accent:#6A99EC; --accentSoft:rgba(106,153,236,.16); --accentInk:#0D0D0A; --accentBorder:rgba(106,153,236,.5);
+  --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15);
+  --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+  --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+  --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14); --accentRail:#FFD100;
+  --shadowMd:0 1px 0 rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.45);
+  --focus:0 0 0 2px #1A1A14, 0 0 0 4px var(--accent);
+}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]):not([data-theme="dark"]){
+    --bg:#0D0D0A; --surface:#1A1A14; --surface2:#211F18; --surface3:#28261D;
+    --ink:#F5F3EA; --ink2:#D9D6CA; --inkDim:rgba(245,243,234,.60); --inkMute:rgba(245,243,234,.40);
+    --line:rgba(245,243,234,.12); --line2:rgba(245,243,234,.18); --line3:rgba(245,243,234,.28);
+    --accent:#6A99EC; --accentSoft:rgba(106,153,236,.16); --accentInk:#0D0D0A; --accentBorder:rgba(106,153,236,.5);
+    --good:#46C07E; --goodSoft:rgba(70,192,126,.15); --warn:#E0A53A; --warnSoft:rgba(224,165,58,.15);
+    --bad:#E8675B; --badSoft:rgba(232,103,91,.16); --neutral:#9A968B; --neutralSoft:rgba(245,243,234,.08);
+    --rail:#070705; --railInk:rgba(245,243,236,.66); --railBright:#FBFAF4;
+    --railHover:rgba(255,255,255,.05); --railActive:rgba(255,209,0,.14);
+    --shadowMd:0 1px 0 rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.45);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 var(--sans);height:100vh;overflow:hidden}
+.app{display:grid;grid-template-columns:56px 1fr;height:100vh}
+.rail{background:var(--rail);color:var(--railInk);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px}
+.rail-logo{width:30px;height:30px;border-radius:8px;background:var(--accentRail);color:#1A1400;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin-bottom:10px}
+.rail-item{width:38px;height:38px;border-radius:9px;border:0;background:transparent;color:var(--railInk);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.rail-item:hover{background:var(--railHover)}
+.rail-item.active{background:var(--railActive);color:var(--railBright)}
+.rail-spacer{flex:1}
+.main{display:flex;flex-direction:column;min-width:0;height:100vh}
+.topbar{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
+.crumb{font-size:12.5px;color:var(--inkDim)}
+.crumb b{color:var(--ink);font-weight:650}
+.pill{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--neutralSoft);color:var(--ink2);font-weight:600}
+.pill.draft{background:var(--warnSoft);color:var(--warn)}
+.tabs{display:flex;gap:2px;margin-left:8px}
+.tabs button{border:1px solid transparent;background:transparent;color:var(--inkDim);font:inherit;font-size:12px;padding:5px 10px;border-radius:7px;cursor:pointer}
+.tabs button.on{background:var(--surface3);color:var(--ink);font-weight:600}
+.topbar .spacer{flex:1}
+.btn{border:1px solid var(--line2);background:var(--surface);color:var(--ink);font:inherit;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:8px;cursor:pointer}
+.btn:hover{background:var(--surface3)}
+.btn.primary{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+.btn.ghost{border-color:transparent}
+.metabar{display:flex;flex-wrap:wrap;gap:18px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--surface2);align-items:flex-end}
+.mfield{display:flex;flex-direction:column;gap:3px;min-width:120px}
+.mfield label{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--inkMute);font-weight:700}
+.mfield .val{font:12.5px/1.2 var(--mono);color:var(--ink2);padding:5px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.gridwrap{flex:1;overflow:auto;padding:0 18px 18px}
+table{border-collapse:collapse;width:100%;min-width:980px;margin-top:10px}
+thead th{position:sticky;top:0;background:var(--surface2);z-index:2;text-align:left;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--inkMute);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap}
+thead th:first-child{width:26px}
+tbody td{padding:0;border-bottom:1px solid var(--line);vertical-align:top}
+.cell{padding:8px 10px;font-size:12.5px;color:var(--ink2);outline:none;cursor:default;min-height:34px;display:flex;align-items:center;gap:6px}
+.cell:focus{box-shadow:inset 0 0 0 2px var(--accent);background:var(--accentSoft)}
+.cell.editing{background:var(--surface)}
+.cell.editing input,.cell.editing select{width:100%;font:inherit;border:1px solid var(--accent);border-radius:5px;padding:3px 6px;background:var(--surface);color:var(--ink)}
+tr.row:hover td{background:var(--surface3)}
+tr.row.sub td{background:var(--surface2)}
+tr.row.sub:hover td{background:var(--surface3)}
+.rownum{color:var(--inkMute);font:11px var(--mono);padding:8px 8px}
+.key{font-family:var(--mono);font-size:12px;color:var(--ink)}
+.badge{font-size:10.5px;padding:2px 7px;border-radius:6px;font-weight:700;letter-spacing:.02em}
+.b-text{background:var(--neutralSoft);color:var(--ink2)}
+.b-select,.b-multiselect{background:var(--accentSoft);color:var(--accent)}
+.b-datetime,.b-date,.b-time{background:#EDE6FB;color:#6B4FBB}
+.b-photo,.b-signature{background:var(--warnSoft);color:var(--warn)}
+.b-repeating_group{background:var(--goodSoft);color:var(--good)}
+.b-computed{background:var(--badSoft);color:var(--bad)}
+.b-person,.b-store{background:var(--neutralSoft);color:var(--ink2)}
+html[data-theme="dark"] .b-datetime,html[data-theme="dark"] .b-date,html[data-theme="dark"] .b-time{background:rgba(160,130,240,.18);color:#C6B4F5}
+@media (prefers-color-scheme:dark){html:not([data-theme="light"]):not([data-theme="dark"]) .b-datetime,html:not([data-theme="light"]):not([data-theme="dark"]) .b-date,html:not([data-theme="light"]):not([data-theme="dark"]) .b-time{background:rgba(160,130,240,.18);color:#C6B4F5}}
+.req{color:var(--bad);font-weight:800;font-size:13px}
+.mut{color:var(--inkMute)}
+.mono{font-family:var(--mono);font-size:11.5px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--surface3);border:1px solid var(--line2);border-radius:6px;padding:2px 7px;font-size:11px;font-family:var(--mono);color:var(--ink2);cursor:pointer}
+.chip:hover{background:var(--accentSoft);border-color:var(--accentBorder);color:var(--accent)}
+.chip.empty{color:var(--inkMute);font-style:italic;font-family:var(--sans)}
+.expand{border:0;background:transparent;color:var(--inkMute);cursor:pointer;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:4px;flex:none}
+.expand:hover{background:var(--surface3);color:var(--ink)}
+.expand svg{transition:transform .12s}
+tr.row.collapsed .expand svg{transform:rotate(-90deg)}
+.sub-hidden{display:none}
+.indent{padding-left:22px;position:relative}
+.indent::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:1px;background:var(--line2)}
+.addrow{display:flex;align-items:center;gap:8px;padding:10px;color:var(--inkDim);font-size:12.5px;cursor:pointer;border:1px dashed var(--line2);border-radius:8px;margin-top:8px}
+.addrow:hover{background:var(--surface3);color:var(--ink)}
+.statusbar{display:flex;align-items:center;gap:16px;padding:8px 18px;border-top:1px solid var(--line);background:var(--surface2);font-size:11.5px;color:var(--inkMute)}
+.statusbar .dot{width:6px;height:6px;border-radius:50%;background:var(--warn)}
+.kbd{font:10.5px var(--mono);background:var(--surface3);border:1px solid var(--line2);border-radius:4px;padding:1px 5px}
+.pop{position:fixed;z-index:50;background:var(--surface);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadowMd);padding:12px;width:300px;font-size:12px}
+.pop h4{margin:0 0 8px;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--inkMute)}
+.pop .cond{display:flex;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px}
+.pop .cond:last-of-type{border-bottom:0}
+.pop .op{background:var(--neutralSoft);border-radius:5px;padding:1px 6px}
+.pop .foot{margin-top:10px;font-size:10.5px;color:var(--inkMute);line-height:1.5}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-logo">HD</div>
+    <button class="rail-item" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg></button>
+    <button class="rail-item active" title="Forms"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l4 4v14H7z"/><path d="M9 11h6M9 15h6M9 7h3"/></svg></button>
+    <button class="rail-item" title="Submissions"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M4 9h16"/></svg></button>
+    <div class="rail-spacer"></div>
+    <button class="rail-item" id="themeBtn" title="Toggle theme"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="crumb">Forms / <b>Incident Report</b> / Builder</span>
+      <span class="pill draft" title="binds: FormDef.version — publishing bumps this, prior submissions keep their own formVersion" data-binds="FormDef.version">published v3 · editing draft</span>
+      <div class="tabs">
+        <button class="on">Builder</button>
+        <button title="binds: GET /api/forms/:id/submissions" data-binds="GET /api/forms/:id/submissions">Submissions</button>
+        <button title="binds: GET /api/forms/:id/export.csv" data-binds="GET /api/forms/:id/export.csv">Export CSV</button>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn ghost" title="binds: HDForm({def, mode:'fill'}) — the same renderer that fills the live form" data-binds="HDForm(mode:'fill')">Preview</button>
+      <button class="btn primary" title="binds: POST /api/forms — creates the next version; existing form_submissions keep their original formVersion" data-binds="POST /api/forms">Publish v4</button>
+    </header>
+
+    <div class="metabar">
+      <div class="mfield"><label>Form id</label><div class="val" title="binds: FormDef.id" data-binds="FormDef.id">incident_report</div></div>
+      <div class="mfield"><label>Title</label><div class="val" title="binds: FormDef.title" data-binds="FormDef.title" style="font-family:var(--sans)">Incident Report</div></div>
+      <div class="mfield"><label>Submit</label><div class="val" title="binds: FormDef.submit.kind + FormDef.submit.target" data-binds="FormDef.submit.kind, FormDef.submit.target">table → incidents</div></div>
+      <div class="mfield"><label>Fill roles</label><div class="val" title="binds: FormDef.permissions.fillRoles" data-binds="FormDef.permissions.fillRoles" style="font-family:var(--sans)">associate, manager</div></div>
+      <div class="mfield"><label>Review roles</label><div class="val" title="binds: FormDef.permissions.reviewRoles" data-binds="FormDef.permissions.reviewRoles" style="font-family:var(--sans)">manager</div></div>
+      <div class="mfield"><label>Attribution</label><div class="val" title="binds: FormDef.attribution.filledBy, FormDef.attribution.reviewedBy" data-binds="FormDef.attribution" style="font-family:var(--sans)">filledBy · reviewed by manager</div></div>
+    </div>
+
+    <div class="gridwrap">
+      <table id="grid">
+        <thead>
+          <tr>
+            <th></th>
+            <th title="binds: Field.key" data-binds="Field.key">Key</th>
+            <th title="binds: Field.label" data-binds="Field.label">Label</th>
+            <th title="binds: Field.type ($enum FIELD_TYPES)" data-binds="Field.type">Type</th>
+            <th title="binds: Field.required" data-binds="Field.required">Req</th>
+            <th title="binds: Field.options[] / Field.$enum / Field.$ref" data-binds="Field.options">Options / $ref</th>
+            <th title="binds: Field.showWhen — flat AND only, no nested trees (proposal §5)" data-binds="Field.showWhen">showWhen</th>
+            <th title="binds: Field.computed — pure expr over other keys" data-binds="Field.computed">Computed</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><!-- rendered by JS from FORM below --></tbody>
+      </table>
+      <div class="addrow" id="addField" title="binds: FormDef.fields[] — appends a new Field to the array" data-binds="FormDef.fields[] push">+ Add field <span class="kbd">⌘⏎</span></div>
+    </div>
+
+    <div class="statusbar">
+      <span class="dot"></span>
+      <span>Draft v4 · 3 unsaved changes</span>
+      <span>8 fields · 2 nested (lineItems)</span>
+      <span><span class="kbd">↑↓←→</span> move · <span class="kbd">Enter</span> edit · <span class="kbd">Esc</span> cancel · <span class="kbd">Tab</span> next property</span>
+      <span style="margin-left:auto">Publish bumps FormDef.version; a submitted form keeps the formVersion it was filled against</span>
+    </div>
+  </div>
+</div>
+
+<div class="pop" id="pop" hidden></div>
+
+<script>
+(function(){
+  // ---- EXAMPLE DATA: the FormDef this screen is editing ----------------------------------
+  var FORM = {
+    id:"incident_report", version:3, title:"Incident Report",
+    fields:[
+      {key:"reportedBy", type:"person", label:"Reported by", required:true},
+      {key:"incidentType", type:"select", label:"Incident type", required:true,
+        options:["Theft","Injury","Equipment Damage","Property Damage","Other"]},
+      {key:"occurredAt", type:"datetime", label:"When it happened", required:true},
+      {key:"description", type:"textarea", label:"What happened", required:true, minLength:20},
+      {key:"damagePhoto", type:"photo", label:"Photo of the damage", required:true,
+        showWhen:{incidentType_eq:"Property Damage"}},
+      {key:"lineItems", type:"repeating_group", label:"Items affected", required:true,
+        fields:[
+          {key:"description", type:"text", label:"Item", required:true},
+          {key:"estimatedCost", type:"money", label:"Est. cost", $ref:"Money"}
+        ]},
+      {key:"estimatedTotal", type:"computed", label:"Estimated total", computed:"sum(lineItems.estimatedCost)", $ref:"Money"},
+      {key:"managerSignature", type:"signature", label:"Manager sign-off", showWhen:{role_gte:"manager"}}
+    ]
+  };
+  var COLS = ["key","label","type","required","options","showWhen","computed"];
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+
+  function optionsText(f){
+    if(f.options) return f.options.join(", ");
+    if(f.$enum) return "$enum:"+f.$enum;
+    if(f.$ref) return "$ref:"+f.$ref;
+    return "";
+  }
+  function showWhenText(f){
+    if(!f.showWhen) return "";
+    return Object.keys(f.showWhen).map(function(k){return k+" = "+JSON.stringify(f.showWhen[k]);}).join(" AND ");
+  }
+  function rowHtml(f, i, sub){
+    var cls = "row"+(sub?" sub":"");
+    var expander = (f.type==="repeating_group") ?
+      '<button class="expand" data-toggle="'+i+'" title="binds: Field.fields[] — nested rows, same Field schema">'+
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg></button>' : '';
+    var keyCell = (sub?'<span class="indent"></span>':'') + '<span class="key">'+esc(f.key)+'</span>';
+    return '<tr class="'+cls+'" data-row="'+i+'">'+
+      '<td><div class="cell" style="justify-content:center">'+ (sub?'':(i+1)) +(expander?expander:'')+'</div></td>'+
+      '<td><div class="cell" data-c="key" tabindex="0" title="binds: Field.key">'+keyCell+'</div></td>'+
+      '<td><div class="cell" data-c="label" tabindex="0" title="binds: Field.label">'+esc(f.label||'')+'</div></td>'+
+      '<td><div class="cell" data-c="type" tabindex="0" title="binds: Field.type ($enum FIELD_TYPES)"><span class="badge b-'+f.type+'">'+f.type+'</span></div></td>'+
+      '<td><div class="cell" data-c="required" tabindex="0" title="binds: Field.required" style="justify-content:center">'+(f.required?'<span class="req">✓</span>':'<span class="mut">—</span>')+'</div></td>'+
+      '<td><div class="cell mono" data-c="options" tabindex="0" title="binds: Field.options[] / Field.$enum / Field.$ref">'+(optionsText(f)?esc(optionsText(f)):'<span class="mut">—</span>')+'</div></td>'+
+      '<td><div class="cell" data-c="showWhen" tabindex="0" title="binds: Field.showWhen (flat AND)">'+(f.showWhen?'<span class="chip" data-sw="'+i+'">'+esc(showWhenText(f))+'</span>':'<span class="mut">—</span>')+'</div></td>'+
+      '<td><div class="cell mono" data-c="computed" tabindex="0" title="binds: Field.computed (pure expr over other keys)">'+(f.computed?esc(f.computed):'<span class="mut">—</span>')+'</div></td>'+
+    '</tr>';
+  }
+  function render(){
+    var html = '';
+    FORM.fields.forEach(function(f,i){
+      html += rowHtml(f, i, false);
+      if(f.type==="repeating_group" && f.fields){
+        f.fields.forEach(function(sf,si){
+          html += '<tr class="row sub sub-of-'+i+'" data-row="'+i+'.'+si+'">'+
+            '<td><div class="cell"></div></td>'+
+            '<td><div class="cell" data-c="key" tabindex="0" title="binds: Field.fields[].key"><span class="indent"></span><span class="key">'+esc(sf.key)+'</span></div></td>'+
+            '<td><div class="cell" data-c="label" tabindex="0" title="binds: Field.fields[].label">'+esc(sf.label||'')+'</div></td>'+
+            '<td><div class="cell" data-c="type" tabindex="0" title="binds: Field.fields[].type"><span class="badge b-'+sf.type+'">'+sf.type+'</span></div></td>'+
+            '<td><div class="cell" data-c="required" tabindex="0" style="justify-content:center">'+(sf.required?'<span class="req">✓</span>':'<span class="mut">—</span>')+'</div></td>'+
+            '<td><div class="cell mono" data-c="options" tabindex="0" title="binds: Field.fields[].$ref">'+(optionsText(sf)?esc(optionsText(sf)):'<span class="mut">—</span>')+'</div></td>'+
+            '<td><div class="cell"><span class="mut">—</span></div></td>'+
+            '<td><div class="cell"><span class="mut">—</span></div></td>'+
+          '</tr>';
+        });
+      }
+    });
+    document.getElementById('tbody').innerHTML = html;
+  }
+  render();
+
+  // ---- expand / collapse repeating_group ----
+  document.getElementById('tbody').addEventListener('click', function(e){
+    var t = e.target.closest('[data-toggle]');
+    if(t){
+      var i = t.getAttribute('data-toggle');
+      var tr = t.closest('tr');
+      tr.classList.toggle('collapsed');
+      document.querySelectorAll('.sub-of-'+i).forEach(function(r){ r.classList.toggle('sub-hidden', tr.classList.contains('collapsed')); });
+      return;
+    }
+    var sw = e.target.closest('[data-sw]');
+    if(sw){
+      var idx = +sw.getAttribute('data-sw');
+      var f = FORM.fields[idx];
+      var pop = document.getElementById('pop');
+      var rows = Object.keys(f.showWhen).map(function(k){
+        var m = k.match(/^(.*)_(gt|gte|lt|lte|eq|in)$/);
+        if(k==='role_gte') return '<div class="cond"><span>actor role</span><span class="op">&gt;=</span><span>'+esc(f.showWhen[k])+'</span></div>';
+        if(m) return '<div class="cond"><span>'+esc(m[1])+'</span><span class="op">'+m[2]+'</span><span>'+esc(JSON.stringify(f.showWhen[k]))+'</span></div>';
+        return '<div class="cond"><span>'+esc(k)+'</span><span class="op">?</span><span>'+esc(JSON.stringify(f.showWhen[k]))+'</span></div>';
+      }).join('');
+      pop.innerHTML = '<h4>showWhen — '+esc(f.key)+'</h4>'+rows+
+        '<div class="foot">Flat AND of conditions. Unknown condition keys fail closed — the field stays hidden and never becomes required (contracts.role_at_least posture). No nested condition trees in v1.</div>';
+      var r = sw.getBoundingClientRect();
+      pop.style.left = Math.min(r.left, window.innerWidth-320)+'px';
+      pop.style.top = (r.bottom+6)+'px';
+      pop.hidden = false;
+      e.stopPropagation();
+      return;
+    }
+  });
+  document.addEventListener('click', function(e){ if(!e.target.closest('#pop') && !e.target.closest('[data-sw]')) document.getElementById('pop').hidden = true; });
+
+  // ---- keyboard-first cell navigation ----
+  var grid = document.getElementById('tbody');
+  grid.addEventListener('keydown', function(e){
+    var cell = e.target.closest('.cell[data-c]');
+    if(!cell) return;
+    var tr = cell.closest('tr');
+    var tds = Array.prototype.filter.call(tr.querySelectorAll('td .cell[data-c]'), function(){return true;});
+    var ci = tds.indexOf(cell);
+    function focusIn(row, colIdx){
+      if(!row) return;
+      var cs = row.querySelectorAll('td .cell[data-c]');
+      var c = cs[Math.min(colIdx, cs.length-1)];
+      if(c) c.focus();
+    }
+    if(e.key==='ArrowRight'){ e.preventDefault(); focusIn(tr, ci+1); }
+    else if(e.key==='ArrowLeft'){ e.preventDefault(); focusIn(tr, ci-1); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); var nxt=tr.nextElementSibling; while(nxt&&nxt.classList.contains('sub-hidden')) nxt=nxt.nextElementSibling; focusIn(nxt, ci); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); var prv=tr.previousElementSibling; while(prv&&prv.classList.contains('sub-hidden')) prv=prv.previousElementSibling; focusIn(prv, ci); }
+    else if(e.key==='Tab'){ /* let native Tab move focus across cells */ }
+    else if(e.key==='Enter'){
+      e.preventDefault();
+      if(cell.classList.contains('editing')) return;
+      var val = cell.textContent.trim();
+      cell.dataset.prev = cell.innerHTML;
+      cell.classList.add('editing');
+      cell.innerHTML = '<input value="'+val.replace(/"/g,'&quot;')+'">';
+      var inp = cell.querySelector('input'); inp.focus(); inp.select();
+      inp.addEventListener('keydown', function(ke){
+        if(ke.key==='Enter'){ cell.classList.remove('editing'); cell.textContent = inp.value; cell.focus(); }
+        else if(ke.key==='Escape'){ cell.classList.remove('editing'); cell.innerHTML = cell.dataset.prev; cell.focus(); }
+      });
+      inp.addEventListener('blur', function(){ if(cell.classList.contains('editing')){ cell.classList.remove('editing'); cell.innerHTML = cell.dataset.prev; } });
+    }
+  });
+
+  document.getElementById('addField').addEventListener('click', function(){
+    var el = this; var old = el.innerHTML;
+    el.textContent = 'New field appended to FormDef.fields[] — set its key and type, then Tab through the row';
+    setTimeout(function(){ el.innerHTML = old; }, 1800);
+  });
+
+  var themeBtn = document.getElementById('themeBtn');
+  themeBtn.addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', cur==='dark' ? 'light' : (cur==='light' ? '' : 'dark'));
+  });
+})();
+</script>
+</body>
+</html>
