@@ -27,6 +27,11 @@
     const [status, setStatus] = React.useState('loading'); // loading | ready | unavailable
     const [slug, setSlug] = React.useState(null);
     const [mode, setMode] = React.useState('fill');
+    // 'form' (fill/preview through FormHost) vs 'submissions' (the review list,
+    // FORM-GENERATOR-PROPOSAL.md phase 2) -- a separate tab, not a third value on the
+    // fill/review Seg below: that Seg previews the DEFINITION with no data, this one browses
+    // actual submissions.
+    const [view, setView] = React.useState('form');
 
     React.useEffect(() => {
       fetch('/api/forms').then((r) => {
@@ -56,25 +61,33 @@
               </select>
             )}
             {slug && window.Seg && (
+              <window.Seg value={view} onChange={setView} options={[{ value: 'form', label: 'Form' }, { value: 'submissions', label: 'Submissions' }]} />
+            )}
+            {slug && view === 'form' && window.Seg && (
               <window.Seg value={mode} onChange={setMode} options={[{ value: 'fill', label: 'Fill' }, { value: 'review', label: 'Review' }]} />
             )}
-            {slug && window.PBtn && (
+            {slug && view === 'form' && window.PBtn && (
               <window.PBtn variant="secondary" icon="printer" onClick={() => window.print()}>Print</window.PBtn>
             )}
           </div>
-          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: 20 }}>
-            {status === 'loading' && <div style={{ color: P.inkMute }}>Loading forms…</div>}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            {status === 'loading' && <div style={{ padding: 20, color: P.inkMute }}>Loading forms…</div>}
             {status === 'unavailable' && (
-              window.ErrorState
-                ? <window.ErrorState title="Forms not available on this server yet" compact />
-                : <div style={{ color: P.inkMute }}>Forms not available on this server yet.</div>
+              <div style={{ padding: 20 }}>
+                {window.ErrorState
+                  ? <window.ErrorState title="Forms not available on this server yet" compact />
+                  : <div style={{ color: P.inkMute }}>Forms not available on this server yet.</div>}
+              </div>
             )}
             {status === 'ready' && forms.length === 0 && (
-              window.EmptyState
-                ? <window.EmptyState icon="note" title="No published forms" body="Forms created in the builder will show up here once published." />
-                : <div style={{ color: P.inkMute }}>No published forms.</div>
+              <div style={{ padding: 20 }}>
+                {window.EmptyState
+                  ? <window.EmptyState icon="note" title="No published forms" body="Forms created in the builder will show up here once published." />
+                  : <div style={{ color: P.inkMute }}>No published forms.</div>}
+              </div>
             )}
-            {status === 'ready' && slug && <FormHost slug={slug} mode={mode} />}
+            {status === 'ready' && slug && view === 'form' && <div style={{ padding: 20 }}><FormHost slug={slug} mode={mode} /></div>}
+            {status === 'ready' && slug && view === 'submissions' && window.HWFormsReview && <window.HWFormsReview slug={slug} />}
           </div>
         </div>
         {window.ToastHost ? <window.ToastHost /> : null}
