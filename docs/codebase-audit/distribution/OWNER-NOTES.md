@@ -373,3 +373,22 @@ is still to be added.
 **Batch level everywhere (owner, 2026-09-10):** "it's critical that we always include the batch
 level data — revise that everywhere it's needed across all screens and concepts." Rule added to
 the brief; revision pass over all 24 concepts dispatched (batch rows + RFID-first in one sweep).
+
+## 2026-09-10 · product shell ↔ location mapping (sent first to another session)
+
+**Said.** On floor restock: map the location of a product to its **parent shell** so every
+variation auto-adopts the location. Two locations per shell: a **front-of-house** (floor) one and
+a **back-of-house** one, so we always know where it is; **not mandatory for now** while the team
+learns. Add, modify and remove locations; same for boxes — boxes can be created in the
+distribution module today, but that must also be possible **from within the product shell
+module**. Removing a location must offer a quick **rebind** of every product that lost it to a
+new or existing location, and it must allow taking **a segment of that list** and assigning it
+elsewhere — never all or none.
+
+**Model.** Shell gains `foh_location_id` and `boh_location_id` (nullable) per store; variations
+inherit unless overridden; a batch arriving for a shell is pre-assigned to the shell's BOH
+location at receiving (put-away proposes it); box membership stays a rule but is editable from the
+shell. Removing a location → a "rebind" flow: list of affected shells/variations with multi-select,
+assign the selection to a target location, repeat until empty; nothing is deleted while it still
+holds product. Storage: `inventory_locations` already has parent/address; add shell defaults in
+the shells table (wm-demo `shells.py`) and a `/api/inventory/locations/{id}/rebind` route.
