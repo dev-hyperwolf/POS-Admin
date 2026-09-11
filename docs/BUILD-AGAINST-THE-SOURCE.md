@@ -123,3 +123,11 @@ repo named `hyper-tech/contracts`, `npm publish` it privately as `@hyper-tech/co
 point the drift tests at the production models by path (they already read
 `/Users/jt/hyper-tech/*` when present and only report, not fail, unless
 `HW_CONTRACTS_STRICT_PROD=1`). Nothing in the package knows it started here.
+
+## Inventory shapes (contracts 0.4.x)
+
+Seven new shapes: **Location** (receiving, safe, floor, shelf locations and kit boxes), **Batch** (product batch with number and received date), **Movement** (unit transfers with reason and timing), **ReceivedItem** (arrival kind and disposition), **PlanLine** (planned allocation per batch and location), **Plan** (build, refill or restock with kind and channel), **ShellLocationBinding** (product placement per store with side).
+
+Six new enums: **LocationKind** (receiving, safe, floor, display, kit_box, vehicle, packing_bench, lp_bench), **ArrivalKind** (new_sku, restock, new_batch), **MovementReason** (receive, put_away, build, refill, restock, dispatch, return, sale, transfer, cycle_count), **PlanReason** (sold, new_arrival, oldest_first, short_stock, below_subregion_count, mixed_batch_hold), **ChannelKind** (asap, scheduled, register, pickup, express), **CountState** (proposed, recount_required, awaiting_approval), **LocationSide** (foh, boh).
+
+Used in: wm-demo `inventory.py` / `shells.py` / `restock_engine.py`; POS-Admin `distribution-engine/` / `pos-provider/` / `pos/shell-locations.jsx`, `shell-boxes.jsx`.
