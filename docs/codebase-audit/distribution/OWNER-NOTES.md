@@ -392,3 +392,12 @@ shell. Removing a location → a "rebind" flow: list of affected shells/variatio
 assign the selection to a target location, repeat until empty; nothing is deleted while it still
 holds product. Storage: `inventory_locations` already has parent/address; add shell defaults in
 the shells table (wm-demo `shells.py`) and a `/api/inventory/locations/{id}/rebind` route.
+
+**Answers (2026-09-10):** shell locations are **per store with a company default**. **Box lives
+on the shell**, inherited by variations (the owner: "the design was supposed to call for the box
+to be determined at the shell level"); the existing distribution backend's category rule is only
+a default for new shells. **Ownership split between sessions:** `inventory.py` owns the physical
+Location records (kind, rack-shelf-bin address, QR, capacity, parent, units, movements) on the
+contract shape; the shells module owns product placement (per-store FOH/BOH defaults, overrides,
+box on the shell, delete-then-rebind with segment selection) over those location ids — one list
+of places, never two. Routes: `/api/shells/locations`, `/api/shells/products/<sku>/location?store_id=`.
