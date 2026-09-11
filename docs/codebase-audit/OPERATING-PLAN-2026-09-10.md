@@ -144,6 +144,24 @@ What we could verify ourselves (`tools/hw_security_recheck.sh`, read-only GETs, 
   commit of 2026-09-08/09. Whatever was deployed did not pass through the repositories the owner
   holds.
 
+**AWS evidence (owner's account, CloudShell, read-only, 2026-09-11 08:50):**
+- The S3 listing fix is real and dated: `PutBucketPolicy` by IAM user `techindustan-hw` from
+  14.194.152.142 on 2026-08-23 05:57-06:30 UTC (hemp-website-assets, hyperwolf-website-assets)
+  and 2026-08-26 07:49-07:50 UTC (stilo-assets). Every new policy grants public `GetObject` with
+  `Principal: *` and no `ListBucket`. hyperdrives3bucket and hyperdriver-signatures: no policy
+  change in 30 days (listing already refused). hyperwolf-s3-backups-prod: public access block on.
+- **No S3 server access logging on any of the six buckets** (`LoggingEnabled: None`). There is no
+  record of who downloaded objects, before or after the fix.
+- **No CloudTrail trail exists** (`describe-trails` empty). Only the 90-day event history is
+  available (oldest visible event 2026-06-19); it holds management events only, so no S3 object
+  reads are recorded, and everything before mid-June is already gone.
+- Consequence for counsel: the account cannot answer "did anyone other than the researcher pull
+  data from S3". The only remaining sources are the developers' application/API logs.
+- Owner decision A7 (new): create a multi-region CloudTrail trail with S3 data events and switch
+  on server access logging for the asset and signature buckets, so the next question has an
+  answer. Cost is small (trail management events free; data events ~$0.10 per 100k; log storage
+  pennies).
+
 Asked of the developers, per item: commit diff, deploy timestamp and host, a before/after request.
 Asked separately: S3 access logs, CloudTrail and API access logs for the exposure window, so counsel
 can answer whether anyone other than the researcher accessed data (breach-notification question).
