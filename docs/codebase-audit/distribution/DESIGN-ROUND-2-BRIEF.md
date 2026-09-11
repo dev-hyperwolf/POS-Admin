@@ -91,3 +91,10 @@ kits, vehicles), pull tasks per location, waste with reason and approval, recall
 with Metrc tag shown.
 
 Report back in 6 lines per concept: file path and the one idea that defines it.
+
+## Added 2026-09-10 — RFID first (applies to every later round and to revisions of round 2)
+Every count, pack-verify, return-verify and register pick begins with an RFID read; rows show
+read vs expected per batch; typed steppers appear only in an "exception" row for a dead tag or
+an untagged category and are flagged hand-counted. Shelf and rack labels carry a QR that opens
+that location's window; count sheets and pick slips carry a QR that closes them by scan. No
+location dropdowns. Reads propose; a manager approves.

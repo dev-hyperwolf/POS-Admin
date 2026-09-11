@@ -355,3 +355,17 @@ which kits and boxes — to trace mistakes and see what is happening and who is 
 times; every Movement already carries `actor_id`; count lines carry counter and approver. Chain of
 custody per unit tag; sign-in at the station by PIN or staff badge; overrides attributed with the
 reason; an accuracy view per person/team (later feeds Bounty); shift handoff recorded.
+
+## 2026-09-10 · RFID-first rule (after seeing Cycle Count Concept D)
+
+**Said.** "We are going to heavily rely on RFID + QR codes"; ideally cycle counts run on RFID.
+Screens drawn with typed steppers as the main path are not what the team will use.
+
+**Rule for every screen from here.** RFID first: any count, pack-verify, return-verify or
+register pick starts with a read (handheld sweep or fixed reader), and the row shows read vs
+expected per batch; variance and drift appear on their own. QR for places and paper: shelf and
+rack labels open their location's window by scan; count sheets and pick slips close by scan;
+locations are never chosen from a dropdown. Hand entry only as an exception (dead tag,
+untagged category) and flagged as hand-counted on the record. Reads propose; a manager approves.
+The middleware's CYCLE session mode is the cycle-count path; KIT mode the pack path; RETURN mode
+is still to be added.
