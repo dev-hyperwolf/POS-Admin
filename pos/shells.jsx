@@ -319,6 +319,23 @@
     const shared = S.sharedRows(s);
     const products = (detail && detail.products) || [];
     const loadingProducts = !detail || (detail.loading && !detail.products);
+    // "inherits: E1-A-01 (FOH) · S2-B-04 (BOH) · Flower Box 1" — every
+    // variation reads the SAME chip because a variation has no placement of
+    // its own; it only ever inherits the shell's (docs/SHELLS-PLAN-2026-09-
+    // 09.md addendum). Read-only here — editing lives on Shell details'
+    // Placement section (window.PlacementSection, pos/product-shell.jsx).
+    const placementChip = React.useMemo(() => {
+      const storeId = S.currentStoreId();
+      const locs = detail && detail.shell && detail.shell.locations;
+      const fohLbl = S.effectiveLocationLabel(locs ? { locations: locs } : null, storeId, 'foh');
+      const bohLbl = S.effectiveLocationLabel(locs ? { locations: locs } : null, storeId, 'boh');
+      const box = detail && detail.box;
+      const parts = [];
+      if (fohLbl.name) parts.push(fohLbl.name + ' (FOH)');
+      if (bohLbl.name) parts.push(bohLbl.name + ' (BOH)');
+      if (box && box.name) parts.push(box.name);
+      return parts.length ? 'inherits: ' + parts.join(' · ') : null;
+    }, [detail && detail.shell, detail && detail.box]);
     const stockColor = (q) => q === 0 ? P.bad : q < 10 ? P.warn : P.ink;
     const displayName = (p) => p.name_override || p.name || p.name_derived || p.sku;
 
@@ -389,6 +406,7 @@
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 600, color: P.ink }}>
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName(p)}</span>{p.sample && <FTag kind="warn">Sample</FTag>}{p.name_override && <FTag>Manual</FTag>}</div>
                   <div style={{ fontSize: 11.5, color: P.inkMute, fontFamily: P.fontMono, marginTop: 1 }}>{p.sku}</div>
+                  {placementChip && <div title="Read-only — edit from Shell details' Placement section" style={{ fontSize: 10, color: P.inkFaint, fontFamily: P.fontMono, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{placementChip}</div>}
                 </div>
               </div>
               <span>{p.variation && p.variation.type ? <StrainPill type={p.variation.type} /> : <span style={{ color: P.inkFaint }}>—</span>}</span>
@@ -425,6 +443,7 @@
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName(p)}</div>
                 <div style={{ fontSize: 10, color: P.inkMute, fontFamily: P.fontMono, marginTop: 1 }}>{p.sku}</div>
+                {placementChip && <div title="Read-only — edit from Shell details' Placement section" style={{ fontSize: 10, color: P.inkFaint, fontFamily: P.fontMono, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{placementChip}</div>}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

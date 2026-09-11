@@ -483,18 +483,106 @@ function MarketPricingSection({ shell }) {
   );
 }
 
+// ── Placement — the shell's own FOH/BOH + box, editable here (unlike brand/
+// format/size above, location and box are NOT part of the shell's identity
+// key, so they get real setter routes rather than "create a new shell").
+// docs/SHELLS-PLAN-2026-09-09.md 2026-09-10 addendum: "shell locations are
+// per store with a company default… box lives on the shell". Scoped by a
+// store picker (or "Company default" — store_id: null); a store's own value
+// shows greyed with "inherited from shell default" and a Clear whenever
+// nothing has been overridden AT THAT STORE — clearing an actual override
+// reverts to the default, it never deletes the default itself.
+function PlacementSection({ shell, detail }) {
+  const P = useP();
+  const LM = window.ShellLocationsModule;
+  const BM = window.ShellBoxesModule;
+  const stores = (window.HW_STORES && window.HW_STORES.list) || [];
+  const [storeSel, setStoreSel] = React.useState(null); // null = Company default
+  const locStatus = SH.useLocationsStatus(storeSel, null);
+  const locations = SH.useLocations(storeSel, null);
+  const boxStatus = SH.useBoxesStatus();
+  const boxes = SH.useBoxes();
+  const rawShell = (detail && detail.shell) || null;
+  const box = detail && detail.box;
+  const [busy, setBusy] = React.useState({ foh: false, boh: false, box: false });
+
+  if (!LM || !BM) return null; // shell-locations.jsx / shell-boxes.jsx not on this page
+
+  const effFoh = SH.effectiveLocation(rawShell, storeSel, 'foh');
+  const effBoh = SH.effectiveLocation(rawShell, storeSel, 'boh');
+
+  function pickSide(side, locationId) {
+    setBusy((o) => ({ ...o, [side]: true }));
+    SH.setShellLocation(shell.id, storeSel, side, locationId).then(() => setBusy((o) => ({ ...o, [side]: false })));
+  }
+  function pickBox(boxId) {
+    setBusy((o) => ({ ...o, box: true }));
+    SH.setShellBox(shell.id, boxId).then(() => setBusy((o) => ({ ...o, box: false })));
+  }
+
+  function SideRow({ side, label, eff }) {
+    const isOverride = eff.source === 'override';
+    const isInheritedShown = storeSel != null && eff.source === 'default';
+    const canClear = storeSel == null ? !!eff.location_id : isOverride;
+    return <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute }}>{label}</span>
+        {isInheritedShown && eff.location_id && <span style={{ fontSize: 10, color: P.inkFaint, fontStyle: 'italic' }}>inherited from shell default</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', opacity: isInheritedShown ? .6 : 1 }}>
+        <div style={{ flex: 1 }}>
+          <LM.DestPicker locations={locations} side={side} value={eff.location_id} disabled={busy[side]}
+            placeholder={'Not set'} onPick={(id) => pickSide(side, id)}
+            onRequestNew={() => LM.openNew({ side, storeId: storeSel, onCreated: (loc) => pickSide(side, loc.id) })} />
+        </div>
+        {canClear && <PBtn variant="ghost" size="xs" disabled={busy[side]} onClick={() => pickSide(side, null)}>Clear</PBtn>}
+      </div>
+    </div>;
+  }
+
+  return <Card padding={16} style={{ marginBottom: 18 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+      <Icon name="map-pin" size={15} stroke={1.9} color={P.inkDim} />
+      <span style={{ fontSize: 13.5, fontWeight: 700, color: P.ink, flex: 1 }}>Placement</span>
+      <div style={{ position: 'relative', minWidth: 180 }}>
+        <select value={storeSel || ''} onChange={(e) => setStoreSel(e.target.value || null)}
+          style={{ width: '100%', appearance: 'none', WebkitAppearance: 'none', padding: '7px 28px 7px 10px', border: `1px solid ${P.fieldBorder}`, borderRadius: P.r10, background: P.field, fontSize: 12, fontWeight: 700, color: P.ink, fontFamily: P.fontSans, outline: 'none', cursor: 'pointer' }}>
+          <option value="">Company default</option>
+          {stores.map((st) => <option key={st.slug} value={st.slug}>{st.name || st.slug}</option>)}
+        </select>
+        <Icon name="chevron-down" size={12} stroke={2.2} color={P.inkMute} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+      </div>
+    </div>
+    {locStatus.error === 'not-available' ?
+      <div style={{ fontSize: 11.5, color: P.inkMute }}>Locations not available on this server yet.</div> :
+      <>
+        <SideRow side="foh" label="Front of house" eff={effFoh} />
+        <SideRow side="boh" label="Back of house" eff={effBoh} />
+      </>}
+    <div style={{ marginTop: 4 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: P.inkMute, marginBottom: 6 }}>Box</div>
+      {boxStatus.error === 'not-available' ?
+        <div style={{ fontSize: 11.5, color: P.inkMute }}>Boxes not available on this server yet.</div> :
+        <BM.DestPicker boxes={boxes} value={box && box.id} disabled={busy.box} placeholder="Not set"
+          onPick={(id) => pickBox(id)} onRequestNew={() => BM.openNew({ onCreated: (b) => pickBox(b.id) })} />}
+    </div>
+    <div style={{ fontSize: 11, color: P.inkFaint, marginTop: 10, lineHeight: 1.4 }}>Not mandatory — leaving this empty is fine. Every variation on this shell inherits whatever is set here unless overridden.</div>
+  </Card>;
+}
+
 // ── Shell details — read-only, in a modal ──────────────────────────────────
 // There is no update-shell route (docs/SHELLS-PLAN-2026-09-09.md §3): a shell
 // is keyed by brand+format+weight+unit+pack, so a different size or format is
 // a NEW shell, not an edit of this one. This used to host the shell form in
 // edit mode; now it just shows what the shell is and how it prices against
-// the market. `onSave` is accepted for backward compatibility with callers
-// that still pass it (it is never called).
+// the market — plus Placement (location/box), which DOES have a real setter
+// route and is editable right here. `onSave` is accepted for backward
+// compatibility with callers that still pass it (it is never called).
 window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave }) {
   const P = useP();
   const resolved = shellId || (p ? (SH.shellOf(p) || {}).id : null);
   const shell = resolved ? SH.shellById(resolved) : null;
-  SH.useShellDetail(resolved); // primes SH.effectivePrice() for MarketPricingSection below
+  const detail = SH.useShellDetail(resolved); // primes SH.effectivePrice() for MarketPricingSection below, and carries .shell.locations + .box for Placement
   if (!shell) {
     return <div onClick={onClose} style={window.overlayScrim(P, { z: 220, padding: '32px 20px' })}>
       <div onClick={(e) => e.stopPropagation()} style={{ ...window.overlayCard, width: 'min(480px,96vw)', background: P.bg, border: `1px solid ${P.hairline2}`, borderRadius: P.r16, boxShadow: P.shadowLg, overflow: 'hidden' }}>
@@ -525,11 +613,12 @@ window.ShellEditModal = function ShellEditModal({ p, shellId, onClose, onSave })
           <div style={{ fontSize: 11.5, color: P.ink2, lineHeight: 1.5 }}>Shell details are set at creation and can’t be edited here — create a new shell if the brand, format or size needs to change.</div>
         </div>
         <Card padding={16} style={{ marginBottom: 18 }}>
-          {SH.sharedRows(shell).map((f, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
+          {SH.sharedRows(shell, { locations: detail && detail.shell && detail.shell.locations }).map((f, i) => <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderTop: i ? `1px solid ${P.hairline}` : 'none' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: P.inkDim }}>{f.label}{f.flag && <Tag>{f.flag}</Tag>}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: P.ink, fontFamily: P.fontMono }}>{f.value}</span>
           </div>)}
         </Card>
+        <PlacementSection shell={shell} detail={detail} />
         <MarketPricingSection shell={shell} />
       </div>
     </div>

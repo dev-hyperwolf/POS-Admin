@@ -322,6 +322,12 @@
       next.promise = null; next.loading = false;
       if (r.ok && b.shell) {
         next.error = null; next.shell = b.shell; next.format = b.format || formatById(b.shell.format_id);
+        // `box` sits alongside `shell`/`format` on the detail response — the
+        // real box record the shell points at (0.4.2 placement addendum:
+        // "GET /api/shells/<id> returns locations:{…} and box"), not to be
+        // confused with the raw `kit_box` display string decorate() reads
+        // for the list rows above.
+        next.box = b.box || null;
         next.products = Array.isArray(b.products) ? b.products : [];
         next.products.forEach((pr) => { if (pr.sku) _skuToShellId[pr.sku] = id; });
       } else {
@@ -603,6 +609,273 @@
     emit();
   }
 
+  // ══ LOCATIONS — GET/POST /api/shells/locations, /<id>/location ══════════
+  // FOH/BOH shelf locations, owned by pos/shell-locations.jsx (the module
+  // this file's own callers reach through window.HW_SHELL — never a second
+  // copy of the fetch/cache discipline the formats/brands lists above
+  // already use). Cached per (store_id, side) — a shell page and the
+  // Locations screen ask for different slices and neither should refetch
+  // what the other already has.
+  const LOC_CACHE = {};    // key(storeId,side) -> { list, loading, error, promise }
+  function locKey(storeId, side) { return (storeId || '__default__') + '|' + (side || ''); }
+  function fetchLocations(storeId, side) {
+    const key = locKey(storeId, side);
+    const cur = LOC_CACHE[key];
+    if (cur && cur.promise) return cur.promise;
+    const entry = Object.assign({ list: null }, cur, { loading: true, error: null });
+    LOC_CACHE[key] = entry; emit();
+    const qs = [storeId ? 'store_id=' + encodeURIComponent(storeId) : null, side ? 'side=' + encodeURIComponent(side) : null].filter(Boolean).join('&');
+    const p = apiGet('/api/shells/locations' + (qs ? '?' + qs : '')).then((r) => {
+      const b = r.body || {};
+      const next = LOC_CACHE[key] || entry;
+      next.promise = null; next.loading = false;
+      if (r.ok && Array.isArray(b.locations)) { next.list = b.locations; next.error = null; }
+      else { next.error = notBuilt(r) ? 'not-available' : errText(b, r); }
+      LOC_CACHE[key] = next; emit();
+      return next.list || [];
+    });
+    entry.promise = p;
+    return p;
+  }
+  // Pure read — NEVER triggers a fetch itself. useLocations()'s own effect
+  // below is the one place that does, and only there: this is called from
+  // useSubscribed's readFn during RENDER, and a component's render is not
+  // allowed to synchronously setState a different, already-mounted component
+  // — which is exactly what a side-effecting read did here once something
+  // other than the Locations screen itself (pos/product-shell.jsx's
+  // Placement section, nested inside an already-rendering ShellEditModal)
+  // became the first reader of a given (store, side) slice. Same shape
+  // shellDetail()/useShellDetail() already got right, above.
+  function locationsList(storeId, side) {
+    const cur = LOC_CACHE[locKey(storeId, side)];
+    return (cur && cur.list) || [];
+  }
+  function locationsStatus(storeId, side) {
+    const cur = LOC_CACHE[locKey(storeId, side)];
+    return { loading: !!(cur && cur.loading), error: (cur && cur.error) || null, loaded: !!(cur && cur.list) };
+  }
+  function useLocations(storeId, side) {
+    React.useEffect(() => { if (!LOC_CACHE[locKey(storeId, side)]) fetchLocations(storeId, side); }, [storeId, side]);
+    return useSubscribed(() => locationsList(storeId, side));
+  }
+  function useLocationsStatus(storeId, side) { return useSubscribed(() => locationsStatus(storeId, side)); }
+  function refreshLocations() {
+    // A write can affect any store/side slice (a shell's default touches
+    // every store; a store override touches one) — simplest correct thing
+    // is to drop every cached slice rather than guess which ones changed.
+    Object.keys(LOC_CACHE).forEach((k) => delete LOC_CACHE[k]);
+    emit();
+  }
+  // Look up a location's display name across whatever slices are cached —
+  // used to label a shell's effective FOH/BOH without a second fetch.
+  function locationById(id) {
+    if (!id) return null;
+    for (const k in LOC_CACHE) {
+      const hit = ((LOC_CACHE[k] && LOC_CACHE[k].list) || []).find((l) => l.id === id);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  // Server error bodies on the locations/boxes routes come back either as a
+  // plain string ((b.error)) or as the contract's {code,message,details}
+  // shape (400 unprocessable) — this reads whichever arrived rather than
+  // printing "[object Object]" when the second form shows up.
+  function errText(b, r) {
+    const e = b && b.error;
+    if (e && typeof e === 'object') return e.message || e.code || r.error || ('HTTP ' + r.code);
+    return e || r.error || ('HTTP ' + r.code);
+  }
+  function errMissing(b) {
+    const e = b && b.error;
+    if (e && typeof e === 'object' && e.details && Array.isArray(e.details.missing)) return e.details.missing;
+    return (b && b.missing) || [];
+  }
+  // A server that hasn't built this route yet answers 404/501 — every caller
+  // shows "not available on this server yet" instead of a raw error, per the
+  // brief's tolerance requirement.
+  function notBuilt(r) { return r.code === 404 || r.code === 501; }
+
+  // FOH kinds vs BOH kinds — LocationKind values scoped by which side they're
+  // ever offered on (contracts/index.js LocationKind is wider — receiving,
+  // vehicle, etc. — those are distribution-side kinds, not a shell's FOH/BOH).
+  const LOCATION_KINDS_BY_SIDE = { foh: ['floor', 'shelf', 'display'], boh: ['safe', 'quarantine'] };
+
+  function saveLocation(draft) {
+    const isUpdate = !!draft.id;
+    const body = { name: (draft.name || '').trim(), kind: draft.kind, store_id: draft.store_id || null, actor: actor() };
+    if (draft.address != null && draft.address !== '') body.address = draft.address;
+    if (draft.capacity !== '' && draft.capacity != null) body.capacity = parseInt(draft.capacity, 10);
+    if (draft.active != null) body.active = !!draft.active;
+    const path = isUpdate ? '/api/shells/locations/' + encodeURIComponent(draft.id) : '/api/shells/locations';
+    return apiPost(path, body).then((r) => {
+      const b = r.body || {};
+      if (r.ok && b.location) { refreshLocations(); return { ok: true, location: b.location }; }
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Locations are not available on this server yet.' };
+      if (r.code === 409) return { ok: false, code: 409, error: 'A location with this name already exists for this store and kind.' };
+      return { ok: false, code: r.code, error: errText(b, r), hint: r.hint || null };
+    });
+  }
+  function previewLocationDelete(locationId) {
+    return apiPost('/api/shells/locations/delete/preview', { location_id: locationId }).then((r) => {
+      const b = r.body || {};
+      if (r.ok) return { ok: true, affected: b.affected || [], stockHeld: b.stock_held || 0 };
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Locations are not available on this server yet.' };
+      return { ok: false, error: errText(b, r) };
+    });
+  }
+  function deleteLocation(locationId, reassign) {
+    return apiPost('/api/shells/locations/delete', { location_id: locationId, reassign: reassign || {}, actor: actor() }).then((r) => {
+      const b = r.body || {};
+      if (r.ok) { refreshLocations(); refreshShells(); return { ok: true, result: b }; }
+      if (r.code === 403) return { ok: false, code: 403, manager: true };
+      if (r.code === 409) return { ok: false, code: 409, stockHeld: true, error: 'Still holds product — move it first.' };
+      if (r.code === 400) return { ok: false, code: 400, missing: errMissing(b), error: errText(b, r) };
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Locations are not available on this server yet.' };
+      return { ok: false, error: errText(b, r) };
+    });
+  }
+  // GET /api/shells/products/<sku>/location?store_id= -> {foh, boh, source}
+  // Used by anything that needs one product's effective placement without a
+  // full shell detail fetch (a variation row far from its shell context).
+  function fetchProductLocation(sku, storeId) {
+    if (!sku) return Promise.resolve({ ok: false, error: 'no_sku', foh: null, boh: null, source: 'none' });
+    const qs = storeId ? '?store_id=' + encodeURIComponent(storeId) : '';
+    return apiGet('/api/shells/products/' + encodeURIComponent(sku) + '/location' + qs).then((r) => {
+      const b = r.body || {};
+      if (r.ok) return { ok: true, foh: b.foh || null, boh: b.boh || null, source: b.source || 'none' };
+      if (notBuilt(r)) return { ok: false, notAvailable: true, foh: null, boh: null, source: 'none' };
+      return { ok: false, error: errText(b, r), foh: null, boh: null, source: 'none' };
+    });
+  }
+  // Set (or clear, with location_id: null) one shell's FOH/BOH slot — either
+  // its default (store_id: null) or one store's override.
+  function setShellLocation(shellId, storeId, side, locationId) {
+    if (!shellId) return Promise.resolve({ ok: false, error: 'unknown_shell' });
+    return apiPost('/api/shells/' + encodeURIComponent(shellId) + '/location',
+      { store_id: storeId || null, side, location_id: locationId || null, actor: actor() }).then((r) => {
+      const b = r.body || {};
+      if (r.ok) {
+        if (SHELL_DETAILS[shellId]) fetchShellDetail(shellId, true);
+        refreshShells();
+        return { ok: true };
+      }
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Locations are not available on this server yet.' };
+      return { ok: false, error: errText(b, r), hint: r.hint || null };
+    });
+  }
+  // Set (or clear, with box_id: null) the box a shell's variations inherit.
+  function setShellBox(shellId, boxId) {
+    if (!shellId) return Promise.resolve({ ok: false, error: 'unknown_shell' });
+    return apiPost('/api/shells/' + encodeURIComponent(shellId) + '/box', { box_id: boxId || null, actor: actor() }).then((r) => {
+      const b = r.body || {};
+      if (r.ok) {
+        if (SHELL_DETAILS[shellId]) fetchShellDetail(shellId, true);
+        refreshShells();
+        return { ok: true };
+      }
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Box assignment isn’t available on this server yet.' };
+      return { ok: false, error: errText(b, r), hint: r.hint || null };
+    });
+  }
+
+  // ── the effective FOH/BOH for one shell at one store: a store override
+  // wins over the shell's own default, and either can be unset ("not set")
+  // — never a client-side fabrication when the server hasn't answered.
+  // `shell` is whatever carries a `.locations` field (the raw /api/shells/<id>
+  // detail row) — pass it straight through, this never re-shapes it.
+  function effectiveLocation(shell, storeId, side) {
+    const L = (shell && shell.locations) || null;
+    if (!L) return { location_id: null, source: null };
+    const override = storeId && L.by_store && L.by_store[storeId] ? L.by_store[storeId][side] : null;
+    if (override) return { location_id: override, source: 'override', storeId };
+    const def = L.default ? L.default[side] : null;
+    if (def) return { location_id: def, source: 'default' };
+    return { location_id: null, source: null };
+  }
+  function effectiveLocationLabel(shell, storeId, side) {
+    const eff = effectiveLocation(shell, storeId, side);
+    if (!eff.location_id) return { name: null, source: null, sourceLabel: null };
+    const loc = locationById(eff.location_id);
+    const storeName = eff.storeId ? (window.HW_STORES ? window.HW_STORES.name(eff.storeId) : eff.storeId) : null;
+    const sourceLabel = eff.source === 'override' ? ('from ' + (storeName || 'this store') + ' override') : 'from shell default';
+    return { name: (loc && loc.name) || eff.location_id, source: eff.source, sourceLabel };
+  }
+  // The associate's own store — the one "currently selected store" every
+  // caller on this page means when it says "the current store" (there is no
+  // separate store switcher on the register/catalog screens). Same accessor
+  // shape as actor() above; falls back to the first entry in window.HW_STORES
+  // so a page that hasn't loaded the associate fixture still shows SOMETHING
+  // rather than nothing.
+  function currentStoreId() {
+    const a = (HW && HW.STATS && HW.STATS.associate) || {};
+    if (a.storeId) return a.storeId;
+    const list = (window.HW_STORES && window.HW_STORES.list) || [];
+    return list[0] ? list[0].slug : null;
+  }
+
+  // ══ BOXES — GET/POST /api/shells/boxes ═══════════════════════════════════
+  // The delivery-kit-box library, same fetch/cache/CRUD shape as LOCATIONS
+  // above. A box is its own record now (id, name, type, sort, active) and a
+  // shell points at one by id via POST /api/shells/<id>/box {box_id} —
+  // setShellBox(), next to setShellLocation() above. `kit_box` (the plain
+  // name string on the raw shell row) stays around as the decorated display
+  // value until every shell has been migrated onto a real box_id.
+  let BOX_LIST = null, boxesLoading = false, boxesError = null, boxesPromise = null;
+  function fetchBoxes() {
+    if (boxesPromise) return boxesPromise;
+    boxesLoading = true; boxesError = null; emit();
+    boxesPromise = apiGet('/api/shells/boxes').then((r) => {
+      boxesLoading = false; boxesPromise = null;
+      const b = r.body || {};
+      if (r.ok && Array.isArray(b.boxes)) { BOX_LIST = b.boxes; boxesError = null; }
+      else { boxesError = notBuilt(r) ? 'not-available' : errText(b, r); }
+      emit();
+      return BOX_LIST || [];
+    });
+    return boxesPromise;
+  }
+  // Pure read — see locationsList()'s comment above for why the fetch moved
+  // out of the render-time accessor and into useBoxes()'s own effect.
+  function boxes() { return BOX_LIST || []; }
+  function useBoxes() {
+    React.useEffect(() => { if (BOX_LIST === null && !boxesLoading) fetchBoxes(); }, []);
+    return useSubscribed(boxes);
+  }
+  function useBoxesStatus() { return useSubscribed(() => ({ loading: boxesLoading, error: boxesError, loaded: BOX_LIST !== null })); }
+  function refreshBoxes() { BOX_LIST = null; boxesPromise = null; return fetchBoxes(); }
+  function saveBox(draft) {
+    const body = { name: (draft.name || '').trim(), actor: actor() };
+    if (draft.id) body.id = draft.id;
+    if (draft.type) body.type = draft.type;
+    if (draft.sort !== '' && draft.sort != null) body.sort = parseInt(draft.sort, 10);
+    if (draft.active != null) body.active = !!draft.active;
+    return apiPost('/api/shells/boxes', body).then((r) => {
+      const b = r.body || {};
+      if (r.ok && b.box) { refreshBoxes(); addBox(b.box.name); return { ok: true, box: b.box }; }
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Boxes are not available on this server yet.' };
+      if (r.code === 409) return { ok: false, code: 409, error: 'A box with this name already exists.' };
+      return { ok: false, code: r.code, error: errText(b, r), hint: r.hint || null };
+    });
+  }
+  function previewBoxDelete(boxId) {
+    return apiPost('/api/shells/boxes/delete/preview', { box_id: boxId }).then((r) => {
+      const b = r.body || {};
+      if (r.ok) return { ok: true, affected: b.affected || [] };
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Boxes are not available on this server yet.' };
+      return { ok: false, error: errText(b, r) };
+    });
+  }
+  function deleteBox(boxId, reassign) {
+    return apiPost('/api/shells/boxes/delete', { box_id: boxId, reassign: reassign || {}, actor: actor() }).then((r) => {
+      const b = r.body || {};
+      if (r.ok) { refreshBoxes(); refreshShells(); return { ok: true, result: b }; }
+      if (r.code === 403) return { ok: false, code: 403, manager: true };
+      if (r.code === 400) return { ok: false, code: 400, missing: errMissing(b), error: errText(b, r) };
+      if (notBuilt(r)) return { ok: false, notAvailable: true, error: 'Boxes are not available on this server yet.' };
+      return { ok: false, error: errText(b, r) };
+    });
+  }
+
   // AI product-description draft for a new variation.
   function aiDesc(shell, v) {
     if (!shell) return '';
@@ -621,7 +894,18 @@
   // in the create-variation step. No price/traits rows any more: neither is
   // a shell-level field in the new model (a variation owns its own price;
   // there is no traits column at all — see the file header).
-  function sharedRows(s) {
+  // `opts.locations` is the raw {default:{foh,boh}, by_store:{…}} shape GET
+  // /api/shells/<id> carries on the detail row — decorate() (the LIST shape)
+  // never sees it, so a caller sitting on a detail fetch passes it in rather
+  // than this function guessing at `s.locations`. Missing entirely (no detail
+  // yet, or the field hasn't landed) reads as "not set", never as an error —
+  // ruling: optional, never a false blank.
+  function sharedRows(s, opts) {
+    const o = opts || {};
+    const storeId = o.storeId || currentStoreId();
+    const locs = o.locations || s.locations || null;
+    const fohLbl = effectiveLocationLabel(locs ? { locations: locs } : null, storeId, 'foh');
+    const bohLbl = effectiveLocationLabel(locs ? { locations: locs } : null, storeId, 'boh');
     return [
       { label: 'Brand', value: s.brand },
       { label: 'Category', value: s.cat },
@@ -630,7 +914,9 @@
       { label: 'Weight / size', value: s.weight },
       { label: 'Pack', value: String(s.pack || 1) },
       { label: 'Weedmaps node', value: s.wmNode, flag: 'From format' },
-      { label: 'Delivery box', value: s.kit || '—', flag: 'Delivery only' }];
+      { label: 'Delivery box', value: s.kit || '—', flag: 'Delivery only' },
+      { label: 'Front of house', value: fohLbl.name || 'not set', flag: fohLbl.sourceLabel || null },
+      { label: 'Back of house', value: bohLbl.name || 'not set', flag: bohLbl.sourceLabel || null }];
   }
 
   window.HW_SHELL = {
@@ -645,5 +931,13 @@
     addBox, renameBox, brandKeyFor, actor,
     fetchRawProduct,
     parseSize, splitSize, mono1, mono2, slugify, familyPath, menuPath, hueOf,
-    totalStock, effectivePrice, aiDesc, sharedRows };
+    totalStock, effectivePrice, aiDesc, sharedRows,
+    // Locations (FOH/BOH) — pos/shell-locations.jsx owns the CRUD screen;
+    // every other file reads through these same functions.
+    LOCATION_KINDS_BY_SIDE,
+    locationsList, useLocations, locationsStatus, useLocationsStatus, refreshLocations,
+    locationById, saveLocation, previewLocationDelete, deleteLocation, setShellLocation,
+    fetchProductLocation, effectiveLocation, effectiveLocationLabel, currentStoreId,
+    // Boxes, server-backed — pos/shell-boxes.jsx owns the CRUD screen.
+    boxes, useBoxes, useBoxesStatus, refreshBoxes, saveBox, previewBoxDelete, deleteBox, setShellBox };
 })();
