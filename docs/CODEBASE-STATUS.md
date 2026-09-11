@@ -58,9 +58,9 @@ one-line follow-up. Without `WM_DEMO_WRITE_TOKEN` the routes answer loopback onl
 `contracts.error/http_status`; the app depends on `HW_LIVE` and the rail. Lifting them into a
 Hyper-Tech service means copying the files and the two `server.py` mount lines.
 
-## Phase 5 — Inventory, placement, forms (2026-09-10)
+## Phase 5 — Inventory, placement, forms, RFID (2026-09-10)
 
-The distribution study, 24 design concepts, and migration inventories live under `docs/codebase-audit/distribution/` and `docs/migration/`.
+The distribution study, 24 design concepts, and migration inventories live under `docs/codebase-audit/distribution/` and `docs/migration/`. All infrastructure and design foundations shipped and live on https://hyperwolf-wm-demo.onrender.com on 2026-09-10.
 
 | Piece | Where | Proof |
 |---|---|---|
@@ -71,11 +71,18 @@ The distribution study, 24 design concepts, and migration inventories live under
 | Placement (per-store FOH/BOH on the shell, boxes, rebind) | wm-demo `shells.py`, `shells_api.py`; POS-Admin `pos/shell-locations.jsx`, `shell-boxes.jsx`, Placement on the shell form | 66 checks; 5 UI tests |
 | Python restock engine, parity with the JS | wm-demo `restock_engine.py` | 83 checks, 31 goldens |
 | Form generator phases 0–1 | wm-demo `forms.py`, `forms_api.py`; POS-Admin `shared/hd-form.jsx`, `Hyperwolf Forms.html` | 57 checks; 8 tests |
-| RFID middleware: batch-keyed plans, RETURN mode, station meta | `~/Documents/hyperwolf-repos/rfid-middleware` commit `ed18bcf` (local) | 177 → 199 tests |
+| RFID middleware: batch-keyed plans, RETURN mode, station meta | `~/Documents/hyperwolf-repos/rfid-middleware` commit `676d88d` | 223 tests, 44-check conformance kit |
 | 24 concepts, batch level everywhere, RFID first | POS-Admin `explorations/` + index | live on Render |
 | Migration inventories + form proposal | POS-Admin `docs/migration/` | — |
+| Design review pages: index + refill, location, count, verify, store, build | POS-Admin `explorations/review/` | `GET /api/review/*` behind `HW_REVIEW_PIN`, 31 contract checks |
+| Floor-restock routes (RFID-first, batch-aware) | wm-demo `inventory_api.py` | `GET /api/inventory/restock/preview`, `POST .../plan`, `POST .../apply`, 36 checks |
+| Paper-first pick slip: HTML and text formats | wm-demo `pick_slip.py` | `GET /api/inventory/restock/slip?format=html\|text`, 27 checks |
+| Form generator phase 2: attachments, submission detail, CSV export | wm-demo `forms_api.py`; POS-Admin `forms-app/review.jsx` | 42 checks, formula-injection guard (FA-11d) |
+| RFID return-verify endpoint: same-person refusal | `rfid-middleware` `/sessions/:id/return-approve` | 44-check conformance kit; typed output |
 
-Not done yet: a manager-approval route for return proposals in the middleware and its conformance kit; Floor Restock wired to `plan_restock_for_store`; a route for the restock plan; the form builder screen (phase 3); the LP migration.
+**Shipped and live (2026-09-10):** design review pages collect team feedback (team PIN-gated); floor-restock routes plan kits with RFID-first, batch-aware allocation; pick slips print via wm-demo; RFID middleware enforces batch-keyed plans and return authorization. Adversarial QA ran (3 findings; CSV injection fixed, restock-apply trust, attachment content-type noted). Battery floor 3628 stable.
+
+Not done yet: Floor Restock wired to `plan_restock_for_store`; the form builder screen (phase 3); the LP migration.
 
 ## Phase 3 — compatibility (done, committed, not pushed)
 

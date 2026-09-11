@@ -413,10 +413,31 @@ of places, never two. Routes: `/api/shells/locations`, `/api/shells/products/<sk
 | Placement (per-store FOH/BOH on the shell, boxes, rebind) | wm-demo `shells.py`, `shells_api.py`; POS-Admin `pos/shell-locations.jsx`, `shell-boxes.jsx`, Placement on the shell form | 66 checks; 5 UI tests |
 | Python restock engine, parity with the JS | wm-demo `restock_engine.py` | 83 checks, 31 goldens |
 | Form generator phases 0–1 | wm-demo `forms.py`, `forms_api.py`; POS-Admin `shared/hd-form.jsx`, `Hyperwolf Forms.html` | 57 checks; 8 tests |
-| RFID middleware: batch-keyed plans, RETURN mode, station meta | `~/Documents/hyperwolf-repos/rfid-middleware` commit `ed18bcf` (local) | 177 → 199 tests |
+| RFID middleware: batch-keyed plans, RETURN mode, station meta | `~/Documents/hyperwolf-repos/rfid-middleware` commit `676d88d` | 223 tests; 44-check conformance kit |
 | 24 concepts, batch level everywhere, RFID first | POS-Admin `explorations/` + index | live on Render |
 | Migration inventories + form proposal | POS-Admin `docs/migration/` | — |
+| Design review pages: index + refill, location, count, verify, store, build | POS-Admin `explorations/review/` | `/api/review/*` behind `HW_REVIEW_PIN`; 31 checks |
+| Floor-restock routes (RFID-first, batch-aware) | wm-demo `inventory_api.py` | `GET /api/inventory/restock/preview`, `POST .../plan`, `POST .../apply`; 36 checks |
+| Paper-first pick slip: HTML and text formats | wm-demo `pick_slip.py` | `GET /api/inventory/restock/slip?format=html\|text`; 27 checks |
+| Form generator phase 2: attachments, submission detail, CSV export | wm-demo `forms_api.py`; POS-Admin `forms-app/review.jsx` | 42 checks; formula-injection guard (FA-11d) |
+| RFID return-approve: same-person refusal, end-of-flow auth | `rfid-middleware` `/sessions/:id/return-approve` | 44-check conformance kit |
 
 Not done yet: a manager-approval route for return proposals in the middleware and its conformance
 kit; Floor Restock wired to `plan_restock_for_store`; a route for the restock plan; the form
 builder screen (phase 3); the LP migration.
+
+## 2026-09-10 · shipped today
+
+**Review feedback collection.** Design review pages (`explorations/review/`) and the digest tool
+(`tools/hw_review_notes.py`) are now live on Render, team PIN-gated, collect feedback via
+`/api/review/*`, and replace the interim Claude artifacts. Each round's four concepts frame the
+decision and yield a live, shared record (unlike Claude artifacts, which cannot be shared by link
+or store data). Digest tool pulls raw notes and produces a summary for the next round.
+
+**RFID-aware allocation and floor restock.** Restock routes (`/api/inventory/restock/`) plan kits
+with RFID-first, batch-aware picking (unread lines skipped unless hand-counted); pick slips
+render via wm-demo (`/api/inventory/restock/slip`); RFID middleware (commit `676d88d`) ships
+batch-keyed plans and a RETURN session mode for return-verify. Conformance kit passed (44 checks).
+
+**Adversarial QA.** CSV formula-injection guard added (FA-11d); restock apply trusts the posted
+plan (fix in progress); attachment content-type is client-declared (note). Battery floor 3628.
