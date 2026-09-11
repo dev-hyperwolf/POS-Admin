@@ -14,21 +14,25 @@ for h in https://api.hyperwolf.prod.ths.agency https://distribution-backend.js.t
   echo "  $h: $(curl -s -m 15 -o /dev/null -D - -H 'Origin: https://evil.example' "$h/" | grep -i 'access-control-allow-origin\|^HTTP' | tr '\r\n' '  ')"
 done
 echo
-echo "== Unauthenticated reads that should now be 401/403 (want: 401 or 403; 200 = still open)"
+echo "== Unauthenticated reads the audit found open (want: 401/403; 200 = still open; 404 = path moved, tell Claude)"
 for u in \
   "https://api.hyperwolf.prod.ths.agency/api/v1/admin/products" \
-  "https://api.hyperwolf.prod.ths.agency/api/v1/admin/orders" \
-  "https://api.hyperwolf.prod.ths.agency/api/v1/admin/users" \
-  "https://api.hyperwolf.prod.ths.agency/api/v1/ledgergreen/webhook" \
-  "http://hyperdrive.hyperwolf.com/api/v1/fleet/recommend" \
-  "https://distribution-backend.js.thcs.in/api/v1/distribution" ; do
+  "https://api.hyperwolf.prod.ths.agency/api/v1/admin/banners" \
+  "https://api.hyperwolf.prod.ths.agency/api/v1/admin/brand" \
+  "https://api.hyperwolf.prod.ths.agency/api/v1/admin/distributor" \
+  "https://api.hyperwolf.prod.ths.agency/api/v1/admin/blogs" \
+  "https://api.hyperwolf.prod.ths.agency/api/v1/admin/shop/time" \
+  "https://api.hyperwolf.prod.ths.agency/api/v1/product/carousel" \
+  "https://api.hyperwolf.prod.ths.agency/api/v1/timeslots" \
+  "https://hyperdrive.hyperwolf.com/api/v1/fleet/recommend?latitude=33.88&longitude=-117.57" \
+  "http://hyperdrive.hyperwolf.com/api/v1/fleet/recommend?latitude=33.88&longitude=-117.57" ; do
   code=$(curl -s -m 15 -o /tmp/hw_r.json -w "%{http_code}" "$u")
-  leak=$(grep -o -i '"password"\|"token"\|"accessToken"\|"refreshToken"' /tmp/hw_r.json | sort -u | tr '\n' ' ')
-  echo "  $code  $u ${leak:+  <-- response contains: $leak}"
+  leak=$(grep -o -i '"password"\|"token"\|"accessToken"\|"refreshToken"\|"email"\|"phone"' /tmp/hw_r.json | sort -u | tr '\n' ' ')
+  echo "  $code  ${u%%\?*} ${leak:+  <-- response contains: $leak}"
 done; rm -f /tmp/hw_r.json
 echo
 echo "== Public product read: must not carry password/token fields (want: 200 with no field names listed)"
-code=$(curl -s -m 15 -o /tmp/hw_p.json -w "%{http_code}" "https://api.hyperwolf.prod.ths.agency/api/v1/products?limit=1")
+code=$(curl -s -m 15 -o /tmp/hw_p.json -w "%{http_code}" "https://api.hyperwolf.prod.ths.agency/api/v1/product?limit=1")
 echo "  $code  $(grep -o -i '"password"\|"token"\|"accessToken"\|"apiKey"' /tmp/hw_p.json | sort -u | tr '\n' ' ')"; rm -f /tmp/hw_p.json
 echo
 echo "done: $(date '+%Y-%m-%d %H:%M')"

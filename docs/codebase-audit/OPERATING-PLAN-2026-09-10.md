@@ -121,3 +121,24 @@ In order of least disruption:
 Once on the box: `pm2 list`, `pm2 env <id>`, `cat ~/.pm2/logs/*` heads, `df -h`, `free -m`,
 `crontab -l`, and which git remote and branch each app directory is on. That is the deploy
 line for that host, written by you rather than requested from the developers.
+
+## Security disclosure status (checked 2026-09-11)
+
+Developers' email (Anish, 2026-09-11 05:31): fixed and deployed -- S3 bucket listing, super admin
+creation, ID/selfie verification bypass, token/password leakage; in progress -- API authentication,
+open order endpoint; under review -- unauthenticated payment endpoint, upload routes and CORS,
+server-side validation of cart totals and wallet balances.
+
+What we could verify ourselves (`tools/hw_security_recheck.sh`, read-only GETs, run by the owner):
+- **Confirmed fixed:** bucket listing on all six buckets (403 AccessDenied).
+- **Confirmed still open:** CORS wildcard on `api.hyperwolf.prod.ths.agency` and
+  `distribution-backend.js.thcs.in` (consistent with their "under review").
+- **Consistent with a fix:** `GET /api/v1/admin/products` now 401 (the audit's finding was on
+  POST/PUT, which we do not exercise).
+- **No evidence in git:** all twelve Hyper-Tech repos on GitHub still sit at their single Initial
+  commit of 2026-09-08/09. Whatever was deployed did not pass through the repositories the owner
+  holds.
+
+Asked of the developers, per item: commit diff, deploy timestamp and host, a before/after request.
+Asked separately: S3 access logs, CloudTrail and API access logs for the exposure window, so counsel
+can answer whether anyone other than the researcher accessed data (breach-notification question).
