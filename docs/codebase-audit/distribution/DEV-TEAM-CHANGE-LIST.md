@@ -250,6 +250,17 @@ for a week".
 `freeze`; the Blaze sync call beside it is commented out at line 37. **Why:** operators believe
 product moved when it did not.
 
+### 18. Put the box, the batch number and the THC on every plan line
+
+A refill or restock plan line today carries only `product_id` and `batch_id`. The printed pick
+slip (paper first, per the owner) needs the human product name, the batch number, the THC from
+the batch label, the received/packaged date, and which box in the kit the line goes to. Please
+stamp `product_name`, `batch_no`, `thc_pct`, `received_at` and `box` on each plan line when the
+plan is built, from the Batch record and the kit's box list. **Why:** the packer works from paper
+with no screen beside them; a slip that says "batch 64f1a…" instead of "#HW-2411-07 · 24.1% THC"
+is how a mixed-batch kit goes out unnoticed. Until this lands, our renderer falls back to the
+batch id and "THC n/a" and prints the line under "Unboxed".
+
 ---
 
 ## Questions we would like answered alongside this list
